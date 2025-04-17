@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -188,19 +189,29 @@ const ProductDetail = () => {
                   )}
                 </div>
               )}
-              <Button 
-                className="col-span-2 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                onClick={handleBuyNow}
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" /> Купить
-              </Button>
-              
-              <Button 
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                onClick={handleContactWhatsApp}
-              >
-                <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
-              </Button>
+              <div className="grid grid-cols-1 gap-2">
+                <Button 
+                  className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  onClick={handleBuyNow}
+                >
+                  <ShoppingCart className="mr-2 h-4 w-4" /> Купить
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                  onClick={handleContactTelegram}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" /> Связаться в Telegram
+                </Button>
+                
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleContactWhatsApp}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
+                </Button>
+              </div>
             </div>
             
             <div className="space-y-3 text-sm">
