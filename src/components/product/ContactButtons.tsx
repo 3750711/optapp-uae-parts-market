@@ -29,7 +29,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <Button 
           variant="outline"
           className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
-          onClick={() => window.open(`https://t.me/${telegramUsername.replace(/^@/, '')}`, '_blank', 'noopener,noreferrer')}
+          onClick={() => window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer')}
         >
           <MessageSquare className="mr-2 h-4 w-4" /> Связаться с продавцом
         </Button>
