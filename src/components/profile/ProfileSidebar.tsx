@@ -8,15 +8,12 @@ import { ProfileType } from "./types";
 interface ProfileSidebarProps {
   profile: ProfileType;
   isLoading: boolean;
-  onDeleteAccount: () => Promise<void>;
-  onContactAdmin: () => void;
+  // Removed onDeleteAccount and onContactAdmin
 }
 
 const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   profile,
   isLoading,
-  onDeleteAccount,
-  onContactAdmin,
 }) => {
   return (
     <div className="w-full md:w-1/3 space-y-6">
@@ -24,8 +21,7 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
       <ProfileActions 
         profile={profile}
         isLoading={isLoading}
-        onDeleteAccount={onDeleteAccount}
-        onContactAdmin={onContactAdmin}
+        // Removed onDeleteAccount and onContactAdmin props
       />
       <ProfileInfo profile={profile} />
     </div>

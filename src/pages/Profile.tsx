@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -66,32 +65,6 @@ const Profile = () => {
     }
   };
 
-  const handleDeleteAccount = async () => {
-    setIsLoading(true);
-    
-    try {
-      // Fix the TypeScript error by passing an empty object with type assertion
-      const { error } = await supabase.rpc('delete_user_account', {} as Record<string, never>);
-      
-      if (error) throw error;
-      
-      await signOut();
-      toast({
-        title: "Аккаунт удален",
-        description: "Ваш аккаунт был успешно удален",
-      });
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Ошибка удаления аккаунта",
-        description: error.message || "Произошла ошибка при удалении аккаунта",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // Updated to be just a simple handler without opening the URL directly
   const handleContactAdmin = () => {
     // The actual URL opening is now handled in ProfileActions component
@@ -116,8 +89,6 @@ const Profile = () => {
           <ProfileSidebar 
             profile={profile}
             isLoading={isLoading}
-            onDeleteAccount={handleDeleteAccount}
-            onContactAdmin={handleContactAdmin}
           />
           <div className="w-full md:w-2/3">
             <ProfileForm
