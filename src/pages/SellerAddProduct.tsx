@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -37,7 +36,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-// Schema for product form validation
 const productSchema = z.object({
   title: z.string().min(3, {
     message: "Название должно содержать не менее 3 символов",
@@ -87,7 +85,6 @@ const SellerAddProduct = () => {
     },
   });
 
-  // Handle image change
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       if (images.length + e.target.files.length > 8) {
@@ -101,7 +98,6 @@ const SellerAddProduct = () => {
       
       const filesArray = Array.from(e.target.files);
       
-      // Create preview URLs
       const newImageUrls = filesArray.map((file) => URL.createObjectURL(file));
       
       setImages((prevImages) => [...prevImages, ...filesArray]);
@@ -109,14 +105,12 @@ const SellerAddProduct = () => {
     }
   };
 
-  // Remove image
   const removeImage = (index: number) => {
-    URL.revokeObjectURL(imageUrls[index]); // Clean up the created URL
+    URL.revokeObjectURL(imageUrls[index]);
     setImages((prevImages) => prevImages.filter((_, i) => i !== index));
     setImageUrls((prevUrls) => prevUrls.filter((_, i) => i !== index));
   };
 
-  // Upload images to Supabase storage
   const uploadImages = async (productId: string) => {
     const uploadPromises = images.map(async (file, index) => {
       const fileExt = file.name.split('.').pop();
@@ -130,21 +124,19 @@ const SellerAddProduct = () => {
         throw error;
       }
       
-      // Get the public URL
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(fileName);
         
       return {
         url: publicUrl,
-        is_primary: index === 0 // First image is primary
+        is_primary: index === 0
       };
     });
 
     return await Promise.all(uploadPromises);
   };
 
-  // Handle form submission
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     if (!user || !profile) {
       toast({
@@ -167,9 +159,8 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
-      // Use type assertion to bypass TypeScript errors
       const { data: product, error: productError } = await (supabase
-        .from('products') as any)
+        .from('products') as unknown as any)
         .insert({
           title: values.title,
           price: parseFloat(values.price),
@@ -187,12 +178,10 @@ const SellerAddProduct = () => {
 
       if (productError) throw productError;
 
-      // Upload images and link to product
       const uploadedImages = await uploadImages(product.id);
       
-      // Insert image records using type assertion to bypass TypeScript errors
       const { error: imagesError } = await (supabase
-        .from('product_images') as any)
+        .from('product_images') as unknown as any)
         .insert(
           uploadedImages.map(img => ({
             product_id: product.id,
@@ -208,7 +197,6 @@ const SellerAddProduct = () => {
         description: "Ваш товар успешно размещен на маркетплейсе",
       });
 
-      // Redirect to seller profile
       navigate('/seller/dashboard');
     } catch (error) {
       console.error("Error adding product:", error);
@@ -222,7 +210,6 @@ const SellerAddProduct = () => {
     }
   };
 
-  // Clean up image URLs when component unmounts
   useEffect(() => {
     return () => {
       imageUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -245,7 +232,6 @@ const SellerAddProduct = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Basic Info */}
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -310,7 +296,6 @@ const SellerAddProduct = () => {
                     </div>
                   </div>
                   
-                  {/* Car Info */}
                   <div className="space-y-4">
                     <h3 className="font-medium">Информация об автомобиле</h3>
                     
@@ -366,7 +351,6 @@ const SellerAddProduct = () => {
                     </div>
                   </div>
                   
-                  {/* Description */}
                   <FormField
                     control={form.control}
                     name="description"
@@ -385,7 +369,6 @@ const SellerAddProduct = () => {
                     )}
                   />
                   
-                  {/* Location */}
                   <FormField
                     control={form.control}
                     name="location"
@@ -414,7 +397,6 @@ const SellerAddProduct = () => {
                     )}
                   />
                   
-                  {/* Images */}
                   <div className="space-y-2">
                     <Label>Фотографии товара</Label>
                     

@@ -19,9 +19,9 @@ const SellerProfile = () => {
       
       setLoading(true);
       try {
-        // Use type assertion to bypass TypeScript errors
+        // Полное игнорирование типов для доступа к таблицам
         const { data: productsData, error: productsError } = await (supabase
-          .from('products') as any)
+          .from('products') as unknown as any)
           .select('*, product_images(url, is_primary)')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false });
