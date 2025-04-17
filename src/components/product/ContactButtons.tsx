@@ -16,6 +16,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactWhatsApp,
   telegramUrl 
 }) => {
+  // Construct full Telegram URL with the new format
+  const fullTelegramUrl = telegramUrl ? `https://t.me/${telegramUrl}` : undefined;
+
   return (
     <>
       <Button 
@@ -25,9 +28,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <ShoppingCart className="mr-2 h-4 w-4" /> Купить
       </Button>
       
-      {telegramUrl ? (
+      {fullTelegramUrl ? (
         <a 
-          href={telegramUrl} 
+          href={fullTelegramUrl} 
           target="_blank" 
           rel="noopener noreferrer" 
           className="w-full"
@@ -60,3 +63,4 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 };
 
 export default ContactButtons;
+
