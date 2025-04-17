@@ -27,10 +27,10 @@ const Catalog = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
+      // Modified: Remove status filter to show all products
       const { data, error } = await supabase
         .from("products")
-        .select("*")
-        .eq("status", "active")
+        .select("*, product_images(url, is_primary)")
         .order("created_at", { ascending: false });
       
       if (error) {
@@ -38,6 +38,7 @@ const Catalog = () => {
         throw new Error("Failed to fetch products");
       }
       
+      console.log("Fetched products:", data);
       return data || [];
     },
   });
@@ -60,15 +61,30 @@ const Catalog = () => {
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
 
   // Map database products to format expected by ProductCard
-  // Fix: Using a default image since image_url doesn't exist in the products table
-  const mappedProducts = paginatedProducts.map(product => ({
-    id: product.id,
-    name: product.title,
-    price: Number(product.price),
-    image: "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop",
-    condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
-    location: product.location || "Дубай"
-  }));
+  const mappedProducts = paginatedProducts.map(product => {
+    // Get primary image or first image if available
+    let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
+    
+    if (product.product_images && product.product_images.length > 0) {
+      // Find primary image first
+      const primaryImage = product.product_images.find(img => img.is_primary);
+      // Use primary image if found, otherwise use the first image
+      if (primaryImage) {
+        imageUrl = primaryImage.url;
+      } else if (product.product_images[0]) {
+        imageUrl = product.product_images[0].url;
+      }
+    }
+    
+    return {
+      id: product.id,
+      name: product.title,
+      price: Number(product.price),
+      image: imageUrl,
+      condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
+      location: product.location || "Дубай"
+    };
+  });
 
   return (
     <Layout>
