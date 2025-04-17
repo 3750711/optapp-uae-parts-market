@@ -26,13 +26,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       </Button>
       
       {telegramUsername && (
-        <Button 
-          variant="outline"
-          className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
-          onClick={() => window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer')}
+        <a 
+          href={`https://t.me/${telegramUsername}`} 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="w-full"
         >
-          <MessageSquare className="mr-2 h-4 w-4" /> Связаться с продавцом
-        </Button>
+          <Button 
+            variant="outline"
+            className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
+          >
+            <MessageSquare className="mr-2 h-4 w-4" /> Связаться с продавцом
+          </Button>
+        </a>
       )}
       
       <Button 
