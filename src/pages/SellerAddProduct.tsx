@@ -12,13 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -45,9 +38,6 @@ const productSchema = z.object({
   }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Цена должна быть положительным числом",
   }),
-  condition: z.string({
-    required_error: "Выберите состояние товара",
-  }),
   brand: z.string().min(1, {
     message: "Укажите марку автомобиля",
   }),
@@ -72,7 +62,6 @@ const SellerAddProduct = () => {
     defaultValues: {
       title: "",
       price: "",
-      condition: "",
       brand: "",
       model: "",
       description: "",
@@ -158,7 +147,6 @@ const SellerAddProduct = () => {
         .insert({
           title: values.title,
           price: parseFloat(values.price),
-          condition: values.condition,
           brand: values.brand,
           model: values.model,
           description: values.description,
@@ -257,31 +245,6 @@ const SellerAddProduct = () => {
                                 {...field}
                               />
                             </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="condition"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Состояние</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Выберите состояние" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="Новый">Новый</SelectItem>
-                                <SelectItem value="Б/У">Б/У</SelectItem>
-                                <SelectItem value="Восстановленный">Восстановленный</SelectItem>
-                              </SelectContent>
-                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
