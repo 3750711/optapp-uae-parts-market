@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -37,6 +38,10 @@ const ProductDetail = () => {
     },
     enabled: !!id,
   });
+
+  // Add console log to debug the Telegram username
+  console.log("Product profiles:", product?.profiles);
+  console.log("Telegram username:", product?.profiles?.telegram);
 
   const getImageUrl = () => {
     if (product?.product_images && product.product_images.length > 0) {
