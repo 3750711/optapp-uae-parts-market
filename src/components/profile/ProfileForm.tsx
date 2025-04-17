@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,7 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 import { ProfileType } from "./types";
 
 const formSchema = z.object({
@@ -34,6 +35,8 @@ interface ProfileFormProps {
 }
 
 const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading }) => {
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,16 +62,46 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
     }
   }, [profile, form]);
 
+  const handleFormSubmit = async (data: FormData) => {
+    await onSubmit(data);
+    setIsEditMode(false);
+  };
+
+  const toggleEditMode = () => {
+    if (isEditMode) {
+      form.reset({
+        fullName: profile?.full_name || "",
+        email: profile?.email || "",
+        phone: profile?.phone || "",
+        companyName: profile?.company_name || "",
+        telegram: profile?.telegram || "",
+        optId: profile?.opt_id || "",
+      });
+    }
+    setIsEditMode(!isEditMode);
+  };
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Редактировать профиль</CardTitle>
-        <CardDescription>
-          Обновите вашу персональную информацию
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <div>
+          <CardTitle>Профиль пользователя</CardTitle>
+          <CardDescription>
+            {isEditMode ? "Редактирование данных профиля" : "Ваша персональная информация"}
+          </CardDescription>
+        </div>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={toggleEditMode}
+          className="h-8 w-8"
+        >
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">{isEditMode ? "Отменить" : "Редактировать"}</span>
+        </Button>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
           <CardContent className="space-y-4">
             <FormField
               control={form.control}
@@ -77,7 +110,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Имя и фамилия</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} disabled={!isEditMode} className={!isEditMode ? "bg-gray-50" : ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -91,7 +124,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input disabled {...field} />
+                    <Input disabled {...field} className="bg-gray-50" />
                   </FormControl>
                   <FormMessage />
                   <p className="text-sm text-gray-500">Email нельзя изменить</p>
@@ -106,7 +139,12 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>OPT ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="Укажите ваш OPT ID" {...field} />
+                    <Input 
+                      placeholder="Укажите ваш OPT ID" 
+                      {...field} 
+                      disabled={!isEditMode}
+                      className={!isEditMode ? "bg-gray-50" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                   <p className="text-sm text-gray-500">Уникальный идентификатор в системе OPT</p>
@@ -121,7 +159,13 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Телефон</FormLabel>
                   <FormControl>
-                    <Input type="tel" placeholder="+971 XX XXX XXXX" {...field} />
+                    <Input 
+                      type="tel" 
+                      placeholder="+971 XX XXX XXXX" 
+                      {...field} 
+                      disabled={!isEditMode}
+                      className={!isEditMode ? "bg-gray-50" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -135,7 +179,12 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Telegram</FormLabel>
                   <FormControl>
-                    <Input placeholder="@username" {...field} />
+                    <Input 
+                      placeholder="@username" 
+                      {...field} 
+                      disabled={!isEditMode}
+                      className={!isEditMode ? "bg-gray-50" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,23 +198,38 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Название компании</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ваша компания" {...field} />
+                    <Input 
+                      placeholder="Ваша компания" 
+                      {...field} 
+                      disabled={!isEditMode}
+                      className={!isEditMode ? "bg-gray-50" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
-          <CardFooter className="flex justify-end">
-            <Button 
-              type="submit" 
-              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-              disabled={isLoading}
-            >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Сохранить изменения
-            </Button>
-          </CardFooter>
+          {isEditMode && (
+            <CardFooter className="flex justify-end gap-2">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={toggleEditMode}
+                disabled={isLoading}
+              >
+                Отмена
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                disabled={isLoading}
+              >
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Сохранить изменения
+              </Button>
+            </CardFooter>
+          )}
         </form>
       </Form>
     </Card>
