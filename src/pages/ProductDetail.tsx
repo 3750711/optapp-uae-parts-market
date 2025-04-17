@@ -63,7 +63,11 @@ const ProductDetail = () => {
   const handleContactTelegram = () => {
     if (product?.profiles?.telegram) {
       // Remove @ symbol if present in the telegram username
-      const telegramUsername = product.profiles.telegram.replace('@', '');
+      const telegramUsername = product.profiles.telegram.startsWith('@') 
+        ? product.profiles.telegram.substring(1) 
+        : product.profiles.telegram;
+      
+      console.log("Opening Telegram with username:", telegramUsername);
       window.open(`https://t.me/${telegramUsername}`, '_blank');
     } else {
       const sellerName = product?.seller_name || "продавцом";
