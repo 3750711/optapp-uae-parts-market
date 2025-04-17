@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart } from "lucide-react";
+import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart, WhatsApp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -76,6 +76,18 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     alert(`Товар "${product?.title}" добавлен в корзину`);
+  };
+
+  const handleContactWhatsApp = () => {
+    if (product?.profiles?.phone) {
+      // Remove any non-digit characters from the phone number
+      const cleanPhone = product.profiles.phone.replace(/\D/g, '');
+      // Construct WhatsApp URL with pre-filled message
+      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
+      window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+    } else {
+      alert('Номер телефона продавца недоступен');
+    }
   };
 
   if (isLoading) {
@@ -183,19 +195,11 @@ const ProductDetail = () => {
               )}
               <Button 
                 className="w-full bg-green-600 hover:bg-green-700 text-white mb-2"
-                onClick={handleBuyNow}
+                onClick={handleContactWhatsApp}
               >
-                <ShoppingCart className="mr-2 h-4 w-4" /> Купить
+                <WhatsApp className="mr-2 h-4 w-4" /> Связаться в WhatsApp
               </Button>
-              <Button 
-                className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
-                onClick={handleShowPhone}
-              >
-                <Phone className="mr-2 h-4 w-4" />
-                {showPhone && sellerProfile?.phone 
-                  ? sellerProfile.phone 
-                  : "Показать номер"}
-              </Button>
+              
               <Button 
                 variant="outline" 
                 className="w-full border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white mb-2"
