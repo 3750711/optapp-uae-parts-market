@@ -403,7 +403,7 @@ const Profile = () => {
           
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={sendContactMessage}>
+            <AlertDialogAction onClick={sendContactMessage} disabled={!contactMessage.trim()}>
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Отправить
             </AlertDialogAction>
