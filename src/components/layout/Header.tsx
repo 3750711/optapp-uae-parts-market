@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus } from "lucide-react";
+import { User, LogOut, Package, ShoppingCart, Plus, Settings } from "lucide-react";
 
 const Header = () => {
   const { user, profile, signOut } = useAuth();
@@ -65,6 +65,13 @@ const Header = () => {
                     {profile?.full_name || user.email}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
+                  
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex w-full items-center">
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Мой профиль</span>
+                    </Link>
+                  </DropdownMenuItem>
                   
                   {profile?.user_type === 'seller' && (
                     <>
