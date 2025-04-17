@@ -1,17 +1,19 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Product } from "@/types/product";
+import ProductGallery from "@/components/product/ProductGallery";
+import ProductInfo from "@/components/product/ProductInfo";
+import ProductSpecifications from "@/components/product/ProductSpecifications";
+import SellerInfo from "@/components/product/SellerInfo";
+import ContactButtons from "@/components/product/ContactButtons";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [showPhone, setShowPhone] = useState(false);
   const { toast } = useToast();
 
   const { data: product, isLoading, error } = useQuery({
@@ -32,7 +34,7 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
-      return data;
+      return data as Product;
     },
     enabled: !!id,
   });
@@ -56,25 +58,16 @@ const ProductDetail = () => {
     return [getImageUrl()];
   };
 
-  const handleShowPhone = () => {
-    setShowPhone(true);
-  };
-
   const handleContactTelegram = () => {
-    console.log("Product profiles data:", product?.profiles);
-    
     if (product?.profiles?.telegram) {
-      // Remove @ symbol if present and use the template
       const telegramUsername = product.profiles.telegram.replace(/^@/, '');
       console.log("Opening Telegram chat with username:", telegramUsername);
-      // Use direct URL format without any site-specific prefixes
       window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer');
     } else {
       console.log("No Telegram username found, using general share URL");
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
-      // Use direct URL format for the share URL as well
       window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${message}`, '_blank', 'noopener,noreferrer');
     }
   };
@@ -112,7 +105,7 @@ const ProductDetail = () => {
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-lg text-red-500">Ошибка при загрузке данных о товаре</p>
-          <p className="text-gray-500 mt-2">Товар не найден или прои��ошла ошибка при загрузке</p>
+          <p className="text-gray-500 mt-2">Товар не найден или произошла ошибка при загрузке</p>
         </div>
       </Layout>
     );
@@ -121,120 +114,39 @@ const ProductDetail = () => {
   const images = getProductImages();
   const sellerProfile = product.profiles;
   
-  console.log("Full product data:", product);
-  console.log("Seller profile data:", sellerProfile);
-  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <div className="mb-4 overflow-hidden rounded-lg">
-              <img 
-                src={getImageUrl()} 
-                alt={product.title}
-                className="w-full object-cover"
-              />
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {images.map((image, index) => (
-                <div key={index} className="overflow-hidden rounded-md border-2 border-transparent hover:border-optapp-yellow cursor-pointer">
-                  <img src={image} alt={`${product.title} ${index + 1}`} className="w-full h-24 object-cover" />
-                </div>
-              ))}
-            </div>
+            <ProductGallery images={images} title={product.title} />
           </div>
 
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Badge className="bg-optapp-yellow text-optapp-dark">{product.condition}</Badge>
-              <span className="text-gray-500 flex items-center">
-                <MapPin className="h-4 w-4 mr-1" /> {product.location || "Не указано"}
-              </span>
-            </div>
+            <ProductInfo 
+              title={product.title}
+              price={product.price}
+              condition={product.condition}
+              location={product.location || ""}
+              description={product.description || ""}
+            />
             
-            <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-            <div className="text-2xl font-bold text-optapp-dark mb-4">
-              {product.price} AED
-            </div>
+            <ProductSpecifications 
+              brand={product.brand || ""}
+              model={product.model || ""}
+              lot_number={product.lot_number || ""}
+            />
             
-            <div className="space-y-4 mb-8">
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="border rounded p-2">
-                  <div className="text-gray-500">Бренд</div>
-                  <div className="font-medium">{product.brand}</div>
-                </div>
-                <div className="border rounded p-2">
-                  <div className="text-gray-500">Модель</div>
-                  <div className="font-medium">{product.model}</div>
-                </div>
-                <div className="border rounded p-2">
-                  <div className="text-gray-500">Номер лота</div>
-                  <div className="font-medium">{product.lot_number}</div>
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="font-medium mb-2">Описание:</h3>
-                <p className="text-gray-700">{product.description || "Описание отсутствует"}</p>
-              </div>
-            </div>
-            
-            <div className="border rounded-lg p-4 mb-6">
-              <h3 className="font-medium mb-2">Продавец: {product.seller_name}</h3>
-              {sellerProfile && (
-                <div className="mb-3 space-y-2">
-                  {sellerProfile.opt_id && (
-                    <div className="text-sm">
-                      <span className="text-gray-500">OPT ID: </span>
-                      <span className="font-medium">{sellerProfile.opt_id}</span>
-                    </div>
-                  )}
-                  {sellerProfile.rating && (
-                    <div className="flex items-center">
-                      <div className="text-yellow-500">★★★★★</div>
-                      <div className="ml-1">
-                        {sellerProfile.rating} отзывов
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="grid grid-cols-1 gap-2">
-                <Button 
-                  className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  onClick={handleBuyNow}
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4" /> Купить
-                </Button>
-                
-                <Button 
-                  variant="outline"
-                  className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
-                  onClick={handleContactTelegram}
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" /> Связаться в Telegram
-                </Button>
-                
-                <Button 
-                  className="w-full bg-green-600 hover:bg-green-700 text-white"
-                  onClick={handleContactWhatsApp}
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
-                </Button>
-              </div>
-            </div>
-            
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center text-gray-700">
-                <ShieldCheck className="h-5 w-5 mr-2 text-optapp-yellow" />
-                <span>Безопасная сделка через платформу</span>
-              </div>
-              <div className="flex items-center text-gray-700">
-                <CircleDollarSign className="h-5 w-5 mr-2 text-optapp-yellow" />
-                <span>Гарантия возврата денег в течение 14 дней</span>
-              </div>
-            </div>
+            <SellerInfo 
+              sellerProfile={sellerProfile || {}} 
+              seller_name={product.seller_name}
+            >
+              <ContactButtons
+                onBuyNow={handleBuyNow}
+                onContactTelegram={handleContactTelegram}
+                onContactWhatsApp={handleContactWhatsApp}
+              />
+            </SellerInfo>
           </div>
         </div>
       </div>
