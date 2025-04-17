@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import Layout from "@/components/layout/Layout";
-import { Loader2 } from "lucide-react";
+import { Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
+import { Button } from "@/components/ui/button";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -104,6 +105,24 @@ const Profile = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Вы вышли из аккаунта",
+        description: "До свидания!",
+      });
+      navigate("/");
+    } catch (error) {
+      console.error("Ошибка при выходе:", error);
+      toast({
+        title: "Ошибка выхода",
+        description: "Не удалось выйти из аккаунта. Пожалуйста, попробуйте снова.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!profile) {
     return (
       <Layout>
@@ -129,6 +148,14 @@ const Profile = () => {
               onSubmit={handleSubmit}
               isLoading={isLoading}
             />
+            <Button 
+              variant="destructive" 
+              className="mt-4 w-full"
+              onClick={handleSignOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Выйти из аккаунта
+            </Button>
           </div>
         </div>
       </div>
