@@ -32,7 +32,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2, User } from "lucide-react";
+import { Loader2, Star, StarHalf, User } from "lucide-react";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -40,6 +40,7 @@ const formSchema = z.object({
   phone: z.string().optional(),
   companyName: z.string().optional(),
   telegram: z.string().optional(),
+  optId: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -48,7 +49,7 @@ const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [contactMessage, setContactMessage] = useState<string>("");
+  const [contactMessage, setContactMessage] = useState("");
   const navigate = useNavigate();
   
   const form = useForm<FormData>({
@@ -59,6 +60,7 @@ const Profile = () => {
       phone: profile?.phone || "",
       companyName: profile?.company_name || "",
       telegram: profile?.telegram || "",
+      optId: profile?.opt_id || "",
     }
   });
   
@@ -74,6 +76,7 @@ const Profile = () => {
         phone: profile.phone || "",
         companyName: profile.company_name || "",
         telegram: profile.telegram || "",
+        optId: profile.opt_id || "",
       });
     }
   }, [profile, user, navigate]);
@@ -91,6 +94,7 @@ const Profile = () => {
           phone: data.phone,
           company_name: data.companyName,
           telegram: data.telegram,
+          opt_id: data.optId,
         })
         .eq('id', user.id);
 
@@ -158,6 +162,27 @@ const Profile = () => {
     }
   };
 
+  // Helper function to render rating stars
+  const renderRatingStars = (rating: number | null) => {
+    if (!rating) return null;
+    
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    return (
+      <div className="flex items-center">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star key={`star-${i}`} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+        ))}
+        {hasHalfStar && <StarHalf className="h-5 w-5 fill-yellow-400 text-yellow-400" />}
+        {[...Array(5 - fullStars - (hasHalfStar ? 1 : 0))].map((_, i) => (
+          <Star key={`empty-star-${i}`} className="h-5 w-5 text-gray-300" />
+        ))}
+        <span className="ml-2 text-sm font-medium">{rating.toFixed(1)}/5</span>
+      </div>
+    );
+  };
+
   if (!profile) {
     return (
       <Layout>
@@ -186,13 +211,13 @@ const Profile = () => {
                   </AvatarFallback>
                 </Avatar>
                 <h2 className="text-2xl font-bold">{profile.full_name || 'Пользователь'}</h2>
-                <div className="flex items-center mt-2">
+                <div className="flex flex-wrap justify-center items-center gap-2 mt-2">
                   <span className={`inline-block px-3 py-1 rounded-full text-sm ${
                     profile.user_type === 'seller' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                   }`}>
                     {profile.user_type === 'seller' ? 'Продавец' : 'Покупатель'}
                   </span>
-                  <span className={`inline-block px-3 py-1 ml-2 rounded-full text-sm ${
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm ${
                     profile.verification_status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                   }`}>
                     {profile.verification_status === 'verified' ? 'Проверено' : 'Ожидает проверки'}
@@ -200,7 +225,15 @@ const Profile = () => {
                 </div>
                 {profile.opt_id && (
                   <div className="mt-4 text-center">
-                    <p className="text-gray-500 text-sm">OPT ID: {profile.opt_id}</p>
+                    <p className="text-sm text-gray-500 mb-1">OPT ID:</p>
+                    <p className="text-lg font-semibold p-2 bg-gray-100 rounded-md">{profile.opt_id}</p>
+                  </div>
+                )}
+                
+                {profile.rating && (
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-gray-500 mb-1">Рейтинг:</p>
+                    {renderRatingStars(profile.rating)}
                   </div>
                 )}
                 
@@ -264,13 +297,7 @@ const Profile = () => {
                       {profile.rating && (
                         <div>
                           <p className="text-sm text-gray-500">Рейтинг</p>
-                          <div className="flex items-center">
-                            <div className="text-yellow-500">
-                              {'★'.repeat(Math.floor(profile.rating))}
-                              {'☆'.repeat(5 - Math.floor(profile.rating))}
-                            </div>
-                            <span className="ml-2">{profile.rating}/5</span>
-                          </div>
+                          {renderRatingStars(profile.rating)}
                         </div>
                       )}
                     </>
@@ -317,6 +344,21 @@ const Profile = () => {
                           </FormControl>
                           <FormMessage />
                           <p className="text-sm text-gray-500">Email нельзя изменить</p>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="optId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>OPT ID</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Укажите ваш OPT ID" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                          <p className="text-sm text-gray-500">Уникальный идентификатор в системе OPT</p>
                         </FormItem>
                       )}
                     />
