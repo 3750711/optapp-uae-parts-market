@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -22,7 +21,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Profile = () => {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
@@ -45,7 +44,7 @@ const Profile = () => {
           phone: data.phone,
           company_name: data.companyName,
           telegram: data.telegram,
-          opt_id: data.optId === "" ? null : data.optId, // Handle empty string as null
+          opt_id: data.optId === "" ? null : data.optId,
         })
         .eq('id', user.id);
 
@@ -74,18 +73,35 @@ const Profile = () => {
         });
       }
       
-      // Re-throw the error so the form component can handle it
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Updated to be just a simple handler without opening the URL directly
-  const handleContactAdmin = () => {
-    // The actual URL opening is now handled in ProfileActions component
-    // This function exists just to satisfy the interface requirements
-    console.log("Contact admin action triggered from Profile page");
+  const handleAvatarUpdate = async (avatarUrl: string) => {
+    if (!user) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          avatar_url: avatarUrl
+        })
+        .eq('id', user.id);
+        
+      if (error) throw error;
+      
+      await refreshProfile();
+    } catch (error: any) {
+      console.error("Avatar update error:", error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка обновления аватара",
+        description: error.message || "Не удалось обновить аватар",
+      });
+      throw error;
+    }
   };
 
   if (!profile) {
@@ -105,6 +121,7 @@ const Profile = () => {
           <ProfileSidebar 
             profile={profile}
             isLoading={isLoading}
+            onAvatarUpdate={handleAvatarUpdate}
           />
           <div className="w-full md:w-2/3">
             <ProfileForm

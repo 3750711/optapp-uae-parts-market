@@ -8,20 +8,23 @@ import { ProfileType } from "./types";
 interface ProfileSidebarProps {
   profile: ProfileType;
   isLoading: boolean;
-  // Removed onDeleteAccount and onContactAdmin
+  onAvatarUpdate: (avatarUrl: string) => Promise<void>;
 }
 
 const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   profile,
   isLoading,
+  onAvatarUpdate,
 }) => {
   return (
     <div className="w-full md:w-1/3 space-y-6">
-      <ProfileHeader profile={profile} />
+      <ProfileHeader 
+        profile={profile} 
+        onAvatarUpdate={onAvatarUpdate}
+      />
       <ProfileActions 
         profile={profile}
         isLoading={isLoading}
-        // Removed onDeleteAccount and onContactAdmin props
       />
       <ProfileInfo profile={profile} />
     </div>
