@@ -58,11 +58,7 @@ const ProductDetail = () => {
   };
 
   const handleContactTelegram = () => {
-    if (product?.profiles?.telegram) {
-      const telegramUsername = product.profiles.telegram.replace(/^@/, '');
-      console.log("Открываем Telegram чат с пользователем:", telegramUsername);
-      window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer');
-    } else {
+    if (!product?.profiles?.telegram) {
       console.log("No Telegram username found, using general share URL");
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
@@ -145,6 +141,7 @@ const ProductDetail = () => {
                 onBuyNow={handleBuyNow}
                 onContactTelegram={handleContactTelegram}
                 onContactWhatsApp={handleContactWhatsApp}
+                telegramUsername={product.profiles?.telegram}
               />
             </SellerInfo>
           </div>
