@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -62,12 +61,8 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.profiles?.telegram) {
-      // Remove @ symbol if present in the telegram username
-      const telegramUsername = product.profiles.telegram.startsWith('@') 
-        ? product.profiles.telegram.substring(1) 
-        : product.profiles.telegram;
-      
-      console.log("Opening Telegram with username:", telegramUsername);
+      // Remove @ symbol if present and use the template
+      const telegramUsername = product.profiles.telegram.replace(/^@/, '');
       window.open(`https://t.me/${telegramUsername}`, '_blank');
     } else {
       const sellerName = product?.seller_name || "продавцом";
