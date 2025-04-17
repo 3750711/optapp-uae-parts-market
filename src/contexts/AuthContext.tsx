@@ -36,8 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
+      console.log("Fetched profile data:", data); // Log profile data for debugging
       setProfile(data);
-      console.log("Fetched profile:", data); // Log profile data for debugging
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

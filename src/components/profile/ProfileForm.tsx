@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -46,8 +45,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   profile,
   onSubmit,
   isLoading,
-  readOnlyUserType = true, // Default to true to ensure user_type is read-only
+  readOnlyUserType = true,
 }) => {
+  console.log("ProfileForm received profile:", profile);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,7 +67,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       await onSubmit(data);
       form.reset({
         ...data,
-        userType: profile.user_type, // Always keep the original user type
+        userType: profile.user_type,
       });
     } catch (error) {
       console.error("Error submitting form:", error);

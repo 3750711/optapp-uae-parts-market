@@ -32,7 +32,9 @@ const Profile = () => {
     if (!user) {
       navigate("/login");
     }
-  }, [user, navigate]);
+    // Log profile for debugging
+    console.log("Current profile in Profile page:", profile);
+  }, [user, navigate, profile]);
 
   const handleSubmit = async (data: FormData) => {
     if (!user) return;
@@ -152,7 +154,7 @@ const Profile = () => {
               profile={profile}
               onSubmit={handleSubmit}
               isLoading={isLoading}
-              readOnlyUserType={true} // Pass this flag to make user type read-only
+              readOnlyUserType={true} // Keep user type read-only
             />
             <Button 
               variant="destructive" 

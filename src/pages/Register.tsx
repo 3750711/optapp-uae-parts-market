@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -69,16 +68,17 @@ const Register = () => {
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
+    console.log("Form data submitting:", data); // Debug: log submitted data
     
     try {
-      // Make sure to include userType in user metadata for proper handling
+      // Register the user with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
             full_name: data.fullName || null,
-            user_type: data.userType, // This is important - make sure userType is saved
+            user_type: data.userType, // Important: save user_type in the metadata
             phone: data.phone || null,
             opt_id: data.optId || null,
           }
@@ -86,6 +86,30 @@ const Register = () => {
       });
 
       if (authError) throw authError;
+      
+      console.log("Auth data returned:", authData); // Debug: log auth response
+
+      // After successful sign up, ensure the user's profile is created with the correct user_type
+      if (authData.user) {
+        // We'll create/update the profile directly to ensure user_type is set correctly
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: authData.user.id,
+            email: data.email,
+            full_name: data.fullName || null,
+            phone: data.phone || null,
+            opt_id: data.optId || null,
+            user_type: data.userType, // Explicitly set user_type
+          }, { 
+            onConflict: 'id' 
+          });
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
+          // We don't throw here to avoid preventing login, but we log the error
+        }
+      }
 
       toast({
         title: "Регистрация прошла успешно",
@@ -94,6 +118,7 @@ const Register = () => {
       
       navigate("/login");
     } catch (error: any) {
+      console.error("Registration error:", error);
       toast({
         title: "Ошибка регистрации",
         description: error.message || "Произошла ошибка при регистрации",
