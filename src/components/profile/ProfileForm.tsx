@@ -36,6 +36,7 @@ interface ProfileFormProps {
 
 const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading }) => {
   const [isEditMode, setIsEditMode] = useState(false);
+  const [optIdError, setOptIdError] = useState<string | null>(null);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -59,12 +60,24 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
         telegram: profile.telegram || "",
         optId: profile.opt_id || "",
       });
+      setOptIdError(null);
     }
   }, [profile, form]);
 
   const handleFormSubmit = async (data: FormData) => {
-    await onSubmit(data);
-    setIsEditMode(false);
+    try {
+      setOptIdError(null);
+      await onSubmit(data);
+      setIsEditMode(false);
+    } catch (error: any) {
+      if (error.message && error.message.includes('violates unique constraint "profiles_opt_id_key"')) {
+        setOptIdError("Этот OPT ID уже используется другим пользователем");
+        form.setError("optId", { 
+          type: "manual", 
+          message: "Этот OPT ID уже используется другим пользователем"
+        });
+      }
+    }
   };
 
   const toggleEditMode = () => {
@@ -77,6 +90,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
         telegram: profile?.telegram || "",
         optId: profile?.opt_id || "",
       });
+      setOptIdError(null);
     }
     setIsEditMode(!isEditMode);
   };
@@ -146,6 +160,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                       className={!isEditMode ? "bg-gray-50" : ""}
                     />
                   </FormControl>
+                  {optIdError && <p className="text-sm font-medium text-destructive">{optIdError}</p>}
                   <FormMessage />
                   <p className="text-sm text-gray-500">Уникальный идентификатор в системе OPT</p>
                 </FormItem>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -44,22 +45,37 @@ const Profile = () => {
           phone: data.phone,
           company_name: data.companyName,
           telegram: data.telegram,
-          opt_id: data.optId,
+          opt_id: data.optId === "" ? null : data.optId, // Handle empty string as null
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       toast({
         title: "Профиль обновлен",
         description: "Ваши данные успешно сохранены",
       });
     } catch (error: any) {
-      toast({
-        title: "Ошибка обновления",
-        description: error.message || "Произошла ошибка при обновлении данных",
-        variant: "destructive",
-      });
+      console.error("Profile update error:", error);
+      
+      if (error.message.includes("profiles_opt_id_key")) {
+        toast({
+          title: "Ошибка обновления",
+          description: "OPT ID уже используется другим пользователем",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Ошибка обновления",
+          description: error.message || "Произошла ошибка при обновлении данных",
+          variant: "destructive",
+        });
+      }
+      
+      // Re-throw the error so the form component can handle it
+      throw error;
     } finally {
       setIsLoading(false);
     }
