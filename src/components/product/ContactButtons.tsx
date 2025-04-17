@@ -16,9 +16,13 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactWhatsApp,
   telegramUrl 
 }) => {
-  // Remove @ symbol if present in telegram_url
-  const cleanTelegramUrl = telegramUrl?.startsWith('@') ? telegramUrl.slice(1) : telegramUrl;
-  const fullTelegramUrl = cleanTelegramUrl ? `https://t.me/${cleanTelegramUrl}` : undefined;
+  // Always remove @ symbol if present in telegram_url
+  const cleanTelegramUrl = telegramUrl?.startsWith('@') 
+    ? telegramUrl.slice(1) 
+    : telegramUrl;
+  const fullTelegramUrl = cleanTelegramUrl 
+    ? `https://t.me/${cleanTelegramUrl}` 
+    : undefined;
 
   return (
     <>
