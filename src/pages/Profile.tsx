@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -143,10 +142,9 @@ const Profile = () => {
     
     const messageText = `Здравствуйте! Я пользователь с OPT ID: ${profile.opt_id || 'не указан'}\nИмя: ${profile.full_name || 'не указано'}\nEmail: ${profile.email || 'не указан'}\nТелефон: ${profile.phone || 'не указан'}\nКомпания: ${profile.company_name || 'не указана'}\n\nМое сообщение:`;
     
-    const encodedMessage = encodeURIComponent(messageText);
+    const tgMessage = encodeURIComponent(messageText);
     
-    // Fix: Telegram doesn't use a 'text' parameter but rather uses it after the username
-    window.open(`https://t.me/ElenaOPTcargo?start=${encodedMessage}`, '_blank');
+    window.open(`https://t.me/ElenaOPTcargo`, '_blank');
   };
 
   const renderRatingStars = (rating: number | null) => {
