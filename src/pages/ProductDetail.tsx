@@ -1,10 +1,9 @@
-
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, ShieldCheck, CircleDollarSign } from "lucide-react";
+import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,7 +20,7 @@ const ProductDetail = () => {
         .select(`
           *,
           product_images(url, is_primary),
-          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id)
+          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram)
         `)
         .eq("id", id)
         .single();
@@ -61,6 +60,18 @@ const ProductDetail = () => {
 
   const handleShowPhone = () => {
     setShowPhone(true);
+  };
+
+  const handleContactTelegram = () => {
+    if (product?.profiles?.telegram) {
+      window.open(`https://t.me/${product.profiles.telegram}`, '_blank');
+    } else {
+      // If telegram handle is not available, provide a fallback
+      const sellerName = product?.seller_name || "продавцом";
+      const productTitle = product?.title || "товаром";
+      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
+      window.open(`https://t.me/share/url?url=${window.location.href}&text=${message}`, '_blank');
+    }
   };
 
   if (isLoading) {
@@ -175,8 +186,12 @@ const ProductDetail = () => {
                   ? sellerProfile.phone 
                   : "Показать номер"}
               </Button>
-              <Button variant="outline" className="w-full border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white">
-                Написать продавцу
+              <Button 
+                variant="outline" 
+                className="w-full border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white mb-2"
+                onClick={handleContactTelegram}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" /> Связаться в Telegram
               </Button>
             </div>
             
