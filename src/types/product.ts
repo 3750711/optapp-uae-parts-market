@@ -23,6 +23,7 @@ export interface Product {
   model?: string;
   lot_number?: string | number;
   seller_name: string;
+  telegram_url?: string;
   product_images?: ProductImage[];
   profiles?: SellerProfile;
 }

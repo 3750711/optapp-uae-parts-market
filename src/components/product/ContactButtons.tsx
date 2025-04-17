@@ -7,14 +7,14 @@ interface ContactButtonsProps {
   onBuyNow: () => void;
   onContactTelegram: () => void;
   onContactWhatsApp: () => void;
-  telegramUsername?: string;
+  telegramUrl?: string;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({ 
   onBuyNow, 
   onContactTelegram, 
   onContactWhatsApp,
-  telegramUsername 
+  telegramUrl 
 }) => {
   return (
     <>
@@ -25,9 +25,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <ShoppingCart className="mr-2 h-4 w-4" /> Купить
       </Button>
       
-      {telegramUsername && (
+      {telegramUrl ? (
         <a 
-          href={`https://t.me/${telegramUsername}`} 
+          href={telegramUrl} 
           target="_blank" 
           rel="noopener noreferrer" 
           className="w-full"
@@ -39,15 +39,15 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
             <MessageSquare className="mr-2 h-4 w-4" /> Связаться с продавцом
           </Button>
         </a>
+      ) : (
+        <Button 
+          variant="outline"
+          className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
+          onClick={onContactTelegram}
+        >
+          <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
+        </Button>
       )}
-      
-      <Button 
-        variant="outline"
-        className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
-        onClick={onContactTelegram}
-      >
-        <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
-      </Button>
       
       <Button 
         className="w-full bg-green-600 hover:bg-green-700 text-white"

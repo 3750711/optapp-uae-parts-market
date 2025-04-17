@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -39,10 +38,6 @@ const ProductDetail = () => {
     enabled: !!id,
   });
 
-  // Add console log to debug the Telegram username
-  console.log("Product profiles:", product?.profiles);
-  console.log("Telegram username:", product?.profiles?.telegram);
-
   const getImageUrl = () => {
     if (product?.product_images && product.product_images.length > 0) {
       const primaryImage = product.product_images.find(img => img.is_primary);
@@ -63,8 +58,7 @@ const ProductDetail = () => {
   };
 
   const handleContactTelegram = () => {
-    if (!product?.profiles?.telegram) {
-      console.log("No Telegram username found, using general share URL");
+    if (!product?.telegram_url) {
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
@@ -75,7 +69,7 @@ const ProductDetail = () => {
   const handleBuyNow = () => {
     toast({
       title: "Товар добавлен в корзину",
-      description: `"${product?.title}" успешно добавлен в вашу корзину`,
+      description: `"${product?.title}" успешно добавлен в вашу корзину",
       variant: "default"
     });
   };
@@ -146,7 +140,7 @@ const ProductDetail = () => {
                 onBuyNow={handleBuyNow}
                 onContactTelegram={handleContactTelegram}
                 onContactWhatsApp={handleContactWhatsApp}
-                telegramUsername={product.profiles?.telegram}
+                telegramUrl={product.telegram_url}
               />
             </SellerInfo>
           </div>

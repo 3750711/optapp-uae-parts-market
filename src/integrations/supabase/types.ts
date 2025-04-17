@@ -55,6 +55,7 @@ export type Database = {
           seller_id: string
           seller_name: string
           status: Database["public"]["Enums"]["product_status"]
+          telegram_url: string | null
           title: string
           updated_at: string
         }
@@ -71,6 +72,7 @@ export type Database = {
           seller_id: string
           seller_name: string
           status?: Database["public"]["Enums"]["product_status"]
+          telegram_url?: string | null
           title: string
           updated_at?: string
         }
@@ -87,6 +89,7 @@ export type Database = {
           seller_id?: string
           seller_name?: string
           status?: Database["public"]["Enums"]["product_status"]
+          telegram_url?: string | null
           title?: string
           updated_at?: string
         }
