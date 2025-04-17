@@ -70,7 +70,8 @@ const Profile = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.rpc('delete_user_account');
+      // Fix: Pass an empty object as parameter to the RPC function
+      const { error } = await supabase.rpc('delete_user_account', {});
       
       if (error) throw error;
       
