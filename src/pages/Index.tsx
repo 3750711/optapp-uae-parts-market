@@ -5,6 +5,7 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Car, Settings, Users, Award } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Mock featured products data
 const featuredProducts = [
@@ -43,6 +44,8 @@ const featuredProducts = [
 ];
 
 const Index = () => {
+  const { user, profile } = useAuth();
+  
   return (
     <Layout>
       {/* Hero Section */}
@@ -62,11 +65,13 @@ const Index = () => {
                     Смотреть каталог
                   </Button>
                 </Link>
-                <Link to="/register">
-                  <Button variant="outline" className="w-full sm:w-auto border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white">
-                    Стать продавцом
-                  </Button>
-                </Link>
+                {!user && (
+                  <Link to="/register">
+                    <Button variant="outline" className="w-full sm:w-auto border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white">
+                      Стать продавцом
+                    </Button>
+                  </Link>
+                )}
               </div>
             </div>
             <div className="md:w-1/2">
@@ -142,11 +147,25 @@ const Index = () => {
             Продавайте автозапчасти на самой быстрорастущей торговой платформе ОАЭ. 
             Получите доступ к тысячам клиентов.
           </p>
-          <Link to="/register">
-            <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-400 px-8 py-6 text-lg">
-              Начать продавать
-            </Button>
-          </Link>
+          {!user ? (
+            <Link to="/register">
+              <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-400 px-8 py-6 text-lg">
+                Начать продавать
+              </Button>
+            </Link>
+          ) : profile?.user_type !== 'seller' ? (
+            <Link to="/profile">
+              <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-400 px-8 py-6 text-lg">
+                Стать продавцом
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/seller/dashboard">
+              <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-400 px-8 py-6 text-lg">
+                Перейти в панель продавца
+              </Button>
+            </Link>
+          )}
         </div>
       </section>
     </Layout>

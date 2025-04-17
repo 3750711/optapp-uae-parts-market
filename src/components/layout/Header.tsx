@@ -49,6 +49,13 @@ const Header = () => {
               <Link to="/contact" className="text-gray-600 hover:text-optapp-dark">
                 Контакты
               </Link>
+              {profile?.user_type === 'seller' && (
+                <Link to="/seller/dashboard" className="text-gray-600 hover:text-optapp-dark">
+                  <Button variant="default" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+                    Панель продавца
+                  </Button>
+                </Link>
+              )}
             </nav>
           )}
 
@@ -104,6 +111,12 @@ const Header = () => {
                           <Link to="/seller/add-product" className="flex w-full items-center">
                             <Plus className="mr-2 h-4 w-4" />
                             <span>Добавить товар</span>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to="/seller/create-order" className="flex w-full items-center">
+                            <Package className="mr-2 h-4 w-4" />
+                            <span>Создать заказ</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
