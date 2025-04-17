@@ -35,20 +35,22 @@ const Header = () => {
             OPTAPP
           </Link>
 
-          <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/" className="text-gray-600 hover:text-optapp-dark">
-              Главная
-            </Link>
-            <Link to="/catalog" className="text-gray-600 hover:text-optapp-dark">
-              Каталог
-            </Link>
-            <Link to="/about" className="text-gray-600 hover:text-optapp-dark">
-              О нас
-            </Link>
-            <Link to="/contact" className="text-gray-600 hover:text-optapp-dark">
-              Контакты
-            </Link>
-          </nav>
+          {user && (
+            <nav className="hidden md:flex items-center space-x-6">
+              <Link to="/" className="text-gray-600 hover:text-optapp-dark">
+                Главная
+              </Link>
+              <Link to="/catalog" className="text-gray-600 hover:text-optapp-dark">
+                Каталог
+              </Link>
+              <Link to="/about" className="text-gray-600 hover:text-optapp-dark">
+                О нас
+              </Link>
+              <Link to="/contact" className="text-gray-600 hover:text-optapp-dark">
+                Контакты
+              </Link>
+            </nav>
+          )}
 
           <div className="flex items-center space-x-4">
             {user ? (
