@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -21,12 +20,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
 const formSchema = z.object({
-  fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }),
+  fullName: z.string().optional(),
   email: z.string().email({ message: "Введите корректный email адрес" }),
-  phone: z.string().min(6, { message: "Введите действительный номер телефона" }),
+  phone: z.string().optional(),
   password: z.string().min(6, { message: "Пароль должен содержать не менее 6 символов" }),
   confirmPassword: z.string(),
   userType: z.enum(["buyer", "seller"]),
+  optId: z.string().optional(),
+}).refine(data => {
+  if (data.optId) {
+    return true;
+  }
+  return !!data.fullName && data.fullName.length >= 2 && !!data.phone && data.phone.length >= 6;
+}, {
+  message: "Имя должно содержать не менее 2 символов, а телефон - не менее 6 цифр",
+  path: ["fullName"],
 }).refine(data => data.password === data.confirmPassword, {
   message: "Пароли не совпадают",
   path: ["confirmPassword"]
@@ -36,6 +44,7 @@ type FormData = z.infer<typeof formSchema>;
 
 const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [hasOptId, setHasOptId] = useState(false);
   const navigate = useNavigate();
   
   const form = useForm<FormData>({
@@ -46,39 +55,43 @@ const Register = () => {
       phone: "",
       password: "",
       confirmPassword: "",
-      userType: "buyer"
+      userType: "buyer",
+      optId: "",
     }
   });
+
+  const optId = form.watch('optId');
+  
+  useEffect(() => {
+    setHasOptId(!!optId);
+  }, [optId]);
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     
     try {
-      // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
-            full_name: data.fullName,
+            full_name: data.fullName || null,
             user_type: data.userType,
-            phone: data.phone,
+            phone: data.phone || null,
+            opt_id: data.optId || null,
           }
         }
       });
 
       if (authError) throw authError;
 
-      // Show success toast
       toast({
         title: "Регистрация прошла успешно",
         description: "Проверьте вашу почту для подтверждения email",
       });
       
-      // Redirect to login page
       navigate("/login");
     } catch (error: any) {
-      // Show error toast
       toast({
         title: "Ошибка регистрации",
         description: error.message || "Произошла ошибка при регистрации",
@@ -104,10 +117,24 @@ const Register = () => {
               <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
+                  name="optId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>OPT ID (если есть)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите ваш OPT ID если он у вас есть" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Имя и фамилия</FormLabel>
+                      <FormLabel>{hasOptId ? 'Имя и фамилия (необязательно)' : 'Имя и фамилия *'}</FormLabel>
                       <FormControl>
                         <Input placeholder="Введите ваше имя" {...field} />
                       </FormControl>
@@ -121,7 +148,7 @@ const Register = () => {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email *</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="example@mail.com" {...field} />
                       </FormControl>
@@ -135,7 +162,7 @@ const Register = () => {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Телефон</FormLabel>
+                      <FormLabel>{hasOptId ? 'Телефон (необязательно)' : 'Телефон *'}</FormLabel>
                       <FormControl>
                         <Input type="tel" placeholder="+971 XX XXX XXXX" {...field} />
                       </FormControl>
@@ -149,7 +176,7 @@ const Register = () => {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Пароль</FormLabel>
+                      <FormLabel>Пароль *</FormLabel>
                       <FormControl>
                         <Input type="password" {...field} />
                       </FormControl>
@@ -163,7 +190,7 @@ const Register = () => {
                   name="confirmPassword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Повторите пароль</FormLabel>
+                      <FormLabel>Повторите пароль *</FormLabel>
                       <FormControl>
                         <Input type="password" {...field} />
                       </FormControl>
@@ -177,7 +204,7 @@ const Register = () => {
                   name="userType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Тип аккаунта</FormLabel>
+                      <FormLabel>Тип аккаунта *</FormLabel>
                       <FormControl>
                         <RadioGroup 
                           onValueChange={field.onChange} 
