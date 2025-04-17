@@ -12,10 +12,9 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   profile,
 }) => {
   const handleContactAdmin = () => {
-    // Try to open Telegram with the user's data
     try {
       const userDataText = `
-Имя: ${profile.full_name || 'Не указано'}
+Имя: I NEED HELP
 Email: ${profile.email}
 OPT ID: ${profile.opt_id || 'Не указан'}
       `.trim();
@@ -24,7 +23,6 @@ OPT ID: ${profile.opt_id || 'Не указан'}
       const telegramUrl = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
       window.open(telegramUrl, '_blank');
     } catch (error) {
-      // Fallback to just opening the chat without a message
       window.open('https://t.me/ElenaOPTcargo', '_blank');
     }
   };
