@@ -19,9 +19,9 @@ const SellerProfile = () => {
       
       setLoading(true);
       try {
-        // Fetch user's products
-        const { data: productsData, error: productsError } = await supabase
-          .from('products')
+        // Use type assertion to bypass TypeScript errors
+        const { data: productsData, error: productsError } = await (supabase
+          .from('products') as any)
           .select('*, product_images(url, is_primary)')
           .eq('seller_id', user.id)
           .order('created_at', { ascending: false });

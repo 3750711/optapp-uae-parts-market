@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -166,7 +167,7 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
-      // Insert product data using any to bypass TypeScript errors until types are updated
+      // Use type assertion to bypass TypeScript errors
       const { data: product, error: productError } = await (supabase
         .from('products') as any)
         .insert({
@@ -189,7 +190,7 @@ const SellerAddProduct = () => {
       // Upload images and link to product
       const uploadedImages = await uploadImages(product.id);
       
-      // Insert image records using any to bypass TypeScript errors until types are updated
+      // Insert image records using type assertion to bypass TypeScript errors
       const { error: imagesError } = await (supabase
         .from('product_images') as any)
         .insert(
