@@ -4,7 +4,7 @@ import React from "react";
 interface ProductSpecificationsProps {
   brand: string;
   model: string;
-  lot_number: string;
+  lot_number: string | number;
 }
 
 const ProductSpecifications: React.FC<ProductSpecificationsProps> = ({ 

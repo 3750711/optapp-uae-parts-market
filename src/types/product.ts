@@ -21,7 +21,7 @@ export interface Product {
   location?: string;
   brand?: string;
   model?: string;
-  lot_number?: string;
+  lot_number?: string | number;
   seller_name: string;
   product_images?: ProductImage[];
   profiles?: SellerProfile;
