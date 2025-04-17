@@ -67,13 +67,15 @@ const ProductDetail = () => {
       // Remove @ symbol if present and use the template
       const telegramUsername = product.profiles.telegram.replace(/^@/, '');
       console.log("Opening Telegram chat with username:", telegramUsername);
-      window.open(`https://t.me/${telegramUsername}`, '_blank');
+      // Use direct URL format without any site-specific prefixes
+      window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer');
     } else {
       console.log("No Telegram username found, using general share URL");
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
-      window.open(`https://t.me/share/url?url=${window.location.href}&text=${message}`, '_blank');
+      // Use direct URL format for the share URL as well
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${message}`, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -89,7 +91,7 @@ const ProductDetail = () => {
     if (product?.profiles?.phone) {
       const cleanPhone = product.profiles.phone.replace(/\D/g, '');
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
-      window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+      window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       alert('Номер телефона продавца недоступен');
     }
