@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart, WhatsApp } from "lucide-react";
+import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,7 +11,6 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [showPhone, setShowPhone] = useState(false);
   
-  // Fetch product data from Supabase
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
@@ -35,12 +34,9 @@ const ProductDetail = () => {
     enabled: !!id,
   });
 
-  // Extract the primary image or first available image
   const getImageUrl = () => {
     if (product?.product_images && product.product_images.length > 0) {
-      // Find primary image first
       const primaryImage = product.product_images.find(img => img.is_primary);
-      // Use primary image if found, otherwise use the first image
       if (primaryImage) {
         return primaryImage.url;
       } else if (product.product_images[0]) {
@@ -50,7 +46,6 @@ const ProductDetail = () => {
     return "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=800&auto=format&fit=crop";
   };
 
-  // Get all images for the product
   const getProductImages = () => {
     if (product?.product_images && product.product_images.length > 0) {
       return product.product_images.map(img => img.url);
@@ -66,7 +61,6 @@ const ProductDetail = () => {
     if (product?.profiles?.telegram) {
       window.open(`https://t.me/${product.profiles.telegram}`, '_blank');
     } else {
-      // If telegram handle is not available, provide a fallback
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
@@ -80,9 +74,7 @@ const ProductDetail = () => {
 
   const handleContactWhatsApp = () => {
     if (product?.profiles?.phone) {
-      // Remove any non-digit characters from the phone number
       const cleanPhone = product.profiles.phone.replace(/\D/g, '');
-      // Construct WhatsApp URL with pre-filled message
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
       window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
     } else {
@@ -118,7 +110,6 @@ const ProductDetail = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images */}
           <div>
             <div className="mb-4 overflow-hidden rounded-lg">
               <img 
@@ -136,7 +127,6 @@ const ProductDetail = () => {
             </div>
           </div>
 
-          {/* Product Info */}
           <div>
             <div className="flex items-center gap-2 mb-3">
               <Badge className="bg-optapp-yellow text-optapp-dark">{product.condition}</Badge>
@@ -172,7 +162,6 @@ const ProductDetail = () => {
               </div>
             </div>
             
-            {/* Seller Info & Actions */}
             <div className="border rounded-lg p-4 mb-6">
               <h3 className="font-medium mb-2">Продавец: {product.seller_name}</h3>
               {sellerProfile && (
@@ -197,7 +186,7 @@ const ProductDetail = () => {
                 className="w-full bg-green-600 hover:bg-green-700 text-white mb-2"
                 onClick={handleContactWhatsApp}
               >
-                <WhatsApp className="mr-2 h-4 w-4" /> Связаться в WhatsApp
+                <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
               </Button>
               
               <Button 
@@ -209,7 +198,6 @@ const ProductDetail = () => {
               </Button>
             </div>
             
-            {/* Additional Info */}
             <div className="space-y-3 text-sm">
               <div className="flex items-center text-gray-700">
                 <ShieldCheck className="h-5 w-5 mr-2 text-optapp-yellow" />
