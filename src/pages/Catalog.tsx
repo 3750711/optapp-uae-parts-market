@@ -60,11 +60,12 @@ const Catalog = () => {
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
 
   // Map database products to format expected by ProductCard
+  // Fix: Using a default image since image_url doesn't exist in the products table
   const mappedProducts = paginatedProducts.map(product => ({
     id: product.id,
     name: product.title,
     price: Number(product.price),
-    image: product.image_url || "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop",
     condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
     location: product.location || "Дубай"
   }));
