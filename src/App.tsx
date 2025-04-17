@@ -17,6 +17,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import SellerProfile from "./pages/SellerProfile";
 import SellerAddProduct from "./pages/SellerAddProduct";
+import SellerCreateOrder from "./pages/SellerCreateOrder"; // New import
 import Profile from "./pages/Profile";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/contact" element={<Contact />} />
             <Route path="/seller/dashboard" element={<SellerProfile />} />
             <Route path="/seller/add-product" element={<SellerAddProduct />} />
+            <Route path="/seller/create-order" element={<SellerCreateOrder />} /> {/* New route */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
