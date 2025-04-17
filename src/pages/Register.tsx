@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -100,7 +101,7 @@ const Register = () => {
             full_name: data.fullName || null,
             phone: data.phone || null,
             opt_id: data.optId || null,
-            user_type: data.userType, // Explicitly set user_type
+            user_type: data.userType, // Explicitly set user_type in the profiles table
           }, { 
             onConflict: 'id' 
           });
