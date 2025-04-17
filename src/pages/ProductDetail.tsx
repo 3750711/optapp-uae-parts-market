@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -60,11 +61,15 @@ const ProductDetail = () => {
   };
 
   const handleContactTelegram = () => {
+    console.log("Product profiles data:", product?.profiles);
+    
     if (product?.profiles?.telegram) {
       // Remove @ symbol if present and use the template
       const telegramUsername = product.profiles.telegram.replace(/^@/, '');
+      console.log("Opening Telegram chat with username:", telegramUsername);
       window.open(`https://t.me/${telegramUsername}`, '_blank');
     } else {
+      console.log("No Telegram username found, using general share URL");
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
@@ -113,6 +118,9 @@ const ProductDetail = () => {
 
   const images = getProductImages();
   const sellerProfile = product.profiles;
+  
+  console.log("Full product data:", product);
+  console.log("Seller profile data:", sellerProfile);
   
   return (
     <Layout>
