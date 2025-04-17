@@ -1,103 +1,128 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, ShoppingBag, User } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User, LogOut, Package, ShoppingCart, Plus } from "lucide-react";
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, profile, signOut } = useAuth();
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
-    <header className="bg-optapp-yellow shadow-md">
-      <div className="container mx-auto px-4 py-3">
+    <header className="bg-white shadow-sm">
+      <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <ShoppingBag className="h-8 w-8 text-optapp-dark" />
-            <span className="ml-2 text-2xl font-bold text-optapp-dark">OPTAPP</span>
+          <Link to="/" className="text-2xl font-bold text-optapp-dark">
+            OPTAPP
           </Link>
 
-          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link to="/catalog" className="text-optapp-dark font-medium hover:underline">
+            <Link to="/" className="text-gray-600 hover:text-optapp-dark">
+              Главная
+            </Link>
+            <Link to="/catalog" className="text-gray-600 hover:text-optapp-dark">
               Каталог
             </Link>
-            <Link to="/about" className="text-optapp-dark font-medium hover:underline">
-              О Нас
+            <Link to="/about" className="text-gray-600 hover:text-optapp-dark">
+              О нас
             </Link>
-            <Link to="/contact" className="text-optapp-dark font-medium hover:underline">
+            <Link to="/contact" className="text-gray-600 hover:text-optapp-dark">
               Контакты
             </Link>
           </nav>
 
-          {/* Auth buttons */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link to="/login">
-              <Button variant="outline" className="border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white">
-                Вход
-              </Button>
-            </Link>
-            <Link to="/register">
-              <Button className="bg-optapp-dark text-white hover:bg-opacity-80">
-                Регистрация
-              </Button>
-            </Link>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <button className="md:hidden" onClick={toggleMenu}>
-            {isMenuOpen ? (
-              <X className="h-6 w-6 text-optapp-dark" />
+          <div className="flex items-center space-x-4">
+            {user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative rounded-full h-10 w-10 p-0">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={profile?.avatar_url || ''} 
+                        alt={profile?.full_name || 'User'} 
+                      />
+                      <AvatarFallback className="bg-optapp-yellow text-optapp-dark">
+                        {profile?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    {profile?.full_name || user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  
+                  {profile?.user_type === 'seller' && (
+                    <>
+                      <DropdownMenuItem asChild>
+                        <Link to="/seller/dashboard" className="flex w-full items-center">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Личный кабинет</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/seller/add-product" className="flex w-full items-center">
+                          <Plus className="mr-2 h-4 w-4" />
+                          <span>Добавить товар</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
+                  
+                  <DropdownMenuItem asChild>
+                    <Link to="/orders" className="flex w-full items-center">
+                      <Package className="mr-2 h-4 w-4" />
+                      <span>Мои заказы</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuItem asChild>
+                    <Link to="/catalog" className="flex w-full items-center">
+                      <ShoppingCart className="mr-2 h-4 w-4" />
+                      <span>Каталог</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Выйти</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Menu className="h-6 w-6 text-optapp-dark" />
-            )}
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4">
-            <div className="flex flex-col space-y-3">
-              <Link 
-                to="/catalog" 
-                className="text-optapp-dark font-medium py-2 hover:bg-yellow-100 px-2 rounded"
-                onClick={toggleMenu}
-              >
-                Каталог
-              </Link>
-              <Link 
-                to="/about" 
-                className="text-optapp-dark font-medium py-2 hover:bg-yellow-100 px-2 rounded"
-                onClick={toggleMenu}
-              >
-                О Нас
-              </Link>
-              <Link 
-                to="/contact" 
-                className="text-optapp-dark font-medium py-2 hover:bg-yellow-100 px-2 rounded"
-                onClick={toggleMenu}
-              >
-                Контакты
-              </Link>
-              <div className="flex space-x-2 pt-2">
-                <Link to="/login" className="flex-1" onClick={toggleMenu}>
-                  <Button variant="outline" className="w-full border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white">
-                    Вход
-                  </Button>
-                </Link>
-                <Link to="/register" className="flex-1" onClick={toggleMenu}>
-                  <Button className="w-full bg-optapp-dark text-white hover:bg-opacity-80">
-                    Регистрация
-                  </Button>
-                </Link>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  asChild 
+                  variant="ghost"
+                >
+                  <Link to="/login">Вход</Link>
+                </Button>
+                <Button 
+                  asChild
+                  className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                >
+                  <Link to="/register">Регистрация</Link>
+                </Button>
               </div>
-            </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </header>
   );

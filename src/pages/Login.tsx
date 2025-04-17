@@ -1,13 +1,74 @@
 
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
+
+const formSchema = z.object({
+  email: z.string().email({ message: "Введите корректный email адрес" }),
+  password: z.string().min(1, { message: "Введите пароль" }),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    }
+  });
+
+  const onSubmit = async (data: FormData) => {
+    setIsLoading(true);
+    
+    try {
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) throw error;
+
+      // Show success toast
+      toast({
+        title: "Вход выполнен успешно",
+        description: "Добро пожаловать в OPTAPP",
+      });
+      
+      // Redirect to home page
+      navigate("/");
+    } catch (error: any) {
+      // Show error toast
+      toast({
+        title: "Ошибка входа",
+        description: "Неверный email или пароль",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -18,32 +79,59 @@ const Login = () => {
               Введите свои данные для входа в систему
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="example@mail.com" />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Пароль</Label>
-                <Link to="/forgot-password" className="text-sm text-optapp-dark hover:underline">
-                  Забыли пароль?
-                </Link>
-              </div>
-              <Input id="password" type="password" />
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Button className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
-              Войти
-            </Button>
-            <div className="text-center text-sm">
-              Нет аккаунта?{" "}
-              <Link to="/register" className="text-optapp-dark font-medium hover:underline">
-                Зарегистрироваться
-              </Link>
-            </div>
-          </CardFooter>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="example@mail.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Пароль</FormLabel>
+                        <Link to="/forgot-password" className="text-sm text-optapp-dark hover:underline">
+                          Забыли пароль?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <Input type="password" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+              <CardFooter className="flex flex-col space-y-4">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Вход..." : "Войти"}
+                </Button>
+                <div className="text-center text-sm">
+                  Нет аккаунта?{" "}
+                  <Link to="/register" className="text-optapp-dark font-medium hover:underline">
+                    Зарегистрироваться
+                  </Link>
+                </div>
+              </CardFooter>
+            </form>
+          </Form>
         </Card>
       </div>
     </Layout>
