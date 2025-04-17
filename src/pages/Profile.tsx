@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -39,7 +40,6 @@ const formSchema = z.object({
   phone: z.string().optional(),
   companyName: z.string().optional(),
   telegram: z.string().optional(),
-  message: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -140,8 +140,7 @@ const Profile = () => {
     setIsLoading(true);
     
     try {
-      // Here you would send the message to admin, could be via Supabase, email service, etc.
-      // For now, we'll just show a success toast
+      // Here we would send the message to admin, could be via Supabase, email service, etc.
       toast({
         title: "Сообщение отправлено",
         description: "Администратор получит ваше сообщение и свяжется с вами",
@@ -402,7 +401,10 @@ const Profile = () => {
           
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={sendContactMessage} disabled={!contactMessage.trim()}>
+            <AlertDialogAction 
+              onClick={sendContactMessage} 
+              disabled={contactMessage.trim() === ""}
+            >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Отправить
             </AlertDialogAction>
