@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare } from "lucide-react";
+import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -72,6 +72,10 @@ const ProductDetail = () => {
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
       window.open(`https://t.me/share/url?url=${window.location.href}&text=${message}`, '_blank');
     }
+  };
+
+  const handleBuyNow = () => {
+    alert(`Товар "${product?.title}" добавлен в корзину`);
   };
 
   if (isLoading) {
@@ -177,6 +181,12 @@ const ProductDetail = () => {
                   )}
                 </div>
               )}
+              <Button 
+                className="w-full bg-green-600 hover:bg-green-700 text-white mb-2"
+                onClick={handleBuyNow}
+              >
+                <ShoppingCart className="mr-2 h-4 w-4" /> Купить
+              </Button>
               <Button 
                 className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
                 onClick={handleShowPhone}
