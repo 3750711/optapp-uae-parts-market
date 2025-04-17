@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
+  const [showPhone, setShowPhone] = useState(false);
   
   // Fetch product data from Supabase
   const { data: product, isLoading, error } = useQuery({
@@ -20,7 +21,7 @@ const ProductDetail = () => {
         .select(`
           *,
           product_images(url, is_primary),
-          profiles!products_seller_id_fkey(full_name, rating, phone)
+          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id)
         `)
         .eq("id", id)
         .single();
@@ -56,6 +57,10 @@ const ProductDetail = () => {
       return product.product_images.map(img => img.url);
     }
     return [getImageUrl()];
+  };
+
+  const handleShowPhone = () => {
+    setShowPhone(true);
   };
 
   if (isLoading) {
@@ -143,16 +148,32 @@ const ProductDetail = () => {
             {/* Seller Info & Actions */}
             <div className="border rounded-lg p-4 mb-6">
               <h3 className="font-medium mb-2">Продавец: {product.seller_name}</h3>
-              {sellerProfile && sellerProfile.rating && (
-                <div className="flex items-center mb-3">
-                  <div className="text-yellow-500">★★★★★</div>
-                  <div className="ml-1">
-                    {sellerProfile.rating} отзывов
-                  </div>
+              {sellerProfile && (
+                <div className="mb-3 space-y-2">
+                  {sellerProfile.opt_id && (
+                    <div className="text-sm">
+                      <span className="text-gray-500">OPT ID: </span>
+                      <span className="font-medium">{sellerProfile.opt_id}</span>
+                    </div>
+                  )}
+                  {sellerProfile.rating && (
+                    <div className="flex items-center">
+                      <div className="text-yellow-500">★★★★★</div>
+                      <div className="ml-1">
+                        {sellerProfile.rating} отзывов
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
-              <Button className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2">
-                <Phone className="mr-2 h-4 w-4" /> Показать номер
+              <Button 
+                className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
+                onClick={handleShowPhone}
+              >
+                <Phone className="mr-2 h-4 w-4" />
+                {showPhone && sellerProfile?.phone 
+                  ? sellerProfile.phone 
+                  : "Показать номер"}
               </Button>
               <Button variant="outline" className="w-full border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white">
                 Написать продавцу
