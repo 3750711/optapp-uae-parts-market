@@ -1,20 +1,14 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Loader2, Pencil } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Loader2 } from "lucide-react";
 import { ProfileType } from "./types";
 
 const formSchema = z.object({
@@ -24,6 +18,7 @@ const formSchema = z.object({
   companyName: z.string().optional(),
   telegram: z.string().optional(),
   optId: z.string().optional(),
+  userType: z.enum(["buyer", "seller"]),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -35,88 +30,27 @@ interface ProfileFormProps {
 }
 
 const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading }) => {
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [optIdError, setOptIdError] = useState<string | null>(null);
-  
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: profile?.full_name || "",
-      email: profile?.email || "",
-      phone: profile?.phone || "",
-      companyName: profile?.company_name || "",
-      telegram: profile?.telegram || "",
-      optId: profile?.opt_id || "",
-    }
+      fullName: profile.full_name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      companyName: profile.company_name || "",
+      telegram: profile.telegram || "",
+      optId: profile.opt_id || "",
+      userType: profile.user_type || "buyer",
+    },
   });
-  
-  React.useEffect(() => {
-    if (profile) {
-      form.reset({
-        fullName: profile.full_name || "",
-        email: profile.email || "",
-        phone: profile.phone || "",
-        companyName: profile.company_name || "",
-        telegram: profile.telegram || "",
-        optId: profile.opt_id || "",
-      });
-      setOptIdError(null);
-    }
-  }, [profile, form]);
-
-  const handleFormSubmit = async (data: FormData) => {
-    try {
-      setOptIdError(null);
-      await onSubmit(data);
-      setIsEditMode(false);
-    } catch (error: any) {
-      if (error.message && error.message.includes('violates unique constraint "profiles_opt_id_key"')) {
-        setOptIdError("Этот OPT ID уже используется другим пользователем");
-        form.setError("optId", { 
-          type: "manual", 
-          message: "Этот OPT ID уже используется другим пользователем"
-        });
-      }
-    }
-  };
-
-  const toggleEditMode = () => {
-    if (isEditMode) {
-      form.reset({
-        fullName: profile?.full_name || "",
-        email: profile?.email || "",
-        phone: profile?.phone || "",
-        companyName: profile?.company_name || "",
-        telegram: profile?.telegram || "",
-        optId: profile?.opt_id || "",
-      });
-      setOptIdError(null);
-    }
-    setIsEditMode(!isEditMode);
-  };
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div>
-          <CardTitle>Профиль пользователя</CardTitle>
-          <CardDescription>
-            {isEditMode ? "Редактирование данных профиля" : "Ваша персональная информация"}
-          </CardDescription>
-        </div>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          onClick={toggleEditMode}
-          className="h-8 w-8"
-        >
-          <Pencil className="h-4 w-4" />
-          <span className="sr-only">{isEditMode ? "Отменить" : "Редактировать"}</span>
-        </Button>
+      <CardHeader className="pb-2">
+        <CardTitle>Информация профиля</CardTitle>
       </CardHeader>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)}>
-          <CardContent className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="space-y-4 pt-4">
             <FormField
               control={form.control}
               name="fullName"
@@ -124,7 +58,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Имя и фамилия</FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={!isEditMode} className={!isEditMode ? "bg-gray-50" : ""} />
+                    <Input placeholder="Введите ваше полное имя" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -138,31 +72,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input disabled {...field} className="bg-gray-50" />
+                    <Input type="email" placeholder="example@mail.com" {...field} readOnly />
                   </FormControl>
                   <FormMessage />
-                  <p className="text-sm text-gray-500">Email нельзя изменить</p>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="optId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>OPT ID</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="Укажите ваш OPT ID" 
-                      {...field} 
-                      disabled={!isEditMode}
-                      className={!isEditMode ? "bg-gray-50" : ""}
-                    />
-                  </FormControl>
-                  {optIdError && <p className="text-sm font-medium text-destructive">{optIdError}</p>}
-                  <FormMessage />
-                  <p className="text-sm text-gray-500">Уникальный идентификатор в системе OPT</p>
                 </FormItem>
               )}
             />
@@ -174,32 +86,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Телефон</FormLabel>
                   <FormControl>
-                    <Input 
-                      type="tel" 
-                      placeholder="+971 XX XXX XXXX" 
-                      {...field} 
-                      disabled={!isEditMode}
-                      className={!isEditMode ? "bg-gray-50" : ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="telegram"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telegram</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="@username" 
-                      {...field} 
-                      disabled={!isEditMode}
-                      className={!isEditMode ? "bg-gray-50" : ""}
-                    />
+                    <Input type="tel" placeholder="+971 XX XXX XXXX" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -211,40 +98,90 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
               name="companyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Название компании</FormLabel>
+                  <FormLabel>Название компании (если есть)</FormLabel>
                   <FormControl>
-                    <Input 
-                      placeholder="Ваша компания" 
-                      {...field} 
-                      disabled={!isEditMode}
-                      className={!isEditMode ? "bg-gray-50" : ""}
-                    />
+                    <Input placeholder="Введите название компании" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="telegram"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Telegram (без @)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="optId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>OPT ID (если есть)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Введите ваш OPT ID" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="userType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Тип аккаунта</FormLabel>
+                  <FormControl>
+                    <RadioGroup 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      className="grid grid-cols-2 gap-4 pt-2"
+                    >
+                      <div>
+                        <RadioGroupItem value="buyer" id="profile-buyer" className="peer sr-only" />
+                        <FormLabel
+                          htmlFor="profile-buyer"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-optapp-yellow [&:has([data-state=checked])]:border-optapp-yellow cursor-pointer"
+                        >
+                          <span>Покупатель</span>
+                        </FormLabel>
+                      </div>
+                      <div>
+                        <RadioGroupItem value="seller" id="profile-seller" className="peer sr-only" />
+                        <FormLabel
+                          htmlFor="profile-seller"
+                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-optapp-yellow [&:has([data-state=checked])]:border-optapp-yellow cursor-pointer"
+                        >
+                          <span>Продавец</span>
+                        </FormLabel>
+                      </div>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </CardContent>
-          {isEditMode && (
-            <CardFooter className="flex justify-end gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={toggleEditMode}
-                disabled={isLoading}
-              >
-                Отмена
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                disabled={isLoading}
-              >
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Сохранить изменения
-              </Button>
-            </CardFooter>
-          )}
+          <CardFooter>
+            <Button 
+              type="submit" 
+              className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500" 
+              disabled={isLoading}
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Сохранить изменения
+            </Button>
+          </CardFooter>
         </form>
       </Form>
     </Card>

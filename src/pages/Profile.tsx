@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -17,6 +18,7 @@ const formSchema = z.object({
   companyName: z.string().optional(),
   telegram: z.string().optional(),
   optId: z.string().optional(),
+  userType: z.enum(["buyer", "seller"]).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -46,12 +48,15 @@ const Profile = () => {
           company_name: data.companyName,
           telegram: data.telegram,
           opt_id: data.optId === "" ? null : data.optId,
+          user_type: data.userType || profile?.user_type, // Update user type if provided
         })
         .eq('id', user.id);
 
       if (error) {
         throw error;
       }
+
+      await refreshProfile(); // Refresh profile to update the UI with new data
 
       toast({
         title: "Профиль обновлен",

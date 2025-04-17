@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       setProfile(data);
+      console.log("Fetched profile:", data); // Log profile data for debugging
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -52,6 +53,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed:", event);
         setSession(session);
         setUser(session?.user ?? null);
         
