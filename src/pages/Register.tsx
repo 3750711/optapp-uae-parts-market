@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -70,13 +71,14 @@ const Register = () => {
     setIsLoading(true);
     
     try {
+      // Make sure to include userType in user metadata for proper handling
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
             full_name: data.fullName || null,
-            user_type: data.userType,
+            user_type: data.userType, // This is important - make sure userType is saved
             phone: data.phone || null,
             opt_id: data.optId || null,
           }

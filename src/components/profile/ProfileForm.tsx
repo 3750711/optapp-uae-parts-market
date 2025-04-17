@@ -1,15 +1,27 @@
 
 import React from "react";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { ProfileType } from "./types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -18,7 +30,7 @@ const formSchema = z.object({
   companyName: z.string().optional(),
   telegram: z.string().optional(),
   optId: z.string().optional(),
-  userType: z.enum(["buyer", "seller"]),
+  userType: z.enum(["buyer", "seller"]).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -27,9 +39,15 @@ interface ProfileFormProps {
   profile: ProfileType;
   onSubmit: (data: FormData) => Promise<void>;
   isLoading: boolean;
+  readOnlyUserType?: boolean;
 }
 
-const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading }) => {
+const ProfileForm: React.FC<ProfileFormProps> = ({
+  profile,
+  onSubmit,
+  isLoading,
+  readOnlyUserType = true, // Default to true to ensure user_type is read-only
+}) => {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -39,18 +57,30 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
       companyName: profile.company_name || "",
       telegram: profile.telegram || "",
       optId: profile.opt_id || "",
-      userType: profile.user_type || "buyer",
+      userType: profile.user_type,
     },
   });
 
+  const handleSubmit = async (data: FormData) => {
+    try {
+      await onSubmit(data);
+      form.reset({
+        ...data,
+        userType: profile.user_type, // Always keep the original user type
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
+  };
+
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Информация профиля</CardTitle>
+      <CardHeader>
+        <CardTitle>Данные профиля</CardTitle>
       </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4 pt-4">
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="fullName"
@@ -58,7 +88,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Имя и фамилия</FormLabel>
                   <FormControl>
-                    <Input placeholder="Введите ваше полное имя" {...field} />
+                    <Input placeholder="Введите ваше имя" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -72,9 +102,40 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="example@mail.com" {...field} readOnly />
+                    <Input type="email" disabled {...field} />
                   </FormControl>
                   <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="userType"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Тип аккаунта</FormLabel>
+                  <FormControl>
+                    <Select
+                      disabled={readOnlyUserType}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выбрать тип пользователя" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buyer">Покупатель</SelectItem>
+                        <SelectItem value="seller">Продавец</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                  {readOnlyUserType && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Тип аккаунта нельзя изменить после регистрации
+                    </p>
+                  )}
                 </FormItem>
               )}
             />
@@ -98,9 +159,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
               name="companyName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Название компании (если есть)</FormLabel>
+                  <FormLabel>Название компании</FormLabel>
                   <FormControl>
-                    <Input placeholder="Введите название компании" {...field} />
+                    <Input placeholder="Введите название вашей компании" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -112,9 +173,9 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
               name="telegram"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Telegram (без @)</FormLabel>
+                  <FormLabel>Telegram</FormLabel>
                   <FormControl>
-                    <Input placeholder="username" {...field} />
+                    <Input placeholder="@username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -126,7 +187,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
               name="optId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>OPT ID (если есть)</FormLabel>
+                  <FormLabel>OPT ID</FormLabel>
                   <FormControl>
                     <Input placeholder="Введите ваш OPT ID" {...field} />
                   </FormControl>
@@ -134,56 +195,17 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading 
                 </FormItem>
               )}
             />
-
-            <FormField
-              control={form.control}
-              name="userType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Тип аккаунта</FormLabel>
-                  <FormControl>
-                    <RadioGroup 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                      className="grid grid-cols-2 gap-4 pt-2"
-                    >
-                      <div>
-                        <RadioGroupItem value="buyer" id="profile-buyer" className="peer sr-only" />
-                        <FormLabel
-                          htmlFor="profile-buyer"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-optapp-yellow [&:has([data-state=checked])]:border-optapp-yellow cursor-pointer"
-                        >
-                          <span>Покупатель</span>
-                        </FormLabel>
-                      </div>
-                      <div>
-                        <RadioGroupItem value="seller" id="profile-seller" className="peer sr-only" />
-                        <FormLabel
-                          htmlFor="profile-seller"
-                          className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-optapp-yellow [&:has([data-state=checked])]:border-optapp-yellow cursor-pointer"
-                        >
-                          <span>Продавец</span>
-                        </FormLabel>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-          <CardFooter>
+            
             <Button 
               type="submit" 
-              className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500" 
+              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 w-full"
               disabled={isLoading}
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Сохранить изменения
+              {isLoading ? "Сохранение..." : "Сохранить изменения"}
             </Button>
-          </CardFooter>
-        </form>
-      </Form>
+          </form>
+        </Form>
+      </CardContent>
     </Card>
   );
 };

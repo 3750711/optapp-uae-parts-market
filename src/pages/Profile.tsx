@@ -18,7 +18,7 @@ const formSchema = z.object({
   companyName: z.string().optional(),
   telegram: z.string().optional(),
   optId: z.string().optional(),
-  userType: z.enum(["buyer", "seller"]).optional(),
+  // Remove userType from the form schema as it cannot be changed
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -48,7 +48,7 @@ const Profile = () => {
           company_name: data.companyName,
           telegram: data.telegram,
           opt_id: data.optId === "" ? null : data.optId,
-          user_type: data.userType || profile?.user_type, // Update user type if provided
+          // Don't update user_type since it cannot be changed
         })
         .eq('id', user.id);
 
@@ -56,7 +56,7 @@ const Profile = () => {
         throw error;
       }
 
-      await refreshProfile(); // Refresh profile to update the UI with new data
+      await refreshProfile();
 
       toast({
         title: "Профиль обновлен",
@@ -152,6 +152,7 @@ const Profile = () => {
               profile={profile}
               onSubmit={handleSubmit}
               isLoading={isLoading}
+              readOnlyUserType={true} // Pass this flag to make user type read-only
             />
             <Button 
               variant="destructive" 
