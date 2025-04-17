@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -49,7 +48,7 @@ const Profile = () => {
   const { user, profile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [contactMessage, setContactMessage] = useState("");
+  const [contactMessage, setContactMessage] = useState<string>("");
   const navigate = useNavigate();
   
   const form = useForm<FormData>({
@@ -141,6 +140,8 @@ const Profile = () => {
   };
   
   const sendContactMessage = async () => {
+    if (!contactMessage.trim()) return;
+    
     setIsLoading(true);
     
     try {
@@ -162,7 +163,6 @@ const Profile = () => {
     }
   };
 
-  // Helper function to render rating stars
   const renderRatingStars = (rating: number | null) => {
     if (!rating) return null;
     
@@ -197,7 +197,6 @@ const Profile = () => {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Left sidebar */}
           <div className="w-full md:w-1/3 space-y-6">
             <Card>
               <CardHeader className="pb-2">
@@ -205,35 +204,35 @@ const Profile = () => {
               </CardHeader>
               <CardContent className="flex flex-col items-center justify-center pt-6 pb-8">
                 <Avatar className="h-32 w-32 mb-6">
-                  <AvatarImage src={profile.avatar_url || ''} alt={profile.full_name || 'User'} />
+                  <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
                   <AvatarFallback className="text-4xl bg-optapp-yellow text-optapp-dark">
-                    {profile.full_name?.charAt(0) || <User size={32} />}
+                    {profile?.full_name?.charAt(0) || <User size={32} />}
                   </AvatarFallback>
                 </Avatar>
-                <h2 className="text-2xl font-bold">{profile.full_name || 'Пользователь'}</h2>
+                <h2 className="text-2xl font-bold">{profile?.full_name || 'Пользователь'}</h2>
                 <div className="flex flex-wrap justify-center items-center gap-2 mt-2">
                   <span className={`inline-block px-3 py-1 rounded-full text-sm ${
-                    profile.user_type === 'seller' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                    profile?.user_type === 'seller' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                   }`}>
-                    {profile.user_type === 'seller' ? 'Продавец' : 'Покупатель'}
+                    {profile?.user_type === 'seller' ? 'Продавец' : 'Покупатель'}
                   </span>
                   <span className={`inline-block px-3 py-1 rounded-full text-sm ${
-                    profile.verification_status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                    profile?.verification_status === 'verified' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                   }`}>
-                    {profile.verification_status === 'verified' ? 'Проверено' : 'Ожидает проверки'}
+                    {profile?.verification_status === 'verified' ? 'Проверено' : 'Ожидает проверки'}
                   </span>
                 </div>
-                {profile.opt_id && (
+                {profile?.opt_id && (
                   <div className="mt-4 text-center">
                     <p className="text-sm text-gray-500 mb-1">OPT ID:</p>
-                    <p className="text-lg font-semibold p-2 bg-gray-100 rounded-md">{profile.opt_id}</p>
+                    <p className="text-lg font-semibold p-2 bg-gray-100 rounded-md">{profile?.opt_id}</p>
                   </div>
                 )}
                 
-                {profile.rating && (
+                {profile?.rating && (
                   <div className="mt-4 text-center">
                     <p className="text-sm text-gray-500 mb-1">Рейтинг:</p>
-                    {renderRatingStars(profile.rating)}
+                    {renderRatingStars(profile?.rating)}
                   </div>
                 )}
                 
@@ -280,24 +279,24 @@ const Profile = () => {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-gray-500">Дата регистрации</p>
-                    <p>{new Date(profile.created_at).toLocaleDateString()}</p>
+                    <p>{new Date(profile?.created_at || '').toLocaleDateString()}</p>
                   </div>
-                  {profile.last_login && (
+                  {profile?.last_login && (
                     <div>
                       <p className="text-sm text-gray-500">Последний вход</p>
-                      <p>{new Date(profile.last_login).toLocaleDateString()}</p>
+                      <p>{new Date(profile?.last_login).toLocaleDateString()}</p>
                     </div>
                   )}
-                  {profile.user_type === 'seller' && (
+                  {profile?.user_type === 'seller' && (
                     <>
                       <div>
                         <p className="text-sm text-gray-500">Количество объявлений</p>
-                        <p>{profile.listing_count}</p>
+                        <p>{profile?.listing_count}</p>
                       </div>
-                      {profile.rating && (
+                      {profile?.rating && (
                         <div>
                           <p className="text-sm text-gray-500">Рейтинг</p>
-                          {renderRatingStars(profile.rating)}
+                          {renderRatingStars(profile?.rating)}
                         </div>
                       )}
                     </>
@@ -307,7 +306,6 @@ const Profile = () => {
             </Card>
           </div>
 
-          {/* Right panel - edit profile */}
           <div className="w-full md:w-2/3">
             <Card>
               <CardHeader>
@@ -422,7 +420,6 @@ const Profile = () => {
         </div>
       </div>
       
-      {/* Contact admin dialog */}
       <AlertDialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -445,7 +442,7 @@ const Profile = () => {
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction 
               onClick={sendContactMessage} 
-              disabled={contactMessage.trim() === ""}
+              disabled={!contactMessage.trim()}
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Отправить
