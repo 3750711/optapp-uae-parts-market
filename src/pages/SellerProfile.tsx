@@ -1,12 +1,27 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { LayoutDashboard } from "lucide-react";
 import SellerDashboard from "@/components/seller/SellerDashboard";
 
 const SellerProfile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-6">
+          <Link to="/seller/dashboard">
+            <Button 
+              size="lg" 
+              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-lg py-6 px-8 w-full sm:w-auto"
+            >
+              <LayoutDashboard className="mr-2 h-6 w-6" />
+              Панель продавца
+            </Button>
+          </Link>
+        </div>
+        
         <SellerDashboard />
         
         {/* Recent Products */}

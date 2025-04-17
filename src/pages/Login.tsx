@@ -49,14 +49,29 @@ const Login = () => {
 
       if (error) throw error;
 
+      // Get user profile to determine user type
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+
       // Show success toast
       toast({
         title: "Вход выполнен успешно",
         description: "Добро пожаловать в OPTAPP",
       });
       
-      // Redirect to home page
-      navigate("/");
+      // Redirect based on user type
+      if (profileData?.user_type === 'seller') {
+        navigate("/seller/dashboard");
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       // Show error toast
       toast({
