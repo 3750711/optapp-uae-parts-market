@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -138,29 +137,15 @@ const Profile = () => {
       setIsLoading(false);
     }
   };
-  
-  const sendContactMessage = async () => {
-    if (!contactMessage.trim()) return;
+
+  const handleContactAdmin = () => {
+    if (!profile) return;
     
-    setIsLoading(true);
+    const messageText = `Здравствуйте! Я пользователь с OPT ID: ${profile.opt_id || 'не указан'}\nИмя: ${profile.full_name || 'не указано'}\nEmail: ${profile.email || 'не указан'}\nТелефон: ${profile.phone || 'не указан'}\nКомпания: ${profile.company_name || 'не указана'}\n\nМое сообщение:`;
     
-    try {
-      // Here we would send the message to admin, could be via Supabase, email service, etc.
-      toast({
-        title: "Сообщение отправлено",
-        description: "Администратор получит ваше сообщение и свяжется с вами",
-      });
-      setContactMessage("");
-      setIsContactDialogOpen(false);
-    } catch (error: any) {
-      toast({
-        title: "Ошибка отправки",
-        description: error.message || "Произошла ошибка при отправке сообщения",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    const encodedMessage = encodeURIComponent(messageText);
+    
+    window.open(`https://t.me/ElenaOPTcargo?text=${encodedMessage}`, '_blank');
   };
 
   const renderRatingStars = (rating: number | null) => {
@@ -238,7 +223,7 @@ const Profile = () => {
                 
                 <div className="mt-6 w-full space-y-4">
                   <Button 
-                    onClick={() => setIsContactDialogOpen(true)}
+                    onClick={handleContactAdmin}
                     className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
                   >
                     Связаться с администратором
@@ -419,37 +404,6 @@ const Profile = () => {
           </div>
         </div>
       </div>
-      
-      <AlertDialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Связаться с администратором</AlertDialogTitle>
-            <AlertDialogDescription>
-              Отправьте сообщение администратору, и он свяжется с вами в ближайшее время.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          
-          <div className="py-4">
-            <Textarea 
-              placeholder="Напишите ваше сообщение здесь..."
-              className="min-h-[120px]"
-              value={contactMessage}
-              onChange={(e) => setContactMessage(e.target.value)}
-            />
-          </div>
-          
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={sendContactMessage} 
-              disabled={!contactMessage.trim()}
-            >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Отправить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Layout>
   );
 };
