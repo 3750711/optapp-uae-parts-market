@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ProfileType } from "@/integrations/supabase/types";
+import { ProfileType } from "./types";
 import { Star, StarHalf } from "lucide-react";
 
 interface ProfileInfoProps {

@@ -94,7 +94,8 @@ const Profile = () => {
   const handleContactAdmin = () => {
     if (!profile) return;
     
-    window.open(`https://t.me/ElenaOPTcargo`, '_blank');
+    // Fixed the type error by using a string literal
+    window.open('https://t.me/ElenaOPTcargo', '_blank');
   };
 
   if (!profile) {

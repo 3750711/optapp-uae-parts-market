@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ProfileType } from "@/integrations/supabase/types";
+import { ProfileType } from "./types";
 
 interface ProfileActionsProps {
   profile: ProfileType;

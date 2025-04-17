@@ -3,7 +3,7 @@ import React from "react";
 import { User, Star, StarHalf } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ProfileType } from "@/integrations/supabase/types";
+import { ProfileType } from "./types";
 
 interface ProfileHeaderProps {
   profile: ProfileType;

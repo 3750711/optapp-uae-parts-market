@@ -3,7 +3,7 @@ import React from "react";
 import ProfileHeader from "./ProfileHeader";
 import ProfileActions from "./ProfileActions";
 import ProfileInfo from "./ProfileInfo";
-import { ProfileType } from "@/integrations/supabase/types";
+import { ProfileType } from "./types";
 
 interface ProfileSidebarProps {
   profile: ProfileType;
