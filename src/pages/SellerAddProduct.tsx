@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -55,12 +54,8 @@ const productSchema = z.object({
   model: z.string().min(1, {
     message: "Укажите модель автомобиля",
   }),
-  year: z.string().optional(),
   description: z.string().min(10, {
     message: "Описание должно содержать не менее 10 символов",
-  }),
-  location: z.string({
-    required_error: "Выберите местоположение",
   }),
 });
 
@@ -80,9 +75,7 @@ const SellerAddProduct = () => {
       condition: "",
       brand: "",
       model: "",
-      year: "",
       description: "",
-      location: "",
     },
   });
 
@@ -169,7 +162,6 @@ const SellerAddProduct = () => {
           brand: values.brand,
           model: values.model,
           description: values.description,
-          location: values.location,
           seller_id: user.id,
           seller_name: profile.full_name || user.email,
           status: 'pending'
@@ -300,7 +292,7 @@ const SellerAddProduct = () => {
                   <div className="space-y-4">
                     <h3 className="font-medium">Информация об автомобиле</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
                         name="brand"
@@ -333,22 +325,6 @@ const SellerAddProduct = () => {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="year"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Год выпуска</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Например: 2018-2022" 
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
                     </div>
                   </div>
                   
@@ -365,34 +341,6 @@ const SellerAddProduct = () => {
                             {...field}
                           />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Местоположение</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Выберите город" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Дубай">Дубай</SelectItem>
-                            <SelectItem value="Абу-Даби">Абу-Даби</SelectItem>
-                            <SelectItem value="Шарджа">Шарджа</SelectItem>
-                            <SelectItem value="Аджман">Аджман</SelectItem>
-                            <SelectItem value="Рас-эль-Хайма">Рас-эль-Хайма</SelectItem>
-                          </SelectContent>
-                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
