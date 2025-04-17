@@ -6,11 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Phone, MapPin, ShieldCheck, CircleDollarSign, MessageSquare, ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [showPhone, setShowPhone] = useState(false);
-  
+  const { toast } = useToast();
+
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
     queryFn: async () => {
@@ -69,7 +71,11 @@ const ProductDetail = () => {
   };
 
   const handleBuyNow = () => {
-    alert(`Товар "${product?.title}" добавлен в корзину`);
+    toast({
+      title: "Товар добавлен в корзину",
+      description: `"${product?.title}" успешно добавлен в вашу корзину`,
+      variant: "default"
+    });
   };
 
   const handleContactWhatsApp = () => {
@@ -97,7 +103,7 @@ const ProductDetail = () => {
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
           <p className="text-lg text-red-500">Ошибка при загрузке данных о товаре</p>
-          <p className="text-gray-500 mt-2">Товар не найден или произошла ошибка при загрузке</p>
+          <p className="text-gray-500 mt-2">Товар не найден или прои��ошла ошибка при загрузке</p>
         </div>
       </Layout>
     );
@@ -183,18 +189,17 @@ const ProductDetail = () => {
                 </div>
               )}
               <Button 
-                className="w-full bg-green-600 hover:bg-green-700 text-white mb-2"
-                onClick={handleContactWhatsApp}
+                className="col-span-2 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                onClick={handleBuyNow}
               >
-                <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
+                <ShoppingCart className="mr-2 h-4 w-4" /> Купить
               </Button>
               
               <Button 
-                variant="outline" 
-                className="w-full border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white mb-2"
-                onClick={handleContactTelegram}
+                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                onClick={handleContactWhatsApp}
               >
-                <MessageSquare className="mr-2 h-4 w-4" /> Связаться в Telegram
+                <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
               </Button>
             </div>
             
