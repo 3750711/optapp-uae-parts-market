@@ -19,12 +19,12 @@ const SellerProfile = () => {
       
       setLoading(true);
       try {
-        // Полное игнорирование типов для доступа к таблицам
-        const { data: productsData, error: productsError } = await (supabase
-          .from('products') as unknown as any)
+        // Используем тип any для обхода ограничений типизации
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
           .select('*, product_images(url, is_primary)')
           .eq('seller_id', user.id)
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false }) as any;
         
         if (productsError) throw productsError;
         setProducts(productsData || []);

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -159,8 +160,8 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
-      const { data: product, error: productError } = await (supabase
-        .from('products') as unknown as any)
+      const { data: product, error: productError } = await supabase
+        .from('products')
         .insert({
           title: values.title,
           price: parseFloat(values.price),
@@ -174,21 +175,21 @@ const SellerAddProduct = () => {
           status: 'pending'
         })
         .select('id')
-        .single();
+        .single() as any;
 
       if (productError) throw productError;
 
       const uploadedImages = await uploadImages(product.id);
       
-      const { error: imagesError } = await (supabase
-        .from('product_images') as unknown as any)
+      const { error: imagesError } = await supabase
+        .from('product_images')
         .insert(
           uploadedImages.map(img => ({
             product_id: product.id,
             url: img.url,
             is_primary: img.is_primary
           }))
-        );
+        ) as any;
 
       if (imagesError) throw imagesError;
 
