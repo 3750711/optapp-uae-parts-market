@@ -70,8 +70,8 @@ const Profile = () => {
     setIsLoading(true);
     
     try {
-      // Fix: Pass an empty object as parameter to the RPC function
-      const { error } = await supabase.rpc('delete_user_account', {});
+      // Fix the TypeScript error by passing an empty object with type assertion
+      const { error } = await supabase.rpc('delete_user_account', {} as Record<string, never>);
       
       if (error) throw error;
       
