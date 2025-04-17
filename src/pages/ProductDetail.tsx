@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -60,7 +59,6 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.profiles?.telegram) {
-      // Удаляем @ если он есть в начале имени пользователя
       const telegramUsername = product.profiles.telegram.replace(/^@/, '');
       console.log("Открываем Telegram чат с пользователем:", telegramUsername);
       window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer');
@@ -84,8 +82,9 @@ const ProductDetail = () => {
   const handleContactWhatsApp = () => {
     if (product?.profiles?.phone) {
       const cleanPhone = product.profiles.phone.replace(/\D/g, '');
+      const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
-      window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank', 'noopener,noreferrer');
+      window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       alert('Номер телефона продавца недоступен');
     }
