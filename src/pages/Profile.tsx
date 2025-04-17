@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -94,7 +93,6 @@ const Profile = () => {
   const handleContactAdmin = () => {
     if (!profile) return;
     
-    // Fixed the type error by using a string literal
     window.open('https://t.me/ElenaOPTcargo', '_blank');
   };
 

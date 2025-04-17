@@ -28,10 +28,32 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   onDeleteAccount,
   onContactAdmin
 }) => {
+  // Format user data for display
+  const userDataText = `
+Имя: ${profile.full_name || 'Не указано'}
+Email: ${profile.email}
+OPT ID: ${profile.opt_id || 'Не указан'}
+  `.trim();
+
+  const handleContactAdmin = () => {
+    // Try to open Telegram with the formatted message
+    try {
+      const encodedText = encodeURIComponent(userDataText);
+      const telegramUrl = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
+      window.open(telegramUrl, '_blank');
+    } catch (error) {
+      // Fallback to just opening the chat without a message
+      window.open('https://t.me/ElenaOPTcargo', '_blank');
+    }
+    
+    // Also call the parent handler
+    onContactAdmin();
+  };
+
   return (
     <div className="mt-6 w-full space-y-4">
       <Button 
-        onClick={onContactAdmin}
+        onClick={handleContactAdmin}
         className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
       >
         Связаться с администратором
