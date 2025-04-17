@@ -50,14 +50,12 @@ const ProfileInfo: React.FC<ProfileInfoProps> = ({ profile }) => {
             <>
               <div>
                 <p className="text-sm text-gray-500">Количество объявлений</p>
-                <p>{profile?.listing_count}</p>
+                <p>{profile?.listing_count || 0}</p>
               </div>
-              {profile?.rating && (
-                <div>
-                  <p className="text-sm text-gray-500">Рейтинг</p>
-                  {renderRatingStars(profile?.rating)}
-                </div>
-              )}
+              <div>
+                <p className="text-sm text-gray-500">Рейтинг продавца</p>
+                {profile?.rating ? renderRatingStars(profile?.rating) : <p>Пока нет оценок</p>}
+              </div>
             </>
           )}
         </div>

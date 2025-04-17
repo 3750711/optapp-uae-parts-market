@@ -2,6 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ProfileType } from "./types";
+import { Star } from "lucide-react";
 
 interface ProfileActionsProps {
   profile: ProfileType;
@@ -35,6 +36,32 @@ OPT ID: ${profile.opt_id || 'Не указан'}
       >
         Связаться с администратором
       </Button>
+      
+      {profile.user_type === 'seller' && (
+        <div className="p-4 bg-white rounded-lg shadow">
+          <h3 className="font-medium text-lg mb-2">Рейтинг продавца</h3>
+          <div className="flex items-center">
+            {profile.rating ? (
+              <>
+                <div className="flex mr-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i} 
+                      className={`h-5 w-5 ${i < Math.floor(profile.rating || 0) 
+                        ? "fill-yellow-400 text-yellow-400" 
+                        : "text-gray-300"}`}
+                    />
+                  ))}
+                </div>
+                <span className="font-bold">{profile.rating.toFixed(1)}</span>
+                <span className="text-gray-500 ml-1">/5</span>
+              </>
+            ) : (
+              <span className="text-gray-500">Пока нет оценок</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
