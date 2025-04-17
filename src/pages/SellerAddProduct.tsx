@@ -147,6 +147,7 @@ const SellerAddProduct = () => {
         .insert({
           title: values.title,
           price: parseFloat(values.price),
+          condition: "Новый",
           brand: values.brand,
           model: values.model,
           description: values.description,
