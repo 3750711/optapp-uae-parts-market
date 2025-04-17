@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +28,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   onDeleteAccount,
   onContactAdmin
 }) => {
-  // Format user data for display
+  // Format user data as a clear, structured message
   const userDataText = `
 Имя: ${profile.full_name || 'Не указано'}
 Email: ${profile.email}

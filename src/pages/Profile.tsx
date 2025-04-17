@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -90,10 +91,11 @@ const Profile = () => {
     }
   };
 
+  // Updated to be just a simple handler without opening the URL directly
   const handleContactAdmin = () => {
-    if (!profile) return;
-    
-    window.open('https://t.me/ElenaOPTcargo', '_blank');
+    // The actual URL opening is now handled in ProfileActions component
+    // This function exists just to satisfy the interface requirements
+    console.log("Contact admin action triggered from Profile page");
   };
 
   if (!profile) {
