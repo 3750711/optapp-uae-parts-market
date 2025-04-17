@@ -16,8 +16,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactWhatsApp,
   telegramUrl 
 }) => {
-  // Construct full Telegram URL with the new format
-  const fullTelegramUrl = telegramUrl ? `https://t.me/${telegramUrl}` : undefined;
+  // Remove @ symbol if present in telegram_url
+  const cleanTelegramUrl = telegramUrl?.startsWith('@') ? telegramUrl.slice(1) : telegramUrl;
+  const fullTelegramUrl = cleanTelegramUrl ? `https://t.me/${cleanTelegramUrl}` : undefined;
 
   return (
     <>
@@ -63,4 +64,3 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 };
 
 export default ContactButtons;
-
