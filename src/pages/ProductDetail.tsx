@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -60,9 +59,7 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.profiles?.telegram) {
-      const telegramUsername = product.profiles.telegram.replace(/^@/, '');
-      console.log("Opening Telegram chat with username:", telegramUsername);
-      window.open(`https://t.me/${telegramUsername}`, '_blank', 'noopener,noreferrer');
+      window.open(`https://t.me/${product.profiles.telegram}`, '_blank', 'noopener,noreferrer');
     } else {
       console.log("No Telegram username found, using general share URL");
       const sellerName = product?.seller_name || "продавцом";
