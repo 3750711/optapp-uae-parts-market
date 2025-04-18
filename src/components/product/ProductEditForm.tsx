@@ -22,7 +22,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   const [isLoading, setIsLoading] = React.useState(false);
   const [formData, setFormData] = React.useState({
     title: product.title,
-    price: product.price,
+    price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
     description: product.description || "",
     brand: product.brand || "",
     model: product.model || "",
@@ -38,7 +38,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         .from("products")
         .update({
           title: formData.title,
-          price: formData.price,
+          price: formData.price, // Now this is guaranteed to be a number
           description: formData.description,
           brand: formData.brand,
           model: formData.model,
@@ -79,7 +79,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         <Input
           type="number"
           value={formData.price}
-          onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
           placeholder="Цена"
           className="text-xl"
         />

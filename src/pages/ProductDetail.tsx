@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
@@ -10,11 +10,11 @@ import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import SellerInfo from "@/components/product/SellerInfo";
 import ContactButtons from "@/components/product/ContactButtons";
-import { queryClient } from "@/App";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
