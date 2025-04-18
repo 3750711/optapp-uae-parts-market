@@ -18,6 +18,9 @@ const SellerCreateOrder = () => {
     price: "",
     quantity: "1",
     buyerOptId: "",
+    // Adding default values for required fields
+    brand: "Default Brand",
+    model: "Default Model",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,7 +45,10 @@ const SellerCreateOrder = () => {
           buyer_opt_id: formData.buyerOptId,
           seller_id: user.id,
           seller_opt_id: profile?.opt_id || null,
-          seller_name_order: profile?.full_name || "Неизвестный продавец"
+          seller_name_order: profile?.full_name || "Неизвестный продавец",
+          brand: formData.brand,
+          model: formData.model,
+          buyer_id: user.id, // Since buyer_id is required, we're setting it to user.id temporarily
         })
         .select()
         .single();
@@ -134,6 +140,15 @@ const SellerCreateOrder = () => {
                       placeholder="Введите OPT_ID получателя"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>OPT_ID отправителя</Label>
+                  <Input 
+                    value={profile?.opt_id || ''} 
+                    readOnly 
+                    className="bg-gray-100"
+                  />
                 </div>
 
                 <div className="space-y-2">
