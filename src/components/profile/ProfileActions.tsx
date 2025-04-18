@@ -13,13 +13,11 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
 }) => {
   const handleContactAdmin = () => {
     try {
-      const userDataText = `
-I have a problem boss, my ID is ${profile.opt_id || 'Not specified'}
-      `.trim();
-
+      const userDataText = `I have a problem boss, my ID is ${profile.opt_id || 'Not specified'}`;
       const encodedText = encodeURIComponent(userDataText);
-      const telegramUrl = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
-      window.open(telegramUrl, '_blank');
+      
+      // Creating a Telegram URL that works - the correct format is to use separate parameters
+      window.open(`https://t.me/ElenaOPTcargo?start=${encodedText}`, '_blank');
     } catch (error) {
       window.open('https://t.me/ElenaOPTcargo', '_blank');
     }
