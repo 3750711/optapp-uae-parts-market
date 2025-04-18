@@ -10,6 +10,7 @@ import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import SellerInfo from "@/components/product/SellerInfo";
 import ContactButtons from "@/components/product/ContactButtons";
+import { queryClient } from "@/App";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -94,11 +95,15 @@ const ProductDetail = () => {
     }
   };
 
+  const handleProductUpdate = () => {
+    queryClient.invalidateQueries(["product", id]);
+  };
+
   if (isLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg">Загр��зка данных о товаре...</p>
+          <p className="text-lg">Загрузка данных о товаре...</p>
         </div>
       </Layout>
     );
@@ -130,15 +135,8 @@ const ProductDetail = () => {
 
           <div>
             <ProductInfo 
-              id={product.id}
-              seller_id={product.seller_id}
-              title={product.title}
-              price={product.price}
-              condition={product.condition}
-              location={product.location || ""}
-              description={product.description || ""}
-              rating_seller={product.rating_seller}
-              optid_created={product.optid_created}
+              product={product}
+              onProductUpdate={handleProductUpdate}
             />
             
             <ProductSpecifications 
