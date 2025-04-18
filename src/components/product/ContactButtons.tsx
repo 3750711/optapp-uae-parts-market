@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -16,12 +15,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactWhatsApp,
   telegramUrl 
 }) => {
-  // Always remove @ symbol if present in telegram_url
-  const cleanTelegramUrl = telegramUrl?.startsWith('@') 
-    ? telegramUrl.slice(1) 
-    : telegramUrl;
-  const fullTelegramUrl = cleanTelegramUrl 
-    ? `https://t.me/${cleanTelegramUrl}` 
+  // Since telegram_url is now stored without https://t.me/ and @, 
+  // we just need to construct the full URL
+  const fullTelegramUrl = telegramUrl 
+    ? `https://t.me/${telegramUrl}` 
     : undefined;
 
   return (
