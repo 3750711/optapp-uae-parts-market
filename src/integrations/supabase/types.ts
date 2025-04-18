@@ -9,6 +9,75 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      orders: {
+        Row: {
+          brand: string
+          buyer_id: string
+          buyer_opt_id: string | null
+          created_at: string
+          description: string | null
+          id: string
+          lot_number: number
+          model: string
+          price: number
+          seller_id: string
+          seller_name_order: string
+          seller_opt_id: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          telegram_url: string | null
+          title: string
+        }
+        Insert: {
+          brand: string
+          buyer_id: string
+          buyer_opt_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lot_number: number
+          model: string
+          price: number
+          seller_id: string
+          seller_name_order: string
+          seller_opt_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          telegram_url?: string | null
+          title: string
+        }
+        Update: {
+          brand?: string
+          buyer_id?: string
+          buyer_opt_id?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          lot_number?: number
+          model?: string
+          price?: number
+          seller_id?: string
+          seller_name_order?: string
+          seller_opt_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          telegram_url?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           created_at: string
@@ -174,6 +243,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      order_status: "verified" | "pending"
       product_status: "active" | "sold" | "pending" | "archived"
       user_type: "buyer" | "seller"
       verification_status: "verified" | "pending"
@@ -292,6 +362,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      order_status: ["verified", "pending"],
       product_status: ["active", "sold", "pending", "archived"],
       user_type: ["buyer", "seller"],
       verification_status: ["verified", "pending"],
