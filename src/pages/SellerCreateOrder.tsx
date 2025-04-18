@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,15 +13,38 @@ import { useNavigate } from "react-router-dom";
 const SellerCreateOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const [lotNumber, setLotNumber] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
     quantity: "1",
     buyerOptId: "",
-    // Adding default values for required fields
     brand: "Default Brand",
     model: "Default Model",
   });
+
+  useEffect(() => {
+    const fetchNextLotNumber = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('lot_number', { count: 'exact' })
+          .order('lot_number', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (error) throw error;
+
+        // If no existing orders, start from 8000
+        setLotNumber(data ? data.lot_number + 1 : 8000);
+      } catch (error) {
+        console.error("Error fetching lot number:", error);
+        setLotNumber(8000); // Default to 8000 if there's an error
+      }
+    };
+
+    fetchNextLotNumber();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +71,8 @@ const SellerCreateOrder = () => {
           seller_name_order: profile?.full_name || "Неизвестный продавец",
           brand: formData.brand,
           model: formData.model,
-          buyer_id: user.id, // Since buyer_id is required, we're setting it to user.id temporarily
+          buyer_id: user.id,
+          lot_number: lotNumber || 8000,
         })
         .select()
         .single();
@@ -82,7 +106,13 @@ const SellerCreateOrder = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Создать заказ</h1>
+          {lotNumber && (
+            <div className="text-center mb-8">
+              <h2 className="text-6xl font-bold text-optapp-dark">
+                № {lotNumber}
+              </h2>
+            </div>
+          )}
           
           <Card>
             <CardHeader>
