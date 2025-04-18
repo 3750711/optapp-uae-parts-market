@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   maxImages = 10
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadImages = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -74,8 +75,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     } finally {
       setIsUploading(false);
       // Reset the file input after upload
-      const fileInput = document.getElementById('images') as HTMLInputElement;
-      if (fileInput) fileInput.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -100,6 +100,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         description: "Не удалось удалить изображение",
         variant: "destructive",
       });
+    }
+  };
+
+  // Function to trigger the file input click
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -128,26 +135,23 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           <input
             type="file"
             id="images"
+            ref={fileInputRef}
             multiple
             accept="image/*"
             className="hidden"
             onChange={uploadImages}
             disabled={isUploading}
           />
-          <label
-            htmlFor="images"
-            className="cursor-pointer"
+          <Button 
+            type="button"
+            variant="outline"
+            disabled={isUploading}
+            className="flex items-center gap-2"
+            onClick={handleButtonClick}
           >
-            <Button 
-              type="button"
-              variant="outline"
-              disabled={isUploading}
-              className="flex items-center gap-2"
-            >
-              <ImagePlus className="h-4 w-4" />
-              {isUploading ? "Загрузка..." : "Добавить фото"}
-            </Button>
-          </label>
+            <ImagePlus className="h-4 w-4" />
+            {isUploading ? "Загрузка..." : "Добавить фото"}
+          </Button>
         </div>
       )}
     </div>
