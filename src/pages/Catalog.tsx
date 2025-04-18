@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -79,7 +78,8 @@ const Catalog = () => {
       optid_created: product.optid_created,
       rating_seller: product.rating_seller,
       brand: product.brand,
-      model: product.model
+      model: product.model,
+      seller_name: product.seller_name
     };
   });
 

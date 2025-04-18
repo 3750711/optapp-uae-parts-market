@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -15,7 +14,10 @@ const featuredProducts = [
     price: 2500,
     image: "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop",
     condition: "Новый" as const,
-    location: "Дубай"
+    location: "Дубай",
+    brand: "BMW",
+    model: "X5",
+    seller_name: "Auto Parts UAE"
   },
   {
     id: "2",
@@ -23,7 +25,10 @@ const featuredProducts = [
     price: 12000,
     image: "https://images.unsplash.com/photo-1579033014049-f33d9b13a1ce?q=80&w=500&auto=format&fit=crop",
     condition: "Восстановленный" as const,
-    location: "Шарджа"
+    location: "Шарджа",
+    brand: "Toyota",
+    model: "Camry",
+    seller_name: "Dubai Motors"
   },
   {
     id: "3",
@@ -31,7 +36,10 @@ const featuredProducts = [
     price: 3200,
     image: "https://images.unsplash.com/photo-1611921059263-39188082fb82?q=80&w=500&auto=format&fit=crop",
     condition: "Новый" as const,
-    location: "Абу-Даби"
+    location: "Абу-Даби",
+    brand: "Mercedes",
+    model: "Various",
+    seller_name: "Premium Auto Parts"
   },
   {
     id: "4",
@@ -39,7 +47,10 @@ const featuredProducts = [
     price: 1800,
     image: "https://images.unsplash.com/photo-1582639510494-c80b5de9f148?q=80&w=500&auto=format&fit=crop",
     condition: "Б/У" as const,
-    location: "Дубай"
+    location: "Дубай",
+    brand: "Lexus",
+    model: "RX",
+    seller_name: "Emirates Auto"
   }
 ];
 

@@ -19,6 +19,7 @@ export interface ProductProps {
   rating_seller?: number;
   brand: string;
   model: string;
+  seller_name: string;
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -33,7 +34,8 @@ const ProductCard: React.FC<ProductProps> = ({
   optid_created,
   rating_seller,
   brand,
-  model
+  model,
+  seller_name
 }) => {
   const displayOptId = seller_opt_id || optid_created;
   const displayRating = rating_seller ?? seller_rating;
@@ -66,33 +68,38 @@ const ProductCard: React.FC<ProductProps> = ({
         </div>
         
         {/* Seller info */}
-        <div className="flex items-center space-x-4 mb-2 text-sm">
-          {displayOptId && (
-            <div>
-              <span className="text-gray-500">OPT ID: </span>
-              <span className="font-medium">{displayOptId}</span>
-            </div>
-          )}
-          {displayRating !== undefined && displayRating !== null && (
-            <div className="flex items-center">
-              <div className="flex mr-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i}
-                    className={`h-4 w-4 ${
-                      i < Math.floor(displayRating)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
+        <div className="flex flex-col space-y-2 mb-2 text-sm">
+          <div className="text-gray-600">
+            <span className="font-medium">Продавец:</span> {seller_name}
+          </div>
+          <div className="flex items-center space-x-4">
+            {displayOptId && (
+              <div>
+                <span className="text-gray-500">OPT ID: </span>
+                <span className="font-medium">{displayOptId}</span>
               </div>
-              <span className="text-xs">
-                <span className="font-medium">{displayRating?.toFixed(1)}</span>
-                <span className="text-gray-500">/5</span>
-              </span>
-            </div>
-          )}
+            )}
+            {displayRating !== undefined && displayRating !== null && (
+              <div className="flex items-center">
+                <div className="flex mr-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star 
+                      key={i}
+                      className={`h-4 w-4 ${
+                        i < Math.floor(displayRating)
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-gray-300"
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs">
+                  <span className="font-medium">{displayRating?.toFixed(1)}</span>
+                  <span className="text-gray-500">/5</span>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         <h3 className="font-medium text-lg truncate">{name}</h3>
