@@ -59,10 +59,9 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
-      // Use product_url directly without encoding it
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      // Don't use encodeURIComponent as it's already a URL parameter
-      window.open(`https://t.me/${product.telegram_url}?text=${productUrl}`, '_blank', 'noopener,noreferrer');
+      const message = `${productUrl} I'm interested in product_urs please can you send pore information`;
+      window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
@@ -83,8 +82,8 @@ const ProductDetail = () => {
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      // Don't encode the URL since it's already properly formatted
-      window.open(`https://wa.me/${product.phone_url}?text=${productUrl}`, '_blank', 'noopener,noreferrer');
+      const message = `${productUrl} I'm interested in product_urs please can you send pore information`;
+      window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
