@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -136,6 +135,8 @@ const ProductDetail = () => {
               condition={product.condition}
               location={product.location || ""}
               description={product.description || ""}
+              rating_seller={product.rating_seller}
+              optid_created={product.optid_created}
             />
             
             <ProductSpecifications 
