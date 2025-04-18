@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
 import { Button } from "@/components/ui/button";
+import { UserType } from "@/components/profile/types";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
