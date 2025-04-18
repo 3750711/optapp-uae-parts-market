@@ -12,7 +12,7 @@ const SellerDashboard = () => {
     try {
       const userDataText = `I have a problem boss, my ID is ${profile?.opt_id || 'Not specified'}`;
       const encodedText = encodeURIComponent(userDataText);
-      const telegramLink = `https://t.me/ElenaOPTcargo?start=${encodedText}`;
+      const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
       
       // Добавляем console.log для отображения полной ссылки
       console.log('Telegram Contact Link:', telegramLink);
