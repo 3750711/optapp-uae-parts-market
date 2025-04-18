@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,33 @@ const SellerCreateOrder = () => {
       toast({
         title: "Ошибка",
         description: "Вы должны быть авторизованы для создания заказа",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.title.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Наименование обязательно для заполнения",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast({
+        title: "Ошибка",
+        description: "Укажите корректную цену",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!formData.buyerOptId.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "OPT_ID получателя обязателен для заполнения",
         variant: "destructive",
       });
       return;
@@ -151,7 +179,7 @@ const SellerCreateOrder = () => {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Наименование</Label>
+                    <Label htmlFor="title">Наименование *</Label>
                     <Input 
                       id="title" 
                       value={formData.title}
@@ -180,7 +208,6 @@ const SellerCreateOrder = () => {
                       id="brand" 
                       value={formData.brand}
                       onChange={(e) => handleInputChange('brand', e.target.value)}
-                      required 
                       placeholder="Введите бренд"
                     />
                   </div>
@@ -190,7 +217,6 @@ const SellerCreateOrder = () => {
                       id="model"
                       value={formData.model}
                       onChange={(e) => handleInputChange('model', e.target.value)}
-                      required
                       placeholder="Введите модель"
                     />
                   </div>
@@ -198,7 +224,7 @@ const SellerCreateOrder = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Цена (AED)</Label>
+                    <Label htmlFor="price">Цена (AED) *</Label>
                     <Input 
                       id="price" 
                       type="number" 
@@ -211,11 +237,12 @@ const SellerCreateOrder = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="buyerOptId">OPT_ID получателя</Label>
+                    <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
                     <Input 
                       id="buyerOptId"
                       value={formData.buyerOptId}
                       onChange={(e) => handleInputChange('buyerOptId', e.target.value)}
+                      required
                       placeholder="Введите OPT_ID получателя"
                     />
                   </div>
