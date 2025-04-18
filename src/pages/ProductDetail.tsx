@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -96,7 +97,8 @@ const ProductDetail = () => {
   };
 
   const handleProductUpdate = () => {
-    queryClient.invalidateQueries(["product", id]);
+    // Fix: Update the invalidateQueries call to use the correct format
+    queryClient.invalidateQueries({ queryKey: ["product", id] });
   };
 
   if (isLoading) {
