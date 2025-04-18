@@ -69,4 +69,3 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 };
 
 export default SellerInfo;
-

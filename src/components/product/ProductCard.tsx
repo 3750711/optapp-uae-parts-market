@@ -45,36 +45,34 @@ const ProductCard: React.FC<ProductProps> = ({
         </div>
         
         {/* Seller info */}
-        {(seller_opt_id || seller_rating) && (
-          <div className="flex items-center space-x-4 mb-2 text-sm">
-            {seller_opt_id && (
-              <div>
-                <span className="text-gray-500">OPT ID: </span>
-                <span className="font-medium">{seller_opt_id}</span>
+        <div className="flex items-center space-x-4 mb-2 text-sm">
+          {seller_opt_id && (
+            <div>
+              <span className="text-gray-500">OPT ID: </span>
+              <span className="font-medium">{seller_opt_id}</span>
+            </div>
+          )}
+          {seller_rating !== undefined && seller_rating !== null && (
+            <div className="flex items-center">
+              <div className="flex mr-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star 
+                    key={i}
+                    className={`h-4 w-4 ${
+                      i < Math.floor(seller_rating)
+                        ? "fill-yellow-400 text-yellow-400"
+                        : "text-gray-300"
+                    }`}
+                  />
+                ))}
               </div>
-            )}
-            {seller_rating !== undefined && seller_rating !== null && (
-              <div className="flex items-center">
-                <div className="flex mr-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-4 w-4 ${
-                        i < Math.floor(seller_rating)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs">
-                  <span className="font-medium">{seller_rating.toFixed(1)}</span>
-                  <span className="text-gray-500">/5</span>
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+              <span className="text-xs">
+                <span className="font-medium">{seller_rating?.toFixed(1)}</span>
+                <span className="text-gray-500">/5</span>
+              </span>
+            </div>
+          )}
+        </div>
 
         <h3 className="font-medium text-lg truncate">{name}</h3>
         <p className="font-bold text-xl mt-2">{price} AED</p>

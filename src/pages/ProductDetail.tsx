@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -33,6 +34,7 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
+      console.log("Fetched product details:", data);
       return data as Product;
     },
     enabled: !!id,
@@ -116,6 +118,8 @@ const ProductDetail = () => {
 
   const images = getProductImages();
   const sellerProfile = product.profiles;
+  
+  console.log("Seller profile data:", sellerProfile);
   
   return (
     <Layout>
