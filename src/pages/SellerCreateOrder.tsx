@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +10,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 
 const SellerCreateOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const [lotNumber, setLotNumber] = useState<number | null>(null);
   const [images, setImages] = useState<string[]>([]);
+  const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -23,28 +25,6 @@ const SellerCreateOrder = () => {
     brand: "Default Brand",
     model: "Default Model",
   });
-
-  useEffect(() => {
-    const fetchNextLotNumber = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('lot_number', { count: 'exact' })
-          .order('lot_number', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) throw error;
-
-        setLotNumber(data ? data.lot_number + 1 : 8000);
-      } catch (error) {
-        console.error("Error fetching lot number:", error);
-        setLotNumber(8000); // Default to 8000 if there's an error
-      }
-    };
-
-    fetchNextLotNumber();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +52,6 @@ const SellerCreateOrder = () => {
           brand: formData.brand,
           model: formData.model,
           buyer_id: user.id,
-          lot_number: lotNumber || 8000,
         })
         .select()
         .single();
@@ -93,12 +72,11 @@ const SellerCreateOrder = () => {
         if (imagesError) throw imagesError;
       }
 
+      setCreatedOrder(orderData);
       toast({
         title: "Заказ создан",
         description: "Ваш заказ был успешно создан",
       });
-
-      navigate("/seller/dashboard");
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
@@ -124,18 +102,45 @@ const SellerCreateOrder = () => {
     }));
   };
 
+  if (createdOrder) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-6 flex justify-end">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/seller/dashboard')}
+              className="mr-4"
+            >
+              Вернуться в панель
+            </Button>
+            <Button 
+              onClick={() => {
+                setCreatedOrder(null);
+                setFormData({
+                  title: "",
+                  price: "",
+                  quantity: "1",
+                  buyerOptId: "",
+                  brand: "Default Brand",
+                  model: "Default Model",
+                });
+                setImages([]);
+              }}
+            >
+              Создать новый заказ
+            </Button>
+          </div>
+          <OrderConfirmationCard order={createdOrder} images={images} />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          {lotNumber && (
-            <div className="text-center mb-8">
-              <h2 className="text-6xl font-bold text-optapp-dark">
-                № {lotNumber}
-              </h2>
-            </div>
-          )}
-          
           <Card>
             <CardHeader>
               <CardTitle>Информация о заказе</CardTitle>
