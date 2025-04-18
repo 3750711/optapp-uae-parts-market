@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -129,6 +128,10 @@ const SellerCreateOrder = () => {
     }));
   };
 
+  const handleOrderUpdate = (updatedOrder: any) => {
+    setCreatedOrder(updatedOrder);
+  };
+
   if (createdOrder) {
     return (
       <Layout>
@@ -158,7 +161,11 @@ const SellerCreateOrder = () => {
               Создать новый заказ
             </Button>
           </div>
-          <OrderConfirmationCard order={createdOrder} images={images} />
+          <OrderConfirmationCard 
+            order={createdOrder} 
+            images={images}
+            onOrderUpdate={handleOrderUpdate}
+          />
         </div>
       </Layout>
     );

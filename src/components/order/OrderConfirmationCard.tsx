@@ -1,10 +1,14 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Share, Edit2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { OrderEditForm } from './OrderEditForm';
 
 interface OrderConfirmationCardProps {
   order: {
+    id?: string;
     lot_number: number;
     title: string;
     price: number;
@@ -14,14 +18,54 @@ interface OrderConfirmationCardProps {
     seller_name_order: string;
     brand: string;
     model: string;
+    status?: string;
   };
   images: string[];
+  onOrderUpdate?: (updatedOrder: any) => void;
 }
 
-export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ order, images }) => {
+export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ 
+  order, 
+  images,
+  onOrderUpdate 
+}) => {
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+
+  const generateTelegramShareUrl = () => {
+    const text = encodeURIComponent(
+      `Заказ № ${order.lot_number}\n` +
+      `Наименование: ${order.title}\n` +
+      `Бренд: ${order.brand}\n` +
+      `Модель: ${order.model}\n` +
+      `Цена: ${order.price} AED\n` +
+      `Количество мест: ${order.quantity}\n` +
+      `Продавец: ${order.seller_name_order}\n\n` +
+      `Фотографии заказа:\n${images.join('\n')}`
+    );
+    return `https://t.me/share/url?url=&text=${text}`;
+  };
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="text-center">
+      <CardHeader className="text-center relative">
+        <div className="absolute right-6 top-6 flex gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => window.open(generateTelegramShareUrl(), '_blank')}
+          >
+            <Share className="h-4 w-4" />
+          </Button>
+          {order.status === 'pending' && (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setIsEditDialogOpen(true)}
+            >
+              <Edit2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <CardTitle className="text-6xl font-bold text-optapp-dark">
           № {order.lot_number}
         </CardTitle>
@@ -83,6 +127,23 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ or
           </div>
         )}
       </CardContent>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Редактировать заказ № {order.lot_number}</DialogTitle>
+          </DialogHeader>
+          <OrderEditForm 
+            order={order}
+            onSave={(updatedOrder) => {
+              if (onOrderUpdate) {
+                onOrderUpdate(updatedOrder);
+              }
+              setIsEditDialogOpen(false);
+            }}
+            onCancel={() => setIsEditDialogOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
