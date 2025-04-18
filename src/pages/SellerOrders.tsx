@@ -1,6 +1,6 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,10 +21,11 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Loader2 } from "lucide-react";
+import { Loader2, ChevronRight } from "lucide-react";
 
 const SellerOrders = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['seller-orders', user?.id],
@@ -56,6 +57,10 @@ const SellerOrders = () => {
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
+  };
+
+  const handleRowClick = (orderId: string) => {
+    navigate(`/seller/orders/${orderId}`);
   };
 
   return (
@@ -96,11 +101,16 @@ const SellerOrders = () => {
                         <TableHead>Цена</TableHead>
                         <TableHead>Дата</TableHead>
                         <TableHead>Статус</TableHead>
+                        <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {orders.map((order) => (
-                        <TableRow key={order.id}>
+                        <TableRow 
+                          key={order.id}
+                          className="cursor-pointer hover:bg-gray-50"
+                          onClick={() => handleRowClick(order.id)}
+                        >
                           <TableCell>{order.lot_number}</TableCell>
                           <TableCell>{order.title}</TableCell>
                           <TableCell>{order.model}</TableCell>
@@ -115,6 +125,9 @@ const SellerOrders = () => {
                                order.status === 'verified' ? 'Подтвержден' : 
                                order.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                           </TableCell>
                         </TableRow>
                       ))}
