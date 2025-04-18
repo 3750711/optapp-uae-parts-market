@@ -77,7 +77,9 @@ const Catalog = () => {
       seller_opt_id: product.profiles?.opt_id,
       seller_rating: product.profiles?.rating,
       optid_created: product.optid_created,
-      rating_seller: product.rating_seller
+      rating_seller: product.rating_seller,
+      brand: product.brand,
+      model: product.model
     };
   });
 

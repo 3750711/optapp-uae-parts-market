@@ -17,6 +17,8 @@ export interface ProductProps {
   seller_rating?: number;
   optid_created?: string;
   rating_seller?: number;
+  brand: string;
+  model: string;
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -29,7 +31,9 @@ const ProductCard: React.FC<ProductProps> = ({
   seller_opt_id,
   seller_rating,
   optid_created,
-  rating_seller
+  rating_seller,
+  brand,
+  model
 }) => {
   const displayOptId = seller_opt_id || optid_created;
   const displayRating = rating_seller ?? seller_rating;
@@ -49,6 +53,16 @@ const ProductCard: React.FC<ProductProps> = ({
             {condition}
           </Badge>
           <span className="text-sm text-gray-500">{location}</span>
+        </div>
+        
+        {/* Brand and Model info */}
+        <div className="flex flex-col gap-1 mb-2">
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">Бренд:</span> {brand}
+          </div>
+          <div className="text-sm text-gray-600">
+            <span className="font-medium">Модель:</span> {model}
+          </div>
         </div>
         
         {/* Seller info */}
