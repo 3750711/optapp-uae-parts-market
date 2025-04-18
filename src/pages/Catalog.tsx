@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -27,7 +26,6 @@ const Catalog = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      // Modified: Remove status filter to show all products
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary)")
@@ -45,30 +43,23 @@ const Catalog = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // Search logic would be implemented here in a more complex application
   };
 
-  // Filter products based on search query
   const filteredProducts = products?.filter(product => 
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.model.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  // Pagination logic
   const totalPages = Math.ceil((filteredProducts.length || 0) / productsPerPage);
   const startIndex = (currentPage - 1) * productsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
 
-  // Map database products to format expected by ProductCard
   const mappedProducts = paginatedProducts.map(product => {
-    // Get primary image or first image if available
     let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
     
     if (product.product_images && product.product_images.length > 0) {
-      // Find primary image first
       const primaryImage = product.product_images.find(img => img.is_primary);
-      // Use primary image if found, otherwise use the first image
       if (primaryImage) {
         imageUrl = primaryImage.url;
       } else if (product.product_images[0]) {
@@ -82,7 +73,9 @@ const Catalog = () => {
       price: Number(product.price),
       image: imageUrl,
       condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
-      location: product.location || "Дубай"
+      location: product.location || "Дубай",
+      seller_opt_id: product.profiles?.opt_id,
+      seller_rating: product.profiles?.rating
     };
   });
 
@@ -91,7 +84,6 @@ const Catalog = () => {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-6">Каталог автозапчастей</h1>
         
-        {/* Search Bar */}
         <div className="mb-8">
           <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
             <Input 
@@ -107,14 +99,12 @@ const Catalog = () => {
           </form>
         </div>
         
-        {/* Loading State */}
         {isLoading && (
           <div className="text-center py-12">
             <p className="text-lg">Загрузка продуктов...</p>
           </div>
         )}
 
-        {/* Empty State */}
         {!isLoading && filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <p className="text-lg">Товары не найдены</p>
@@ -122,12 +112,10 @@ const Catalog = () => {
           </div>
         )}
         
-        {/* Products Grid */}
         {!isLoading && filteredProducts.length > 0 && (
           <ProductGrid products={mappedProducts} />
         )}
         
-        {/* Pagination */}
         {!isLoading && filteredProducts.length > 0 && (
           <div className="mt-12">
             <Pagination>
