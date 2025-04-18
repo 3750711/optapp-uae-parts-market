@@ -12,7 +12,12 @@ const SellerDashboard = () => {
     try {
       const userDataText = `I have a problem boss, my ID is ${profile?.opt_id || 'Not specified'}`;
       const encodedText = encodeURIComponent(userDataText);
-      window.open(`https://t.me/ElenaOPTcargo?start=${encodedText}`, '_blank');
+      const telegramLink = `https://t.me/ElenaOPTcargo?start=${encodedText}`;
+      
+      // Добавляем console.log для отображения полной ссылки
+      console.log('Telegram Contact Link:', telegramLink);
+      
+      window.open(telegramLink, '_blank');
     } catch (error) {
       window.open('https://t.me/ElenaOPTcargo', '_blank');
     }
