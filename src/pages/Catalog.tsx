@@ -28,7 +28,7 @@ const Catalog = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*, product_images(url, is_primary)")
+        .select("*, product_images(url, is_primary), profiles:seller_id(*)")
         .order("created_at", { ascending: false });
       
       if (error) {
