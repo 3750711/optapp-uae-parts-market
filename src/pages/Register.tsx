@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -79,7 +78,7 @@ const Register = () => {
         options: {
           data: {
             full_name: data.fullName || null,
-            user_type: data.userType, // Important: save user_type in the metadata
+            user_type: data.userType, // Store user_type in the metadata
             phone: data.phone || null,
             opt_id: data.optId || null,
           }
@@ -90,9 +89,8 @@ const Register = () => {
       
       console.log("Auth data returned:", authData); // Debug: log auth response
 
-      // After successful sign up, ensure the user's profile is created with the correct user_type
+      // After successful sign up, ensure the profile is created with the correct user_type
       if (authData.user) {
-        // We'll create/update the profile directly to ensure user_type is set correctly
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({
@@ -101,14 +99,13 @@ const Register = () => {
             full_name: data.fullName || null,
             phone: data.phone || null,
             opt_id: data.optId || null,
-            user_type: data.userType, // Explicitly set user_type in the profiles table
+            user_type: data.userType, // Explicitly set user_type in profiles table
           }, { 
             onConflict: 'id' 
           });
 
         if (profileError) {
           console.error("Profile creation error:", profileError);
-          // We don't throw here to avoid preventing login, but we log the error
         }
       }
 

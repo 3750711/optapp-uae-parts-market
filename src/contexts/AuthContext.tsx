@@ -37,7 +37,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log("Fetched profile data:", data); // Log profile data for debugging
-      setProfile(data);
+      
+      // If we have a valid profile, use it
+      if (data) {
+        setProfile(data);
+      } else {
+        console.error('No profile data found for user:', userId);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
     }
@@ -58,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Use setTimeout to avoid potential deadlock with Supabase's auth mechanisms
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
