@@ -7,13 +7,14 @@ import ProductGallery from "@/components/product/ProductGallery";
 import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import SellerInfo from "@/components/product/SellerInfo";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Fetch product data here
@@ -27,6 +28,10 @@ const ProductDetail: React.FC = () => {
           price: 299.99,
           description: "A sample product description",
           condition: "New",
+          location: "Dubai, UAE",
+          brand: "Sample Brand",
+          model: "Sample Model",
+          lot_number: "12345",
           seller_name: "Sample Seller",
           telegram_url: "sample_seller",
           phone_url: "971501234567",
@@ -100,17 +105,33 @@ const ProductDetail: React.FC = () => {
     );
   }
 
+  // Extract image URLs from product_images
+  const imageUrls = product.product_images?.map(img => img.url) || ["/placeholder.svg"];
+
   return (
     <Layout>
       <div className="container mx-auto p-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
-            {product.product_images && <ProductGallery images={product.product_images} />}
-            <ProductInfo product={product} />
-            <ProductSpecifications product={product} />
+            <ProductGallery images={imageUrls} title={product.title} />
+            <ProductInfo 
+              title={product.title} 
+              price={product.price} 
+              condition={product.condition} 
+              location={product.location || "Не указано"} 
+              description={product.description || ""} 
+            />
+            <ProductSpecifications 
+              brand={product.brand || "Не указано"} 
+              model={product.model || "Не указано"} 
+              lot_number={product.lot_number || "Не указано"} 
+            />
           </div>
           <div className="space-y-6">
-            <SellerInfo seller={product.profiles || { full_name: product.seller_name }} />
+            <SellerInfo 
+              sellerProfile={product.profiles || { full_name: product.seller_name }}
+              seller_name={product.seller_name}
+            />
             <div className="border p-4 rounded-lg shadow">
               <h2 className="text-xl font-semibold mb-4">Контакты</h2>
               <ContactButtons 
