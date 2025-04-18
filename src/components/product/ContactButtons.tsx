@@ -18,7 +18,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   telegramUrl,
   phoneUrl
 }) => {
-  // For telegram, we'll always use the onClick handler which has the proper URL with text
+  // For telegram and whatsapp, we'll always use the onClick handler which has the proper URL with text
   return (
     <>
       <Button 
@@ -36,29 +36,15 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
       </Button>
       
-      {phoneUrl ? (
-        <a 
-          href={`https://wa.me/${phoneUrl}`}
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="w-full"
-        >
-          <Button 
-            className="w-full bg-green-600 hover:bg-green-700 text-white"
-          >
-            <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
-          </Button>
-        </a>
-      ) : (
-        <Button 
-          className="w-full bg-green-600 hover:bg-green-700 text-white"
-          onClick={onContactWhatsApp}
-        >
-          <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
-        </Button>
-      )}
+      <Button 
+        className="w-full bg-green-600 hover:bg-green-700 text-white"
+        onClick={onContactWhatsApp}
+      >
+        <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
+      </Button>
     </>
   );
 };
 
 export default ContactButtons;
+

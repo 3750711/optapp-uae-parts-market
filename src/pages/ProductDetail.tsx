@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -84,8 +83,8 @@ const ProductDetail = () => {
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}" ${productUrl}`);
-      window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
+      // Don't encode the URL since it's already properly formatted
+      window.open(`https://wa.me/${product.phone_url}?text=${productUrl}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
