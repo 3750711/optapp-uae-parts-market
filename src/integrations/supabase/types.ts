@@ -20,6 +20,7 @@ export type Database = {
           lot_number: number
           model: string
           price: number
+          quantity: number
           seller_id: string
           seller_name_order: string
           seller_opt_id: string | null
@@ -34,9 +35,10 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          lot_number: number
+          lot_number?: number
           model: string
           price: number
+          quantity?: number
           seller_id: string
           seller_name_order: string
           seller_opt_id?: string | null
@@ -54,6 +56,7 @@ export type Database = {
           lot_number?: number
           model?: string
           price?: number
+          quantity?: number
           seller_id?: string
           seller_name_order?: string
           seller_opt_id?: string | null
