@@ -1,10 +1,22 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SellerDashboard = () => {
+  const { user } = useAuth();
+
+  const handleContactAdmin = () => {
+    try {
+      const userDataText = `I have a problem boss, my ID is ${user?.opt_id || 'Not specified'}`;
+      const encodedText = encodeURIComponent(userDataText);
+      window.open(`https://t.me/ElenaOPTcargo?start=${encodedText}`, '_blank');
+    } catch (error) {
+      window.open('https://t.me/ElenaOPTcargo', '_blank');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold">Панель продавца</h2>
@@ -53,7 +65,7 @@ const SellerDashboard = () => {
           </Card>
         </Link>
 
-        <Link to="/contact">
+        <div onClick={handleContactAdmin} className="cursor-pointer">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
             <CardHeader className="pb-2">
               <MessageCircle className="h-8 w-8 text-optapp-yellow" />
@@ -65,9 +77,8 @@ const SellerDashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </Link>
+        </div>
 
-        {/* Новая карточка "Мои заказы" */}
         <Link to="/seller/orders">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
             <CardHeader className="pb-2">
