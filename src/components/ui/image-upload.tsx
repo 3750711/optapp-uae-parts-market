@@ -106,6 +106,5 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         </div>
       )}
     </div>
-  </div>
   );
 };
