@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -60,7 +61,7 @@ const ProductDetail = () => {
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
+      const message = encodeURIComponent(productUrl);
       window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
