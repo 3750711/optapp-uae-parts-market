@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -9,11 +8,13 @@ import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 const SellerCreateOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [lotNumber, setLotNumber] = useState<number | null>(null);
+  const [images, setImages] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -35,7 +36,6 @@ const SellerCreateOrder = () => {
 
         if (error) throw error;
 
-        // If no existing orders, start from 8000
         setLotNumber(data ? data.lot_number + 1 : 8000);
       } catch (error) {
         console.error("Error fetching lot number:", error);
@@ -79,6 +79,20 @@ const SellerCreateOrder = () => {
 
       if (orderError) throw orderError;
 
+      if (images.length > 0) {
+        const { error: imagesError } = await supabase
+          .from('order_images')
+          .insert(
+            images.map((url, index) => ({
+              order_id: orderData.id,
+              url,
+              is_primary: index === 0
+            }))
+          );
+
+        if (imagesError) throw imagesError;
+      }
+
       toast({
         title: "Заказ создан",
         description: "Ваш заказ был успешно создан",
@@ -95,13 +109,36 @@ const SellerCreateOrder = () => {
     }
   };
 
+  const handleImageUpload = (urls: string[]) => {
+    setImages(prev => [...prev, ...urls]);
+  };
+
+  const handleImageDelete = async (urlToDelete: string) => {
+    try {
+      const fileName = urlToDelete.split('/').pop();
+      if (fileName) {
+        await supabase.storage
+          .from('order-images')
+          .remove([fileName]);
+      }
+      setImages(prev => prev.filter(url => url !== urlToDelete));
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить изображение",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-  
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -187,6 +224,16 @@ const SellerCreateOrder = () => {
                     value={profile?.telegram || ''} 
                     readOnly 
                     className="bg-gray-100"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Фотографии заказа</Label>
+                  <ImageUpload
+                    images={images}
+                    onUpload={handleImageUpload}
+                    onDelete={handleImageDelete}
+                    maxImages={5}
                   />
                 </div>
               </CardContent>
