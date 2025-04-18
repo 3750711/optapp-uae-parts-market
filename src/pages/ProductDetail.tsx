@@ -62,7 +62,8 @@ const ProductDetail = () => {
     if (!product?.telegram_url) {
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
-      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"`);
+      const currentUrl = window.location.href;
+      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"\n\nСсылка на объявление: ${currentUrl}`);
       window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${message}`, '_blank', 'noopener,noreferrer');
     }
   };
