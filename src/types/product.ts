@@ -28,4 +28,6 @@ export interface Product {
   product_url?: string;
   product_images?: ProductImage[];
   profiles?: SellerProfile;
+  rating_seller?: number | null;
+  optid_created?: string | null;
 }
