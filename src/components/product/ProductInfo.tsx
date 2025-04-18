@@ -1,9 +1,13 @@
-
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MapPin, Star, Edit } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductInfoProps {
+  id: string;
+  seller_id: string;
   title: string;
   price: string | number;
   condition: string;
@@ -14,6 +18,8 @@ interface ProductInfoProps {
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ 
+  id,
+  seller_id,
   title, 
   price, 
   condition, 
@@ -22,13 +28,30 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   rating_seller,
   optid_created
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isOwner = user?.id === seller_id;
+
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Badge className="bg-optapp-yellow text-optapp-dark">{condition}</Badge>
-        <span className="text-gray-500 flex items-center">
-          <MapPin className="h-4 w-4 mr-1" /> {location || "Не указано"}
-        </span>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Badge className="bg-optapp-yellow text-optapp-dark">{condition}</Badge>
+          <span className="text-gray-500 flex items-center">
+            <MapPin className="h-4 w-4 mr-1" /> {location || "Не указано"}
+          </span>
+        </div>
+        {isOwner && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => navigate(`/seller/edit-product/${id}`)}
+          >
+            <Edit className="h-4 w-4" />
+            Редактировать
+          </Button>
+        )}
       </div>
       
       <h1 className="text-3xl font-bold mb-2">{title}</h1>

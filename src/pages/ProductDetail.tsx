@@ -98,7 +98,7 @@ const ProductDetail = () => {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg">Загрузка данных о товаре...</p>
+          <p className="text-lg">Загр��зка данных о товаре...</p>
         </div>
       </Layout>
     );
@@ -130,6 +130,8 @@ const ProductDetail = () => {
 
           <div>
             <ProductInfo 
+              id={product.id}
+              seller_id={product.seller_id}
               title={product.title}
               price={product.price}
               condition={product.condition}

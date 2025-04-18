@@ -14,6 +14,7 @@ export interface SellerProfile {
 
 export interface Product {
   id: string;
+  seller_id: string;
   title: string;
   price: string | number;
   description?: string;
