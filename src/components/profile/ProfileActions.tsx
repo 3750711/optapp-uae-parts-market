@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ProfileType } from "./types";
@@ -15,9 +14,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   const handleContactAdmin = () => {
     try {
       const userDataText = `
-Имя: I NEED HELP
-Email: ${profile.email}
-OPT ID: ${profile.opt_id || 'Не указан'}
+I have a problem boss, my ID is ${profile.opt_id || 'Not specified'}
       `.trim();
 
       const encodedText = encodeURIComponent(userDataText);
