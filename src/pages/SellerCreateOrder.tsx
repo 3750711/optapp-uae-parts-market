@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -22,8 +21,8 @@ const SellerCreateOrder = () => {
     price: "",
     quantity: "1",
     buyerOptId: "",
-    brand: "Default Brand",
-    model: "Default Model",
+    brand: "",
+    model: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,8 +121,8 @@ const SellerCreateOrder = () => {
                   price: "",
                   quantity: "1",
                   buyerOptId: "",
-                  brand: "Default Brand",
-                  model: "Default Model",
+                  brand: "",
+                  model: "",
                 });
                 setImages([]);
               }}
@@ -170,6 +169,29 @@ const SellerCreateOrder = () => {
                       onChange={(e) => handleInputChange('quantity', e.target.value)}
                       required 
                       min="1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="brand">Бренд</Label>
+                    <Input 
+                      id="brand" 
+                      value={formData.brand}
+                      onChange={(e) => handleInputChange('brand', e.target.value)}
+                      required 
+                      placeholder="Введите бренд"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Модель</Label>
+                    <Input 
+                      id="model"
+                      value={formData.model}
+                      onChange={(e) => handleInputChange('model', e.target.value)}
+                      required
+                      placeholder="Введите модель"
                     />
                   </div>
                 </div>
