@@ -1,59 +1,67 @@
-
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import ContactButtons from "@/components/product/ContactButtons";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Product } from "@/types/product";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import SellerInfo from "@/components/product/SellerInfo";
-import { useToast } from "@/hooks/use-toast";
-import { Product } from "@/types/product";
+import ContactButtons from "@/components/product/ContactButtons";
 
-const ProductDetail: React.FC = () => {
+const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Fetch product data here
-    // This is a placeholder. In a real app, you would fetch from an API
-    const fetchProduct = async () => {
-      try {
-        // Mock data for demonstration
-        const mockProduct: Product = {
-          id: id || "1",
-          title: "Sample Product",
-          price: 299.99,
-          description: "A sample product description",
-          condition: "New",
-          location: "Dubai, UAE",
-          brand: "Sample Brand",
-          model: "Sample Model",
-          lot_number: "12345",
-          seller_name: "Sample Seller",
-          telegram_url: "sample_seller",
-          phone_url: "971501234567",
-          product_images: [{ url: "/placeholder.svg" }]
-        };
-        
-        setProduct(mockProduct);
-        setLoading(false);
-      } catch (error) {
+  const { data: product, isLoading, error } = useQuery({
+    queryKey: ["product", id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select(`
+          *,
+          product_images(url, is_primary),
+          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram)
+        `)
+        .eq("id", id)
+        .single();
+      
+      if (error) {
         console.error("Error fetching product:", error);
-        setLoading(false);
+        throw new Error("Failed to fetch product");
       }
-    };
-    
-    fetchProduct();
-  }, [id]);
+      
+      return data as Product;
+    },
+    enabled: !!id,
+  });
+
+  const getImageUrl = () => {
+    if (product?.product_images && product.product_images.length > 0) {
+      const primaryImage = product.product_images.find(img => img.is_primary);
+      if (primaryImage) {
+        return primaryImage.url;
+      } else if (product.product_images[0]) {
+        return product.product_images[0].url;
+      }
+    }
+    return "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=800&auto=format&fit=crop";
+  };
+
+  const getProductImages = () => {
+    if (product?.product_images && product.product_images.length > 0) {
+      return product.product_images.map(img => img.url);
+    }
+    return [getImageUrl()];
+  };
 
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = `I'm interested in this product, ${productUrl} please can you send more information`;
-      window.open(`https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
+      window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
@@ -63,11 +71,19 @@ const ProductDetail: React.FC = () => {
     }
   };
 
+  const handleBuyNow = () => {
+    toast({
+      title: "Товар добавлен в корзину",
+      description: `"${product?.title}" успешно добавлен в вашу корзину`,
+      variant: "default"
+    });
+  };
+
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = `I'm interested in this product, ${productUrl} please can you send more information`;
-      window.open(`https://wa.me/${product.phone_url}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
+      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
+      window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
@@ -77,71 +93,65 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const handleBuyNow = () => {
-    // Implement buy now logic
-    toast({
-      title: "Покупка",
-      description: "Функция покупки товара будет доступна в ближайшее время",
-    });
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto p-4">
-          <div className="text-center py-12">Loading...</div>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-lg">Загрузка данных о товаре...</p>
         </div>
       </Layout>
     );
   }
 
-  if (!product) {
+  if (error || !product) {
     return (
       <Layout>
-        <div className="container mx-auto p-4">
-          <div className="text-center py-12">Product not found</div>
+        <div className="container mx-auto px-4 py-8 text-center">
+          <p className="text-lg text-red-500">Ошибка при загрузке данных о товаре</p>
+          <p className="text-gray-500 mt-2">Товар не найден или произошла ошибка при загрузке</p>
         </div>
       </Layout>
     );
   }
 
-  // Extract image URLs from product_images
-  const imageUrls = product.product_images?.map(img => img.url) || ["/placeholder.svg"];
-
+  const images = getProductImages();
+  const sellerProfile = product.profiles;
+  
   return (
     <Layout>
-      <div className="container mx-auto p-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="md:col-span-2">
-            <ProductGallery images={imageUrls} title={product.title} />
-            <ProductInfo 
-              title={product.title} 
-              price={product.price} 
-              condition={product.condition} 
-              location={product.location || "Не указано"} 
-              description={product.description || ""} 
-            />
-            <ProductSpecifications 
-              brand={product.brand || "Не указано"} 
-              model={product.model || "Не указано"} 
-              lot_number={product.lot_number || "Не указано"} 
-            />
+      <div className="container mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div>
+            <ProductGallery images={images} title={product.title} />
           </div>
-          <div className="space-y-6">
-            <SellerInfo 
-              sellerProfile={product.profiles || { full_name: product.seller_name }}
-              seller_name={product.seller_name}
+
+          <div>
+            <ProductInfo 
+              title={product.title}
+              price={product.price}
+              condition={product.condition}
+              location={product.location || ""}
+              description={product.description || ""}
             />
-            <div className="border p-4 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Контакты</h2>
-              <ContactButtons 
+            
+            <ProductSpecifications 
+              brand={product.brand || ""}
+              model={product.model || ""}
+              lot_number={product.lot_number || ""}
+            />
+            
+            <SellerInfo 
+              sellerProfile={sellerProfile || {}} 
+              seller_name={product.seller_name}
+            >
+              <ContactButtons
                 onBuyNow={handleBuyNow}
                 onContactTelegram={handleContactTelegram}
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
                 phoneUrl={product.phone_url}
               />
-            </div>
+            </SellerInfo>
           </div>
         </div>
       </div>

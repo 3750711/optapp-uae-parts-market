@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+import { ProductImage } from "@/types/product";
 
 interface ProductGalleryProps {
   images: string[];
