@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -7,13 +8,15 @@ interface ContactButtonsProps {
   onContactTelegram: () => void;
   onContactWhatsApp: () => void;
   telegramUrl?: string;
+  phoneUrl?: string;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({ 
   onBuyNow, 
   onContactTelegram, 
   onContactWhatsApp,
-  telegramUrl 
+  telegramUrl,
+  phoneUrl
 }) => {
   // Since telegram_url is now stored without https://t.me/ and @, 
   // we just need to construct the full URL
@@ -54,12 +57,27 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         </Button>
       )}
       
-      <Button 
-        className="w-full bg-green-600 hover:bg-green-700 text-white"
-        onClick={onContactWhatsApp}
-      >
-        <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
-      </Button>
+      {phoneUrl ? (
+        <a 
+          href={`https://wa.me/${phoneUrl}`}
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="w-full"
+        >
+          <Button 
+            className="w-full bg-green-600 hover:bg-green-700 text-white"
+          >
+            <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
+          </Button>
+        </a>
+      ) : (
+        <Button 
+          className="w-full bg-green-600 hover:bg-green-700 text-white"
+          onClick={onContactWhatsApp}
+        >
+          <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
+        </Button>
+      )}
     </>
   );
 };

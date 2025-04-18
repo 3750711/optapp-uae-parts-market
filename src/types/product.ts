@@ -24,6 +24,7 @@ export interface Product {
   lot_number?: string | number;
   seller_name: string;
   telegram_url?: string;
+  phone_url?: string;
   product_images?: ProductImage[];
   profiles?: SellerProfile;
 }

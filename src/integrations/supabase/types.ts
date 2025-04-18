@@ -51,6 +51,7 @@ export type Database = {
           location: string | null
           lot_number: number
           model: string
+          phone_url: string | null
           price: number
           seller_id: string
           seller_name: string
@@ -68,6 +69,7 @@ export type Database = {
           location?: string | null
           lot_number?: number
           model: string
+          phone_url?: string | null
           price: number
           seller_id: string
           seller_name: string
@@ -85,6 +87,7 @@ export type Database = {
           location?: string | null
           lot_number?: number
           model?: string
+          phone_url?: string | null
           price?: number
           seller_id?: string
           seller_name?: string

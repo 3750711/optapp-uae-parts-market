@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -70,19 +69,21 @@ const ProductDetail = () => {
   const handleBuyNow = () => {
     toast({
       title: "Товар добавлен в корзину",
-      description: `"${product?.title}" успешно добавлен в вашу корзину`,
+      description: `"${product?.title}" успешно добавлен в вашу корзину",
       variant: "default"
     });
   };
 
   const handleContactWhatsApp = () => {
-    if (product?.profiles?.phone) {
-      const cleanPhone = product.profiles.phone.replace(/\D/g, '');
-      const formattedPhone = cleanPhone.startsWith('+') ? cleanPhone : `+${cleanPhone}`;
+    if (product?.phone_url) {
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
-      window.open(`https://wa.me/${formattedPhone}?text=${message}`, '_blank', 'noopener,noreferrer');
+      window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
-      alert('Номер телефона продавца недоступен');
+      toast({
+        title: "Ошибка",
+        description: "Номер телефона продавца недоступен",
+        variant: "destructive"
+      });
     }
   };
 
@@ -142,6 +143,7 @@ const ProductDetail = () => {
                 onContactTelegram={handleContactTelegram}
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
+                phoneUrl={product.phone_url}
               />
             </SellerInfo>
           </div>
