@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -28,7 +29,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const newUrls: string[] = [];
       
       for (let i = 0; i < files.length; i++) {
-        if (images.length + newUrls.length >= maxImages) break;
+        if (images.length + newUrls.length >= maxImages) {
+          toast({
+            title: "Предупреждение",
+            description: `Достигнуто максимальное количество изображений (${maxImages})`,
+          });
+          break;
+        }
         
         const file = files[i];
         const fileExt = file.name.split('.').pop();
@@ -50,11 +57,49 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         newUrls.push(publicUrl);
       }
 
-      onUpload(newUrls);
+      if (newUrls.length > 0) {
+        onUpload(newUrls);
+        toast({
+          title: "Успешно",
+          description: `Загружено ${newUrls.length} изображений`,
+        });
+      }
     } catch (error) {
       console.error('Error uploading image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить изображение",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
+      // Reset the file input after upload
+      const fileInput = document.getElementById('images') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+    }
+  };
+
+  const handleDelete = async (url: string) => {
+    try {
+      // Extract the filename from the URL
+      const fileName = url.split('/').pop();
+      if (fileName) {
+        await supabase.storage
+          .from('order-images')
+          .remove([fileName]);
+      }
+      onDelete(url);
+      toast({
+        title: "Успешно",
+        description: "Изображение удалено",
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить изображение",
+        variant: "destructive",
+      });
     }
   };
 
@@ -69,7 +114,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               className="w-full h-full object-cover rounded-lg"
             />
             <button
-              onClick={() => onDelete(url)}
+              onClick={() => handleDelete(url)}
               className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <X className="h-4 w-4" />

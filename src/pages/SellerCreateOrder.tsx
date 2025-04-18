@@ -32,7 +32,7 @@ const SellerCreateOrder = () => {
           .select('lot_number', { count: 'exact' })
           .order('lot_number', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (error) throw error;
 
@@ -113,23 +113,8 @@ const SellerCreateOrder = () => {
     setImages(prev => [...prev, ...urls]);
   };
 
-  const handleImageDelete = async (urlToDelete: string) => {
-    try {
-      const fileName = urlToDelete.split('/').pop();
-      if (fileName) {
-        await supabase.storage
-          .from('order-images')
-          .remove([fileName]);
-      }
-      setImages(prev => prev.filter(url => url !== urlToDelete));
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить изображение",
-        variant: "destructive",
-      });
-    }
+  const handleImageDelete = (urlToDelete: string) => {
+    setImages(prev => prev.filter(url => url !== urlToDelete));
   };
 
   const handleInputChange = (field: string, value: string) => {
