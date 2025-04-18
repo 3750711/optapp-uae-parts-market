@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
 const SellerCreateOrder = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     title: "",
@@ -46,18 +46,17 @@ const SellerCreateOrder = () => {
     try {
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert([
-          {
-            title: formData.title,
-            brand: formData.brand,
-            model: formData.model,
-            price: parseFloat(formData.price),
-            buyer_id: formData.buyerId || user.id, // Fallback to user's ID if no specific buyer
-            seller_id: user.id,
-            lot_number: formData.lotNumber,
-            description: formData.description,
-          }
-        ])
+        .insert({
+          title: formData.title,
+          brand: formData.brand,
+          model: formData.model,
+          price: parseFloat(formData.price),
+          buyer_id: formData.buyerId || user.id, // Fallback to user's ID if no specific buyer
+          seller_id: user.id,
+          lot_number: formData.lotNumber,
+          description: formData.description,
+          seller_name_order: profile?.full_name || "Неизвестный продавец" // Add the required field
+        })
         .select()
         .single();
 
