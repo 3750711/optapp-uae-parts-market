@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered } from "lucide-react";
@@ -5,11 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 
 const SellerDashboard = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
 
   const handleContactAdmin = () => {
     try {
-      const userDataText = `I have a problem boss, my ID is ${user?.opt_id || 'Not specified'}`;
+      const userDataText = `I have a problem boss, my ID is ${profile?.opt_id || 'Not specified'}`;
       const encodedText = encodeURIComponent(userDataText);
       window.open(`https://t.me/ElenaOPTcargo?start=${encodedText}`, '_blank');
     } catch (error) {
