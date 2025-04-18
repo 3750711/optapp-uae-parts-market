@@ -62,7 +62,7 @@ const ProductDetail = () => {
     if (!product?.telegram_url) {
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
-      const productUrl = product?.product_url || window.location.href;
+      const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
       const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"\n\nСсылка на объявление: ${productUrl}`);
       window.open(`https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${message}`, '_blank', 'noopener,noreferrer');
     }
@@ -78,7 +78,8 @@ const ProductDetail = () => {
 
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
-      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}"`);
+      const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
+      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${product.title}" ${productUrl}`);
       window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
