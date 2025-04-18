@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -74,7 +75,7 @@ const ProductDetail = () => {
   const handleBuyNow = () => {
     toast({
       title: "Товар добавлен в корзину",
-      description: `"${product?.title}" успешно добавлен в вашу корзину",
+      description: `"${product?.title}" успешно добавлен в вашу корзину`,
       variant: "default"
     });
   };
