@@ -55,6 +55,7 @@ export type Database = {
           phone_url: string | null
           price: number
           product_url: string | null
+          rating_seller: number | null
           seller_id: string
           seller_name: string
           status: Database["public"]["Enums"]["product_status"]
@@ -75,6 +76,7 @@ export type Database = {
           phone_url?: string | null
           price: number
           product_url?: string | null
+          rating_seller?: number | null
           seller_id: string
           seller_name: string
           status?: Database["public"]["Enums"]["product_status"]
@@ -95,6 +97,7 @@ export type Database = {
           phone_url?: string | null
           price?: number
           product_url?: string | null
+          rating_seller?: number | null
           seller_id?: string
           seller_name?: string
           status?: Database["public"]["Enums"]["product_status"]

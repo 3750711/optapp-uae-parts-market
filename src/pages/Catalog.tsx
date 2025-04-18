@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -14,7 +14,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import type { Database } from "@/integrations/supabase/types";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
@@ -75,7 +74,8 @@ const Catalog = () => {
       location: product.location || "Дубай",
       seller_opt_id: product.profiles?.opt_id,
       seller_rating: product.profiles?.rating,
-      optid_created: product.optid_created
+      optid_created: product.optid_created,
+      rating_seller: product.rating_seller
     };
   });
 
