@@ -34,6 +34,14 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ or
               <p className="text-lg font-medium">{order.title}</p>
             </div>
             <div>
+              <Label className="text-sm text-gray-500">Бренд</Label>
+              <p className="text-lg font-medium">{order.brand}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-500">Модель</Label>
+              <p className="text-lg font-medium">{order.model}</p>
+            </div>
+            <div>
               <Label className="text-sm text-gray-500">Цена</Label>
               <p className="text-lg font-medium">{order.price} AED</p>
             </div>
