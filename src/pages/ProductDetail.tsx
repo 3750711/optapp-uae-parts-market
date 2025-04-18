@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductInfo from "@/components/product/ProductInfo";
@@ -60,9 +60,10 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
+      // Use product_url directly without encoding it
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = encodeURIComponent(productUrl);
-      window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
+      // Don't use encodeURIComponent as it's already a URL parameter
+      window.open(`https://t.me/${product.telegram_url}?text=${productUrl}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",

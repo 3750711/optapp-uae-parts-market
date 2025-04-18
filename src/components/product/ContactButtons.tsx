@@ -18,12 +18,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   telegramUrl,
   phoneUrl
 }) => {
-  // Since telegram_url is now stored without https://t.me/ and @, 
-  // we just need to construct the full URL
-  const fullTelegramUrl = telegramUrl 
-    ? `https://t.me/${telegramUrl}` 
-    : undefined;
-
+  // For telegram, we'll always use the onClick handler which has the proper URL with text
   return (
     <>
       <Button 
@@ -33,29 +28,13 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <ShoppingCart className="mr-2 h-4 w-4" /> Купить
       </Button>
       
-      {fullTelegramUrl ? (
-        <a 
-          href={fullTelegramUrl} 
-          target="_blank" 
-          rel="noopener noreferrer" 
-          className="w-full"
-        >
-          <Button 
-            variant="outline"
-            className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
-          >
-            <MessageSquare className="mr-2 h-4 w-4" /> Связаться с продавцом
-          </Button>
-        </a>
-      ) : (
-        <Button 
-          variant="outline"
-          className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
-          onClick={onContactTelegram}
-        >
-          <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
-        </Button>
-      )}
+      <Button 
+        variant="outline"
+        className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
+        onClick={onContactTelegram}
+      >
+        <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
+      </Button>
       
       {phoneUrl ? (
         <a 
