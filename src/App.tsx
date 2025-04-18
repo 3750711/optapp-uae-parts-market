@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,7 @@ import SellerProfile from "./pages/SellerProfile";
 import SellerAddProduct from "./pages/SellerAddProduct";
 import SellerCreateOrder from "./pages/SellerCreateOrder";
 import Profile from "./pages/Profile";
+import SellerOrders from "./pages/SellerOrders";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +56,11 @@ const App = () => (
             <Route path="/seller/create-order" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerCreateOrder />
+              </ProtectedRoute>
+            } />
+            <Route path="/seller/orders" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerOrders />
               </ProtectedRoute>
             } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
