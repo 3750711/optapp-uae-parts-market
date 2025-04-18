@@ -60,7 +60,7 @@ const ProductDetail = () => {
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = `${productUrl} I'm interested in product_urs please can you send pore information`;
+      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
       window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
@@ -82,7 +82,7 @@ const ProductDetail = () => {
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
-      const message = `${productUrl} I'm interested in product_urs please can you send pore information`;
+      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
       window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
