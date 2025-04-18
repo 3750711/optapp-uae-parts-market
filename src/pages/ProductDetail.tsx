@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -62,16 +61,16 @@ const ProductDetail = () => {
     if (!product?.telegram_url) {
       const sellerName = product?.seller_name || "продавцом";
       const productTitle = product?.title || "товаром";
-      const currentUrl = window.location.href;
-      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"\n\nСсылка на объявление: ${currentUrl}`);
-      window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${message}`, '_blank', 'noopener,noreferrer');
+      const productUrl = product?.product_url || window.location.href;
+      const message = encodeURIComponent(`Здравствуйте, я заинтересован в товаре "${productTitle}"\n\nСсылка на объявление: ${productUrl}`);
+      window.open(`https://t.me/share/url?url=${encodeURIComponent(productUrl)}&text=${message}`, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleBuyNow = () => {
     toast({
       title: "Товар добавлен в корзину",
-      description: `"${product?.title}" успешно добавлен в вашу корзину`,
+      description: `"${product?.title}" успешно добавлен в вашу корзину",
       variant: "default"
     });
   };

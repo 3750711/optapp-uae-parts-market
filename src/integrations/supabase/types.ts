@@ -53,6 +53,7 @@ export type Database = {
           model: string
           phone_url: string | null
           price: number
+          product_url: string | null
           seller_id: string
           seller_name: string
           status: Database["public"]["Enums"]["product_status"]
@@ -71,6 +72,7 @@ export type Database = {
           model: string
           phone_url?: string | null
           price: number
+          product_url?: string | null
           seller_id: string
           seller_name: string
           status?: Database["public"]["Enums"]["product_status"]
@@ -89,6 +91,7 @@ export type Database = {
           model?: string
           phone_url?: string | null
           price?: number
+          product_url?: string | null
           seller_id?: string
           seller_name?: string
           status?: Database["public"]["Enums"]["product_status"]
