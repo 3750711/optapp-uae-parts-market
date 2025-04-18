@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard'
 
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const queryClient = useQueryClient();
 
   const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
