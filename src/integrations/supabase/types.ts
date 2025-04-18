@@ -51,6 +51,7 @@ export type Database = {
           location: string | null
           lot_number: number
           model: string
+          optid_created: string | null
           phone_url: string | null
           price: number
           product_url: string | null
@@ -70,6 +71,7 @@ export type Database = {
           location?: string | null
           lot_number?: number
           model: string
+          optid_created?: string | null
           phone_url?: string | null
           price: number
           product_url?: string | null
@@ -89,6 +91,7 @@ export type Database = {
           location?: string | null
           lot_number?: number
           model?: string
+          optid_created?: string | null
           phone_url?: string | null
           price?: number
           product_url?: string | null

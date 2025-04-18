@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -15,6 +14,7 @@ export interface ProductProps {
   location: string;
   seller_opt_id?: string;
   seller_rating?: number;
+  optid_created?: string;
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -25,8 +25,11 @@ const ProductCard: React.FC<ProductProps> = ({
   condition, 
   location,
   seller_opt_id,
-  seller_rating 
+  seller_rating,
+  optid_created
 }) => {
+  const displayOptId = seller_opt_id || optid_created;
+
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="aspect-square overflow-hidden">
@@ -46,10 +49,10 @@ const ProductCard: React.FC<ProductProps> = ({
         
         {/* Seller info */}
         <div className="flex items-center space-x-4 mb-2 text-sm">
-          {seller_opt_id && (
+          {displayOptId && (
             <div>
               <span className="text-gray-500">OPT ID: </span>
-              <span className="font-medium">{seller_opt_id}</span>
+              <span className="font-medium">{displayOptId}</span>
             </div>
           )}
           {seller_rating !== undefined && seller_rating !== null && (

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -37,7 +36,6 @@ const Catalog = () => {
         throw new Error("Failed to fetch products");
       }
       
-      console.log("Fetched products:", data);
       return data || [];
     },
   });
@@ -76,7 +74,8 @@ const Catalog = () => {
       condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
       location: product.location || "Дубай",
       seller_opt_id: product.profiles?.opt_id,
-      seller_rating: product.profiles?.rating
+      seller_rating: product.profiles?.rating,
+      optid_created: product.optid_created
     };
   });
 
