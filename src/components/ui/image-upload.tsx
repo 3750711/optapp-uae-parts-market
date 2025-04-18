@@ -15,7 +15,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onUpload,
   onDelete,
   images,
-  maxImages = 5
+  maxImages = 10
 }) => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -28,14 +28,14 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const newUrls: string[] = [];
       
       for (let i = 0; i < files.length; i++) {
-        if (images.length + i >= maxImages) break;
+        if (images.length + newUrls.length >= maxImages) break;
         
         const file = files[i];
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { error: uploadError, data } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('order-images')
           .upload(filePath, file);
 
