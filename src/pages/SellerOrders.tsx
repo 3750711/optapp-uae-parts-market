@@ -39,7 +39,14 @@ const SellerOrders = () => {
       
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          buyer:profiles!orders_buyer_id_fkey (
+            opt_id,
+            full_name,
+            telegram
+          )
+        `)
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
         .order('created_at', { ascending: false });
         
@@ -48,6 +55,7 @@ const SellerOrders = () => {
         throw error;
       }
       
+      console.log("Fetched orders with buyer info:", data);
       return data || [];
     },
     enabled: !!user?.id
@@ -128,6 +136,16 @@ const SellerOrders = () => {
     navigate(`/seller/orders/${orderId}`);
   };
 
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4">
@@ -146,11 +164,7 @@ const SellerOrders = () => {
               <CardTitle>Список заказов</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="flex justify-center p-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
-                </div>
-              ) : !orders || orders.length === 0 ? (
+              {!orders || orders.length === 0 ? (
                 <div className="text-center p-8 text-muted-foreground">
                   У вас пока нет заказов
                 </div>
@@ -163,9 +177,9 @@ const SellerOrders = () => {
                         <TableHead>Наименование</TableHead>
                         <TableHead>Бренд</TableHead>
                         <TableHead>Модель</TableHead>
-                        <TableHead>Продавец</TableHead>
                         <TableHead>Цена</TableHead>
                         <TableHead>OPT ID покупателя</TableHead>
+                        <TableHead>Контакты покупателя</TableHead>
                         <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
                         <TableHead>Действия</TableHead>
@@ -188,9 +202,25 @@ const SellerOrders = () => {
                           <TableCell>{order.title}</TableCell>
                           <TableCell>{order.brand}</TableCell>
                           <TableCell>{order.model}</TableCell>
-                          <TableCell>{order.order_seller_name}</TableCell>
                           <TableCell>{order.price} AED</TableCell>
-                          <TableCell>{order.buyer_opt_id || 'Не указан'}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono">
+                              {order.buyer_opt_id || 'Не указан'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {order.buyer?.telegram && (
+                              <a 
+                                href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {order.buyer.telegram}
+                              </a>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <Badge variant="outline">
                               {getOrderTypeLabel(order.order_created_type)}
@@ -238,3 +268,4 @@ const SellerOrders = () => {
 };
 
 export default SellerOrders;
+
