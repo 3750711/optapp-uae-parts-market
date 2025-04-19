@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import SellerOrders from "./pages/SellerOrders";
 import OrderDetails from "./pages/OrderDetails";
 import BuyerCreateOrder from "./pages/BuyerCreateOrder";
+import BuyerOrders from "./pages/BuyerOrders";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,11 @@ const App = () => (
             <Route path="/buyer/create-order" element={
               <ProtectedRoute>
                 <BuyerCreateOrder />
+              </ProtectedRoute>
+            } />
+            <Route path="/orders" element={
+              <ProtectedRoute>
+                <BuyerOrders />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
