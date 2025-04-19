@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +30,6 @@ const OrderDetails = () => {
       if (imagesError) throw imagesError;
 
       console.log('Order data fetched:', order);
-      console.log('Buyer OPT ID:', order.buyer_opt_id);
 
       return {
         order,
@@ -46,7 +44,6 @@ const OrderDetails = () => {
     if (orderData?.order) {
       // Preserve important fields that should not be lost during update
       const preservedFields = {
-        buyer_opt_id: orderData.order.buyer_opt_id,
         telegram_url: orderData.order.telegram_url,
         // Add other fields that need preservation here
       };

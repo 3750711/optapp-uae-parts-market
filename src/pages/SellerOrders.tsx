@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -229,7 +228,7 @@ const SellerOrders = () => {
                           <TableCell>{order.price} AED</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="font-mono">
-                              {order.buyer_opt_id || (order.buyer && order.buyer.opt_id) || 'Не указан'}
+                              {(order.buyer && order.buyer.opt_id) || 'Не указан'}
                             </Badge>
                           </TableCell>
                           <TableCell>

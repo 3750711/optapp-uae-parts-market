@@ -14,11 +14,10 @@ interface OrderConfirmationCardProps {
     title: string;
     price: number;
     quantity: number;
-    buyer_opt_id?: string | null;
     seller_opt_id?: string | null;
+    status?: string;
     brand: string;
     model: string;
-    status?: string;
   };
   images: string[];
   onOrderUpdate?: (updatedOrder: any) => void;
@@ -39,7 +38,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       `Модель: ${order.model}\n` +
       `Цена: ${order.price} AED\n` +
       `Количество мест: ${order.quantity}\n` +
-      `OPT ID получателя: ${order.buyer_opt_id || 'Не указан'}\n` +
       `OPT ID отправителя: ${order.seller_opt_id || 'Не указан'}\n\n` +
       `Фотографии заказа:\n${images.join('\n')}`
     );
@@ -99,10 +97,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
             <div>
               <Label className="text-sm text-gray-500">OPT_ID отправителя</Label>
               <p className="text-lg font-medium">{order.seller_opt_id || 'Не указан'}</p>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-500">OPT_ID получателя</Label>
-              <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
             </div>
           </div>
         </div>
