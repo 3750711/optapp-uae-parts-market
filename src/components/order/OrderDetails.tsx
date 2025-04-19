@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Link } from 'lucide-react';
@@ -51,12 +50,12 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
       </div>
       <div className="space-y-4">
         <div>
-          <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
-          <p className="text-lg font-medium">{order.seller_opt_id || 'Не указан'}</p>
+          <Label className="text-sm text-gray-500">OPT ID покупателя</Label>
+          <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
         </div>
         <div>
-          <Label className="text-sm text-gray-500">OPT ID получателя</Label>
-          <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
+          <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
+          <p className="text-lg font-medium">{order.seller_opt_id || 'Не указан'}</p>
         </div>
         <div>
           <Label className="text-sm text-gray-500">Имя отправителя</Label>
