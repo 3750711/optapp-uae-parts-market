@@ -9,57 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      intermediate_orders: {
-        Row: {
-          brand: string
-          buyer_id: string
-          buyer_opt_id: string | null
-          buyer_telegram: string | null
-          created_at: string
-          description: string | null
-          id: string
-          model: string
-          price: number
-          quantity: number
-          seller_id: string | null
-          seller_opt_id: string | null
-          status: string
-          title: string
-        }
-        Insert: {
-          brand: string
-          buyer_id: string
-          buyer_opt_id?: string | null
-          buyer_telegram?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          model: string
-          price: number
-          quantity?: number
-          seller_id?: string | null
-          seller_opt_id?: string | null
-          status?: string
-          title: string
-        }
-        Update: {
-          brand?: string
-          buyer_id?: string
-          buyer_opt_id?: string | null
-          buyer_telegram?: string | null
-          created_at?: string
-          description?: string | null
-          id?: string
-          model?: string
-          price?: number
-          quantity?: number
-          seller_id?: string | null
-          seller_opt_id?: string | null
-          status?: string
-          title?: string
-        }
-        Relationships: []
-      }
       order_images: {
         Row: {
           created_at: string

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -47,25 +48,12 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   product
 }) => {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile } = useAuth();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [intermediateOrderId, setIntermediateOrderId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (showConfirmDialog && user) {
-      refreshProfile();
-    }
-  }, [showConfirmDialog, user, refreshProfile]);
-
-  useEffect(() => {
-    if (profile) {
-      console.log("Current user profile in ContactButtons:", profile);
-    }
-  }, [profile]);
-
-  const handleBuyNow = async () => {
+  const handleBuyNow = () => {
     if (!user) {
       toast({
         title: "Требуется авторизация",
@@ -81,36 +69,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       return;
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('intermediate_orders')
-        .insert({
-          title: product.title,
-          quantity: 1,
-          brand: product.brand,
-          model: product.model,
-          price: product.price,
-          description: product.description,
-          seller_opt_id: product.optid_created,
-          buyer_opt_id: profile?.opt_id,
-          buyer_telegram: profile?.telegram,
-          buyer_id: user.id
-        })
-        .select('id')
-        .single();
-
-      if (error) throw error;
-
-      setIntermediateOrderId(data.id);
-      setShowConfirmDialog(true);
-    } catch (error) {
-      console.error('Error creating intermediate order:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось создать заказ",
-        variant: "destructive",
-      });
-    }
+    setShowConfirmDialog(true);
   };
 
   const handleGoToProfile = () => {
@@ -124,8 +83,24 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Short delay to allow the trigger to process the order
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { data: order, error } = await supabase
+        .from('orders')
+        .insert({
+          title: product.title,
+          quantity: 1,
+          brand: product.brand,
+          model: product.model,
+          price: product.price,
+          description: product.description,
+          buyer_id: user?.id,
+          seller_opt_id: product.optid_created,
+          buyer_opt_id: profile?.opt_id,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
       
       toast({
         title: "Заказ успешно создан",
@@ -135,10 +110,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       setShowConfirmDialog(false);
       navigate('/orders');
     } catch (error) {
-      console.error('Error confirming order:', error);
+      console.error('Error creating order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось подтвердить заказ",
+        description: "Не удалось создать заказ",
         variant: "destructive",
       });
     } finally {
