@@ -41,8 +41,6 @@ const SellerOrders = () => {
         .select(`
           *,
           buyer:profiles!orders_buyer_id_fkey (
-            opt_id,
-            full_name,
             telegram
           )
         `)
@@ -228,7 +226,7 @@ const SellerOrders = () => {
                           <TableCell>{order.price} AED</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="font-mono">
-                              {(order.buyer && order.buyer.opt_id) || 'Не указан'}
+                              {order.buyer_opt_id || 'Не указан'}
                             </Badge>
                           </TableCell>
                           <TableCell>
