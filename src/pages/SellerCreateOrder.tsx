@@ -102,9 +102,7 @@ const SellerCreateOrder = () => {
     }
 
     try {
-      const sellerName = profile?.full_name || "Неизвестный продавец";
-      
-      console.log('Creating order with seller name:', sellerName);
+      console.log('Creating order with seller name:', profile?.full_name || "Неизвестный продавец");
       
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
@@ -115,7 +113,6 @@ const SellerCreateOrder = () => {
           buyer_opt_id: formData.buyerOptId,
           seller_id: user.id,
           seller_opt_id: profile?.opt_id || null,
-          seller_name_order: sellerName,
           brand: formData.brand,
           model: formData.model,
           buyer_id: user.id,

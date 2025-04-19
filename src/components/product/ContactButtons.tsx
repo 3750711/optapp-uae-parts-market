@@ -71,14 +71,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       if (!product.seller_id) {
         throw new Error('Missing seller information');
       }
-
-      // Гарантированное получение имени продавца
-      const sellerName = product.seller_name || 'Неизвестный продавец';
       
-      console.log('Creating order with seller name:', sellerName);
+      console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
       
-      // Создаем заказ с гарантированным значением seller_name_order
+      // Remove the seller_name_order field from the insert operation
       const { data: order, error } = await supabase
         .from('orders')
         .insert({
@@ -90,7 +87,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           description: product.description || null,
           buyer_id: user?.id,
           seller_id: product.seller_id,
-          seller_name_order: sellerName, // Явное указание поля
           seller_opt_id: product.optid_created,
           buyer_opt_id: profile?.opt_id,
           status: 'pending' as 'pending' | 'verified'
@@ -100,7 +96,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       if (error) {
         console.error('Error creating order:', error);
-        // Детализация ошибки для отладки
         console.error('Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
