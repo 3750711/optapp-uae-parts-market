@@ -102,6 +102,10 @@ const SellerCreateOrder = () => {
     }
 
     try {
+      const sellerName = profile?.full_name || "Неизвестный продавец";
+      
+      console.log('Creating order with seller name:', sellerName);
+      
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -111,7 +115,7 @@ const SellerCreateOrder = () => {
           buyer_opt_id: formData.buyerOptId,
           seller_id: user.id,
           seller_opt_id: profile?.opt_id || null,
-          seller_name_order: profile?.full_name || "Неизвестный продавец",
+          seller_name_order: sellerName,
           brand: formData.brand,
           model: formData.model,
           buyer_id: user.id,
@@ -119,7 +123,11 @@ const SellerCreateOrder = () => {
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error("Error creating order:", orderError);
+        console.error("Error details:", JSON.stringify(orderError, null, 2));
+        throw orderError;
+      }
 
       if (images.length > 0) {
         const { error: imagesError } = await supabase
@@ -290,6 +298,15 @@ const SellerCreateOrder = () => {
                       placeholder="Введите OPT_ID получателя"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Имя отправителя</Label>
+                  <Input 
+                    value={profile?.full_name || 'Неизвестный продавец'} 
+                    readOnly 
+                    className="bg-gray-100"
+                  />
                 </div>
 
                 <div className="space-y-2">
