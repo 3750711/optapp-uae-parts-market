@@ -30,6 +30,9 @@ const OrderDetails = () => {
 
       if (imagesError) throw imagesError;
 
+      console.log('Order data fetched:', order);
+      console.log('Buyer OPT ID:', order.buyer_opt_id);
+
       return {
         order,
         images: images?.map(img => img.url) || []

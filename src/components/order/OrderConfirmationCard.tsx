@@ -14,8 +14,8 @@ interface OrderConfirmationCardProps {
     title: string;
     price: number;
     quantity: number;
-    buyer_opt_id?: string;
-    seller_opt_id?: string;
+    buyer_opt_id?: string | null;
+    seller_opt_id?: string | null;
     brand: string;
     model: string;
     status?: string;
@@ -38,7 +38,9 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       `Бренд: ${order.brand}\n` +
       `Модель: ${order.model}\n` +
       `Цена: ${order.price} AED\n` +
-      `Количество мест: ${order.quantity}\n\n` +
+      `Количество мест: ${order.quantity}\n` +
+      `OPT ID получателя: ${order.buyer_opt_id || 'Не указан'}\n` +
+      `OPT ID отправителя: ${order.seller_opt_id || 'Не указан'}\n\n` +
       `Фотографии заказа:\n${images.join('\n')}`
     );
     return `https://t.me/share/url?url=&text=${text}`;
