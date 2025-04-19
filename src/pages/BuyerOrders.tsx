@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -81,7 +82,6 @@ const BuyerOrders = () => {
                   <TableHead>Бренд</TableHead>
                   <TableHead>Модель</TableHead>
                   <TableHead>Продавец</TableHead>
-                  <TableHead>Контакты продавца</TableHead>
                   <TableHead>Цена</TableHead>
                   <TableHead>Тип заказа</TableHead>
                   <TableHead>Статус</TableHead>
@@ -96,14 +96,6 @@ const BuyerOrders = () => {
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
                     <TableCell>{order.order_seller_name}</TableCell>
-                    <TableCell>
-                      {order.seller?.phone && (
-                        <div className="text-sm">Тел: {order.seller.phone}</div>
-                      )}
-                      {order.seller?.telegram && (
-                        <div className="text-sm">Telegram: {order.seller.telegram}</div>
-                      )}
-                    </TableCell>
                     <TableCell>{order.price} AED</TableCell>
                     <TableCell>
                       <Badge variant="outline">
