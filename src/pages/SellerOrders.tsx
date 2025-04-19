@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -63,14 +62,16 @@ const SellerOrders = () => {
 
   const confirmOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      // First, get the current order to preserve the buyer_opt_id
+      // First, get the current order to preserve the buyer_opt_id and other important data
       const { data: currentOrder, error: fetchError } = await supabase
         .from('orders')
-        .select('buyer_opt_id')
+        .select('*')
         .eq('id', orderId)
         .single();
 
       if (fetchError) throw fetchError;
+      
+      console.log("Current order before update:", currentOrder);
       
       // Now update the order status while preserving the buyer_opt_id
       const { data, error } = await supabase
@@ -84,10 +85,30 @@ const SellerOrders = () => {
         .single();
 
       if (error) throw error;
+      
+      console.log("Updated order:", data);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (updatedOrder) => {
+      // Update the cache with the updated order data
+      queryClient.setQueryData(['seller-orders', user?.id], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((order: any) => {
+          if (order.id === updatedOrder.id) {
+            // Preserve the buyer information in the updated order
+            return {
+              ...updatedOrder,
+              buyer: order.buyer
+            };
+          }
+          return order;
+        });
+      });
+      
+      // Then invalidate the query to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      
       toast({
         title: "Заказ подтвержден",
         description: "Статус заказа успешно обновлен",
