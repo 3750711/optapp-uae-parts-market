@@ -62,44 +62,33 @@ const SellerOrders = () => {
 
   const confirmOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      // First, get the current order to preserve the buyer_opt_id and other important data
-      const { data: currentOrder, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', orderId)
-        .single();
-
-      if (fetchError) throw fetchError;
-      
-      console.log("Current order before update:", currentOrder);
-      
-      // Now update the order status while preserving the buyer_opt_id
+      // Update only the status field
       const { data, error } = await supabase
         .from('orders')
-        .update({ 
-          status: 'seller_confirmed' as OrderStatus,
-          buyer_opt_id: currentOrder.buyer_opt_id // Preserve the existing buyer_opt_id
-        })
+        .update({ status: 'seller_confirmed' as OrderStatus })
         .eq('id', orderId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating order status:", error);
+        throw error;
+      }
       
-      console.log("Updated order:", data);
+      console.log("Updated order status:", data);
       return data;
     },
     onSuccess: (updatedOrder) => {
-      // Update the cache with the updated order data
+      // Update the cache with the updated order data while preserving all other fields
       queryClient.setQueryData(['seller-orders', user?.id], (oldData: any) => {
         if (!oldData) return oldData;
         
         return oldData.map((order: any) => {
           if (order.id === updatedOrder.id) {
-            // Preserve the buyer information in the updated order
+            // Only update the status field
             return {
-              ...updatedOrder,
-              buyer: order.buyer
+              ...order,
+              status: updatedOrder.status
             };
           }
           return order;
