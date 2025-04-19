@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -37,8 +38,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       `Бренд: ${order.brand}\n` +
       `Модель: ${order.model}\n` +
       `Цена: ${order.price} AED\n` +
-      `Количество мест: ${order.quantity}\n` +
-      `Продавец: ${order.seller_name_order}\n\n` +
+      `Количество мест: ${order.quantity}\n\n` +
       `Фотографии заказа:\n${images.join('\n')}`
     );
     return `https://t.me/share/url?url=&text=${text}`;
