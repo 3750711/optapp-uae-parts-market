@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -91,6 +92,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Product data:', product);
       console.log('Buyer profile:', profile);
       
+      // Make sure we have the buyer's OPT ID
+      if (!profile?.opt_id) {
+        console.warn('Buyer OPT ID is missing');
+      }
+      
       const orderPayload = {
         title: product.title,
         quantity: 1,
@@ -108,6 +114,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       };
 
       console.log('Order data being sent:', orderPayload);
+      console.log('Saving buyer OPT ID:', profile?.opt_id);
 
       const { data: order, error } = await supabase
         .from('orders')

@@ -122,10 +122,12 @@ const SellerCreateOrder = () => {
         model: formData.model,
         buyer_id: user.id,
         status: 'seller_confirmed' as OrderStatus,
-        order_created_type: 'free_order' as OrderCreatedType
+        order_created_type: 'free_order' as OrderCreatedType,
+        order_seller_name: profile?.full_name || "Неизвестный продавец"
       };
 
       console.log('Order data being sent:', orderPayload);
+      console.log('Saving buyer OPT ID:', formData.buyerOptId);
 
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
