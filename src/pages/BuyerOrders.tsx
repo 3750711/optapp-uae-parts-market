@@ -36,7 +36,7 @@ const BuyerOrders = () => {
   });
 
   const handleViewOrder = (orderId: string) => {
-    navigate(`/seller/orders/${orderId}`);
+    navigate(`/orders/${orderId}`);
   };
 
   if (isLoading) {

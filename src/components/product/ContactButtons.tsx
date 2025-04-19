@@ -44,6 +44,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const { user, profile, refreshProfile } = useAuth();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showProfileWarning, setShowProfileWarning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Ensure profile data is up-to-date when opening the dialog
   useEffect(() => {
@@ -85,8 +86,12 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   };
 
   const handleConfirmOrder = async () => {
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true);
+    
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('intermediate_orders')
         .insert({
           title: product.title,
@@ -98,17 +103,22 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           buyer_opt_id: profile?.opt_id,
           buyer_telegram: profile?.telegram,
           buyer_id: user.id
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
 
+      // Short delay to allow the trigger to process the order
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       toast({
-        title: "Заказ создан",
-        description: "Ваш заказ успешно создан",
+        title: "Заказ успешно создан",
+        description: "Вы будете перенаправлены на страницу ваших заказов",
       });
       
       setShowConfirmDialog(false);
-      navigate('/');
+      navigate('/orders');
     } catch (error) {
       console.error('Error creating order:', error);
       toast({
@@ -116,6 +126,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         description: "Не удалось создать заказ",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -200,14 +212,23 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
             <Button
               variant="outline"
               onClick={() => setShowConfirmDialog(false)}
+              disabled={isSubmitting}
             >
               Отмена
             </Button>
             <Button
               onClick={handleConfirmOrder}
               className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+              disabled={isSubmitting}
             >
-              Подтвердить заказ
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Обработка...
+                </>
+              ) : (
+                "Подтвердить заказ"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
