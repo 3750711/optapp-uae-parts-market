@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ContactButtonsProps {
   onBuyNow: () => void;
@@ -40,8 +41,23 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   product
 }) => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showProfileWarning, setShowProfileWarning] = useState(false);
+
+  // Ensure profile data is up-to-date when opening the dialog
+  useEffect(() => {
+    if (showConfirmDialog && user) {
+      refreshProfile();
+    }
+  }, [showConfirmDialog, user, refreshProfile]);
+
+  // Log profile information for debugging
+  useEffect(() => {
+    if (profile) {
+      console.log("Current user profile in ContactButtons:", profile);
+    }
+  }, [profile]);
 
   const handleBuyNow = async () => {
     if (!user) {
@@ -53,7 +69,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       navigate('/login');
       return;
     }
+
+    // Check if profile information is complete before proceeding
+    if (!profile?.opt_id || !profile?.telegram) {
+      setShowProfileWarning(true);
+      return;
+    }
+    
     setShowConfirmDialog(true);
+  };
+
+  const handleGoToProfile = () => {
+    setShowProfileWarning(false);
+    navigate('/profile');
   };
 
   const handleConfirmOrder = async () => {
@@ -115,6 +143,33 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
       </Button>
 
+      {/* Profile Warning Dialog */}
+      <AlertDialog open={showProfileWarning} onOpenChange={setShowProfileWarning}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Профиль не заполнен</AlertDialogTitle>
+            <AlertDialogDescription>
+              Для совершения покупки необходимо указать ваш OPT ID и Telegram в профиле.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowProfileWarning(false)}
+            >
+              Отмена
+            </Button>
+            <Button
+              onClick={handleGoToProfile}
+              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+            >
+              Перейти к профилю
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Order Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
