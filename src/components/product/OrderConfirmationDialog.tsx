@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -40,55 +41,73 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   product,
   profile,
 }) => {
-  // Get seller name with fallback
-  const sellerName = product.seller_name || 'Не указан';
-
-  const orderDetails = {
-    title: product.title,
-    brand: product.brand,
-    model: product.model,
-    price: product.price,
-    description: product.description,
-    seller_id: product.seller_id,
-    seller_name_order: sellerName,
-    seller_opt_id: product.optid_created,
-    buyer_opt_id: profile?.opt_id,
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Подтверждение заказа</DialogTitle>
           <DialogDescription>
-            Пожалуйста, проверьте детали вашего заказа
+            Проверьте информацию перед подтверждением заказа
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <div className="font-medium">Наименование:</div>
-            <div>{orderDetails.title}</div>
-            <div className="font-medium">Бренд:</div>
-            <div>{orderDetails.brand}</div>
-            <div className="font-medium">Модель:</div>
-            <div>{orderDetails.model}</div>
-            <div className="font-medium">Цена:</div>
-            <div>{orderDetails.price} AED</div>
-            <div className="font-medium">Количество:</div>
-            <div>1</div>
-            <div className="font-medium">Описание:</div>
-            <div>{orderDetails.description || 'Не указано'}</div>
-            <div className="font-medium">OPT ID продавца:</div>
-            <div>{orderDetails.seller_opt_id || 'Не указан'}</div>
-            <div className="font-medium">Продавец:</div>
-            <div>{orderDetails.seller_name_order}</div>
-            <div className="font-medium">Ваш OPT ID:</div>
-            <div>{orderDetails.buyer_opt_id || 'Не указан'}</div>
-            <div className="font-medium">Ваш Telegram:</div>
-            <div>{profile?.telegram || 'Не указан'}</div>
+
+        <div className="space-y-6">
+          <div>
+            <h3 className="font-semibold mb-2">Информация о товаре</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Наименование:</span>
+                <span className="font-medium">{product.title}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Бренд:</span>
+                <span className="font-medium">{product.brand}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Модель:</span>
+                <span className="font-medium">{product.model}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Цена:</span>
+                <span className="font-medium">{product.price} AED</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="font-semibold mb-2">Информация о продавце</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Продавец:</span>
+                <span className="font-medium">{product.seller_name || 'Не указан'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">OPT ID:</span>
+                <span className="font-medium">{product.optid_created || 'Не указан'}</span>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="font-semibold mb-2">Информация о покупателе</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Ваш OPT ID:</span>
+                <span className="font-medium">{profile?.opt_id || 'Не указан'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Ваш Telegram:</span>
+                <span className="font-medium">{profile?.telegram || 'Не указан'}</span>
+              </div>
+            </div>
           </div>
         </div>
-        <DialogFooter className="flex gap-2 sm:gap-0">
+
+        <DialogFooter className="flex gap-2 sm:gap-0 mt-6">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

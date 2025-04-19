@@ -5,12 +5,9 @@ import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
-import { Database } from "@/integrations/supabase/types";
-
-type OrderStatus = Database["public"]["Enums"]["order_status"];
 
 interface ContactButtonsProps {
   onContactTelegram: () => void;
@@ -33,9 +30,6 @@ interface ContactButtonsProps {
 const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactTelegram,
   onContactWhatsApp,
-  telegramUrl,
-  phoneUrl,
-  productId,
   product
 }) => {
   const navigate = useNavigate();
@@ -75,19 +69,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     
     try {
       if (!product.seller_id) {
-        console.error('Missing seller_id in product data');
-        throw new Error('Product seller information is incomplete');
+        throw new Error('Missing seller information');
       }
 
-      // Force seller_name_order to be a non-empty string
-      // Using multiple fallbacks to ensure it can never be null
-      let sellerNameOrder = "Unknown";
-      if (product.seller_name && product.seller_name.trim() !== "") {
-        sellerNameOrder = product.seller_name;
-      }
-      
-      console.log('Using seller name for order:', sellerNameOrder);
-      
       const orderData = {
         title: product.title,
         quantity: 1,
@@ -97,12 +81,12 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         description: product.description || null,
         buyer_id: user?.id,
         seller_id: product.seller_id,
-        seller_name_order: sellerNameOrder,
-        seller_opt_id: product.optid_created || null,
+        seller_name_order: product.seller_name || "Unknown Seller",
+        seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
-        status: 'pending' as OrderStatus
+        status: 'pending'
       };
-      
+
       console.log('Creating order with data:', orderData);
       
       const { data: order, error } = await supabase
@@ -111,28 +95,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         .select()
         .single();
 
-      if (error) {
-        console.error('Error details:', error);
-        
-        if (error.code === '42501') {
-          toast({
-            title: "Ошибка с правами доступа",
-            description: "Проблема с правами доступа. Обратитесь в поддержку.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Ошибка",
-            description: `Не удалось создать заказ: ${error.message}`,
-            variant: "destructive",
-          });
-        }
-        return;
-      }
-      
+      if (error) throw error;
+
       toast({
         title: "Заказ успешно создан",
-        description: "Вы будете перенаправлены на страницу ваших заказов",
+        description: "Вы будете перенаправлены на страницу заказов",
       });
       
       setShowConfirmDialog(false);
@@ -141,7 +108,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.error('Error creating order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать заказ. Пожалуйста, попробуйте позже или свяжитесь с продавцом напрямую.",
+        description: "Не удалось создать заказ. Попробуйте позже.",
         variant: "destructive",
       });
     } finally {
