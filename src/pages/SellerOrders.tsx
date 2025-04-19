@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -38,10 +39,7 @@ const SellerOrders = () => {
         .select(`
           *,
           buyer:profiles!orders_buyer_id_fkey (
-            full_name,
-            email,
-            phone,
-            telegram
+            full_name
           )
         `)
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
@@ -114,7 +112,6 @@ const SellerOrders = () => {
                         <TableHead>Бренд</TableHead>
                         <TableHead>Цена</TableHead>
                         <TableHead>Покупатель</TableHead>
-                        <TableHead>Контакты</TableHead>
                         <TableHead>Дата</TableHead>
                         <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
@@ -135,14 +132,6 @@ const SellerOrders = () => {
                           <TableCell>{order.price} ₽</TableCell>
                           <TableCell>
                             {order.buyer?.full_name || 'Неизвестный покупатель'}
-                          </TableCell>
-                          <TableCell>
-                            {order.buyer?.phone && (
-                              <div>{order.buyer.phone}</div>
-                            )}
-                            {order.buyer?.telegram && (
-                              <div>{order.buyer.telegram}</div>
-                            )}
                           </TableCell>
                           <TableCell>
                             {format(new Date(order.created_at), 'dd.MM.yyyy')}
@@ -177,3 +166,4 @@ const SellerOrders = () => {
 };
 
 export default SellerOrders;
+
