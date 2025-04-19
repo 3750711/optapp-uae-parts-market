@@ -282,7 +282,13 @@ export type Database = {
     }
     Enums: {
       order_created_type: "free_order" | "ads_order"
-      order_status: "verified" | "pending"
+      order_status:
+        | "created"
+        | "seller_confirmed"
+        | "admin_confirmed"
+        | "processed"
+        | "shipped"
+        | "delivered"
       product_status: "active" | "sold" | "pending" | "archived"
       user_type: "buyer" | "seller"
       verification_status: "verified" | "pending"
@@ -402,7 +408,14 @@ export const Constants = {
   public: {
     Enums: {
       order_created_type: ["free_order", "ads_order"],
-      order_status: ["verified", "pending"],
+      order_status: [
+        "created",
+        "seller_confirmed",
+        "admin_confirmed",
+        "processed",
+        "shipped",
+        "delivered",
+      ],
       product_status: ["active", "sold", "pending", "archived"],
       user_type: ["buyer", "seller"],
       verification_status: ["verified", "pending"],

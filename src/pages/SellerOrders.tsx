@@ -51,12 +51,39 @@ const SellerOrders = () => {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case 'verified':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
-      case 'pending':
+      case 'created':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      case 'seller_confirmed':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'admin_confirmed':
+        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+      case 'processed':
         return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'shipped':
+        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+      case 'delivered':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'created':
+        return 'Создан';
+      case 'seller_confirmed':
+        return 'Подтвержден продавцом';
+      case 'admin_confirmed':
+        return 'Подтвержден администратором';
+      case 'processed':
+        return 'Оформлен';
+      case 'shipped':
+        return 'Отправлен';
+      case 'delivered':
+        return 'Получен';
+      default:
+        return status;
     }
   };
 
@@ -143,9 +170,7 @@ const SellerOrders = () => {
                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusBadgeColor(order.status)}>
-                              {order.status === 'pending' ? 'В обработке' : 
-                               order.status === 'verified' ? 'Подтвержден' : 
-                               order.status}
+                              {getStatusLabel(order.status)}
                             </Badge>
                           </TableCell>
                           <TableCell>
