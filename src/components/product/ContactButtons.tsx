@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -74,13 +73,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Check if we have the seller ID directly from the product
       if (!product.seller_id) {
         console.error('Missing seller_id in product data');
         throw new Error('Product seller information is incomplete');
       }
 
-      // Prepare order data
       const orderData = {
         title: product.title,
         quantity: 1,

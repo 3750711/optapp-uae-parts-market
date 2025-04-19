@@ -23,6 +23,7 @@ interface OrderConfirmationDialogProps {
     price: number;
     description?: string;
     optid_created?: string | null;
+    seller_name?: string;
   };
   profile?: {
     opt_id?: string;
@@ -63,6 +64,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <div>{product.description || 'Не указано'}</div>
             <div className="font-medium">OPT ID продавца:</div>
             <div>{product.optid_created || 'Не указан'}</div>
+            <div className="font-medium">Продавец:</div>
+            <div>{product.seller_name || 'Не указан'}</div>
             <div className="font-medium">Ваш OPT ID:</div>
             <div>{profile?.opt_id || 'Не указан'}</div>
             <div className="font-medium">Ваш Telegram:</div>
