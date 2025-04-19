@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +22,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { format } from "date-fns";
 import { Loader2, ChevronRight } from "lucide-react";
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
@@ -111,11 +109,11 @@ const SellerOrders = () => {
       case 'admin_confirmed':
         return 'Подтвержден администратором';
       case 'processed':
-        return 'Оформлен';
+        return 'В обработке';
       case 'shipped':
         return 'Отправлен';
       case 'delivered':
-        return 'Получен';
+        return 'Доставлен';
       default:
         return status;
     }
@@ -156,78 +154,75 @@ const SellerOrders = () => {
                   У вас пока нет заказов
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Номер заказа</TableHead>
-                        <TableHead>Наименование</TableHead>
-                        <TableHead>Бренд</TableHead>
-                        <TableHead>Модель</TableHead>
-                        <TableHead>Продавец</TableHead>
-                        <TableHead>Цена</TableHead>
-                        <TableHead>Тип заказа</TableHead>
-                        <TableHead>Статус</TableHead>
-                        <TableHead>Действия</TableHead>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Номер заказа</TableHead>
+                      <TableHead>Наименование</TableHead>
+                      <TableHead>Бренд</TableHead>
+                      <TableHead>Модель</TableHead>
+                      <TableHead>Продавец</TableHead>
+                      <TableHead>Цена</TableHead>
+                      <TableHead>Тип заказа</TableHead>
+                      <TableHead>Статус</TableHead>
+                      <TableHead>Действия</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orders.map((order) => (
+                      <TableRow 
+                        key={order.id}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={(e) => {
+                          if ((e.target as HTMLElement).closest('button')) {
+                            e.stopPropagation();
+                            return;
+                          }
+                          handleRowClick(order.id);
+                        }}
+                      >
+                        <TableCell>{order.order_number}</TableCell>
+                        <TableCell>{order.title}</TableCell>
+                        <TableCell>{order.brand}</TableCell>
+                        <TableCell>{order.model}</TableCell>
+                        <TableCell>{order.order_seller_name}</TableCell>
+                        <TableCell>{order.price} AED</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {getOrderTypeLabel(order.order_created_type)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusBadgeColor(order.status)}>
+                            {getStatusLabel(order.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {order.status === 'created' && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmOrderMutation.mutate(order.id);
+                                }}
+                                disabled={confirmOrderMutation.isPending}
+                              >
+                                {confirmOrderMutation.isPending ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  'Подтвердить'
+                                )}
+                              </Button>
+                            )}
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                          </div>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orders.map((order) => (
-                        <TableRow 
-                          key={order.id}
-                          className="cursor-pointer hover:bg-gray-50"
-                          onClick={(e) => {
-                            // Prevent row click when clicking the confirm button
-                            if ((e.target as HTMLElement).closest('button')) {
-                              e.stopPropagation();
-                              return;
-                            }
-                            handleRowClick(order.id);
-                          }}
-                        >
-                          <TableCell>{order.order_number}</TableCell>
-                          <TableCell>{order.title}</TableCell>
-                          <TableCell>{order.brand}</TableCell>
-                          <TableCell>{order.model}</TableCell>
-                          <TableCell>{order.order_seller_name}</TableCell>
-                          <TableCell>{order.price} AED</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {getOrderTypeLabel(order.order_created_type)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusBadgeColor(order.status)}>
-                              {getStatusLabel(order.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              {order.status === 'created' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    confirmOrderMutation.mutate(order.id);
-                                  }}
-                                  disabled={confirmOrderMutation.isPending}
-                                >
-                                  {confirmOrderMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    'Подтвердить'
-                                  )}
-                                </Button>
-                              )}
-                              <ChevronRight className="h-5 w-5 text-gray-400" />
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </CardContent>
           </Card>
