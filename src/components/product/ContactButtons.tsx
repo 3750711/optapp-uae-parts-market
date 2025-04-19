@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -38,7 +37,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Check if user is a seller
   const isSeller = profile?.user_type === 'seller';
 
   const handleBuyNow = () => {
@@ -138,7 +136,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
   return (
     <>
-      {/* Only show Buy button if user is not a seller */}
       {!isSeller && (
         <Button 
           className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
