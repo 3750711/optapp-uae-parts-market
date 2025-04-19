@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -52,7 +51,7 @@ const BuyerCreateOrder = () => {
             title: product.title,
             price: product.price.toString(),
             quantity: "1",
-            sellerOptId: "",
+            sellerOptId: product.optid_created || "", // Get seller's OPT_ID from product.optid_created
             brand: product.brand || "",
             model: product.model || "",
           });
@@ -291,6 +290,15 @@ const BuyerCreateOrder = () => {
                       placeholder="Введите OPT_ID продавца"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>OPT_ID продавца</Label>
+                  <Input 
+                    value={formData.sellerOptId} 
+                    readOnly 
+                    className="bg-gray-100"
+                  />
                 </div>
 
                 <div className="space-y-2">
