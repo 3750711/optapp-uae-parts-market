@@ -114,10 +114,6 @@ const SellerCreateOrder = () => {
         return;
       }
 
-      const telegram_url_order = sellerData.telegram ? 
-        sellerData.telegram.replace(/^@|^https:\/\/t\.me\//i, '') : 
-        null;
-
       console.log('Creating order with buyer profile:', profile);
       
       const orderPayload = {
@@ -127,13 +123,13 @@ const SellerCreateOrder = () => {
         seller_id: user.id,
         order_seller_name: profile?.full_name || 'Unknown',
         seller_opt_id: profile?.opt_id || null,
-        buyer_id: user.id,
+        buyer_id: sellerData.id,
         buyer_opt_id: formData.buyerOptId,
         brand: formData.brand,
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
         order_created_type: 'free_order' as OrderCreatedType,
-        telegram_url_order
+        telegram_url_order: sellerData.telegram || null
       };
 
       console.log('Order data being sent:', orderPayload);

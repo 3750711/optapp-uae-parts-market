@@ -105,7 +105,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         status: 'created' as OrderStatus,
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
-        telegram_url_order: telegramUrl || null
+        telegram_url_order: profile?.telegram || null
       };
 
       console.log('Order data being sent:', orderPayload);
