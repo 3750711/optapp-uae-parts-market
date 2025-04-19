@@ -110,7 +110,7 @@ const BuyerCreateOrder = () => {
           quantity: parseInt(formData.quantity),
           seller_opt_id: formData.sellerOptId,
           buyer_id: user.id,
-          buyer_opt_id: profile?.opt_id || null,
+          buyer_opt_id: profile?.opt_id || null, // Use buyer's OPT_ID from profile
           seller_name_order: "Неизвестный продавец",
           brand: formData.brand,
           model: formData.model,
@@ -290,15 +290,6 @@ const BuyerCreateOrder = () => {
                       placeholder="Введите OPT_ID продавца"
                     />
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>OPT_ID продавца</Label>
-                  <Input 
-                    value={formData.sellerOptId} 
-                    readOnly 
-                    className="bg-gray-100"
-                  />
                 </div>
 
                 <div className="space-y-2">
