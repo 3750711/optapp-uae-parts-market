@@ -50,6 +50,7 @@ export type Database = {
           description: string | null
           id: string
           model: string
+          order_created_type: Database["public"]["Enums"]["order_created_type"]
           order_number: number
           order_seller_name: string
           price: number
@@ -68,6 +69,7 @@ export type Database = {
           description?: string | null
           id?: string
           model: string
+          order_created_type?: Database["public"]["Enums"]["order_created_type"]
           order_number?: number
           order_seller_name?: string
           price: number
@@ -86,6 +88,7 @@ export type Database = {
           description?: string | null
           id?: string
           model?: string
+          order_created_type?: Database["public"]["Enums"]["order_created_type"]
           order_number?: number
           order_seller_name?: string
           price?: number
@@ -278,6 +281,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      order_created_type: "free_order" | "ads_order"
       order_status: "verified" | "pending"
       product_status: "active" | "sold" | "pending" | "archived"
       user_type: "buyer" | "seller"
@@ -397,6 +401,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      order_created_type: ["free_order", "ads_order"],
       order_status: ["verified", "pending"],
       product_status: ["active", "sold", "pending", "archived"],
       user_type: ["buyer", "seller"],

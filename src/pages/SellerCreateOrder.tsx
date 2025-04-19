@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -116,6 +117,7 @@ const SellerCreateOrder = () => {
           brand: formData.brand,
           model: formData.model,
           buyer_id: user.id,
+          order_created_type: 'free_order'
         })
         .select()
         .single();
