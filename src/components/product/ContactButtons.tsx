@@ -98,7 +98,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         seller_id: product.seller_id,
         seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
-        status: 'pending' as 'pending' | 'verified',
+        status: 'created', // Updated from 'pending' to 'created'
         order_seller_name: product.seller_name,
         order_created_type: 'ads_order' as 'ads_order' | 'free_order'
       };

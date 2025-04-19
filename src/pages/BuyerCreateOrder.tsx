@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -121,7 +120,7 @@ const BuyerCreateOrder = () => {
           buyer_opt_id: profile?.opt_id,
           brand: formData.brand,
           model: formData.model,
-          status: 'pending',
+          status: 'created',
           order_created_type: 'free_order'
         })
         .select()
