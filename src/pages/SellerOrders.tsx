@@ -59,6 +59,10 @@ const SellerOrders = () => {
     }
   };
 
+  const getOrderTypeLabel = (type: 'free_order' | 'ads_order') => {
+    return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
+  };
+
   const handleRowClick = (orderId: string) => {
     navigate(`/seller/orders/${orderId}`);
   };
@@ -100,6 +104,7 @@ const SellerOrders = () => {
                         <TableHead>Бренд</TableHead>
                         <TableHead>Цена</TableHead>
                         <TableHead>Дата</TableHead>
+                        <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
@@ -118,6 +123,11 @@ const SellerOrders = () => {
                           <TableCell>{order.price} ₽</TableCell>
                           <TableCell>
                             {format(new Date(order.created_at), 'dd.MM.yyyy')}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {getOrderTypeLabel(order.order_created_type)}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusBadgeColor(order.status)}>

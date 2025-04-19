@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Badge } from '@/components/ui/badge';
 
 const BuyerOrders = () => {
   const { user } = useAuth();
@@ -36,6 +37,10 @@ const BuyerOrders = () => {
 
   const handleViewOrder = (orderId: string) => {
     navigate(`/orders/${orderId}`);
+  };
+
+  const getOrderTypeLabel = (type: 'free_order' | 'ads_order') => {
+    return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
   };
 
   if (isLoading) {
@@ -63,6 +68,7 @@ const BuyerOrders = () => {
                   <TableHead>Бренд</TableHead>
                   <TableHead>Модель</TableHead>
                   <TableHead>Цена</TableHead>
+                  <TableHead>Тип заказа</TableHead>
                   <TableHead>Статус</TableHead>
                   <TableHead>Действия</TableHead>
                 </TableRow>
@@ -75,6 +81,11 @@ const BuyerOrders = () => {
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
                     <TableCell>{order.price} AED</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {getOrderTypeLabel(order.order_created_type)}
+                      </Badge>
+                    </TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-sm ${
                         order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
