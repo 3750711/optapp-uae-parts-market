@@ -29,6 +29,7 @@ const SellerCreateOrder = () => {
     buyerOptId: "",
     brand: "",
     model: "",
+    optid_created: ""
   });
 
   useEffect(() => {
@@ -58,6 +59,7 @@ const SellerCreateOrder = () => {
             buyerOptId: "",
             brand: product.brand || "",
             model: product.model || "",
+            optid_created: product.optid_created || ""
           });
         }
       }
@@ -218,6 +220,7 @@ const SellerCreateOrder = () => {
                   buyerOptId: "",
                   brand: "",
                   model: "",
+                  optid_created: ""
                 });
                 setImages([]);
               }}
