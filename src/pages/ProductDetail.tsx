@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -125,6 +126,9 @@ const ProductDetail = () => {
   
   console.log("Seller profile data:", sellerProfile);
   
+  // Convert price to number to fix the type error
+  const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -158,7 +162,7 @@ const ProductDetail = () => {
                 productId={id}
                 product={{
                   title: product.title,
-                  price: product.price,
+                  price: productPrice, // Use the converted price value here
                   brand: product.brand,
                   model: product.model,
                   optid_created: product.optid_created
