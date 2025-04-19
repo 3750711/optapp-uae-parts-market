@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
+import { Database } from "@/integrations/supabase/types";
+
+type OrderStatus = Database["public"]["Enums"]["order_status"];
 
 interface ContactButtonsProps {
   onContactTelegram: () => void;
@@ -90,7 +93,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         seller_name_order: product.seller_name || 'Unknown',
         seller_opt_id: product.optid_created || null,
         buyer_opt_id: profile?.opt_id,
-        status: 'pending'
+        status: 'pending' as OrderStatus
       };
       
       console.log('Creating order with data:', orderData);
