@@ -22,7 +22,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Loader2, ChevronRight, Link } from "lucide-react";
+import { ChevronRight, Link, Loader2 } from "lucide-react";
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
 
@@ -256,26 +256,7 @@ const SellerOrders = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <div className="flex items-center gap-2">
-                              {order.status === 'created' && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    confirmOrderMutation.mutate(order.id);
-                                  }}
-                                  disabled={confirmOrderMutation.isPending}
-                                >
-                                  {confirmOrderMutation.isPending ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    'Подтвердить'
-                                  )}
-                                </Button>
-                              )}
-                              <ChevronRight className="h-5 w-5 text-gray-400" />
-                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                           </TableCell>
                         </TableRow>
                       ))}
