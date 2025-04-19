@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -98,36 +97,47 @@ const SellerCreateOrder = () => {
       return;
     }
 
-    if (!formData.buyerOptId.trim()) {
-      toast({
-        title: "Ошибка",
-        description: "OPT_ID получателя обязателен для заполнения",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      console.log('Creating order with seller name:', profile?.full_name || "Неизвестный продавец");
-      console.log('Buyer OPT ID:', formData.buyerOptId);
+      const { data: sellerData, error: sellerError } = await supabase
+        .from('profiles')
+        .select('id, full_name, telegram')
+        .eq('opt_id', formData.buyerOptId)
+        .single();
+
+      if (sellerError) throw sellerError;
+      
+      if (!sellerData?.id) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось найти продавца с указанным OPT ID",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const telegram_url_order = sellerData.telegram ? 
+        sellerData.telegram.replace(/^@|^https:\/\/t\.me\//i, '') : 
+        null;
+
+      console.log('Creating order with buyer profile:', profile);
       
       const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
-        buyer_opt_id: formData.buyerOptId,
         seller_id: user.id,
+        order_seller_name: profile?.full_name || 'Unknown',
         seller_opt_id: profile?.opt_id || null,
+        buyer_id: user.id,
+        buyer_opt_id: formData.buyerOptId,
         brand: formData.brand,
         model: formData.model,
-        buyer_id: user.id,
         status: 'seller_confirmed' as OrderStatus,
         order_created_type: 'free_order' as OrderCreatedType,
-        order_seller_name: profile?.full_name || "Неизвестный продавец"
+        telegram_url_order // Add telegram_url_order from seller's profile
       };
 
       console.log('Order data being sent:', orderPayload);
-      console.log('Saving buyer OPT ID:', formData.buyerOptId);
 
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
