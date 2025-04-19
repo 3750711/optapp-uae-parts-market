@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -5,6 +6,15 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 interface ContactButtonsProps {
   onBuyNow: () => void;
@@ -36,12 +46,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Ensure profile data is up-to-date when opening the dialog
   useEffect(() => {
     if (showConfirmDialog && user) {
       refreshProfile();
     }
   }, [showConfirmDialog, user, refreshProfile]);
 
+  // Log profile information for debugging
   useEffect(() => {
     if (profile) {
       console.log("Current user profile in ContactButtons:", profile);
@@ -59,6 +71,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       return;
     }
 
+    // Check if profile information is complete before proceeding
     if (!profile?.opt_id || !profile?.telegram) {
       setShowProfileWarning(true);
       return;
@@ -96,11 +109,12 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       if (error) throw error;
 
+      // Short delay to allow the trigger to process the order
       await new Promise(resolve => setTimeout(resolve, 500));
       
       toast({
-        title: "Заказ создан",
-        description: "Заказ успешно создан и отправлен продавцу",
+        title: "Заказ успешно создан",
+        description: "Вы будете перенаправлены на страницу ваших заказов",
       });
       
       setShowConfirmDialog(false);
@@ -141,6 +155,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
       </Button>
 
+      {/* Profile Warning Dialog */}
       <AlertDialog open={showProfileWarning} onOpenChange={setShowProfileWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -166,6 +181,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Order Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
