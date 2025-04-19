@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -14,10 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ContactButtonsProps {
-  onBuyNow: () => void;
   onContactTelegram: () => void;
   onContactWhatsApp: () => void;
   telegramUrl?: string;
@@ -28,6 +33,7 @@ interface ContactButtonsProps {
     price: number;
     brand: string;
     model: string;
+    description?: string;
     optid_created?: string | null;
   };
 }
@@ -45,15 +51,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [intermediateOrderId, setIntermediateOrderId] = useState<string | null>(null);
 
-  // Ensure profile data is up-to-date when opening the dialog
   useEffect(() => {
     if (showConfirmDialog && user) {
       refreshProfile();
     }
   }, [showConfirmDialog, user, refreshProfile]);
 
-  // Log profile information for debugging
   useEffect(() => {
     if (profile) {
       console.log("Current user profile in ContactButtons:", profile);
@@ -71,13 +76,41 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       return;
     }
 
-    // Check if profile information is complete before proceeding
     if (!profile?.opt_id || !profile?.telegram) {
       setShowProfileWarning(true);
       return;
     }
-    
-    setShowConfirmDialog(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('intermediate_orders')
+        .insert({
+          title: product.title,
+          quantity: 1,
+          brand: product.brand,
+          model: product.model,
+          price: product.price,
+          description: product.description,
+          seller_opt_id: product.optid_created,
+          buyer_opt_id: profile?.opt_id,
+          buyer_telegram: profile?.telegram,
+          buyer_id: user.id
+        })
+        .select('id')
+        .single();
+
+      if (error) throw error;
+
+      setIntermediateOrderId(data.id);
+      setShowConfirmDialog(true);
+    } catch (error) {
+      console.error('Error creating intermediate order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать заказ",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleGoToProfile = () => {
@@ -91,24 +124,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setIsSubmitting(true);
     
     try {
-      const { data, error } = await supabase
-        .from('intermediate_orders')
-        .insert({
-          title: product.title,
-          quantity: 1,
-          brand: product.brand,
-          model: product.model,
-          price: product.price,
-          seller_opt_id: product.optid_created,
-          buyer_opt_id: profile?.opt_id,
-          buyer_telegram: profile?.telegram,
-          buyer_id: user.id
-        })
-        .select('id')
-        .single();
-
-      if (error) throw error;
-
       // Short delay to allow the trigger to process the order
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -120,10 +135,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       setShowConfirmDialog(false);
       navigate('/orders');
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Error confirming order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать заказ",
+        description: "Не удалось подтвердить заказ",
         variant: "destructive",
       });
     } finally {
@@ -155,7 +170,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
       </Button>
 
-      {/* Profile Warning Dialog */}
       <AlertDialog open={showProfileWarning} onOpenChange={setShowProfileWarning}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -181,7 +195,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Order Confirmation Dialog */}
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -202,6 +215,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
               <div>{product.price} AED</div>
               <div className="font-medium">Количество:</div>
               <div>1</div>
+              <div className="font-medium">Описание:</div>
+              <div>{product.description || 'Не указано'}</div>
               <div className="font-medium">Ваш OPT ID:</div>
               <div>{profile?.opt_id || 'Не указан'}</div>
               <div className="font-medium">Ваш Telegram:</div>

@@ -16,6 +16,7 @@ export type Database = {
           buyer_opt_id: string | null
           buyer_telegram: string | null
           created_at: string
+          description: string | null
           id: string
           model: string
           price: number
@@ -31,6 +32,7 @@ export type Database = {
           buyer_opt_id?: string | null
           buyer_telegram?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           model: string
           price: number
@@ -46,6 +48,7 @@ export type Database = {
           buyer_opt_id?: string | null
           buyer_telegram?: string | null
           created_at?: string
+          description?: string | null
           id?: string
           model?: string
           price?: number
