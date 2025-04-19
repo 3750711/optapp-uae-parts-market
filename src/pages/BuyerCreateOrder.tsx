@@ -10,6 +10,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { Database } from "@/integrations/supabase/types";
+
+// Define the type for order_created_type
+type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
+type OrderStatus = Database["public"]["Enums"]["order_status"];
 
 const BuyerCreateOrder = () => {
   const { user, profile } = useAuth();
@@ -110,7 +115,7 @@ const BuyerCreateOrder = () => {
 
       console.log('Creating order with buyer profile:', profile);
       
-      const orderData = {
+      const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
@@ -121,21 +126,21 @@ const BuyerCreateOrder = () => {
         buyer_opt_id: profile?.opt_id || null,
         brand: formData.brand,
         model: formData.model,
-        status: 'created',
-        order_created_type: 'free_order'
+        status: 'created' as OrderStatus,
+        order_created_type: 'free_order' as OrderCreatedType
       };
 
-      console.log('Order data being sent:', orderData);
+      console.log('Order data being sent:', orderPayload);
 
-      const { data: orderData, error: orderError } = await supabase
+      const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert(orderPayload)
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      console.log('Order created successfully:', orderData);
+      console.log('Order created successfully:', createdOrder);
 
       toast({
         title: "Заказ создан",

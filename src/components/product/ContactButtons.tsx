@@ -8,6 +8,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
+import { Database } from "@/integrations/supabase/types";
+
+// Define the type for order_created_type and order_status
+type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
+type OrderStatus = Database["public"]["Enums"]["order_status"];
 
 interface ContactButtonsProps {
   onContactTelegram: () => void;
@@ -87,9 +92,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Product data:', product);
       console.log('Buyer profile:', profile);
       
-      type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
-      
-      const orderData = {
+      const orderPayload = {
         title: product.title,
         quantity: 1,
         brand: product.brand,
@@ -102,14 +105,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         buyer_opt_id: profile?.opt_id || null,
         status: 'created' as OrderStatus,
         order_seller_name: product.seller_name || "Unknown Seller",
-        order_created_type: 'ads_order' as 'ads_order' | 'free_order'
+        order_created_type: 'ads_order' as OrderCreatedType
       };
 
-      console.log('Order data being sent:', orderData);
+      console.log('Order data being sent:', orderPayload);
 
       const { data: order, error } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert(orderPayload)
         .select()
         .single();
 

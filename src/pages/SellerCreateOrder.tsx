@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
+import { Database } from "@/integrations/supabase/types";
+
+// Define the type for order_created_type
+type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
+type OrderStatus = Database["public"]["Enums"]["order_status"];
 
 const SellerCreateOrder = () => {
   const { user, profile } = useAuth();
@@ -105,9 +111,7 @@ const SellerCreateOrder = () => {
       console.log('Creating order with seller name:', profile?.full_name || "Неизвестный продавец");
       console.log('Buyer OPT ID:', formData.buyerOptId);
       
-      type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
-      
-      const orderData = {
+      const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
@@ -118,14 +122,14 @@ const SellerCreateOrder = () => {
         model: formData.model,
         buyer_id: user.id,
         status: 'seller_confirmed' as OrderStatus,
-        order_created_type: 'free_order'
+        order_created_type: 'free_order' as OrderCreatedType
       };
 
-      console.log('Order data being sent:', orderData);
+      console.log('Order data being sent:', orderPayload);
 
-      const { data: orderData, error: orderError } = await supabase
+      const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert(orderPayload)
         .select()
         .single();
 
@@ -135,14 +139,14 @@ const SellerCreateOrder = () => {
         throw orderError;
       }
 
-      console.log('Order created successfully:', orderData);
+      console.log('Order created successfully:', createdOrder);
 
       if (images.length > 0) {
         const { error: imagesError } = await supabase
           .from('order_images')
           .insert(
             images.map((url, index) => ({
-              order_id: orderData.id,
+              order_id: createdOrder.id,
               url,
               is_primary: index === 0
             }))
@@ -151,7 +155,7 @@ const SellerCreateOrder = () => {
         if (imagesError) throw imagesError;
       }
 
-      setCreatedOrder(orderData);
+      setCreatedOrder(createdOrder);
       toast({
         title: "Заказ создан",
         description: "Ваш заказ был успешно создан",
@@ -171,7 +175,7 @@ const SellerCreateOrder = () => {
   };
 
   const handleImageDelete = (urlToDelete: string) => {
-    setImages(prev => prev.filter(url => url !== urlToDelete));
+    setImages(prev => prev.filter(url => url !== urlToDelete))
   };
 
   const handleInputChange = (field: string, value: string) => {
