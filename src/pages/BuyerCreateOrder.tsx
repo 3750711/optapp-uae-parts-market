@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,7 @@ const BuyerCreateOrder = () => {
           order_seller_name: sellerData.full_name || 'Unknown',
           seller_opt_id: formData.sellerOptId,
           buyer_id: user.id,
-          buyer_opt_id: profile?.opt_id,
+          buyer_opt_id: profile?.opt_id,  // Set buyer_opt_id from profile
           brand: formData.brand,
           model: formData.model,
           status: 'created',
