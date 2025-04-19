@@ -6,19 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Share, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderEditForm } from './OrderEditForm';
+import { Badge } from "@/components/ui/badge";
+import { Database } from '@/integrations/supabase/types';
+
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  buyer?: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+};
 
 interface OrderConfirmationCardProps {
-  order: {
-    id?: string;
-    order_number: number;
-    title: string;
-    price: number;
-    quantity: number;
-    seller_opt_id?: string | null;
-    status?: string;
-    brand: string;
-    model: string;
-  };
+  order: Order;
   images: string[];
   onOrderUpdate?: (updatedOrder: any) => void;
 }
@@ -38,10 +40,49 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       `Модель: ${order.model}\n` +
       `Цена: ${order.price} AED\n` +
       `Количество мест: ${order.quantity}\n` +
-      `OPT ID отправителя: ${order.seller_opt_id || 'Не указан'}\n\n` +
+      `OPT ID отправителя: ${order.seller_opt_id || 'Не указан'}\n` +
+      `OPT ID получателя: ${order.buyer_opt_id || 'Не указан'}\n\n` +
       `Фотографии заказа:\n${images.join('\n')}`
     );
     return `https://t.me/share/url?url=&text=${text}`;
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'created':
+        return 'bg-gray-100 text-gray-800';
+      case 'seller_confirmed':
+        return 'bg-blue-100 text-blue-800';
+      case 'admin_confirmed':
+        return 'bg-purple-100 text-purple-800';
+      case 'processed':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'shipped':
+        return 'bg-orange-100 text-orange-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'created':
+        return 'Создан';
+      case 'seller_confirmed':
+        return 'Подтвержден продавцом';
+      case 'admin_confirmed':
+        return 'Подтвержден администратором';
+      case 'processed':
+        return 'В обработке';
+      case 'shipped':
+        return 'Отправлен';
+      case 'delivered':
+        return 'Доставлен';
+      default:
+        return status;
+    }
   };
 
   return (
@@ -68,6 +109,9 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
         <CardTitle className="text-6xl font-bold text-optapp-dark">
           № {order.order_number}
         </CardTitle>
+        <Badge className={getStatusBadgeColor(order.status)}>
+          {getStatusLabel(order.status)}
+        </Badge>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -92,14 +136,57 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
               <Label className="text-sm text-gray-500">Количество мест</Label>
               <p className="text-lg font-medium">{order.quantity}</p>
             </div>
+            <div>
+              <Label className="text-sm text-gray-500">Тип заказа</Label>
+              <p className="text-lg font-medium">
+                {order.order_created_type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению'}
+              </p>
+            </div>
           </div>
           <div className="space-y-4">
             <div>
-              <Label className="text-sm text-gray-500">OPT_ID отправителя</Label>
+              <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
               <p className="text-lg font-medium">{order.seller_opt_id || 'Не указан'}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-500">OPT ID получателя</Label>
+              <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-500">Имя отправителя</Label>
+              <p className="text-lg font-medium">{order.order_seller_name}</p>
+            </div>
+            <div>
+              <Label className="text-sm text-gray-500">Информация о получателе</Label>
+              {order.buyer ? (
+                <div className="space-y-2">
+                  <p className="font-medium">{order.buyer.full_name || 'Не указано'}</p>
+                  <p>{order.buyer.email || 'Email не указан'}</p>
+                  <p>{order.buyer.phone || 'Телефон не указан'}</p>
+                  {order.buyer.telegram && (
+                    <a 
+                      href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline block"
+                    >
+                      {order.buyer.telegram}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                <p className="text-gray-500">Информация о получателе недоступна</p>
+              )}
             </div>
           </div>
         </div>
+        
+        {order.description && (
+          <div>
+            <Label className="text-sm text-gray-500 mb-2 block">Описание</Label>
+            <p className="text-gray-700 whitespace-pre-wrap">{order.description}</p>
+          </div>
+        )}
         
         {images.length > 0 && (
           <div>

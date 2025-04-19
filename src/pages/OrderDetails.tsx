@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -5,6 +6,14 @@ import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
+import { toast } from '@/components/ui/use-toast';
+import { Database } from '@/integrations/supabase/types';
+
+type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
+  buyer: {
+    telegram: string | null;
+  } | null;
+};
 
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,11 +24,28 @@ const OrderDetails = () => {
     queryFn: async () => {
       const { data: order, error: orderError } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          buyer:profiles!orders_buyer_id_fkey (
+            telegram,
+            full_name,
+            opt_id,
+            email,
+            phone
+          )
+        `)
         .eq('id', id)
         .maybeSingle();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить данные заказа",
+          variant: "destructive",
+        });
+        throw orderError;
+      }
+
       if (!order) return null;
 
       const { data: images, error: imagesError } = await supabase
@@ -29,8 +55,6 @@ const OrderDetails = () => {
 
       if (imagesError) throw imagesError;
 
-      console.log('Order data fetched:', order);
-
       return {
         order,
         images: images?.map(img => img.url) || []
@@ -38,32 +62,6 @@ const OrderDetails = () => {
     },
     enabled: !!id
   });
-
-  const handleOrderUpdate = (updatedOrder: any) => {
-    // Make sure all original order data is preserved when updating
-    if (orderData?.order) {
-      // Preserve important fields that should not be lost during update
-      const preservedFields = {
-        telegram_url_order: orderData.order.telegram_url_order,
-        buyer_opt_id: orderData.order.buyer_opt_id,
-        // Add other fields that need preservation here
-      };
-      
-      // Merge preserved fields with updated order
-      const mergedOrder = { ...preservedFields, ...updatedOrder };
-      
-      // Update the order with all fields preserved
-      queryClient.setQueryData(['order', id], {
-        order: mergedOrder,
-        images: orderData.images
-      });
-    }
-    
-    // Invalidate queries to ensure data consistency
-    queryClient.invalidateQueries({ queryKey: ['order', id] });
-    queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-    queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
-  };
 
   if (isLoading) {
     return (
@@ -96,7 +94,22 @@ const OrderDetails = () => {
         <OrderConfirmationCard
           order={orderData.order}
           images={orderData.images}
-          onOrderUpdate={handleOrderUpdate}
+          onOrderUpdate={(updatedOrder) => {
+            if (orderData?.order) {
+              const preservedFields = {
+                telegram_url_order: orderData.order.telegram_url_order,
+                buyer_opt_id: orderData.order.buyer_opt_id,
+              };
+              
+              const mergedOrder = { ...preservedFields, ...updatedOrder };
+              
+              queryClient.setQueryData(['order', id], {
+                order: mergedOrder,
+                images: orderData.images
+              });
+            }
+            queryClient.invalidateQueries({ queryKey: ['order', id] });
+          }}
         />
       </div>
     </Layout>
