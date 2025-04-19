@@ -58,6 +58,7 @@ export type Database = {
           seller_id: string
           seller_opt_id: string | null
           status: Database["public"]["Enums"]["order_status"]
+          telegram_url_buyer: string | null
           telegram_url_order: string | null
           title: string
         }
@@ -77,6 +78,7 @@ export type Database = {
           seller_id: string
           seller_opt_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          telegram_url_buyer?: string | null
           telegram_url_order?: string | null
           title: string
         }
@@ -96,6 +98,7 @@ export type Database = {
           seller_id?: string
           seller_opt_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
+          telegram_url_buyer?: string | null
           telegram_url_order?: string | null
           title?: string
         }

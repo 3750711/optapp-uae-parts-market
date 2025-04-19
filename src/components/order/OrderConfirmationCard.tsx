@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Share, Edit2 } from 'lucide-react';
+import { Share, Edit2, Link } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderEditForm } from './OrderEditForm';
 import { Badge } from "@/components/ui/badge";
@@ -163,15 +162,28 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
                   <p className="font-medium">{order.buyer.full_name || 'Не указано'}</p>
                   <p>{order.buyer.email || 'Email не указан'}</p>
                   <p>{order.buyer.phone || 'Телефон не указан'}</p>
-                  {order.buyer.telegram && (
+                  {order.telegram_url_buyer ? (
+                    <a 
+                      href={`https://t.me/${order.telegram_url_buyer.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                    >
+                      @{order.telegram_url_buyer}
+                      <Link className="h-4 w-4" />
+                    </a>
+                  ) : order.buyer.telegram ? (
                     <a 
                       href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline block"
+                      className="text-blue-600 hover:underline inline-flex items-center gap-1"
                     >
                       {order.buyer.telegram}
+                      <Link className="h-4 w-4" />
                     </a>
+                  ) : (
+                    <p className="text-gray-500">Telegram не указан</p>
                   )}
                 </div>
               ) : (
