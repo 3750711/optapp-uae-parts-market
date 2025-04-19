@@ -130,6 +130,7 @@ const BuyerOrders = () => {
                   <TableHead>Модель</TableHead>
                   <TableHead>Продавец</TableHead>
                   <TableHead>Цена</TableHead>
+                  <TableHead>OPT ID</TableHead>
                   <TableHead>Тип заказа</TableHead>
                   <TableHead>Статус</TableHead>
                   <TableHead>Действия</TableHead>
@@ -144,6 +145,7 @@ const BuyerOrders = () => {
                     <TableCell>{order.model}</TableCell>
                     <TableCell>{order.order_seller_name}</TableCell>
                     <TableCell>{order.price} AED</TableCell>
+                    <TableCell>{order.buyer_opt_id || 'Не указан'}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         {getOrderTypeLabel(order.order_created_type)}
