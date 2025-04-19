@@ -49,8 +49,8 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
-          lot_number: number
           model: string
+          order_number: number
           price: number
           quantity: number
           seller_id: string
@@ -67,8 +67,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          lot_number?: number
           model: string
+          order_number?: number
           price: number
           quantity?: number
           seller_id: string
@@ -85,8 +85,8 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
-          lot_number?: number
           model?: string
+          order_number?: number
           price?: number
           quantity?: number
           seller_id?: string

@@ -9,7 +9,7 @@ import { OrderEditForm } from './OrderEditForm';
 interface OrderConfirmationCardProps {
   order: {
     id?: string;
-    lot_number: number;
+    order_number: number;
     title: string;
     price: number;
     quantity: number;
@@ -33,7 +33,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 
   const generateTelegramShareUrl = () => {
     const text = encodeURIComponent(
-      `Заказ № ${order.lot_number}\n` +
+      `Заказ № ${order.order_number}\n` +
       `Наименование: ${order.title}\n` +
       `Бренд: ${order.brand}\n` +
       `Модель: ${order.model}\n` +
@@ -67,7 +67,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           )}
         </div>
         <CardTitle className="text-6xl font-bold text-optapp-dark">
-          № {order.lot_number}
+          № {order.order_number}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -130,7 +130,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Редактировать заказ № {order.lot_number}</DialogTitle>
+            <DialogTitle>Редактировать заказ № {order.order_number}</DialogTitle>
           </DialogHeader>
           <OrderEditForm 
             order={order}

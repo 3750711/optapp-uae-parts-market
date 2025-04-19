@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
@@ -59,7 +58,7 @@ const BuyerOrders = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Номер лота</TableHead>
+                  <TableHead>Номер заказа</TableHead>
                   <TableHead>Наименование</TableHead>
                   <TableHead>Бренд</TableHead>
                   <TableHead>Модель</TableHead>
@@ -72,7 +71,7 @@ const BuyerOrders = () => {
               <TableBody>
                 {orders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell>{order.lot_number}</TableCell>
+                    <TableCell>{order.order_number}</TableCell>
                     <TableCell>{order.title}</TableCell>
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>

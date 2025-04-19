@@ -111,7 +111,7 @@ const SellerOrders = () => {
                           className="cursor-pointer hover:bg-gray-50"
                           onClick={() => handleRowClick(order.id)}
                         >
-                          <TableCell>{order.lot_number}</TableCell>
+                          <TableCell>{order.order_number}</TableCell>
                           <TableCell>{order.title}</TableCell>
                           <TableCell>{order.model}</TableCell>
                           <TableCell>{order.brand}</TableCell>
