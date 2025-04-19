@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -76,8 +75,8 @@ const ProductDetail = () => {
 
   const handleBuyNow = () => {
     toast({
-      title: "Товар добавлен в корзину",
-      description: `"${product?.title}" успешно добавлен в вашу корзину`,
+      title: "Переход к оформлению заказа",
+      description: `Вы будете перенаправлены на страницу оформления заказа`,
       variant: "default"
     });
   };
@@ -97,7 +96,6 @@ const ProductDetail = () => {
   };
 
   const handleProductUpdate = () => {
-    // Fix: Update the invalidateQueries call to use the correct format
     queryClient.invalidateQueries({ queryKey: ["product", id] });
   };
 
@@ -157,6 +155,7 @@ const ProductDetail = () => {
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
                 phoneUrl={product.phone_url}
+                productId={id}
               />
             </SellerInfo>
           </div>

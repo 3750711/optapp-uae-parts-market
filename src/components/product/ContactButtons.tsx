@@ -2,6 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface ContactButtonsProps {
   onBuyNow: () => void;
@@ -9,21 +10,29 @@ interface ContactButtonsProps {
   onContactWhatsApp: () => void;
   telegramUrl?: string;
   phoneUrl?: string;
+  productId?: string;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({ 
-  onBuyNow, 
   onContactTelegram, 
   onContactWhatsApp,
   telegramUrl,
-  phoneUrl
+  phoneUrl,
+  productId
 }) => {
-  // For telegram and whatsapp, we'll always use the onClick handler which has the proper URL with text
+  const navigate = useNavigate();
+
+  const handleBuyNow = () => {
+    if (productId) {
+      navigate(`/seller/create-order?productId=${productId}`);
+    }
+  };
+
   return (
     <>
       <Button 
         className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
-        onClick={onBuyNow}
+        onClick={handleBuyNow}
       >
         <ShoppingCart className="mr-2 h-4 w-4" /> Купить
       </Button>
@@ -47,4 +56,3 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 };
 
 export default ContactButtons;
-
