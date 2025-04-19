@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -35,13 +34,7 @@ const SellerOrders = () => {
       
       const { data, error } = await supabase
         .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey (
-            full_name,
-            opt_id
-          )
-        `)
+        .select('*')
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
         .order('created_at', { ascending: false });
         
@@ -132,10 +125,10 @@ const SellerOrders = () => {
                           <TableCell>{order.price} ₽</TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span>{order.buyer?.full_name || 'Неизвестный покупатель'}</span>
-                              {order.buyer?.opt_id && (
+                              <span>{order.order_seller_name || 'Неизвестный покупатель'}</span>
+                              {order.buyer_opt_id && (
                                 <span className="text-sm text-muted-foreground">
-                                  OPT_ID: {order.buyer.opt_id}
+                                  OPT_ID: {order.buyer_opt_id}
                                 </span>
                               )}
                             </div>
