@@ -1,7 +1,11 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
 
 interface ContactButtonsProps {
   onBuyNow: () => void;
@@ -10,21 +14,68 @@ interface ContactButtonsProps {
   telegramUrl?: string;
   phoneUrl?: string;
   productId?: string;
+  product: {
+    title: string;
+    price: number;
+    brand: string;
+    model: string;
+    optid_created?: string | null;
+  };
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({
-  onBuyNow,
   onContactTelegram,
   onContactWhatsApp,
   telegramUrl,
   phoneUrl,
   productId,
+  product
 }) => {
   const navigate = useNavigate();
+  const { user, profile } = useAuth();
 
-  const handleBuyNow = () => {
-    navigate(`/buyer/create-order?productId=${productId}`);
-    if (onBuyNow) onBuyNow();
+  const handleBuyNow = async () => {
+    if (!user) {
+      toast({
+        title: "Требуется авторизация",
+        description: "Пожалуйста, войдите в систему для совершения покупки",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('intermediate_orders')
+        .insert({
+          title: product.title,
+          quantity: 1,
+          brand: product.brand,
+          model: product.model,
+          price: product.price,
+          seller_opt_id: product.optid_created,
+          buyer_opt_id: profile?.opt_id,
+          buyer_telegram: profile?.telegram,
+          buyer_id: user.id
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Заказ создан",
+        description: "Ваш заказ успешно создан",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать заказ",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

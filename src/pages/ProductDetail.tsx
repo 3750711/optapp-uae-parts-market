@@ -156,6 +156,13 @@ const ProductDetail = () => {
                 telegramUrl={product.telegram_url}
                 phoneUrl={product.phone_url}
                 productId={id}
+                product={{
+                  title: product.title,
+                  price: product.price,
+                  brand: product.brand,
+                  model: product.model,
+                  optid_created: product.optid_created
+                }}
               />
             </SellerInfo>
           </div>
