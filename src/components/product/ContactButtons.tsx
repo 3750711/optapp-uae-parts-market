@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -71,7 +72,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing seller information');
       }
 
-      console.log('Creating order with seller name:', product.seller_name);
+      // Make sure seller_name is definitely available
+      const sellerName = product.seller_name || 'Неизвестный продавец';
+      
+      console.log('Creating order with seller name:', sellerName);
+      console.log('Product data:', product);
       
       const orderData = {
         title: product.title,
@@ -82,7 +87,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         description: product.description || null,
         buyer_id: user?.id,
         seller_id: product.seller_id,
-        seller_name_order: product.seller_name,
+        seller_name_order: sellerName,
         seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
         status: 'pending' as 'pending' | 'verified'
@@ -96,7 +101,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating order:', error);
+        throw error;
+      }
 
       toast({
         title: "Заказ успешно создан",

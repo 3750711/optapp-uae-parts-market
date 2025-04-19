@@ -36,6 +36,7 @@ const ProductDetail = () => {
       }
       
       console.log("Fetched product details:", data);
+      console.log("Seller profile data:", data.profiles);
       return data as Product;
     },
     enabled: !!id,
@@ -120,6 +121,9 @@ const ProductDetail = () => {
   
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
   
+  // Ensure we have a valid seller name
+  const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
+  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -142,7 +146,7 @@ const ProductDetail = () => {
             
             <SellerInfo 
               sellerProfile={sellerProfile || {}} 
-              seller_name={product.seller_name}
+              seller_name={sellerName}
             >
               <ContactButtons
                 onContactTelegram={handleContactTelegram}
@@ -158,7 +162,7 @@ const ProductDetail = () => {
                   description: product.description,
                   optid_created: product.optid_created,
                   seller_id: product.seller_id,
-                  seller_name: product.seller_name
+                  seller_name: sellerName // Use the validated seller name
                 }}
               />
             </SellerInfo>
