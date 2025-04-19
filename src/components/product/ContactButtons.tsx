@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -84,6 +85,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       
       console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
+      console.log('Buyer profile:', profile);
       
       type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
       
@@ -97,11 +99,13 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         buyer_id: user?.id,
         seller_id: product.seller_id,
         seller_opt_id: product.optid_created,
-        buyer_opt_id: profile?.opt_id, // Set buyer_opt_id from profile
+        buyer_opt_id: profile?.opt_id || null,
         status: 'created' as OrderStatus,
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as 'ads_order' | 'free_order'
       };
+
+      console.log('Order data being sent:', orderData);
 
       const { data: order, error } = await supabase
         .from('orders')
@@ -114,6 +118,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         console.error('Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
+
+      console.log('Order created successfully:', order);
 
       toast({
         title: "Заказ успешно создан",

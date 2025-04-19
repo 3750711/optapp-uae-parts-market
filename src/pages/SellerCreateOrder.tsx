@@ -103,24 +103,29 @@ const SellerCreateOrder = () => {
 
     try {
       console.log('Creating order with seller name:', profile?.full_name || "Неизвестный продавец");
+      console.log('Buyer OPT ID:', formData.buyerOptId);
       
       type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
       
+      const orderData = {
+        title: formData.title,
+        price: parseFloat(formData.price),
+        quantity: parseInt(formData.quantity),
+        buyer_opt_id: formData.buyerOptId,
+        seller_id: user.id,
+        seller_opt_id: profile?.opt_id || null,
+        brand: formData.brand,
+        model: formData.model,
+        buyer_id: user.id,
+        status: 'seller_confirmed' as OrderStatus,
+        order_created_type: 'free_order'
+      };
+
+      console.log('Order data being sent:', orderData);
+
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          title: formData.title,
-          price: parseFloat(formData.price),
-          quantity: parseInt(formData.quantity),
-          buyer_opt_id: formData.buyerOptId,
-          seller_id: user.id,
-          seller_opt_id: profile?.opt_id || null,
-          brand: formData.brand,
-          model: formData.model,
-          buyer_id: user.id,
-          status: 'seller_confirmed' as OrderStatus,
-          order_created_type: 'free_order'
-        })
+        .insert(orderData)
         .select()
         .single();
 
@@ -129,6 +134,8 @@ const SellerCreateOrder = () => {
         console.error("Error details:", JSON.stringify(orderError, null, 2));
         throw orderError;
       }
+
+      console.log('Order created successfully:', orderData);
 
       if (images.length > 0) {
         const { error: imagesError } = await supabase

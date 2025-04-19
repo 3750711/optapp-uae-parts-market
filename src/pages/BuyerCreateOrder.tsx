@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -106,27 +107,35 @@ const BuyerCreateOrder = () => {
         });
         return;
       }
+
+      console.log('Creating order with buyer profile:', profile);
       
+      const orderData = {
+        title: formData.title,
+        price: parseFloat(formData.price),
+        quantity: parseInt(formData.quantity),
+        seller_id: sellerData.id,
+        order_seller_name: sellerData.full_name || 'Unknown',
+        seller_opt_id: formData.sellerOptId,
+        buyer_id: user.id,
+        buyer_opt_id: profile?.opt_id || null,
+        brand: formData.brand,
+        model: formData.model,
+        status: 'created',
+        order_created_type: 'free_order'
+      };
+
+      console.log('Order data being sent:', orderData);
+
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
-        .insert({
-          title: formData.title,
-          price: parseFloat(formData.price),
-          quantity: parseInt(formData.quantity),
-          seller_id: sellerData.id,
-          order_seller_name: sellerData.full_name || 'Unknown',
-          seller_opt_id: formData.sellerOptId,
-          buyer_id: user.id,
-          buyer_opt_id: profile?.opt_id, // Set buyer_opt_id from profile
-          brand: formData.brand,
-          model: formData.model,
-          status: 'created',
-          order_created_type: 'free_order'
-        })
+        .insert(orderData)
         .select()
         .single();
 
       if (orderError) throw orderError;
+
+      console.log('Order created successfully:', orderData);
 
       toast({
         title: "Заказ создан",
