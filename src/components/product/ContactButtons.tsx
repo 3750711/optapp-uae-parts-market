@@ -84,7 +84,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         seller_name_order: product.seller_name || "Unknown Seller",
         seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
-        status: 'pending' as 'pending' | 'verified' // Fix: explicitly type as the enum value
+        status: 'pending' as 'pending' | 'verified'
       };
 
       console.log('Creating order with data:', orderData);
