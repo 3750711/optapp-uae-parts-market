@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
@@ -21,16 +22,31 @@ const BuyerOrders = () => {
   const navigate = useNavigate();
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['buyer-orders'],
+    queryKey: ['buyer-orders', user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          seller:profiles!orders_seller_id_fkey (
+            full_name,
+            email,
+            phone,
+            telegram
+          )
+        `)
         .eq('buyer_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching orders:", error);
+        throw error;
+      }
+      
+      console.log("Fetched buyer orders:", data);
+      return data || [];
     },
     enabled: !!user,
   });
@@ -67,6 +83,7 @@ const BuyerOrders = () => {
                   <TableHead>Наименование</TableHead>
                   <TableHead>Бренд</TableHead>
                   <TableHead>Модель</TableHead>
+                  <TableHead>Продавец</TableHead>
                   <TableHead>Цена</TableHead>
                   <TableHead>Тип заказа</TableHead>
                   <TableHead>Статус</TableHead>
@@ -80,6 +97,7 @@ const BuyerOrders = () => {
                     <TableCell>{order.title}</TableCell>
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
+                    <TableCell>{order.seller?.full_name || 'Неизвестный продавец'}</TableCell>
                     <TableCell>{order.price} AED</TableCell>
                     <TableCell>
                       <Badge variant="outline">

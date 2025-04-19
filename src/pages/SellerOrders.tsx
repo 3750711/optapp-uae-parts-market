@@ -33,6 +33,7 @@ const SellerOrders = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      // Fetch all orders where the current user is the seller
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -52,6 +53,7 @@ const SellerOrders = () => {
         throw error;
       }
       
+      console.log("Fetched seller orders:", data);
       return data || [];
     },
     enabled: !!user?.id
