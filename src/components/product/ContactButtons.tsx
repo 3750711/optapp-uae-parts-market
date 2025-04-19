@@ -6,22 +6,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import OrderConfirmationDialog from "./OrderConfirmationDialog";
+import ProfileWarningDialog from "./ProfileWarningDialog";
 
 interface ContactButtonsProps {
   onContactTelegram: () => void;
@@ -145,84 +131,20 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
       </Button>
 
-      <AlertDialog open={showProfileWarning} onOpenChange={setShowProfileWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Профиль не заполнен</AlertDialogTitle>
-            <AlertDialogDescription>
-              Для совершения покупки необходимо указать ваш OPT ID и Telegram в профиле.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowProfileWarning(false)}
-            >
-              Отмена
-            </Button>
-            <Button
-              onClick={handleGoToProfile}
-              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-            >
-              Перейти к профилю
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ProfileWarningDialog
+        open={showProfileWarning}
+        onOpenChange={setShowProfileWarning}
+        onGoToProfile={handleGoToProfile}
+      />
 
-      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Подтверждение заказа</DialogTitle>
-            <DialogDescription>
-              Пожалуйста, проверьте детали вашего заказа
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="font-medium">Наименование:</div>
-              <div>{product.title}</div>
-              <div className="font-medium">Бренд:</div>
-              <div>{product.brand}</div>
-              <div className="font-medium">Модель:</div>
-              <div>{product.model}</div>
-              <div className="font-medium">Цена:</div>
-              <div>{product.price} AED</div>
-              <div className="font-medium">Количество:</div>
-              <div>1</div>
-              <div className="font-medium">Описание:</div>
-              <div>{product.description || 'Не указано'}</div>
-              <div className="font-medium">Ваш OPT ID:</div>
-              <div>{profile?.opt_id || 'Не указан'}</div>
-              <div className="font-medium">Ваш Telegram:</div>
-              <div>{profile?.telegram || 'Не указан'}</div>
-            </div>
-          </div>
-          <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowConfirmDialog(false)}
-              disabled={isSubmitting}
-            >
-              Отмена
-            </Button>
-            <Button
-              onClick={handleConfirmOrder}
-              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Обработка...
-                </>
-              ) : (
-                "Подтвердить заказ"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <OrderConfirmationDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={handleConfirmOrder}
+        isSubmitting={isSubmitting}
+        product={product}
+        profile={profile}
+      />
     </>
   );
 };
