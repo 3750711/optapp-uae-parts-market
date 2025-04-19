@@ -22,6 +22,8 @@ interface ContactButtonsProps {
     model: string;
     description?: string;
     optid_created?: string | null;
+    seller_id?: string;
+    seller_name?: string;
   };
 }
 
@@ -69,42 +71,40 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Get seller info based on product's optid_created
-      const { data: sellerData, error: sellerError } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .eq('opt_id', product.optid_created)
-        .single();
-
-      if (sellerError) throw sellerError;
-      
-      const sellerId = sellerData?.id;
-      const sellerName = sellerData?.full_name;
-      
-      if (!sellerId) {
-        throw new Error('Seller information not found');
+      // Check if we have the seller ID directly from the product
+      if (!product.seller_id) {
+        console.error('Missing seller_id in product data');
+        throw new Error('Product seller information is incomplete');
       }
+
+      // Create order with provided seller information
+      const orderData = {
+        title: product.title,
+        quantity: 1,
+        brand: product.brand,
+        model: product.model,
+        price: product.price,
+        description: product.description || null,
+        buyer_id: user?.id,
+        seller_id: product.seller_id,
+        seller_name_order: product.seller_name || 'Unknown',
+        seller_opt_id: product.optid_created || null,
+        buyer_opt_id: profile?.opt_id,
+        status: 'pending'
+      };
+      
+      console.log('Creating order with data:', orderData);
       
       const { data: order, error } = await supabase
         .from('orders')
-        .insert({
-          title: product.title,
-          quantity: 1,
-          brand: product.brand,
-          model: product.model,
-          price: product.price,
-          description: product.description || null,
-          buyer_id: user?.id,
-          seller_id: sellerId,
-          seller_name_order: sellerName || 'Unknown',
-          seller_opt_id: product.optid_created,
-          buyer_opt_id: profile?.opt_id,
-          status: 'pending'
-        })
+        .insert(orderData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error details:', error);
+        throw error;
+      }
       
       toast({
         title: "Заказ успешно создан",
@@ -117,7 +117,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.error('Error creating order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать заказ",
+        description: "Не удалось создать заказ. Пожалуйста, попробуйте позже.",
         variant: "destructive",
       });
     } finally {

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -155,7 +156,9 @@ const ProductDetail = () => {
                   brand: product.brand,
                   model: product.model,
                   description: product.description,
-                  optid_created: product.optid_created
+                  optid_created: product.optid_created,
+                  seller_id: product.seller_id,
+                  seller_name: product.seller_name
                 }}
               />
             </SellerInfo>
