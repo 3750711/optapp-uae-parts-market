@@ -96,7 +96,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           >
             <Share className="h-4 w-4" />
           </Button>
-          {order.status === 'pending' && (
+          {order.status === 'created' && (
             <Button
               variant="outline"
               size="icon"
