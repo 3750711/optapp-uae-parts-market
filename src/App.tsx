@@ -21,6 +21,7 @@ import SellerCreateOrder from "./pages/SellerCreateOrder";
 import Profile from "./pages/Profile";
 import SellerOrders from "./pages/SellerOrders";
 import OrderDetails from "./pages/OrderDetails";
+import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 
 const queryClient = new QueryClient();
 
@@ -69,7 +70,11 @@ const App = () => (
                 <OrderDetails />
               </ProtectedRoute>
             } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/buyer/create-order" element={
+              <ProtectedRoute>
+                <BuyerCreateOrder />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

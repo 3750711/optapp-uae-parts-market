@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -13,19 +12,19 @@ interface ContactButtonsProps {
   productId?: string;
 }
 
-const ContactButtons: React.FC<ContactButtonsProps> = ({ 
-  onContactTelegram, 
+const ContactButtons: React.FC<ContactButtonsProps> = ({
+  onBuyNow,
+  onContactTelegram,
   onContactWhatsApp,
   telegramUrl,
   phoneUrl,
-  productId
+  productId,
 }) => {
   const navigate = useNavigate();
 
   const handleBuyNow = () => {
-    if (productId) {
-      navigate(`/seller/create-order?productId=${productId}`);
-    }
+    navigate(`/buyer/create-order?productId=${productId}`);
+    if (onBuyNow) onBuyNow();
   };
 
   return (
