@@ -113,6 +113,7 @@ const SellerOrders = () => {
                         <TableHead>Бренд</TableHead>
                         <TableHead>Цена</TableHead>
                         <TableHead>Покупатель</TableHead>
+                        <TableHead>Контакты</TableHead>
                         <TableHead>Дата</TableHead>
                         <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
@@ -133,6 +134,14 @@ const SellerOrders = () => {
                           <TableCell>{order.price} ₽</TableCell>
                           <TableCell>
                             {order.buyer?.full_name || 'Неизвестный покупатель'}
+                          </TableCell>
+                          <TableCell>
+                            {order.buyer?.phone && (
+                              <div>{order.buyer.phone}</div>
+                            )}
+                            {order.buyer?.telegram && (
+                              <div>{order.buyer.telegram}</div>
+                            )}
                           </TableCell>
                           <TableCell>
                             {format(new Date(order.created_at), 'dd.MM.yyyy')}
