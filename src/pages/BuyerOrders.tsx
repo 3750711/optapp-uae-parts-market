@@ -1,6 +1,6 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +14,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 
 const BuyerOrders = () => {
@@ -31,8 +30,6 @@ const BuyerOrders = () => {
         .select(`
           *,
           seller:profiles!orders_seller_id_fkey (
-            full_name,
-            email,
             phone,
             telegram
           )
@@ -98,7 +95,7 @@ const BuyerOrders = () => {
                     <TableCell>{order.title}</TableCell>
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
-                    <TableCell>{order.seller?.full_name || 'Неизвестный продавец'}</TableCell>
+                    <TableCell>{order.order_seller_name}</TableCell>
                     <TableCell>
                       {order.seller?.phone && (
                         <div className="text-sm">Тел: {order.seller.phone}</div>
