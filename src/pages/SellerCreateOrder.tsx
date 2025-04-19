@@ -117,7 +117,6 @@ const SellerCreateOrder = () => {
           brand: formData.brand,
           model: formData.model,
           buyer_id: user.id,
-          status: 'created', // Updated from free-form to 'created'
           order_created_type: 'free_order'
         })
         .select()

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -57,36 +56,6 @@ const BuyerOrders = () => {
     return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'created':
-        return 'В обработке';
-      case 'seller_confirmed':
-      case 'admin_confirmed':
-      case 'processed':
-      case 'shipped':
-      case 'delivered':
-        return 'Подтвержден';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusClassName = (status: string) => {
-    switch (status) {
-      case 'created':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'seller_confirmed':
-      case 'admin_confirmed':
-      case 'processed':
-      case 'shipped':
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (isLoading) {
     return (
       <Layout>
@@ -142,8 +111,10 @@ const BuyerOrders = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-sm ${getStatusClassName(order.status)}`}>
-                        {getStatusLabel(order.status)}
+                      <span className={`px-2 py-1 rounded-full text-sm ${
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {order.status === 'pending' ? 'В обработке' : 'Подтвержден'}
                       </span>
                     </TableCell>
                     <TableCell>

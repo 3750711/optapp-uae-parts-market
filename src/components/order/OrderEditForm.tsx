@@ -55,7 +55,7 @@ export const OrderEditForm: React.FC<OrderEditFormProps> = ({
           price: parseFloat(formData.price.toString()),
         })
         .eq('id', order.id)
-        .eq('status', 'created') // Updated from 'pending' to 'created'
+        .eq('status', 'pending')
         .select()
         .single();
 
