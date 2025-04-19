@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -22,7 +23,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Loader2, ChevronRight } from "lucide-react";
+import { Loader2, ChevronRight, Link } from "lucide-react";
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
 
@@ -190,7 +191,7 @@ const SellerOrders = () => {
                           key={order.id}
                           className="cursor-pointer hover:bg-gray-50"
                           onClick={(e) => {
-                            if ((e.target as HTMLElement).closest('button')) {
+                            if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
                               e.stopPropagation();
                               return;
                             }
@@ -208,16 +209,19 @@ const SellerOrders = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {order.buyer?.telegram && (
+                            {order.buyer?.telegram ? (
                               <a 
                                 href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
+                                className="text-blue-600 hover:underline inline-flex items-center gap-1"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {order.buyer.telegram}
+                                <Link className="h-4 w-4" />
                               </a>
+                            ) : (
+                              'Не указан'
                             )}
                           </TableCell>
                           <TableCell>
