@@ -42,13 +42,28 @@ const OrderDetails = () => {
   });
 
   const handleOrderUpdate = (updatedOrder: any) => {
-    // Make sure buyer_opt_id is preserved when updating
-    if (orderData?.order && !updatedOrder.buyer_opt_id) {
-      updatedOrder.buyer_opt_id = orderData.order.buyer_opt_id;
+    // Make sure all original order data is preserved when updating
+    if (orderData?.order) {
+      // Preserve important fields that should not be lost during update
+      const preservedFields = {
+        buyer_opt_id: orderData.order.buyer_opt_id,
+        telegram_url: orderData.order.telegram_url,
+        // Add other fields that need preservation here
+      };
+      
+      // Merge preserved fields with updated order
+      const mergedOrder = { ...preservedFields, ...updatedOrder };
+      
+      // Update the order with all fields preserved
+      queryClient.setQueryData(['order', id], {
+        order: mergedOrder,
+        images: orderData.images
+      });
     }
     
-    // Invalidate the query to refetch the updated data
+    // Invalidate queries to ensure data consistency
     queryClient.invalidateQueries({ queryKey: ['order', id] });
+    queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
   };
 
   if (isLoading) {

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -62,7 +63,7 @@ const SellerOrders = () => {
 
   const confirmOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      // Update only the status field
+      // Update ONLY the status field and nothing else
       const { data, error } = await supabase
         .from('orders')
         .update({ status: 'seller_confirmed' as OrderStatus })
@@ -85,7 +86,7 @@ const SellerOrders = () => {
         
         return oldData.map((order: any) => {
           if (order.id === updatedOrder.id) {
-            // Only update the status field
+            // Only update the status field and preserve everything else
             return {
               ...order,
               status: updatedOrder.status
