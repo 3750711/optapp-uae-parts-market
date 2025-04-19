@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -87,6 +86,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
       
+      // Define the allowed order status type directly from the Database Enums
+      type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
+      
       const orderData = {
         title: product.title,
         quantity: 1,
@@ -98,8 +100,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         seller_id: product.seller_id,
         seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
-        status: 'created', // Changed from 'pending' to 'created'
-        order_seller_name: product.seller_name,
+        status: 'created' as OrderStatus, // Explicitly cast to the enum type
+        order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as 'ads_order' | 'free_order'
       };
 
