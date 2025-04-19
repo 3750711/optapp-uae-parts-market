@@ -27,7 +27,14 @@ const formSchema = z.object({
   email: z.string().email({ message: "Введите корректный email адрес" }),
   phone: z.string().optional(),
   companyName: z.string().optional(),
-  telegram: z.string().optional(),
+  telegram: z.string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+      return /^@[^@]+$/.test(value);
+    }, { 
+      message: "Telegram username должен начинаться с одного @ символа" 
+    }),
   optId: z.string().optional(),
   userType: z.enum(["buyer", "seller"]).optional(),
 });

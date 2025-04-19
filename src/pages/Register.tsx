@@ -27,6 +27,14 @@ const formSchema = z.object({
   confirmPassword: z.string(),
   userType: z.enum(["buyer", "seller"]),
   optId: z.string().optional(),
+  telegram: z.string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+      return /^@[^@]+$/.test(value);
+    }, { 
+      message: "Telegram username должен начинаться с одного @ символа" 
+    }),
 }).refine(data => {
   if (data.optId) {
     return true;
@@ -81,6 +89,7 @@ const Register = () => {
             user_type: data.userType, // Store user_type in the metadata
             phone: data.phone || null,
             opt_id: data.optId || null,
+            telegram: data.telegram || null,
           }
         }
       });
@@ -99,6 +108,7 @@ const Register = () => {
             full_name: data.fullName || null,
             phone: data.phone || null,
             opt_id: data.optId || null,
+            telegram: data.telegram || null,
             user_type: data.userType, // Explicitly set user_type in profiles table
           }, { 
             onConflict: 'id' 
@@ -255,6 +265,20 @@ const Register = () => {
                             </FormLabel>
                           </div>
                         </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="telegram"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Telegram username (если есть)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите ваш Telegram username" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
