@@ -51,6 +51,7 @@ export type Database = {
           id: string
           model: string
           order_number: number
+          order_seller_name: string
           price: number
           quantity: number
           seller_id: string
@@ -68,6 +69,7 @@ export type Database = {
           id?: string
           model: string
           order_number?: number
+          order_seller_name?: string
           price: number
           quantity?: number
           seller_id: string
@@ -85,6 +87,7 @@ export type Database = {
           id?: string
           model?: string
           order_number?: number
+          order_seller_name?: string
           price?: number
           quantity?: number
           seller_id?: string

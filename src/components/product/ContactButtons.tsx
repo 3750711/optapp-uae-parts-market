@@ -75,7 +75,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
       
-      // Define the order object without seller_name_order field
+      // Define the order object including order_seller_name
       const orderData = {
         title: product.title,
         quantity: 1,
@@ -87,7 +87,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         seller_id: product.seller_id,
         seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
-        status: 'pending' as 'pending' | 'verified'
+        status: 'pending' as 'pending' | 'verified',
+        order_seller_name: product.seller_name
       };
 
       const { data: order, error } = await supabase
