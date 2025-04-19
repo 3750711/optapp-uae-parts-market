@@ -72,37 +72,36 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing seller information');
       }
 
-      // Make sure seller_name is definitely available
+      // Гарантированное получение имени продавца
       const sellerName = product.seller_name || 'Неизвестный продавец';
       
       console.log('Creating order with seller name:', sellerName);
       console.log('Product data:', product);
       
-      const orderData = {
-        title: product.title,
-        quantity: 1,
-        brand: product.brand,
-        model: product.model,
-        price: product.price,
-        description: product.description || null,
-        buyer_id: user?.id,
-        seller_id: product.seller_id,
-        seller_name_order: sellerName,
-        seller_opt_id: product.optid_created,
-        buyer_opt_id: profile?.opt_id,
-        status: 'pending' as 'pending' | 'verified'
-      };
-
-      console.log('Creating order with data:', orderData);
-      
+      // Создаем заказ с гарантированным значением seller_name_order
       const { data: order, error } = await supabase
         .from('orders')
-        .insert(orderData)
+        .insert({
+          title: product.title,
+          quantity: 1,
+          brand: product.brand,
+          model: product.model,
+          price: product.price,
+          description: product.description || null,
+          buyer_id: user?.id,
+          seller_id: product.seller_id,
+          seller_name_order: sellerName, // Явное указание поля
+          seller_opt_id: product.optid_created,
+          buyer_opt_id: profile?.opt_id,
+          status: 'pending' as 'pending' | 'verified'
+        })
         .select()
         .single();
 
       if (error) {
         console.error('Error creating order:', error);
+        // Детализация ошибки для отладки
+        console.error('Error details:', JSON.stringify(error, null, 2));
         throw error;
       }
 
