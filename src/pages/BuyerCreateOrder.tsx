@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -9,15 +10,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 
 const BuyerCreateOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const productId = searchParams.get('productId');
-  const [images, setImages] = useState<string[]>([]);
-  const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -51,7 +49,7 @@ const BuyerCreateOrder = () => {
             title: product.title,
             price: product.price.toString(),
             quantity: "1",
-            sellerOptId: product.optid_created || "", // Get seller's OPT_ID from product.optid_created
+            sellerOptId: product.optid_created || "",
             brand: product.brand || "",
             model: product.model || "",
           });
@@ -92,56 +90,33 @@ const BuyerCreateOrder = () => {
       return;
     }
 
-    if (!formData.sellerOptId.trim()) {
-      toast({
-        title: "Ошибка",
-        description: "OPT_ID продавца обязателен для заполнения",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       const { data: orderData, error: orderError } = await supabase
-        .from('orders')
+        .from('intermediate_orders')
         .insert({
           title: formData.title,
           price: parseFloat(formData.price),
           quantity: parseInt(formData.quantity),
           seller_opt_id: formData.sellerOptId,
           buyer_id: user.id,
-          buyer_opt_id: profile?.opt_id || null, // Use buyer's OPT_ID from profile
-          seller_name_order: "Неизвестный продавец",
+          buyer_opt_id: profile?.opt_id,
+          buyer_telegram: profile?.telegram,
           brand: formData.brand,
           model: formData.model,
-          seller_id: user.id,
         })
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      if (images.length > 0) {
-        const { error: imagesError } = await supabase
-          .from('order_images')
-          .insert(
-            images.map((url, index) => ({
-              order_id: orderData.id,
-              url,
-              is_primary: index === 0
-            }))
-          );
-
-        if (imagesError) throw imagesError;
-      }
-
-      setCreatedOrder(orderData);
       toast({
         title: "Заказ создан",
-        description: "Ваш заказ был успешно создан",
+        description: "Ваш промежуточный заказ был успешно создан",
       });
+      
+      navigate('/');
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error("Error creating intermediate order:", error);
       toast({
         title: "Ошибка",
         description: "Произошла ошибка при создании заказа",
@@ -150,63 +125,12 @@ const BuyerCreateOrder = () => {
     }
   };
 
-  const handleImageUpload = (urls: string[]) => {
-    setImages(prev => [...prev, ...urls]);
-  };
-
-  const handleImageDelete = (urlToDelete: string) => {
-    setImages(prev => prev.filter(url => url !== urlToDelete));
-  };
-
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-
-  const handleOrderUpdate = (updatedOrder: any) => {
-    setCreatedOrder(updatedOrder);
-  };
-
-  if (createdOrder) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6 flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/')}
-              className="mr-4"
-            >
-              На главную
-            </Button>
-            <Button 
-              onClick={() => {
-                setCreatedOrder(null);
-                setFormData({
-                  title: "",
-                  price: "",
-                  quantity: "1",
-                  sellerOptId: "",
-                  brand: "",
-                  model: "",
-                });
-                setImages([]);
-              }}
-            >
-              Создать новый заказ
-            </Button>
-          </div>
-          <OrderConfirmationCard 
-            order={createdOrder} 
-            images={images}
-            onOrderUpdate={handleOrderUpdate}
-          />
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -281,13 +205,11 @@ const BuyerCreateOrder = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="sellerOptId">OPT_ID продавца *</Label>
+                    <Label>OPT_ID продавца</Label>
                     <Input 
-                      id="sellerOptId"
                       value={formData.sellerOptId}
-                      onChange={(e) => handleInputChange('sellerOptId', e.target.value)}
-                      required
-                      placeholder="Введите OPT_ID продавца"
+                      readOnly 
+                      className="bg-gray-100"
                     />
                   </div>
                 </div>
@@ -307,16 +229,6 @@ const BuyerCreateOrder = () => {
                     value={profile?.telegram || ''} 
                     readOnly 
                     className="bg-gray-100"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Фотографии заказа</Label>
-                  <ImageUpload
-                    images={images}
-                    onUpload={handleImageUpload}
-                    onDelete={handleImageDelete}
-                    maxImages={5}
                   />
                 </div>
               </CardContent>
