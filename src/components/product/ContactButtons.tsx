@@ -75,22 +75,24 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
       
-      // Remove the seller_name_order field from the insert operation
+      // Define the order object without seller_name_order field
+      const orderData = {
+        title: product.title,
+        quantity: 1,
+        brand: product.brand,
+        model: product.model,
+        price: product.price,
+        description: product.description || null,
+        buyer_id: user?.id,
+        seller_id: product.seller_id,
+        seller_opt_id: product.optid_created,
+        buyer_opt_id: profile?.opt_id,
+        status: 'pending' as 'pending' | 'verified'
+      };
+
       const { data: order, error } = await supabase
         .from('orders')
-        .insert({
-          title: product.title,
-          quantity: 1,
-          brand: product.brand,
-          model: product.model,
-          price: product.price,
-          description: product.description || null,
-          buyer_id: user?.id,
-          seller_id: product.seller_id,
-          seller_opt_id: product.optid_created,
-          buyer_opt_id: profile?.opt_id,
-          status: 'pending' as 'pending' | 'verified'
-        })
+        .insert(orderData)
         .select()
         .single();
 
