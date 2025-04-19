@@ -33,13 +33,13 @@ const SellerOrders = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      // Fetch all orders where the current user is either the seller or the order was created from their product
       const { data, error } = await supabase
         .from('orders')
         .select(`
           *,
           buyer:profiles!orders_buyer_id_fkey (
-            full_name
+            full_name,
+            opt_id
           )
         `)
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
@@ -131,7 +131,14 @@ const SellerOrders = () => {
                           <TableCell>{order.brand}</TableCell>
                           <TableCell>{order.price} ₽</TableCell>
                           <TableCell>
-                            {order.buyer?.full_name || 'Неизвестный покупатель'}
+                            <div className="flex flex-col">
+                              <span>{order.buyer?.full_name || 'Неизвестный покупатель'}</span>
+                              {order.buyer?.opt_id && (
+                                <span className="text-sm text-muted-foreground">
+                                  OPT_ID: {order.buyer.opt_id}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {format(new Date(order.created_at), 'dd.MM.yyyy')}
@@ -166,4 +173,3 @@ const SellerOrders = () => {
 };
 
 export default SellerOrders;
-
