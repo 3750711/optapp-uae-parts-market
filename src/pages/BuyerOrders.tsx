@@ -62,7 +62,6 @@ const BuyerOrders = () => {
                   <TableHead>Наименование</TableHead>
                   <TableHead>Бренд</TableHead>
                   <TableHead>Модель</TableHead>
-                  <TableHead>Продавец</TableHead>
                   <TableHead>Цена</TableHead>
                   <TableHead>Статус</TableHead>
                   <TableHead>Действия</TableHead>
@@ -75,7 +74,6 @@ const BuyerOrders = () => {
                     <TableCell>{order.title}</TableCell>
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
-                    <TableCell>{order.seller_name_order}</TableCell>
                     <TableCell>{order.price} AED</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-sm ${

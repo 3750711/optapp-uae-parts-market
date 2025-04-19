@@ -15,7 +15,6 @@ interface OrderConfirmationCardProps {
     quantity: number;
     buyer_opt_id?: string;
     seller_opt_id?: string;
-    seller_name_order: string;
     brand: string;
     model: string;
     status?: string;
@@ -102,10 +101,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
             <div>
               <Label className="text-sm text-gray-500">OPT_ID получателя</Label>
               <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
-            </div>
-            <div>
-              <Label className="text-sm text-gray-500">Продавец</Label>
-              <p className="text-lg font-medium">{order.seller_name_order}</p>
             </div>
           </div>
         </div>

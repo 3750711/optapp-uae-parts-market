@@ -54,7 +54,6 @@ export type Database = {
           price: number
           quantity: number
           seller_id: string
-          seller_name_order: string
           seller_opt_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           telegram_url: string | null
@@ -72,7 +71,6 @@ export type Database = {
           price: number
           quantity?: number
           seller_id: string
-          seller_name_order: string
           seller_opt_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           telegram_url?: string | null
@@ -90,7 +88,6 @@ export type Database = {
           price?: number
           quantity?: number
           seller_id?: string
-          seller_name_order?: string
           seller_opt_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           telegram_url?: string | null
