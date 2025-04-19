@@ -36,7 +36,7 @@ const SellerCreateOrder = () => {
       if (productId) {
         const { data: product, error } = await supabase
           .from('products')
-          .select('*')
+          .select('*, seller:profiles!products_seller_id_fkey(opt_id)')
           .eq('id', productId)
           .single();
 
@@ -331,7 +331,7 @@ const SellerCreateOrder = () => {
                 <div className="space-y-2">
                   <Label>OPT_ID отправителя</Label>
                   <Input 
-                    value={profile?.opt_id || ''} 
+                    value={productId ? formData.optid_created : profile?.opt_id || ''} 
                     readOnly 
                     className="bg-gray-100"
                   />
