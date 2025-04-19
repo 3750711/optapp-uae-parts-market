@@ -60,7 +60,6 @@ const SellerOrders = () => {
 
   const confirmOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
-      // Update ONLY the status field and nothing else
       const { data, error } = await supabase
         .from('orders')
         .update({ status: 'seller_confirmed' as OrderStatus })
@@ -77,13 +76,11 @@ const SellerOrders = () => {
       return data;
     },
     onSuccess: (updatedOrder) => {
-      // Update the cache with the updated order data while preserving all other fields
       queryClient.setQueryData(['seller-orders', user?.id], (oldData: any) => {
         if (!oldData) return oldData;
         
         return oldData.map((order: any) => {
           if (order.id === updatedOrder.id) {
-            // Only update the status field and preserve everything else
             return {
               ...order,
               status: updatedOrder.status
@@ -93,7 +90,6 @@ const SellerOrders = () => {
         });
       });
       
-      // Then invalidate the query to refetch fresh data
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       
       toast({
@@ -199,7 +195,7 @@ const SellerOrders = () => {
                         <TableHead>Бренд</TableHead>
                         <TableHead>Модель</TableHead>
                         <TableHead>Цена</TableHead>
-                        <TableHead>OPT ID покупателя</TableHead>
+                        <TableHead>OPT_ID Покупателя</TableHead>
                         <TableHead>Контакты покупателя</TableHead>
                         <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
