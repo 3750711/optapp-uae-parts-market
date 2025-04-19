@@ -18,15 +18,16 @@ import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const BuyerOrders = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const isSeller = profile?.user_type === 'seller';
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['buyer-orders', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
+      const query = supabase
         .from('orders')
         .select(`
           *,
@@ -34,8 +35,17 @@ const BuyerOrders = () => {
             phone,
             telegram
           )
-        `)
-        .eq('buyer_id', user?.id)
+        `);
+
+      // If user is a seller, show orders they created and orders from their listings
+      if (isSeller) {
+        query.or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`);
+      } else {
+        // If user is a buyer, only show their orders
+        query.eq('buyer_id', user.id);
+      }
+
+      const { data, error } = await query
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -43,7 +53,7 @@ const BuyerOrders = () => {
         throw error;
       }
       
-      console.log("Fetched buyer orders:", data);
+      console.log("Fetched orders:", data);
       return data || [];
     },
     enabled: !!user,
@@ -70,7 +80,9 @@ const BuyerOrders = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">Мои заказы</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          {isSeller ? 'Заказы по моим объявлениям' : 'Мои заказы'}
+        </h1>
         
         {orders && orders.length > 0 ? (
           <div className="bg-white rounded-lg shadow overflow-x-auto">
