@@ -88,7 +88,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         buyer_opt_id: profile?.opt_id,
         status: 'pending' as 'pending' | 'verified',
         order_seller_name: product.seller_name,
-        order_created_type: 'ads_order'
+        order_created_type: 'ads_order' as 'ads_order' | 'free_order'
       };
 
       const { data: order, error } = await supabase
