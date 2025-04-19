@@ -33,7 +33,11 @@ const BuyerOrders = () => {
           *,
           seller:profiles!orders_seller_id_fkey (
             phone,
-            telegram
+            telegram,
+            opt_id
+          ),
+          buyer:profiles!orders_buyer_id_fkey (
+            opt_id
           )
         `);
 
@@ -145,7 +149,7 @@ const BuyerOrders = () => {
                     <TableCell>{order.model}</TableCell>
                     <TableCell>{order.order_seller_name}</TableCell>
                     <TableCell>{order.price} AED</TableCell>
-                    <TableCell>{order.buyer_opt_id || 'Не указан'}</TableCell>
+                    <TableCell>{order.buyer?.opt_id || 'Не указан'}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         {getOrderTypeLabel(order.order_created_type)}
