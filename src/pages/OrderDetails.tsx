@@ -42,6 +42,11 @@ const OrderDetails = () => {
   });
 
   const handleOrderUpdate = (updatedOrder: any) => {
+    // Make sure buyer_opt_id is preserved when updating
+    if (orderData?.order && !updatedOrder.buyer_opt_id) {
+      updatedOrder.buyer_opt_id = orderData.order.buyer_opt_id;
+    }
+    
     // Invalidate the query to refetch the updated data
     queryClient.invalidateQueries({ queryKey: ['order', id] });
   };

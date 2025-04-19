@@ -63,9 +63,22 @@ const SellerOrders = () => {
 
   const confirmOrderMutation = useMutation({
     mutationFn: async (orderId: string) => {
+      // First, get the current order to preserve the buyer_opt_id
+      const { data: currentOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('buyer_opt_id')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError) throw fetchError;
+      
+      // Now update the order status while preserving the buyer_opt_id
       const { data, error } = await supabase
         .from('orders')
-        .update({ status: 'seller_confirmed' as OrderStatus })
+        .update({ 
+          status: 'seller_confirmed' as OrderStatus,
+          buyer_opt_id: currentOrder.buyer_opt_id // Preserve the existing buyer_opt_id
+        })
         .eq('id', orderId)
         .select()
         .single();
