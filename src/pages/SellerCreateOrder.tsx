@@ -12,7 +12,6 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { Database } from "@/integrations/supabase/types";
 
-// Define the type for order_created_type
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -134,7 +133,7 @@ const SellerCreateOrder = () => {
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
         order_created_type: 'free_order' as OrderCreatedType,
-        telegram_url_order // Add telegram_url_order from seller's profile
+        telegram_url_order
       };
 
       console.log('Order data being sent:', orderPayload);

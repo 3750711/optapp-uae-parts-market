@@ -58,7 +58,7 @@ export type Database = {
           seller_id: string
           seller_opt_id: string | null
           status: Database["public"]["Enums"]["order_status"]
-          telegram_url: string | null
+          telegram_url_order: string | null
           title: string
         }
         Insert: {
@@ -77,7 +77,7 @@ export type Database = {
           seller_id: string
           seller_opt_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
-          telegram_url?: string | null
+          telegram_url_order?: string | null
           title: string
         }
         Update: {
@@ -96,7 +96,7 @@ export type Database = {
           seller_id?: string
           seller_opt_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
-          telegram_url?: string | null
+          telegram_url_order?: string | null
           title?: string
         }
         Relationships: [

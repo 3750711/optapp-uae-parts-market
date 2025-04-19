@@ -1,7 +1,6 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
+import { ShoppingCart, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,8 +17,6 @@ interface ContactButtonsProps {
   onContactTelegram: () => void;
   onContactWhatsApp: () => void;
   telegramUrl?: string;
-  phoneUrl?: string;
-  productId?: string;
   product: {
     title: string;
     price: number;
@@ -92,11 +89,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Product data:', product);
       console.log('Buyer profile:', profile);
       
-      // Make sure we have the buyer's OPT ID
-      if (!profile?.opt_id) {
-        console.warn('Buyer OPT ID is missing');
-      }
-      
       const orderPayload = {
         title: product.title,
         quantity: 1,
@@ -111,11 +103,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         status: 'created' as OrderStatus,
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
-        telegram_url_order: product.telegram_url || null // Add telegram_url from product
+        telegram_url_order: telegramUrl || null
       };
 
       console.log('Order data being sent:', orderPayload);
-      console.log('Saving buyer OPT ID:', profile?.opt_id);
 
       const { data: order, error } = await supabase
         .from('orders')
