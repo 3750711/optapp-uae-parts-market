@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare, Loader2 } from "lucide-react";
@@ -72,9 +71,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing seller information');
       }
 
-      // Ensure seller_name_order always has a value by providing a fallback
-      const sellerName = product.seller_name || "Unknown Seller";
-      console.log('Using seller name:', sellerName);
+      console.log('Creating order with seller name:', product.seller_name);
       
       const orderData = {
         title: product.title,
@@ -85,7 +82,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         description: product.description || null,
         buyer_id: user?.id,
         seller_id: product.seller_id,
-        seller_name_order: sellerName, // Ensure this is always a non-null value
+        seller_name_order: product.seller_name,
         seller_opt_id: product.optid_created,
         buyer_opt_id: profile?.opt_id,
         status: 'pending' as 'pending' | 'verified'
