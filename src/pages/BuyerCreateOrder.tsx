@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -91,18 +90,37 @@ const BuyerCreateOrder = () => {
     }
 
     try {
+      const { data: sellerData, error: sellerError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('opt_id', formData.sellerOptId)
+        .single();
+
+      if (sellerError) throw sellerError;
+      
+      if (!sellerData?.id) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось найти продавца с указанным OPT ID",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       const { data: orderData, error: orderError } = await supabase
-        .from('intermediate_orders')
+        .from('orders')
         .insert({
           title: formData.title,
           price: parseFloat(formData.price),
           quantity: parseInt(formData.quantity),
+          seller_id: sellerData.id,
+          seller_name_order: sellerData.full_name || 'Unknown',
           seller_opt_id: formData.sellerOptId,
           buyer_id: user.id,
           buyer_opt_id: profile?.opt_id,
-          buyer_telegram: profile?.telegram,
           brand: formData.brand,
           model: formData.model,
+          status: 'pending'
         })
         .select()
         .single();
@@ -111,12 +129,12 @@ const BuyerCreateOrder = () => {
 
       toast({
         title: "Заказ создан",
-        description: "Ваш промежуточный заказ был успешно создан",
+        description: "Ваш заказ был успешно создан",
       });
       
-      navigate('/');
+      navigate('/orders');
     } catch (error) {
-      console.error("Error creating intermediate order:", error);
+      console.error("Error creating order:", error);
       toast({
         title: "Ошибка",
         description: "Произошла ошибка при создании заказа",

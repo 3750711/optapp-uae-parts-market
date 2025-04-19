@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -74,14 +73,6 @@ const ProductDetail = () => {
     }
   };
 
-  const handleBuyNow = () => {
-    toast({
-      title: "Переход к оформлению заказа",
-      description: `Вы будете перенаправлены на страницу оформления заказа`,
-      variant: "default"
-    });
-  };
-
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
       const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
@@ -126,7 +117,6 @@ const ProductDetail = () => {
   
   console.log("Seller profile data:", sellerProfile);
   
-  // Convert price to number to fix the type error
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
   
   return (
@@ -154,7 +144,6 @@ const ProductDetail = () => {
               seller_name={product.seller_name}
             >
               <ContactButtons
-                onBuyNow={handleBuyNow}
                 onContactTelegram={handleContactTelegram}
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
@@ -162,9 +151,10 @@ const ProductDetail = () => {
                 productId={id}
                 product={{
                   title: product.title,
-                  price: productPrice, // Use the converted price value here
+                  price: productPrice,
                   brand: product.brand,
                   model: product.model,
+                  description: product.description,
                   optid_created: product.optid_created
                 }}
               />

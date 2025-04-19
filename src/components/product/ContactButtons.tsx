@@ -69,6 +69,22 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setIsSubmitting(true);
     
     try {
+      // Get seller info based on product's optid_created
+      const { data: sellerData, error: sellerError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('opt_id', product.optid_created)
+        .single();
+
+      if (sellerError) throw sellerError;
+      
+      const sellerId = sellerData?.id;
+      const sellerName = sellerData?.full_name;
+      
+      if (!sellerId) {
+        throw new Error('Seller information not found');
+      }
+      
       const { data: order, error } = await supabase
         .from('orders')
         .insert({
@@ -77,8 +93,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           brand: product.brand,
           model: product.model,
           price: product.price,
-          description: product.description,
+          description: product.description || null,
           buyer_id: user?.id,
+          seller_id: sellerId,
+          seller_name_order: sellerName || 'Unknown',
           seller_opt_id: product.optid_created,
           buyer_opt_id: profile?.opt_id,
           status: 'pending'
