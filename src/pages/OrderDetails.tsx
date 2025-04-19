@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -45,6 +46,7 @@ const OrderDetails = () => {
       // Preserve important fields that should not be lost during update
       const preservedFields = {
         telegram_url: orderData.order.telegram_url,
+        buyer_opt_id: orderData.order.buyer_opt_id,
         // Add other fields that need preservation here
       };
       
@@ -61,6 +63,7 @@ const OrderDetails = () => {
     // Invalidate queries to ensure data consistency
     queryClient.invalidateQueries({ queryKey: ['order', id] });
     queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
   };
 
   if (isLoading) {
