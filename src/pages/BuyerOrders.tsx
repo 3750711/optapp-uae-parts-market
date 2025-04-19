@@ -37,11 +37,9 @@ const BuyerOrders = () => {
           )
         `);
 
-      // If user is a seller, show orders they created and orders from their listings
       if (isSeller) {
         query.or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`);
       } else {
-        // If user is a buyer, only show their orders
         query.eq('buyer_id', user.id);
       }
 
@@ -53,18 +51,55 @@ const BuyerOrders = () => {
         throw error;
       }
       
-      console.log("Fetched orders:", data);
       return data || [];
     },
     enabled: !!user,
   });
 
-  const handleViewOrder = (orderId: string) => {
-    navigate(`/orders/${orderId}`);
-  };
-
   const getOrderTypeLabel = (type: 'free_order' | 'ads_order') => {
     return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'created':
+        return 'Создан';
+      case 'seller_confirmed':
+        return 'Подтвержден продавцом';
+      case 'admin_confirmed':
+        return 'Подтвержден администратором';
+      case 'processed':
+        return 'В обработке';
+      case 'shipped':
+        return 'Отправлен';
+      case 'delivered':
+        return 'Доставлен';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'created':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+      case 'seller_confirmed':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
+      case 'admin_confirmed':
+        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+      case 'processed':
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+      case 'shipped':
+        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
+      case 'delivered':
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+    }
+  };
+
+  const handleViewOrder = (orderId: string) => {
+    navigate(`/orders/${orderId}`);
   };
 
   if (isLoading) {
@@ -115,11 +150,9 @@ const BuyerOrders = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-1 rounded-full text-sm ${
-                        order.status === 'created' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        {order.status === 'created' ? 'В обработке' : 'Подтвержден'}
-                      </span>
+                      <Badge className={getStatusBadgeColor(order.status)}>
+                        {getStatusLabel(order.status)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Button
