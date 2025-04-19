@@ -29,7 +29,9 @@ const SellerCreateOrder = () => {
     buyerOptId: "",
     brand: "",
     model: "",
-    optid_created: ""
+    optid_created: "",
+    seller_opt_id: "",
+    buyer_opt_id: ""
   });
 
   useEffect(() => {
@@ -59,7 +61,9 @@ const SellerCreateOrder = () => {
             buyerOptId: "",
             brand: product.brand || "",
             model: product.model || "",
-            optid_created: product.optid_created || ""
+            optid_created: product.optid_created || "",
+            seller_opt_id: product.seller?.opt_id || "",
+            buyer_opt_id: ""
           });
         }
       }
@@ -334,7 +338,16 @@ const SellerCreateOrder = () => {
                 <div className="space-y-2">
                   <Label>OPT_ID отправителя</Label>
                   <Input 
-                    value={productId ? formData.optid_created : profile?.opt_id || ''} 
+                    value={formData.seller_opt_id || profile?.opt_id || ''} 
+                    readOnly 
+                    className="bg-gray-100"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>OPT_ID покупателя</Label>
+                  <Input 
+                    value={formData.buyer_opt_id} 
                     readOnly 
                     className="bg-gray-100"
                   />
