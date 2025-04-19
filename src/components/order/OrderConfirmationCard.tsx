@@ -157,37 +157,20 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
             </div>
             <div>
               <Label className="text-sm text-gray-500">Информация о получателе</Label>
-              {order.buyer ? (
+              {order.telegram_url_order ? (
                 <div className="space-y-2">
-                  <p className="font-medium">{order.buyer.full_name || 'Не указано'}</p>
-                  <p>{order.buyer.email || 'Email не указан'}</p>
-                  <p>{order.buyer.phone || 'Телефон не указан'}</p>
-                  {order.telegram_url_buyer ? (
-                    <a 
-                      href={`https://t.me/${order.telegram_url_buyer.replace('@', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                    >
-                      @{order.telegram_url_buyer}
-                      <Link className="h-4 w-4" />
-                    </a>
-                  ) : order.buyer.telegram ? (
-                    <a 
-                      href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                    >
-                      {order.buyer.telegram}
-                      <Link className="h-4 w-4" />
-                    </a>
-                  ) : (
-                    <p className="text-gray-500">Telegram не указан</p>
-                  )}
+                  <a 
+                    href={`https://t.me/${order.telegram_url_order.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    @{order.telegram_url_order}
+                    <Link className="h-4 w-4" />
+                  </a>
                 </div>
               ) : (
-                <p className="text-gray-500">Информация о получателе недоступна</p>
+                <p className="text-gray-500">Контакты не указаны</p>
               )}
             </div>
           </div>
