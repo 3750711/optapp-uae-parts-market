@@ -79,8 +79,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Product seller information is incomplete');
       }
 
-      // Ensure seller_name_order is never null by using a fallback to "Unknown"
-      const sellerNameOrder = product.seller_name || "Unknown";
+      // Force seller_name_order to be a non-empty string
+      // Using multiple fallbacks to ensure it can never be null
+      let sellerNameOrder = "Unknown";
+      if (product.seller_name && product.seller_name.trim() !== "") {
+        sellerNameOrder = product.seller_name;
+      }
+      
+      console.log('Using seller name for order:', sellerNameOrder);
       
       const orderData = {
         title: product.title,

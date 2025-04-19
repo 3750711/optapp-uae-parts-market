@@ -39,6 +39,9 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   product,
   profile,
 }) => {
+  // Get seller name with fallback
+  const sellerName = product.seller_name || 'Не указан';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -65,7 +68,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <div className="font-medium">OPT ID продавца:</div>
             <div>{product.optid_created || 'Не указан'}</div>
             <div className="font-medium">Продавец:</div>
-            <div>{product.seller_name || 'Не указан'}</div>
+            <div>{sellerName}</div>
             <div className="font-medium">Ваш OPT ID:</div>
             <div>{profile?.opt_id || 'Не указан'}</div>
             <div className="font-medium">Ваш Telegram:</div>
