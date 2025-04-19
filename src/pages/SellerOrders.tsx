@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Card, 
   CardContent, 
@@ -12,7 +13,6 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { 
   Table, 
@@ -30,6 +30,7 @@ const SellerOrders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['seller-orders', user?.id],
@@ -165,11 +166,11 @@ const SellerOrders = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto py-8 px-4">
-        <div className="flex flex-col gap-6">
+      <div className="container mx-auto py-4 px-2 md:py-8 md:px-4">
+        <div className="flex flex-col gap-4 md:gap-6">
           <div>
-            <h1 className="text-3xl font-bold">Мои заказы</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold">Мои заказы</h1>
+            <p className="text-sm md:text-base text-muted-foreground mt-1">
               Управление созданными заказами и заказами по объявлениям
             </p>
           </div>
@@ -178,14 +179,84 @@ const SellerOrders = () => {
           
           <Card>
             <CardHeader>
-              <CardTitle>Список заказов</CardTitle>
+              <CardTitle className="text-lg md:text-xl">Список заказов</CardTitle>
             </CardHeader>
             <CardContent>
               {!orders || orders.length === 0 ? (
-                <div className="text-center p-8 text-muted-foreground">
+                <div className="text-center p-4 md:p-8 text-muted-foreground">
                   У вас пока нет заказов
                 </div>
+              ) : isMobile ? (
+                // Mobile view - cards layout
+                <div className="grid gap-4">
+                  {orders.map((order) => (
+                    <Card 
+                      key={order.id}
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleRowClick(order.id)}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <p className="font-medium text-sm">№ {order.order_number}</p>
+                            <h3 className="font-semibold mb-1">{order.title}</h3>
+                          </div>
+                          <Badge className={getStatusBadgeColor(order.status)}>
+                            {getStatusLabel(order.status)}
+                          </Badge>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="grid grid-cols-2 gap-2">
+                            <span className="text-muted-foreground">Бренд:</span>
+                            <span>{order.brand}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <span className="text-muted-foreground">Модель:</span>
+                            <span>{order.model}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <span className="text-muted-foreground">Цена:</span>
+                            <span>{order.price} AED</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <span className="text-muted-foreground">OPT_ID Покупателя:</span>
+                            <Badge variant="outline" className="font-mono justify-self-start">
+                              {order.buyer_opt_id || 'Не указан'}
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <span className="text-muted-foreground">Контакты:</span>
+                            <div>
+                              {order.buyer?.telegram ? (
+                                <a 
+                                  href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline inline-flex items-center gap-1"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {order.buyer.telegram}
+                                  <Link className="h-3 w-3" />
+                                </a>
+                              ) : (
+                                'Не указан'
+                              )}
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <span className="text-muted-foreground">Тип заказа:</span>
+                            <Badge variant="outline">
+                              {getOrderTypeLabel(order.order_created_type)}
+                            </Badge>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               ) : (
+                // Desktop view - table layout
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
