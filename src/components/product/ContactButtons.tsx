@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -32,6 +33,7 @@ interface ContactButtonsProps {
 const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactTelegram,
   onContactWhatsApp,
+  telegramUrl,
   product
 }) => {
   const navigate = useNavigate();

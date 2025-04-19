@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -152,8 +151,6 @@ const ProductDetail = () => {
                 onContactTelegram={handleContactTelegram}
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
-                phoneUrl={product.phone_url}
-                productId={id}
                 product={{
                   title: product.title,
                   price: productPrice,
@@ -162,7 +159,7 @@ const ProductDetail = () => {
                   description: product.description,
                   optid_created: product.optid_created,
                   seller_id: product.seller_id,
-                  seller_name: sellerName // Use the validated seller name
+                  seller_name: sellerName
                 }}
               />
             </SellerInfo>
