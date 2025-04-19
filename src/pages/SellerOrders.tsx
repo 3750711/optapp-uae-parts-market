@@ -1,5 +1,6 @@
+
 import React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +13,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import { 
   Table, 
   TableBody, 
@@ -23,9 +26,12 @@ import {
 import { format } from "date-fns";
 import { Loader2, ChevronRight } from "lucide-react";
 
+type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
+
 const SellerOrders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['seller-orders', user?.id],
@@ -43,10 +49,38 @@ const SellerOrders = () => {
         throw error;
       }
       
-      console.log("Fetched seller orders:", data);
       return data || [];
     },
     enabled: !!user?.id
+  });
+
+  const confirmOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'seller_confirmed' as OrderStatus })
+        .eq('id', orderId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      toast({
+        title: "Заказ подтвержден",
+        description: "Статус заказа успешно обновлен",
+      });
+    },
+    onError: (error) => {
+      console.error('Error confirming order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось подтвердить заказ",
+        variant: "destructive",
+      });
+    },
   });
 
   const getStatusBadgeColor = (status: string) => {
@@ -126,16 +160,15 @@ const SellerOrders = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>№</TableHead>
-                        <TableHead>Название</TableHead>
-                        <TableHead>Модель</TableHead>
+                        <TableHead>Номер заказа</TableHead>
+                        <TableHead>Наименование</TableHead>
                         <TableHead>Бренд</TableHead>
+                        <TableHead>Модель</TableHead>
+                        <TableHead>Продавец</TableHead>
                         <TableHead>Цена</TableHead>
-                        <TableHead>Покупатель</TableHead>
-                        <TableHead>Дата</TableHead>
                         <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
-                        <TableHead></TableHead>
+                        <TableHead>Действия</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -143,26 +176,21 @@ const SellerOrders = () => {
                         <TableRow 
                           key={order.id}
                           className="cursor-pointer hover:bg-gray-50"
-                          onClick={() => handleRowClick(order.id)}
+                          onClick={(e) => {
+                            // Prevent row click when clicking the confirm button
+                            if ((e.target as HTMLElement).closest('button')) {
+                              e.stopPropagation();
+                              return;
+                            }
+                            handleRowClick(order.id);
+                          }}
                         >
                           <TableCell>{order.order_number}</TableCell>
                           <TableCell>{order.title}</TableCell>
-                          <TableCell>{order.model}</TableCell>
                           <TableCell>{order.brand}</TableCell>
-                          <TableCell>{order.price} ₽</TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{order.order_seller_name || 'Неизвестный покупатель'}</span>
-                              {order.buyer_opt_id && (
-                                <span className="text-sm text-muted-foreground">
-                                  OPT_ID: {order.buyer_opt_id}
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(order.created_at), 'dd.MM.yyyy')}
-                          </TableCell>
+                          <TableCell>{order.model}</TableCell>
+                          <TableCell>{order.order_seller_name}</TableCell>
+                          <TableCell>{order.price} AED</TableCell>
                           <TableCell>
                             <Badge variant="outline">
                               {getOrderTypeLabel(order.order_created_type)}
@@ -174,7 +202,26 @@ const SellerOrders = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <ChevronRight className="h-5 w-5 text-gray-400" />
+                            <div className="flex items-center gap-2">
+                              {order.status === 'created' && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    confirmOrderMutation.mutate(order.id);
+                                  }}
+                                  disabled={confirmOrderMutation.isPending}
+                                >
+                                  {confirmOrderMutation.isPending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    'Подтвердить'
+                                  )}
+                                </Button>
+                              )}
+                              <ChevronRight className="h-5 w-5 text-gray-400" />
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}

@@ -104,6 +104,8 @@ const SellerCreateOrder = () => {
     try {
       console.log('Creating order with seller name:', profile?.full_name || "Неизвестный продавец");
       
+      type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
+      
       const { data: orderData, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -116,7 +118,7 @@ const SellerCreateOrder = () => {
           brand: formData.brand,
           model: formData.model,
           buyer_id: user.id,
-          status: 'created',
+          status: 'seller_confirmed' as OrderStatus,
           order_created_type: 'free_order'
         })
         .select()
