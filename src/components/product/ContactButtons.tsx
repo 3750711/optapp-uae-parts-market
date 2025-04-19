@@ -80,11 +80,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Product seller information is incomplete');
       }
 
-      // Use RLS-compatible approach by inserting data through a stored procedure or using service role
-      // For now, we'll try a direct insert with explicit RLS bypass using service role or function
-      
-      // Create an intermediate-orders table entry first (which might have less restrictive RLS)
-      // This is a workaround for the RLS issue
+      // Prepare order data
       const orderData = {
         title: product.title,
         quantity: 1,
@@ -102,7 +98,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       
       console.log('Creating order with data:', orderData);
       
-      // Use service role client if available or try a function call approach
       const { data: order, error } = await supabase
         .from('orders')
         .insert(orderData)
@@ -112,15 +107,18 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       if (error) {
         console.error('Error details:', error);
         
-        // Special handling for RLS policy violations
         if (error.code === '42501') {
           toast({
             title: "Ошибка с правами доступа",
-            description: "У вас нет прав для создания заказа. Пожалуйста, обратитесь в поддержку или используйте кнопку связи с продавцом.",
+            description: "Проблема с правами доступа. Обратитесь в поддержку.",
             variant: "destructive",
           });
         } else {
-          throw error;
+          toast({
+            title: "Ошибка",
+            description: `Не удалось создать заказ: ${error.message}`,
+            variant: "destructive",
+          });
         }
         return;
       }
