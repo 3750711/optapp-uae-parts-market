@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -34,7 +35,15 @@ const SellerOrders = () => {
       
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select(`
+          *,
+          buyer:profiles!orders_buyer_id_fkey (
+            full_name,
+            email,
+            phone,
+            telegram
+          )
+        `)
         .eq('seller_id', user.id)
         .order('created_at', { ascending: false });
         
@@ -74,7 +83,7 @@ const SellerOrders = () => {
           <div>
             <h1 className="text-3xl font-bold">Мои заказы</h1>
             <p className="text-muted-foreground mt-1">
-              Просмотр и управление вашими заказами
+              Просмотр и управление заказами от покупателей
             </p>
           </div>
           
@@ -103,6 +112,7 @@ const SellerOrders = () => {
                         <TableHead>Модель</TableHead>
                         <TableHead>Бренд</TableHead>
                         <TableHead>Цена</TableHead>
+                        <TableHead>Покупатель</TableHead>
                         <TableHead>Дата</TableHead>
                         <TableHead>Тип заказа</TableHead>
                         <TableHead>Статус</TableHead>
@@ -121,6 +131,9 @@ const SellerOrders = () => {
                           <TableCell>{order.model}</TableCell>
                           <TableCell>{order.brand}</TableCell>
                           <TableCell>{order.price} ₽</TableCell>
+                          <TableCell>
+                            {order.buyer?.full_name || 'Неизвестный покупатель'}
+                          </TableCell>
                           <TableCell>
                             {format(new Date(order.created_at), 'dd.MM.yyyy')}
                           </TableCell>
