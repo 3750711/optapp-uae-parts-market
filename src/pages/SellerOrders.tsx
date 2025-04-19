@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +32,7 @@ const SellerOrders = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      // Fetch all orders where the current user is the seller
+      // Fetch all orders where the current user is either the seller or the order was created from their product
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -45,7 +44,7 @@ const SellerOrders = () => {
             telegram
           )
         `)
-        .eq('seller_id', user.id)
+        .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
         .order('created_at', { ascending: false });
         
       if (error) {
@@ -85,7 +84,7 @@ const SellerOrders = () => {
           <div>
             <h1 className="text-3xl font-bold">Мои заказы</h1>
             <p className="text-muted-foreground mt-1">
-              Просмотр и управление заказами от покупателей
+              Управление созданными заказами и заказами по объявлениям
             </p>
           </div>
           
