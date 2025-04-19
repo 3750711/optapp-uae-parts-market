@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,13 +7,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 
 const SellerCreateOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const productId = searchParams.get('productId');
   const [images, setImages] = useState<string[]>([]);
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [formData, setFormData] = useState({
@@ -24,6 +26,41 @@ const SellerCreateOrder = () => {
     brand: "",
     model: "",
   });
+
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (productId) {
+        const { data: product, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('id', productId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching product:', error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить данные товара",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (product) {
+          setFormData({
+            title: product.title,
+            price: product.price.toString(),
+            quantity: "1",
+            buyerOptId: "",
+            brand: product.brand || "",
+            model: product.model || "",
+          });
+        }
+      }
+    };
+
+    fetchProductData();
+  }, [productId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
