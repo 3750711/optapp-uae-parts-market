@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { telegram as Telegram } from 'lucide-react';
+import { Send, Edit2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderEditForm } from './OrderEditForm';
 import { Label } from "@/components/ui/label";
@@ -59,7 +59,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
             className="bg-[#229ED9] hover:bg-[#229ED9]/90 text-white border-none"
             onClick={() => window.open(generateTelegramShareUrl(), '_blank')}
           >
-            <Telegram className="h-4 w-4" />
+            <Send className="h-4 w-4" />
           </Button>
           {order.status === 'created' && (
             <Button
