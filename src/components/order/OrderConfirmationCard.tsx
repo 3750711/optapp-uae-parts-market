@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       (order.description ? `📄 Описание:\n${order.description}\n\n` : '') +
       (images.length > 0 ? `📸 Фотографии заказа:\n${images.join('\n')}` : '')
     );
-    return `https://t.me/share/url?url=&text=${text}`;
+    return `https://t.me/?text=${text}`;
   };
 
   return (
