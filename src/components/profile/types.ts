@@ -1,6 +1,4 @@
 
-import { Database } from "@/integrations/supabase/types";
-
 export type UserType = 'buyer' | 'seller' | 'admin';
 
 export type ProfileType = Database["public"]["Tables"]["profiles"]["Row"] & {
