@@ -52,7 +52,7 @@ const AdminDashboard = () => {
     <AdminLayout>
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Панель администратора</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Обзор системы</h1>
           <div className="text-sm text-muted-foreground">
             Последнее обновление: {new Date().toLocaleString('ru-RU')}
           </div>

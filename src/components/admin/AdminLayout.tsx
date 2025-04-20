@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Sidebar, 
@@ -80,11 +79,14 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <SidebarProvider>
       <div className="flex w-full min-h-screen bg-gray-50">
         <AdminSidebar />
-        <main className="flex-grow p-6">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
+        <div className="flex-grow">
+          <AdminTopMenu />
+          <main className="p-6">
+            <div className="max-w-7xl mx-auto">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   );
