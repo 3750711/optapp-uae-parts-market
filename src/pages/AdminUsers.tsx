@@ -11,9 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, UserX, Edit } from "lucide-react";
+import { UserCheck, UserX, Edit, Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
+import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
 import { useQueryClient } from '@tanstack/react-query';
 
 const AdminUsers = () => {
@@ -78,6 +79,7 @@ const AdminUsers = () => {
                 <TableHead>Телефон</TableHead>
                 <TableHead>Telegram</TableHead>
                 <TableHead>OPT ID</TableHead>
+                <TableHead>Рейтинг</TableHead>
                 <TableHead>Верификация</TableHead>
                 <TableHead>Действия</TableHead>
               </TableRow>
@@ -102,6 +104,13 @@ const AdminUsers = () => {
                   <TableCell>{user.phone || '-'}</TableCell>
                   <TableCell>{user.telegram || '-'}</TableCell>
                   <TableCell>{user.opt_id || '-'}</TableCell>
+                  <TableCell>
+                    {user.rating !== null ? (
+                      <span className="font-semibold">{user.rating.toFixed(1)}</span>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
                   <TableCell>
                     <span className={`inline-block px-2 py-1 rounded-full text-xs ${
                       user.verification_status === 'verified'
@@ -144,7 +153,21 @@ const AdminUsers = () => {
                           </Button>
                         }
                         onSuccess={() => {
-                          // This will trigger a refetch of the users data
+                          queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+                        }}
+                      />
+                      <UserRatingDialog
+                        user={user}
+                        trigger={
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
+                            <Star className="h-4 w-4" />
+                          </Button>
+                        }
+                        onSuccess={() => {
                           queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
                         }}
                       />
