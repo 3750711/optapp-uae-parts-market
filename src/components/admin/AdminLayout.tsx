@@ -7,11 +7,12 @@ import {
   SidebarMenu, 
   SidebarMenuItem, 
   SidebarMenuButton,
-  SidebarProvider 
+  SidebarProvider,
+  SidebarTrigger
 } from "@/components/ui/sidebar";
 import { Users, Package, ShoppingCart, BarChart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import AdminTopMenu from './AdminTopMenu'; // Add this import
+import AdminTopMenu from './AdminTopMenu';
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -83,8 +84,8 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <AdminSidebar />
         <div className="flex-grow">
           <AdminTopMenu />
-          <main className="p-6">
-            <div className="max-w-7xl mx-auto">
+          <main className="p-4 md:p-6">
+            <div className="w-full max-w-7xl mx-auto">
               {children}
             </div>
           </main>
