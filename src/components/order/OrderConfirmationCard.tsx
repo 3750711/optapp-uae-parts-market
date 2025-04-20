@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share, Edit2, Telegram } from 'lucide-react';
+import { telegram as Telegram } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderEditForm } from './OrderEditForm';
 import { Label } from "@/components/ui/label";
