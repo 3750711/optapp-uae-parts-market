@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,6 +11,7 @@ import ProtectedRoute from "@/components/auth/ProtectedRoute";
 // Import admin pages
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
+import AdminProducts from "./pages/AdminProducts";
 
 // Pages
 import Index from "./pages/Index";
@@ -94,6 +96,11 @@ const App = () => (
             <Route path="/admin/users" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminUsers />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/products" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminProducts />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
