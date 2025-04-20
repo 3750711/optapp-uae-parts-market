@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -30,6 +29,7 @@ const Catalog = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
+        .eq('status', 'active')
         .order("created_at", { ascending: false });
       
       if (error) {
@@ -81,7 +81,7 @@ const Catalog = () => {
       brand: product.brand,
       model: product.model,
       seller_name: product.seller_name,
-      status: product.status || 'pending' // Add status with default
+      status: product.status
     };
   });
 

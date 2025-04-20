@@ -18,6 +18,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
+  const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
 
   const getStatusBadge = () => {
@@ -34,6 +35,12 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         return null;
     }
   };
+
+  // Show 404 if product is pending and user is not owner or admin
+  if (product.status === 'pending' && !isOwner && !isAdmin) {
+    navigate('/404');
+    return null;
+  }
 
   const handleSave = () => {
     setIsEditing(false);
@@ -62,7 +69,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           </span>
           {getStatusBadge()}
         </div>
-        {isOwner && (
+        {isOwner && product.status !== 'sold' && (
           <Button
             variant="outline"
             size="sm"

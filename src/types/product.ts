@@ -1,4 +1,3 @@
-
 export interface ProductImage {
   url: string;
   is_primary?: boolean;
@@ -33,4 +32,3 @@ export interface Product {
   optid_created?: string | null;
   status: 'pending' | 'active' | 'sold' | 'archived';
 }
-
