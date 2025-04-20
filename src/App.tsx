@@ -30,6 +30,7 @@ import OrderDetails from "./pages/OrderDetails";
 import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 import BuyerOrders from "./pages/BuyerOrders";
 import AdminOrders from "./pages/AdminOrders";
+import SellerListings from "./pages/SellerListings";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,11 @@ const App = () => (
             <Route path="/seller/orders/:id" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <OrderDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="/seller/listings" element={
+              <ProtectedRoute allowedRoles={['seller']}>
+                <SellerListings />
               </ProtectedRoute>
             } />
             <Route path="/buyer/create-order" element={

@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered } from "lucide-react";
+import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -14,7 +13,6 @@ const SellerDashboard = () => {
       const encodedText = encodeURIComponent(userDataText);
       const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
       
-      // Добавляем console.log для отображения полной ссылки
       console.log('Telegram Contact Link:', telegramLink);
       
       window.open(telegramLink, '_blank');
@@ -38,6 +36,20 @@ const SellerDashboard = () => {
               <CardTitle className="text-lg">Добавить товар</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Разместите новый товар на маркетплейсе
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/seller/listings">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <FileText className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Мои объявления</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Просмотр всех ваших объявлений
               </p>
             </CardContent>
           </Card>
