@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -30,6 +29,7 @@ import SellerOrders from "./pages/SellerOrders";
 import OrderDetails from "./pages/OrderDetails";
 import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 import BuyerOrders from "./pages/BuyerOrders";
+import AdminOrders from "./pages/AdminOrders";
 
 const queryClient = new QueryClient();
 
@@ -101,6 +101,11 @@ const App = () => (
             <Route path="/admin/products" element={
               <ProtectedRoute allowedRoles={['admin']}>
                 <AdminProducts />
+              </ProtectedRoute>
+            } />
+            <Route path="/admin/orders" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminOrders />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />
