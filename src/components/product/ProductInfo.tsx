@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
 import { Product } from "@/types/product";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 interface ProductInfoProps {
   product: Product;

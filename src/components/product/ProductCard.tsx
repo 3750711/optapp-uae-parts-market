@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -88,20 +89,20 @@ const ProductCard: React.FC<ProductProps> = ({
             <span className="font-medium">Продавец:</span> {seller_name}
           </div>
           <div className="flex items-center space-x-4">
-            {displayOptId && (
+            {(optid_created || seller_opt_id) && (
               <div>
                 <span className="text-gray-500">OPT ID: </span>
-                <span className="font-medium">{displayOptId}</span>
+                <span className="font-medium">{optid_created || seller_opt_id}</span>
               </div>
             )}
-            {displayRating !== undefined && displayRating !== null && (
+            {(rating_seller !== undefined && rating_seller !== null) && (
               <div className="flex items-center">
                 <div className="flex mr-1">
                   {[...Array(5)].map((_, i) => (
                     <Star 
                       key={i}
                       className={`h-4 w-4 ${
-                        i < Math.floor(displayRating)
+                        i < Math.floor(rating_seller)
                           ? "fill-yellow-400 text-yellow-400"
                           : "text-gray-300"
                       }`}
@@ -109,7 +110,7 @@ const ProductCard: React.FC<ProductProps> = ({
                   ))}
                 </div>
                 <span className="text-xs">
-                  <span className="font-medium">{displayRating?.toFixed(1)}</span>
+                  <span className="font-medium">{rating_seller?.toFixed(1)}</span>
                   <span className="text-gray-500">/5</span>
                 </span>
               </div>

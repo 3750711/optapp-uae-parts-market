@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -79,7 +80,8 @@ const Catalog = () => {
       rating_seller: product.rating_seller,
       brand: product.brand,
       model: product.model,
-      seller_name: product.seller_name
+      seller_name: product.seller_name,
+      status: product.status || 'pending' // Add status with default
     };
   });
 
