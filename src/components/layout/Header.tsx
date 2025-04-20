@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,7 +21,6 @@ const Header = () => {
     await signOut();
   };
 
-  // Helper function to get user type in Russian
   const getUserTypeLabel = (type: string | undefined) => {
     return type === 'seller' ? 'Продавец' : 'Покупатель';
   };
@@ -48,6 +46,11 @@ const Header = () => {
               </Link>
               <Link to="/contact" className="text-gray-600 hover:text-optapp-dark">
                 Контакты
+              </Link>
+              <Link to="/admin" className="text-gray-600 hover:text-optapp-dark">
+                <Button variant="default" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+                  Админ панель
+                </Button>
               </Link>
               {profile?.user_type === 'seller' && (
                 <Link to="/seller/dashboard" className="text-gray-600 hover:text-optapp-dark">
