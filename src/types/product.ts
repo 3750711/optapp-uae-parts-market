@@ -31,4 +31,5 @@ export interface Product {
   profiles?: SellerProfile;
   rating_seller?: number | null;
   optid_created?: string | null;
+  status: 'active' | 'sold' | 'pending' | 'archived';
 }
