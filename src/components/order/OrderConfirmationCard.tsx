@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share, Edit2 } from 'lucide-react';
+import { Share, Edit2, Telegram } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderEditForm } from './OrderEditForm';
 import { Label } from "@/components/ui/label";
@@ -36,15 +35,16 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 
   const generateTelegramShareUrl = () => {
     const text = encodeURIComponent(
-      `Заказ № ${order.order_number}\n` +
-      `Наименование: ${order.title}\n` +
-      `Бренд: ${order.brand}\n` +
-      `Модель: ${order.model}\n` +
-      `Цена: ${order.price} AED\n` +
-      `Количество мест: ${order.quantity}\n` +
-      `OPT ID отправителя: ${order.seller_opt_id || 'Не указан'}\n` +
-      `OPT ID получателя: ${order.buyer_opt_id || 'Не указан'}\n\n` +
-      `Фотографии заказа:\n${images.join('\n')}`
+      `🛍 Заказ № ${order.order_number}\n\n` +
+      `📦 Товар: ${order.title}\n` +
+      `🏷 Бренд: ${order.brand || 'Не указан'}\n` +
+      `📝 Модель: ${order.model || 'Не указана'}\n` +
+      `💰 Цена: ${order.price} AED\n` +
+      `📦 Количество мест: ${order.quantity}\n` +
+      `🆔 OPT_ID отправителя: ${order.seller_opt_id || 'Не указан'}\n` +
+      `🆔 OPT_ID получателя: ${order.buyer_opt_id || 'Не указан'}\n\n` +
+      (order.description ? `📄 Описание:\n${order.description}\n\n` : '') +
+      (images.length > 0 ? `📸 Фотографии заказа:\n${images.join('\n')}` : '')
     );
     return `https://t.me/share/url?url=&text=${text}`;
   };
@@ -56,9 +56,10 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           <Button
             variant="outline"
             size="icon"
+            className="bg-[#229ED9] hover:bg-[#229ED9]/90 text-white border-none"
             onClick={() => window.open(generateTelegramShareUrl(), '_blank')}
           >
-            <Share className="h-4 w-4" />
+            <Telegram className="h-4 w-4" />
           </Button>
           {order.status === 'created' && (
             <Button
