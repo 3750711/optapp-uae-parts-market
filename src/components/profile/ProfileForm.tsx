@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -36,7 +37,7 @@ const formSchema = z.object({
       message: "Telegram username должен начинаться с одного @ символа" 
     }),
   optId: z.string().optional(),
-  userType: z.enum(["buyer", "seller"]).optional(),
+  userType: z.enum(["buyer", "seller", "admin"]).optional(), // Updated to include admin
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -65,7 +66,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       companyName: profile.company_name || "",
       telegram: profile.telegram || "",
       optId: profile.opt_id || "",
-      userType: profile.user_type,
+      userType: profile.user_type, // This now supports admin
     },
   });
 
@@ -74,7 +75,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       await onSubmit(data);
       form.reset({
         ...data,
-        userType: profile.user_type,
+        userType: profile.user_type, // This now supports admin
       });
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -135,6 +136,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                       <SelectContent>
                         <SelectItem value="buyer">Покупатель</SelectItem>
                         <SelectItem value="seller">Продавец</SelectItem>
+                        <SelectItem value="admin">Администратор</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
