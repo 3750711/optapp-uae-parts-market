@@ -70,16 +70,26 @@ const AdminProducts = () => {
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
       case 'active':
         return 'bg-green-100 text-green-800';
       case 'sold':
         return 'bg-blue-100 text-blue-800';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
       case 'archived':
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Ожидает проверки';
+      case 'active': return 'Опубликован';
+      case 'sold': return 'Продан';
+      case 'archived': return 'Архив';
+      default: return status;
     }
   };
 
@@ -221,3 +231,4 @@ const AdminProducts = () => {
 };
 
 export default AdminProducts;
+

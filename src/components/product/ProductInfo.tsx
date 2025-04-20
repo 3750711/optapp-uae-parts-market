@@ -15,7 +15,23 @@ interface ProductInfoProps {
 const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const { user } = useAuth();
+  const { isAdmin } = useAdminAccess();
   const isOwner = user?.id === product.seller_id;
+
+  const getStatusBadge = () => {
+    switch (product.status) {
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800">Ожидает проверки</Badge>;
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800">Опубликован</Badge>;
+      case 'sold':
+        return <Badge className="bg-blue-100 text-blue-800">Продан</Badge>;
+      case 'archived':
+        return <Badge className="bg-gray-100 text-gray-800">Архив</Badge>;
+      default:
+        return null;
+    }
+  };
 
   const handleSave = () => {
     setIsEditing(false);
@@ -42,6 +58,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           <span className="text-gray-500 flex items-center">
             <MapPin className="h-4 w-4 mr-1" /> {product.location || "Не указано"}
           </span>
+          {getStatusBadge()}
         </div>
         {isOwner && (
           <Button

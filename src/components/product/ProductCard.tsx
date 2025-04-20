@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -20,6 +19,7 @@ export interface ProductProps {
   brand: string;
   model: string;
   seller_name: string;
+  status: 'pending' | 'active' | 'sold' | 'archived';
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -35,10 +35,23 @@ const ProductCard: React.FC<ProductProps> = ({
   rating_seller,
   brand,
   model,
-  seller_name
+  seller_name,
+  status
 }) => {
-  const displayOptId = seller_opt_id || optid_created;
-  const displayRating = rating_seller ?? seller_rating;
+  const getStatusBadge = () => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Ожидает проверки</Badge>;
+      case 'active':
+        return <Badge variant="secondary" className="bg-green-100 text-green-800">Опубликован</Badge>;
+      case 'sold':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Продан</Badge>;
+      case 'archived':
+        return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Архив</Badge>;
+      default:
+        return null;
+    }
+  };
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
@@ -56,6 +69,8 @@ const ProductCard: React.FC<ProductProps> = ({
           </Badge>
           <span className="text-sm text-gray-500">{location}</span>
         </div>
+        
+        {getStatusBadge()}
         
         {/* Brand and Model info */}
         <div className="flex flex-col gap-1 mb-2">

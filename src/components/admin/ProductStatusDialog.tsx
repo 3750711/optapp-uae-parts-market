@@ -29,9 +29,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 const formSchema = z.object({
-  status: z.enum(['active', 'sold', 'pending', 'archived'])
+  status: z.enum(['pending', 'active', 'sold', 'archived'])
 });
 
 interface ProductStatusDialogProps {
@@ -43,15 +44,25 @@ interface ProductStatusDialogProps {
 export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStatusDialogProps) => {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
+  const { isAdmin } = useAdminAccess();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      status: product.status as 'active' | 'sold' | 'pending' | 'archived',
+      status: product.status,
     },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!isAdmin) {
+      toast({
+        title: "Ошибка",
+        description: "Только администратор может изменять статус товара",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const { error } = await supabase
       .from('products')
       .update({ status: values.status })
@@ -75,13 +86,15 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'active': return 'Активный';
-      case 'sold': return 'Продано';
-      case 'pending': return 'В ожидании';
-      case 'archived': return 'В архиве';
+      case 'pending': return 'Ожидает проверки';
+      case 'active': return 'Опубликован';
+      case 'sold': return 'Продан';
+      case 'archived': return 'Архив';
       default: return status;
     }
   };
+
+  if (!isAdmin) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -107,10 +120,10 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="active">Активный</SelectItem>
-                      <SelectItem value="sold">Продано</SelectItem>
-                      <SelectItem value="pending">В ожидании</SelectItem>
-                      <SelectItem value="archived">В архиве</SelectItem>
+                      <SelectItem value="pending">Ожидает проверки</SelectItem>
+                      <SelectItem value="active">Опубликован</SelectItem>
+                      <SelectItem value="sold">Продан</SelectItem>
+                      <SelectItem value="archived">Архив</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -125,10 +138,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
               >
                 Отмена
               </Button>
-              <Button
-                type="submit"
-                className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-              >
+              <Button type="submit">
                 Сохранить
               </Button>
             </div>
@@ -138,3 +148,4 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     </Dialog>
   );
 };
+
