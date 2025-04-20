@@ -9,6 +9,36 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      action_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_images: {
         Row: {
           created_at: string
@@ -281,7 +311,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
       order_created_type: "free_order" | "ads_order"
@@ -293,7 +326,7 @@ export type Database = {
         | "shipped"
         | "delivered"
       product_status: "active" | "sold" | "pending" | "archived"
-      user_type: "buyer" | "seller"
+      user_type: "buyer" | "seller" | "admin"
       verification_status: "verified" | "pending"
     }
     CompositeTypes: {
@@ -420,7 +453,7 @@ export const Constants = {
         "delivered",
       ],
       product_status: ["active", "sold", "pending", "archived"],
-      user_type: ["buyer", "seller"],
+      user_type: ["buyer", "seller", "admin"],
       verification_status: ["verified", "pending"],
     },
   },
