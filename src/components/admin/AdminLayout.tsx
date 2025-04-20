@@ -1,7 +1,15 @@
 
 import React from 'react';
-import { Sidebar, SidebarContent, SidebarGroup, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Users, Package, ShoppingCart, BarChart, Shield } from 'lucide-react';
+import { 
+  Sidebar, 
+  SidebarContent, 
+  SidebarGroup, 
+  SidebarMenu, 
+  SidebarMenuItem, 
+  SidebarMenuButton,
+  SidebarProvider 
+} from "@/components/ui/sidebar";
+import { Users, Package, ShoppingCart, BarChart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const AdminSidebar = () => {
@@ -65,12 +73,14 @@ const AdminSidebar = () => {
 
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
-    <div className="flex">
-      <AdminSidebar />
-      <main className="flex-grow p-6 bg-gray-50 min-h-screen">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex w-full">
+        <AdminSidebar />
+        <main className="flex-grow p-6 bg-gray-50 min-h-screen">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
 
