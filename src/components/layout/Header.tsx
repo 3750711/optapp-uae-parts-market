@@ -11,11 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus, Settings } from "lucide-react";
+import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const Header = () => {
   const { user, profile, signOut } = useAuth();
+  const { isAdmin } = useAdminAccess();
 
   const handleSignOut = async () => {
     await signOut();
@@ -94,6 +96,15 @@ const Header = () => {
                       )}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="flex w-full items-center">
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          <span>Панель администратора</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     
                     <DropdownMenuItem asChild>
                       <Link to="/profile" className="flex w-full items-center">
