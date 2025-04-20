@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Sidebar, 
@@ -10,6 +11,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Users, Package, ShoppingCart, BarChart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import AdminTopMenu from './AdminTopMenu'; // Add this import
 
 const AdminSidebar = () => {
   const location = useLocation();
