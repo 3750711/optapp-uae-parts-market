@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Link } from 'lucide-react';
@@ -11,6 +12,13 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
     email: string | null;
     phone: string | null;
   } | null;
+  seller?: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
 };
 
 interface OrderDetailsProps {
@@ -18,6 +26,8 @@ interface OrderDetailsProps {
 }
 
 export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
+  const isSelfOrder = order.seller_id === order.buyer_id;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-4">
@@ -55,7 +65,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         </div>
         <div>
           <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
-          <p className="text-lg font-medium">{order.seller_opt_id || 'Не указан'}</p>
+          <p className="text-lg font-medium">{order.seller?.opt_id || 'Не указан'}</p>
         </div>
         <div>
           <Label className="text-sm text-gray-500">Имя отправителя</Label>
@@ -79,6 +89,12 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
             <p className="text-gray-500">Контакты не указаны</p>
           )}
         </div>
+        {isSelfOrder && (
+          <div>
+            <Label className="text-sm text-gray-500">Тип</Label>
+            <p className="text-lg font-medium text-amber-600">Самозаказ</p>
+          </div>
+        )}
       </div>
     </div>
   );

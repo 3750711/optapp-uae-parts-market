@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -12,10 +11,17 @@ import { Database } from '@/integrations/supabase/types';
 type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
     telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
   } | null;
   seller: {
     telegram: string | null;
+    full_name: string | null;
     opt_id: string | null;
+    email: string | null;
+    phone: string | null;
   } | null;
 };
 
@@ -26,6 +32,7 @@ const OrderDetails = () => {
   const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
+      console.log("Fetching order details for ID:", id);
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .select(`
@@ -58,6 +65,8 @@ const OrderDetails = () => {
       }
 
       if (!order) return null;
+      
+      console.log("Fetched order data:", order);
 
       const { data: images, error: imagesError } = await supabase
         .from('order_images')
