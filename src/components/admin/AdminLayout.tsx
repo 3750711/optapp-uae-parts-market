@@ -24,9 +24,10 @@ const AdminSidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 isActive={location.pathname === '/admin/users'}
+                tooltip="Пользователи"
               >
-                <Link to="/admin/users" className="flex items-center w-full">
-                  <Users className="mr-2 h-4 w-4" />
+                <Link to="/admin/users" className="flex items-center w-full group transition-colors">
+                  <Users className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                   <span>Пользователи</span>
                 </Link>
               </SidebarMenuButton>
@@ -35,9 +36,10 @@ const AdminSidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 isActive={location.pathname === '/admin/products'}
+                tooltip="Товары"
               >
-                <Link to="/admin/products" className="flex items-center w-full">
-                  <Package className="mr-2 h-4 w-4" />
+                <Link to="/admin/products" className="flex items-center w-full group transition-colors">
+                  <Package className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                   <span>Товары</span>
                 </Link>
               </SidebarMenuButton>
@@ -46,9 +48,10 @@ const AdminSidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 isActive={location.pathname === '/admin/orders'}
+                tooltip="Заказы"
               >
-                <Link to="/admin/orders" className="flex items-center w-full">
-                  <ShoppingCart className="mr-2 h-4 w-4" />
+                <Link to="/admin/orders" className="flex items-center w-full group transition-colors">
+                  <ShoppingCart className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                   <span>Заказы</span>
                 </Link>
               </SidebarMenuButton>
@@ -57,9 +60,10 @@ const AdminSidebar = () => {
               <SidebarMenuButton 
                 asChild 
                 isActive={location.pathname === '/admin/analytics'}
+                tooltip="Аналитика"
               >
-                <Link to="/admin/analytics" className="flex items-center w-full">
-                  <BarChart className="mr-2 h-4 w-4" />
+                <Link to="/admin/analytics" className="flex items-center w-full group transition-colors">
+                  <BarChart className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
                   <span>Аналитика</span>
                 </Link>
               </SidebarMenuButton>
@@ -74,10 +78,12 @@ const AdminSidebar = () => {
 const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <SidebarProvider>
-      <div className="flex w-full">
+      <div className="flex w-full min-h-screen bg-gray-50">
         <AdminSidebar />
-        <main className="flex-grow p-6 bg-gray-50 min-h-screen">
-          {children}
+        <main className="flex-grow p-6">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
