@@ -19,6 +19,13 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
     email: string | null;
     phone: string | null;
   } | null;
+  seller?: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
 };
 
 interface OrderConfirmationCardProps {
@@ -42,8 +49,9 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       `📝 Модель: ${order.model || 'Не указана'}\n` +
       `💰 Цена: ${order.price} AED\n` +
       `📦 Количество мест: ${order.quantity}\n` +
-      `🆔 OPT_ID отправителя: ${order.seller_opt_id || 'Не указан'}\n` +
-      `🆔 OPT_ID получателя: ${order.buyer_opt_id || 'Не указан'}\n\n` +
+      `🆔 OPT_ID заказа: ${order.seller?.opt_id || 'Не указан'}\n` +
+      (order.seller_id === order.buyer_id ? `🔄 Самозаказ\n` : 
+        `🆔 OPT_ID получателя: ${order.buyer_opt_id || 'Не указан'}\n`) +
       (order.description ? `📄 Описание:\n${order.description}\n\n` : '') +
       (images.length > 0 ? `📸 Фотографии заказа:\n${images.join('\n')}` : '')
     );

@@ -13,6 +13,10 @@ type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
     telegram: string | null;
   } | null;
+  seller: {
+    telegram: string | null;
+    opt_id: string | null;
+  } | null;
 };
 
 const OrderDetails = () => {
@@ -27,6 +31,13 @@ const OrderDetails = () => {
         .select(`
           *,
           buyer:profiles!orders_buyer_id_fkey (
+            telegram,
+            full_name,
+            opt_id,
+            email,
+            phone
+          ),
+          seller:profiles!orders_seller_id_fkey (
             telegram,
             full_name,
             opt_id,
