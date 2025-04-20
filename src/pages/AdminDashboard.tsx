@@ -43,7 +43,7 @@ const AdminDashboard = () => {
       const { count } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
+        .eq('status', 'created');
       return count;
     }
   });
