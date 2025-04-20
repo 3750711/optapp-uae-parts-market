@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   Sidebar, 
@@ -8,9 +7,8 @@ import {
   SidebarMenuItem, 
   SidebarMenuButton,
   SidebarProvider,
-  SidebarTrigger
 } from "@/components/ui/sidebar";
-import { Users, Package, ShoppingCart, BarChart } from 'lucide-react';
+import { LayoutDashboard, Users, Package, ShoppingCart, BarChart } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import AdminTopMenu from './AdminTopMenu';
 
@@ -25,6 +23,19 @@ const AdminSidebar = () => {
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
+                isActive={location.pathname === '/admin'}
+                tooltip="Дашборд"
+              >
+                <Link to="/admin" className="flex items-center w-full group transition-colors">
+                  <LayoutDashboard className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
+                  <span>Дашборд</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            <SidebarMenuItem>
+              <SidebarMenuButton 
+                asChild 
                 isActive={location.pathname === '/admin/users'}
                 tooltip="Пользователи"
               >
@@ -34,6 +45,7 @@ const AdminSidebar = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
@@ -46,6 +58,7 @@ const AdminSidebar = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
@@ -58,6 +71,7 @@ const AdminSidebar = () => {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+
             <SidebarMenuItem>
               <SidebarMenuButton 
                 asChild 
