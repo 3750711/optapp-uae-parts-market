@@ -26,6 +26,7 @@ interface OrderConfirmationDialogProps {
     optid_created?: string | null;
     seller_id?: string;
     seller_name?: string;
+    lot_number?: string | number | null;
   };
   profile?: {
     opt_id?: string;
@@ -71,6 +72,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 <span className="text-gray-500">Цена:</span>
                 <span className="font-medium">{product.price} AED</span>
               </div>
+              {product.lot_number !== undefined && product.lot_number !== null && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Номер лота:</span>
+                  <span className="font-medium">{product.lot_number}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -136,3 +143,4 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 };
 
 export default OrderConfirmationDialog;
+
