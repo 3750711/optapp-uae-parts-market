@@ -18,6 +18,7 @@ interface OrderConfirmationDialogProps {
   onConfirm: () => void;
   isSubmitting: boolean;
   product: {
+    id?: string; // add this! (This is product_id)
     title: string;
     brand: string;
     model: string;
@@ -76,6 +77,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 <div className="flex justify-between">
                   <span className="text-gray-500">Номер лота:</span>
                   <span className="font-medium">{product.lot_number}</span>
+                </div>
+              )}
+              {product.id && (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">ID товара:</span>
+                  <span className="font-medium">{product.id}</span>
                 </div>
               )}
             </div>

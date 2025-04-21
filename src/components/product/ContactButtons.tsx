@@ -19,7 +19,7 @@ interface ContactButtonsProps {
   onContactWhatsApp: () => void;
   telegramUrl?: string;
   product: {
-    id?: string;
+    id?: string; // product_id
     title: string;
     price: number;
     brand: string;
@@ -28,7 +28,7 @@ interface ContactButtonsProps {
     optid_created?: string | null;
     seller_id?: string;
     seller_name?: string;
-    lot_number?: string | number | null; // Добавляем поле lot_number
+    lot_number?: string | number | null;
   };
 }
 
@@ -81,19 +81,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
   const handleConfirmOrder = async () => {
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
-    
+
     try {
       if (!product.seller_id) {
         throw new Error('Missing seller information');
       }
-      
+
       console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
       console.log('Buyer profile:', profile);
       console.log('Product ID being used:', product.id);
-      
+
       const orderPayload = {
         title: product.title,
         quantity: 1,
@@ -109,7 +109,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
         telegram_url_order: profile?.telegram || null,
-        product_id: product.id // Ensure product ID is passed without null fallback
+        product_id: product.id ? product.id : null // add product_id explicitly
       };
 
       console.log('Order data being sent:', orderPayload);
@@ -132,7 +132,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         title: "Заказ успешно создан",
         description: "Вы будете перенаправлены на страницу заказов",
       });
-      
+
       setShowConfirmDialog(false);
       navigate('/orders');
     } catch (error) {
@@ -157,7 +157,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           <ShoppingCart className="mr-2 h-4 w-4" /> Купить
         </Button>
       )}
-      
+
       <Button 
         variant="outline"
         className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
@@ -165,7 +165,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       >
         <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
       </Button>
-      
+
       <Button 
         className="w-full bg-green-600 hover:bg-green-700 text-white"
         onClick={onContactWhatsApp}
@@ -192,3 +192,4 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 };
 
 export default ContactButtons;
+
