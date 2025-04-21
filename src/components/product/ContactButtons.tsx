@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -27,6 +28,7 @@ interface ContactButtonsProps {
     seller_id?: string;
     seller_name?: string;
     lot_number?: string | number | null;
+    status?: string;
   };
 }
 
@@ -43,6 +45,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isSeller = profile?.user_type === 'seller';
+  const isProductSold = product.status === 'sold';
 
   const handleBuyNow = () => {
     if (!user) {
@@ -185,13 +188,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
   return (
     <>
-      {!isSeller && (
+      {!isSeller && !isProductSold && (
         <Button 
           className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
           onClick={handleBuyNow}
         >
           <ShoppingCart className="mr-2 h-4 w-4" /> Купить
         </Button>
+      )}
+
+      {isProductSold && (
+        <div className="w-full p-3 mb-2 bg-gray-100 text-center text-gray-700 font-medium rounded-md border border-gray-300">
+          Товар продан
+        </div>
       )}
 
       <Button 

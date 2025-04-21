@@ -47,7 +47,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     onProductUpdate();
   };
 
-  if (isEditing && isOwner) {
+  if (isEditing && isOwner && product.status !== 'sold') {
     return (
       <div className="bg-white p-6 rounded-lg shadow-sm">
         <ProductEditForm

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -205,7 +206,8 @@ const ProductDetail = () => {
                       optid_created: product.optid_created,
                       seller_id: product.seller_id,
                       seller_name: sellerName,
-                      lot_number: product.lot_number
+                      lot_number: product.lot_number,
+                      status: product.status
                     }}
                   />
                 </div>
@@ -254,7 +256,8 @@ const ProductDetail = () => {
                       optid_created: product.optid_created,
                       seller_id: product.seller_id,
                       seller_name: sellerName,
-                      lot_number: product.lot_number
+                      lot_number: product.lot_number,
+                      status: product.status
                     }}
                   />
                 </div>
