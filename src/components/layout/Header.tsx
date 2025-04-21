@@ -77,10 +77,13 @@ const Header = () => {
       <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link 
           to="/" 
-          className="text-2xl font-extrabold tracking-tight flex items-center gap-1.5"
+          className="text-2xl font-extrabold tracking-tight flex flex-col items-center gap-1.5"
         >
-          <span className="text-primary">OPT</span>
-          <span className="text-secondary">APP</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-black">OPT</span>
+            <span className="text-black">APP</span>
+          </div>
+          <small className="text-xs text-gray-500 lowercase tracking-wide">spare parts market</small>
         </Link>
 
         {isMobile ? (
