@@ -42,9 +42,33 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     
     try {
       const uploadedUrls: string[] = [];
+      
+      // First check if user is authenticated
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "Ошибка",
+          description: "Вы должны быть авторизованы для загрузки видео",
+          variant: "destructive"
+        });
+        setUploading(false);
+        return;
+      }
+      
       for (const file of files) {
+        // Validate file size (limit to 100MB)
+        const fileSizeMB = file.size / (1024 * 1024);
+        if (fileSizeMB > 100) {
+          toast({
+            title: "Ошибка",
+            description: `Файл слишком большой. Максимальный размер 100МБ`,
+            variant: "destructive"
+          });
+          continue;
+        }
+        
         const ext = file.name.split('.').pop();
-        const fileName = `${storagePrefix}${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
+        const fileName = `${storagePrefix}${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
         
         console.log(`Uploading to bucket: ${storageBucket}, file: ${fileName}`);
         const { data, error } = await supabase.storage
