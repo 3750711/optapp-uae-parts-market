@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderDetails } from './OrderDetails';
 import { OrderImages } from './OrderImages';
+import { OrderVideos } from './OrderVideos';
 import { Database } from '@/integrations/supabase/types';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
@@ -31,13 +31,15 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
 interface OrderConfirmationCardProps {
   order: Order;
   images: string[];
+  videos?: string[];
   onOrderUpdate?: (updatedOrder: any) => void;
 }
 
-export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ 
-  order, 
+export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
+  order,
   images,
-  onOrderUpdate 
+  videos = [],
+  onOrderUpdate,
 }) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -87,15 +89,17 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       </CardHeader>
       <CardContent className="space-y-6">
         <OrderDetails order={order} />
-        
+
         {order.description && (
           <div>
             <Label className="text-sm text-gray-500 mb-2 block">Описание</Label>
             <p className="text-gray-700 whitespace-pre-wrap">{order.description}</p>
           </div>
         )}
-        
+
         <OrderImages images={images} />
+
+        <OrderVideos videos={videos} />
       </CardContent>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

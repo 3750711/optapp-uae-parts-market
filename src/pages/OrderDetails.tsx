@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -8,6 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
 import { toast } from '@/components/ui/use-toast';
 import { OrderImages } from '@/components/order/OrderImages';
+import { OrderVideos } from '@/components/order/OrderVideos';
 import { Database } from '@/integrations/supabase/types';
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,6 +74,8 @@ const OrderDetails = () => {
       console.log("Fetched order data:", order);
 
       let images: string[] = [];
+      let videos: string[] = [];
+
       if (order.images && Array.isArray(order.images) && order.images.length > 0) {
         images = order.images;
       } else {
@@ -86,15 +88,26 @@ const OrderDetails = () => {
         images = imagesFromTable?.map(img => img.url) || [];
       }
 
+      const { data: videosFromTable, error: videosError } = await supabase
+        .from('order_videos')
+        .select('url')
+        .eq('order_id', id);
+
+      if (videosError) {
+        videos = [];
+      } else {
+        videos = videosFromTable?.map((v) => v.url) || [];
+      }
+
       return {
         order,
         images,
+        videos,
       };
     },
     enabled: !!id
   });
 
-  // Seller confirm handler
   const handleSellerConfirm = async () => {
     if (!orderData?.order || isUpdating) return;
     setIsUpdating(true);
@@ -123,6 +136,7 @@ const OrderDetails = () => {
       queryClient.setQueryData(['order', id], {
         order: { ...orderData.order, status: 'seller_confirmed' },
         images: orderData.images,
+        videos: orderData.videos,
       });
       queryClient.invalidateQueries({ queryKey: ['order', id] });
     } finally {
@@ -155,7 +169,6 @@ const OrderDetails = () => {
     );
   }
 
-  // Определяем: продавец ли пользователь и можно ли показать кнопку подтверждения
   const isSeller = profile?.user_type === 'seller' && orderData.order.seller_id === user?.id;
   const canConfirm = isSeller && orderData.order.status === 'created';
 
@@ -165,6 +178,7 @@ const OrderDetails = () => {
         <OrderConfirmationCard
           order={orderData.order}
           images={orderData.images}
+          videos={orderData.videos}
           onOrderUpdate={(updatedOrder) => {
             if (orderData?.order) {
               const preservedFields = {
@@ -174,7 +188,8 @@ const OrderDetails = () => {
               const mergedOrder = { ...preservedFields, ...updatedOrder };
               queryClient.setQueryData(['order', id], {
                 order: mergedOrder,
-                images: orderData.images
+                images: orderData.images,
+                videos: orderData.videos,
               });
             }
             queryClient.invalidateQueries({ queryKey: ['order', id] });
@@ -204,10 +219,13 @@ const OrderDetails = () => {
           <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
           <OrderImages images={orderData.images} />
         </div>
+        <div className="mt-10">
+          <h2 className="text-2xl font-semibold mb-4">Видео заказа</h2>
+          <OrderVideos videos={orderData.videos} />
+        </div>
       </div>
     </Layout>
   );
 };
 
 export default OrderDetails;
-
