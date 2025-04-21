@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -116,6 +117,8 @@ const ProductDetail = () => {
   const images = getProductImages();
   const sellerProfile = product.profiles;
   
+  console.log("Full product data:", product);
+  console.log("Product ID:", product.id);
   console.log("Seller profile data:", sellerProfile);
   
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
@@ -152,6 +155,7 @@ const ProductDetail = () => {
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
                 product={{
+                  id: product.id,  // Explicitly pass the product ID
                   title: product.title,
                   price: productPrice,
                   brand: product.brand,

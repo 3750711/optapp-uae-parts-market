@@ -91,6 +91,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.log('Creating order with seller name:', product.seller_name);
       console.log('Product data:', product);
       console.log('Buyer profile:', profile);
+      console.log('Product ID being used:', product.id);
       
       const orderPayload = {
         title: product.title,
@@ -107,7 +108,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
         telegram_url_order: profile?.telegram || null,
-        product_id: product.id || null // Add the product ID
+        product_id: product.id || null // Ensure product ID is passed
       };
 
       console.log('Order data being sent:', orderPayload);

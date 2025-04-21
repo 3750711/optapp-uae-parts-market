@@ -99,6 +99,7 @@ const SellerCreateOrder = () => {
         }
 
         if (product) {
+          console.log('Product data loaded:', product);
           setFormData({
             title: product.title,
             price: product.price.toString(),
@@ -165,6 +166,7 @@ const SellerCreateOrder = () => {
         return;
       }
 
+      console.log("Working with product ID:", productId);
       let resolvedProductId = productId;
 
       // If no productId is provided, create a temporary product
@@ -215,7 +217,7 @@ const SellerCreateOrder = () => {
         brand: formData.brand,
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
-        order_created_type: productId ? 'ads_order' as OrderCreatedType : 'free_order' as OrderCreatedType,
+        order_created_type: productId ? ('ads_order' as OrderCreatedType) : ('free_order' as OrderCreatedType),
         telegram_url_order: buyerData.telegram || null,
         images: images,
         product_id: resolvedProductId || null,
