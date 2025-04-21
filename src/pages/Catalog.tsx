@@ -30,7 +30,7 @@ const Catalog = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
-        .eq('status', 'active')
+        .eq('status', 'active')  // Only fetch products with 'active' status
         .order("created_at", { ascending: false });
       
       if (error) {
