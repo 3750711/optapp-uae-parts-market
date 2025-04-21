@@ -33,61 +33,61 @@ const Header = () => {
   };
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
-    <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
+    <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-5">
       <Link 
         to="/" 
-        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
         Главная
       </Link>
       <Link 
         to="/catalog" 
-        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
         Каталог
       </Link>
       <Link 
         to="/about" 
-        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
         О нас
       </Link>
       <Link 
         to="/contact" 
-        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
         Контакты
       </Link>
       {profile?.user_type === 'seller' && (
-        <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-1">
-          <button className="btn-accent px-5 py-2 text-[14px] font-bold animate__animated animate__fadeInUp">
+        <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
+          <Button variant="secondary" size="sm" className="animate-float">
             Панель продавца
-          </button>
+          </Button>
         </Link>
       )}
     </nav>
   );
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50 border-b border-[#e2e7f0]">
-      <div className="container flex items-center justify-between py-3 md:py-5">
+    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
+      <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link 
           to="/" 
-          className="text-2xl font-extrabold tracking-tight"
-          style={{ color: "#181920" }}
+          className="text-2xl font-extrabold tracking-tight flex items-center gap-1.5"
         >
-          OPTAPP
+          <span className="text-primary">OPT</span>
+          <span className="text-secondary">APP</span>
         </Link>
 
         {isMobile ? (
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" className="md:hidden p-1">
-                <Menu className="h-7 w-7 text-black" />
+              <Button variant="ghost" className="md:hidden p-2">
+                <Menu className="h-6 w-6" />
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="bg-white border-r border-gray-200 shadow-2xl w-[82vw]">
@@ -100,11 +100,11 @@ const Header = () => {
           <NavLinks />
         )}
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           {user ? (
             <div className="flex items-center space-x-2">
               {profile?.user_type && !isMobile && (
-                <Badge variant="secondary" className="hidden sm:flex bg-[#fffbe5] text-[#424b5a] border border-[#e4bc1b] shadow"> 
+                <Badge variant="outline" className="hidden sm:flex bg-accent text-primary border border-primary/20"> 
                   {getUserTypeLabel(profile.user_type)}
                 </Badge>
               )}
@@ -112,24 +112,24 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
-                    className="relative rounded-full h-10 w-10 p-0 text-black bg-[#fffbe5] border border-[#fbe87d] shadow transition-transform hover:scale-110"
+                    className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"
                   >
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-9 w-9">
                       <AvatarImage 
                         src={profile?.avatar_url || ''} 
                         alt={profile?.full_name || 'User'} 
                       />
-                      <AvatarFallback className="bg-[#ffe158] text-black">
+                      <AvatarFallback className="bg-primary text-white">
                         {profile?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white text-black shadow-lg border border-gray-200 rounded-xl animate-scale-in">
-                  <DropdownMenuLabel>
-                    {profile?.full_name || user.email}
+                <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
+                  <DropdownMenuLabel className="flex flex-col gap-1">
+                    <span>{profile?.full_name || user.email}</span>
                     {profile?.user_type && (
-                      <Badge variant="secondary" className="ml-2 bg-[#fffbe5] text-[#424b5a] border border-[#e4bc1b] shadow">
+                      <Badge variant="outline" className="w-fit bg-accent text-primary border border-primary/20">
                         {getUserTypeLabel(profile.user_type)}
                       </Badge>
                     )}
@@ -137,7 +137,7 @@ const Header = () => {
                   <DropdownMenuSeparator />
                   
                   {isAdmin && (
-                    <DropdownMenuItem asChild>
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/admin" className="flex w-full items-center">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         <span>Панель администратора</span>
@@ -145,7 +145,7 @@ const Header = () => {
                     </DropdownMenuItem>
                   )}
                   
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/profile" className="flex w-full items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Мой профиль</span>
@@ -154,19 +154,19 @@ const Header = () => {
                   
                   {profile?.user_type === 'seller' && (
                     <>
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/dashboard" className="flex w-full items-center">
                           <User className="mr-2 h-4 w-4" />
                           <span>Личный кабинет</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/add-product" className="flex w-full items-center">
                           <Plus className="mr-2 h-4 w-4" />
                           <span>Добавить товар</span>
                         </Link>
                       </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
+                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/create-order" className="flex w-full items-center">
                           <Package className="mr-2 h-4 w-4" />
                           <span>Создать заказ</span>
@@ -176,20 +176,20 @@ const Header = () => {
                     </>
                   )}
                   
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/orders" className="flex w-full items-center">
                       <Package className="mr-2 h-4 w-4" />
                       <span>Мои заказы</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/catalog" className="flex w-full items-center">
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       <span>Каталог</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="text-red-500 hover:bg-red-50">
+                  <DropdownMenuItem onClick={signOut} className="hover:bg-destructive/10 hover:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Выйти</span>
                   </DropdownMenuItem>
@@ -201,14 +201,11 @@ const Header = () => {
               <Button 
                 asChild 
                 variant="ghost"
-                className="text-[#181920] hover:bg-[#f6f7fa] transition-all duration-200 border border-gray-200"
+                className="text-foreground hover:text-primary"
               >
                 <Link to="/login">Вход</Link>
               </Button>
-              <Button 
-                asChild
-                className="btn-accent hover:bg-yellow-300 transition-all duration-200"
-              >
+              <Button asChild variant="default">
                 <Link to="/register">Регистрация</Link>
               </Button>
             </div>
@@ -220,4 +217,3 @@ const Header = () => {
 };
 
 export default Header;
-

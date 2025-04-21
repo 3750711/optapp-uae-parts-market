@@ -5,56 +5,59 @@ import { Mail, Phone, MapPin } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-white border-t border-accentBlue">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
-            <h3 className="text-xl font-bold mb-4 text-accentBlue">OPTAPP</h3>
-            <p className="text-[#181920]">
+    <footer className="bg-white border-t border-gray-100 mt-auto">
+      <div className="container mx-auto px-6 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+          <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
+            <h3 className="text-xl font-bold mb-4">
+              <span className="text-primary">OPT</span>
+              <span className="text-secondary">APP</span>
+            </h3>
+            <p className="text-foreground/80 leading-relaxed">
               Маркетплейс автозапчастей из ОАЭ.<br />
               Продажа качественных запчастей напрямую от поставщиков.
             </p>
           </div>
 
-          <div>
-            <h3 className="text-xl font-bold mb-4 text-accentBlue">Навигация</h3>
-            <ul className="space-y-2">
+          <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
+            <h3 className="text-xl font-bold mb-4 text-foreground">Навигация</h3>
+            <ul className="space-y-3">
               <li>
-                <Link to="/" className="text-[#181920] hover:text-accentBlue font-medium transition-colors">Главная</Link>
+                <Link to="/" className="text-foreground/80 hover:text-primary transition-colors">Главная</Link>
               </li>
               <li>
-                <Link to="/catalog" className="text-[#181920] hover:text-accentBlue font-medium transition-colors">Каталог</Link>
+                <Link to="/catalog" className="text-foreground/80 hover:text-primary transition-colors">Каталог</Link>
               </li>
               <li>
-                <Link to="/about" className="text-[#181920] hover:text-accentBlue font-medium transition-colors">О нас</Link>
+                <Link to="/about" className="text-foreground/80 hover:text-primary transition-colors">О нас</Link>
               </li>
               <li>
-                <Link to="/contact" className="text-[#181920] hover:text-accentBlue font-medium transition-colors">Контакты</Link>
+                <Link to="/contact" className="text-foreground/80 hover:text-primary transition-colors">Контакты</Link>
               </li>
             </ul>
           </div>
 
-          <div>
-            <h3 className="text-xl font-bold mb-4 text-accentBlue">Контакты</h3>
-            <ul className="space-y-3 text-[#181920]">
+          <div className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
+            <h3 className="text-xl font-bold mb-4 text-foreground">Контакты</h3>
+            <ul className="space-y-4 text-foreground/80">
               <li className="flex items-center">
-                <Phone className="h-5 w-5 mr-2 text-accentBlue" />
+                <Phone className="h-5 w-5 mr-3 text-primary" />
                 <span>+971 58 123 4567</span>
               </li>
               <li className="flex items-center">
-                <Mail className="h-5 w-5 mr-2 text-accentBlue" />
+                <Mail className="h-5 w-5 mr-3 text-primary" />
                 <span>info@optapp.ae</span>
               </li>
               <li className="flex items-start">
-                <MapPin className="h-5 w-5 mr-2 text-accentBlue" />
+                <MapPin className="h-5 w-5 mr-3 text-primary mt-0.5" />
                 <span>Дубай, ОАЭ</span>
               </li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-accentBlue text-center text-[#181920]">
-          <p>&copy; {new Date().getFullYear()} <span className="text-accentBlue">OPTAPP</span>. Все права защищены.</p>
+        <div className="mt-12 pt-6 border-t border-gray-100 text-center text-foreground/70">
+          <p>&copy; {new Date().getFullYear()} <span className="text-primary font-medium">OPTAPP</span>. Все права защищены.</p>
         </div>
       </div>
     </footer>

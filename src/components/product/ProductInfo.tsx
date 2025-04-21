@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Star, Edit } from "lucide-react";
+import { MapPin, Star, Edit, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -24,13 +24,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const getStatusBadge = () => {
     switch (product.status) {
       case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800">Ожидает проверки</Badge>;
+        return <Badge variant="warning" className="animate-pulse-soft">Ожидает проверки</Badge>;
       case 'active':
-        return <Badge className="bg-green-100 text-green-800">Опубликован</Badge>;
+        return <Badge variant="success">Опубликован</Badge>;
       case 'sold':
-        return <Badge className="bg-blue-100 text-blue-800">Продан</Badge>;
+        return <Badge variant="info">Продан</Badge>;
       case 'archived':
-        return <Badge className="bg-gray-100 text-gray-800">Архив</Badge>;
+        return <Badge variant="outline" className="bg-gray-100">Архив</Badge>;
       default:
         return null;
     }
@@ -49,7 +49,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
 
   if (isEditing && isOwner && product.status !== 'sold') {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm">
+      <div className="bg-white p-6 rounded-xl shadow-card animate-fade-in">
         <ProductEditForm
           product={product}
           onCancel={() => setIsEditing(false)}
@@ -60,11 +60,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Badge className="bg-optapp-yellow text-optapp-dark">{product.condition}</Badge>
-          <span className="text-gray-500 flex items-center">
+    <div className="animate-fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant={product.condition === "Новый" ? "secondary" : "outline"} className={product.condition === "Новый" ? "" : "bg-gray-100"}>
+            {product.condition}
+          </Badge>
+          <span className="text-muted-foreground flex items-center">
             <MapPin className="h-4 w-4 mr-1" /> {product.location || "Не указано"}
           </span>
           {getStatusBadge()}
@@ -82,16 +84,16 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         )}
       </div>
       
-      <h1 className="text-3xl font-bold mb-2">{product.title}</h1>
-      <div className="text-2xl font-bold text-optapp-dark mb-4">
-        {product.price} AED
+      <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
+      <div className="text-2xl font-bold text-primary mb-4 flex items-center">
+        {product.price} <span className="ml-1 text-xl">AED</span>
       </div>
       
       {(product.rating_seller !== undefined || product.optid_created) && (
-        <div className="flex items-center space-x-4 mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 p-4 rounded-lg bg-gray-50 border border-gray-100">
           {product.optid_created && (
             <div>
-              <span className="text-gray-500">OPT ID: </span>
+              <span className="text-muted-foreground text-sm">OPT ID: </span>
               <span className="font-medium">{product.optid_created}</span>
             </div>
           )}
@@ -101,9 +103,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
                 {[...Array(5)].map((_, i) => (
                   <Star 
                     key={i}
-                    className={`h-5 w-5 ${
+                    className={`h-4 w-4 ${
                       i < Math.floor(product.rating_seller)
-                        ? "fill-yellow-400 text-yellow-400"
+                        ? "fill-secondary text-secondary"
                         : "text-gray-300"
                     }`}
                   />
@@ -111,7 +113,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
               </div>
               <span className="text-sm">
                 <span className="font-medium">{product.rating_seller.toFixed(1)}</span>
-                <span className="text-gray-500"> / 5</span>
+                <span className="text-muted-foreground"> / 5</span>
               </span>
             </div>
           )}
@@ -119,8 +121,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
       )}
       
       <div className="mb-6">
-        <h3 className="font-medium mb-2">Описание:</h3>
-        <p className="text-gray-700">{product.description || "Описание отсутствует"}</p>
+        <h3 className="font-medium mb-3 flex items-center">
+          <AlertCircle className="h-4 w-4 mr-1.5 text-muted-foreground" />
+          Описание:
+        </h3>
+        <p className="text-foreground/80 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">
+          {product.description || "Описание отсутствует"}
+        </p>
       </div>
     </div>
   );

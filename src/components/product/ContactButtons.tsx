@@ -194,33 +194,38 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     <>
       {!isSeller && !isProductSold && (
         <Button 
-          className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 mb-2"
+          className="w-full bg-secondary text-white hover:bg-secondary-hover hover:-translate-y-0.5 mb-3 shadow-xl transition-all"
+          size="lg"
           onClick={handleBuyNow}
         >
-          <ShoppingCart className="mr-2 h-4 w-4" /> Купить
+          <ShoppingCart className="mr-2 h-5 w-5" /> Купить сейчас
         </Button>
       )}
 
       {isProductSold && (
-        <div className="w-full p-3 mb-2 bg-gray-100 text-center text-gray-700 font-medium rounded-md border border-gray-300">
+        <div className="w-full p-4 mb-3 bg-gray-50 text-center text-gray-600 font-medium rounded-lg border border-gray-200 animate-pulse-soft">
           Товар продан
         </div>
       )}
 
-      <Button 
-        variant="outline"
-        className="w-full border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white mb-2"
-        onClick={onContactTelegram}
-      >
-        <MessageSquare className="mr-2 h-4 w-4" /> Написать сообщение
-      </Button>
+      <div className="grid grid-cols-2 gap-3 mb-1">
+        <Button 
+          variant="outline"
+          className="border-primary border-2"
+          size="lg"
+          onClick={onContactTelegram}
+        >
+          <MessageSquare className="mr-2 h-5 w-5" /> Telegram
+        </Button>
 
-      <Button 
-        className="w-full bg-green-600 hover:bg-green-700 text-white"
-        onClick={onContactWhatsApp}
-      >
-        <MessageSquare className="mr-2 h-4 w-4" /> Связаться в WhatsApp
-      </Button>
+        <Button 
+          className="bg-[#25d366] hover:bg-[#20bd5c] text-white shadow-lg"
+          size="lg"
+          onClick={onContactWhatsApp}
+        >
+          <MessageSquare className="mr-2 h-5 w-5" /> WhatsApp
+        </Button>
+      </div>
 
       <ProfileWarningDialog
         open={showProfileWarning}

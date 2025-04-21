@@ -1,5 +1,4 @@
 
-
 @import url('https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap');
 
 @tailwind base;
@@ -9,11 +8,11 @@
 @layer base {
   html {
     font-family: 'Inter', sans-serif;
-    background: #f8fafc;
-    color: #181920;
+    background: #f9fafb;
+    color: #111827;
   }
   body {
-    @apply bg-[#f6f7fa] text-[#181920] antialiased;
+    @apply bg-background text-foreground antialiased;
   }
   .container {
     @apply px-5 md:px-8 py-10 md:py-16;
@@ -21,23 +20,41 @@
 }
 
 @layer components {
-  .btn-accent {
-    @apply bg-[#FFE158] text-[#181920] font-bold py-2 px-4 rounded-lg shadow transition-all duration-200 transform hover:-translate-y-1 hover:bg-yellow-300 active:scale-95;
+  .btn-primary {
+    @apply bg-primary text-white font-semibold py-2.5 px-6 rounded-lg shadow-button transition-all duration-300 
+           hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-elevation-hover active:scale-95;
   }
-  .btn-blue {
-    /* заменено на индиго */
-    @apply bg-indigo-600 text-white font-bold py-2 px-5 rounded-lg hover:bg-indigo-700 shadow hover:shadow-xl transition-all duration-200;
+  .btn-secondary {
+    @apply bg-secondary text-white font-semibold py-2.5 px-6 rounded-lg shadow-button transition-all duration-300 
+           hover:bg-secondary-hover hover:-translate-y-0.5 hover:shadow-elevation-hover active:scale-95;
   }
   .btn-outline {
-    /* заменено с серо-синих тонов на индиго */
-    @apply border border-indigo-300 text-indigo-700 bg-white rounded-lg hover:bg-indigo-50 transition-all duration-200;
+    @apply border-2 border-primary text-primary bg-white rounded-lg font-semibold py-2 px-5
+           hover:bg-primary hover:text-white transition-all duration-300 hover:-translate-y-0.5;
+  }
+  .btn-ghost {
+    @apply text-primary bg-transparent font-semibold py-2.5 px-6 rounded-lg transition-all duration-200
+           hover:bg-primary/10 active:scale-95;
   }
   .optapp-card {
-    @apply bg-white rounded-2xl shadow-card p-4 hover:shadow-lg transition overflow-hidden;
+    @apply bg-white rounded-xl shadow-card p-5 transition-all duration-300 hover:shadow-elevation overflow-hidden;
   }
   .text-link {
-    /* ссылки с синих на индиго */
-    @apply text-indigo-600 hover:underline underline-offset-4 transition;
+    @apply text-primary hover:text-primary-hover underline-offset-4 transition-colors relative
+           after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-0 after:bg-primary-hover
+           hover:after:w-full after:transition-all after:duration-300;
+  }
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .badge-primary {
+    @apply bg-primary/20 text-primary;
+  }
+  .badge-secondary {
+    @apply bg-secondary/20 text-secondary;
+  }
+  .input-field {
+    @apply w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all;
   }
 }
 
@@ -49,3 +66,10 @@
   animation: fadeIn 0.5s ease-out forwards;
 }
 
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}

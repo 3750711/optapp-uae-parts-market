@@ -26,29 +26,46 @@ export default {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-        background: '#f6f7fa',
-        foreground: '#181920',
+        background: '#f9fafb',
+        foreground: '#111827',
         primary: {
-          DEFAULT: '#181c25',
+          DEFAULT: '#6366f1', // Индиго основной
+          foreground: '#ffffff',
+          hover: '#4f46e5',
+          focus: '#4338ca',
         },
         secondary: {
-          DEFAULT: '#424b5a',
+          DEFAULT: '#f59e0b', // Желтый акцент
+          foreground: '#ffffff',
+          hover: '#d97706',
+          focus: '#b45309',
         },
         card: {
-          DEFAULT: '#fff'
+          DEFAULT: '#fff',
+          shadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
         },
-        accentBlue: "#4c51bf", // заменено с #2269f1 на индиго оттенок
-        yellowAccent: "#FFE158",
-        lightGray: "#f6f7fa",
-        cardBg: "#fff",
-        link: "#4c51bf", // тоже индиго замена для ссылок
+        muted: {
+          DEFAULT: '#f3f4f6',
+          foreground: '#6b7280',
+        },
+        accent: {
+          DEFAULT: '#eff6ff', // Голубой акцент (светлый)
+          foreground: '#3b82f6',
+        },
+        destructive: {
+          DEFAULT: '#ef4444', // Красный
+          foreground: '#ffffff',
+        },
       },
       boxShadow: {
         card: "0 4px 24px 0 rgba(34, 41, 47, 0.09)",
+        elevation: "0 6px 24px -8px rgba(0, 0, 0, 0.2)",
+        "elevation-hover": "0 12px 32px -10px rgba(0, 0, 0, 0.3)",
+        "button": "0 4px 14px 0 rgba(99, 102, 241, 0.39)",
       },
       borderRadius: {
         lg: '1rem',
-        md: '12px',
+        md: '0.75rem',
         '2xl': '2rem',
       },
       keyframes: {
@@ -59,11 +76,36 @@ export default {
         'accordion-up': {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' }
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' }
+        },
+        'pulse-soft': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.8' }
+        },
+        'slide-in-right': {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' }
+        },
+        'slide-out-right': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(100%)' }
+        },
+        'scale-in': {
+          '0%': { transform: 'scale(0.95)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' }
         }
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
-        'accordion-up': 'accordion-up 0.2s ease-out'
+        'accordion-up': 'accordion-up 0.2s ease-out',
+        'float': 'float 3s ease-in-out infinite',
+        'pulse-soft': 'pulse-soft 2s infinite ease-in-out',
+        'slide-in-right': 'slide-in-right 0.3s ease-out',
+        'slide-out-right': 'slide-out-right 0.3s ease-out',
+        'scale-in': 'scale-in 0.2s ease-out'
       }
     }
   },
