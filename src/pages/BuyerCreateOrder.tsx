@@ -29,6 +29,7 @@ const BuyerCreateOrder = () => {
     lot_number: undefined as number | undefined,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [productImages, setProductImages] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -59,6 +60,18 @@ const BuyerCreateOrder = () => {
             model: product.model || "",
             lot_number: product.lot_number,
           });
+
+          const { data: images, error: imagesError } = await supabase
+            .from('product_images')
+            .select('url')
+            .eq('product_id', productId);
+
+          if (imagesError) {
+            console.error('Error fetching product images:', imagesError);
+          } else if (images && images.length > 0) {
+            setProductImages(images.map(img => img.url));
+            console.log('Found product images:', images.map(img => img.url));
+          }
         }
       }
     };
@@ -168,6 +181,7 @@ const BuyerCreateOrder = () => {
         order_created_type: productId ? 'ads_order' as OrderCreatedType : 'free_order' as OrderCreatedType,
         product_id: resolvedProductId || null,
         lot_number_order: usedLotNumber !== undefined ? usedLotNumber : null,
+        images: productImages,
       };
 
       console.log("Order payload:", orderPayload);
@@ -312,6 +326,23 @@ const BuyerCreateOrder = () => {
                     className="bg-gray-100"
                   />
                 </div>
+
+                {productImages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Изображения товара</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {productImages.map((url, index) => (
+                        <div key={index} className="aspect-square overflow-hidden rounded-md border">
+                          <img 
+                            src={url} 
+                            alt={`Изображение товара ${index + 1}`} 
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">
                 <Button 

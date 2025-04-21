@@ -104,6 +104,22 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           lotNumberOrder = product.lot_number as number;
         }
       }
+      
+      // Fetch product images if product ID exists
+      let productImages: string[] = [];
+      if (product.id) {
+        const { data: productImagesData, error: productImagesError } = await supabase
+          .from('product_images')
+          .select('url')
+          .eq('product_id', product.id);
+          
+        if (productImagesError) {
+          console.error('Error fetching product images:', productImagesError);
+        } else if (productImagesData && productImagesData.length > 0) {
+          productImages = productImagesData.map(img => img.url);
+          console.log('Found product images:', productImages);
+        }
+      }
 
       const orderPayload = {
         title: product.title,
@@ -122,6 +138,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         telegram_url_order: profile?.telegram || null,
         product_id: product.id ? product.id : null,
         lot_number_order: lotNumberOrder,
+        images: productImages, // Add product images to the order
       };
 
       const { data: order, error } = await supabase
