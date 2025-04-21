@@ -78,7 +78,7 @@ const Header = () => {
         <Link 
           to="/" 
           className="text-2xl font-extrabold tracking-tight"
-          style={{ color: "#f3f414" }}
+          style={{ color: "#181920" }}
         >
           OPTAPP
         </Link>
