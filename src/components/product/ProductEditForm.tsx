@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,12 +13,14 @@ interface ProductEditFormProps {
   product: Product;
   onCancel: () => void;
   onSave: () => void;
+  isCreator?: boolean;
 }
 
 const ProductEditForm: React.FC<ProductEditFormProps> = ({
   product,
   onCancel,
   onSave,
+  isCreator = false,
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
@@ -32,7 +33,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     model: product.model || "",
   });
 
-  // Поддержка изображений/видео если они есть
   const [images, setImages] = React.useState<string[]>(
     Array.isArray(product.product_images)
       ? product.product_images.map((img: any) => img.url)
@@ -51,6 +51,14 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCreator) {
+      toast({
+        title: "Действие запрещено",
+        description: "Только продавец может редактировать объявление",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsLoading(true);
 
     try {
@@ -84,98 +92,102 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     }
   };
 
-  // Компактный квадратный стиль
   return (
     <form
       onSubmit={handleSubmit}
       className="bg-white rounded-2xl shadow-md mx-auto flex flex-col items-stretch justify-between"
       style={{
-        width: "410px",
-        maxWidth: "96vw",
-        minHeight: "410px",
-        maxHeight: "96vh",
-        padding: "18px",
-        gap: "10px",
+        width: "380px",
+        maxWidth: "94vw",
+        minHeight: "380px",
+        maxHeight: "94vw",
+        padding: "16px",
+        gap: "8px",
       }}
     >
-      <div className="flex flex-row gap-3 mb-2 h-[112px]">
+      <div className="flex flex-row gap-3 mb-2 h-[110px]">
         <div className="flex-1 min-w-0">
           <AdminProductImagesManager
             productId={product.id}
             images={images}
-            onImagesChange={setImages}
+            onImagesChange={isCreator ? setImages : () => {}}
           />
         </div>
         <div className="flex-1 min-w-0">
           <AdminProductVideosManager
             productId={product.id}
             videos={videos}
-            onVideosChange={setVideos}
+            onVideosChange={isCreator ? setVideos : () => {}}
           />
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1">
         <Input
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Название товара"
-          className="text-base font-bold h-9"
+          className="text-base font-bold h-8"
+          disabled={!isCreator}
         />
         <Input
           type="number"
           value={formData.price}
           onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
           placeholder="Цена"
-          className="h-9"
+          className="h-8"
+          disabled={!isCreator}
         />
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1">
           <Input
             value={formData.brand}
             onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
             placeholder="Марка"
             className="h-8"
+            disabled={!isCreator}
           />
           <Input
             value={formData.model}
             onChange={(e) => setFormData({ ...formData, model: e.target.value })}
             placeholder="Модель"
             className="h-8"
+            disabled={!isCreator}
           />
         </div>
         <Textarea
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Описание товара"
-          className="min-h-[42px] max-h-[70px] text-sm"
-          rows={3}
+          className="min-h-[36px] max-h-[55px] text-sm"
+          rows={2}
+          disabled={!isCreator}
         />
       </div>
 
-      <div className="flex justify-end gap-2 mt-4">
+      <div className="flex justify-end gap-2 mt-3">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
           disabled={isLoading}
-          className="h-8 px-4 text-xs"
+          className="h-8 px-3 text-xs"
         >
-          <X className="h-4 w-4 mr-2" />
+          <X className="h-4 w-4 mr-1" />
           Отмена
         </Button>
         <Button
           type="submit"
-          className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-8 px-4 text-xs"
-          disabled={isLoading}
+          className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-8 px-3 text-xs"
+          disabled={isLoading || !isCreator}
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
               Сохранение...
             </>
           ) : (
             <>
-              <Save className="h-4 w-4 mr-2" />
+              <Save className="h-4 w-4 mr-1" />
               Сохранить
             </>
           )}
