@@ -71,6 +71,35 @@ export type Database = {
           },
         ]
       }
+      order_videos: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_videos_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           brand: string
@@ -190,6 +219,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_images_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_videos: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_videos_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"

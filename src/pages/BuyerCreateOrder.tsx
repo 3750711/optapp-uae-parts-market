@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { VideoUpload } from "@/components/ui/video-upload";
 import { Database } from "@/integrations/supabase/types";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
@@ -30,6 +31,7 @@ const BuyerCreateOrder = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
+  const [orderVideos, setOrderVideos] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -193,6 +195,18 @@ const BuyerCreateOrder = () => {
 
       if (orderError) throw orderError;
 
+      if (orderVideos.length > 0 && createdOrder && createdOrder[0]?.id) {
+        const { error: videosError } = await supabase
+          .from('order_videos')
+          .insert(
+            orderVideos.map((url) => ({
+              order_id: createdOrder[0].id,
+              url,
+            }))
+          );
+        if (videosError) throw videosError;
+      }
+
       console.log("Created order:", createdOrder);
 
       toast({
@@ -343,6 +357,18 @@ const BuyerCreateOrder = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="space-y-2">
+                  <Label>Видео заказа</Label>
+                  <VideoUpload
+                    videos={orderVideos}
+                    onUpload={(urls) => setOrderVideos((prev) => [...prev, ...urls])}
+                    onDelete={(url) => setOrderVideos((prev) => prev.filter(u => u !== url))}
+                    maxVideos={2}
+                    storageBucket="order-videos"
+                    storagePrefix=""
+                  />
+                </div>
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">
                 <Button 

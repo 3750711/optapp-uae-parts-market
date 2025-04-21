@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,13 +11,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { Database } from "@/integrations/supabase/types";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue
-} from "@/components/ui/select";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import VideoUpload from "@/components/ui/video-upload";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -35,6 +29,7 @@ const SellerCreateOrder = () => {
   const [searchParams] = useSearchParams();
   const productId = searchParams.get('productId');
   const [images, setImages] = useState<string[]>([]);
+  const [videos, setVideos] = useState<string[]>([]);
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [profiles, setProfiles] = useState<ProfileShort[]>([]);
   const [formData, setFormData] = useState({
@@ -169,7 +164,6 @@ const SellerCreateOrder = () => {
       console.log("Working with product ID:", productId);
       let resolvedProductId = productId;
 
-      // If no productId is provided, create a temporary product
       if (!productId) {
         console.log("Creating temporary product for the order");
         const { data: productInsert, error: productError } = await supabase
@@ -254,6 +248,18 @@ const SellerCreateOrder = () => {
           );
 
         if (imagesError) throw imagesError;
+      }
+
+      if (videos.length > 0 && createdOrder?.id) {
+        const { error: videosError } = await supabase
+          .from('order_videos')
+          .insert(
+            videos.map((url) => ({
+              order_id: createdOrder.id,
+              url
+            }))
+          );
+        if (videosError) throw videosError;
       }
 
       setCreatedOrder(createdOrder);
@@ -472,6 +478,18 @@ const SellerCreateOrder = () => {
                     onUpload={handleImageUpload}
                     onDelete={handleImageDelete}
                     maxImages={5}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Видео заказа</Label>
+                  <VideoUpload
+                    videos={videos}
+                    onUpload={(urls) => setVideos((prev) => [...prev, ...urls])}
+                    onDelete={(url) => setVideos((prev) => prev.filter(u => u !== url))}
+                    maxVideos={2}
+                    storageBucket="order-videos"
+                    storagePrefix=""
                   />
                 </div>
               </CardContent>

@@ -28,6 +28,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import VideoUpload from "@/components/ui/video-upload";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -55,6 +56,7 @@ const SellerAddProduct = () => {
   const { toast } = useToast();
   const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -173,6 +175,19 @@ const SellerAddProduct = () => {
         ) as any;
 
       if (imagesError) throw imagesError;
+
+      if (videoUrls.length > 0) {
+        const { error: videosError } = await supabase
+          .from('product_videos')
+          .insert(
+            videoUrls.map((url, idx) => ({
+              product_id: product.id,
+              url
+            }))
+          );
+
+        if (videosError) throw videosError;
+      }
 
       toast({
         title: "Товар добавлен",
@@ -353,6 +368,18 @@ const SellerAddProduct = () => {
                     <p className="text-sm text-gray-500 mt-2">
                       Добавьте до 8 фотографий. Первое фото будет главным в объявлении.
                     </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Видео товара</Label>
+                    <VideoUpload 
+                      videos={videoUrls}
+                      onUpload={(urls) => setVideoUrls((prev) => [...prev, ...urls])}
+                      onDelete={(url) => setVideoUrls((prev) => prev.filter(u => u !== url))}
+                      maxVideos={2}
+                      storageBucket="product-videos"
+                      storagePrefix=""
+                    />
                   </div>
                 </CardContent>
                 
