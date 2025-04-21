@@ -118,7 +118,9 @@ const BuyerCreateOrder = () => {
 
       let resolvedProductId = productId;
 
+      // If no productId is provided, create a temporary product
       if (!productId) {
+        console.log("Creating temporary product for the order");
         const { data: insertedProducts, error: productError } = await supabase
           .from('products')
           .insert({
@@ -142,9 +144,17 @@ const BuyerCreateOrder = () => {
           setIsSubmitting(false);
           return;
         }
-        resolvedProductId = insertedProducts?.[0]?.id;
+        
+        if (insertedProducts && insertedProducts.length > 0) {
+          resolvedProductId = insertedProducts[0].id;
+          console.log("Created temporary product with ID:", resolvedProductId);
+        } else {
+          console.error("No product was created");
+        }
       }
 
+      console.log("Preparing to create order with product_id:", resolvedProductId);
+      
       const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
@@ -161,12 +171,16 @@ const BuyerCreateOrder = () => {
         product_id: resolvedProductId || null,
       };
 
+      console.log("Order payload:", orderPayload);
+
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
         .select();
 
       if (orderError) throw orderError;
+
+      console.log("Created order:", createdOrder);
 
       toast({
         title: "Заказ создан",

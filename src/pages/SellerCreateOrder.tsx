@@ -167,7 +167,9 @@ const SellerCreateOrder = () => {
 
       let resolvedProductId = productId;
 
+      // If no productId is provided, create a temporary product
       if (!productId) {
+        console.log("Creating temporary product for the order");
         const { data: productInsert, error: productError } = await supabase
           .from('products')
           .insert({
@@ -190,8 +192,16 @@ const SellerCreateOrder = () => {
           });
           return;
         }
-        resolvedProductId = productInsert?.[0]?.id;
+        
+        if (productInsert && productInsert.length > 0) {
+          resolvedProductId = productInsert[0].id;
+          console.log("Created temporary product with ID:", resolvedProductId);
+        } else {
+          console.error("No product was created");
+        }
       }
+
+      console.log("Preparing to create order with product_id:", resolvedProductId);
 
       const orderPayload = {
         title: formData.title,
@@ -211,6 +221,8 @@ const SellerCreateOrder = () => {
         product_id: resolvedProductId || null,
       };
 
+      console.log("Order payload:", orderPayload);
+
       const { data: createdOrderData, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
@@ -222,6 +234,7 @@ const SellerCreateOrder = () => {
       }
 
       const createdOrder = createdOrderData?.[0];
+      console.log("Created order:", createdOrder);
 
       if (!createdOrder) {
         throw new Error("Order was created but no data was returned");

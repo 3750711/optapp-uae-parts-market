@@ -19,6 +19,7 @@ interface ContactButtonsProps {
   onContactWhatsApp: () => void;
   telegramUrl?: string;
   product: {
+    id?: string;
     title: string;
     price: number;
     brand: string;
@@ -105,7 +106,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         status: 'created' as OrderStatus,
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
-        telegram_url_order: profile?.telegram || null
+        telegram_url_order: profile?.telegram || null,
+        product_id: product.id || null // Add the product ID
       };
 
       console.log('Order data being sent:', orderPayload);
