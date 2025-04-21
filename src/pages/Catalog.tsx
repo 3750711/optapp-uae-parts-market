@@ -89,8 +89,8 @@ const Catalog = () => {
     <Layout>
       <div className="bg-white min-h-screen py-0">
         <div className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl font-bold mb-6 text-center text-[#f3f414] drop-shadow-lg">Каталог автозапчастей</h1>
-          
+          {/* Removed the main heading here */}
+
           <div className="mb-8 flex justify-center">
             <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
               <Input 
@@ -163,3 +163,4 @@ const Catalog = () => {
 };
 
 export default Catalog;
+
