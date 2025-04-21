@@ -5,52 +5,52 @@
 
 @layer base {
   :root {
-    --background: 55 100% 51%; /* Bright yellow from logo #f0ea00 in HSL approx */
+    --background: 57 98% 48%; /* #f3f414 approx in HSL */
     --foreground: 0 0% 0%; /* Black */
 
-    --card: 55 100% 51%;
+    --card: 57 98% 48%;
     --card-foreground: 0 0% 0%;
 
-    --popover: 55 100% 51%;
+    --popover: 57 98% 48%;
     --popover-foreground: 0 0% 0%;
 
-    --primary: 55 100% 51%;
+    --primary: 57 98% 48%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 55 100% 51%;
-    --secondary-foreground: 0 0% 0%;
+    --secondary: 0 0% 0%; /* Black */
+    --secondary-foreground: 57 98% 48%; /* Bright yellow text on black bg */
 
-    --muted: 55 100% 51%;
+    --muted: 57 98% 48%;
     --muted-foreground: 0 0% 0%;
 
-    --accent: 55 100% 51%;
+    --accent: 57 98% 48%;
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 55 100% 51%;
-    --input: 55 100% 51%;
-    --ring: 55 100% 51%;
+    --border: 57 98% 48%;
+    --input: 57 98% 48%;
+    --ring: 57 98% 48%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 55 100% 51%;
+    --background: 57 98% 48%;
     --foreground: 0 0% 0%;
 
-    --card: 55 100% 51%;
+    --card: 57 98% 48%;
     --card-foreground: 0 0% 0%;
 
-    --popover: 55 100% 51%;
+    --popover: 57 98% 48%;
     --popover-foreground: 0 0% 0%;
 
-    --primary: 55 100% 51%;
+    --primary: 57 98% 48%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 0 0% 0%;
+    --secondary: 0 0% 0%; /* Black */
+    --secondary-foreground: 57 98% 48%; /* Bright yellow text on black bg */
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
