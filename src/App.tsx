@@ -13,9 +13,9 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminProducts from "./pages/AdminProducts";
 
 // Pages
+import Catalog from "./pages/Catalog";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -42,7 +42,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Catalog />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/login" element={<Login />} />

@@ -42,11 +42,11 @@ const ProductCard: React.FC<ProductProps> = ({
   const getStatusBadge = () => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Ожидает проверки</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-300">Ожидает проверки</Badge>;
       case 'active':
-        return <Badge variant="secondary" className="bg-green-100 text-green-800">Опубликован</Badge>;
+        return <Badge variant="secondary" className="bg-green-50 text-green-700 border border-green-300">Опубликован</Badge>;
       case 'sold':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Продан</Badge>;
+        return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-300">Продан</Badge>;
       case 'archived':
         return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Архив</Badge>;
       default:
@@ -55,7 +55,7 @@ const ProductCard: React.FC<ProductProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className="overflow-hidden bg-white border border-[#f3f414] hover:shadow-xl shadow transition-shadow">
       <div className="aspect-square overflow-hidden relative">
         <img 
           src={image || "/placeholder.svg"} 
@@ -64,7 +64,7 @@ const ProductCard: React.FC<ProductProps> = ({
         />
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold transform rotate-45 shadow-lg text-lg">
+            <div className="bg-[#f3f414] text-black px-4 py-2 rounded-lg font-bold transform rotate-45 shadow-xl text-lg border border-black">
               ПРОДАНО
             </div>
           </div>
@@ -72,27 +72,27 @@ const ProductCard: React.FC<ProductProps> = ({
       </div>
       <CardContent className="p-4">
         <div className="flex justify-between mb-2">
-          <Badge className="bg-optapp-yellow text-optapp-dark hover:bg-optapp-yellow/90">
+          <Badge className="bg-[#f3f414] text-black hover:bg-[#f3f414]/90 border border-black font-bold">
             {condition}
           </Badge>
-          <span className="text-sm text-gray-500">{location}</span>
+          <span className="text-sm text-black">{location}</span>
         </div>
         
         {getStatusBadge()}
         
         {/* Brand and Model info */}
         <div className="flex flex-col gap-1 mb-2">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-700">
             <span className="font-medium">Бренд:</span> {brand}
           </div>
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-gray-700">
             <span className="font-medium">Модель:</span> {model}
           </div>
         </div>
         
         {/* Seller info */}
         <div className="flex flex-col space-y-2 mb-2 text-sm">
-          <div className="text-gray-600">
+          <div className="text-gray-700">
             <span className="font-medium">Продавец:</span> {seller_name}
           </div>
           <div className="flex items-center space-x-4">
@@ -125,8 +125,8 @@ const ProductCard: React.FC<ProductProps> = ({
           </div>
         </div>
 
-        <h3 className="font-medium text-lg truncate">{name}</h3>
-        <p className="font-bold text-xl mt-2">{price} AED</p>
+        <h3 className="font-medium text-lg truncate text-black">{name}</h3>
+        <p className="font-bold text-xl mt-2 text-black">{price} AED</p>
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Link to={`/product/${id}`} className="w-full">
@@ -134,7 +134,7 @@ const ProductCard: React.FC<ProductProps> = ({
             className={`w-full ${
               status === 'sold' 
               ? 'bg-gray-400 hover:bg-gray-500 text-white' 
-              : 'bg-optapp-yellow text-optapp-dark hover:bg-optapp-yellow/80'
+              : 'bg-[#f3f414] text-black hover:bg-yellow-300 border border-black font-bold'
             }`}
           >
             {status === 'sold' ? 'Просмотреть' : 'Подробнее'}

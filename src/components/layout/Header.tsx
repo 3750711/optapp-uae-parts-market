@@ -29,34 +29,31 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-primary text-primary-foreground shadow-sm">
+    <header className="bg-[#f3f414] shadow-md">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold" style={{ color: "#000" }}>
+          <Link to="/" className="text-2xl font-extrabold tracking-tight drop-shadow-md" style={{ color: "#000" }}>
             OPTAPP
           </Link>
 
           {user && (
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="hover:text-black">
+              <Link to="/" className="text-black hover:text-[#f3f414] font-medium transition-colors">
                 Главная
               </Link>
-              <Link to="/catalog" className="hover:text-black">
+              <Link to="/catalog" className="text-black hover:text-[#f3f414] font-medium transition-colors">
                 Каталог
               </Link>
-              <Link to="/about" className="hover:text-black">
+              <Link to="/about" className="text-black hover:text-[#f3f414] font-medium transition-colors">
                 О нас
               </Link>
-              <Link to="/contact" className="hover:text-black">
+              <Link to="/contact" className="text-black hover:text-[#f3f414] font-medium transition-colors">
                 Контакты
               </Link>
-              
-              {/* Убираем кнопку Админ панель для всех, не рендерим её совсем */}
-              {/* Показ кнопки админ панели убран */}
-              
+              {/* Админ панель убрана навсегда */}
               {profile?.user_type === 'seller' && (
                 <Link to="/seller/dashboard">
-                  <Button variant="default" className="bg-black text-primary hover:bg-gray-900">
+                  <Button variant="default" className="bg-black text-[#f3f414] hover:bg-gray-900">
                     Панель продавца
                   </Button>
                 </Link>
@@ -68,13 +65,13 @@ const Header = () => {
             {user ? (
               <div className="flex items-center space-x-2">
                 {profile?.user_type && (
-                  <Badge variant={profile.user_type === 'seller' ? 'default' : 'secondary'} className="hidden sm:flex">
+                  <Badge variant={profile.user_type === 'seller' ? 'default' : 'secondary'} className="hidden sm:flex bg-[#f3f414] text-black">
                     {getUserTypeLabel(profile.user_type)}
                   </Badge>
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative rounded-full h-10 w-10 p-0 text-black">
+                    <Button variant="ghost" className="relative rounded-full h-10 w-10 p-0 text-black bg-[#f3f414] hover:bg-[#f3f414]/90 border border-black">
                       <Avatar className="h-10 w-10">
                         <AvatarImage 
                           src={profile?.avatar_url || ''} 
@@ -86,20 +83,21 @@ const Header = () => {
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-white text-black">
+                  <DropdownMenuContent align="end" className="w-56 bg-white text-black shadow border border-[#f3f414]">
                     <DropdownMenuLabel>
                       {profile?.full_name || user.email}
                       {profile?.user_type && (
-                        <Badge variant={profile.user_type === 'seller' ? 'default' : 'secondary'} className="ml-2">
+                        <Badge variant={profile.user_type === 'seller' ? 'default' : 'secondary'} className="ml-2 bg-[#f3f414] text-black">
                           {getUserTypeLabel(profile.user_type)}
                         </Badge>
                       )}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     
+                    {/* Кнопка панели администратора только в выпадающем меню — на случай, если нужно */}
                     {isAdmin && (
                       <DropdownMenuItem asChild>
-                        <Link to="/admin" className="flex w-full items-center text-black hover:bg-gray-100">
+                        <Link to="/admin" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           <span>Панель администратора</span>
                         </Link>
@@ -107,7 +105,7 @@ const Header = () => {
                     )}
                     
                     <DropdownMenuItem asChild>
-                      <Link to="/profile" className="flex w-full items-center text-black hover:bg-gray-100">
+                      <Link to="/profile" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Мой профиль</span>
                       </Link>
@@ -116,19 +114,19 @@ const Header = () => {
                     {profile?.user_type === 'seller' && (
                       <>
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/dashboard" className="flex w-full items-center text-black hover:bg-gray-100">
+                          <Link to="/seller/dashboard" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                             <User className="mr-2 h-4 w-4" />
                             <span>Личный кабинет</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/add-product" className="flex w-full items-center text-black hover:bg-gray-100">
+                          <Link to="/seller/add-product" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                             <Plus className="mr-2 h-4 w-4" />
                             <span>Добавить товар</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/create-order" className="flex w-full items-center text-black hover:bg-gray-100">
+                          <Link to="/seller/create-order" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                             <Package className="mr-2 h-4 w-4" />
                             <span>Создать заказ</span>
                           </Link>
@@ -138,14 +136,14 @@ const Header = () => {
                     )}
                     
                     <DropdownMenuItem asChild>
-                      <Link to="/orders" className="flex w-full items-center text-black hover:bg-gray-100">
+                      <Link to="/orders" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                         <Package className="mr-2 h-4 w-4" />
                         <span>Мои заказы</span>
                       </Link>
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem asChild>
-                      <Link to="/catalog" className="flex w-full items-center text-black hover:bg-gray-100">
+                      <Link to="/catalog" className="flex w-full items-center text-black hover:bg-[#f3f414]/30">
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         <span>Каталог</span>
                       </Link>
@@ -170,7 +168,7 @@ const Header = () => {
                 </Button>
                 <Button 
                   asChild
-                  className="bg-black text-primary hover:bg-gray-900"
+                  className="bg-black text-[#f3f414] hover:bg-gray-900"
                 >
                   <Link to="/register">Регистрация</Link>
                 </Button>
@@ -184,4 +182,3 @@ const Header = () => {
 };
 
 export default Header;
-

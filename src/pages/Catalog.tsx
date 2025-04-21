@@ -30,14 +30,13 @@ const Catalog = () => {
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
-        .in('status', ['active', 'sold'])  // Show both active and sold products
+        .in('status', ['active', 'sold'])
         .order("created_at", { ascending: false });
       
       if (error) {
         console.error("Error fetching products:", error);
         throw new Error("Failed to fetch products");
       }
-      
       return data || [];
     },
   });
@@ -88,74 +87,76 @@ const Catalog = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-6">Каталог автозапчастей</h1>
-        
-        <div className="mb-8">
-          <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
-            <Input 
-              type="text" 
-              placeholder="Поиск по названию..." 
-              className="flex-grow"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <Button type="submit" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
-              <Search className="h-4 w-4 mr-2" /> Найти
-            </Button>
-          </form>
-        </div>
-        
-        {isLoading && (
-          <div className="text-center py-12">
-            <p className="text-lg">Загрузка продуктов...</p>
+      <div className="bg-white min-h-screen py-0">
+        <div className="container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold mb-6 text-center text-[#f3f414] drop-shadow-lg">Каталог автозапчастей</h1>
+          
+          <div className="mb-8 flex justify-center">
+            <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
+              <Input 
+                type="text" 
+                placeholder="Поиск по названию..." 
+                className="flex-grow border border-[#f3f414] rounded text-black bg-white"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <Button type="submit" className="bg-[#f3f414] text-black font-semibold hover:bg-yellow-400 border border-black">
+                <Search className="h-4 w-4 mr-2" /> Найти
+              </Button>
+            </form>
           </div>
-        )}
+          
+          {isLoading && (
+            <div className="text-center py-12">
+              <p className="text-lg text-black">Загрузка продуктов...</p>
+            </div>
+          )}
 
-        {!isLoading && filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-lg">Товары не найдены</p>
-            <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
-          </div>
-        )}
-        
-        {!isLoading && filteredProducts.length > 0 && (
-          <ProductGrid products={mappedProducts} />
-        )}
-        
-        {!isLoading && filteredProducts.length > 0 && (
-          <div className="mt-12">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => setCurrentPage(page)}
-                      isActive={page === currentPage}
-                      className={page === currentPage ? "bg-optapp-yellow text-optapp-dark border-optapp-yellow" : "text-optapp-dark"}
-                    >
-                      {page}
-                    </PaginationLink>
+          {!isLoading && filteredProducts.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-lg text-black">Товары не найдены</p>
+              <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
+            </div>
+          )}
+          
+          {!isLoading && filteredProducts.length > 0 && (
+            <ProductGrid products={mappedProducts} />
+          )}
+          
+          {!isLoading && filteredProducts.length > 0 && (
+            <div className="mt-12">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
                   </PaginationItem>
-                ))}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-          </div>
-        )}
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={page === currentPage}
+                        className={page === currentPage ? "bg-[#f3f414] text-black border-black" : "text-black"}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
+          )}
+        </div>
       </div>
     </Layout>
   );
