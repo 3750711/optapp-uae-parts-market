@@ -127,130 +127,145 @@ export const ProductEditDialog = ({
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle>Редактировать товар</DialogTitle>
+      <DialogContent
+        className="!w-[500px] !h-[530px] !max-w-[92vw] !max-h-[92vh] p-4 rounded-2xl bg-white flex flex-col justify-between shadow-lg"
+        style={{ minWidth: 340, minHeight: 420 }}
+      >
+        <DialogHeader className="mb-2 pb-0">
+          <DialogTitle className="text-lg font-bold text-optapp-dark mb-1">Редактировать товар</DialogTitle>
         </DialogHeader>
 
-        <AdminProductImagesManager
-          productId={product.id}
-          images={images}
-          onImagesChange={setImages}
-        />
-
-        <AdminProductVideosManager
-          productId={product.id}
-          videos={videos}
-          onVideosChange={setVideos}
-        />
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Название товара" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+        <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
+          <div className="grid grid-cols-2 gap-2">
+            <AdminProductImagesManager
+              productId={product.id}
+              images={images}
+              onImagesChange={setImages}
             />
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Цена (AED)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="condition"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Состояние</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Новый, Б/У, и т.д." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="brand"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Бренд</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Бренд" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Модель</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Модель" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Местоположение</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Город, район" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <AdminProductVideosManager
+              productId={product.id}
+              videos={videos}
+              onVideosChange={setVideos}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Описание</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Подробное описание товара" className="min-h-[100px]" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="flex justify-end gap-4 pt-2">
-              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-                Отмена
-              </Button>
-              <Button type="submit" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
-                Сохранить
-              </Button>
-            </div>
-          </form>
-        </Form>
+          </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-2">
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs mb-0.5">Название</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Название товара" className="h-8 text-sm" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs mb-0.5">Цена (AED)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" className="h-8 text-sm" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="condition"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs mb-0.5">Состояние</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Новый, Б/У, и т.д." className="h-8 text-sm" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={form.control}
+                  name="brand"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs mb-0.5">Бренд</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Бренд" className="h-8 text-sm" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="model"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs mb-0.5">Модель</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Модель" className="h-8 text-sm" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="location"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs mb-0.5">Местоположение</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Город, район" className="h-8 text-sm" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs mb-0.5">Описание</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Подробное описание" className="min-h-[60px] max-h-[80px] text-sm" rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="px-3 py-1 text-xs"
+                  onClick={() => handleOpenChange(false)}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  type="submit"
+                  className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 px-3 py-1 text-xs"
+                  size="sm"
+                >
+                  Сохранить
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
