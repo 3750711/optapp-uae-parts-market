@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -43,9 +42,7 @@ const Catalog = () => {
     },
   });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
+  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); };
 
   const filteredProducts = products?.filter(product => 
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,20 +86,22 @@ const Catalog = () => {
 
   return (
     <Layout>
-      <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen py-0">
+      <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-4 py-8">
+          
           <div className="mb-8 flex justify-center">
-            <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
-              <Input 
-                type="text" 
-                placeholder="Поиск по названию..." 
-                className="flex-grow border border-gray-300 rounded text-black bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
+            <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                <Search className="h-5 w-5"/>
+              </span>
+              <input 
+                type="text"
+                placeholder="Поиск по названию, бренду, модели..." 
+                className="flex-grow pl-11 pr-3 py-2 border border-gray-300 rounded-md text-[#181920] bg-white focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/20 transition-all duration-300 shadow-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ borderRadius: 10 }}
               />
-              <Button type="submit" className="bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors duration-300">
-                <Search className="h-4 w-4 mr-2" /> Найти
-              </Button>
             </form>
           </div>
           

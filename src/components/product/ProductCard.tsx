@@ -39,105 +39,67 @@ const ProductCard: React.FC<ProductProps> = ({
   seller_name,
   status
 }) => {
-  const getStatusBadge = () => {
-    switch (status) {
-      case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-200">Ожидает проверки</Badge>;
-      case 'active':
-        return <Badge variant="secondary" className="bg-green-50 text-green-700 border border-green-200">Опубликован</Badge>;
-      case 'sold':
-        return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200">Продан</Badge>;
-      case 'archived':
-        return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Архив</Badge>;
-      default:
-        return null;
-    }
-  };
+  // Полупрозрачный watermark для "Продано"
+  const SoldWatermark = () => (
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <span className="bg-white/80 backdrop-blur-md px-6 py-2 rounded-xl font-bold text-2xl text-[#2269f1] opacity-70 shadow-lg select-none" style={{letterSpacing: 2}}>
+        ПРОДАНО
+      </span>
+    </div>
+  );
+
+  // Новый бейдж маленький у названия
+  const NewBadge = () => (
+    <span className="inline-block align-middle ml-2 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded font-semibold">
+      Новый
+    </span>
+  );
 
   return (
-    <Card className="overflow-hidden bg-white border border-gray-200 hover:shadow-xl shadow transition-all duration-300 hover:-translate-y-1 rounded-lg group">
-      <div className="aspect-square overflow-hidden relative">
+    <Card className="optapp-card relative group overflow-hidden rounded-xl border-none shadow-card transition-transform duration-200 hover:-translate-y-1 bg-white">
+      <div className="aspect-square overflow-hidden relative rounded-xl">
         <img 
           src={image || "/placeholder.svg"} 
           alt={name} 
-          className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 ${status === 'sold' ? 'opacity-70' : ''}`}
+          className={"h-full w-full object-cover rounded-xl group-hover:scale-105 transition-all duration-300"}
         />
-        {status === 'sold' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold transform rotate-45 shadow-xl text-lg">
-              ПРОДАНО
-            </div>
-          </div>
-        )}
+        {status === 'sold' && <SoldWatermark />}
       </div>
-      <CardContent className="p-4">
-        <div className="flex justify-between mb-2">
-          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors duration-300">
-            {condition}
-          </Badge>
-          <span className="text-sm text-gray-600">{location}</span>
+      <CardContent className="p-4 pb-0">
+        <div className="text-xs flex flex-row justify-between items-center mb-1 text-gray-500">
+          <span>
+            <span className="font-semibold text-[#181920]">{brand}</span>
+            {" • "}
+            <span>{model}</span>
+          </span>
+          <span>{location}</span>
         </div>
-        
-        {getStatusBadge()}
-        
-        {/* Brand and Model info */}
-        <div className="flex flex-col gap-1 mb-2">
-          <div className="text-sm text-gray-700">
-            <span className="font-medium">Бренд:</span> {brand}
-          </div>
-          <div className="text-sm text-gray-700">
-            <span className="font-medium">Модель:</span> {model}
-          </div>
+        <div className="flex items-center mb-2 gap-2">
+          <span className="font-semibold text-base text-[#181920] truncate leading-tight">{name}
+            {condition === "Новый" && <NewBadge />}
+          </span>
         </div>
-        
-        {/* Seller info */}
-        <div className="flex flex-col space-y-2 mb-2 text-sm">
-          <div className="text-gray-700">
-            <span className="font-medium">Продавец:</span> {seller_name}
-          </div>
-          <div className="flex items-center space-x-4">
-            {(optid_created || seller_opt_id) && (
-              <div>
-                <span className="text-gray-500">OPT ID: </span>
-                <span className="font-medium">{optid_created || seller_opt_id}</span>
-              </div>
-            )}
-            {(rating_seller !== undefined && rating_seller !== null) && (
-              <div className="flex items-center">
-                <div className="flex mr-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-4 w-4 ${
-                        i < Math.floor(rating_seller)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs">
-                  <span className="font-medium">{rating_seller?.toFixed(1)}</span>
-                  <span className="text-gray-500">/5</span>
-                </span>
-              </div>
-            )}
-          </div>
+        {/* Группа: продавец и рейтинг */}
+        <div className="flex items-center mt-1 gap-1 text-xs text-gray-500 justify-between">
+          <span className="flex-1 min-w-0">
+            <span className="font-semibold truncate">{seller_name}</span>
+          </span>
+          {rating_seller !== undefined && (
+            <span className="flex items-center ml-1 gap-0.5">
+              <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 mr-0.5" />
+              <span className="text-xs ml-0.5 font-medium">{rating_seller?.toFixed(1)}</span>
+            </span>
+          )}
         </div>
-
-        <h3 className="font-medium text-lg truncate text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{name}</h3>
-        <p className="font-bold text-xl mt-2 text-gray-900">{price} AED</p>
+        <p className="font-bold text-xl text-[#2269f1] mt-2">{price} AED</p>
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="p-4 pt-2">
         <Link to={`/product/${id}`} className="w-full">
           <Button 
-            className={`w-full transition-all duration-300 ${
-              status === 'sold' 
-              ? 'bg-gray-400 hover:bg-gray-500 text-white' 
-              : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
-            }`}
+            className={"btn-accent w-full rounded-md"}
+            size="sm"
           >
-            {status === 'sold' ? 'Просмотреть' : 'Подробнее'}
+            Подробнее
           </Button>
         </Link>
       </CardFooter>

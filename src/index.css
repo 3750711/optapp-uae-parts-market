@@ -1,107 +1,36 @@
 
+@import url('https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 0 0% 100%; /* white */
-    --foreground: 0 0% 0%;   /* black */
-
-    --primary: 57 98% 48%; /* #f3f414 */
-    --primary-foreground: 0 0% 0%; /* text-black on yellow */
-    --secondary: 0 0% 0%;   /* black for minor elements */
-    --secondary-foreground: 0 0% 100%; /* white on black */
-
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
-
-    --muted: 0 0% 98%;
-    --muted-foreground: 0 0% 50%;
-
-    --accent: 57 98% 48%;        /* yellow for accent borders/backgrounds */
-    --accent-foreground: 0 0% 0%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 0 0% 90%;
-    --input: 0 0% 90%;
-    --ring: 57 98% 48%;
-
-    --radius: 0.75rem;
-  }
-
-  .dark {
-    --background: 0 0% 12%;
-    --foreground: 0 0% 100%;
-
-    --primary: 57 98% 48%;
-    --primary-foreground: 0 0% 0%;
-
-    --secondary: 0 0% 100%;
-    --secondary-foreground: 0 0% 0%;
-
-    --card: 0 0% 20%;
-    --card-foreground: 0 0% 100%;
-  }
-
-  * {
-    @apply border-border;
-    scroll-behavior: smooth;
+  html {
+    font-family: 'Inter', sans-serif;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-lightGray text-[#181920] antialiased;
+  }
+  .container {
+    @apply px-4 py-8;
   }
 }
 
 @layer components {
-  .optapp-container {
-    @apply container mx-auto px-4 py-6;
-  }
-  .btn-primary {
-    @apply bg-primary text-primary-foreground font-bold py-2 px-4 rounded shadow hover:shadow-lg transition;
+  .btn-accent {
+    @apply bg-accentBlue text-white font-bold py-2 px-4 rounded-md shadow hover:shadow-lg hover:bg-accentBlue/90 transition-all duration-300;
   }
   .optapp-card {
-    @apply bg-card rounded-lg shadow p-4 hover:shadow-lg transition;
+    @apply bg-cardBg rounded-xl shadow-card p-4 hover:shadow-lg transition;
   }
 }
 
-/* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-20px); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from { opacity: 0; transform: translateY(10px);}
+  to { opacity: 1; transform: translateY(0);}
 }
 
 .animate-fade-in {
   animation: fadeIn 0.5s ease-out forwards;
-}
-
-.animate-scale-in {
-  animation: scaleIn 0.3s ease-out forwards;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.4s ease-out forwards;
-}
-
-/* Responsive utilities */
-@media (max-width: 640px) {
-  .container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
 }
