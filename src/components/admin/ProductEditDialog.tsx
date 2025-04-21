@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from '@/types/product';
 import { supabase } from '@/integrations/supabase/client';
-import { X } from "lucide-react";
 import { AdminProductImagesManager } from "./AdminProductImagesManager";
 import { AdminProductVideosManager } from "./AdminProductVideosManager";
 
@@ -39,8 +39,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   brand: z.string().min(1, { message: "Введите бренд" }),
   model: z.string().min(1, { message: "Введите модель" }),
-  condition: z.string().min(1, { message: "Введите состояние" }),
-  location: z.string().optional(),
+  // removed condition and location
 });
 
 interface ProductEditDialogProps {
@@ -87,8 +86,7 @@ export const ProductEditDialog = ({
       description: product.description || "",
       brand: product.brand || "",
       model: product.model || "",
-      condition: product.condition || "",
-      location: product.location || "",
+      // removed condition and location
     },
   });
 
@@ -101,8 +99,7 @@ export const ProductEditDialog = ({
         description: values.description,
         brand: values.brand,
         model: values.model,
-        condition: values.condition,
-        location: values.location,
+        // removed condition and location
       })
       .eq('id', product.id);
 
@@ -128,8 +125,8 @@ export const ProductEditDialog = ({
         {trigger}
       </DialogTrigger>
       <DialogContent
-        className="!w-[500px] !h-[530px] !max-w-[92vw] !max-h-[92vh] p-4 rounded-2xl bg-white flex flex-col justify-between shadow-lg"
-        style={{ minWidth: 340, minHeight: 420 }}
+        className="!w-[480px] !h-[480px] !max-w-[92vw] !max-h-[92vh] p-4 rounded-2xl bg-white flex flex-col justify-between shadow-lg"
+        style={{ minWidth: 340, minHeight: 340 }}
       >
         <DialogHeader className="mb-2 pb-0">
           <DialogTitle className="text-lg font-bold text-optapp-dark mb-1">Редактировать товар</DialogTitle>
@@ -177,19 +174,6 @@ export const ProductEditDialog = ({
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="condition"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs mb-0.5">Состояние</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Новый, Б/У, и т.д." className="h-8 text-sm" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <FormField
@@ -219,19 +203,6 @@ export const ProductEditDialog = ({
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-xs mb-0.5">Местоположение</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Город, район" className="h-8 text-sm" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
               <FormField
                 control={form.control}
                 name="description"
@@ -270,3 +241,4 @@ export const ProductEditDialog = ({
     </Dialog>
   );
 };
+
