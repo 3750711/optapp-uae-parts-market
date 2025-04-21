@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -24,6 +23,10 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { UserTypeField } from "./fields/UserTypeField";
+import { OptIdField } from "./fields/OptIdField";
+import { TelegramField } from "./fields/TelegramField";
+import { ProfileTextField } from "./fields/ProfileTextField";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -57,11 +60,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   isLoading,
   readOnlyUserType = true,
 }) => {
-  // Получаем auth пользователя и права админа
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
-
-  // Логика: редактировать opt_id может только владелец или админ
   const canEditOptId = (user?.id === profile.id) || isAdmin;
 
   const form = useForm<FormData>({
@@ -97,133 +97,36 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
+            <ProfileTextField
               name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Имя и фамилия</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите ваше имя" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
               control={form.control}
+              label="Имя и фамилия"
+              placeholder="Введите ваше имя"
+            />
+            <ProfileTextField
               name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" disabled {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
               control={form.control}
-              name="userType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Тип аккаунта</FormLabel>
-                  <FormControl>
-                    <Select
-                      disabled={readOnlyUserType}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Выбрать тип пользователя" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="buyer">Покупатель</SelectItem>
-                        <SelectItem value="seller">Продавец</SelectItem>
-                        <SelectItem value="admin">Администратор</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                  {readOnlyUserType && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Тип аккаунта нельзя изменить после регистрации
-                    </p>
-                  )}
-                </FormItem>
-              )}
+              label="Email"
+              placeholder=""
+              type="email"
+              disabled={true}
             />
-
-            <FormField
-              control={form.control}
+            <UserTypeField control={form.control} readOnlyUserType={readOnlyUserType} />
+            <ProfileTextField
               name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Телефон</FormLabel>
-                  <FormControl>
-                    <Input type="tel" placeholder="+971 XX XXX XXXX" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
               control={form.control}
+              label="Телефон"
+              placeholder="+971 XX XXX XXXX"
+              type="tel"
+            />
+            <ProfileTextField
               name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название компании</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите название вашей компании" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
               control={form.control}
-              name="telegram"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telegram</FormLabel>
-                  <FormControl>
-                    <Input placeholder="@username" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              label="Название компании"
+              placeholder="Введите название вашей компании"
             />
-
-            {/* OPT ID: поле видно всем, редактировать могут только админ и владелец */}
-            <FormField
-              control={form.control}
-              name="optId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>OPT ID</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Введите ваш OPT ID"
-                      {...field}
-                      readOnly={!canEditOptId}
-                      className={!canEditOptId ? "bg-gray-100 cursor-not-allowed" : ""}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                  {!canEditOptId && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      OPT ID можно изменить только владельцу профиля или администратору
-                    </p>
-                  )}
-                </FormItem>
-              )}
-            />
-
+            <TelegramField control={form.control} />
+            <OptIdField control={form.control} canEditOptId={canEditOptId} />
             <Button 
               type="submit" 
               className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 w-full"
@@ -239,4 +142,3 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 };
 
 export default ProfileForm;
-
