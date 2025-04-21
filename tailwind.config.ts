@@ -37,11 +37,11 @@ export default {
         card: {
           DEFAULT: '#fff'
         },
-        accentBlue: "#2269f1",
+        accentBlue: "#4c51bf", // заменено с #2269f1 на индиго оттенок
         yellowAccent: "#FFE158",
         lightGray: "#f6f7fa",
         cardBg: "#fff",
-        link: "#2269f1",
+        link: "#4c51bf", // тоже индиго замена для ссылок
       },
       boxShadow: {
         card: "0 4px 24px 0 rgba(34, 41, 47, 0.09)",
