@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -182,6 +183,7 @@ const ProductDetail = () => {
                 </div>
               </SellerInfo>
             </div>
+            {/* Показываем видео всем пользователям */}
             <div className="mt-2">
               <ProductVideos videos={videos} />
             </div>
@@ -192,6 +194,7 @@ const ProductDetail = () => {
               <div className="mb-4">
                 <ProductGallery images={images} title={product.title} />
               </div>
+              {/* Показываем видео всем пользователям */}
               <div className="mb-8">
                 <ProductVideos videos={videos} />
               </div>
