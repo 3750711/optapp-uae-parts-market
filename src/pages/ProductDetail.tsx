@@ -122,10 +122,10 @@ const ProductDetail = () => {
   console.log("Seller profile data:", sellerProfile);
   
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
-  
+
   // Ensure we have a valid seller name
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
-  
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -163,7 +163,8 @@ const ProductDetail = () => {
                   description: product.description,
                   optid_created: product.optid_created,
                   seller_id: product.seller_id,
-                  seller_name: sellerName
+                  seller_name: sellerName,
+                  lot_number: product.lot_number // <-- Добавляем номер лота!
                 }}
               />
             </SellerInfo>
@@ -175,3 +176,4 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+
