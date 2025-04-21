@@ -26,6 +26,40 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
+  const ensureBucketExists = async () => {
+    try {
+      // Check if the bucket exists first
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      
+      if (error) {
+        console.error("Error checking buckets:", error);
+        return false;
+      }
+      
+      // If the bucket doesn't exist, create it
+      if (!buckets.some(b => b.name === storageBucket)) {
+        console.log(`Bucket '${storageBucket}' not found, attempting to create it...`);
+        const { error: createError } = await supabase.storage.createBucket(storageBucket, {
+          public: true
+        });
+        
+        if (createError) {
+          console.error("Error creating bucket:", createError);
+          return false;
+        }
+        
+        console.log(`Bucket '${storageBucket}' created successfully.`);
+      } else {
+        console.log(`Bucket '${storageBucket}' already exists.`);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Unexpected error in ensureBucketExists:", error);
+      return false;
+    }
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || uploading) return;
     const files = Array.from(e.target.files);
@@ -37,8 +71,21 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       });
       return;
     }
+    
     setUploading(true);
+    
     try {
+      // First ensure the bucket exists
+      const bucketExists = await ensureBucketExists();
+      if (!bucketExists) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось подготовить хранилище для загрузки видео",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const uploadedUrls: string[] = [];
       for (const file of files) {
         const ext = file.name.split('.').pop();
@@ -84,6 +131,45 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     }
   };
 
+  const handleDelete = async (url: string) => {
+    try {
+      // Extract file path from URL
+      const fileUrl = new URL(url);
+      const filePath = decodeURIComponent(fileUrl.pathname.split('/').pop() || '');
+      
+      console.log("Attempting to delete file:", filePath, "from bucket:", storageBucket);
+      
+      if (filePath) {
+        const { error } = await supabase.storage
+          .from(storageBucket)
+          .remove([filePath]);
+          
+        if (error) {
+          console.error("Error deleting file:", error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось удалить видео",
+            variant: "destructive"
+          });
+          return;
+        }
+      }
+      
+      onDelete(url);
+      toast({
+        title: "Видео удалено",
+        description: "Видео было успешно удалено",
+      });
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить видео",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -92,7 +178,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             <video src={url} controls className="w-full h-full object-cover" />
             <button
               type="button"
-              onClick={() => onDelete(url)}
+              onClick={() => handleDelete(url)}
               className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-70"
             >
               <X size={16} />
