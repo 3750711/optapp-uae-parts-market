@@ -1,9 +1,8 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
@@ -56,7 +55,6 @@ const Catalog = () => {
 
   const mappedProducts = paginatedProducts.map(product => {
     let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
-    
     if (product.product_images && product.product_images.length > 0) {
       const primaryImage = product.product_images.find(img => img.is_primary);
       if (primaryImage) {
@@ -65,7 +63,6 @@ const Catalog = () => {
         imageUrl = product.product_images[0].url;
       }
     }
-    
     return {
       id: product.id,
       name: product.title,
@@ -87,20 +84,20 @@ const Catalog = () => {
   return (
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
-        <div className="container mx-auto px-4 py-8">
-          
-          <div className="mb-8 flex justify-center">
-            <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center relative">
+        <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
+          {/* Поиск */}
+          <div className="mb-10 flex justify-center">
+            <form onSubmit={handleSearch} className="w-full max-w-xl flex items-center relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <Search className="h-5 w-5"/>
               </span>
               <input 
                 type="text"
                 placeholder="Поиск по названию, бренду, модели..." 
-                className="flex-grow pl-11 pr-3 py-2 border border-gray-300 rounded-md text-[#181920] bg-white focus:border-accentBlue focus:ring-2 focus:ring-accentBlue/20 transition-all duration-300 shadow-sm"
+                className="flex-grow pl-11 pr-3 py-2 md:py-3 border border-gray-200 rounded-xl text-[#181920] bg-white focus:border-link focus:ring-2 focus:ring-link/10 transition-all duration-300 shadow-sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ borderRadius: 10 }}
+                style={{ borderRadius: 14, fontSize: "1rem" }}
               />
             </form>
           </div>
@@ -132,7 +129,7 @@ const Catalog = () => {
           )}
           
           {!isLoading && filteredProducts.length > 0 && (
-            <div className="mt-12">
+            <div className="mt-10">
               <Pagination>
                 <PaginationContent className={isMobile ? "flex-wrap justify-center gap-2" : ""}>
                   <PaginationItem>
@@ -147,7 +144,7 @@ const Catalog = () => {
                       <PaginationLink
                         onClick={() => setCurrentPage(page)}
                         isActive={page === currentPage}
-                        className={page === currentPage ? "bg-blue-600 text-white border-transparent transition-all duration-300" : "text-gray-700 hover:bg-gray-100 transition-all duration-300"}
+                        className={page === currentPage ? "bg-link text-white border-transparent transition-all duration-200" : "text-gray-700 hover:bg-gray-100 transition-all duration-200"}
                       >
                         {page}
                       </PaginationLink>

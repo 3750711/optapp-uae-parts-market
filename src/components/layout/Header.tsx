@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,9 +20,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
-  SheetClose
 } from "@/components/ui/sheet";
-import { Search } from "lucide-react";
 
 const Header = () => {
   const { user, profile, signOut } = useAuth();
@@ -29,63 +28,56 @@ const Header = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
-
   const getUserTypeLabel = (type: string | undefined) => {
     return type === 'seller' ? 'Продавец' : 'Покупатель';
   };
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
-    <nav className="flex items-center gap-3">
+    <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
       <Link 
         to="/" 
-        className="text-[#181920] font-medium hover:text-accentBlue transition-all px-2 py-1 rounded-md hover:bg-accentBlue/10 focus:bg-accentBlue/10 duration-200"
+        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
         onClick={onClick}
       >
         Главная
       </Link>
       <Link 
         to="/catalog" 
-        className="text-[#181920] font-medium hover:text-accentBlue transition-all px-2 py-1 rounded-md hover:bg-accentBlue/10 focus:bg-accentBlue/10 duration-200"
+        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
         onClick={onClick}
       >
         Каталог
       </Link>
       <Link 
         to="/about" 
-        className="text-[#181920] font-medium hover:text-accentBlue transition-all px-2 py-1 rounded-md hover:bg-accentBlue/10 focus:bg-accentBlue/10 duration-200"
+        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
         onClick={onClick}
       >
         О нас
       </Link>
       <Link 
         to="/contact" 
-        className="text-[#181920] font-medium hover:text-accentBlue transition-all px-2 py-1 rounded-md hover:bg-accentBlue/10 focus:bg-accentBlue/10 duration-200"
+        className="text-link font-semibold px-2 py-1 rounded-md hover:bg-blue-50 transition"
         onClick={onClick}
       >
         Контакты
       </Link>
       {profile?.user_type === 'seller' && (
-        <Link to="/seller/dashboard" onClick={onClick}>
-          <Button 
-            variant="default"
-            className="btn-accent transition-transform hover:scale-105"
-          >
+        <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-1">
+          <button className="btn-accent px-5 py-2 text-[14px] font-bold animate__animated animate__fadeInUp">
             Панель продавца
-          </Button>
+          </button>
         </Link>
       )}
     </nav>
   );
 
   return (
-    <header className="bg-white shadow-md sticky top-0 z-50 border-b border-gray-200 animate-fade-in">
+    <header className="bg-white shadow-md sticky top-0 z-50 border-b border-[#e2e7f0]">
       <div className="container flex items-center justify-between py-3 md:py-5">
         <Link 
           to="/" 
-          className="text-2xl font-extrabold tracking-tight transition-transform hover:scale-105 duration-200" 
+          className="text-2xl font-extrabold tracking-tight"
           style={{ color: "#2269f1" }}
         >
           OPTAPP
@@ -95,26 +87,24 @@ const Header = () => {
           <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" className="md:hidden p-1">
-                <Menu className="h-6 w-6 text-black" />
+                <Menu className="h-7 w-7 text-black" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="bg-white border-r border-accentBlue shadow-2xl w-[82vw]" style={{ zIndex: 60 }}>
-              <div className="flex flex-col space-y-5 py-4">
+            <SheetContent side="left" className="bg-white border-r border-gray-200 shadow-2xl w-[82vw]">
+              <div className="flex flex-col space-y-6 py-6">
                 <NavLinks onClick={() => setIsMenuOpen(false)} />
               </div>
             </SheetContent>
           </Sheet>
         ) : (
-          user && (
-            <NavLinks />
-          )
+          <NavLinks />
         )}
 
         <div className="flex items-center space-x-2">
           {user ? (
             <div className="flex items-center space-x-2">
               {profile?.user_type && !isMobile && (
-                <Badge variant={profile.user_type === 'seller' ? 'default' : 'secondary'} className="hidden sm:flex bg-[#f3f414] text-black border border-black">
+                <Badge variant="secondary" className="hidden sm:flex bg-[#fffbe5] text-[#424b5a] border border-[#e4bc1b] shadow"> 
                   {getUserTypeLabel(profile.user_type)}
                 </Badge>
               )}
@@ -122,24 +112,24 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
-                    className="relative rounded-full h-10 w-10 p-0 text-black bg-[#f3f414] hover:bg-[#f3f414]/90 border border-black transition-transform hover:scale-110"
+                    className="relative rounded-full h-10 w-10 p-0 text-black bg-[#fffbe5] border border-[#fbe87d] shadow transition-transform hover:scale-110"
                   >
                     <Avatar className="h-10 w-10">
                       <AvatarImage 
                         src={profile?.avatar_url || ''} 
                         alt={profile?.full_name || 'User'} 
                       />
-                      <AvatarFallback className="bg-black text-[#f3f414]">
+                      <AvatarFallback className="bg-[#ffe158] text-black">
                         {profile?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white text-black shadow-lg border border-gray-200 rounded-lg animate-scale-in">
+                <DropdownMenuContent align="end" className="w-56 bg-white text-black shadow-lg border border-gray-200 rounded-xl animate-scale-in">
                   <DropdownMenuLabel>
                     {profile?.full_name || user.email}
                     {profile?.user_type && (
-                      <Badge variant={profile.user_type === 'seller' ? 'default' : 'secondary'} className="ml-2 bg-[#f3f414] text-black">
+                      <Badge variant="secondary" className="ml-2 bg-[#fffbe5] text-[#424b5a] border border-[#e4bc1b] shadow">
                         {getUserTypeLabel(profile.user_type)}
                       </Badge>
                     )}
@@ -148,7 +138,7 @@ const Header = () => {
                   
                   {isAdmin && (
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                      <Link to="/admin" className="flex w-full items-center">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
                         <span>Панель администратора</span>
                       </Link>
@@ -156,7 +146,7 @@ const Header = () => {
                   )}
                   
                   <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                    <Link to="/profile" className="flex w-full items-center">
                       <Settings className="mr-2 h-4 w-4" />
                       <span>Мой профиль</span>
                     </Link>
@@ -165,19 +155,19 @@ const Header = () => {
                   {profile?.user_type === 'seller' && (
                     <>
                       <DropdownMenuItem asChild>
-                        <Link to="/seller/dashboard" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                        <Link to="/seller/dashboard" className="flex w-full items-center">
                           <User className="mr-2 h-4 w-4" />
                           <span>Личный кабинет</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/seller/add-product" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                        <Link to="/seller/add-product" className="flex w-full items-center">
                           <Plus className="mr-2 h-4 w-4" />
                           <span>Добавить товар</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/seller/create-order" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                        <Link to="/seller/create-order" className="flex w-full items-center">
                           <Package className="mr-2 h-4 w-4" />
                           <span>Создать заказ</span>
                         </Link>
@@ -187,21 +177,19 @@ const Header = () => {
                   )}
                   
                   <DropdownMenuItem asChild>
-                    <Link to="/orders" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                    <Link to="/orders" className="flex w-full items-center">
                       <Package className="mr-2 h-4 w-4" />
                       <span>Мои заказы</span>
                     </Link>
                   </DropdownMenuItem>
-                  
                   <DropdownMenuItem asChild>
-                    <Link to="/catalog" className="flex w-full items-center text-black hover:bg-gray-100 transition-colors duration-300">
+                    <Link to="/catalog" className="flex w-full items-center">
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       <span>Каталог</span>
                     </Link>
                   </DropdownMenuItem>
-                  
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut} className="text-red-500 hover:bg-red-50 transition-colors duration-300">
+                  <DropdownMenuItem onClick={signOut} className="text-red-500 hover:bg-red-50">
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Выйти</span>
                   </DropdownMenuItem>
@@ -213,13 +201,13 @@ const Header = () => {
               <Button 
                 asChild 
                 variant="ghost"
-                className="text-black hover:bg-black/10 transition-all duration-300 hover:scale-105"
+                className="text-[#181920] hover:bg-[#f6f7fa] transition-all duration-200 border border-gray-200"
               >
                 <Link to="/login">Вход</Link>
               </Button>
               <Button 
                 asChild
-                className="bg-black text-[#f3f414] hover:bg-gray-800 transition-all duration-300 hover:scale-105"
+                className="btn-accent hover:bg-yellow-300 transition-all duration-200"
               >
                 <Link to="/register">Регистрация</Link>
               </Button>
