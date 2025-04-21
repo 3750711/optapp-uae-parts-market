@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -204,7 +205,7 @@ const SellerCreateOrder = () => {
         brand: formData.brand,
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
-        order_created_type: productId ? 'ads_order' : 'free_order',
+        order_created_type: productId ? 'ads_order' as OrderCreatedType : 'free_order' as OrderCreatedType,
         telegram_url_order: buyerData.telegram || null,
         images: images,
         product_id: resolvedProductId || null,
