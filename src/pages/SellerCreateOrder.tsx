@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -236,13 +235,30 @@ const SellerCreateOrder = () => {
       if (!createdOrder) {
         throw new Error("Order was created but no data was returned");
       }
+      
+      if (resolvedProductId) {
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ status: 'sold' })
+          .eq('id', resolvedProductId);
+          
+        if (productUpdateError) {
+          console.error("Error updating product status:", productUpdateError);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но не удалось обновить статус товара",
+            variant: "destructive"
+          });
+        } else {
+          console.log("Product status updated to 'sold'");
+        }
+      }
 
-      // Don't insert images with is_primary=true to avoid unique constraint violation
       if (images.length > 0) {
         const imageInserts = images.map((url, index) => ({
           order_id: createdOrder.id,
           url,
-          is_primary: false // Set all to false to avoid unique constraint violation
+          is_primary: false
         }));
 
         const { error: imagesError } = await supabase
@@ -519,7 +535,7 @@ const SellerCreateOrder = () => {
                   type="button"
                   onClick={() => navigate(-1)}
                 >
-                  Отмена
+                  ��тмена
                 </Button>
                 <Button 
                   type="submit"

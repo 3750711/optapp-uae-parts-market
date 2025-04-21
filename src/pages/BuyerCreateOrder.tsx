@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -220,9 +220,27 @@ const BuyerCreateOrder = () => {
         }
       }
 
+      if (resolvedProductId) {
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ status: 'sold' })
+          .eq('id', resolvedProductId);
+
+        if (productUpdateError) {
+          console.error("Error updating product status:", productUpdateError);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но не удалось обновить статус товара на 'продан'",
+            variant: "destructive"
+          });
+        } else {
+          console.log("Product status updated to 'sold'");
+        }
+      }
+
       toast({
         title: "Заказ создан",
-        description: "Ваш заказ был успешно создан",
+        description: "Ваш заказ был успешно соз��ан",
       });
 
       navigate('/orders');

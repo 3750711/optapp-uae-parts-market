@@ -150,6 +150,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw error;
       }
 
+      // After successfully creating the order, update the product status to 'sold'
       if (product.id) {
         const { error: productUpdateError } = await supabase
           .from('products')
@@ -157,11 +158,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           .eq('id', product.id);
 
         if (productUpdateError) {
+          console.error('Error updating product status:', productUpdateError);
           toast({
             title: "Внимание",
             description: "Заказ успешно создан, но не удалось обновить статус товара.",
             variant: "destructive",
           });
+        } else {
+          console.log('Product status updated to "sold"');
         }
       }
 
