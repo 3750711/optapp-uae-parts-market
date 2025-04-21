@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const [formData, setFormData] = React.useState({
     title: product.title,
-    price: typeof product.price === 'string' ? parseFloat(product.price) : product.price,
+    price: typeof product.price === "string" ? parseFloat(product.price) : product.price,
     description: product.description || "",
     brand: product.brand || "",
     model: product.model || "",
@@ -45,8 +46,12 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   );
 
   React.useEffect(() => {
-    setImages(Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []);
-    setVideos(Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []);
+    setImages(
+      Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []
+    );
+    setVideos(
+      Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []
+    );
   }, [product]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,25 +100,22 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-md mx-auto flex flex-col items-stretch justify-between"
+      className="bg-white rounded-2xl shadow-md mx-auto w-full max-w-3xl flex flex-col md:flex-row items-stretch gap-6 p-4"
       style={{
-        width: "380px",
-        maxWidth: "94vw",
-        minHeight: "380px",
-        maxHeight: "94vw",
-        padding: "16px",
-        gap: "8px",
+        minHeight: "440px",
+        maxWidth: "98vw",
       }}
     >
-      <div className="flex flex-row gap-3 mb-2 h-[110px]">
-        <div className="flex-1 min-w-0">
+      {/* Media Section */}
+      <div className="flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-4 md:border-gray-100">
+        <div>
           <AdminProductImagesManager
             productId={product.id}
             images={images}
             onImagesChange={isCreator ? setImages : () => {}}
           />
         </div>
-        <div className="flex-1 min-w-0">
+        <div>
           <AdminProductVideosManager
             productId={product.id}
             videos={videos}
@@ -122,7 +124,8 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
+      {/* Information Section */}
+      <div className="flex-1 flex flex-col gap-2">
         <Input
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -138,7 +141,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           className="h-8"
           disabled={!isCreator}
         />
-        <div className="grid grid-cols-2 gap-1">
+        <div className="grid grid-cols-2 gap-2">
           <Input
             value={formData.brand}
             onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
@@ -158,43 +161,44 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Описание товара"
-          className="min-h-[36px] max-h-[55px] text-sm"
+          className="min-h-[36px] max-h-[80px] text-sm"
           rows={2}
           disabled={!isCreator}
         />
-      </div>
 
-      <div className="flex justify-end gap-2 mt-3">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={isLoading}
-          className="h-8 px-3 text-xs"
-        >
-          <X className="h-4 w-4 mr-1" />
-          Отмена
-        </Button>
-        <Button
-          type="submit"
-          className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-8 px-3 text-xs"
-          disabled={isLoading || !isCreator}
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              Сохранение...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-1" />
-              Сохранить
-            </>
-          )}
-        </Button>
+        <div className="flex justify-end gap-2 mt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isLoading}
+            className="h-8 px-3 text-xs"
+          >
+            <X className="h-4 w-4 mr-1" />
+            Отмена
+          </Button>
+          <Button
+            type="submit"
+            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-8 px-3 text-xs"
+            disabled={isLoading || !isCreator}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                Сохранение...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-1" />
+                Сохранить
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );
 };
 
 export default ProductEditForm;
+
