@@ -1,63 +1,125 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProfileType } from "./types";
-import { Star } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { LogOut, UserCog, Settings, Share2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { DeleteAccountButton } from "./DeleteAccountButton";
 
 interface ProfileActionsProps {
   profile: ProfileType;
   isLoading: boolean;
 }
 
-const ProfileActions: React.FC<ProfileActionsProps> = ({ 
-  profile,
-}) => {
-  const handleContactAdmin = () => {
+const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) => {
+  const { signOut, user } = useAuth();
+  const navigate = useNavigate();
+  const { isAdmin } = useAdminAccess();
+  
+  const isOwnProfile = user?.id === profile.id;
+  
+  const handleLogout = async () => {
     try {
-      const userDataText = `I have a problem boss, my ID is ${profile.opt_id || 'Not specified'}`;
-      const encodedText = encodeURIComponent(userDataText);
-      
-      // Creating a Telegram URL that works - the correct format is to use separate parameters
-      window.open(`https://t.me/ElenaOPTcargo?start=${encodedText}`, '_blank');
+      await signOut();
+      navigate('/login');
     } catch (error) {
-      window.open('https://t.me/ElenaOPTcargo', '_blank');
+      console.error('Logout error:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось выйти из системы",
+      });
     }
+  };
+  
+  const copyProfileLink = () => {
+    // Создаем ссылку на профиль пользователя
+    const profileUrl = `${window.location.origin}/profile/${profile.opt_id || profile.id}`;
+    navigator.clipboard.writeText(profileUrl).then(
+      function() {
+        toast({
+          title: "Ссылка скопирована",
+          description: "Ссылка на профиль скопирована в буфер обмена",
+        });
+      },
+      function() {
+        toast({
+          variant: "destructive",
+          title: "Ошибка",
+          description: "Не удалось скопировать ссылку",
+        });
+      }
+    );
   };
 
   return (
-    <div className="mt-6 w-full space-y-4">
-      <Button 
-        onClick={handleContactAdmin}
-        className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-      >
-        Связаться с администратором
-      </Button>
-      
-      {profile.user_type === 'seller' && (
-        <div className="p-4 bg-white rounded-lg shadow">
-          <h3 className="font-medium text-lg mb-2">Рейтинг продавца</h3>
-          <div className="flex items-center">
-            {profile.rating ? (
-              <>
-                <div className="flex mr-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-5 w-5 ${i < Math.floor(profile.rating || 0) 
-                        ? "fill-yellow-400 text-yellow-400" 
-                        : "text-gray-300"}`}
-                    />
-                  ))}
-                </div>
-                <span className="font-bold">{profile.rating.toFixed(1)}</span>
-                <span className="text-gray-500 ml-1">/5</span>
-              </>
-            ) : (
-              <span className="text-gray-500">Пока нет оценок</span>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle>Действия</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isOwnProfile ? (
+          <>
+            <Button
+              className="w-full"
+              onClick={handleLogout}
+              disabled={isLoading}
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Выйти из системы
+            </Button>
+            
+            {profile.user_type === 'seller' && (
+              <Button 
+                className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                onClick={() => navigate('/seller/dashboard')}
+              >
+                <UserCog className="h-4 w-4 mr-2" /> Панель продавца
+              </Button>
             )}
-          </div>
-        </div>
-      )}
-    </div>
+            
+            {isAdmin && (
+              <Button 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                onClick={() => navigate('/admin')}
+              >
+                <Settings className="h-4 w-4 mr-2" /> Панель администратора
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={copyProfileLink}
+            >
+              <Share2 className="h-4 w-4 mr-2" /> Поделиться профилем
+            </Button>
+
+            <DeleteAccountButton />
+          </>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full">Действия</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              <DropdownMenuItem onClick={copyProfileLink}>
+                <Share2 className="h-4 w-4 mr-2" /> Поделиться профилем
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
