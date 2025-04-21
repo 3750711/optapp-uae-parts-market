@@ -45,11 +45,17 @@ interface ProductEditDialogProps {
   product: Product;
   trigger: React.ReactNode;
   onSuccess?: () => void;
+  open?: boolean;
+  setOpen?: (open: boolean) => void;
 }
 
-export const ProductEditDialog = ({ product, trigger, onSuccess }: ProductEditDialogProps) => {
+export const ProductEditDialog = ({ product, trigger, onSuccess, open, setOpen }: ProductEditDialogProps) => {
   const { toast } = useToast();
-  const [open, setOpen] = React.useState(false);
+  const [internalOpen, setInternalOpen] = React.useState(false);
+  
+  // Use either the external or internal state for controlling the dialog
+  const isOpen = open !== undefined ? open : internalOpen;
+  const handleOpenChange = setOpen || setInternalOpen;
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -89,13 +95,13 @@ export const ProductEditDialog = ({ product, trigger, onSuccess }: ProductEditDi
         title: "Успех",
         description: "Товар успешно обновлен",
       });
-      setOpen(false);
+      handleOpenChange(false);
       if (onSuccess) onSuccess();
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
@@ -201,7 +207,7 @@ export const ProductEditDialog = ({ product, trigger, onSuccess }: ProductEditDi
               )}
             />
             <div className="flex justify-end gap-4 pt-2">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Отмена
               </Button>
               <Button type="submit" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
