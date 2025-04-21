@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,35 +29,35 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-[#f3f414] text-black shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold text-optapp-dark">
+          <Link to="/" className="text-2xl font-bold text-black">
             OPTAPP
           </Link>
 
           {user && (
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="text-gray-600 hover:text-optapp-dark">
+              <Link to="/" className="text-black hover:text-gray-800">
                 Главная
               </Link>
-              <Link to="/catalog" className="text-gray-600 hover:text-optapp-dark">
+              <Link to="/catalog" className="text-black hover:text-gray-800">
                 Каталог
               </Link>
-              <Link to="/about" className="text-gray-600 hover:text-optapp-dark">
+              <Link to="/about" className="text-black hover:text-gray-800">
                 О нас
               </Link>
-              <Link to="/contact" className="text-gray-600 hover:text-optapp-dark">
+              <Link to="/contact" className="text-black hover:text-gray-800">
                 Контакты
               </Link>
-              <Link to="/admin" className="text-gray-600 hover:text-optapp-dark">
-                <Button variant="default" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+              <Link to="/admin" className="text-black hover:text-gray-800">
+                <Button variant="default" className="bg-black text-[#f3f414] hover:bg-gray-900">
                   Админ панель
                 </Button>
               </Link>
               {profile?.user_type === 'seller' && (
-                <Link to="/seller/dashboard" className="text-gray-600 hover:text-optapp-dark">
-                  <Button variant="default" className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+                <Link to="/seller/dashboard" className="text-black hover:text-gray-800">
+                  <Button variant="default" className="bg-black text-[#f3f414] hover:bg-gray-900">
                     Панель продавца
                   </Button>
                 </Link>
@@ -74,19 +75,19 @@ const Header = () => {
                 )}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative rounded-full h-10 w-10 p-0">
+                    <Button variant="ghost" className="relative rounded-full h-10 w-10 p-0 text-black">
                       <Avatar className="h-10 w-10">
                         <AvatarImage 
                           src={profile?.avatar_url || ''} 
                           alt={profile?.full_name || 'User'} 
                         />
-                        <AvatarFallback className="bg-optapp-yellow text-optapp-dark">
+                        <AvatarFallback className="bg-black text-[#f3f414]">
                           {profile?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
                         </AvatarFallback>
                       </Avatar>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuContent align="end" className="w-56 bg-white text-black">
                     <DropdownMenuLabel>
                       {profile?.full_name || user.email}
                       {profile?.user_type && (
@@ -99,7 +100,7 @@ const Header = () => {
                     
                     {isAdmin && (
                       <DropdownMenuItem asChild>
-                        <Link to="/admin" className="flex w-full items-center">
+                        <Link to="/admin" className="flex w-full items-center text-black hover:bg-gray-100">
                           <LayoutDashboard className="mr-2 h-4 w-4" />
                           <span>Панель администратора</span>
                         </Link>
@@ -107,7 +108,7 @@ const Header = () => {
                     )}
                     
                     <DropdownMenuItem asChild>
-                      <Link to="/profile" className="flex w-full items-center">
+                      <Link to="/profile" className="flex w-full items-center text-black hover:bg-gray-100">
                         <Settings className="mr-2 h-4 w-4" />
                         <span>Мой профиль</span>
                       </Link>
@@ -116,19 +117,19 @@ const Header = () => {
                     {profile?.user_type === 'seller' && (
                       <>
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/dashboard" className="flex w-full items-center">
+                          <Link to="/seller/dashboard" className="flex w-full items-center text-black hover:bg-gray-100">
                             <User className="mr-2 h-4 w-4" />
                             <span>Личный кабинет</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/add-product" className="flex w-full items-center">
+                          <Link to="/seller/add-product" className="flex w-full items-center text-black hover:bg-gray-100">
                             <Plus className="mr-2 h-4 w-4" />
                             <span>Добавить товар</span>
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link to="/seller/create-order" className="flex w-full items-center">
+                          <Link to="/seller/create-order" className="flex w-full items-center text-black hover:bg-gray-100">
                             <Package className="mr-2 h-4 w-4" />
                             <span>Создать заказ</span>
                           </Link>
@@ -138,14 +139,14 @@ const Header = () => {
                     )}
                     
                     <DropdownMenuItem asChild>
-                      <Link to="/orders" className="flex w-full items-center">
+                      <Link to="/orders" className="flex w-full items-center text-black hover:bg-gray-100">
                         <Package className="mr-2 h-4 w-4" />
                         <span>Мои заказы</span>
                       </Link>
                     </DropdownMenuItem>
                     
                     <DropdownMenuItem asChild>
-                      <Link to="/catalog" className="flex w-full items-center">
+                      <Link to="/catalog" className="flex w-full items-center text-black hover:bg-gray-100">
                         <ShoppingCart className="mr-2 h-4 w-4" />
                         <span>Каталог</span>
                       </Link>
@@ -164,12 +165,13 @@ const Header = () => {
                 <Button 
                   asChild 
                   variant="ghost"
+                  className="text-black"
                 >
                   <Link to="/login">Вход</Link>
                 </Button>
                 <Button 
                   asChild
-                  className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  className="bg-black text-[#f3f414] hover:bg-gray-900"
                 >
                   <Link to="/register">Регистрация</Link>
                 </Button>
