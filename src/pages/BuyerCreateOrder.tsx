@@ -213,7 +213,7 @@ const BuyerCreateOrder = () => {
           toast({
             title: "Предупреждение",
             description: "Заказ создан, но возникла проблема с сохранением видео",
-            variant: "warning"
+            variant: "destructive"
           });
         } else {
           console.log("Video references saved successfully");
