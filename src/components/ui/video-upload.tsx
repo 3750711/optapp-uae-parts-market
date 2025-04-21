@@ -26,40 +26,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
-  const ensureBucketExists = async () => {
-    try {
-      // Check if the bucket exists first
-      const { data: buckets, error } = await supabase.storage.listBuckets();
-      
-      if (error) {
-        console.error("Error checking buckets:", error);
-        return false;
-      }
-      
-      // If the bucket doesn't exist, create it
-      if (!buckets.some(b => b.name === storageBucket)) {
-        console.log(`Bucket '${storageBucket}' not found, attempting to create it...`);
-        const { error: createError } = await supabase.storage.createBucket(storageBucket, {
-          public: true
-        });
-        
-        if (createError) {
-          console.error("Error creating bucket:", createError);
-          return false;
-        }
-        
-        console.log(`Bucket '${storageBucket}' created successfully.`);
-      } else {
-        console.log(`Bucket '${storageBucket}' already exists.`);
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Unexpected error in ensureBucketExists:", error);
-      return false;
-    }
-  };
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || uploading) return;
     const files = Array.from(e.target.files);
@@ -75,17 +41,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     setUploading(true);
     
     try {
-      // First ensure the bucket exists
-      const bucketExists = await ensureBucketExists();
-      if (!bucketExists) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось подготовить хранилище для загрузки видео",
-          variant: "destructive"
-        });
-        return;
-      }
-
       const uploadedUrls: string[] = [];
       for (const file of files) {
         const ext = file.name.split('.').pop();
