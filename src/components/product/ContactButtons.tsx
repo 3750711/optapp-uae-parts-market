@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -88,24 +87,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing seller information');
       }
 
-      // Convert lot_number to a number or null before inserting
       let lotNumberOrder: number | null = null;
       
       if (product.lot_number !== undefined && product.lot_number !== null) {
-        // If it's a string, convert to number
         if (typeof product.lot_number === 'string') {
           lotNumberOrder = parseFloat(product.lot_number);
-          // Check if conversion resulted in a valid number
           if (isNaN(lotNumberOrder)) {
             lotNumberOrder = null;
           }
         } else {
-          // It's already a number
           lotNumberOrder = product.lot_number as number;
         }
       }
       
-      // Fetch product images if product ID exists
       let productImages: string[] = [];
       if (product.id) {
         const { data: productImagesData, error: productImagesError } = await supabase
@@ -138,7 +132,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         telegram_url_order: profile?.telegram || null,
         product_id: product.id ? product.id : null,
         lot_number_order: lotNumberOrder,
-        images: productImages, // Add product images to the order
+        images: productImages,
       };
 
       const { data: order, error } = await supabase
@@ -151,6 +145,21 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         console.error('Error creating order:', error);
         console.error('Error details:', JSON.stringify(error, null, 2));
         throw error;
+      }
+
+      if (product.id) {
+        const { error: productUpdateError } = await supabase
+          .from('products')
+          .update({ status: 'sold' })
+          .eq('id', product.id);
+
+        if (productUpdateError) {
+          toast({
+            title: "Внимание",
+            description: "Заказ успешно создан, но не удалось обновить статус товара.",
+            variant: "destructive",
+          });
+        }
       }
 
       console.log('Order created successfully:', order);
