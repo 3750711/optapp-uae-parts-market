@@ -28,6 +28,7 @@ interface ContactButtonsProps {
     optid_created?: string | null;
     seller_id?: string;
     seller_name?: string;
+    lot_number?: string | number | null; // Добавляем поле lot_number
   };
 }
 
