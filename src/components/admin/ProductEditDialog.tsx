@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,8 +24,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Product } from '@/types/product';
 import { supabase } from '@/integrations/supabase/client';
 import { X } from "lucide-react";
-
-// For icons: use only x from allowed lucide-react-icons
+import { AdminProductImagesManager } from "./AdminProductImagesManager";
+import { AdminProductVideosManager } from "./AdminProductVideosManager";
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Название должно содержать не менее 2 символов" }),
@@ -52,14 +51,18 @@ interface ProductEditDialogProps {
   setOpen?: (open: boolean) => void;
 }
 
-export const ProductEditDialog = ({ product, trigger, onSuccess, open, setOpen }: ProductEditDialogProps) => {
+export const ProductEditDialog = ({
+  product,
+  trigger,
+  onSuccess,
+  open,
+  setOpen,
+}: ProductEditDialogProps) => {
   const { toast } = useToast();
   const [internalOpen, setInternalOpen] = React.useState(false);
-  // Use either the external or internal state for controlling the dialog
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
 
-  // State for images/videos that belong to the product
   const [images, setImages] = React.useState<string[]>(
     Array.isArray(product.product_images)
       ? product.product_images.map((img: any) => img.url)
@@ -70,10 +73,8 @@ export const ProductEditDialog = ({ product, trigger, onSuccess, open, setOpen }
       ? product.product_videos.map((vid: any) => vid.url)
       : []
   );
-  const [deleting, setDeleting] = React.useState<{url: string, type: 'image'|'video'|null}>({url: '', type: null});
 
   React.useEffect(() => {
-    // Update local images/videos state if product changes
     setImages(Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []);
     setVideos(Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []);
   }, [product]);
@@ -90,79 +91,6 @@ export const ProductEditDialog = ({ product, trigger, onSuccess, open, setOpen }
       location: product.location || "",
     },
   });
-
-  // Delete image permanently from Supabase Storage and DB
-  const handleImageDelete = async (url: string) => {
-    if (images.length <= 1) {
-      toast({
-        title: "Внимание",
-        description: "Должна остаться хотя бы одна фотография",
-        variant: "destructive"
-      });
-      return;
-    }
-    setDeleting({url, type: 'image'});
-    try {
-      // Remove from order-images bucket, path after "order-images/"
-      const path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-images') + 1).join('/');
-      // Remove file from storage
-      const { error: storageErr } = await supabase.storage.from('order-images').remove([path]);
-      if (storageErr) {
-        throw storageErr;
-      }
-      // Remove from product_images table
-      const { error: dbErr } = await supabase
-        .from('product_images')
-        .delete()
-        .eq('url', url)
-        .eq('product_id', product.id);
-      if (dbErr) {
-        throw dbErr;
-      }
-      setImages((prev) => prev.filter((img) => img !== url));
-      toast({ title: "Фото удалено" });
-    } catch (error: any) {
-      toast({
-        title: "Ошибка удаления",
-        description: error?.message || "Не удалось удалить фото",
-        variant: "destructive"
-      });
-    } finally {
-      setDeleting({url: '', type: null});
-    }
-  };
-
-  // Delete video from Supabase Storage and DB
-  const handleVideoDelete = async (url: string) => {
-    setDeleting({url, type: 'video'});
-    try {
-      // Remove from video bucket, path after "order-videos/" or "product-videos/"
-      // Try both for flexibility in bucket naming
-      let path = "";
-      if (url.includes("product-videos")) {
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'product-videos') + 1).join('/');
-      } else if (url.includes("order-videos")) {
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-videos') + 1).join('/');
-      } else {
-        // fallback: just trim domain part
-        path = url.split('/').slice(4).join('/');
-      }
-      // Remove file from storage (try both in case)
-      await supabase.storage.from('product-videos').remove([path]);
-      // Remove from DB table
-      await supabase.from('product_videos').delete().eq('url', url).eq('product_id', product.id);
-      setVideos((prev) => prev.filter((vid) => vid !== url));
-      toast({ title: "Видео удалено" });
-    } catch (error: any) {
-      toast({
-        title: "Ошибка удаления",
-        description: error?.message || "Не удалось удалить видео",
-        variant: "destructive"
-      });
-    } finally {
-      setDeleting({url: '', type: null});
-    }
-  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const { error } = await supabase
@@ -203,50 +131,19 @@ export const ProductEditDialog = ({ product, trigger, onSuccess, open, setOpen }
         <DialogHeader>
           <DialogTitle>Редактировать товар</DialogTitle>
         </DialogHeader>
-        {/* IMAGE DELETION */}
-        {images.length > 0 && (
-          <div className="mb-4">
-            <div className="text-xs font-medium mb-1">Фотографии</div>
-            <div className="grid grid-cols-3 gap-2">
-              {images.map((img, idx) => (
-                <div key={img} className="relative group rounded-md overflow-hidden border aspect-square">
-                  <img src={img} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    aria-label="Удалить фото"
-                    className="absolute top-2 right-2 p-1 bg-red-600 bg-opacity-80 rounded-full text-white opacity-80 hover:opacity-100 focus:outline-none focus:ring-2"
-                    onClick={() => handleImageDelete(img)}
-                    disabled={deleting.type === "image" && deleting.url === img}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        {/* VIDEO DELETION */}
-        {videos.length > 0 && (
-          <div className="mb-4">
-            <div className="text-xs font-medium mb-1">Видео</div>
-            <div className="grid grid-cols-2 gap-2">
-              {videos.map((vid, idx) => (
-                <div key={vid} className="relative group rounded-md overflow-hidden border aspect-video bg-black">
-                  <video src={vid} controls className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    aria-label="Удалить видео"
-                    className="absolute top-2 right-2 p-1 bg-red-600 bg-opacity-80 rounded-full text-white opacity-80 hover:opacity-100 focus:outline-none focus:ring-2"
-                    onClick={() => handleVideoDelete(vid)}
-                    disabled={deleting.type === "video" && deleting.url === vid}
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+
+        <AdminProductImagesManager
+          productId={product.id}
+          images={images}
+          onImagesChange={setImages}
+        />
+
+        <AdminProductVideosManager
+          productId={product.id}
+          videos={videos}
+          onVideosChange={setVideos}
+        />
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
