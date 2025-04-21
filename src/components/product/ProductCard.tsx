@@ -56,12 +56,19 @@ const ProductCard: React.FC<ProductProps> = ({
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="aspect-square overflow-hidden">
+      <div className="aspect-square overflow-hidden relative">
         <img 
           src={image || "/placeholder.svg"} 
           alt={name} 
-          className="h-full w-full object-cover transition-transform hover:scale-105"
+          className={`h-full w-full object-cover transition-transform hover:scale-105 ${status === 'sold' ? 'opacity-70' : ''}`}
         />
+        {status === 'sold' && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-blue-500 text-white px-4 py-2 rounded-lg font-bold transform rotate-45 shadow-lg text-lg">
+              ПРОДАНО
+            </div>
+          </div>
+        )}
       </div>
       <CardContent className="p-4">
         <div className="flex justify-between mb-2">
@@ -123,8 +130,14 @@ const ProductCard: React.FC<ProductProps> = ({
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Link to={`/product/${id}`} className="w-full">
-          <Button className="w-full bg-optapp-yellow text-optapp-dark hover:bg-optapp-yellow/80">
-            Подробнее
+          <Button 
+            className={`w-full ${
+              status === 'sold' 
+              ? 'bg-gray-400 hover:bg-gray-500 text-white' 
+              : 'bg-optapp-yellow text-optapp-dark hover:bg-optapp-yellow/80'
+            }`}
+          >
+            {status === 'sold' ? 'Просмотреть' : 'Подробнее'}
           </Button>
         </Link>
       </CardFooter>
