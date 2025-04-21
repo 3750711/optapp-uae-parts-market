@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -87,6 +88,23 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing seller information');
       }
 
+      // Convert lot_number to a number or null before inserting
+      let lotNumberOrder: number | null = null;
+      
+      if (product.lot_number !== undefined && product.lot_number !== null) {
+        // If it's a string, convert to number
+        if (typeof product.lot_number === 'string') {
+          lotNumberOrder = parseFloat(product.lot_number);
+          // Check if conversion resulted in a valid number
+          if (isNaN(lotNumberOrder)) {
+            lotNumberOrder = null;
+          }
+        } else {
+          // It's already a number
+          lotNumberOrder = product.lot_number as number;
+        }
+      }
+
       const orderPayload = {
         title: product.title,
         quantity: 1,
@@ -103,7 +121,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         order_created_type: 'ads_order' as OrderCreatedType,
         telegram_url_order: profile?.telegram || null,
         product_id: product.id ? product.id : null,
-        lot_number_order: product.lot_number !== undefined && product.lot_number !== null ? product.lot_number : null,
+        lot_number_order: lotNumberOrder,
       };
 
       const { data: order, error } = await supabase
