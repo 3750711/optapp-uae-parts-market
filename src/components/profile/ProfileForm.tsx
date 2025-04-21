@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -55,7 +57,12 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   isLoading,
   readOnlyUserType = true,
 }) => {
-  console.log("ProfileForm received profile:", profile);
+  // Получаем auth пользователя и права админа
+  const { user } = useAuth();
+  const { isAdmin } = useAdminAccess();
+
+  // Логика: редактировать opt_id может только владелец или админ
+  const canEditOptId = (user?.id === profile.id) || isAdmin;
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -66,7 +73,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       companyName: profile.company_name || "",
       telegram: profile.telegram || "",
       optId: profile.opt_id || "",
-      userType: profile.user_type, // This now supports admin
+      userType: profile.user_type,
     },
   });
 
@@ -75,7 +82,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       await onSubmit(data);
       form.reset({
         ...data,
-        userType: profile.user_type, // This now supports admin
+        userType: profile.user_type,
       });
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -103,7 +110,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="email"
@@ -117,7 +124,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="userType"
@@ -149,7 +156,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="phone"
@@ -163,7 +170,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="companyName"
@@ -177,7 +184,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="telegram"
@@ -191,7 +198,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
-            
+
+            {/* OPT ID: поле видно всем, редактировать могут только админ и владелец */}
             <FormField
               control={form.control}
               name="optId"
@@ -199,13 +207,23 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 <FormItem>
                   <FormLabel>OPT ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="Введите ваш OPT ID" {...field} />
+                    <Input
+                      placeholder="Введите ваш OPT ID"
+                      {...field}
+                      readOnly={!canEditOptId}
+                      className={!canEditOptId ? "bg-gray-100 cursor-not-allowed" : ""}
+                    />
                   </FormControl>
                   <FormMessage />
+                  {!canEditOptId && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      OPT ID можно изменить только владельцу профиля или администратору
+                    </p>
+                  )}
                 </FormItem>
               )}
             />
-            
+
             <Button 
               type="submit" 
               className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 w-full"
@@ -221,3 +239,4 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 };
 
 export default ProfileForm;
+
