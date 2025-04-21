@@ -75,7 +75,7 @@ const Header = () => {
         >
           <span className="text-primary">OPT</span>
           <span className="text-secondary">APP</span>
-          <small className="text-xs text-gray-500 lowercase -mt-1">spare parts market</small>
+          {/* <small className="text-xs text-gray-500 lowercase -mt-1">spare parts market</small> */}
         </Link>
 
         {isMobile ? (
@@ -212,3 +212,4 @@ const Header = () => {
 };
 
 export default Header;
+
