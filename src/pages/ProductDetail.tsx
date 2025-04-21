@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -144,7 +143,6 @@ const ProductDetail = () => {
         ${isMobile ? "" : "py-8"}
       `}>
         {isMobile ? (
-          // Мобильная версия: фото ВВЕРХУ, затем инфо + кнопки, внизу видео
           <div className="flex flex-col gap-3">
             <div className="mt-2">
               <ProductGallery images={images} title={product.title} />
@@ -189,7 +187,6 @@ const ProductDetail = () => {
             </div>
           </div>
         ) : (
-          // Десктопная версия, как было — сначала фото+видео слева
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
             <div>
               <div className="mb-4">
