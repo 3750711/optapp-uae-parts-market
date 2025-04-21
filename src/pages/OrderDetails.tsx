@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
@@ -8,6 +9,8 @@ import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard'
 import { toast } from '@/components/ui/use-toast';
 import { OrderImages } from '@/components/order/OrderImages';
 import { Database } from '@/integrations/supabase/types';
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -29,6 +32,8 @@ type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
+  const { user, profile } = useAuth();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
@@ -89,6 +94,42 @@ const OrderDetails = () => {
     enabled: !!id
   });
 
+  // Seller confirm handler
+  const handleSellerConfirm = async () => {
+    if (!orderData?.order || isUpdating) return;
+    setIsUpdating(true);
+
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'seller_confirmed' })
+        .eq('id', orderData.order.id)
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось подтвердить заказ",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Заказ подтвержден",
+        description: "Статус заказа успешно обновлен",
+      });
+
+      queryClient.setQueryData(['order', id], {
+        order: { ...orderData.order, status: 'seller_confirmed' },
+        images: orderData.images,
+      });
+      queryClient.invalidateQueries({ queryKey: ['order', id] });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -114,6 +155,10 @@ const OrderDetails = () => {
     );
   }
 
+  // Определяем: продавец ли пользователь и можно ли показать кнопку подтверждения
+  const isSeller = profile?.user_type === 'seller' && orderData.order.seller_id === user?.id;
+  const canConfirm = isSeller && orderData.order.status === 'created';
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -135,7 +180,26 @@ const OrderDetails = () => {
             queryClient.invalidateQueries({ queryKey: ['order', id] });
           }}
         />
-        
+
+        {canConfirm && (
+          <div className="mt-6 flex justify-center">
+            <Button 
+              onClick={handleSellerConfirm}
+              disabled={isUpdating}
+              className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3"
+            >
+              {isUpdating ? (
+                <>
+                  <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                  Подтверждение...
+                </>
+              ) : (
+                <>Подтвердить заказ</>
+              )}
+            </Button>
+          </div>
+        )}
+
         <div className="mt-10">
           <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
           <OrderImages images={orderData.images} />
@@ -146,3 +210,4 @@ const OrderDetails = () => {
 };
 
 export default OrderDetails;
+
