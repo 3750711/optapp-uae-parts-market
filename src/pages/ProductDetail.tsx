@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -63,15 +64,22 @@ const ProductDetail = () => {
   };
 
   const getProductVideos = () => {
-    if (product?.product_videos && product.product_videos.length > 0) {
-      return product.product_videos.map((video: any) => video.url);
+    // Check for videos from the product_videos relationship
+    if (product?.product_videos && Array.isArray(product.product_videos) && product.product_videos.length > 0) {
+      return product.product_videos.map(video => video.url);
     }
-    if (product?.videos && Array.isArray(product.videos)) {
+    
+    // Fallback to videos array if available
+    if (product?.videos && Array.isArray(product.videos) && product.videos.length > 0) {
       return product.videos;
     }
+    
+    // Fallback to single video_url if available
     if (product?.video_url && typeof product.video_url === "string") {
       return [product.video_url];
     }
+    
+    // Return empty array if no videos found
     return [];
   };
 

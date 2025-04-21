@@ -1,6 +1,11 @@
+
 export interface ProductImage {
   url: string;
   is_primary?: boolean;
+}
+
+export interface ProductVideo {
+  url: string;
 }
 
 export interface SellerProfile {
@@ -27,6 +32,9 @@ export interface Product {
   phone_url?: string;
   product_url?: string;
   product_images?: ProductImage[];
+  product_videos?: ProductVideo[];  // Added this property
+  videos?: string[];                // Added this property as fallback
+  video_url?: string;               // Added this property as fallback
   profiles?: SellerProfile;
   rating_seller?: number | null;
   optid_created?: string | null;
