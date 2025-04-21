@@ -377,7 +377,7 @@ const SellerCreateOrder = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {profiles.length === 0 ? (
-                          <SelectItem value="" disabled>Нет данных</SelectItem>
+                          <SelectItem value="no_data">Нет данных</SelectItem>
                         ) : (
                           profiles.map((p) =>
                             p.opt_id ? (
@@ -462,4 +462,3 @@ const SellerCreateOrder = () => {
 };
 
 export default SellerCreateOrder;
-
