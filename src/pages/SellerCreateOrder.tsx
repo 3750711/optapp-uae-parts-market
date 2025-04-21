@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -236,18 +237,26 @@ const SellerCreateOrder = () => {
         throw new Error("Order was created but no data was returned");
       }
 
+      // Don't insert images with is_primary=true to avoid unique constraint violation
       if (images.length > 0) {
+        const imageInserts = images.map((url, index) => ({
+          order_id: createdOrder.id,
+          url,
+          is_primary: false // Set all to false to avoid unique constraint violation
+        }));
+
         const { error: imagesError } = await supabase
           .from('order_images')
-          .insert(
-            images.map((url, index) => ({
-              order_id: createdOrder.id,
-              url,
-              is_primary: index === 0
-            }))
-          );
+          .insert(imageInserts);
 
-        if (imagesError) throw imagesError;
+        if (imagesError) {
+          console.error("Error saving image references:", imagesError);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но возникла проблема с сохранением изображений",
+            variant: "destructive"
+          });
+        }
       }
 
       if (videos.length > 0 && createdOrder?.id) {

@@ -90,24 +90,35 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     try {
       // Extract file path from URL
       const fileUrl = new URL(url);
-      const filePath = decodeURIComponent(fileUrl.pathname.split('/').pop() || '');
+      const pathParts = fileUrl.pathname.split('/');
+      // The last part after the bucket name should be the file name
+      const bucketIndex = pathParts.findIndex(part => part === storageBucket);
+      const filePath = bucketIndex >= 0 ? pathParts.slice(bucketIndex + 1).join('/') : '';
+      
+      if (!filePath) {
+        console.error("Could not extract file path from URL:", url);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось определить путь к файлу",
+          variant: "destructive"
+        });
+        return;
+      }
       
       console.log("Attempting to delete file:", filePath, "from bucket:", storageBucket);
       
-      if (filePath) {
-        const { error } = await supabase.storage
-          .from(storageBucket)
-          .remove([filePath]);
-          
-        if (error) {
-          console.error("Error deleting file:", error);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось удалить видео",
-            variant: "destructive"
-          });
-          return;
-        }
+      const { error } = await supabase.storage
+        .from(storageBucket)
+        .remove([filePath]);
+        
+      if (error) {
+        console.error("Error deleting file:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось удалить видео",
+          variant: "destructive"
+        });
+        return;
       }
       
       onDelete(url);
