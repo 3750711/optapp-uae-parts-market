@@ -7,126 +7,130 @@ import { ShoppingCart, Truck, User, Users } from 'lucide-react';
 const FEATURES = [
   {
     title: 'Широкий каталог товаров',
-    icon: <ShoppingCart className="text-violet-500" size={32} />,
-    desc: 'Огромный выбор запасных частей и аксессуаров от надежных поставщиков.'
+    icon: <ShoppingCart className="text-yellow-400" size={32} />,
+    desc: 'Огромный выбор автозапчастей и аксессуаров от надежных поставщиков.'
   },
   {
     title: 'Быстрая доставка',
-    icon: <Truck className="text-yellow-500" size={32} />,
+    icon: <Truck className="text-yellow-400" size={32} />,
     desc: 'Экспресс-доставка по ОАЭ и в любые города. Надежно, удобно, быстро.'
   },
   {
     title: 'Преимущества для продавцов',
-    icon: <User className="text-green-500" size={32} />,
-    desc: 'Лёгкая загрузка товаров, широкая аудитория, удобные инструменты для управления заказами.'
+    icon: <User className="text-yellow-400" size={32} />,
+    desc: 'Удобная работа с товарами, широкий круг покупателей и полный контроль заказов.'
   },
   {
-    title: 'Платформа для покупателей',
-    icon: <Users className="text-blue-500" size={32} />,
-    desc: 'Простая система поиска и оформления заказа. Гарантия качества и поддержки сделок.'
+    title: 'Удобство для покупателей',
+    icon: <Users className="text-yellow-400" size={32} />,
+    desc: 'Простая система поиска, прозрачные условия и гарантия качества.'
   }
 ];
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E5DEFF] via-white to-[#D3E4FD]">
+    <div className="min-h-screen bg-white text-black">
       {/* Верхнее меню */}
-      <header className="bg-white/90 shadow-md sticky top-0 z-20">
-        <nav className="container mx-auto flex items-center justify-between py-4 px-4 md:px-8">
-          <Link to="/" className="text-3xl font-extrabold text-indigo-700 tracking-tight drop-shadow">OPTAPP</Link>
+      <header className="bg-white shadow-md sticky top-0 z-30 border-b border-gray-200">
+        <nav className="container mx-auto flex items-center justify-between py-4 px-6">
+          <Link to="/" className="text-3xl font-extrabold text-yellow-500 tracking-tight drop-shadow-md">
+            OPTAPP
+          </Link>
           <div className="flex items-center gap-3">
             <Link to="/catalog">
-              <Button variant="ghost" className="flex items-center gap-2 text-base text-gray-700 hover:text-violet-600">
-                <ShoppingCart className="w-5 h-5" /> Каталог
+              <Button variant="ghost" className="text-black hover:text-yellow-500 flex items-center gap-1">
+                <ShoppingCart size={18} /> Каталог
               </Button>
             </Link>
             <a href="#delivery" className="no-underline">
-              <Button variant="ghost" className="flex items-center gap-2 text-base text-gray-700 hover:text-yellow-600">
-                <Truck className="w-5 h-5" /> Доставка
+              <Button variant="ghost" className="text-black hover:text-yellow-500 flex items-center gap-1">
+                <Truck size={18} /> Доставка
               </Button>
             </a>
             <a href="#for-sellers" className="no-underline">
-              <Button variant="ghost" className="flex items-center gap-2 text-base text-gray-700 hover:text-green-600">
-                <User className="w-5 h-5" /> Для продавцов
+              <Button variant="ghost" className="text-black hover:text-yellow-500 flex items-center gap-1">
+                <User size={18} /> Для продавцов
               </Button>
             </a>
             <a href="#for-buyers" className="no-underline">
-              <Button variant="ghost" className="flex items-center gap-2 text-base text-gray-700 hover:text-blue-600">
-                <Users className="w-5 h-5" /> Для покупателей
+              <Button variant="ghost" className="text-black hover:text-yellow-500 flex items-center gap-1">
+                <Users size={18} /> Для покупателей
               </Button>
             </a>
-            <Link to="/login">
-              <Button variant="secondary" className="ml-2">Вход</Button>
-            </Link>
-            <Link to="/register">
-              <Button variant="default" className="ml-2 bg-violet-500 hover:bg-violet-600">Регистрация</Button>
-            </Link>
           </div>
         </nav>
       </header>
 
-      {/* Основной блок */}
-      <main className="container mx-auto px-4 py-12">
-        <section className="text-center py-8">
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-indigo-700 drop-shadow">Оптовый рынок автозапчастей и аксессуаров в ОАЭ</h1>
-          <p className="text-lg sm:text-xl text-gray-700 mb-7 max-w-2xl mx-auto">
-            Платформа, соединяющая продавцов и покупателей автозапчастей. Здесь каждый найдёт качественные товары, выгодные условия и удобный сервис.
+      {/* Основной контент */}
+      <main className="container mx-auto px-6 py-12 max-w-7xl">
+        <section className="text-center max-w-3xl mx-auto mb-14">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-yellow-500 drop-shadow-lg mb-6 leading-tight">
+            Оптовый рынок автозапчастей и аксессуаров в ОАЭ
+          </h1>
+          <p className="text-lg text-gray-900 mb-8">
+            Платформа, объединяющая продавцов и покупателей автозапчастей. Здесь каждый найдет качественные товары, надежных партнеров и комфортный сервис.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-5">
             <Link to="/catalog">
-              <Button size="lg" className="bg-violet-500 hover:bg-violet-600 text-white px-8 py-4 text-lg shadow">
+              <Button size="lg" className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-10 py-4 shadow-lg">
                 К каталогу
               </Button>
             </Link>
-            <Link to="/admin">
-              <Button size="lg" variant="secondary" className="px-8 py-4 text-lg shadow">
-                Панель администратора
+            <Link to="/register">
+              <Button size="lg" variant="outline" className="text-yellow-500 border-yellow-500 hover:bg-yellow-500 hover:text-black font-bold px-10 py-4 shadow-lg">
+                Регистрация
               </Button>
             </Link>
           </div>
         </section>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 my-10">
-          {FEATURES.map((f, idx) => (
-            <div key={idx} className="bg-white rounded-2xl shadow-md p-6 flex flex-col items-center text-center hover:shadow-xl transition">
-              {f.icon}
-              <h2 className="text-xl font-semibold mt-4 mb-2 text-gray-900">{f.title}</h2>
-              <p className="text-gray-600">{f.desc}</p>
-            </div>
+        <section className="grid sm:grid-cols-2 md:grid-cols-4 gap-10 mb-20">
+          {FEATURES.map((feature, idx) => (
+            <article key={idx} className="bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center text-center hover:shadow-2xl transition-shadow duration-300">
+              <div className="mb-4">
+                {feature.icon}
+              </div>
+              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+              <p className="text-gray-700">{feature.desc}</p>
+            </article>
           ))}
         </section>
 
-        <section id="delivery" className="bg-[#FEF7CD] rounded-2xl shadow-md p-8 my-12 mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl font-bold text-yellow-600 mb-2">Доставка по всему миру</h2>
-          <p className="text-gray-800 text-lg mb-2">
-            Мы обеспечиваем быструю и надежную доставку во все регионы ОАЭ и за пределы страны. Следите за заказом онлайн. Для корпоративных клиентов доступны специальные условия!
+        <section id="delivery" className="bg-yellow-50 border border-yellow-300 rounded-3xl max-w-4xl mx-auto p-10 mb-20 text-center text-yellow-900 shadow-md">
+          <h2 className="text-3xl font-bold mb-4">Доставка по ОАЭ и миру</h2>
+          <p className="max-w-xl mx-auto">
+            Обеспечиваем быструю и надежную доставку заказов по всем регионам ОАЭ и за пределы страны. Корпоративным клиентам доступны специальные условия и индивидуальный подход.
           </p>
         </section>
 
-        <section id="for-sellers" className="bg-[#F2FCE2] rounded-2xl shadow-md p-8 my-12 mx-auto max-w-3xl">
-          <h2 className="text-2xl font-bold text-green-700 mb-2">Для продавцов</h2>
-          <ul className="list-disc text-gray-800 ml-6 mt-2 space-y-2 text-left">
-            <li>Публикуйте товары бесплатно и получайте доступ к тысячам покупателей.</li>
-            <li>Удобная панель управления заказами и продажами.</li>
-            <li>Аналитика, отчеты и поддержка на всех этапах.</li>
+        <section id="for-sellers" className="bg-yellow-50 border border-yellow-300 rounded-3xl max-w-4xl mx-auto p-10 mb-20 shadow-md text-yellow-900">
+          <h2 className="text-3xl font-bold mb-6 text-center">Для продавцов</h2>
+          <ul className="list-disc list-inside text-left space-y-3 max-w-lg mx-auto">
+            <li>Бесплатная публикация товаров и доступ к широкой аудитории.</li>
+            <li>Удобная панель для управления товарами, заказами и продажами.</li>
+            <li>Поддержка и аналитика на всех этапах работы.</li>
           </ul>
-          <div className="mt-4 flex justify-center">
+          <div className="flex justify-center mt-8">
             <Link to="/register">
-              <Button className="bg-green-500 hover:bg-green-600 text-white">Стать продавцом</Button>
+              <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3 rounded-lg shadow-md">
+                Стать продавцом
+              </Button>
             </Link>
           </div>
         </section>
 
-        <section id="for-buyers" className="bg-[#D3E4FD] rounded-2xl shadow-md p-8 my-12 mx-auto max-w-3xl">
-          <h2 className="text-2xl font-bold text-blue-700 mb-2">Для покупателей</h2>
-          <ul className="list-disc text-gray-800 ml-6 mt-2 space-y-2 text-left">
+        <section id="for-buyers" className="bg-yellow-50 border border-yellow-300 rounded-3xl max-w-4xl mx-auto p-10 mb-12 shadow-md text-yellow-900">
+          <h2 className="text-3xl font-bold mb-6 text-center">Для покупателей</h2>
+          <ul className="list-disc list-inside text-left space-y-3 max-w-lg mx-auto">
             <li>Быстрый поиск нужных запчастей и аксессуаров.</li>
-            <li>Прозрачные условия покупки и гарантированное качество товаров.</li>
-            <li>Поддержка на всех этапах заказа и доставки.</li>
+            <li>Прозрачные условия покупки и гарантия качества товаров.</li>
+            <li>Круглосуточная поддержка на всех этапах заказа.</li>
           </ul>
-          <div className="mt-4 flex justify-center">
+          <div className="flex justify-center mt-8">
             <Link to="/catalog">
-              <Button className="bg-blue-500 hover:bg-blue-600 text-white">Перейти в каталог</Button>
+              <Button className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-8 py-3 rounded-lg shadow-md">
+                Перейти в каталог
+              </Button>
             </Link>
           </div>
         </section>
@@ -136,4 +140,3 @@ const Index = () => {
 };
 
 export default Index;
-
