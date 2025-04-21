@@ -96,11 +96,13 @@ const BuyerCreateOrder = () => {
     }
 
     try {
+      // Changed to use maybeSingle() instead of single() to handle the case
+      // when no seller is found with the specified OPT ID
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
         .select('id, full_name')
         .eq('opt_id', formData.sellerOptId)
-        .single();
+        .maybeSingle();
 
       if (sellerError) throw sellerError;
       
@@ -132,11 +134,11 @@ const BuyerCreateOrder = () => {
 
       console.log('Order data being sent:', orderPayload);
 
+      // Changed to use maybeSingle() instead of single()
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
-        .select()
-        .single();
+        .select();
 
       if (orderError) throw orderError;
 

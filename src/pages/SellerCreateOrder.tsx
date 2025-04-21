@@ -104,18 +104,19 @@ const SellerCreateOrder = () => {
     }
 
     try {
-      const { data: sellerData, error: sellerError } = await supabase
+      // Changed to use maybeSingle() instead of single()
+      const { data: buyerData, error: buyerError } = await supabase
         .from('profiles')
         .select('id, full_name, telegram')
         .eq('opt_id', formData.buyerOptId)
-        .single();
+        .maybeSingle();
 
-      if (sellerError) throw sellerError;
+      if (buyerError) throw buyerError;
       
-      if (!sellerData?.id) {
+      if (!buyerData?.id) {
         toast({
           title: "Ошибка",
-          description: "Не удалось найти продавца с указанным OPT ID",
+          description: "Не удалось найти получателя с указанным OPT ID",
           variant: "destructive",
         });
         return;
@@ -130,27 +131,34 @@ const SellerCreateOrder = () => {
         seller_id: user.id,
         order_seller_name: profile?.full_name || 'Unknown',
         seller_opt_id: profile?.opt_id || null,
-        buyer_id: sellerData.id,
+        buyer_id: buyerData.id,
         buyer_opt_id: formData.buyerOptId,
         brand: formData.brand,
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
         order_created_type: 'free_order' as OrderCreatedType,
-        telegram_url_order: sellerData.telegram || null
+        telegram_url_order: buyerData.telegram || null
       };
 
       console.log('Order data being sent:', orderPayload);
 
-      const { data: createdOrder, error: orderError } = await supabase
+      // Don't use .single() here, just select the inserted data
+      const { data: createdOrderData, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
-        .select()
-        .single();
+        .select();
 
       if (orderError) {
         console.error("Error creating order:", orderError);
         console.error("Error details:", JSON.stringify(orderError, null, 2));
         throw orderError;
+      }
+
+      // Get the first order from the returned array
+      const createdOrder = createdOrderData?.[0];
+      
+      if (!createdOrder) {
+        throw new Error("Order was created but no data was returned");
       }
 
       console.log('Order created successfully:', createdOrder);
