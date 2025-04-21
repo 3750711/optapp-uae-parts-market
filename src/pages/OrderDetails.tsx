@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
 import { toast } from '@/components/ui/use-toast';
+import { OrderImages } from '@/components/order/OrderImages';
 import { Database } from '@/integrations/supabase/types';
 
 type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
@@ -111,6 +113,7 @@ const OrderDetails = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {/* Блок карточки подтверждения заказа */}
         <OrderConfirmationCard
           order={orderData.order}
           images={orderData.images}
@@ -120,9 +123,7 @@ const OrderDetails = () => {
                 telegram_url_order: orderData.order.telegram_url_order,
                 buyer_opt_id: orderData.order.buyer_opt_id,
               };
-              
               const mergedOrder = { ...preservedFields, ...updatedOrder };
-              
               queryClient.setQueryData(['order', id], {
                 order: mergedOrder,
                 images: orderData.images
@@ -131,9 +132,16 @@ const OrderDetails = () => {
             queryClient.invalidateQueries({ queryKey: ['order', id] });
           }}
         />
+        
+        {/* Отдельный блок с фотографиями заказа */}
+        <div className="mt-10">
+          <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
+          <OrderImages images={orderData.images} />
+        </div>
       </div>
     </Layout>
   );
 };
 
 export default OrderDetails;
+
