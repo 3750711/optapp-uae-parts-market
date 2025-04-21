@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -10,7 +9,6 @@ import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
 import { Database } from "@/integrations/supabase/types";
 
-// Define the type for order_created_type and order_status
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -19,7 +17,7 @@ interface ContactButtonsProps {
   onContactWhatsApp: () => void;
   telegramUrl?: string;
   product: {
-    id?: string; // product_id
+    id?: string;
     title: string;
     price: number;
     brand: string;
@@ -89,11 +87,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing seller information');
       }
 
-      console.log('Creating order with seller name:', product.seller_name);
-      console.log('Product data:', product);
-      console.log('Buyer profile:', profile);
-      console.log('Product ID being used:', product.id);
-
       const orderPayload = {
         title: product.title,
         quantity: 1,
@@ -109,10 +102,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
         telegram_url_order: profile?.telegram || null,
-        product_id: product.id ? product.id : null // add product_id explicitly
+        product_id: product.id ? product.id : null,
+        lot_number_order: product.lot_number !== undefined && product.lot_number !== null ? product.lot_number : null,
       };
-
-      console.log('Order data being sent:', orderPayload);
 
       const { data: order, error } = await supabase
         .from('orders')
@@ -192,4 +184,3 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 };
 
 export default ContactButtons;
-

@@ -80,6 +80,7 @@ export type Database = {
           description: string | null
           id: string
           images: string[] | null
+          lot_number_order: number | null
           model: string
           order_created_type: Database["public"]["Enums"]["order_created_type"]
           order_number: number
@@ -102,6 +103,7 @@ export type Database = {
           description?: string | null
           id?: string
           images?: string[] | null
+          lot_number_order?: number | null
           model: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
           order_number?: number
@@ -124,6 +126,7 @@ export type Database = {
           description?: string | null
           id?: string
           images?: string[] | null
+          lot_number_order?: number | null
           model?: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
           order_number?: number

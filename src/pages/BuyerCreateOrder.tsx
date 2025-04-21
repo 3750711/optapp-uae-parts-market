@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -27,6 +26,7 @@ const BuyerCreateOrder = () => {
     sellerOptId: "",
     brand: "",
     model: "",
+    lot_number: undefined as number | undefined,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,6 +57,7 @@ const BuyerCreateOrder = () => {
             sellerOptId: product.optid_created || "",
             brand: product.brand || "",
             model: product.model || "",
+            lot_number: product.lot_number,
           });
         }
       }
@@ -117,10 +118,9 @@ const BuyerCreateOrder = () => {
       }
 
       let resolvedProductId = productId;
+      let usedLotNumber = formData.lot_number;
 
-      // If no productId is provided, create a temporary product
       if (!productId) {
-        console.log("Creating temporary product for the order");
         const { data: insertedProducts, error: productError } = await supabase
           .from('products')
           .insert({
@@ -147,9 +147,7 @@ const BuyerCreateOrder = () => {
         
         if (insertedProducts && insertedProducts.length > 0) {
           resolvedProductId = insertedProducts[0].id;
-          console.log("Created temporary product with ID:", resolvedProductId);
-        } else {
-          console.error("No product was created");
+          usedLotNumber = insertedProducts[0].lot_number;
         }
       }
 
@@ -169,6 +167,7 @@ const BuyerCreateOrder = () => {
         status: 'created' as OrderStatus,
         order_created_type: productId ? 'ads_order' as OrderCreatedType : 'free_order' as OrderCreatedType,
         product_id: resolvedProductId || null,
+        lot_number_order: usedLotNumber !== undefined ? usedLotNumber : null,
       };
 
       console.log("Order payload:", orderPayload);
@@ -297,6 +296,13 @@ const BuyerCreateOrder = () => {
                     className="bg-gray-100"
                   />
                 </div>
+
+                {formData.lot_number !== undefined && (
+                  <div className="space-y-2">
+                    <Label>Номер лота</Label>
+                    <Input value={formData.lot_number ?? ""} readOnly className="bg-gray-100" />
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <Label>Телеграм покупателя</Label>
