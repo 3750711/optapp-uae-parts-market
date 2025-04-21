@@ -5,19 +5,19 @@ import { Mail, Phone, MapPin } from "lucide-react";
 
 const Footer = () => {
   return (
-    <footer className="bg-[#f3f414] text-black mt-auto">
+    <footer className="bg-primary text-primary-foreground mt-auto border-t border-gray-200">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">OPTAPP</h3>
+            <h3 className="text-xl font-bold mb-4" style={{ color: "#000" }}>OPTAPP</h3>
             <p className="text-black">
-              Маркетплейс автозапчастей из ОАЭ.
+              Маркетплейс автозапчастей из ОАЭ.<br />
               Продажа качественных запчастей напрямую от поставщиков.
             </p>
           </div>
 
           <div>
-            <h3 className="text-xl font-bold mb-4">Навигация</h3>
+            <h3 className="text-xl font-bold mb-4" style={{ color: "#000" }}>Навигация</h3>
             <ul className="space-y-2">
               <li>
                 <Link to="/" className="text-black hover:text-gray-900">
@@ -43,7 +43,7 @@ const Footer = () => {
           </div>
 
           <div>
-            <h3 className="text-xl font-bold mb-4">Контакты</h3>
+            <h3 className="text-xl font-bold mb-4" style={{ color: "#000" }}>Контакты</h3>
             <ul className="space-y-3">
               <li className="flex items-center">
                 <Phone className="h-5 w-5 mr-2 text-black" />

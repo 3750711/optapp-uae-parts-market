@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,35 +28,35 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-[#f3f414] text-black shadow-sm">
+    <header className="bg-primary text-primary-foreground shadow-sm">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="text-2xl font-bold text-black">
+          <Link to="/" className="text-2xl font-bold" style={{ color: "#000" }}>
             OPTAPP
           </Link>
 
           {user && (
             <nav className="hidden md:flex items-center space-x-6">
-              <Link to="/" className="text-black hover:text-gray-800">
+              <Link to="/" className="hover:text-black">
                 Главная
               </Link>
-              <Link to="/catalog" className="text-black hover:text-gray-800">
+              <Link to="/catalog" className="hover:text-black">
                 Каталог
               </Link>
-              <Link to="/about" className="text-black hover:text-gray-800">
+              <Link to="/about" className="hover:text-black">
                 О нас
               </Link>
-              <Link to="/contact" className="text-black hover:text-gray-800">
+              <Link to="/contact" className="hover:text-black">
                 Контакты
               </Link>
-              <Link to="/admin" className="text-black hover:text-gray-800">
-                <Button variant="default" className="bg-black text-[#f3f414] hover:bg-gray-900">
+              <Link to="/admin">
+                <Button variant="default" className="bg-black text-primary hover:bg-gray-900">
                   Админ панель
                 </Button>
               </Link>
               {profile?.user_type === 'seller' && (
-                <Link to="/seller/dashboard" className="text-black hover:text-gray-800">
-                  <Button variant="default" className="bg-black text-[#f3f414] hover:bg-gray-900">
+                <Link to="/seller/dashboard">
+                  <Button variant="default" className="bg-black text-primary hover:bg-gray-900">
                     Панель продавца
                   </Button>
                 </Link>
@@ -171,7 +170,7 @@ const Header = () => {
                 </Button>
                 <Button 
                   asChild
-                  className="bg-black text-[#f3f414] hover:bg-gray-900"
+                  className="bg-black text-primary hover:bg-gray-900"
                 >
                   <Link to="/register">Регистрация</Link>
                 </Button>

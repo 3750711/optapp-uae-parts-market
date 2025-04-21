@@ -5,72 +5,56 @@
 
 @layer base {
   :root {
-    --background: 57 98% 48%; /* #f3f414 approx in HSL */
-    --foreground: 0 0% 0%; /* Black */
+    --background: 0 0% 100%; /* white */
+    --foreground: 0 0% 0%;   /* black */
 
-    --card: 57 98% 48%;
+    --primary: 57 98% 48%; /* #f3f414 */
+    --primary-foreground: 0 0% 0%; /* text-black on yellow */
+    --secondary: 0 0% 0%;   /* black for minor elements */
+    --secondary-foreground: 0 0% 100%; /* white on black */
+
+    --card: 0 0% 100%;
     --card-foreground: 0 0% 0%;
 
-    --popover: 57 98% 48%;
+    --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
 
-    --primary: 57 98% 48%;
-    --primary-foreground: 0 0% 0%;
+    --muted: 0 0% 98%;
+    --muted-foreground: 0 0% 50%;
 
-    --secondary: 0 0% 0%; /* Black */
-    --secondary-foreground: 57 98% 48%; /* Bright yellow text on black bg */
-
-    --muted: 57 98% 48%;
-    --muted-foreground: 0 0% 0%;
-
-    --accent: 57 98% 48%;
+    --accent: 57 98% 48%;        /* yellow for accent borders/backgrounds */
     --accent-foreground: 0 0% 0%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 57 98% 48%;
-    --input: 57 98% 48%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
     --ring: 57 98% 48%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    --background: 57 98% 48%;
-    --foreground: 0 0% 0%;
-
-    --card: 57 98% 48%;
-    --card-foreground: 0 0% 0%;
-
-    --popover: 57 98% 48%;
-    --popover-foreground: 0 0% 0%;
+    --background: 0 0% 12%;
+    --foreground: 0 0% 100%;
 
     --primary: 57 98% 48%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 0%; /* Black */
-    --secondary-foreground: 57 98% 48%; /* Bright yellow text on black bg */
+    --secondary: 0 0% 100%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 0 0% 0%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 0%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --card: 0 0% 20%;
+    --card-foreground: 0 0% 100%;
   }
 
   * {
     @apply border-border;
+    scroll-behavior: smooth;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
   }
 }
 
@@ -79,9 +63,9 @@
     @apply container mx-auto px-4 py-6;
   }
   .btn-primary {
-    @apply bg-yellow-400 text-black font-medium py-2 px-4 rounded shadow hover:shadow-lg transition-all;
+    @apply bg-primary text-primary-foreground font-bold py-2 px-4 rounded shadow hover:shadow-lg transition;
   }
   .optapp-card {
-    @apply bg-white rounded-lg shadow-md p-4 hover:shadow-lg transition-all;
+    @apply bg-card rounded-lg shadow p-4 hover:shadow-lg transition;
   }
 }
