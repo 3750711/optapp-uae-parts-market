@@ -17,6 +17,7 @@ const Footer = () => {
             </p>
           </div>
 
+          
           <div className="animate-fade-in" style={{ animationDelay: "0.2s" }}>
             <h3 className="text-xl font-bold mb-4 text-foreground">Навигация</h3>
             <ul className="space-y-3">
