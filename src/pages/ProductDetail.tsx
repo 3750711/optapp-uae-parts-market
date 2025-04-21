@@ -66,7 +66,7 @@ const ProductDetail = () => {
 
   const getProductVideos = () => {
     if (product?.product_videos && Array.isArray(product.product_videos) && product.product_videos.length > 0) {
-      return product.product_videos.map(video => video.url);
+      return product.product_videos.map((video: { url: string }) => video.url);
     }
     if (product?.videos && Array.isArray(product.videos) && product.videos.length > 0) {
       return product.videos;
@@ -142,55 +142,99 @@ const ProductDetail = () => {
         container mx-auto px-2 sm:px-4 py-4
         ${isMobile ? "" : "py-8"}
       `}>
-        <div className={`
-          flex flex-col
-          ${isMobile ? "gap-3" : "lg:grid lg:grid-cols-2 gap-8"}
-        `}>
-          <div className={`${isMobile ? "" : ""}`}>
-            <div className={isMobile ? "mb-2" : "mb-4"}>
+        {isMobile ? (
+          // Мобильная версия — сначала инфо и кнопки, потом фото+видео
+          <div className="flex flex-col gap-3">
+            <div>
+              <ProductInfo
+                product={product}
+                onProductUpdate={handleProductUpdate}
+              />
+              <ProductSpecifications
+                brand={product.brand || ""}
+                model={product.model || ""}
+                lot_number={product.lot_number || ""}
+              />
+              <SellerInfo
+                sellerProfile={sellerProfile || {}}
+                seller_name={sellerName}
+              >
+                <div className="flex flex-col gap-2">
+                  <ContactButtons
+                    onContactTelegram={handleContactTelegram}
+                    onContactWhatsApp={handleContactWhatsApp}
+                    telegramUrl={product.telegram_url}
+                    product={{
+                      id: product.id,
+                      title: product.title,
+                      price: productPrice,
+                      brand: product.brand,
+                      model: product.model,
+                      description: product.description,
+                      optid_created: product.optid_created,
+                      seller_id: product.seller_id,
+                      seller_name: sellerName,
+                      lot_number: product.lot_number
+                    }}
+                  />
+                </div>
+              </SellerInfo>
+            </div>
+            <div className="mt-2">
               <ProductGallery images={images} title={product.title} />
             </div>
-            <div className={isMobile ? "mb-2" : "mb-8"}>
+            <div className="mt-2">
               <ProductVideos videos={videos} />
             </div>
           </div>
-
-          <div className={isMobile ? "mt-2" : ""}>
-            <ProductInfo
-              product={product}
-              onProductUpdate={handleProductUpdate}
-            />
-            <ProductSpecifications
-              brand={product.brand || ""}
-              model={product.model || ""}
-              lot_number={product.lot_number || ""}
-            />
-            <SellerInfo
-              sellerProfile={sellerProfile || {}}
-              seller_name={sellerName}
-            >
-              <div className="flex flex-col gap-2">
-                <ContactButtons
-                  onContactTelegram={handleContactTelegram}
-                  onContactWhatsApp={handleContactWhatsApp}
-                  telegramUrl={product.telegram_url}
-                  product={{
-                    id: product.id,
-                    title: product.title,
-                    price: productPrice,
-                    brand: product.brand,
-                    model: product.model,
-                    description: product.description,
-                    optid_created: product.optid_created,
-                    seller_id: product.seller_id,
-                    seller_name: sellerName,
-                    lot_number: product.lot_number
-                  }}
-                />
+        ) : (
+          // Десктопная версия, как было — сначала фото+видео слева
+          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
+            <div>
+              <div className="mb-4">
+                <ProductGallery images={images} title={product.title} />
               </div>
-            </SellerInfo>
+              <div className="mb-8">
+                <ProductVideos videos={videos} />
+              </div>
+            </div>
+            <div>
+              <ProductInfo
+                product={product}
+                onProductUpdate={handleProductUpdate}
+              />
+              <ProductSpecifications
+                brand={product.brand || ""}
+                model={product.model || ""}
+                lot_number={product.lot_number || ""}
+              />
+              <SellerInfo
+                sellerProfile={sellerProfile || {}}
+                seller_name={sellerName}
+              >
+                <div className="flex flex-col gap-2">
+                  <ContactButtons
+                    onContactTelegram={handleContactTelegram}
+                    onContactWhatsApp={handleContactWhatsApp}
+                    telegramUrl={product.telegram_url}
+                    product={{
+                      id: product.id,
+                      title: product.title,
+                      price: productPrice,
+                      brand: product.brand,
+                      model: product.model,
+                      description: product.description,
+                      optid_created: product.optid_created,
+                      seller_id: product.seller_id,
+                      seller_name: sellerName,
+                      lot_number: product.lot_number
+                    }}
+                  />
+                </div>
+              </SellerInfo>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Layout>
   );
