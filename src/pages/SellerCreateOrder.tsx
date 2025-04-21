@@ -12,9 +12,23 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { Database } from "@/integrations/supabase/types";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue
+} from "@/components/ui/select";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
+
+// Тип профиля для выпадающего списка
+type ProfileShort = {
+  id: string;
+  opt_id: string;
+  full_name?: string | null;
+};
 
 const SellerCreateOrder = () => {
   const { user, profile } = useAuth();
@@ -23,6 +37,7 @@ const SellerCreateOrder = () => {
   const productId = searchParams.get('productId');
   const [images, setImages] = useState<string[]>([]);
   const [createdOrder, setCreatedOrder] = useState<any>(null);
+  const [profiles, setProfiles] = useState<ProfileShort[]>([]);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -34,6 +49,30 @@ const SellerCreateOrder = () => {
     seller_opt_id: "",
     buyer_opt_id: ""
   });
+
+  // 1. Загружаем список профилей для выпадающего списка OPT_ID
+  useEffect(() => {
+    const fetchProfiles = async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, opt_id, full_name")
+        .neq("opt_id", null);
+
+      if (error) {
+        console.error("Ошибка загрузки списка OPT_ID:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список OPT_ID",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProfiles(data || []);
+    };
+
+    fetchProfiles();
+  }, []);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -325,15 +364,31 @@ const SellerCreateOrder = () => {
                       step="0.01"
                     />
                   </div>
+                  {/* Заменяем Input на Select для выбора OPT_ID */}
                   <div className="space-y-2">
                     <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
-                    <Input 
-                      id="buyerOptId"
+                    <Select
                       value={formData.buyerOptId}
-                      onChange={(e) => handleInputChange('buyerOptId', e.target.value)}
+                      onValueChange={(value: string) => handleInputChange("buyerOptId", value)}
                       required
-                      placeholder="Введите OPT_ID получателя"
-                    />
+                    >
+                      <SelectTrigger id="buyerOptId" className="bg-white">
+                        <SelectValue placeholder="Выберите OPT_ID" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {profiles.length === 0 ? (
+                          <SelectItem value="" disabled>Нет данных</SelectItem>
+                        ) : (
+                          profiles.map((p) =>
+                            p.opt_id ? (
+                              <SelectItem key={p.opt_id} value={p.opt_id}>
+                                {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
+                              </SelectItem>
+                            ) : null
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -407,3 +462,4 @@ const SellerCreateOrder = () => {
 };
 
 export default SellerCreateOrder;
+
