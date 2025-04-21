@@ -42,11 +42,11 @@ const ProductCard: React.FC<ProductProps> = ({
   const getStatusBadge = () => {
     switch (status) {
       case 'pending':
-        return <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-300">Ожидает проверки</Badge>;
+        return <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border border-yellow-200">Ожидает проверки</Badge>;
       case 'active':
-        return <Badge variant="secondary" className="bg-green-50 text-green-700 border border-green-300">Опубликован</Badge>;
+        return <Badge variant="secondary" className="bg-green-50 text-green-700 border border-green-200">Опубликован</Badge>;
       case 'sold':
-        return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-300">Продан</Badge>;
+        return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border border-blue-200">Продан</Badge>;
       case 'archived':
         return <Badge variant="secondary" className="bg-gray-100 text-gray-800">Архив</Badge>;
       default:
@@ -55,16 +55,16 @@ const ProductCard: React.FC<ProductProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden bg-white border border-[#f3f414] hover:shadow-xl shadow transition-shadow">
+    <Card className="overflow-hidden bg-white border border-gray-200 hover:shadow-xl shadow transition-all duration-300 hover:-translate-y-1 rounded-lg group">
       <div className="aspect-square overflow-hidden relative">
         <img 
           src={image || "/placeholder.svg"} 
           alt={name} 
-          className={`h-full w-full object-cover transition-transform hover:scale-105 ${status === 'sold' ? 'opacity-70' : ''}`}
+          className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-110 ${status === 'sold' ? 'opacity-70' : ''}`}
         />
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-[#f3f414] text-black px-4 py-2 rounded-lg font-bold transform rotate-45 shadow-xl text-lg border border-black">
+            <div className="bg-blue-600 text-white px-4 py-2 rounded-lg font-bold transform rotate-45 shadow-xl text-lg">
               ПРОДАНО
             </div>
           </div>
@@ -72,10 +72,10 @@ const ProductCard: React.FC<ProductProps> = ({
       </div>
       <CardContent className="p-4">
         <div className="flex justify-between mb-2">
-          <Badge className="bg-[#f3f414] text-black hover:bg-[#f3f414]/90 border border-black font-bold">
+          <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors duration-300">
             {condition}
           </Badge>
-          <span className="text-sm text-black">{location}</span>
+          <span className="text-sm text-gray-600">{location}</span>
         </div>
         
         {getStatusBadge()}
@@ -125,16 +125,16 @@ const ProductCard: React.FC<ProductProps> = ({
           </div>
         </div>
 
-        <h3 className="font-medium text-lg truncate text-black">{name}</h3>
-        <p className="font-bold text-xl mt-2 text-black">{price} AED</p>
+        <h3 className="font-medium text-lg truncate text-gray-900 group-hover:text-blue-700 transition-colors duration-300">{name}</h3>
+        <p className="font-bold text-xl mt-2 text-gray-900">{price} AED</p>
       </CardContent>
       <CardFooter className="p-4 pt-0">
         <Link to={`/product/${id}`} className="w-full">
           <Button 
-            className={`w-full ${
+            className={`w-full transition-all duration-300 ${
               status === 'sold' 
               ? 'bg-gray-400 hover:bg-gray-500 text-white' 
-              : 'bg-[#f3f414] text-black hover:bg-yellow-300 border border-black font-bold'
+              : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg'
             }`}
           >
             {status === 'sold' ? 'Просмотреть' : 'Подробнее'}

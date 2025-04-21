@@ -8,7 +8,7 @@ const Footer = () => {
     <footer className="bg-[#f3f414] mt-auto border-t border-black">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div>
+          <div className="transition-all duration-300 hover:translate-y-[-5px]">
             <h3 className="text-xl font-bold mb-4" style={{ color: "#000" }}>OPTAPP</h3>
             <p className="text-black">
               Маркетплейс автозапчастей из ОАЭ.<br />
@@ -16,38 +16,38 @@ const Footer = () => {
             </p>
           </div>
 
-          <div>
+          <div className="transition-all duration-300 hover:translate-y-[-5px]">
             <h3 className="text-xl font-bold mb-4" style={{ color: "#000" }}>Навигация</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-black hover:text-white font-medium">Главная</Link>
+                <Link to="/" className="text-black hover:text-gray-800 font-medium transition-all duration-300 hover:translate-x-1 inline-block">Главная</Link>
               </li>
               <li>
-                <Link to="/catalog" className="text-black hover:text-white font-medium">Каталог</Link>
+                <Link to="/catalog" className="text-black hover:text-gray-800 font-medium transition-all duration-300 hover:translate-x-1 inline-block">Каталог</Link>
               </li>
               <li>
-                <Link to="/about" className="text-black hover:text-white font-medium">О нас</Link>
+                <Link to="/about" className="text-black hover:text-gray-800 font-medium transition-all duration-300 hover:translate-x-1 inline-block">О нас</Link>
               </li>
               <li>
-                <Link to="/contact" className="text-black hover:text-white font-medium">Контакты</Link>
+                <Link to="/contact" className="text-black hover:text-gray-800 font-medium transition-all duration-300 hover:translate-x-1 inline-block">Контакты</Link>
               </li>
             </ul>
           </div>
 
-          <div>
+          <div className="transition-all duration-300 hover:translate-y-[-5px]">
             <h3 className="text-xl font-bold mb-4" style={{ color: "#000" }}>Контакты</h3>
             <ul className="space-y-3 text-black">
-              <li className="flex items-center">
-                <Phone className="h-5 w-5 mr-2 text-black" />
-                <span>+971 58 123 4567</span>
+              <li className="flex items-center group">
+                <Phone className="h-5 w-5 mr-2 text-black group-hover:scale-110 transition-transform duration-300" />
+                <span className="group-hover:font-medium transition-all duration-300">+971 58 123 4567</span>
               </li>
-              <li className="flex items-center">
-                <Mail className="h-5 w-5 mr-2 text-black" />
-                <span>info@optapp.ae</span>
+              <li className="flex items-center group">
+                <Mail className="h-5 w-5 mr-2 text-black group-hover:scale-110 transition-transform duration-300" />
+                <span className="group-hover:font-medium transition-all duration-300">info@optapp.ae</span>
               </li>
-              <li className="flex items-start">
-                <MapPin className="h-5 w-5 mr-2 text-black" />
-                <span>Дубай, ОАЭ</span>
+              <li className="flex items-start group">
+                <MapPin className="h-5 w-5 mr-2 text-black group-hover:scale-110 transition-transform duration-300" />
+                <span className="group-hover:font-medium transition-all duration-300">Дубай, ОАЭ</span>
               </li>
             </ul>
           </div>

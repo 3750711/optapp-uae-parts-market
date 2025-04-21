@@ -16,6 +16,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
@@ -23,6 +24,7 @@ const Catalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const productsPerPage = 8;
+  const isMobile = useIsMobile();
 
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
@@ -87,20 +89,18 @@ const Catalog = () => {
 
   return (
     <Layout>
-      <div className="bg-white min-h-screen py-0">
+      <div className="bg-gradient-to-b from-gray-50 to-white min-h-screen py-0">
         <div className="container mx-auto px-4 py-8">
-          {/* Removed the main heading here */}
-
           <div className="mb-8 flex justify-center">
             <form onSubmit={handleSearch} className="flex w-full max-w-lg items-center space-x-2">
               <Input 
                 type="text" 
                 placeholder="Поиск по названию..." 
-                className="flex-grow border border-[#f3f414] rounded text-black bg-white"
+                className="flex-grow border border-gray-300 rounded text-black bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
-              <Button type="submit" className="bg-[#f3f414] text-black font-semibold hover:bg-yellow-400 border border-black">
+              <Button type="submit" className="bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-colors duration-300">
                 <Search className="h-4 w-4 mr-2" /> Найти
               </Button>
             </form>
@@ -108,29 +108,38 @@ const Catalog = () => {
           
           {isLoading && (
             <div className="text-center py-12">
-              <p className="text-lg text-black">Загрузка продуктов...</p>
+              <div className="animate-pulse flex flex-col items-center">
+                <div className="h-8 w-64 bg-gray-200 rounded mb-4"></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-gray-100 rounded-lg h-64"></div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 
           {!isLoading && filteredProducts.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-lg text-black">Товары не найдены</p>
+            <div className="text-center py-12 animate-fade-in">
+              <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
             </div>
           )}
           
           {!isLoading && filteredProducts.length > 0 && (
-            <ProductGrid products={mappedProducts} />
+            <div className="animate-fade-in">
+              <ProductGrid products={mappedProducts} />
+            </div>
           )}
           
           {!isLoading && filteredProducts.length > 0 && (
             <div className="mt-12">
               <Pagination>
-                <PaginationContent>
+                <PaginationContent className={isMobile ? "flex-wrap justify-center gap-2" : ""}>
                   <PaginationItem>
                     <PaginationPrevious 
                       onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      className={`${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} transition-transform hover:scale-105`}
                     />
                   </PaginationItem>
                   
@@ -139,7 +148,7 @@ const Catalog = () => {
                       <PaginationLink
                         onClick={() => setCurrentPage(page)}
                         isActive={page === currentPage}
-                        className={page === currentPage ? "bg-[#f3f414] text-black border-black" : "text-black"}
+                        className={page === currentPage ? "bg-blue-600 text-white border-transparent transition-all duration-300" : "text-gray-700 hover:bg-gray-100 transition-all duration-300"}
                       >
                         {page}
                       </PaginationLink>
@@ -149,7 +158,7 @@ const Catalog = () => {
                   <PaginationItem>
                     <PaginationNext 
                       onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                      className={`${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} transition-transform hover:scale-105`}
                     />
                   </PaginationItem>
                 </PaginationContent>
@@ -163,4 +172,3 @@ const Catalog = () => {
 };
 
 export default Catalog;
-
