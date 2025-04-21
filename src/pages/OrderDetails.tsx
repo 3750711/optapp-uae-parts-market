@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -67,19 +66,24 @@ const OrderDetails = () => {
       }
 
       if (!order) return null;
-      
       console.log("Fetched order data:", order);
 
-      const { data: images, error: imagesError } = await supabase
-        .from('order_images')
-        .select('url')
-        .eq('order_id', id);
+      let images: string[] = [];
+      if (order.images && Array.isArray(order.images) && order.images.length > 0) {
+        images = order.images;
+      } else {
+        const { data: imagesFromTable, error: imagesError } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', id);
 
-      if (imagesError) throw imagesError;
+        if (imagesError) throw imagesError;
+        images = imagesFromTable?.map(img => img.url) || [];
+      }
 
       return {
         order,
-        images: images?.map(img => img.url) || []
+        images,
       };
     },
     enabled: !!id
@@ -113,7 +117,6 @@ const OrderDetails = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        {/* Блок карточки подтверждения заказа */}
         <OrderConfirmationCard
           order={orderData.order}
           images={orderData.images}
@@ -133,7 +136,6 @@ const OrderDetails = () => {
           }}
         />
         
-        {/* Отдельный блок с фотографиями заказа */}
         <div className="mt-10">
           <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
           <OrderImages images={orderData.images} />
@@ -144,4 +146,3 @@ const OrderDetails = () => {
 };
 
 export default OrderDetails;
-

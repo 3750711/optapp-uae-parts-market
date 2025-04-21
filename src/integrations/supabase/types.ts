@@ -79,6 +79,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          images: string[] | null
           model: string
           order_created_type: Database["public"]["Enums"]["order_created_type"]
           order_number: number
@@ -99,6 +100,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          images?: string[] | null
           model: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
           order_number?: number
@@ -119,6 +121,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          images?: string[] | null
           model?: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
           order_number?: number

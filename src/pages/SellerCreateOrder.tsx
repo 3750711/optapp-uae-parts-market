@@ -22,7 +22,6 @@ import {
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
-// Тип профиля для выпадающего списка
 type ProfileShort = {
   id: string;
   opt_id: string;
@@ -49,7 +48,6 @@ const SellerCreateOrder = () => {
     buyer_opt_id: ""
   });
 
-  // Загружаем список профилей для выпадающего списка OPT_ID
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
@@ -166,8 +164,6 @@ const SellerCreateOrder = () => {
         return;
       }
 
-      console.log('Creating order with buyer profile:', profile);
-      
       const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
@@ -181,10 +177,9 @@ const SellerCreateOrder = () => {
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
         order_created_type: 'free_order' as OrderCreatedType,
-        telegram_url_order: buyerData.telegram || null
+        telegram_url_order: buyerData.telegram || null,
+        images: images,
       };
-
-      console.log('Order data being sent:', orderPayload);
 
       const { data: createdOrderData, error: orderError } = await supabase
         .from('orders')
@@ -202,8 +197,6 @@ const SellerCreateOrder = () => {
       if (!createdOrder) {
         throw new Error("Order was created but no data was returned");
       }
-
-      console.log('Order created successfully:', createdOrder);
 
       if (images.length > 0) {
         const { error: imagesError } = await supabase
