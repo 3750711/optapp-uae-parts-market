@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -11,6 +10,7 @@ import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import SellerInfo from "@/components/product/SellerInfo";
 import ContactButtons from "@/components/product/ContactButtons";
+import ProductVideos from "@/components/product/ProductVideos";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -25,7 +25,8 @@ const ProductDetail = () => {
         .select(`
           *,
           product_images(url, is_primary),
-          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram)
+          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram),
+          product_videos(url)
         `)
         .eq("id", id)
         .single();
@@ -59,6 +60,19 @@ const ProductDetail = () => {
       return product.product_images.map(img => img.url);
     }
     return [getImageUrl()];
+  };
+
+  const getProductVideos = () => {
+    if (product?.product_videos && product.product_videos.length > 0) {
+      return product.product_videos.map((video: any) => video.url);
+    }
+    if (product?.videos && Array.isArray(product.videos)) {
+      return product.videos;
+    }
+    if (product?.video_url && typeof product.video_url === "string") {
+      return [product.video_url];
+    }
+    return [];
   };
 
   const handleContactTelegram = () => {
@@ -115,6 +129,7 @@ const ProductDetail = () => {
   }
 
   const images = getProductImages();
+  const videos = getProductVideos();
   const sellerProfile = product.profiles;
   
   console.log("Full product data:", product);
@@ -123,7 +138,6 @@ const ProductDetail = () => {
   
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
 
-  // Ensure we have a valid seller name
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
 
   return (
@@ -132,6 +146,7 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
             <ProductGallery images={images} title={product.title} />
+            <ProductVideos videos={videos} />
           </div>
 
           <div>
@@ -155,7 +170,7 @@ const ProductDetail = () => {
                 onContactWhatsApp={handleContactWhatsApp}
                 telegramUrl={product.telegram_url}
                 product={{
-                  id: product.id,  // Explicitly pass the product ID
+                  id: product.id,
                   title: product.title,
                   price: productPrice,
                   brand: product.brand,
@@ -164,7 +179,7 @@ const ProductDetail = () => {
                   optid_created: product.optid_created,
                   seller_id: product.seller_id,
                   seller_name: sellerName,
-                  lot_number: product.lot_number // <-- Добавляем номер лота!
+                  lot_number: product.lot_number
                 }}
               />
             </SellerInfo>
@@ -176,4 +191,3 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
-
