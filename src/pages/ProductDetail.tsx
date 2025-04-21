@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -12,11 +11,13 @@ import ProductSpecifications from "@/components/product/ProductSpecifications";
 import SellerInfo from "@/components/product/SellerInfo";
 import ContactButtons from "@/components/product/ContactButtons";
 import ProductVideos from "@/components/product/ProductVideos";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -64,22 +65,15 @@ const ProductDetail = () => {
   };
 
   const getProductVideos = () => {
-    // Check for videos from the product_videos relationship
     if (product?.product_videos && Array.isArray(product.product_videos) && product.product_videos.length > 0) {
       return product.product_videos.map(video => video.url);
     }
-    
-    // Fallback to videos array if available
     if (product?.videos && Array.isArray(product.videos) && product.videos.length > 0) {
       return product.videos;
     }
-    
-    // Fallback to single video_url if available
     if (product?.video_url && typeof product.video_url === "string") {
       return [product.video_url];
     }
-    
-    // Return empty array if no videos found
     return [];
   };
 
@@ -139,57 +133,61 @@ const ProductDetail = () => {
   const images = getProductImages();
   const videos = getProductVideos();
   const sellerProfile = product.profiles;
-  
-  console.log("Full product data:", product);
-  console.log("Product ID:", product.id);
-  console.log("Seller profile data:", sellerProfile);
-  
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
-
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div>
-            <ProductGallery images={images} title={product.title} />
-            <ProductVideos videos={videos} />
+      <div className={`
+        container mx-auto px-2 sm:px-4 py-4
+        ${isMobile ? "" : "py-8"}
+      `}>
+        <div className={`
+          flex flex-col
+          ${isMobile ? "gap-3" : "lg:grid lg:grid-cols-2 gap-8"}
+        `}>
+          <div className={`${isMobile ? "" : ""}`}>
+            <div className={isMobile ? "mb-2" : "mb-4"}>
+              <ProductGallery images={images} title={product.title} />
+            </div>
+            <div className={isMobile ? "mb-2" : "mb-8"}>
+              <ProductVideos videos={videos} />
+            </div>
           </div>
 
-          <div>
-            <ProductInfo 
+          <div className={isMobile ? "mt-2" : ""}>
+            <ProductInfo
               product={product}
               onProductUpdate={handleProductUpdate}
             />
-            
-            <ProductSpecifications 
+            <ProductSpecifications
               brand={product.brand || ""}
               model={product.model || ""}
               lot_number={product.lot_number || ""}
             />
-            
-            <SellerInfo 
-              sellerProfile={sellerProfile || {}} 
+            <SellerInfo
+              sellerProfile={sellerProfile || {}}
               seller_name={sellerName}
             >
-              <ContactButtons
-                onContactTelegram={handleContactTelegram}
-                onContactWhatsApp={handleContactWhatsApp}
-                telegramUrl={product.telegram_url}
-                product={{
-                  id: product.id,
-                  title: product.title,
-                  price: productPrice,
-                  brand: product.brand,
-                  model: product.model,
-                  description: product.description,
-                  optid_created: product.optid_created,
-                  seller_id: product.seller_id,
-                  seller_name: sellerName,
-                  lot_number: product.lot_number
-                }}
-              />
+              <div className="flex flex-col gap-2">
+                <ContactButtons
+                  onContactTelegram={handleContactTelegram}
+                  onContactWhatsApp={handleContactWhatsApp}
+                  telegramUrl={product.telegram_url}
+                  product={{
+                    id: product.id,
+                    title: product.title,
+                    price: productPrice,
+                    brand: product.brand,
+                    model: product.model,
+                    description: product.description,
+                    optid_created: product.optid_created,
+                    seller_id: product.seller_id,
+                    seller_name: sellerName,
+                    lot_number: product.lot_number
+                  }}
+                />
+              </div>
             </SellerInfo>
           </div>
         </div>
