@@ -54,14 +54,8 @@ const Header = () => {
         onClick={onClick}
       >
         О нас
-      </Link>
-      <Link 
-        to="/contact" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        Контакты
-      </Link>
+      </Link>      
+      {/* Контакты убраны из верхнего меню */}
       {profile?.user_type === 'seller' && (
         <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
           <Button variant="secondary" size="sm" className="animate-float">
@@ -77,10 +71,11 @@ const Header = () => {
       <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link 
           to="/" 
-          className="text-2xl font-extrabold tracking-tight flex items-center gap-1.5"
+          className="text-2xl font-extrabold tracking-tight flex flex-col items-start gap-0"
         >
           <span className="text-primary">OPT</span>
           <span className="text-secondary">APP</span>
+          <small className="text-xs text-gray-500 lowercase -mt-1">spare parts market</small>
         </Link>
 
         {isMobile ? (

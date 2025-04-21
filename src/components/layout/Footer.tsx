@@ -1,7 +1,5 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-import { Mail, Phone, MapPin } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -37,23 +35,7 @@ const Footer = () => {
             </ul>
           </div>
 
-          <div className="animate-fade-in" style={{ animationDelay: "0.3s" }}>
-            <h3 className="text-xl font-bold mb-4 text-foreground">Контакты</h3>
-            <ul className="space-y-4 text-foreground/80">
-              <li className="flex items-center">
-                <Phone className="h-5 w-5 mr-3 text-primary" />
-                <span>+971 58 123 4567</span>
-              </li>
-              <li className="flex items-center">
-                <Mail className="h-5 w-5 mr-3 text-primary" />
-                <span>info@optapp.ae</span>
-              </li>
-              <li className="flex items-start">
-                <MapPin className="h-5 w-5 mr-3 text-primary mt-0.5" />
-                <span>Дубай, ОАЭ</span>
-              </li>
-            </ul>
-          </div>
+          {/* Убраны контакты из футера */}
         </div>
 
         <div className="mt-12 pt-6 border-t border-gray-100 text-center text-foreground/70">
