@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -50,25 +49,31 @@ const SellerCreateOrder = () => {
     buyer_opt_id: ""
   });
 
-  // 1. Загружаем список профилей для выпадающего списка OPT_ID
+  // Загружаем список профилей для выпадающего списка OPT_ID
   useEffect(() => {
     const fetchProfiles = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, opt_id, full_name")
-        .neq("opt_id", null);
-
-      if (error) {
-        console.error("Ошибка загрузки списка OPT_ID:", error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить список OPT_ID",
-          variant: "destructive",
-        });
-        return;
+      try {
+        console.log("Fetching profiles with opt_id...");
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, opt_id, full_name")
+          .not("opt_id", "is", null);
+        
+        if (error) {
+          console.error("Ошибка загрузки списка OPT_ID:", error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить список OPT_ID",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        console.log("Fetched profiles:", data?.length || 0);
+        setProfiles(data || []);
+      } catch (error) {
+        console.error("Unexpected error fetching profiles:", error);
       }
-
-      setProfiles(data || []);
     };
 
     fetchProfiles();
@@ -143,7 +148,6 @@ const SellerCreateOrder = () => {
     }
 
     try {
-      // Changed to use maybeSingle() instead of single()
       const { data: buyerData, error: buyerError } = await supabase
         .from('profiles')
         .select('id, full_name, telegram')
@@ -181,7 +185,6 @@ const SellerCreateOrder = () => {
 
       console.log('Order data being sent:', orderPayload);
 
-      // Don't use .single() here, just select the inserted data
       const { data: createdOrderData, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
@@ -193,7 +196,6 @@ const SellerCreateOrder = () => {
         throw orderError;
       }
 
-      // Get the first order from the returned array
       const createdOrder = createdOrderData?.[0];
       
       if (!createdOrder) {
@@ -364,7 +366,6 @@ const SellerCreateOrder = () => {
                       step="0.01"
                     />
                   </div>
-                  {/* Заменяем Input на Select для выбора OPT_ID */}
                   <div className="space-y-2">
                     <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
                     <Select
@@ -379,13 +380,11 @@ const SellerCreateOrder = () => {
                         {profiles.length === 0 ? (
                           <SelectItem value="no_data">Нет данных</SelectItem>
                         ) : (
-                          profiles.map((p) =>
-                            p.opt_id ? (
-                              <SelectItem key={p.opt_id} value={p.opt_id}>
-                                {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
-                              </SelectItem>
-                            ) : null
-                          )
+                          profiles.map((p) => (
+                            <SelectItem key={p.opt_id} value={p.opt_id}>
+                              {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
+                            </SelectItem>
+                          ))
                         )}
                       </SelectContent>
                     </Select>
