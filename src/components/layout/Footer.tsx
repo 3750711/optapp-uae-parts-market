@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 
@@ -12,8 +13,7 @@ const Footer = () => {
               <span className="text-secondary">APP</span>
             </h3>
             <p className="text-foreground/80 leading-relaxed">
-              Маркетплейс автозапчастей из ОАЭ.<br />
-              Продажа качественных запчастей напрямую от поставщиков.
+              Торговая площадка автозапчастей в ОАЭ напрямую от поставщиков и магазинов.
             </p>
           </div>
 
@@ -30,3 +30,4 @@ const Footer = () => {
 };
 
 export default Footer;
+
