@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,11 +50,10 @@ const Header = () => {
               <Link to="/contact" className="hover:text-black">
                 Контакты
               </Link>
-              <Link to="/admin">
-                <Button variant="default" className="bg-black text-primary hover:bg-gray-900">
-                  Админ панель
-                </Button>
-              </Link>
+              
+              {/* Убираем кнопку Админ панель для всех, не рендерим её совсем */}
+              {/* Показ кнопки админ панели убран */}
+              
               {profile?.user_type === 'seller' && (
                 <Link to="/seller/dashboard">
                   <Button variant="default" className="bg-black text-primary hover:bg-gray-900">
@@ -184,3 +184,4 @@ const Header = () => {
 };
 
 export default Header;
+
