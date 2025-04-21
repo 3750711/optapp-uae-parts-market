@@ -36,7 +36,7 @@ const ProductDetail = () => {
       }
       
       console.log("Fetched product details:", data);
-      console.log("Seller profile data:", data.profiles);
+      console.log("Product ID from API:", data.id);
       return data as Product;
     },
     enabled: !!id,
