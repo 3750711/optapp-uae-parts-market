@@ -78,7 +78,7 @@ const Header = () => {
         <Link 
           to="/" 
           className="text-2xl font-extrabold tracking-tight"
-          style={{ color: "#2269f1" }}
+          style={{ color: "#f3f414" }}
         >
           OPTAPP
         </Link>
@@ -220,3 +220,4 @@ const Header = () => {
 };
 
 export default Header;
+
