@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -13,12 +12,16 @@ import SellerInfo from "@/components/product/SellerInfo";
 import ContactButtons from "@/components/product/ContactButtons";
 import ProductVideos from "@/components/product/ProductVideos";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const { isAdmin } = useAdminAccess();
+  const [adminEditOpen, setAdminEditOpen] = React.useState(false);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -110,6 +113,11 @@ const ProductDetail = () => {
     queryClient.invalidateQueries({ queryKey: ["product", id] });
   };
 
+  const handleAdminEditSuccess = () => {
+    setAdminEditOpen(false);
+    handleProductUpdate();
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -143,6 +151,26 @@ const ProductDetail = () => {
         container mx-auto px-2 sm:px-4 py-4
         ${isMobile ? "" : "py-8"}
       `}>
+        {isAdmin && product && (
+          <div className="flex justify-end mb-4">
+            <ProductEditDialog
+              product={product}
+              trigger={
+                <button
+                  className="px-5 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+                  onClick={() => setAdminEditOpen(true)}
+                  type="button"
+                >
+                  Редактировать как администратор
+                </button>
+              }
+              onSuccess={handleAdminEditSuccess}
+              open={adminEditOpen}
+              setOpen={setAdminEditOpen}
+            />
+          </div>
+        )}
+
         {isMobile ? (
           <div className="flex flex-col gap-3">
             <div className="mt-2">
@@ -183,7 +211,6 @@ const ProductDetail = () => {
                 </div>
               </SellerInfo>
             </div>
-            {/* Показываем видео всем пользователям */}
             <div className="mt-2">
               <ProductVideos videos={videos} />
             </div>
@@ -194,7 +221,6 @@ const ProductDetail = () => {
               <div className="mb-4">
                 <ProductGallery images={images} title={product.title} />
               </div>
-              {/* Показываем видео всем пользователям */}
               <div className="mb-8">
                 <ProductVideos videos={videos} />
               </div>
