@@ -53,10 +53,11 @@ const SellerCreateOrder = () => {
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
-        console.log("Fetching profiles with opt_id...");
+        console.log("Fetching profiles with opt_id (buyers only)...");
         const { data, error } = await supabase
           .from("profiles")
           .select("id, opt_id, full_name")
+          .eq("user_type", "buyer")
           .not("opt_id", "is", null);
         
         if (error) {
