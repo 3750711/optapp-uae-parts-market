@@ -240,7 +240,7 @@ const BuyerCreateOrder = () => {
 
       toast({
         title: "Заказ создан",
-        description: "Ваш заказ был успешно соз��ан",
+        description: "Ваш заказ был успешно создан",
       });
 
       navigate('/orders');

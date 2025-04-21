@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -236,6 +237,7 @@ const SellerCreateOrder = () => {
         throw new Error("Order was created but no data was returned");
       }
       
+      // Ensure product status is updated to 'sold'
       if (resolvedProductId) {
         const { error: productUpdateError } = await supabase
           .from('products')
