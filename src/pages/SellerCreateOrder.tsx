@@ -118,7 +118,7 @@ const SellerCreateOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Ошибка",
@@ -154,7 +154,7 @@ const SellerCreateOrder = () => {
         .maybeSingle();
 
       if (buyerError) throw buyerError;
-      
+
       if (!buyerData?.id) {
         toast({
           title: "Ошибка",
@@ -162,6 +162,34 @@ const SellerCreateOrder = () => {
           variant: "destructive",
         });
         return;
+      }
+
+      let resolvedProductId = productId;
+
+      if (!productId) {
+        const { data: productInsert, error: productError } = await supabase
+          .from('products')
+          .insert({
+            title: formData.title,
+            price: parseFloat(formData.price),
+            brand: formData.brand,
+            model: formData.model,
+            seller_id: user.id,
+            seller_name: profile?.full_name || 'Unknown',
+            condition: 'new',
+          })
+          .select();
+
+        if (productError) {
+          console.error("Ошибка создания товара для заказа:", productError);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось создать временный товар для заказа",
+            variant: "destructive",
+          });
+          return;
+        }
+        resolvedProductId = productInsert?.[0]?.id;
       }
 
       const orderPayload = {
@@ -176,9 +204,10 @@ const SellerCreateOrder = () => {
         brand: formData.brand,
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
-        order_created_type: 'free_order' as OrderCreatedType,
+        order_created_type: productId ? 'ads_order' : 'free_order',
         telegram_url_order: buyerData.telegram || null,
         images: images,
+        product_id: resolvedProductId || null,
       };
 
       const { data: createdOrderData, error: orderError } = await supabase
@@ -188,12 +217,11 @@ const SellerCreateOrder = () => {
 
       if (orderError) {
         console.error("Error creating order:", orderError);
-        console.error("Error details:", JSON.stringify(orderError, null, 2));
         throw orderError;
       }
 
       const createdOrder = createdOrderData?.[0];
-      
+
       if (!createdOrder) {
         throw new Error("Order was created but no data was returned");
       }

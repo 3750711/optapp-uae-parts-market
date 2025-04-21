@@ -85,6 +85,7 @@ export type Database = {
           order_number: number
           order_seller_name: string
           price: number
+          product_id: string | null
           quantity: number
           seller_id: string
           seller_opt_id: string | null
@@ -106,6 +107,7 @@ export type Database = {
           order_number?: number
           order_seller_name?: string
           price: number
+          product_id?: string | null
           quantity?: number
           seller_id: string
           seller_opt_id?: string | null
@@ -127,6 +129,7 @@ export type Database = {
           order_number?: number
           order_seller_name?: string
           price?: number
+          product_id?: string | null
           quantity?: number
           seller_id?: string
           seller_opt_id?: string | null
@@ -141,6 +144,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {

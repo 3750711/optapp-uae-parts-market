@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Database } from "@/integrations/supabase/types";
 
-// Define the type for order_created_type
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 
@@ -29,6 +27,7 @@ const BuyerCreateOrder = () => {
     brand: "",
     model: "",
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -67,7 +66,7 @@ const BuyerCreateOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast({
         title: "Ошибка",
@@ -95,9 +94,9 @@ const BuyerCreateOrder = () => {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      // Changed to use maybeSingle() instead of single() to handle the case
-      // when no seller is found with the specified OPT ID
       const { data: sellerData, error: sellerError } = await supabase
         .from('profiles')
         .select('id, full_name')
@@ -105,18 +104,46 @@ const BuyerCreateOrder = () => {
         .maybeSingle();
 
       if (sellerError) throw sellerError;
-      
+
       if (!sellerData?.id) {
         toast({
           title: "Ошибка",
           description: "Не удалось найти продавца с указанным OPT ID",
           variant: "destructive",
         });
+        setIsSubmitting(false);
         return;
       }
 
-      console.log('Creating order with buyer profile:', profile);
-      
+      let resolvedProductId = productId;
+
+      if (!productId) {
+        const { data: insertedProducts, error: productError } = await supabase
+          .from('products')
+          .insert({
+            title: formData.title,
+            price: parseFloat(formData.price),
+            brand: formData.brand,
+            model: formData.model,
+            seller_id: sellerData.id,
+            seller_name: sellerData.full_name || 'Unknown',
+            condition: 'new',
+          })
+          .select();
+
+        if (productError) {
+          console.error("Ошибка создания вспомогательного продукта:", productError);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось создать временный товар для заказа",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        resolvedProductId = insertedProducts?.[0]?.id;
+      }
+
       const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
@@ -129,12 +156,10 @@ const BuyerCreateOrder = () => {
         brand: formData.brand,
         model: formData.model,
         status: 'created' as OrderStatus,
-        order_created_type: 'free_order' as OrderCreatedType
+        order_created_type: productId ? 'ads_order' : 'free_order',
+        product_id: resolvedProductId || null,
       };
 
-      console.log('Order data being sent:', orderPayload);
-
-      // Changed to use maybeSingle() instead of single()
       const { data: createdOrder, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
@@ -142,13 +167,11 @@ const BuyerCreateOrder = () => {
 
       if (orderError) throw orderError;
 
-      console.log('Order created successfully:', createdOrder);
-
       toast({
         title: "Заказ создан",
         description: "Ваш заказ был успешно создан",
       });
-      
+
       navigate('/orders');
     } catch (error) {
       console.error("Error creating order:", error);
@@ -157,6 +180,8 @@ const BuyerCreateOrder = () => {
         description: "Произошла ошибка при создании заказа",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -278,8 +303,9 @@ const BuyerCreateOrder = () => {
                 <Button 
                   type="submit"
                   className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  disabled={isSubmitting}
                 >
-                  Создать заказ
+                  {isSubmitting ? "Создание..." : "Создать заказ"}
                 </Button>
               </CardFooter>
             </form>
