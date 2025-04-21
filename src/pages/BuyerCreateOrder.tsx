@@ -195,19 +195,30 @@ const BuyerCreateOrder = () => {
 
       if (orderError) throw orderError;
 
+      console.log("Created order:", createdOrder);
+
       if (orderVideos.length > 0 && createdOrder && createdOrder[0]?.id) {
+        console.log("Saving videos to order_videos table, order ID:", createdOrder[0].id);
+        const videoRecords = orderVideos.map(url => ({
+          order_id: createdOrder[0].id,
+          url
+        }));
+        
         const { error: videosError } = await supabase
           .from('order_videos')
-          .insert(
-            orderVideos.map((url) => ({
-              order_id: createdOrder[0].id,
-              url,
-            }))
-          );
-        if (videosError) throw videosError;
+          .insert(videoRecords);
+          
+        if (videosError) {
+          console.error("Error saving video references:", videosError);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но возникла проблема с сохранением видео",
+            variant: "warning"
+          });
+        } else {
+          console.log("Video references saved successfully");
+        }
       }
-
-      console.log("Created order:", createdOrder);
 
       toast({
         title: "Заказ создан",

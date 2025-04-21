@@ -12,7 +12,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import VideoUpload from "@/components/ui/video-upload";
+import { VideoUpload } from "@/components/ui/video-upload";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -251,15 +251,26 @@ const SellerCreateOrder = () => {
       }
 
       if (videos.length > 0 && createdOrder?.id) {
+        console.log("Saving video references to database, order ID:", createdOrder.id);
+        const videoRecords = videos.map(url => ({
+          order_id: createdOrder.id,
+          url
+        }));
+        
         const { error: videosError } = await supabase
           .from('order_videos')
-          .insert(
-            videos.map((url) => ({
-              order_id: createdOrder.id,
-              url
-            }))
-          );
-        if (videosError) throw videosError;
+          .insert(videoRecords);
+          
+        if (videosError) {
+          console.error("Error saving video records:", videosError);
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но возникла проблема с сохранением видео",
+            variant: "destructive"
+          });
+        } else {
+          console.log("Video records saved successfully");
+        }
       }
 
       setCreatedOrder(createdOrder);

@@ -43,16 +43,24 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       for (const file of files) {
         const ext = file.name.split('.').pop();
         const fileName = `${storagePrefix}${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
-        const { error } = await supabase.storage
+        
+        console.log(`Uploading to bucket: ${storageBucket}, file: ${fileName}`);
+        const { data, error } = await supabase.storage
           .from(storageBucket)
-          .upload(fileName, file);
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
         if (error) {
+          console.error("Upload error:", error);
           toast({
             title: "Ошибка загрузки",
             description: error.message,
             variant: "destructive"
           });
         } else {
+          console.log("Upload successful:", data);
           const { data: { publicUrl } } = supabase.storage
             .from(storageBucket)
             .getPublicUrl(fileName);
@@ -63,6 +71,13 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         onUpload(uploadedUrls);
         toast({ title: "Видео загружено" });
       }
+    } catch (error) {
+      console.error("Unexpected error during upload:", error);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Непредвиденная ошибка при загрузке видео",
+        variant: "destructive"
+      });
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
