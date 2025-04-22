@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -34,9 +33,7 @@ import BuyerOrders from "./pages/BuyerOrders";
 import AdminOrders from "./pages/AdminOrders";
 import SellerListings from "./pages/SellerListings";
 
-// Create the App component with QueryClient inside it
 const App = () => {
-  // Create a new QueryClient instance inside the component
   const queryClient = new QueryClient();
   
   return (
