@@ -112,6 +112,20 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
         <OrderImages images={images} />
 
         <OrderVideos videos={videos} />
+
+        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-start space-x-3">
+            <InfoIcon className="h-6 w-6 text-yellow-600 mt-1 flex-shrink-0" />
+            <div className="text-yellow-900">
+              <p className="font-semibold mb-2">Внимание!</p>
+              <p>
+                Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+                Перед подтверждением заказа проверьте все детали. 
+                Больше информации вы можете найти в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
+              </p>
+            </div>
+          </div>
+        </div>
       </CardContent>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
