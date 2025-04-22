@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   AlertDialog,
@@ -23,7 +24,6 @@ export const DeleteAccountButton: React.FC = () => {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      // Using the correctly typed RPC function call
       const { data, error } = await supabase.functions.invoke('delete_user_account');
       
       if (error) {
@@ -34,6 +34,9 @@ export const DeleteAccountButton: React.FC = () => {
         title: "Аккаунт удален",
         description: "Ваш аккаунт и все связанные данные были удалены",
       });
+      
+      // После успешного удаления, очистим сессию
+      await supabase.auth.signOut();
       
       navigate('/');
     } catch (error: any) {

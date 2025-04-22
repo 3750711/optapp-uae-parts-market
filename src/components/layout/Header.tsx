@@ -16,6 +16,7 @@ import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, M
 import { Badge } from "@/components/ui/badge";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "@/components/ui/use-toast";
 import {
   Sheet,
   SheetContent,
@@ -36,9 +37,18 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut();
+      toast({
+        title: "Выход выполнен",
+        description: "Вы успешно вышли из системы"
+      });
       navigate('/login');
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось выйти из системы",
+        variant: "destructive"
+      });
     }
   };
 
