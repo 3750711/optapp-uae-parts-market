@@ -51,7 +51,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
       `📦 Товар: ${order.title}\n` +
       `🏷 Бренд: ${order.brand || 'Не указан'}\n` +
       `📝 Модель: ${order.model || 'Не указана'}\n` +
-      `💰 Цена: ${order.price} AED\n` +
+      `💰 Цена: ${order.price} $\n` +
       `📦 Количество мест: ${order.quantity}\n` +
       `🆔 OPT_ID заказа: ${order.seller?.opt_id || 'Не указан'}\n` +
       (order.seller_id === order.buyer_id ? `🔄 Самозаказ\n` : 

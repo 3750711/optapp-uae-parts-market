@@ -85,7 +85,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
       
       <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
       <div className="text-2xl font-bold text-primary mb-4 flex items-center">
-        {product.price} <span className="ml-1 text-xl">AED</span>
+        {product.price} <span className="ml-1 text-xl">$</span>
       </div>
       
       <div className="mb-6">
