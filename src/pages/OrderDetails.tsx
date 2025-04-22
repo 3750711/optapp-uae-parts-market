@@ -5,12 +5,13 @@ import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { OrderImages } from '@/components/order/OrderImages';
 import { OrderVideos } from '@/components/order/OrderVideos';
 import { Database } from '@/integrations/supabase/types';
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import OrderPriceConfirmDialog from '@/components/order/OrderPriceConfirmDialog';
 
 type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -34,6 +35,7 @@ const OrderDetails = () => {
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
 
   const { data: orderData, isLoading } = useQuery({
     queryKey: ['order', id],
@@ -108,14 +110,17 @@ const OrderDetails = () => {
     enabled: !!id
   });
 
-  const handleSellerConfirm = async () => {
+  const handleSellerConfirm = async (newPrice: number) => {
     if (!orderData?.order || isUpdating) return;
     setIsUpdating(true);
 
     try {
       const { data, error } = await supabase
         .from('orders')
-        .update({ status: 'seller_confirmed' })
+        .update({ 
+          status: 'seller_confirmed',
+          price: newPrice
+        })
         .eq('id', orderData.order.id)
         .select()
         .single();
@@ -134,13 +139,14 @@ const OrderDetails = () => {
       });
 
       queryClient.setQueryData(['order', id], {
-        order: { ...orderData.order, status: 'seller_confirmed' },
+        order: { ...orderData.order, status: 'seller_confirmed', price: newPrice },
         images: orderData.images,
         videos: orderData.videos,
       });
       queryClient.invalidateQueries({ queryKey: ['order', id] });
     } finally {
       setIsUpdating(false);
+      setIsPriceDialogOpen(false);
     }
   };
 
@@ -199,7 +205,7 @@ const OrderDetails = () => {
         {canConfirm && (
           <div className="mt-6 flex justify-center">
             <Button 
-              onClick={handleSellerConfirm}
+              onClick={() => setIsPriceDialogOpen(true)}
               disabled={isUpdating}
               className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3"
             >
@@ -214,6 +220,14 @@ const OrderDetails = () => {
             </Button>
           </div>
         )}
+
+        <OrderPriceConfirmDialog
+          open={isPriceDialogOpen}
+          onOpenChange={setIsPriceDialogOpen}
+          currentPrice={orderData?.order?.price || 0}
+          onConfirm={handleSellerConfirm}
+          isSubmitting={isUpdating}
+        />
 
         <div className="mt-10">
           <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
