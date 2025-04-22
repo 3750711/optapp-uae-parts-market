@@ -229,7 +229,7 @@ const SellerCreateOrder = () => {
         buyer_id: buyerData.id,
         brand: formData.brand,
         model: formData.model,
-        status: 'seller_confirmed' as OrderStatus,
+        status: productId ? ('created' as OrderStatus) : ('seller_confirmed' as OrderStatus),
         order_created_type: productId ? ('ads_order' as OrderCreatedType) : ('free_order' as OrderCreatedType),
         telegram_url_order: buyerData.telegram || null,
         images: images,
