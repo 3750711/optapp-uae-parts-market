@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -44,7 +43,8 @@ const SellerCreateOrder = () => {
     optid_created: "",
     seller_opt_id: "",
     buyer_opt_id: "",
-    deliveryMethod: 'self_pickup' as DeliveryMethod
+    deliveryMethod: 'self_pickup' as DeliveryMethod,
+    place_number: "1"
   });
 
   useEffect(() => {
@@ -226,6 +226,7 @@ const SellerCreateOrder = () => {
         title: formData.title,
         price: parseFloat(formData.price),
         quantity: parseInt(formData.quantity),
+        place_number: parseInt(formData.place_number),
         seller_id: user.id,
         order_seller_name: profile?.full_name || 'Unknown',
         seller_opt_id: profile?.opt_id || null,
@@ -381,7 +382,8 @@ const SellerCreateOrder = () => {
                   optid_created: "",
                   seller_opt_id: "",
                   buyer_opt_id: "",
-                  deliveryMethod: 'self_pickup'
+                  deliveryMethod: 'self_pickup',
+                  place_number: "1"
                 });
                 setImages([]);
               }}
@@ -424,7 +426,7 @@ const SellerCreateOrder = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="quantity">Количество мест</Label>
+                    <Label htmlFor="quantity">Количество единиц товара</Label>
                     <Input 
                       id="quantity" 
                       type="number"
@@ -569,6 +571,19 @@ const SellerCreateOrder = () => {
                       <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="place_number">Количество мест для отправки</Label>
+                  <Input 
+                    id="place_number" 
+                    type="number"
+                    value={formData.place_number}
+                    onChange={(e) => handleInputChange('place_number', e.target.value)}
+                    required 
+                    min="1"
+                    placeholder="Укажите количество мест"
+                  />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">

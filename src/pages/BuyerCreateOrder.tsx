@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -32,10 +31,42 @@ const BuyerCreateOrder = () => {
     model: "",
     lot_number: undefined as number | undefined,
     deliveryMethod: 'self_pickup' as DeliveryMethod,
+    place_number: "1",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [orderVideos, setOrderVideos] = useState<string[]>([]);
+
+  async function fetchUserProfile(userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      console.log("Fetched profile data:", data);
+      
+      if (data) {
+        setProfile(data);
+      } else {
+        console.error('No profile data found for user:', userId);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }
+
+  const refreshProfile = async () => {
+    if (user) {
+      await fetchUserProfile(user.id);
+    }
+  };
 
   useEffect(() => {
     const fetchProductData = async () => {
@@ -66,6 +97,7 @@ const BuyerCreateOrder = () => {
             model: product.model || "",
             lot_number: product.lot_number,
             deliveryMethod: 'self_pickup',
+            place_number: "1",
           });
 
           const { data: images, error: imagesError } = await supabase
@@ -211,6 +243,7 @@ const BuyerCreateOrder = () => {
         lot_number_order: usedLotNumber !== undefined ? usedLotNumber : null,
         images: productImages,
         delivery_method: formData.deliveryMethod as DeliveryMethod,
+        place_number: parseInt(formData.place_number),
       };
 
       console.log("Order payload:", orderPayload);
@@ -315,7 +348,7 @@ const BuyerCreateOrder = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="quantity">Количество мест</Label>
+                    <Label htmlFor="quantity">Количество единиц товара</Label>
                     <Input 
                       id="quantity" 
                       type="number"
@@ -362,6 +395,21 @@ const BuyerCreateOrder = () => {
                       step="0.01"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="place_number">Количество мест для отправки</Label>
+                    <Input 
+                      id="place_number" 
+                      type="number"
+                      value={formData.place_number}
+                      onChange={(e) => handleInputChange('place_number', e.target.value)}
+                      required 
+                      min="1"
+                      placeholder="Укажите количество мест"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>OPT_ID продавца</Label>
                     <Input 
