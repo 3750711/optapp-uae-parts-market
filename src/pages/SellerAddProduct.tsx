@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -160,6 +161,7 @@ const SellerAddProduct = () => {
           seller_id: user.id,
           seller_name: profile.full_name || user.email,
           status: 'pending',
+          place_number: parseInt(values.placeNumber), // Save place_number to products table
         })
         .select('id')
         .single() as any;
