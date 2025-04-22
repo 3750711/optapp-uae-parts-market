@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -14,6 +15,7 @@ const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  // First, query the profile using the seller_id from the product
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: async () => {
@@ -38,6 +40,7 @@ const PublicSellerProfile = () => {
     enabled: !!id,
   });
 
+  // Then query all products by this seller using the same seller_id
   const { data: products, isLoading: isProductsLoading } = useQuery({
     queryKey: ["seller-products", id],
     queryFn: async () => {

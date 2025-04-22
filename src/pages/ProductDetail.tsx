@@ -206,6 +206,7 @@ const ProductDetail = () => {
               <SellerInfo
                 sellerProfile={sellerProfile || {}}
                 seller_name={sellerName}
+                seller_id={product.seller_id}
               >
                 <div className="flex flex-col gap-2">
                   <ContactButtons
@@ -258,6 +259,7 @@ const ProductDetail = () => {
               <SellerInfo
                 sellerProfile={sellerProfile || {}}
                 seller_name={sellerName}
+                seller_id={product.seller_id}
               >
                 <div className="flex flex-col gap-2">
                   <ContactButtons

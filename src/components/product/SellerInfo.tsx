@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, CircleDollarSign, Star, User } from "lucide-react";
@@ -7,17 +6,16 @@ import { SellerProfile } from "@/types/product";
 interface SellerInfoProps {
   sellerProfile: SellerProfile;
   seller_name: string;
+  seller_id: string;
   children?: React.ReactNode;
 }
 
 const SellerInfo: React.FC<SellerInfoProps> = ({ 
   sellerProfile, 
-  seller_name, 
+  seller_name,
+  seller_id,
   children 
 }) => {
-  // Check if we have a valid seller ID
-  const hasValidId = sellerProfile && sellerProfile.id && sellerProfile.id !== "";
-  
   return (
     <div className="border rounded-lg p-4 mb-6">
       <h3 className="text-lg font-semibold mb-3 flex items-center">
@@ -27,19 +25,13 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
       
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
-          {hasValidId ? (
-            <Link 
-              to={`/seller/${sellerProfile.id}`}
-              className="text-primary font-medium hover:underline transition-colors flex items-center"
-            >
-              {seller_name}
-              <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
-            </Link>
-          ) : (
-            <span className="font-medium">
-              {seller_name}
-            </span>
-          )}
+          <Link 
+            to={`/seller/${seller_id}`}
+            className="text-primary font-medium hover:underline transition-colors flex items-center"
+          >
+            {seller_name}
+            <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
+          </Link>
           
           {sellerProfile?.opt_id && (
             <div className="text-sm">
