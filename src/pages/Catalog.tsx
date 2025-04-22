@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -27,8 +26,6 @@ const Catalog = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      // Изменяем запрос для фильтрации по статусам
-      // Показываем только опубликованные (active) и проданные (sold) товары
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
@@ -65,13 +62,16 @@ const Catalog = () => {
         imageUrl = product.product_images[0].url;
       }
     }
+    
+    const sellerLocation = product.profiles?.location || product.location || "Dubai";
+    
     return {
       id: product.id,
       name: product.title,
       price: Number(product.price),
       image: imageUrl,
       condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
-      location: product.location || "Дубай",
+      location: sellerLocation,
       seller_opt_id: product.profiles?.opt_id,
       seller_rating: product.profiles?.rating,
       optid_created: product.optid_created,
@@ -88,7 +88,6 @@ const Catalog = () => {
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-          {/* Поиск */}
           <div className="mb-10 flex justify-center">
             <form onSubmit={handleSearch} className="w-full max-w-xl flex items-center relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
