@@ -1,6 +1,7 @@
 import React from "react";
-import { useParams } from "react-router-dom";
-import Layout from "@/components/layout/Layout";
+import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const ProductDetail = () => {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -147,30 +149,36 @@ const ProductDetail = () => {
 
   return (
     <Layout>
-      <div className={`
-        container mx-auto px-2 sm:px-4 py-4
-        ${isMobile ? "" : "py-8"}
-      `}>
-        {isAdmin && product && (
-          <div className="flex justify-end mb-4">
-            <ProductEditDialog
-              product={product}
-              trigger={
-                <button
-                  className="px-5 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
-                  onClick={() => setAdminEditOpen(true)}
-                  type="button"
-                >
-                  Редактировать как администратор
-                </button>
-              }
-              onSuccess={handleAdminEditSuccess}
-              open={adminEditOpen}
-              setOpen={setAdminEditOpen}
-            />
-          </div>
-        )}
-
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-4" 
+            onClick={() => navigate(-1)}
+          >
+            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+          </Button>
+          {isAdmin && product && (
+            <div className="flex justify-end mb-4">
+              <ProductEditDialog
+                product={product}
+                trigger={
+                  <button
+                    className="px-5 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+                    onClick={() => setAdminEditOpen(true)}
+                    type="button"
+                  >
+                    Редактировать как администратор
+                  </button>
+                }
+                onSuccess={handleAdminEditSuccess}
+                open={adminEditOpen}
+                setOpen={setAdminEditOpen}
+              />
+            </div>
+          )}
+        </div>
         {isMobile ? (
           <div className="flex flex-col gap-3">
             <div className="mt-2">
