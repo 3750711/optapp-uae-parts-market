@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -173,12 +172,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       console.log('Order created successfully:', order);
 
-      // Обновляем статус товара на "sold" только если он успешно создан и текущий статус "active"
+      // Обновляем статус товара на "sold" только если заказ успешно создан
       const { error: updateError } = await supabase
         .from('products')
         .update({ status: 'sold' })
-        .eq('id', product.id)
-        .eq('status', 'active'); // Проверяем текущий статус перед обновлением
+        .eq('id', product.id);
 
       if (updateError) {
         console.error('Error updating product status:', updateError);

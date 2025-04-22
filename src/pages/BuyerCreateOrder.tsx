@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -50,17 +49,6 @@ const BuyerCreateOrder = () => {
             description: "Не удалось загрузить данные товара",
             variant: "destructive",
           });
-          return;
-        }
-
-        // Проверяем доступность товара
-        if (product.status !== 'active') {
-          toast({
-            title: "Товар недоступен",
-            description: "Этот товар не доступен для заказа",
-            variant: "destructive",
-          });
-          navigate('/catalog');
           return;
         }
 
@@ -147,7 +135,6 @@ const BuyerCreateOrder = () => {
       let resolvedProductId = productId;
       let usedLotNumber = formData.lot_number;
 
-      // Если это не заказ из существующего товара, создаем новый
       if (!productId) {
         const { data: insertedProducts, error: productError } = await supabase
           .from('products')
@@ -178,7 +165,6 @@ const BuyerCreateOrder = () => {
           usedLotNumber = insertedProducts[0].lot_number;
         }
       } else {
-        // Проверка статуса товара перед оформлением заказа
         const { data: currentProduct, error: productCheckError } = await supabase
           .from('products')
           .select('status')
@@ -256,12 +242,10 @@ const BuyerCreateOrder = () => {
       }
 
       if (resolvedProductId) {
-        // Обновление статуса товара только если его текущий статус 'active'
         const { error: updateError } = await supabase
           .from('products')
           .update({ status: 'sold' })
-          .eq('id', resolvedProductId)
-          .eq('status', 'active');
+          .eq('id', resolvedProductId);
 
         if (updateError) {
           console.error("Error updating product status:", updateError);

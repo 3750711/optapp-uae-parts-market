@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -194,6 +195,27 @@ const SellerCreateOrder = () => {
           resolvedProductId = productInsert[0].id;
           console.log("Created temporary product with ID:", resolvedProductId);
         }
+      } else {
+        // Добавляем проверку статуса товара перед оформлением заказа
+        const { data: currentProduct, error: productCheckError } = await supabase
+          .from('products')
+          .select('status')
+          .eq('id', productId)
+          .single();
+          
+        if (productCheckError) {
+          console.error('Error checking product status:', productCheckError);
+          throw new Error('Failed to verify product availability');
+        }
+        
+        if (currentProduct.status !== 'active') {
+          toast({
+            title: "Товар недоступен",
+            description: "Этот товар уже продан или недоступен для заказа",
+            variant: "destructive",
+          });
+          return;
+        }
       }
 
       console.log("Preparing to create order with product_id:", resolvedProductId);
@@ -239,8 +261,7 @@ const SellerCreateOrder = () => {
         const { error: updateError } = await supabase
           .from('products')
           .update({ status: 'sold' })
-          .eq('id', resolvedProductId)
-          .eq('status', 'active');
+          .eq('id', resolvedProductId);
 
         if (updateError) {
           console.error("Error updating product status:", updateError);
