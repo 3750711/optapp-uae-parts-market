@@ -61,4 +61,5 @@ export interface Product {
   status: 'pending' | 'active' | 'sold' | 'archived';
   created_at: string; // Added this field
   updated_at?: string; // Added this optional field for completeness
+  place_number?: number | null; // Adding the place_number field to the Product interface
 }
