@@ -10,7 +10,6 @@ export interface ProductProps {
   name: string;
   price: number;
   image: string;
-  condition: "Новый" | "Б/У" | "Восстановленный";
   location: string;
   seller_opt_id?: string;
   seller_rating?: number;
@@ -19,22 +18,15 @@ export interface ProductProps {
   brand: string;
   model: string;
   seller_name: string;
-  status: 'pending' | 'active' | 'sold' | 'archived';
   seller_id: string;
+  status: 'pending' | 'active' | 'sold' | 'archived';
 }
-
-const NewBadge = () => (
-  <span className="ml-2 inline-flex items-center gap-1 bg-secondary/20 text-secondary text-xs px-2.5 py-0.5 rounded-full font-medium">
-    Новый
-  </span>
-);
 
 const ProductCard: React.FC<ProductProps> = ({ 
   id, 
   name, 
   price, 
   image, 
-  condition, 
   location,
   rating_seller,
   brand,
@@ -63,9 +55,7 @@ const ProductCard: React.FC<ProductProps> = ({
           </div>
         </div>
         <div className="flex items-start mb-2 gap-1">
-          <h3 className="font-semibold text-base text-foreground leading-tight line-clamp-2">{name}
-            {condition === "Новый" && <NewBadge />}
-          </h3>
+          <h3 className="font-semibold text-base text-foreground leading-tight line-clamp-2">{name}</h3>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
           <Link 
