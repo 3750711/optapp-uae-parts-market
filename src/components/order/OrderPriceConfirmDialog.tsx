@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -28,13 +29,23 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
   isSubmitting
 }) => {
   const [price, setPrice] = useState(currentPrice);
+  const [isChecked, setIsChecked] = useState(false);
+  const isPriceUnchanged = price === currentPrice;
 
-  // Reset price to currentPrice when dialog opens
+  // Reset price and checkbox when dialog opens
   useEffect(() => {
     if (open) {
       setPrice(currentPrice);
+      setIsChecked(false);
     }
   }, [open, currentPrice]);
+
+  const handleConfirm = () => {
+    if (isPriceUnchanged && !isChecked) {
+      return; // Prevent confirmation if price unchanged and checkbox unchecked
+    }
+    onConfirm(price);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,6 +66,21 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
               placeholder="Введите стоимость"
             />
           </div>
+          {isPriceUnchanged && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="noAgreement"
+                checked={isChecked}
+                onCheckedChange={(checked) => setIsChecked(checked as boolean)}
+              />
+              <label
+                htmlFor="noAgreement"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Я не договаривался с покупателем о цене
+              </label>
+            </div>
+          )}
         </div>
         <DialogFooter>
           <Button
@@ -65,8 +91,8 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
             Отмена
           </Button>
           <Button
-            onClick={() => onConfirm(price)}
-            disabled={isSubmitting}
+            onClick={handleConfirm}
+            disabled={isSubmitting || (isPriceUnchanged && !isChecked)}
           >
             {isSubmitting ? (
               <>
