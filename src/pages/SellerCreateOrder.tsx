@@ -239,20 +239,49 @@ const SellerCreateOrder = () => {
       
       // Ensure product status is updated to 'sold'
       if (resolvedProductId) {
-        const { error: productUpdateError } = await supabase
+        console.log("Updating product status to sold for ID:", resolvedProductId);
+        
+        // First, check current product status
+        const { data: currentProduct, error: fetchError } = await supabase
           .from('products')
-          .update({ status: 'sold' })
-          .eq('id', resolvedProductId);
+          .select('status')
+          .eq('id', resolvedProductId)
+          .single();
           
-        if (productUpdateError) {
-          console.error("Error updating product status:", productUpdateError);
-          toast({
-            title: "Предупреждение",
-            description: "Заказ создан, но не удалось обновить статус товара",
-            variant: "destructive"
-          });
+        if (fetchError) {
+          console.error("Error fetching current product status:", fetchError);
         } else {
-          console.log("Product status updated to 'sold'");
+          console.log("Current product status:", currentProduct?.status);
+          
+          const { error: productUpdateError } = await supabase
+            .from('products')
+            .update({ status: 'sold' })
+            .eq('id', resolvedProductId);
+            
+          if (productUpdateError) {
+            console.error("Error updating product status:", productUpdateError);
+            console.error("Error details:", JSON.stringify(productUpdateError, null, 2));
+            toast({
+              title: "Предупреждение",
+              description: "Заказ создан, но не удалось обновить статус товара",
+              variant: "destructive"
+            });
+          } else {
+            console.log("Product status updated to 'sold'");
+            
+            // Verify the update worked
+            const { data: verifyProduct, error: verifyError } = await supabase
+              .from('products')
+              .select('status')
+              .eq('id', resolvedProductId)
+              .single();
+              
+            if (verifyError) {
+              console.error("Error verifying product status update:", verifyError);
+            } else {
+              console.log("Verified product status after update:", verifyProduct?.status);
+            }
+          }
         }
       }
 

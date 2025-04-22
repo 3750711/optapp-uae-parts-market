@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -151,21 +152,49 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       // After successfully creating the order, update the product status to 'sold'
       if (product.id) {
-        const { error: productUpdateError } = await supabase
+        // First, check the current status of the product
+        const { data: currentProduct, error: fetchError } = await supabase
           .from('products')
-          .update({ status: 'sold' })
+          .select('status')
           .eq('id', product.id)
-          .eq('status', 'active'); // Only update if the product is still active
-
-        if (productUpdateError) {
-          console.error('Error updating product status:', productUpdateError);
-          toast({
-            title: "Внимание",
-            description: "Заказ успешно создан, но не удалось обновить статус товара.",
-            variant: "destructive",
-          });
+          .single();
+          
+        if (fetchError) {
+          console.error('Error fetching current product status:', fetchError);
         } else {
-          console.log('Product status updated to "sold"');
+          console.log('Current product status:', currentProduct?.status);
+          
+          // Then update if it's active
+          const { error: productUpdateError } = await supabase
+            .from('products')
+            .update({ status: 'sold' })
+            .eq('id', product.id)
+            .eq('status', 'active'); // Only update if the product is still active
+
+          if (productUpdateError) {
+            console.error('Error updating product status:', productUpdateError);
+            console.error('Error details:', JSON.stringify(productUpdateError, null, 2));
+            toast({
+              title: "Внимание",
+              description: "Заказ успешно создан, но не удалось обновить статус товара.",
+              variant: "destructive",
+            });
+          } else {
+            console.log('Product status updated to "sold"');
+            
+            // Verify the update worked
+            const { data: verifyProduct, error: verifyError } = await supabase
+              .from('products')
+              .select('status')
+              .eq('id', product.id)
+              .single();
+              
+            if (verifyError) {
+              console.error('Error verifying product status update:', verifyError);
+            } else {
+              console.log('Verified product status after update:', verifyProduct?.status);
+            }
+          }
         }
       }
 
