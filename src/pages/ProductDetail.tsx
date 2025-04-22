@@ -15,6 +15,7 @@ import ProductVideos from "@/components/product/ProductVideos";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import Layout from "@/components/layout/Layout";
 
 const ProductDetail = () => {
   const navigate = useNavigate();
