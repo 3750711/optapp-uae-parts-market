@@ -45,6 +45,12 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
           )}
         </div>
 
+        {sellerProfile?.description && (
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+            <p className="text-sm text-gray-700">{sellerProfile.description}</p>
+          </div>
+        )}
+
         {sellerProfile?.rating !== null && sellerProfile?.rating !== undefined && (
           <div className="flex items-center">
             <div className="flex mr-2">
