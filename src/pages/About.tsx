@@ -1,4 +1,3 @@
-
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import { Award, ShieldCheck, TrendingUp, Truck } from "lucide-react";
@@ -99,9 +98,6 @@ const About = () => {
             <div className="flex justify-center space-x-4">
               <a href="/register" className="bg-white text-optapp-dark font-medium py-2 px-6 rounded shadow hover:shadow-lg">
                 Регистрация
-              </a>
-              <a href="/catalog" className="bg-optapp-dark text-white font-medium py-2 px-6 rounded shadow hover:shadow-lg">
-                Каталог
               </a>
             </div>
           </div>
