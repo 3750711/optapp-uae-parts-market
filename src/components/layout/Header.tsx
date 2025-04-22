@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -65,6 +64,8 @@ const Header = () => {
       )}
     </nav>
   );
+
+  const ordersLink = profile?.user_type === 'seller' ? '/seller/orders' : '/orders';
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
@@ -172,7 +173,7 @@ const Header = () => {
                   )}
                   
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/orders" className="flex w-full items-center">
+                    <Link to={ordersLink} className="flex w-full items-center">
                       <Package className="mr-2 h-4 w-4" />
                       <span>Мои заказы</span>
                     </Link>
@@ -212,4 +213,3 @@ const Header = () => {
 };
 
 export default Header;
-
