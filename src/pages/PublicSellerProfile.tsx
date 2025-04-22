@@ -120,6 +120,13 @@ const PublicSellerProfile = () => {
             <div className="flex-grow">
               <h1 className="text-2xl font-bold mb-4">{profile.full_name || "Продавец"}</h1>
               
+              {profile.description && (
+                <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-2">О продавце</h3>
+                  <p className="text-gray-700">{profile.description}</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {profile.opt_id && (
                   <div className="text-sm">

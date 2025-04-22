@@ -10,23 +10,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProfileType } from "./types";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { UserTypeField } from "./fields/UserTypeField";
-import { OptIdField } from "./fields/OptIdField";
-import { TelegramField } from "./fields/TelegramField";
-import { ProfileTextField } from "./fields/ProfileTextField";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -42,7 +30,8 @@ const formSchema = z.object({
       message: "Telegram username должен начинаться с одного @ символа" 
     }),
   optId: z.string().optional(),
-  userType: z.enum(["buyer", "seller", "admin"]).optional(), // Updated to include admin
+  userType: z.enum(["buyer", "seller", "admin"]).optional(),
+  description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -74,6 +63,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       telegram: profile.telegram || "",
       optId: profile.opt_id || "",
       userType: profile.user_type,
+      description: profile.description || "",
     },
   });
 
@@ -127,6 +117,23 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             />
             <TelegramField control={form.control} />
             <OptIdField control={form.control} canEditOptId={canEditOptId} />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Описание профиля</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Расскажите немного о себе..."
+                      className="resize-y min-h-[100px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button 
               type="submit" 
               className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 w-full"
