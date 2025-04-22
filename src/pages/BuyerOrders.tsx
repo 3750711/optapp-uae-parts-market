@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,8 +44,7 @@ const BuyerOrders = () => {
         query.eq('buyer_id', user.id);
       }
 
-      const { data, error } = await query
-        .order('created_at', { ascending: false });
+      const { data, error } = await query.order('created_at', { ascending: false });
 
       if (error) {
         console.error("Error fetching orders:", error);
@@ -98,10 +98,6 @@ const BuyerOrders = () => {
     }
   };
 
-  const handleViewOrder = (orderId: string) => {
-    navigate(`/orders/${orderId}`);
-  };
-
   if (isLoading) {
     return (
       <Layout>
@@ -133,12 +129,12 @@ const BuyerOrders = () => {
                   <TableHead>OPT ID</TableHead>
                   <TableHead>Тип заказа</TableHead>
                   <TableHead>Статус</TableHead>
-                  <TableHead>Действия</TableHead>
+                  <TableHead>Детали</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {orders.map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} className="hover:bg-gray-50">
                     <TableCell>{order.order_number}</TableCell>
                     <TableCell>{order.title}</TableCell>
                     <TableCell>{order.brand}</TableCell>
@@ -157,12 +153,12 @@ const BuyerOrders = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        onClick={() => handleViewOrder(order.id)}
+                      <Link 
+                        to={`/orders/${order.id}`}
+                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
                       >
                         Подробнее
-                      </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
