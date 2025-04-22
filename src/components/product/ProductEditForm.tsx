@@ -32,6 +32,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     description: product.description || "",
     brand: product.brand || "",
     model: product.model || "",
+    place_number: product.place_number || 1,
   });
 
   const [images, setImages] = React.useState<string[]>(
@@ -74,7 +75,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Use the isCreator prop that's passed down from the parent component
     if (!isCreator) {
       toast({
         title: "Действие запрещено",
@@ -95,6 +95,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           description: formData.description,
           brand: formData.brand,
           model: formData.model,
+          place_number: formData.place_number,
         })
         .eq("id", product.id);
 
@@ -178,6 +179,15 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
             disabled={!isCreator}
           />
         </div>
+        <Input
+          type="number"
+          min="1"
+          value={formData.place_number}
+          onChange={(e) => setFormData({ ...formData, place_number: parseInt(e.target.value) || 1 })}
+          placeholder="Количество мест для отправки"
+          className="h-8"
+          disabled={!isCreator}
+        />
         <Textarea
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}

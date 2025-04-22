@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,7 +38,7 @@ const formSchema = z.object({
   description: z.string().optional(),
   brand: z.string().min(1, { message: "Введите бренд" }),
   model: z.string().min(1, { message: "Введите модель" }),
-  // removed condition and location
+  place_number: z.number().min(1, { message: "Минимальное количество мест - 1" }),
 });
 
 interface ProductEditDialogProps {
@@ -86,7 +85,7 @@ export const ProductEditDialog = ({
       description: product.description || "",
       brand: product.brand || "",
       model: product.model || "",
-      // removed condition and location
+      place_number: product.place_number || 1,
     },
   });
 
@@ -99,7 +98,7 @@ export const ProductEditDialog = ({
         description: values.description,
         brand: values.brand,
         model: values.model,
-        // removed condition and location
+        place_number: values.place_number,
       })
       .eq('id', product.id);
 
@@ -205,6 +204,26 @@ export const ProductEditDialog = ({
               </div>
               <FormField
                 control={form.control}
+                name="place_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs mb-0.5">Количество мест</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min="1"
+                        placeholder="1" 
+                        className="h-8 text-sm" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="description"
                 render={({ field }) => (
                   <FormItem>
@@ -241,4 +260,3 @@ export const ProductEditDialog = ({
     </Dialog>
   );
 };
-
