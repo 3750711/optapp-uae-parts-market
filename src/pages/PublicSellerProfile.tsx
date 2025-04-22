@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
 import { ProductProps } from "@/components/product/ProductCard";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Card,
   CardContent,
@@ -20,10 +21,44 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-4" 
+              onClick={() => navigate(-1)}
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+            </Button>
+          </div>
+          <Alert className="mb-4">
+            <AlertDescription>
+              Только авторизованные пользователи могут смотреть профиль продавца. Пожалуйста, 
+              <Button 
+                variant="link" 
+                className="px-1 text-primary" 
+                onClick={() => navigate('/login')}
+              >
+                войдите
+              </Button>
+              в систему.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </Layout>
+    );
+  }
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
