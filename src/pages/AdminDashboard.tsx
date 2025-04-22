@@ -1,8 +1,7 @@
-
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, Truck } from 'lucide-react';
+import { Users, Package, ShoppingCart, Truck, ClipboardList } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
@@ -45,6 +44,17 @@ const AdminDashboard = () => {
         .from('orders')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'created');
+      return count;
+    }
+  });
+
+  const { data: processingOrderCount, isLoading: isLoadingProcessingOrders } = useQuery({
+    queryKey: ['admin', 'processing-order-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['created', 'seller_confirmed', 'admin_confirmed']);
       return count;
     }
   });
@@ -114,15 +124,15 @@ const AdminDashboard = () => {
           <Link to="/admin/orders">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">В обработке</CardTitle>
-                <Truck className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Заказы в обработке</CardTitle>
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {isLoadingPendingOrders ? '...' : pendingOrderCount || 0}
+                  {isLoadingProcessingOrders ? '...' : processingOrderCount || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Заказов в обработке
+                  Заказы в процессе обработки
                 </p>
               </CardContent>
             </Card>
