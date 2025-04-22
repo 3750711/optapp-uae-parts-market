@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ const BuyerCreateOrder = () => {
       if (productId) {
         const { data: product, error } = await supabase
           .from('products')
-          .select('*')
+          .select('*, product_images(url)')
           .eq('id', productId)
           .single();
 
@@ -49,6 +50,17 @@ const BuyerCreateOrder = () => {
             description: "Не удалось загрузить данные товара",
             variant: "destructive",
           });
+          return;
+        }
+
+        // Проверяем доступность товара
+        if (product.status !== 'active') {
+          toast({
+            title: "Товар недоступен",
+            description: "Этот товар не доступен для заказа",
+            variant: "destructive",
+          });
+          navigate('/catalog');
           return;
         }
 
@@ -79,7 +91,7 @@ const BuyerCreateOrder = () => {
     };
 
     fetchProductData();
-  }, [productId]);
+  }, [productId, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +147,7 @@ const BuyerCreateOrder = () => {
       let resolvedProductId = productId;
       let usedLotNumber = formData.lot_number;
 
+      // Если это не заказ из существующего товара, создаем новый
       if (!productId) {
         const { data: insertedProducts, error: productError } = await supabase
           .from('products')
@@ -163,6 +176,28 @@ const BuyerCreateOrder = () => {
         if (insertedProducts && insertedProducts.length > 0) {
           resolvedProductId = insertedProducts[0].id;
           usedLotNumber = insertedProducts[0].lot_number;
+        }
+      } else {
+        // Проверка статуса товара перед оформлением заказа
+        const { data: currentProduct, error: productCheckError } = await supabase
+          .from('products')
+          .select('status')
+          .eq('id', productId)
+          .single();
+          
+        if (productCheckError) {
+          console.error('Error checking product status:', productCheckError);
+          throw new Error('Failed to verify product availability');
+        }
+        
+        if (currentProduct.status !== 'active') {
+          toast({
+            title: "Товар недоступен",
+            description: "Этот товар уже продан или недоступен для заказа",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
         }
       }
 
@@ -221,6 +256,7 @@ const BuyerCreateOrder = () => {
       }
 
       if (resolvedProductId) {
+        // Обновление статуса товара только если его текущий статус 'active'
         const { error: updateError } = await supabase
           .from('products')
           .update({ status: 'sold' })

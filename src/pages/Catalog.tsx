@@ -27,6 +27,8 @@ const Catalog = () => {
   const { data: products, isLoading } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
+      // Изменяем запрос для фильтрации по статусам
+      // Показываем только опубликованные (active) и проданные (sold) товары
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")

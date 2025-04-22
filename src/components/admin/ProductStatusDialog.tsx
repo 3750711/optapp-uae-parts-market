@@ -63,6 +63,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       return;
     }
 
+    // Для административных действий мы позволяем изменять статус без ограничений
     const { error } = await supabase
       .from('products')
       .update({ status: values.status })
@@ -120,10 +121,10 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="pending">Ожидает проверки</SelectItem>
-                      <SelectItem value="active">Опубликован</SelectItem>
-                      <SelectItem value="sold">Продан</SelectItem>
-                      <SelectItem value="archived">Архив</SelectItem>
+                      <SelectItem value="pending">Ожидает проверки (не виден в каталоге)</SelectItem>
+                      <SelectItem value="active">Опубликован (виден в каталоге, доступен для заказа)</SelectItem>
+                      <SelectItem value="sold">Продан (виден в каталоге, не доступен для заказа)</SelectItem>
+                      <SelectItem value="archived">Архив (не виден в каталоге)</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -148,4 +149,3 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     </Dialog>
   );
 };
-

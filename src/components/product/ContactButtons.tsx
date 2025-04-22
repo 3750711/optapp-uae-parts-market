@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -89,6 +90,28 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing required product information');
       }
 
+      // Проверка статуса товара перед оформлением заказа
+      const { data: currentProduct, error: productCheckError } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', product.id)
+        .single();
+        
+      if (productCheckError) {
+        console.error('Error checking product status:', productCheckError);
+        throw new Error('Failed to verify product availability');
+      }
+      
+      if (currentProduct.status !== 'active') {
+        toast({
+          title: "Товар недоступен",
+          description: "Этот товар уже продан или недоступен для заказа",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       let lotNumberOrder: number | null = null;
       
       if (product.lot_number !== undefined && product.lot_number !== null) {
@@ -150,11 +173,12 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       console.log('Order created successfully:', order);
 
+      // Обновляем статус товара на "sold" только если он успешно создан и текущий статус "active"
       const { error: updateError } = await supabase
         .from('products')
         .update({ status: 'sold' })
         .eq('id', product.id)
-        .eq('status', 'active');
+        .eq('status', 'active'); // Проверяем текущий статус перед обновлением
 
       if (updateError) {
         console.error('Error updating product status:', updateError);
