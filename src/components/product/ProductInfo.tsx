@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Share } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Share, Package2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -113,7 +112,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         {product.price} <span className="ml-1 text-xl">$</span>
       </div>
       
-      <div className="mb-6">
+      <div className="mb-6 space-y-4">
         <h3 className="font-medium mb-3 flex items-center">
           <AlertCircle className="h-4 w-4 mr-1.5 text-muted-foreground" />
           Описание:
@@ -121,6 +120,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         <p className="text-foreground/80 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">
           {product.description || "Описание отсутствует"}
         </p>
+        <div className="flex items-center text-muted-foreground mt-2">
+          <Package2 className="h-4 w-4 mr-1.5" />
+          <span>Количество мест для отправки: {product.place_number || 1}</span>
+        </div>
       </div>
     </div>
   );
