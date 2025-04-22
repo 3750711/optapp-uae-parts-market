@@ -45,7 +45,8 @@ const SellerOrders = () => {
           )
         `)
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
-        .order('created_at', { ascending: false });
+        .order('status', { ascending: true, nullsLast: false }) // Sort by status first (created comes first alphabetically)
+        .order('created_at', { ascending: false }); // Then by creation date
         
       if (error) {
         console.error("Error fetching orders:", error);
