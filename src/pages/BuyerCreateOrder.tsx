@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -49,6 +50,17 @@ const BuyerCreateOrder = () => {
             description: "Не удалось загрузить данные товара",
             variant: "destructive",
           });
+          return;
+        }
+
+        // Проверяем доступность товара
+        if (product.status !== 'active') {
+          toast({
+            title: "Товар недоступен",
+            description: "Этот товар уже продан или недоступен для заказа",
+            variant: "destructive",
+          });
+          navigate('/catalog');
           return;
         }
 
