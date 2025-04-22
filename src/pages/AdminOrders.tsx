@@ -15,12 +15,16 @@ import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from '@/components/admin/AdminOrderDeleteDialog';
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Database } from "@/integrations/supabase/types";
+
+// Define a type for the order status filter that includes 'all'
+type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
 const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [showEditDialog, setShowEditDialog] = React.useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-  const [statusFilter, setStatusFilter] = React.useState<string>('all');
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilterType>('all');
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['admin-orders', statusFilter],
@@ -93,7 +97,7 @@ const AdminOrders = () => {
             <CardTitle>Управление заказами</CardTitle>
             <Select
               value={statusFilter}
-              onValueChange={setStatusFilter}
+              onValueChange={(value: StatusFilterType) => setStatusFilter(value)}
             >
               <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Фильтр по статусу" />
@@ -106,6 +110,7 @@ const AdminOrders = () => {
                 <SelectItem value="processed">Зарегистрирован</SelectItem>
                 <SelectItem value="shipped">Отправлен</SelectItem>
                 <SelectItem value="delivered">Доставлен</SelectItem>
+                <SelectItem value="cancelled">Отменен</SelectItem>
               </SelectContent>
             </Select>
           </CardHeader>
