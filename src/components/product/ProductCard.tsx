@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge as BadgeIcon, Star } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star, Crown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 
@@ -21,6 +22,7 @@ export interface ProductProps {
   seller_name: string;
   seller_id: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
+  seller_verification?: 'pending' | 'verified' | 'blocked';
   onStatusChange?: () => void;
 }
 
@@ -36,6 +38,7 @@ const ProductCard: React.FC<ProductProps> = ({
   seller_name,
   seller_id,
   status,
+  seller_verification,
   onStatusChange
 }) => {
   const [searchParams] = useSearchParams();
@@ -92,12 +95,20 @@ const ProductCard: React.FC<ProductProps> = ({
           <h3 className="font-semibold text-base text-foreground leading-tight line-clamp-2">{name}</h3>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-          <Link 
-            to={`/seller/${seller_id}`} 
-            className="font-medium truncate max-w-[90px] hover:text-primary hover:underline transition-colors"
-          >
-            {seller_name}
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link 
+              to={`/seller/${seller_id}`} 
+              className="font-medium truncate max-w-[90px] hover:text-primary hover:underline transition-colors"
+            >
+              {seller_name}
+            </Link>
+            {seller_verification === 'verified' && (
+              <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700 flex items-center gap-1 py-0.5">
+                <Crown className="h-3 w-3 text-purple-500 fill-purple-500" />
+                <span className="text-[10px]">Проверенный</span>
+              </Badge>
+            )}
+          </div>
           {rating_seller !== undefined && (
             <span className="flex items-center ml-1 gap-0.5 bg-yellow-50 px-2 py-0.5 rounded-full">
               <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />

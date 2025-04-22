@@ -83,7 +83,8 @@ const Catalog = () => {
       model: product.model,
       seller_name: product.seller_name,
       status: product.status,
-      seller_id: product.seller_id
+      seller_id: product.seller_id,
+      seller_verification: product.profiles?.verification_status
     };
   });
 
