@@ -46,6 +46,7 @@ const SellerListingsContent = () => {
       status: product.status,
       seller_rating: product.rating_seller,
       optid_created: product.optid_created,
+      seller_id: product.seller_id
     };
   }) || [];
 

@@ -77,7 +77,8 @@ const Catalog = () => {
       brand: product.brand,
       model: product.model,
       seller_name: product.seller_name,
-      status: product.status
+      status: product.status,
+      seller_id: product.seller_id
     };
   });
 
