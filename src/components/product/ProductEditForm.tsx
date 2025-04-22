@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,7 +77,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     if (!isCreator) {
       toast({
         title: "Действие запрещено",
-        description: "Только продавец может редактировать объявление",
+        description: "Только продавец может редактировать объявленые",
         variant: "destructive",
       });
       return;
@@ -87,6 +86,11 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setIsLoading(true);
 
     try {
+      console.log("Updating product with data:", {
+        ...formData,
+        place_number: formData.place_number
+      });
+      
       const { error } = await supabase
         .from("products")
         .update({
@@ -99,7 +103,10 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         })
         .eq("id", product.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error details:", error);
+        throw error;
+      }
 
       toast({
         title: "Успешно",

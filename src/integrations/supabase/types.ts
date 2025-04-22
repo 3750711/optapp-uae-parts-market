@@ -273,6 +273,7 @@ export type Database = {
           model: string
           optid_created: string | null
           phone_url: string | null
+          place_number: number | null
           price: number
           product_url: string | null
           rating_seller: number | null
@@ -294,6 +295,7 @@ export type Database = {
           model: string
           optid_created?: string | null
           phone_url?: string | null
+          place_number?: number | null
           price: number
           product_url?: string | null
           rating_seller?: number | null
@@ -315,6 +317,7 @@ export type Database = {
           model?: string
           optid_created?: string | null
           phone_url?: string | null
+          place_number?: number | null
           price?: number
           product_url?: string | null
           rating_seller?: number | null
