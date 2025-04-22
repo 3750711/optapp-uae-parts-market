@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,6 @@ import { OrderDetails } from './OrderDetails';
 import { OrderImages } from './OrderImages';
 import { OrderVideos } from './OrderVideos';
 import { Database } from '@/integrations/supabase/types';
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { InfoIcon } from 'lucide-react';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer?: {
@@ -64,16 +63,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <div className="p-4">
-        <Alert variant="default" className="bg-yellow-50 border-yellow-200">
-          <InfoIcon className="h-5 w-5 text-yellow-600" />
-          <AlertDescription className="text-yellow-900">
-            Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
-            Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
-          </AlertDescription>
-        </Alert>
-      </div>
-
       <CardHeader className="text-center relative">
         <div className="absolute right-6 top-6 flex gap-2">
           <Button
@@ -113,38 +102,24 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 
         <OrderVideos videos={videos} />
 
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-start space-x-3">
-            <InfoIcon className="h-6 w-6 text-yellow-600 mt-1 flex-shrink-0" />
-            <div className="text-yellow-900">
-              <p className="font-semibold mb-2">Внимание!</p>
-              <p>
-                Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
-                Перед подтверждением заказа проверьте все детали. 
-                Больше информации вы можете найти в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
-              </p>
-            </div>
-          </div>
-        </div>
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Редактировать заказ № {order.order_number}</DialogTitle>
+            </DialogHeader>
+            <OrderEditForm 
+              order={order}
+              onSave={(updatedOrder) => {
+                if (onOrderUpdate) {
+                  onOrderUpdate(updatedOrder);
+                }
+                setIsEditDialogOpen(false);
+              }}
+              onCancel={() => setIsEditDialogOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </CardContent>
-
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Редактировать заказ № {order.order_number}</DialogTitle>
-          </DialogHeader>
-          <OrderEditForm 
-            order={order}
-            onSave={(updatedOrder) => {
-              if (onOrderUpdate) {
-                onOrderUpdate(updatedOrder);
-              }
-              setIsEditDialogOpen(false);
-            }}
-            onCancel={() => setIsEditDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 };
