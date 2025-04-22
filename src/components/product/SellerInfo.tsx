@@ -16,41 +16,40 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 }) => {
   return (
     <div className="border rounded-lg p-4 mb-6">
-      <h3 className="font-medium mb-2">Продавец: {seller_name}</h3>
-      {sellerProfile && (
-        <div className="mb-3">
-          <div className="flex items-center space-x-4 mb-2">
-            {sellerProfile.opt_id && (
-              <div className="text-sm">
-                <span className="text-gray-500">OPT ID: </span>
-                <span className="font-medium">{sellerProfile.opt_id}</span>
-              </div>
-            )}
-            {sellerProfile.rating !== null && sellerProfile.rating !== undefined && (
-              <div className="flex items-center">
-                <div className="flex mr-2">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i}
-                      className={`h-5 w-5 ${
-                        i < Math.floor(sellerProfile.rating || 0)
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "text-gray-300"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-sm">
-                  <span className="font-medium">{sellerProfile.rating?.toFixed(1)}</span>
-                  <span className="text-gray-500"> / 5</span>
-                </span>
-              </div>
-            )}
-          </div>
+      <div className="flex flex-col space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">Продавец: {seller_name}</h3>
+          {sellerProfile?.opt_id && (
+            <div className="text-sm">
+              <span className="text-gray-500">OPT ID: </span>
+              <span className="font-medium">{sellerProfile.opt_id}</span>
+            </div>
+          )}
         </div>
-      )}
+
+        {sellerProfile?.rating !== null && sellerProfile?.rating !== undefined && (
+          <div className="flex items-center">
+            <div className="flex mr-2">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i}
+                  className={`h-4 w-4 ${
+                    i < Math.floor(sellerProfile.rating || 0)
+                      ? "fill-yellow-400 text-yellow-400"
+                      : "text-gray-300"
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-sm">
+              <span className="font-medium">{sellerProfile.rating?.toFixed(1)}</span>
+              <span className="text-gray-500"> / 5</span>
+            </span>
+          </div>
+        )}
+      </div>
       
-      <div className="grid grid-cols-1 gap-2">
+      <div className="grid grid-cols-1 gap-2 mt-4">
         {children}
       </div>
 

@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Star, Edit, AlertCircle } from "lucide-react";
+import { MapPin, Edit, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -36,7 +35,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     }
   };
 
-  // Show 404 if product is pending and user is not owner or admin
   if (product.status === 'pending' && !isOwner && !isAdmin) {
     navigate('/404');
     return null;
@@ -54,7 +52,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           product={product}
           onCancel={() => setIsEditing(false)}
           onSave={handleSave}
-          isCreator={true} // Add this prop to explicitly pass isCreator=true when the user is the owner
+          isCreator={true}
         />
       </div>
     );
@@ -89,37 +87,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
       <div className="text-2xl font-bold text-primary mb-4 flex items-center">
         {product.price} <span className="ml-1 text-xl">AED</span>
       </div>
-      
-      {(product.rating_seller !== undefined || product.optid_created) && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 p-4 rounded-lg bg-gray-50 border border-gray-100">
-          {product.optid_created && (
-            <div>
-              <span className="text-muted-foreground text-sm">OPT ID: </span>
-              <span className="font-medium">{product.optid_created}</span>
-            </div>
-          )}
-          {product.rating_seller !== undefined && product.rating_seller !== null && (
-            <div className="flex items-center">
-              <div className="flex mr-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i}
-                    className={`h-4 w-4 ${
-                      i < Math.floor(product.rating_seller)
-                        ? "fill-secondary text-secondary"
-                        : "text-gray-300"
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-sm">
-                <span className="font-medium">{product.rating_seller.toFixed(1)}</span>
-                <span className="text-muted-foreground"> / 5</span>
-              </span>
-            </div>
-          )}
-        </div>
-      )}
       
       <div className="mb-6">
         <h3 className="font-medium mb-3 flex items-center">
