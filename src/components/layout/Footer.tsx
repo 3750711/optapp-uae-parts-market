@@ -15,10 +15,10 @@ const Footer = () => {
             <p className="text-foreground/80 leading-relaxed">
               Торговая площадка автозапчастей в ОАЭ напрямую от поставщиков и магазинов.
             </p>
+            <p className="text-foreground/70 text-sm mt-4 italic">
+              Информация на портале optapp носит исключительно ознакомительный характер, все продавцы являются самостоятельными компаниями или физическими лицами, за действия которых наш портал ответственности не несет.
+            </p>
           </div>
-
-          
-
         </div>
 
         <div className="mt-12 pt-6 border-t border-gray-100 text-center text-foreground/70">
