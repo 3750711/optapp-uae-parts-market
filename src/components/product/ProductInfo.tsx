@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Share } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -19,6 +20,19 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
+
+  const handleShare = () => {
+    const text = encodeURIComponent(
+      `🛍 Товар: ${product.title}\n` +
+      `💰 Цена: ${product.price} $\n` +
+      `🏷 Бренд: ${product.brand || 'Не указан'}\n` +
+      `📝 Модель: ${product.model || 'Не указана'}\n` +
+      (product.description ? `📄 Описание:\n${product.description}\n` : '')
+    );
+    
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+  };
 
   const getStatusBadge = () => {
     switch (product.status) {
@@ -70,17 +84,28 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           </span>
           {getStatusBadge()}
         </div>
-        {isOwner && product.status !== 'sold' && (
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="flex items-center gap-2"
-            onClick={() => setIsEditing(true)}
+            className="flex items-center gap-2 bg-[#229ED9] hover:bg-[#229ED9]/90 text-white border-none"
+            onClick={handleShare}
           >
-            <Edit className="h-4 w-4" />
-            Редактировать
+            <Share className="h-4 w-4" />
+            Поделиться
           </Button>
-        )}
+          {isOwner && product.status !== 'sold' && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit className="h-4 w-4" />
+              Редактировать
+            </Button>
+          )}
+        </div>
       </div>
       
       <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
