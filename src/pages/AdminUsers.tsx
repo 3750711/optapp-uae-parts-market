@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,19 +17,27 @@ import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AdminUsers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [statusFilter, setStatusFilter] = React.useState<'all' | 'pending' | 'verified'>('all');
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['admin', 'users'],
+    queryKey: ['admin', 'users', statusFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
+      
+      if (statusFilter !== 'all') {
+        query = query.eq('verification_status', statusFilter);
+      }
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data;
@@ -69,8 +78,21 @@ const AdminUsers = () => {
     <AdminLayout>
       <div className="container mx-auto py-8">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Пользователи</CardTitle>
+            <Select
+              value={statusFilter}
+              onValueChange={(value: 'all' | 'pending' | 'verified') => setStatusFilter(value)}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Фильтр по статусу" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="pending">Ожидает подтверждения</SelectItem>
+                <SelectItem value="verified">Подтвержден</SelectItem>
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
