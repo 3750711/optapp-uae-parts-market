@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -11,6 +12,7 @@ import { Database } from "@/integrations/supabase/types";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
+type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 interface ContactButtonsProps {
   onContactTelegram: () => void;

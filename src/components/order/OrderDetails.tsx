@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Link } from 'lucide-react';
@@ -46,7 +47,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
     }
   };
 
-  const handleDeliveryMethodChange = async (newMethod: string) => {
+  const handleDeliveryMethodChange = async (newMethod: Database['public']['Enums']['delivery_method']) => {
     try {
       const { error } = await supabase
         .from('orders')

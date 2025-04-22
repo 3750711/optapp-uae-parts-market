@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import Layout from "@/components/layout/Layout";
+import { Database } from "@/integrations/supabase/types";
+
+type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 const ProductDetail = () => {
   const navigate = useNavigate();
@@ -24,7 +27,8 @@ const ProductDetail = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminAccess();
-  const [adminEditOpen, setAdminEditOpen] = React.useState(false);
+  const [adminEditOpen, setAdminEditOpen] = useState(false);
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("self_pickup");
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -121,6 +125,10 @@ const ProductDetail = () => {
     handleProductUpdate();
   };
 
+  const handleDeliveryMethodChange = (method: DeliveryMethod) => {
+    setDeliveryMethod(method);
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -204,6 +212,8 @@ const ProductDetail = () => {
                     onContactTelegram={handleContactTelegram}
                     onContactWhatsApp={handleContactWhatsApp}
                     telegramUrl={product.telegram_url}
+                    deliveryMethod={deliveryMethod}
+                    onDeliveryMethodChange={handleDeliveryMethodChange}
                     product={{
                       id: product.id,
                       title: product.title,
@@ -254,6 +264,8 @@ const ProductDetail = () => {
                     onContactTelegram={handleContactTelegram}
                     onContactWhatsApp={handleContactWhatsApp}
                     telegramUrl={product.telegram_url}
+                    deliveryMethod={deliveryMethod}
+                    onDeliveryMethodChange={handleDeliveryMethodChange}
                     product={{
                       id: product.id,
                       title: product.title,
