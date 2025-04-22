@@ -1,8 +1,10 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge, Star } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 
 export interface ProductProps {
@@ -37,6 +39,21 @@ const ProductCard: React.FC<ProductProps> = ({
   status,
   onStatusChange
 }) => {
+  const getStatusBadge = () => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="warning">На проверке</Badge>;
+      case 'active':
+        return <Badge variant="success">Активный</Badge>;
+      case 'sold':
+        return <Badge variant="info">Продан</Badge>;
+      case 'archived':
+        return <Badge variant="outline">В архиве</Badge>;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Card className="group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in">
       <div className="aspect-square overflow-hidden relative rounded-t-xl">
@@ -45,6 +62,9 @@ const ProductCard: React.FC<ProductProps> = ({
           alt={name} 
           className="h-full w-full object-cover group-hover:scale-105 transition-all duration-500"
         />
+        <div className="absolute top-2 right-2">
+          {getStatusBadge()}
+        </div>
       </div>
       <CardContent className="p-4 pb-0 flex-grow">
         <div className="flex flex-row justify-between items-center mb-2">
