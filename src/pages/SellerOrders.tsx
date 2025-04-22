@@ -4,25 +4,13 @@ import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { ChevronRight, Link, Loader2 } from "lucide-react";
+import { Link, Loader2, CheckCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
 
@@ -150,10 +138,6 @@ const SellerOrders = () => {
     return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
   };
 
-  const handleRowClick = (orderId: string) => {
-    navigate(`/seller/orders/${orderId}`);
-  };
-
   if (isLoading) {
     return (
       <Layout>
@@ -176,163 +160,95 @@ const SellerOrders = () => {
           </div>
           
           <Separator />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg md:text-xl">Список заказов</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {!orders || orders.length === 0 ? (
-                <div className="text-center p-4 md:p-8 text-muted-foreground">
-                  У вас пока нет заказов
-                </div>
-              ) : isMobile ? (
-                // Mobile view - cards layout
-                <div className="grid gap-4">
-                  {orders.map((order) => (
-                    <Card 
-                      key={order.id}
-                      className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => handleRowClick(order.id)}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <p className="font-medium text-sm">№ {order.order_number}</p>
-                            <h3 className="font-semibold mb-1">{order.title}</h3>
-                          </div>
-                          <Badge className={getStatusBadgeColor(order.status)}>
-                            {getStatusLabel(order.status)}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-2 text-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <span className="text-muted-foreground">Бренд:</span>
-                            <span>{order.brand}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <span className="text-muted-foreground">Модель:</span>
-                            <span>{order.model}</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <span className="text-muted-foreground">Цена:</span>
-                            <span>{order.price} AED</span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <span className="text-muted-foreground">OPT_ID Покупателя:</span>
-                            <Badge variant="outline" className="font-mono justify-self-start">
-                              {order.buyer_opt_id || 'Не указан'}
-                            </Badge>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <span className="text-muted-foreground">Контакты:</span>
-                            <div>
-                              {order.buyer?.telegram ? (
-                                <a 
-                                  href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {order.buyer.telegram}
-                                  <Link className="h-3 w-3" />
-                                </a>
-                              ) : (
-                                'Не указан'
-                              )}
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <span className="text-muted-foreground">Тип заказа:</span>
-                            <Badge variant="outline">
-                              {getOrderTypeLabel(order.order_created_type)}
-                            </Badge>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                // Desktop view - table layout
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Номер заказа</TableHead>
-                        <TableHead>Наименование</TableHead>
-                        <TableHead>Бренд</TableHead>
-                        <TableHead>Модель</TableHead>
-                        <TableHead>Цена</TableHead>
-                        <TableHead>OPT_ID Покупателя</TableHead>
-                        <TableHead>Контакты покупателя</TableHead>
-                        <TableHead>Тип заказа</TableHead>
-                        <TableHead>Статус</TableHead>
-                        <TableHead>Действия</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {orders.map((order) => (
-                        <TableRow 
-                          key={order.id}
-                          className="cursor-pointer hover:bg-gray-50"
+
+          {!orders || orders.length === 0 ? (
+            <div className="text-center p-4 md:p-8 text-muted-foreground">
+              У вас пока нет заказов
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {orders.map((order) => (
+                <Card 
+                  key={order.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => navigate(`/seller/orders/${order.id}`)}
+                >
+                  <CardHeader className="space-y-2">
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
+                      <Badge className={getStatusBadgeColor(order.status)}>
+                        {getStatusLabel(order.status)}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="font-medium">{order.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {order.brand} {order.model}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <div className="font-medium text-lg">{order.price} AED</div>
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <span className="font-medium">Мест для отправки:</span>
+                        <span>{order.place_number || 1}</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium text-muted-foreground">Покупатель</div>
+                      <div className="space-y-1">
+                        <Badge variant="outline" className="font-mono">
+                          {order.buyer_opt_id || 'Не указан'}
+                        </Badge>
+                        {order.buyer?.telegram && (
+                          <a
+                            href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {order.buyer.telegram}
+                            <Link className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-between">
+                      <Badge variant="outline">
+                        {getOrderTypeLabel(order.order_created_type)}
+                      </Badge>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(order.created_at).toLocaleDateString('ru-RU')}
+                      </span>
+                    </div>
+
+                    {order.status === 'created' && (
+                      <div className="pt-2 flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
                           onClick={(e) => {
-                            if ((e.target as HTMLElement).closest('button') || (e.target as HTMLElement).closest('a')) {
-                              e.stopPropagation();
-                              return;
-                            }
-                            handleRowClick(order.id);
+                            e.stopPropagation();
+                            confirmOrderMutation.mutate(order.id);
                           }}
                         >
-                          <TableCell>{order.order_number}</TableCell>
-                          <TableCell>{order.title}</TableCell>
-                          <TableCell>{order.brand}</TableCell>
-                          <TableCell>{order.model}</TableCell>
-                          <TableCell>{order.price} AED</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono">
-                              {order.buyer_opt_id || 'Не указан'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {order.buyer?.telegram ? (
-                              <a 
-                                href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline inline-flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {order.buyer.telegram}
-                                <Link className="h-4 w-4" />
-                              </a>
-                            ) : (
-                              'Не указан'
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">
-                              {getOrderTypeLabel(order.order_created_type)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge className={getStatusBadgeColor(order.status)}>
-                              {getStatusLabel(order.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <ChevronRight className="h-5 w-5 text-gray-400" />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Подтвердить
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Layout>
