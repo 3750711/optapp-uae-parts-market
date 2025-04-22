@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -63,8 +62,17 @@ const ProductCard: React.FC<ProductProps> = ({
         <img 
           src={image || "/placeholder.svg"} 
           alt={name} 
-          className="h-full w-full object-cover group-hover:scale-105 transition-all duration-500"
+          className={`h-full w-full object-cover group-hover:scale-105 transition-all duration-500 ${
+            status === 'sold' ? 'opacity-50' : ''
+          }`}
         />
+        {status === 'sold' && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="bg-destructive/90 text-destructive-foreground font-bold text-3xl py-3 px-6 rotate-[-35deg] w-[150%] text-center shadow-xl">
+              ПРОДАНО
+            </div>
+          </div>
+        )}
         <div className="absolute top-2 right-2">
           {getStatusBadge()}
         </div>
