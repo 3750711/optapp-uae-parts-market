@@ -14,16 +14,18 @@ import { Loader2 } from "lucide-react";
 import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from '@/components/admin/AdminOrderDeleteDialog';
 import { toast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [showEditDialog, setShowEditDialog] = React.useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+  const [statusFilter, setStatusFilter] = React.useState<string>('all');
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['admin-orders'],
+    queryKey: ['admin-orders', statusFilter],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select(`
           *,
@@ -43,6 +45,12 @@ const AdminOrders = () => {
           )
         `)
         .order('created_at', { ascending: false });
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         toast({
@@ -81,8 +89,25 @@ const AdminOrders = () => {
     <AdminLayout>
       <div className="container mx-auto py-8">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Управление заказами</CardTitle>
+            <Select
+              value={statusFilter}
+              onValueChange={setStatusFilter}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Фильтр по статусу" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="created">Создан</SelectItem>
+                <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
+                <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
+                <SelectItem value="processed">Зарегистрирован</SelectItem>
+                <SelectItem value="shipped">Отправлен</SelectItem>
+                <SelectItem value="delivered">Доставлен</SelectItem>
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
