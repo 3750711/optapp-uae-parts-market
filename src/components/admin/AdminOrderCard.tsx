@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -35,14 +34,11 @@ interface AdminOrderCardProps {
 
 export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, onDelete }) => {
   const queryClient = useQueryClient();
-  const shouldHighlight = 
-    order.status === 'created' || 
-    order.status === 'seller_confirmed' || 
-    order.status === 'processed';
-
+  
   const highlightColor = 
     order.status === 'processed' ? 'bg-[#F2FCE2]' : // Green-like highlight
     order.status === 'created' || order.status === 'seller_confirmed' ? 'bg-[#FEF7CD]' : // Yellow highlight
+    order.status === 'admin_confirmed' ? 'bg-[#FED7AA]' : // Orange highlight
     '';
 
   const handleConfirm = async () => {
@@ -59,7 +55,6 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
         description: "Заказ подтвержден администратором",
       });
 
-      // Refresh the orders data
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
     } catch (error) {
       toast({
