@@ -33,6 +33,7 @@ export interface SellerProfile {
   opt_id?: string;
   telegram?: string;
   description_user?: string;
+  location?: string;
 }
 
 export interface Product {
