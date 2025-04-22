@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -32,6 +31,9 @@ const BuyerOrders = () => {
         .select(`
           *,
           product_id,
+          products (
+            lot_number
+          ),
           seller:profiles!orders_seller_id_fkey (
             phone,
             telegram,
@@ -122,6 +124,7 @@ const BuyerOrders = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Номер заказа</TableHead>
+                  <TableHead>Номер лота</TableHead>
                   <TableHead>Наименование</TableHead>
                   <TableHead>Бренд</TableHead>
                   <TableHead>Модель</TableHead>
@@ -137,6 +140,7 @@ const BuyerOrders = () => {
                 {orders.map((order) => (
                   <TableRow key={order.id} className="hover:bg-gray-50">
                     <TableCell>{order.order_number}</TableCell>
+                    <TableCell>{order.products?.lot_number || 'Н/Д'}</TableCell>
                     <TableCell>{order.title}</TableCell>
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
