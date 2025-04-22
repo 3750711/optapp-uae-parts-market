@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -93,14 +94,14 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
   const showRegisterButton = order.status === 'admin_confirmed';
 
   return (
-    <Card className={`h-full ${highlightColor}`}>
+    <Card className={`h-full ${highlightColor} flex flex-col`}>
       <CardHeader className="space-y-2">
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
           <OrderStatusBadge status={order.status} />
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-grow">
         <div className="space-y-2">
           <div className="font-medium">{order.title}</div>
           <div className="text-sm text-muted-foreground">
@@ -160,45 +161,45 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
             {new Date(order.created_at).toLocaleDateString('ru-RU')}
           </div>
         </div>
-
-        <div className="flex items-center justify-end gap-2 pt-2">
-          {showConfirmButton && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              onClick={handleConfirm}
-            >
-              <CheckCircle className="h-4 w-4" />
-            </Button>
-          )}
-          {showRegisterButton && (
-            <Button
-              variant="outline"
-              className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              onClick={handleRegister}
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Зарегистрировать
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => onEdit(order)}
-          >
-            <Edit2 className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-red-500 hover:text-red-600"
-            onClick={() => onDelete(order)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
       </CardContent>
+      
+      <div className="p-4 border-t flex items-center justify-end gap-2">
+        {showConfirmButton && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            onClick={handleConfirm}
+          >
+            <CheckCircle className="h-4 w-4" />
+          </Button>
+        )}
+        {showRegisterButton && (
+          <Button
+            variant="outline"
+            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            onClick={handleRegister}
+          >
+            <CheckCircle className="h-4 w-4 mr-2" />
+            Зарегистрировать
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onEdit(order)}
+        >
+          <Edit2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-red-500 hover:text-red-600"
+          onClick={() => onDelete(order)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
     </Card>
   );
 };
