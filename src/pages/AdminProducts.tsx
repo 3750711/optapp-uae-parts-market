@@ -32,7 +32,6 @@ const AdminProducts = () => {
         `);
 
       if (sortField === 'status') {
-        // Custom ordering for status: pending first, then active, sold, and archived
         query = query.order('status', { ascending: true });
       } else {
         query = query.order(sortField, { ascending: sortOrder === 'asc' });
@@ -41,7 +40,6 @@ const AdminProducts = () => {
       const { data, error } = await query;
       if (error) throw error;
 
-      // If sorting by status with pending first, we need to manually sort
       if (sortField === 'status') {
         const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
         return (data as Product[]).sort((a, b) => 
@@ -104,6 +102,10 @@ const AdminProducts = () => {
     }
   };
 
+  const getProductCardBackground = (status: string) => {
+    return status === 'pending' ? 'bg-[#FEF7CD]' : 'bg-white';
+  };
+
   if (isLoading) {
     return <AdminLayout>
       <div className="flex items-center justify-center h-screen">
@@ -143,7 +145,10 @@ const AdminProducts = () => {
                                '/placeholder.svg';
             
             return (
-              <div key={product.id} className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow p-4">
+              <div 
+                key={product.id} 
+                className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
+              >
                 <div className="relative aspect-square mb-4">
                   <img 
                     src={primaryImage} 
