@@ -71,7 +71,7 @@ const AdminOrders = () => {
   });
 
   const handleViewDetails = (orderId: string) => {
-    navigate(`/seller/orders/${orderId}`);
+    navigate(`/admin/orders/${orderId}`);
   };
 
   const handleEdit = (order: any) => {

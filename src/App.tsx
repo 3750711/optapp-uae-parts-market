@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -115,6 +114,11 @@ const App = () => {
               <Route path="/admin/orders" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminOrders />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/orders/:id" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <OrderDetails />
                 </ProtectedRoute>
               } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
