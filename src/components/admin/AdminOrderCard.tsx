@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,8 +30,10 @@ interface AdminOrderCardProps {
 }
 
 export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, onDelete }) => {
+  const shouldHighlight = order.status === 'created' || order.status === 'seller_confirmed';
+
   return (
-    <Card className="h-full">
+    <Card className={`h-full ${shouldHighlight ? 'bg-[#FEF7CD]' : ''}`}>
       <CardHeader className="space-y-2">
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
