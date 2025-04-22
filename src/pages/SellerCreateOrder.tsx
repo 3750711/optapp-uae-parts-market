@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,6 @@ const SellerCreateOrder = () => {
   const [formData, setFormData] = useState({
     title: "",
     price: "",
-    quantity: "1",
     buyerOptId: "",
     brand: "",
     model: "",
@@ -102,7 +100,6 @@ const SellerCreateOrder = () => {
           setFormData({
             title: product.title,
             price: product.price.toString(),
-            quantity: "1",
             buyerOptId: "",
             brand: product.brand || "",
             model: product.model || "",
@@ -227,7 +224,6 @@ const SellerCreateOrder = () => {
       const orderPayload = {
         title: formData.title,
         price: parseFloat(formData.price),
-        quantity: parseInt(formData.quantity),
         place_number: parseInt(formData.place_number),
         seller_id: user.id,
         order_seller_name: profile?.full_name || 'Unknown',
@@ -377,7 +373,6 @@ const SellerCreateOrder = () => {
                 setFormData({
                   title: "",
                   price: "",
-                  quantity: "1",
                   buyerOptId: "",
                   brand: "",
                   model: "",
@@ -416,28 +411,15 @@ const SellerCreateOrder = () => {
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Наименование *</Label>
-                    <Input 
-                      id="title" 
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                      required 
-                      placeholder="Введите наименование"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Количество единиц товара</Label>
-                    <Input 
-                      id="quantity" 
-                      type="number"
-                      value={formData.quantity}
-                      onChange={(e) => handleInputChange('quantity', e.target.value)}
-                      required 
-                      min="1"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="title">Наименование *</Label>
+                  <Input 
+                    id="title" 
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    required 
+                    placeholder="Введите наименование"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
