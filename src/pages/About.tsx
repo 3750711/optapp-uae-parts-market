@@ -1,8 +1,11 @@
 import React from "react";
 import Layout from "@/components/layout/Layout";
 import { Award, ShieldCheck, TrendingUp, Truck } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const About = () => {
+  const { user } = useAuth();
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -96,9 +99,11 @@ const About = () => {
               Присоединяйтесь к нашей платформе сегодня и испытайте все преимущества надежной торговой площадки автозапчастей.
             </p>
             <div className="flex justify-center space-x-4">
-              <a href="/register" className="bg-white text-optapp-dark font-medium py-2 px-6 rounded shadow hover:shadow-lg">
-                Регистрация
-              </a>
+              {!user && (
+                <a href="/register" className="bg-white text-optapp-dark font-medium py-2 px-6 rounded shadow hover:shadow-lg">
+                  Регистрация
+                </a>
+              )}
             </div>
           </div>
         </div>
