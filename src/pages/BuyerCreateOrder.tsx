@@ -53,7 +53,7 @@ const BuyerCreateOrder = () => {
       console.log("Fetched profile data:", data);
       
       if (data) {
-        setProfile(data);
+        console.log("Profile data fetched:", data);
       } else {
         console.error('No profile data found for user:', userId);
       }
