@@ -69,7 +69,7 @@ const ProductCard: React.FC<ProductProps> = ({
       <CardContent className="p-4 pb-0 flex-grow">
         <div className="flex flex-row justify-between items-center mb-2">
           <div className="text-xs text-muted-foreground font-medium flex items-center">
-            <Badge size={12} className="mr-1 text-secondary" />
+            <BadgeIcon className="mr-1 text-secondary w-3 h-3" />
             <span>{brand} · {model}</span>
           </div>
           <div className="text-xs text-muted-foreground flex items-center">
