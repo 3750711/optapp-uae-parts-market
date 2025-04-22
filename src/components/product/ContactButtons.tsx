@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -18,7 +17,7 @@ interface ContactButtonsProps {
   onContactWhatsApp: () => void;
   telegramUrl?: string;
   product: {
-    id?: string;
+    id?: string; 
     title: string;
     price: number;
     brand: string;
@@ -155,7 +154,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         const { error: productUpdateError } = await supabase
           .from('products')
           .update({ status: 'sold' })
-          .eq('id', product.id);
+          .eq('id', product.id)
+          .eq('status', 'active'); // Only update if the product is still active
 
         if (productUpdateError) {
           console.error('Error updating product status:', productUpdateError);
