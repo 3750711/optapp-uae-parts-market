@@ -73,7 +73,16 @@ const AdminUsers = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {users?.map((user) => (
-                <Card key={user.id} className="relative">
+                <Card 
+                  key={user.id} 
+                  className={`relative ${
+                    user.verification_status === 'pending'
+                      ? 'bg-orange-50'
+                      : user.verification_status === 'verified'
+                      ? 'bg-green-50'
+                      : ''
+                  }`}
+                >
                   <CardContent className="pt-6">
                     <div className="space-y-4">
                       <div className="space-y-2">
