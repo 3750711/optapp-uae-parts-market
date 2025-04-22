@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -17,6 +18,7 @@ import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import Layout from "@/components/layout/Layout";
 import { Database } from "@/integrations/supabase/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
@@ -27,6 +29,7 @@ const ProductDetail = () => {
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminAccess();
+  const { user } = useAuth();
   const [adminEditOpen, setAdminEditOpen] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("self_pickup");
   const [searchParams] = useSearchParams();
@@ -51,8 +54,8 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
-      // Don't show pending products to non-admin users
-      if (!isAdmin && data.status === 'pending') {
+      // Allow product owner and admins to view pending products, redirect others to 404
+      if (data.status === 'pending' && data.seller_id !== user?.id && !isAdmin) {
         navigate('/404');
         return null;
       }
