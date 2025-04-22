@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -20,6 +19,7 @@ export interface ProductProps {
   model: string;
   seller_name: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
+  seller_id: string;
 }
 
 const SoldWatermark = () => (
@@ -47,7 +47,8 @@ const ProductCard: React.FC<ProductProps> = ({
   brand,
   model,
   seller_name,
-  status
+  status,
+  seller_id
 }) => {
   return (
     <Card className="group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in">
@@ -60,7 +61,6 @@ const ProductCard: React.FC<ProductProps> = ({
         {status === 'sold' && <SoldWatermark />}
       </div>
       <CardContent className="p-4 pb-0 flex-grow">
-        {/* Верхняя инфо строка */}
         <div className="flex flex-row justify-between items-center mb-2">
           <div className="text-xs text-muted-foreground font-medium flex items-center">
             <Badge size={12} className="mr-1 text-secondary" />
@@ -71,15 +71,18 @@ const ProductCard: React.FC<ProductProps> = ({
             <span>{location}</span>
           </div>
         </div>
-        {/* Название и новый бейдж */}
         <div className="flex items-start mb-2 gap-1">
           <h3 className="font-semibold text-base text-foreground leading-tight line-clamp-2">{name}
             {condition === "Новый" && <NewBadge />}
           </h3>
         </div>
-        {/* Продавец и рейтинг */}
         <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-          <span className="font-medium truncate max-w-[90px]">{seller_name}</span>
+          <Link 
+            to={`/seller/${seller_id}`} 
+            className="font-medium truncate max-w-[90px] hover:text-primary hover:underline transition-colors"
+          >
+            {seller_name}
+          </Link>
           {rating_seller !== undefined && (
             <span className="flex items-center ml-1 gap-0.5 bg-yellow-50 px-2 py-0.5 rounded-full">
               <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
