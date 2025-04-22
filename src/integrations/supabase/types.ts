@@ -275,6 +275,7 @@ export type Database = {
           phone_url: string | null
           place_number: number | null
           price: number
+          product_location: string | null
           product_url: string | null
           rating_seller: number | null
           seller_id: string
@@ -297,6 +298,7 @@ export type Database = {
           phone_url?: string | null
           place_number?: number | null
           price: number
+          product_location?: string | null
           product_url?: string | null
           rating_seller?: number | null
           seller_id: string
@@ -319,6 +321,7 @@ export type Database = {
           phone_url?: string | null
           place_number?: number | null
           price?: number
+          product_location?: string | null
           product_url?: string | null
           rating_seller?: number | null
           seller_id?: string
