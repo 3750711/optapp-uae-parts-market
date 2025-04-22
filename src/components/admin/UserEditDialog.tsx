@@ -43,7 +43,7 @@ const formSchema = z.object({
     }, { message: "Telegram должен начинаться с @" }),
   opt_id: z.string().optional(),
   user_type: z.enum(["buyer", "seller", "admin"]),
-  verification_status: z.enum(["verified", "pending"]),
+  verification_status: z.enum(["verified", "pending", "blocked"]),
 });
 
 interface UserEditDialogProps {
@@ -210,6 +210,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
                     <SelectContent>
                       <SelectItem value="pending">Ожидает</SelectItem>
                       <SelectItem value="verified">Подтвержден</SelectItem>
+                      <SelectItem value="blocked">Заблокирован</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
