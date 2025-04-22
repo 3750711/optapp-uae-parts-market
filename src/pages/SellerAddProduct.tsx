@@ -45,9 +45,7 @@ const productSchema = z.object({
   model: z.string().min(1, {
     message: "Укажите модель автомобиля",
   }),
-  description: z.string().min(10, {
-    message: "Описание должно содержать не менее 10 символов",
-  }),
+  description: z.string().optional(),
 });
 
 const SellerAddProduct = () => {
@@ -152,7 +150,7 @@ const SellerAddProduct = () => {
           condition: "Новый",
           brand: values.brand,
           model: values.model,
-          description: values.description,
+          description: values.description || null,
           seller_id: user.id,
           seller_name: profile.full_name || user.email,
           status: 'pending'
@@ -253,7 +251,7 @@ const SellerAddProduct = () => {
                         name="price"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Цена (AED)</FormLabel>
+                            <FormLabel>Цена ($)</FormLabel>
                             <FormControl>
                               <Input 
                                 type="number" 
@@ -312,10 +310,10 @@ const SellerAddProduct = () => {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Описание</FormLabel>
+                        <FormLabel>Описание (необязательно)</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д." 
+                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необязательно)" 
                             rows={6}
                             {...field}
                           />
