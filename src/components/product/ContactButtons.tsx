@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -194,10 +193,18 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         console.log('Product status updated to sold successfully');
       }
 
-      toast({
-        title: "Заказ успешно создан",
-        description: "Вы будете перенаправлены на страницу заказов",
-      });
+      if (deliveryMethod === 'self_pickup') {
+        toast({
+          title: "Заказ успешно создан",
+          description: `Номер заказа: ${order.order_number}. Скоро продавец с вами свяжется. Спасибо за заказ и спасибо что выбрали OPTAPP!`,
+          duration: 6000,
+        });
+      } else {
+        toast({
+          title: "Заказ успешно создан",
+          description: "Вы будете перенаправлены на страницу заказов",
+        });
+      }
 
       setShowConfirmDialog(false);
       navigate('/orders');
