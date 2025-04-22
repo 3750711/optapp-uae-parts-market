@@ -1,8 +1,11 @@
-
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Link } from 'lucide-react';
 import { Database } from '@/integrations/supabase/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer?: {
@@ -26,7 +29,9 @@ interface OrderDetailsProps {
 }
 
 export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
+  const { user } = useAuth();
   const isSelfOrder = order.seller_id === order.buyer_id;
+  const isBuyer = user?.id === order.buyer_id;
 
   const getDeliveryMethodLabel = (method: string) => {
     switch (method) {
@@ -38,6 +43,29 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         return 'Доставка Cargo KZ';
       default:
         return method;
+    }
+  };
+
+  const handleDeliveryMethodChange = async (newMethod: string) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ delivery_method: newMethod })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно обновлено",
+        description: "Способ доставки успешно изменен",
+      });
+    } catch (error) {
+      console.error('Error updating delivery method:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить способ доставки",
+        variant: "destructive",
+      });
     }
   };
 
@@ -110,9 +138,22 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         )}
         <div>
           <Label className="text-sm text-gray-500">Способ доставки</Label>
-          <p className="text-lg font-medium">
-            {getDeliveryMethodLabel(order.delivery_method)}
-          </p>
+          {isBuyer ? (
+            <Select value={order.delivery_method} onValueChange={handleDeliveryMethodChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Выберите способ доставки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-lg font-medium">
+              {getDeliveryMethodLabel(order.delivery_method)}
+            </p>
+          )}
         </div>
       </div>
     </div>

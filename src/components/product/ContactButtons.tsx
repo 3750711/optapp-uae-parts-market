@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -30,13 +29,17 @@ interface ContactButtonsProps {
     lot_number?: string | number | null;
     status?: string;
   };
+  deliveryMethod: DeliveryMethod;
+  onDeliveryMethodChange: (method: DeliveryMethod) => void;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({
   onContactTelegram,
   onContactWhatsApp,
   telegramUrl,
-  product
+  product,
+  deliveryMethod,
+  onDeliveryMethodChange,
 }) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -90,7 +93,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing required product information');
       }
 
-      // Проверка статуса товара перед оформлением заказа
       const { data: currentProduct, error: productCheckError } = await supabase
         .from('products')
         .select('status')
@@ -158,6 +160,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         product_id: product.id,
         lot_number_order: lotNumberOrder,
         images: productImages,
+        delivery_method: deliveryMethod,
       };
 
       const { data: order, error: orderError } = await supabase
@@ -173,7 +176,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       console.log('Order created successfully:', order);
 
-      // Обновляем статус товара на "sold" только если заказ успешно создан
       const { error: updateError } = await supabase
         .from('products')
         .update({ status: 'sold' })
@@ -259,6 +261,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         isSubmitting={isSubmitting}
         product={product}
         profile={profile}
+        deliveryMethod={deliveryMethod}
+        onDeliveryMethodChange={onDeliveryMethodChange}
       />
     </>
   );

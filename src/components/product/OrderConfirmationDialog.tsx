@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -12,6 +11,10 @@ import {
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Database } from "@/integrations/supabase/types";
+
+type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -34,6 +37,8 @@ interface OrderConfirmationDialogProps {
     opt_id?: string;
     telegram?: string;
   } | null;
+  deliveryMethod: DeliveryMethod;
+  onDeliveryMethodChange: (method: DeliveryMethod) => void;
 }
 
 const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
@@ -43,7 +48,22 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   isSubmitting,
   product,
   profile,
+  deliveryMethod,
+  onDeliveryMethodChange,
 }) => {
+  const getDeliveryMethodLabel = (method: DeliveryMethod) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Доставка Cargo РФ';
+      case 'cargo_kz':
+        return 'Доставка Cargo KZ';
+      default:
+        return method;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6">
@@ -87,6 +107,22 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 </div>
               )}
             </div>
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
+            <Select value={deliveryMethod} onValueChange={onDeliveryMethodChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Выберите способ доставки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Separator />
