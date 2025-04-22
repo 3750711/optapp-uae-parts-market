@@ -30,10 +30,18 @@ interface AdminOrderCardProps {
 }
 
 export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, onDelete }) => {
-  const shouldHighlight = order.status === 'created' || order.status === 'seller_confirmed';
+  const shouldHighlight = 
+    order.status === 'created' || 
+    order.status === 'seller_confirmed' || 
+    order.status === 'processed';
+
+  const highlightColor = 
+    order.status === 'processed' ? 'bg-[#F2FCE2]' : // Green-like highlight
+    order.status === 'created' || order.status === 'seller_confirmed' ? 'bg-[#FEF7CD]' : // Yellow highlight
+    '';
 
   return (
-    <Card className={`h-full ${shouldHighlight ? 'bg-[#FEF7CD]' : ''}`}>
+    <Card className={`h-full ${highlightColor}`}>
       <CardHeader className="space-y-2">
         <div className="flex justify-between items-start">
           <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
