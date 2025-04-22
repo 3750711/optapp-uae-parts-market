@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { Database } from "@/integrations/supabase/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -29,6 +29,7 @@ const BuyerCreateOrder = () => {
     brand: "",
     model: "",
     lot_number: undefined as number | undefined,
+    deliveryMethod: 'self_pickup',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -50,17 +51,6 @@ const BuyerCreateOrder = () => {
             description: "Не удалось загрузить данные товара",
             variant: "destructive",
           });
-          return;
-        }
-
-        // Проверяем доступность товара
-        if (product.status !== 'active') {
-          toast({
-            title: "Товар недоступен",
-            description: "Этот товар уже продан или недоступен для заказа",
-            variant: "destructive",
-          });
-          navigate('/catalog');
           return;
         }
 
@@ -217,6 +207,7 @@ const BuyerCreateOrder = () => {
         product_id: resolvedProductId || null,
         lot_number_order: usedLotNumber !== undefined ? usedLotNumber : null,
         images: productImages,
+        delivery_method: formData.deliveryMethod,
       };
 
       console.log("Order payload:", orderPayload);
@@ -430,6 +421,23 @@ const BuyerCreateOrder = () => {
                     storageBucket="order-videos"
                     storagePrefix=""
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Способ доставки</Label>
+                  <Select
+                    value={formData.deliveryMethod}
+                    onValueChange={(value) => handleInputChange('deliveryMethod', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите способ доставки" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                      <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                      <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">

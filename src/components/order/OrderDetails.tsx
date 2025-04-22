@@ -27,6 +27,19 @@ interface OrderDetailsProps {
 export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
   const isSelfOrder = order.seller_id === order.buyer_id;
 
+  const getDeliveryMethodLabel = (method: string) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Доставка Cargo РФ';
+      case 'cargo_kz':
+        return 'Доставка Cargo KZ';
+      default:
+        return method;
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-4">
@@ -94,6 +107,12 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
             <p className="text-lg font-medium text-amber-600">Самозаказ</p>
           </div>
         )}
+        <div>
+          <Label className="text-sm text-gray-500">Способ доставки</Label>
+          <p className="text-lg font-medium">
+            {getDeliveryMethodLabel(order.delivery_method)}
+          </p>
+        </div>
       </div>
     </div>
   );

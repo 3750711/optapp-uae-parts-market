@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { Database } from "@/integrations/supabase/types";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VideoUpload } from "@/components/ui/video-upload";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
@@ -42,7 +41,8 @@ const SellerCreateOrder = () => {
     model: "",
     optid_created: "",
     seller_opt_id: "",
-    buyer_opt_id: ""
+    buyer_opt_id: "",
+    deliveryMethod: 'self_pickup'
   });
 
   useEffect(() => {
@@ -196,7 +196,6 @@ const SellerCreateOrder = () => {
           console.log("Created temporary product with ID:", resolvedProductId);
         }
       } else {
-        // Добавляем проверку статуса товара перед оформлением заказа
         const { data: currentProduct, error: productCheckError } = await supabase
           .from('products')
           .select('status')
@@ -236,6 +235,7 @@ const SellerCreateOrder = () => {
         telegram_url_order: buyerData.telegram || null,
         images: images,
         product_id: resolvedProductId || null,
+        delivery_method: formData.deliveryMethod
       };
 
       console.log("Order payload:", orderPayload);
@@ -548,6 +548,23 @@ const SellerCreateOrder = () => {
                     storageBucket="order-videos"
                     storagePrefix=""
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Способ доставки</Label>
+                  <Select
+                    value={formData.deliveryMethod}
+                    onValueChange={(value) => handleInputChange('deliveryMethod', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите способ доставки" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                      <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                      <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">

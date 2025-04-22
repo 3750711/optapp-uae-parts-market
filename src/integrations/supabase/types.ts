@@ -106,6 +106,7 @@ export type Database = {
           buyer_id: string
           buyer_opt_id: string | null
           created_at: string
+          delivery_method: Database["public"]["Enums"]["delivery_method"]
           description: string | null
           id: string
           images: string[] | null
@@ -129,6 +130,7 @@ export type Database = {
           buyer_id: string
           buyer_opt_id?: string | null
           created_at?: string
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
           description?: string | null
           id?: string
           images?: string[] | null
@@ -152,6 +154,7 @@ export type Database = {
           buyer_id?: string
           buyer_opt_id?: string | null
           created_at?: string
+          delivery_method?: Database["public"]["Enums"]["delivery_method"]
           description?: string | null
           id?: string
           images?: string[] | null
@@ -395,6 +398,7 @@ export type Database = {
       }
     }
     Enums: {
+      delivery_method: "self_pickup" | "cargo_rf" | "cargo_kz"
       order_created_type: "free_order" | "ads_order"
       order_status:
         | "created"
@@ -521,6 +525,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      delivery_method: ["self_pickup", "cargo_rf", "cargo_kz"],
       order_created_type: ["free_order", "ads_order"],
       order_status: [
         "created",
