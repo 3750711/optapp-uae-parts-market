@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, CircleDollarSign, Star, User } from "lucide-react";
@@ -46,7 +45,7 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
         </div>
 
         {sellerProfile?.description && (
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 mt-3">
             <p className="text-sm text-gray-700">{sellerProfile.description}</p>
           </div>
         )}
