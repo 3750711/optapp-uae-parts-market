@@ -19,12 +19,18 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
     <div className="border rounded-lg p-4 mb-6">
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
-          <Link 
-            to={`/seller/${sellerProfile?.id}`}
-            className="font-medium hover:text-primary transition-colors"
-          >
-            Продавец: {seller_name}
-          </Link>
+          {sellerProfile && sellerProfile.id ? (
+            <Link 
+              to={`/seller/${sellerProfile.id}`}
+              className="font-medium hover:text-primary transition-colors"
+            >
+              Продавец: {seller_name}
+            </Link>
+          ) : (
+            <span className="font-medium">
+              Продавец: {seller_name}
+            </span>
+          )}
           {sellerProfile?.opt_id && (
             <div className="text-sm">
               <span className="text-gray-500">OPT ID: </span>

@@ -9,6 +9,7 @@ export interface ProductVideo {
 }
 
 export interface SellerProfile {
+  id?: string;
   full_name?: string;
   rating?: number;
   phone?: string;

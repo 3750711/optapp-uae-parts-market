@@ -47,12 +47,19 @@ const PublicSellerProfile = () => {
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg';
     
+    // Ensure the condition matches one of the allowed values
+    let condition: "Новый" | "Б/У" | "Восстановленный" = "Б/У";
+    
+    if (product.condition === "Новый" || product.condition === "Восстановленный") {
+      condition = product.condition as "Новый" | "Восстановленный";
+    }
+    
     return {
       id: product.id,
       name: product.title,
       price: Number(product.price),
       image: primaryImage,
-      condition: product.condition,
+      condition: condition,
       location: product.location || '',
       brand: product.brand || '',
       model: product.model || '',
