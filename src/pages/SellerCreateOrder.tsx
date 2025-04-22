@@ -107,7 +107,7 @@ const SellerCreateOrder = () => {
             seller_opt_id: product.seller?.opt_id || "",
             buyer_opt_id: "",
             deliveryMethod: 'self_pickup',
-            place_number: "1" // Added missing place_number field
+            place_number: "1"
           });
         }
       }
@@ -445,7 +445,7 @@ const SellerCreateOrder = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Цена (AED) *</Label>
+                    <Label htmlFor="price">Цена ($) *</Label>
                     <Input 
                       id="price" 
                       type="number" 
