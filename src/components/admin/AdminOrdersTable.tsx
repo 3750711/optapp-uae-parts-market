@@ -165,7 +165,7 @@ export const AdminOrdersTable: React.FC<AdminOrdersTableProps> = ({ orders }) =>
                     <SelectTrigger className="w-[180px]">
                       <SelectValue placeholder="Выберите способ доставки" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-white border border-gray-200 shadow-md">
                       <SelectItem value="self_pickup">Самовывоз</SelectItem>
                       <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
                       <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>

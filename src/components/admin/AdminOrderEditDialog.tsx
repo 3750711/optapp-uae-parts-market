@@ -219,7 +219,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                           <SelectValue placeholder="Выберите статус" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-white border border-gray-200 shadow-md">
                         <SelectItem value="created">Создан</SelectItem>
                         <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
                         <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
