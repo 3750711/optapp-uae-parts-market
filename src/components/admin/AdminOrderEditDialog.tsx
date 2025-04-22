@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -222,7 +223,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                         <SelectItem value="created">Создан</SelectItem>
                         <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
                         <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
-                        <SelectItem value="registered">Зарегистрирован</SelectItem>
+                        <SelectItem value="processed">Зарегистрирован</SelectItem>
                         <SelectItem value="shipped">Отправлен</SelectItem>
                         <SelectItem value="delivered">Доставлен</SelectItem>
                         <SelectItem value="cancelled">Отменен</SelectItem>

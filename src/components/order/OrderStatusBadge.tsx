@@ -18,7 +18,7 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
         return 'bg-blue-100 text-blue-800';
       case 'admin_confirmed':
         return 'bg-purple-100 text-purple-800';
-      case 'registered':
+      case 'processed': // Keep using 'processed' as it's the value in the database enum
         return 'bg-yellow-100 text-yellow-800';
       case 'shipped':
         return 'bg-orange-100 text-orange-800';
@@ -39,7 +39,7 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
         return 'Подтвержден продавцом';
       case 'admin_confirmed':
         return 'Подтвержден администратором';
-      case 'registered':
+      case 'processed': // Keep using 'processed' but display as 'Зарегистрирован'
         return 'Зарегистрирован';
       case 'shipped':
         return 'Отправлен';
