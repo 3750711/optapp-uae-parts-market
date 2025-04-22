@@ -13,14 +13,22 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { ProfileType } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ProfileType } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { UserTypeField } from "./fields/UserTypeField";
 import { OptIdField } from "./fields/OptIdField";
 import { TelegramField } from "./fields/TelegramField";
 import { ProfileTextField } from "./fields/ProfileTextField";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { countries } from "@/data/countries";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -125,19 +133,32 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             />
             <TelegramField control={form.control} />
             <OptIdField control={form.control} canEditOptId={canEditOptId} />
+            
             <FormField
               control={form.control}
               name="location"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Местоположение</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Например: Dubai" {...field} />
-                  </FormControl>
+                  <FormLabel>Местоположение *</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите страну" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {countries.map((country) => (
+                        <SelectItem key={country} value={country}>
+                          {country}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
+            
             <FormField
               control={form.control}
               name="description"
@@ -155,9 +176,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
                 </FormItem>
               )}
             />
+            
             <Button 
               type="submit" 
-              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 w-full"
+              className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               disabled={isLoading}
             >
               {isLoading ? "Сохранение..." : "Сохранить изменения"}
