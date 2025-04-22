@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
 import {
@@ -13,6 +13,8 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Database } from "@/integrations/supabase/types";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "@/components/ui/use-toast";
 
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
@@ -51,6 +53,20 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
 }) => {
+  const [contactConsent, setContactConsent] = useState(false);
+
+  const handleConfirm = () => {
+    if (deliveryMethod === 'self_pickup' && !contactConsent) {
+      toast({
+        title: "Требуется согласие",
+        description: "Для самовывоза необходимо дать согласие на передачу контактных данных",
+        variant: "destructive",
+      });
+      return;
+    }
+    onConfirm();
+  };
+
   const getDeliveryMethodLabel = (method: DeliveryMethod) => {
     switch (method) {
       case 'self_pickup':
@@ -141,6 +157,23 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 </SelectItem>
               </SelectContent>
             </Select>
+            
+            {deliveryMethod === 'self_pickup' && (
+              <div className="flex items-center space-x-2 mt-2">
+                <Checkbox 
+                  id="contactConsent"
+                  checked={contactConsent}
+                  onCheckedChange={(checked) => setContactConsent(checked as boolean)}
+                  className="border-gray-300"
+                />
+                <label
+                  htmlFor="contactConsent"
+                  className="text-sm text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Даю согласие поделиться моими контактными данными с продавцом
+                </label>
+              </div>
+            )}
           </div>
 
           <Separator />
@@ -198,7 +231,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             Отмена
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={handleConfirm}
             className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-xs sm:text-sm h-8 sm:h-9"
             disabled={isSubmitting}
           >
