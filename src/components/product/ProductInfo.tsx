@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     }
   };
 
+  // Only redirect non-owners and non-admins for pending products
   if (product.status === 'pending' && !isOwner && !isAdmin) {
     navigate('/404');
     return null;
@@ -129,3 +131,4 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
 };
 
 export default ProductInfo;
+
