@@ -54,6 +54,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           product={product}
           onCancel={() => setIsEditing(false)}
           onSave={handleSave}
+          isCreator={true} // Add this prop to explicitly pass isCreator=true when the user is the owner
         />
       </div>
     );

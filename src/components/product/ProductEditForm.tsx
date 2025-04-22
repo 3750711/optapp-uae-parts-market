@@ -54,8 +54,27 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     );
   }, [product]);
 
+  React.useEffect(() => {
+    // Check if user is the creator (owner) of the product
+    const checkIsCreator = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        // If we're not explicitly set as creator and auth check fails, default to false
+        if (!isCreator && (!user || user.id !== product.seller_id)) {
+          console.log("User is not the creator of this product");
+        }
+      } catch (error) {
+        console.error("Error checking product ownership:", error);
+      }
+    };
+    
+    checkIsCreator();
+  }, [isCreator, product.seller_id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Use the isCreator prop that's passed down from the parent component
     if (!isCreator) {
       toast({
         title: "Действие запрещено",
@@ -64,6 +83,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       });
       return;
     }
+
     setIsLoading(true);
 
     try {
@@ -92,6 +112,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         description: "Не удалось обновить объявление",
         variant: "destructive",
       });
+      console.error("Error updating product:", error);
     } finally {
       setIsLoading(false);
     }
@@ -201,4 +222,3 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 };
 
 export default ProductEditForm;
-
