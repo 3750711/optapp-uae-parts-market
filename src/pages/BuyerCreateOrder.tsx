@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
+type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 const BuyerCreateOrder = () => {
   const { user, profile } = useAuth();
@@ -29,7 +31,7 @@ const BuyerCreateOrder = () => {
     brand: "",
     model: "",
     lot_number: undefined as number | undefined,
-    deliveryMethod: 'self_pickup',
+    deliveryMethod: 'self_pickup' as DeliveryMethod,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -63,6 +65,7 @@ const BuyerCreateOrder = () => {
             brand: product.brand || "",
             model: product.model || "",
             lot_number: product.lot_number,
+            deliveryMethod: 'self_pickup',
           });
 
           const { data: images, error: imagesError } = await supabase
@@ -207,7 +210,7 @@ const BuyerCreateOrder = () => {
         product_id: resolvedProductId || null,
         lot_number_order: usedLotNumber !== undefined ? usedLotNumber : null,
         images: productImages,
-        delivery_method: formData.deliveryMethod,
+        delivery_method: formData.deliveryMethod as DeliveryMethod,
       };
 
       console.log("Order payload:", orderPayload);
@@ -340,7 +343,7 @@ const BuyerCreateOrder = () => {
                       id="model"
                       value={formData.model}
                       onChange={(e) => handleInputChange('model', e.target.value)}
-                      placeholder="Введите моде��ь"
+                      placeholder="Введите модель"
                     />
                   </div>
                 </div>
@@ -427,7 +430,7 @@ const BuyerCreateOrder = () => {
                   <Label>Способ доставки</Label>
                   <Select
                     value={formData.deliveryMethod}
-                    onValueChange={(value) => handleInputChange('deliveryMethod', value)}
+                    onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Выберите способ доставки" />

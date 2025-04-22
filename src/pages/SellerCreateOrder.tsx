@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { VideoUpload } from "@/components/ui/video-upload";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
+type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 type ProfileShort = {
   id: string;
@@ -42,7 +44,7 @@ const SellerCreateOrder = () => {
     optid_created: "",
     seller_opt_id: "",
     buyer_opt_id: "",
-    deliveryMethod: 'self_pickup'
+    deliveryMethod: 'self_pickup' as DeliveryMethod
   });
 
   useEffect(() => {
@@ -105,7 +107,8 @@ const SellerCreateOrder = () => {
             model: product.model || "",
             optid_created: product.optid_created || "",
             seller_opt_id: product.seller?.opt_id || "",
-            buyer_opt_id: ""
+            buyer_opt_id: "",
+            deliveryMethod: 'self_pickup'
           });
         }
       }
@@ -235,7 +238,7 @@ const SellerCreateOrder = () => {
         telegram_url_order: buyerData.telegram || null,
         images: images,
         product_id: resolvedProductId || null,
-        delivery_method: formData.deliveryMethod
+        delivery_method: formData.deliveryMethod as DeliveryMethod
       };
 
       console.log("Order payload:", orderPayload);
@@ -377,7 +380,8 @@ const SellerCreateOrder = () => {
                   model: "",
                   optid_created: "",
                   seller_opt_id: "",
-                  buyer_opt_id: ""
+                  buyer_opt_id: "",
+                  deliveryMethod: 'self_pickup'
                 });
                 setImages([]);
               }}
@@ -554,7 +558,7 @@ const SellerCreateOrder = () => {
                   <Label>Способ доставки</Label>
                   <Select
                     value={formData.deliveryMethod}
-                    onValueChange={(value) => handleInputChange('deliveryMethod', value)}
+                    onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Выберите способ доставки" />
@@ -573,7 +577,7 @@ const SellerCreateOrder = () => {
                   type="button"
                   onClick={() => navigate(-1)}
                 >
-                  ��тмена
+                  Отмена
                 </Button>
                 <Button 
                   type="submit"
