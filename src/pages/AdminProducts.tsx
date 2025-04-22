@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Eye, ArrowUpDown } from "lucide-react";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -20,7 +21,7 @@ import { Product } from '@/types/product';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 
-type SortField = 'status' | 'optid_created';
+type SortField = 'status' | 'optid_created' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 const AdminProducts = () => {
@@ -46,10 +47,14 @@ const AdminProducts = () => {
         query = query.order('status', { ascending: sortDirection === 'asc' });
       } else if (sortField === 'optid_created') {
         query = query.order('optid_created', { ascending: sortDirection === 'asc' });
+      } else if (sortField === 'created_at') {
+        query = query.order('created_at', { ascending: sortDirection === 'asc' });
       }
       
-      // Add secondary sorting by creation date
-      query = query.order('created_at', { ascending: false });
+      // Add secondary sorting only if not already sorting by created_at
+      if (sortField !== 'created_at') {
+        query = query.order('created_at', { ascending: false });
+      }
       
       const { data, error } = await query;
       
@@ -165,6 +170,16 @@ const AdminProducts = () => {
                     <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort('created_at')}
+                    className="h-8 flex items-center gap-1"
+                  >
+                    Дата публикации
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </TableHead>
                 <TableHead>Действия</TableHead>
               </TableRow>
             </TableHeader>
@@ -202,6 +217,9 @@ const AdminProducts = () => {
                       <Badge className={getStatusBadgeColor(product.status)}>
                         {getStatusLabel(product.status)}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(product.created_at), 'dd.MM.yyyy HH:mm')}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
