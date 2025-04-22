@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import AdminLayout from "@/components/admin/AdminLayout";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
