@@ -26,7 +26,8 @@ export const DeleteAccountButton: React.FC = () => {
     setIsDeleting(true);
     try {
       // Call the stored function to delete the account
-      const { error } = await supabase.rpc('delete_user_account');
+      // Using type assertion to tell TypeScript this RPC function exists
+      const { error } = await supabase.rpc("delete_user_account" as string);
       
       if (error) {
         throw error;
