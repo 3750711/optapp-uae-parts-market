@@ -200,15 +200,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       if (deliveryMethod === 'self_pickup') {
         setOrderNumber(order.order_number);
         setShowSuccessDialog(true);
+        setShowConfirmDialog(false);
       } else {
         toast({
           title: "Заказ успешно создан",
           description: "Вы будете перенаправлены на страницу заказов",
+          duration: 3000,
         });
-        navigate('/orders');
+        setShowConfirmDialog(false);
+        // Use a timeout to ensure the toast is displayed before navigating
+        setTimeout(() => {
+          navigate('/orders', { replace: true });
+        }, 1000);
       }
-
-      setShowConfirmDialog(false);
     } catch (error) {
       console.error('Error handling order:', error);
       toast({
@@ -223,7 +227,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
   const handleSuccessDialogClose = () => {
     setShowSuccessDialog(false);
-    navigate('/orders');
+    // Use replace: true to replace the current history entry
+    // This ensures users can't "back" into the product page after completing the order
+    navigate('/orders', { replace: true });
   };
 
   return (
