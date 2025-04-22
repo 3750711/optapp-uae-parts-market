@@ -44,10 +44,10 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
             </div>
           )}
         </div>
-
+        
         {sellerProfile?.description_user && (
-          <div className="bg-gray-50 rounded-lg p-3 border border-gray-100 mt-3">
-            <p className="text-sm text-gray-700">{sellerProfile.description_user}</p>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{sellerProfile.description_user}</p>
           </div>
         )}
 
