@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -39,6 +38,7 @@ const formSchema = z.object({
   optId: z.string().optional(),
   userType: z.enum(["buyer", "seller", "admin"]).optional(),
   description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
+  location: z.string().min(2, { message: "Укажите местоположение" }).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -71,6 +71,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       optId: profile.opt_id || "",
       userType: profile.user_type,
       description: profile.description_user || "",
+      location: profile.location || "Dubai",
     },
   });
 
@@ -124,6 +125,19 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             />
             <TelegramField control={form.control} />
             <OptIdField control={form.control} canEditOptId={canEditOptId} />
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Местоположение</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Например: Dubai" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"

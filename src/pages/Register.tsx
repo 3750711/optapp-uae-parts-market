@@ -35,14 +35,7 @@ const formSchema = z.object({
     }, { 
       message: "Telegram username должен начинаться с одного @ символа" 
     }),
-}).refine(data => {
-  if (data.optId) {
-    return true;
-  }
-  return !!data.fullName && data.fullName.length >= 2 && !!data.phone && data.phone.length >= 6;
-}, {
-  message: "Имя должно содержать не менее 2 символов, а телефон - не менее 6 цифр",
-  path: ["fullName"],
+  location: z.string().min(2, { message: "Укажите местоположение" }),
 }).refine(data => data.password === data.confirmPassword, {
   message: "Пароли не совпадают",
   path: ["confirmPassword"]
@@ -65,6 +58,8 @@ const Register = () => {
       confirmPassword: "",
       userType: "buyer",
       optId: "",
+      telegram: "",
+      location: "Dubai",
     }
   });
 
@@ -90,6 +85,7 @@ const Register = () => {
             phone: data.phone || null,
             opt_id: data.optId || null,
             telegram: data.telegram || null,
+            location: data.location,
           }
         }
       });
@@ -279,6 +275,20 @@ const Register = () => {
                       <FormLabel>Telegram username (если есть)</FormLabel>
                       <FormControl>
                         <Input placeholder="Введите ваш Telegram username" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Местоположение *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Например: Dubai" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

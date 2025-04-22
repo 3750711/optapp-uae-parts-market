@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -21,7 +20,7 @@ const formSchema = z.object({
   telegram: z.string().optional(),
   optId: z.string().optional(),
   description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
-  // Remove userType from the form schema as it cannot be changed
+  location: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -35,7 +34,6 @@ const Profile = () => {
     if (!user) {
       navigate("/login");
     }
-    // Log profile for debugging
     console.log("Current profile in Profile page:", profile);
   }, [user, navigate, profile]);
 
@@ -54,7 +52,7 @@ const Profile = () => {
           telegram: data.telegram,
           opt_id: data.optId === "" ? null : data.optId,
           description_user: data.description,
-          // Don't update user_type since it cannot be changed
+          location: data.location,
         })
         .eq('id', user.id);
 
@@ -169,7 +167,7 @@ const Profile = () => {
               profile={profile}
               onSubmit={handleSubmit}
               isLoading={isLoading}
-              readOnlyUserType={true} // Keep user type read-only
+              readOnlyUserType={true}
             />
             <Button 
               variant="destructive" 

@@ -349,6 +349,7 @@ export type Database = {
           id: string
           last_login: string | null
           listing_count: number
+          location: string
           opt_id: string | null
           phone: string | null
           rating: number | null
@@ -366,6 +367,7 @@ export type Database = {
           id: string
           last_login?: string | null
           listing_count?: number
+          location?: string
           opt_id?: string | null
           phone?: string | null
           rating?: number | null
@@ -383,6 +385,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           listing_count?: number
+          location?: string
           opt_id?: string | null
           phone?: string | null
           rating?: number | null
