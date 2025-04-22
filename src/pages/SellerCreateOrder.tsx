@@ -41,7 +41,6 @@ const SellerCreateOrder = () => {
     model: "",
     optid_created: "",
     seller_opt_id: "",
-    buyer_opt_id: "",
     deliveryMethod: 'self_pickup' as DeliveryMethod,
     place_number: "1"
   });
@@ -105,7 +104,6 @@ const SellerCreateOrder = () => {
             model: product.model || "",
             optid_created: product.optid_created || "",
             seller_opt_id: product.seller?.opt_id || "",
-            buyer_opt_id: "",
             deliveryMethod: 'self_pickup',
             place_number: "1"
           });
@@ -229,7 +227,6 @@ const SellerCreateOrder = () => {
         order_seller_name: profile?.full_name || 'Unknown',
         seller_opt_id: profile?.opt_id || null,
         buyer_id: buyerData.id,
-        buyer_opt_id: formData.buyerOptId,
         brand: formData.brand,
         model: formData.model,
         status: 'seller_confirmed' as OrderStatus,
@@ -378,7 +375,6 @@ const SellerCreateOrder = () => {
                   model: "",
                   optid_created: "",
                   seller_opt_id: "",
-                  buyer_opt_id: "",
                   deliveryMethod: 'self_pickup',
                   place_number: "1"
                 });
@@ -495,15 +491,6 @@ const SellerCreateOrder = () => {
                   <Label>OPT_ID отправителя</Label>
                   <Input 
                     value={formData.seller_opt_id || profile?.opt_id || ''} 
-                    readOnly 
-                    className="bg-gray-100"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>OPT_ID покупателя</Label>
-                  <Input 
-                    value={formData.buyer_opt_id} 
                     readOnly 
                     className="bg-gray-100"
                   />
