@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -120,6 +119,7 @@ const AdminProducts = () => {
                 <TableHead>Бренд</TableHead>
                 <TableHead>Модель</TableHead>
                 <TableHead>Продавец</TableHead>
+                <TableHead>OPT ID</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead>Действия</TableHead>
               </TableRow>
@@ -127,8 +127,8 @@ const AdminProducts = () => {
             <TableBody>
               {products?.map((product) => {
                 const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
-                                     product.product_images?.[0]?.url || 
-                                     '/placeholder.svg';
+                                   product.product_images?.[0]?.url || 
+                                   '/placeholder.svg';
                 
                 return (
                   <TableRow key={product.id}>
@@ -148,9 +148,16 @@ const AdminProducts = () => {
                     <TableCell>{product.model}</TableCell>
                     <TableCell>{product.seller_name}</TableCell>
                     <TableCell>
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs ${getStatusBadgeColor(product.status)}`}>
-                        {product.status}
-                      </span>
+                      {product.optid_created ? (
+                        <Badge variant="outline">{product.optid_created}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusBadgeColor(product.status)}>
+                        {getStatusLabel(product.status)}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
