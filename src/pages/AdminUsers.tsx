@@ -1,5 +1,5 @@
 import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import {
@@ -9,12 +9,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCheck, UserX, Edit, Star, ExternalLink } from "lucide-react";
+import { UserCheck, UserX, Edit, Star, ExternalLink, Ban } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
-import { useQueryClient } from '@tanstack/react-query';
-import { Badge } from "@/components/ui/badge";
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -24,7 +22,6 @@ const AdminUsers = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'pending' | 'verified'>('all');
 
-  // Query to get pending users count
   const { data: pendingUsersCount } = useQuery({
     queryKey: ['admin', 'users', 'pending-count'],
     queryFn: async () => {
@@ -77,6 +74,27 @@ const AdminUsers = () => {
     }
   };
 
+  const handleQuickStatusChange = async (userId: string, newStatus: 'verified' | 'pending' | 'blocked') => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ verification_status: newStatus })
+      .eq('id', userId);
+
+    if (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось изменить статус пользователя",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Успех",
+        description: "Статус пользователя обновлен"
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -122,6 +140,8 @@ const AdminUsers = () => {
                       ? 'bg-orange-50'
                       : user.verification_status === 'verified'
                       ? 'bg-green-50'
+                      : user.verification_status === 'blocked'
+                      ? 'bg-red-50'
                       : ''
                   }`}
                 >
@@ -191,25 +211,43 @@ const AdminUsers = () => {
                         >
                           <ExternalLink className="h-4 w-4" />
                         </Button>
-                        {user.verification_status === 'pending' ? (
+
+                        {user.verification_status !== 'verified' && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleVerificationChange(user.id, 'verified')}
+                            onClick={() => handleQuickStatusChange(user.id, 'verified')}
                             className="h-8 w-8"
+                            title="Подтвердить пользователя"
                           >
                             <UserCheck className="h-4 w-4 text-green-600" />
                           </Button>
-                        ) : (
+                        )}
+
+                        {user.verification_status !== 'blocked' && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleVerificationChange(user.id, 'pending')}
+                            onClick={() => handleQuickStatusChange(user.id, 'blocked')}
                             className="h-8 w-8"
+                            title="Заблокировать пользователя"
                           >
-                            <UserX className="h-4 w-4 text-red-600" />
+                            <Ban className="h-4 w-4 text-red-600" />
                           </Button>
                         )}
+
+                        {user.verification_status !== 'pending' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleQuickStatusChange(user.id, 'pending')}
+                            className="h-8 w-8"
+                            title="Сбросить статус на 'Ожидает'"
+                          >
+                            <UserX className="h-4 w-4 text-orange-600" />
+                          </Button>
+                        )}
+
                         <UserEditDialog
                           user={user}
                           trigger={
