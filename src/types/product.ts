@@ -43,6 +43,7 @@ export interface Product {
   price: string | number;
   description?: string;
   location?: string;
+  product_location?: string;
   brand?: string;
   model?: string;
   lot_number?: string | number;
