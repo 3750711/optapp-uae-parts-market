@@ -1,10 +1,14 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Link } from "lucide-react";
+import { Edit2, Trash2, Link, CheckCircle } from "lucide-react";
 import { Database } from '@/integrations/supabase/types';
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -30,6 +34,7 @@ interface AdminOrderCardProps {
 }
 
 export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, onDelete }) => {
+  const queryClient = useQueryClient();
   const shouldHighlight = 
     order.status === 'created' || 
     order.status === 'seller_confirmed' || 
@@ -39,6 +44,33 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
     order.status === 'processed' ? 'bg-[#F2FCE2]' : // Green-like highlight
     order.status === 'created' || order.status === 'seller_confirmed' ? 'bg-[#FEF7CD]' : // Yellow highlight
     '';
+
+  const handleConfirm = async () => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'admin_confirmed' })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Заказ подтвержден администратором",
+      });
+
+      // Refresh the orders data
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось подтвердить заказ",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
 
   return (
     <Card className={`h-full ${highlightColor}`}>
@@ -110,6 +142,16 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
         </div>
 
         <div className="flex items-center justify-end gap-2 pt-2">
+          {showConfirmButton && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={handleConfirm}
+            >
+              <CheckCircle className="h-4 w-4" />
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
