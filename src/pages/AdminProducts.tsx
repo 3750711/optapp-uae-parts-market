@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2, Eye, ArrowUpAZ, ArrowDownAZ } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -12,14 +11,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Product } from '@/types/product';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AdminProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title'>('created_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   const { data: products, isLoading } = useQuery({
-    queryKey: ['admin', 'products'],
+    queryKey: ['admin', 'products', sortField, sortOrder],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
@@ -28,12 +30,18 @@ const AdminProducts = () => {
           product_images(url, is_primary),
           profiles(full_name, rating, opt_id)
         `)
-        .order('created_at', { ascending: false });
+        .order(sortField, { ascending: sortOrder === 'asc' });
       
       if (error) throw error;
       return data as Product[];
     }
   });
+
+  const handleSortChange = (value: string) => {
+    const [field, order] = value.split('-');
+    setSortField(field as 'created_at' | 'price' | 'title');
+    setSortOrder(order as 'asc' | 'desc');
+  };
 
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return;
@@ -93,6 +101,22 @@ const AdminProducts = () => {
       <div className="space-y-4">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
+          <Select
+            value={`${sortField}-${sortOrder}`}
+            onValueChange={handleSortChange}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Сортировка" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="created_at-desc">Сначала новые</SelectItem>
+              <SelectItem value="created_at-asc">Сначала старые</SelectItem>
+              <SelectItem value="price-desc">Цена по убыванию</SelectItem>
+              <SelectItem value="price-asc">Цена по возрастанию</SelectItem>
+              <SelectItem value="title-asc">По названию А-Я</SelectItem>
+              <SelectItem value="title-desc">По названию Я-А</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
