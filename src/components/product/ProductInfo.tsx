@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -74,11 +75,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-muted-foreground flex items-center">
-            <MapPin className="h-4 w-4 mr-1" /> {product.location || "Не указано"}
-          </span>
+        <div className="flex items-center gap-2">
           {getStatusBadge()}
+          {product.location && (
+            <span className="text-muted-foreground flex items-center">
+              <MapPin className="h-4 w-4 mr-1" /> {product.location}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <Button
