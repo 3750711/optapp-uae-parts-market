@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -112,16 +111,34 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
           <Separator />
 
-          <div>
+          <div className="space-y-2">
             <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
-            <Select value={deliveryMethod} onValueChange={onDeliveryMethodChange}>
-              <SelectTrigger className="w-full">
+            <Select 
+              value={deliveryMethod} 
+              onValueChange={onDeliveryMethodChange}
+            >
+              <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow">
                 <SelectValue placeholder="Выберите способ доставки" />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="self_pickup">Самовывоз</SelectItem>
-                <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-                <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+              <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-md">
+                <SelectItem 
+                  value="self_pickup" 
+                  className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                >
+                  Самовывоз
+                </SelectItem>
+                <SelectItem 
+                  value="cargo_rf" 
+                  className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                >
+                  Доставка Cargo РФ
+                </SelectItem>
+                <SelectItem 
+                  value="cargo_kz" 
+                  className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                >
+                  Доставка Cargo KZ
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
