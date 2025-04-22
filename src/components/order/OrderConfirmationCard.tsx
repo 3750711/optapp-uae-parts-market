@@ -10,6 +10,8 @@ import { OrderDetails } from './OrderDetails';
 import { OrderImages } from './OrderImages';
 import { OrderVideos } from './OrderVideos';
 import { Database } from '@/integrations/supabase/types';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from 'lucide-react';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer?: {
@@ -62,6 +64,16 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
+      <div className="p-4">
+        <Alert variant="default" className="bg-yellow-50 border-yellow-200">
+          <InfoIcon className="h-5 w-5 text-yellow-600" />
+          <AlertDescription className="text-yellow-900">
+            Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+            Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
+          </AlertDescription>
+        </Alert>
+      </div>
+
       <CardHeader className="text-center relative">
         <div className="absolute right-6 top-6 flex gap-2">
           <Button
