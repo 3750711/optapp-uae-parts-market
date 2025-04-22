@@ -1,4 +1,3 @@
-
 export interface ProductProps {
   id: string;
   name: string;
@@ -14,6 +13,7 @@ export interface ProductProps {
   seller_name: string;
   seller_id: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
+  onStatusChange?: () => void;
 }
 
 export interface ProductImage {

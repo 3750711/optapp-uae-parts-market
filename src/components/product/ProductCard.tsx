@@ -1,9 +1,9 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Badge, Star } from "lucide-react";
+import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 
 export interface ProductProps {
   id: string;
@@ -20,6 +20,7 @@ export interface ProductProps {
   seller_name: string;
   seller_id: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
+  onStatusChange?: () => void;
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -32,7 +33,9 @@ const ProductCard: React.FC<ProductProps> = ({
   brand,
   model,
   seller_name,
-  seller_id
+  seller_id,
+  status,
+  onStatusChange
 }) => {
   return (
     <Card className="group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in">
@@ -72,17 +75,26 @@ const ProductCard: React.FC<ProductProps> = ({
           )}
         </div>
       </CardContent>
-      <CardFooter className="p-4 pt-3 flex items-end justify-between">
-        <p className="font-bold text-lg text-primary">{price} $</p>
-        <Link to={`/product/${id}`} className="w-auto ml-2">
-          <Button 
-            variant="ghost"
-            size="sm"
-            className="text-primary hover:bg-primary/10"
-          >
-            Подробнее
-          </Button>
-        </Link>
+      <CardFooter className="p-4 pt-3 flex flex-col gap-2">
+        <div className="flex items-end justify-between w-full">
+          <p className="font-bold text-lg text-primary">{price} $</p>
+          <Link to={`/product/${id}`} className="w-auto ml-2">
+            <Button 
+              variant="ghost"
+              size="sm"
+              className="text-primary hover:bg-primary/10"
+            >
+              Подробнее
+            </Button>
+          </Link>
+        </div>
+        {status === "active" && onStatusChange && (
+          <ProductStatusChangeDialog
+            productId={id}
+            productName={name}
+            onStatusChange={onStatusChange}
+          />
+        )}
       </CardFooter>
     </Card>
   );

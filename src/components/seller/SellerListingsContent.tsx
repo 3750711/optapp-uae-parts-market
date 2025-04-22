@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -9,8 +10,8 @@ import { ProductProps } from "@/components/product/ProductCard";
 
 const SellerListingsContent = () => {
   const { user } = useAuth();
-
-  const { data: products, isLoading } = useQuery({
+  
+  const { data: products, isLoading, refetch } = useQuery({
     queryKey: ['seller-products', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,12 +26,15 @@ const SellerListingsContent = () => {
     enabled: !!user?.id,
   });
 
+  const handleStatusChange = () => {
+    refetch();
+  };
+
   // Map database products to the format expected by ProductCard
   const mappedProducts: ProductProps[] = products?.map(product => {
-    // Find the primary image or use the first one
     const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
-                         product.product_images?.[0]?.url || 
-                         '/placeholder.svg';
+                        product.product_images?.[0]?.url || 
+                        '/placeholder.svg';
     
     return {
       id: product.id,
@@ -44,7 +48,8 @@ const SellerListingsContent = () => {
       status: product.status,
       seller_rating: product.rating_seller,
       optid_created: product.optid_created,
-      seller_id: product.seller_id
+      seller_id: product.seller_id,
+      onStatusChange: handleStatusChange
     };
   }) || [];
 
