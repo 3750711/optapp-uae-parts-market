@@ -42,7 +42,6 @@ const AdminProducts = () => {
           profiles(full_name, rating, opt_id)
         `);
 
-      // Apply sorting
       if (sortField === 'status') {
         query = query.order('status', { ascending: sortDirection === 'asc' });
       } else if (sortField === 'optid_created') {
@@ -51,7 +50,6 @@ const AdminProducts = () => {
         query = query.order('created_at', { ascending: sortDirection === 'asc' });
       }
       
-      // Add secondary sorting only if not already sorting by created_at
       if (sortField !== 'created_at') {
         query = query.order('created_at', { ascending: false });
       }
@@ -65,10 +63,8 @@ const AdminProducts = () => {
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
-      // Toggle direction if clicking the same field
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
-      // Set new field and default to ascending
       setSortField(field);
       setSortDirection('asc');
     }
@@ -134,53 +130,53 @@ const AdminProducts = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-3xl font-bold tracking-tight">Товары</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
         </div>
 
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Изображение</TableHead>
+                <TableHead className="w-[60px]">ID</TableHead>
+                <TableHead className="w-[60px]">Фото</TableHead>
                 <TableHead>Название</TableHead>
-                <TableHead>Цена</TableHead>
-                <TableHead>Бренд</TableHead>
-                <TableHead>Модель</TableHead>
-                <TableHead>Продавец</TableHead>
-                <TableHead>
+                <TableHead className="w-[80px]">Цена</TableHead>
+                <TableHead className="hidden md:table-cell">Бренд</TableHead>
+                <TableHead className="hidden md:table-cell">Модель</TableHead>
+                <TableHead className="hidden md:table-cell">Продавец</TableHead>
+                <TableHead className="w-[100px]">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort('optid_created')}
-                    className="h-8 flex items-center gap-1"
+                    className="h-7 flex items-center gap-1 px-2"
                   >
                     OPT ID
-                    <ArrowUpDown className="h-4 w-4" />
+                    <ArrowUpDown className="h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[120px]">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort('status')}
-                    className="h-8 flex items-center gap-1"
+                    className="h-7 flex items-center gap-1 px-2"
                   >
                     Статус
-                    <ArrowUpDown className="h-4 w-4" />
+                    <ArrowUpDown className="h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="w-[120px]">
                   <Button
                     variant="ghost"
                     onClick={() => handleSort('created_at')}
-                    className="h-8 flex items-center gap-1"
+                    className="h-7 flex items-center gap-1 px-2"
                   >
-                    Дата публикации
-                    <ArrowUpDown className="h-4 w-4" />
+                    Дата
+                    <ArrowUpDown className="h-3 w-3" />
                   </Button>
                 </TableHead>
-                <TableHead>Действия</TableHead>
+                <TableHead className="w-[120px]">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -190,10 +186,10 @@ const AdminProducts = () => {
                                    '/placeholder.svg';
                 
                 return (
-                  <TableRow key={product.id}>
-                    <TableCell className="font-medium">{product.lot_number}</TableCell>
-                    <TableCell>
-                      <div className="w-14 h-14 relative">
+                  <TableRow key={product.id} className="text-sm">
+                    <TableCell className="font-medium py-2">{product.lot_number}</TableCell>
+                    <TableCell className="py-2">
+                      <div className="w-10 h-10 relative">
                         <img 
                           src={primaryImage} 
                           alt={product.title} 
@@ -201,37 +197,37 @@ const AdminProducts = () => {
                         />
                       </div>
                     </TableCell>
-                    <TableCell>{product.title}</TableCell>
-                    <TableCell>{product.price} AED</TableCell>
-                    <TableCell>{product.brand}</TableCell>
-                    <TableCell>{product.model}</TableCell>
-                    <TableCell>{product.seller_name}</TableCell>
-                    <TableCell>
+                    <TableCell className="py-2 max-w-[200px] truncate">{product.title}</TableCell>
+                    <TableCell className="py-2">{product.price} AED</TableCell>
+                    <TableCell className="hidden md:table-cell py-2">{product.brand}</TableCell>
+                    <TableCell className="hidden md:table-cell py-2">{product.model}</TableCell>
+                    <TableCell className="hidden md:table-cell py-2">{product.seller_name}</TableCell>
+                    <TableCell className="py-2">
                       {product.optid_created ? (
-                        <Badge variant="outline">{product.optid_created}</Badge>
+                        <Badge variant="outline" className="text-xs">{product.optid_created}</Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(product.status)}>
+                    <TableCell className="py-2">
+                      <Badge className={`${getStatusBadgeColor(product.status)} text-xs`}>
                         {getStatusLabel(product.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      {format(new Date(product.created_at), 'dd.MM.yyyy HH:mm')}
+                    <TableCell className="py-2 whitespace-nowrap text-xs">
+                      {format(new Date(product.created_at), 'dd.MM.yy HH:mm')}
                     </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
+                    <TableCell className="py-2">
+                      <div className="flex items-center gap-1">
                         <ProductEditDialog
                           product={product}
                           trigger={
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-7 w-7"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3 w-3" />
                             </Button>
                           }
                           onSuccess={() => {
@@ -244,9 +240,9 @@ const AdminProducts = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-7 w-7"
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-3 w-3" />
                             </Button>
                           }
                           onSuccess={() => {
@@ -258,10 +254,10 @@ const AdminProducts = () => {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-red-600"
+                              className="h-7 w-7 text-red-600"
                               onClick={() => setDeleteProductId(product.id)}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -279,10 +275,11 @@ const AdminProducts = () => {
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        <Link to={`/product/${product.id}`} target="_blank" className="ml-2">
+                        <Link to={`/product/${product.id}`} target="_blank">
                           <Button
                             variant="ghost"
                             size="sm"
+                            className="h-7 text-xs px-2"
                           >
                             Просмотр
                           </Button>
