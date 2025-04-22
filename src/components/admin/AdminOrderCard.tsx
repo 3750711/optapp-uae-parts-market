@@ -65,7 +65,32 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
     }
   };
 
+  const handleRegister = async () => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'processed' })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Заказ зарегистрирован",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось зарегистрировать заказ",
+        variant: "destructive",
+      });
+    }
+  };
+
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
+  const showRegisterButton = order.status === 'admin_confirmed';
 
   return (
     <Card className={`h-full ${highlightColor}`}>
@@ -143,6 +168,16 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
               size="icon"
               className="text-green-600 hover:text-green-700 hover:bg-green-50"
               onClick={handleConfirm}
+            >
+              <CheckCircle className="h-4 w-4" />
+            </Button>
+          )}
+          {showRegisterButton && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={handleRegister}
             >
               <CheckCircle className="h-4 w-4" />
             </Button>
