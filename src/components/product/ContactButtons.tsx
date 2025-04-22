@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
+import SuccessOrderDialog from "./SuccessOrderDialog";
 import { Database } from "@/integrations/supabase/types";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
@@ -47,6 +48,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showProfileWarning, setShowProfileWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [orderNumber, setOrderNumber] = useState<number | null>(null);
 
   const isSeller = profile?.user_type === 'seller';
   const isProductSold = product.status === 'sold';
@@ -194,20 +197,17 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       }
 
       if (deliveryMethod === 'self_pickup') {
-        toast({
-          title: "Заказ успешно создан",
-          description: `Номер заказа: ${order.order_number}. Скоро продавец с вами свяжется. Спасибо за заказ и спасибо что выбрали OPTAPP!`,
-          duration: 6000,
-        });
+        setOrderNumber(order.order_number);
+        setShowSuccessDialog(true);
       } else {
         toast({
           title: "Заказ успешно создан",
           description: "Вы будете перенаправлены на страницу заказов",
         });
+        navigate('/orders');
       }
 
       setShowConfirmDialog(false);
-      navigate('/orders');
     } catch (error) {
       console.error('Error handling order:', error);
       toast({
@@ -220,6 +220,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     }
   };
 
+  const handleSuccessDialogClose = () => {
+    setShowSuccessDialog(false);
+    navigate('/orders');
+  };
+
   return (
     <>
       {!isSeller && !isProductSold && (
@@ -228,7 +233,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           size="lg"
           onClick={handleBuyNow}
         >
-          <ShoppingCart className="mr-2 h-5 w-5" /> Купить сейчас
+          <ShoppingCart className="mr-2 h-5 w-5" /> Купит�� сейчас
         </Button>
       )}
 
@@ -272,6 +277,12 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         profile={profile}
         deliveryMethod={deliveryMethod}
         onDeliveryMethodChange={onDeliveryMethodChange}
+      />
+
+      <SuccessOrderDialog
+        open={showSuccessDialog}
+        onClose={handleSuccessDialogClose}
+        orderNumber={orderNumber || 0}
       />
     </>
   );
