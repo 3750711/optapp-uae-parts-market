@@ -131,7 +131,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               label="Название компании"
               placeholder="Введите название вашей компании"
             />
-            <TelegramField control={form.control} />
+            <TelegramField 
+              control={form.control} 
+              telegram_edit_count={profile.telegram_edit_count || 0}
+            />
             <OptIdField control={form.control} canEditOptId={canEditOptId} />
             
             <FormField

@@ -6,14 +6,19 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 
 interface TelegramFieldProps {
   control: any;
+  telegram_edit_count?: number;
 }
 
-export const TelegramField: React.FC<TelegramFieldProps> = ({ control }) => (
+export const TelegramField: React.FC<TelegramFieldProps> = ({ 
+  control,
+  telegram_edit_count = 0
+}) => (
   <FormField
     control={control}
     name="telegram"
@@ -21,8 +26,21 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({ control }) => (
       <FormItem>
         <FormLabel>Telegram</FormLabel>
         <FormControl>
-          <Input placeholder="@username" {...field} />
+          <Input 
+            placeholder="@username" 
+            {...field} 
+            disabled={telegram_edit_count >= 1}
+          />
         </FormControl>
+        {telegram_edit_count >= 1 ? (
+          <FormDescription className="text-yellow-600">
+            Telegram ID можно изменить только один раз
+          </FormDescription>
+        ) : (
+          <FormDescription>
+            У вас есть одна попытка изменить Telegram ID
+          </FormDescription>
+        )}
         <FormMessage />
       </FormItem>
     )}
