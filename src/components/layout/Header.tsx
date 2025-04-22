@@ -1,5 +1,6 @@
+
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,9 +27,19 @@ const Header = () => {
   const { isAdmin } = useAdminAccess();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const getUserTypeLabel = (type: string | undefined) => {
     return type === 'seller' ? 'Продавец' : 'Покупатель';
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Ошибка при выходе из системы:', error);
+    }
   };
 
   const NavLinks = ({ onClick }: { onClick?: () => void }) => (
@@ -76,7 +87,6 @@ const Header = () => {
         >
           <span className="text-primary">OPT</span>
           <span className="text-secondary">APP</span>
-          {/* <small className="text-xs text-gray-500 lowercase -mt-1">spare parts market</small> */}
         </Link>
 
         {isMobile ? (
@@ -185,7 +195,10 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut} className="hover:bg-destructive/10 hover:text-destructive">
+                  <DropdownMenuItem 
+                    onClick={handleLogout} 
+                    className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                  >
                     <LogOut className="mr-2 h-4 w-4" />
                     <span>Выйти</span>
                   </DropdownMenuItem>
