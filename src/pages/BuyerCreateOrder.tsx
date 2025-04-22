@@ -221,20 +221,21 @@ const BuyerCreateOrder = () => {
       }
 
       if (resolvedProductId) {
-        const { error: productUpdateError } = await supabase
+        const { error: updateError } = await supabase
           .from('products')
           .update({ status: 'sold' })
-          .eq('id', resolvedProductId);
+          .eq('id', resolvedProductId)
+          .eq('status', 'active');
 
-        if (productUpdateError) {
-          console.error("Error updating product status:", productUpdateError);
+        if (updateError) {
+          console.error("Error updating product status:", updateError);
           toast({
             title: "Предупреждение",
-            description: "Заказ создан, но не удалось обновить статус товара на 'продан'",
-            variant: "destructive"
+            description: "Заказ создан, но статус товара не обновился. Пожалуйста, сообщите администратору.",
+            variant: "destructive",
           });
         } else {
-          console.log("Product status updated to 'sold'");
+          console.log("Product status updated to sold successfully");
         }
       }
 
@@ -316,7 +317,7 @@ const BuyerCreateOrder = () => {
                       id="model"
                       value={formData.model}
                       onChange={(e) => handleInputChange('model', e.target.value)}
-                      placeholder="Введите модель"
+                      placeholder="Введите моде��ь"
                     />
                   </div>
                 </div>
