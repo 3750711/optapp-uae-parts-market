@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -167,23 +166,6 @@ const SellerAddProduct = () => {
         .single() as any;
 
       if (productError) throw productError;
-
-      const { error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          product_id: product.id,
-          seller_id: user.id,
-          buyer_id: user.id,
-          title: values.title,
-          price: parseFloat(values.price),
-          brand: values.brand,
-          model: values.model,
-          description: values.description || null,
-          place_number: parseInt(values.placeNumber),
-          status: 'created'
-        });
-
-      if (orderError) throw orderError;
 
       const uploadedImages = await uploadImages(product.id);
       
