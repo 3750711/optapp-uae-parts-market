@@ -15,6 +15,9 @@ import { Badge } from "@/components/ui/badge";
 import { AdminOrderEditDialog } from './AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from './AdminOrderDeleteDialog';
 import { Database } from '@/integrations/supabase/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -52,6 +55,42 @@ export const AdminOrdersTable: React.FC<AdminOrdersTableProps> = ({ orders }) =>
     setShowDeleteDialog(true);
   };
 
+  const getDeliveryMethodLabel = (method: Database['public']['Enums']['delivery_method']) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Доставка Cargo РФ';
+      case 'cargo_kz':
+        return 'Доставка Cargo KZ';
+      default:
+        return method;
+    }
+  };
+
+  const handleDeliveryMethodChange = async (orderId: string, newMethod: Database['public']['Enums']['delivery_method']) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ delivery_method: newMethod })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно обновлено",
+        description: "Способ доставки успешно изменен",
+      });
+    } catch (error) {
+      console.error('Error updating delivery method:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить способ доставки",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="overflow-x-auto">
@@ -64,6 +103,7 @@ export const AdminOrdersTable: React.FC<AdminOrdersTableProps> = ({ orders }) =>
               <TableHead>Покупатель</TableHead>
               <TableHead>Цена</TableHead>
               <TableHead>Статус</TableHead>
+              <TableHead>Способ доставки</TableHead>
               <TableHead>Дата создания</TableHead>
               <TableHead>Действия</TableHead>
             </TableRow>
@@ -114,6 +154,23 @@ export const AdminOrdersTable: React.FC<AdminOrdersTableProps> = ({ orders }) =>
                 <TableCell>{order.price} AED</TableCell>
                 <TableCell>
                   <OrderStatusBadge status={order.status} />
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={order.delivery_method}
+                    onValueChange={(value: Database['public']['Enums']['delivery_method']) => 
+                      handleDeliveryMethodChange(order.id, value)
+                    }
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Выберите способ доставки" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                      <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                      <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </TableCell>
                 <TableCell>
                   {new Date(order.created_at).toLocaleDateString('ru-RU')}
