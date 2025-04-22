@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2, Eye, ArrowUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -20,28 +20,54 @@ import { Product } from '@/types/product';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 
+type SortField = 'status' | 'optid_created';
+type SortDirection = 'asc' | 'desc';
+
 const AdminProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField>('status');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   
   const { data: products, isLoading } = useQuery({
-    queryKey: ['admin', 'products'],
+    queryKey: ['admin', 'products', sortField, sortDirection],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
           product_images(url, is_primary),
           profiles(full_name, rating, opt_id)
-        `)
-        .order('status', { ascending: true }) // Sort by status (pending first)
-        .order('created_at', { ascending: false }); // Then by creation date
+        `);
+
+      // Apply sorting
+      if (sortField === 'status') {
+        query = query.order('status', { ascending: sortDirection === 'asc' });
+      } else if (sortField === 'optid_created') {
+        query = query.order('optid_created', { ascending: sortDirection === 'asc' });
+      }
+      
+      // Add secondary sorting by creation date
+      query = query.order('created_at', { ascending: false });
+      
+      const { data, error } = await query;
       
       if (error) throw error;
       return data as Product[];
     }
   });
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Toggle direction if clicking the same field
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const handleDeleteProduct = async () => {
     if (!deleteProductId) return;
@@ -119,8 +145,26 @@ const AdminProducts = () => {
                 <TableHead>Бренд</TableHead>
                 <TableHead>Модель</TableHead>
                 <TableHead>Продавец</TableHead>
-                <TableHead>OPT ID</TableHead>
-                <TableHead>Статус</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort('optid_created')}
+                    className="h-8 flex items-center gap-1"
+                  >
+                    OPT ID
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort('status')}
+                    className="h-8 flex items-center gap-1"
+                  >
+                    Статус
+                    <ArrowUpDown className="h-4 w-4" />
+                  </Button>
+                </TableHead>
                 <TableHead>Действия</TableHead>
               </TableRow>
             </TableHeader>
