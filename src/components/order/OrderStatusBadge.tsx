@@ -18,12 +18,14 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
         return 'bg-blue-100 text-blue-800';
       case 'admin_confirmed':
         return 'bg-purple-100 text-purple-800';
-      case 'processed':
+      case 'registered':
         return 'bg-yellow-100 text-yellow-800';
       case 'shipped':
         return 'bg-orange-100 text-orange-800';
       case 'delivered':
         return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -37,12 +39,14 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
         return 'Подтвержден продавцом';
       case 'admin_confirmed':
         return 'Подтвержден администратором';
-      case 'processed':
-        return 'В обработке';
+      case 'registered':
+        return 'Зарегистрирован';
       case 'shipped':
         return 'Отправлен';
       case 'delivered':
         return 'Доставлен';
+      case 'cancelled':
+        return 'Отменен';
       default:
         return status;
     }

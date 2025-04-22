@@ -410,6 +410,7 @@ export type Database = {
         | "processed"
         | "shipped"
         | "delivered"
+        | "cancelled"
       product_status: "active" | "sold" | "pending" | "archived"
       user_type: "buyer" | "seller" | "admin"
       verification_status: "verified" | "pending"
@@ -537,6 +538,7 @@ export const Constants = {
         "processed",
         "shipped",
         "delivered",
+        "cancelled",
       ],
       product_status: ["active", "sold", "pending", "archived"],
       user_type: ["buyer", "seller", "admin"],
