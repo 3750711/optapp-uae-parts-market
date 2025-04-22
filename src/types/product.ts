@@ -1,4 +1,3 @@
-
 export interface ProductProps {
   id: string;
   name: string;
@@ -33,7 +32,7 @@ export interface SellerProfile {
   phone?: string;
   opt_id?: string;
   telegram?: string;
-  description?: string;
+  description_user?: string;
 }
 
 export interface Product {
