@@ -8,9 +8,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Link, Loader2, CheckCircle } from "lucide-react";
+import { Link, Loader2, CheckCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
 
@@ -91,6 +102,55 @@ const SellerOrders = () => {
       toast({
         title: "Ошибка",
         description: "Не удалось подтвердить заказ",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (orderId: string) => {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'cancelled' as OrderStatus })
+        .eq('id', orderId)
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error cancelling order:", error);
+        throw error;
+      }
+      
+      console.log("Cancelled order:", data);
+      return data;
+    },
+    onSuccess: (updatedOrder) => {
+      queryClient.setQueryData(['seller-orders', user?.id], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((order: any) => {
+          if (order.id === updatedOrder.id) {
+            return {
+              ...order,
+              status: updatedOrder.status
+            };
+          }
+          return order;
+        });
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      
+      toast({
+        title: "Заказ отменен",
+        description: "Статус заказа успешно обновлен",
+      });
+    },
+    onError: (error) => {
+      console.error('Error cancelling order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отменить заказ",
         variant: "destructive",
       });
     },
@@ -228,22 +288,60 @@ const SellerOrders = () => {
                       </span>
                     </div>
 
-                    {order.status === 'created' && (
-                      <div className="pt-2 flex justify-end">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            confirmOrderMutation.mutate(order.id);
-                          }}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Подтвердить
-                        </Button>
-                      </div>
-                    )}
+                    <div className="pt-2 flex justify-end gap-2">
+                      {order.status === 'created' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              confirmOrderMutation.mutate(order.id);
+                            }}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Подтвердить
+                          </Button>
+
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Отменить
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Отменить заказ?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Вы уверены, что хотите отменить заказ? Это действие нельзя будет отменить.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel onClick={(e) => e.stopPropagation()}>
+                                  Отмена
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    cancelOrderMutation.mutate(order.id);
+                                  }}
+                                >
+                                  Подтвердить
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
