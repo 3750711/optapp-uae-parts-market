@@ -23,7 +23,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered";
+type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
 const SellerOrders = () => {
   const { user } = useAuth();
@@ -156,20 +156,37 @@ const SellerOrders = () => {
     },
   });
 
+  const getCardHighlightColor = (status: string) => {
+    switch (status) {
+      case 'cancelled':
+        return 'bg-red-50';
+      case 'seller_confirmed':
+        return 'bg-blue-50';
+      case 'admin_confirmed':
+        return 'bg-green-50';
+      case 'created':
+        return 'bg-yellow-50 animate-pulse';
+      default:
+        return '';
+    }
+  };
+
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
+      case 'cancelled':
+        return 'bg-red-100 text-red-800 hover:bg-red-200';
       case 'created':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
+        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
       case 'seller_confirmed':
         return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
       case 'admin_confirmed':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
+        return 'bg-green-100 text-green-800 hover:bg-green-200';
       case 'processed':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
+        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
       case 'shipped':
         return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
       case 'delivered':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
+        return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200';
       default:
         return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
     }
@@ -230,7 +247,7 @@ const SellerOrders = () => {
               {orders.map((order) => (
                 <Card 
                   key={order.id}
-                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  className={`cursor-pointer hover:shadow-md transition-all ${getCardHighlightColor(order.status)}`}
                   onClick={() => navigate(`/seller/orders/${order.id}`)}
                 >
                   <CardHeader className="space-y-2">
