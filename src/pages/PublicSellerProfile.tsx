@@ -1,21 +1,30 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
-import { Star } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
 import { ProductProps } from "@/components/product/ProductCard";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // First, query the profile using the seller_id from the product
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: async () => {
@@ -40,7 +49,6 @@ const PublicSellerProfile = () => {
     enabled: !!id,
   });
 
-  // Then query all products by this seller using the same seller_id
   const { data: products, isLoading: isProductsLoading } = useQuery({
     queryKey: ["seller-products", id],
     queryFn: async () => {
@@ -111,7 +119,7 @@ const PublicSellerProfile = () => {
             </Button>
           </div>
           <div className="text-center">
-            <p className="text-lg text-red-500">Профиль продавца не най��ен</p>
+            <p className="text-lg text-red-500">Профиль продавца не найден</p>
             <p className="text-gray-500 mt-2">Запрошенный профиль не существует или был удален</p>
             <Button 
               variant="default" 
@@ -139,92 +147,126 @@ const PublicSellerProfile = () => {
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
         </div>
-        
-        <div className="bg-white rounded-xl shadow-card p-6 mb-8">
-          <div className="flex flex-col md:flex-row gap-6">
-            {profile.avatar_url && (
-              <div className="flex-shrink-0">
-                <img 
-                  src={profile.avatar_url} 
-                  alt={profile.full_name || "Продавец"} 
-                  className="w-32 h-32 rounded-full object-cover"
-                />
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card className="md:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Информация о продавце
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-start gap-4">
+                {profile.avatar_url && (
+                  <img 
+                    src={profile.avatar_url} 
+                    alt={profile.full_name || "Продавец"} 
+                    className="w-24 h-24 rounded-full object-cover"
+                  />
+                )}
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">{profile.full_name || "Продавец"}</h2>
+                  <Badge variant="outline" className="text-sm">
+                    {profile.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
+                  </Badge>
+                </div>
               </div>
-            )}
-            <div className="flex-grow">
-              <h1 className="text-2xl font-bold mb-4">{profile.full_name || "Продавец"}</h1>
-              
-              {profile.description_user && (
-                <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                  <h3 className="text-lg font-semibold mb-2">О продавце</h3>
-                  <p className="text-gray-700">{profile.description_user}</p>
+
+              <Accordion type="single" collapsible>
+                {profile.description_user && (
+                  <AccordionItem value="description">
+                    <AccordionTrigger>О продавце</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-gray-700">{profile.description_user}</p>
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                <AccordionItem value="contact">
+                  <AccordionTrigger>Контактная информация</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2">
+                      {profile.company_name && (
+                        <div className="flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-gray-500" />
+                          <span>{profile.company_name}</span>
+                        </div>
+                      )}
+                      {profile.telegram && (
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4 text-gray-500" />
+                          <span>{profile.telegram}</span>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package2 className="h-5 w-5 text-primary" />
+                Статистика
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile.rating !== null && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Рейтинг продавца</p>
+                  <div className="flex items-center gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i}
+                        className={`h-5 w-5 ${
+                          i < Math.floor(profile.rating || 0)
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-gray-300"
+                        }`}
+                      />
+                    ))}
+                    <span className="ml-2 font-medium">
+                      {profile.rating?.toFixed(1)}/5
+                    </span>
+                  </div>
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                {profile.opt_id && (
-                  <div className="text-sm">
-                    <span className="text-gray-500">OPT ID: </span>
-                    <span className="font-medium">{profile.opt_id}</span>
-                  </div>
-                )}
-                
-                {profile.rating !== null && (
-                  <div className="flex items-center">
-                    <div className="flex mr-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(profile.rating || 0)
-                              ? "fill-yellow-400 text-yellow-400"
-                              : "text-gray-300"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm">
-                      <span className="font-medium">{profile.rating?.toFixed(1)}</span>
-                      <span className="text-gray-500"> / 5</span>
-                    </span>
-                  </div>
-                )}
+              <div>
+                <p className="text-sm text-gray-500">Всего объявлений</p>
+                <p className="text-2xl font-bold">{mappedProducts.length}</p>
               </div>
 
-              <div className="space-y-2">
-                {profile.company_name && (
-                  <p className="text-gray-600">
-                    <span className="font-medium">Компания: </span>
-                    {profile.company_name}
-                  </p>
-                )}
-                {profile.telegram && (
-                  <p className="text-gray-600">
-                    <span className="font-medium">Telegram: </span>
-                    {profile.telegram}
-                  </p>
-                )}
+              <div>
+                <p className="text-sm text-gray-500">На платформе с</p>
+                <p className="font-medium">
+                  {new Date(profile.created_at).toLocaleDateString()}
+                </p>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold">Объявления продавца</h2>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle>Объявления продавца</CardTitle>
             <Badge variant="outline" className="text-lg">
-              Всего: {mappedProducts.length}
+              {mappedProducts.length}
             </Badge>
-          </div>
-          
-          {mappedProducts.length > 0 ? (
-            <ProductGrid products={mappedProducts} />
-          ) : (
-            <p className="text-center py-8 text-gray-500">
-              У продавца пока нет активных объявлений
-            </p>
-          )}
-        </div>
+          </CardHeader>
+          <CardContent>
+            {mappedProducts.length > 0 ? (
+              <ProductGrid products={mappedProducts} />
+            ) : (
+              <p className="text-center py-8 text-gray-500">
+                У продавца пока нет активных объявлений
+              </p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );
