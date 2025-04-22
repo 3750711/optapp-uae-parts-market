@@ -423,7 +423,7 @@ export type Database = {
         | "cancelled"
       product_status: "active" | "sold" | "pending" | "archived"
       user_type: "buyer" | "seller" | "admin"
-      verification_status: "verified" | "pending"
+      verification_status: "verified" | "pending" | "blocked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -552,7 +552,7 @@ export const Constants = {
       ],
       product_status: ["active", "sold", "pending", "archived"],
       user_type: ["buyer", "seller", "admin"],
-      verification_status: ["verified", "pending"],
+      verification_status: ["verified", "pending", "blocked"],
     },
   },
 } as const

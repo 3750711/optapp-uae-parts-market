@@ -1,6 +1,7 @@
 
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,6 +23,16 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   // Redirect to login if not authenticated
   if (!user) {
     return <Navigate to="/login" replace />;
+  }
+  
+  // Check if user is blocked
+  if (profile?.verification_status === 'blocked') {
+    toast({
+      title: "Доступ ограничен",
+      description: "Ваш аккаунт заблокирован. Вы можете только просматривать сайт.",
+      variant: "destructive",
+    });
+    return <Navigate to="/" replace />;
   }
   
   // Check for role restrictions if provided
