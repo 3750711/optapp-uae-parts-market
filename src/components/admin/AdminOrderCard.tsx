@@ -157,8 +157,12 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
 
         <div className="pt-2 space-y-2">
           <div className="font-medium text-lg">{order.price} AED</div>
-          <div className="text-sm text-muted-foreground">
-            {new Date(order.created_at).toLocaleDateString('ru-RU')}
+          <div className="flex justify-between items-center text-sm text-muted-foreground">
+            <span>{new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
+            <div className="flex items-center gap-1">
+              <span className="font-medium">Мест для отправки:</span>
+              <span>{order.place_number || 1}</span>
+            </div>
           </div>
         </div>
       </CardContent>
