@@ -15,9 +15,17 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { countries } from "@/data/countries";
 
 const formSchema = z.object({
   fullName: z.string().optional(),
@@ -59,7 +67,7 @@ const Register = () => {
       userType: "buyer",
       optId: "",
       telegram: "",
-      location: "Dubai",
+      location: "",
     }
   });
 
@@ -287,9 +295,20 @@ const Register = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Местоположение *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Например: Dubai" {...field} />
-                      </FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите город" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
