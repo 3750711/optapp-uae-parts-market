@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -233,7 +234,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           size="lg"
           onClick={handleBuyNow}
         >
-          <ShoppingCart className="mr-2 h-5 w-5" /> Купит�� сейчас
+          <ShoppingCart className="mr-2 h-5 w-5" /> Купить сейчас
         </Button>
       )}
 
