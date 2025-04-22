@@ -9,11 +9,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AdminOrdersTable } from "@/components/admin/AdminOrdersTable";
+import { AdminOrderCard } from "@/components/admin/AdminOrderCard";
 import { Loader2 } from "lucide-react";
+import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
+import { AdminOrderDeleteDialog } from '@/components/admin/AdminOrderDeleteDialog';
 import { toast } from "@/hooks/use-toast";
 
 const AdminOrders = () => {
+  const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
+  const [showEditDialog, setShowEditDialog] = React.useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
+
   const { data: orders, isLoading } = useQuery({
     queryKey: ['admin-orders'],
     queryFn: async () => {
@@ -51,6 +57,16 @@ const AdminOrders = () => {
     }
   });
 
+  const handleEdit = (order: any) => {
+    setSelectedOrder(order);
+    setShowEditDialog(true);
+  };
+
+  const handleDelete = (order: any) => {
+    setSelectedOrder(order);
+    setShowDeleteDialog(true);
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -69,9 +85,30 @@ const AdminOrders = () => {
             <CardTitle>Управление заказами</CardTitle>
           </CardHeader>
           <CardContent>
-            <AdminOrdersTable orders={orders || []} />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {orders?.map((order) => (
+                <AdminOrderCard
+                  key={order.id}
+                  order={order}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
+
+        <AdminOrderEditDialog
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          order={selectedOrder}
+        />
+
+        <AdminOrderDeleteDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          order={selectedOrder}
+        />
       </div>
     </AdminLayout>
   );
