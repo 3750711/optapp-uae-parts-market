@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -23,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import OrderPriceConfirmDialog from "@/components/order/OrderPriceConfirmDialog";
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -31,6 +31,8 @@ const SellerOrders = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['seller-orders', user?.id],
@@ -61,10 +63,13 @@ const SellerOrders = () => {
   });
 
   const confirmOrderMutation = useMutation({
-    mutationFn: async (orderId: string) => {
+    mutationFn: async ({ orderId, newPrice }: { orderId: string; newPrice: number }) => {
       const { data, error } = await supabase
         .from('orders')
-        .update({ status: 'seller_confirmed' as OrderStatus })
+        .update({ 
+          status: 'seller_confirmed' as OrderStatus,
+          price: newPrice
+        })
         .eq('id', orderId)
         .select()
         .single();
@@ -85,7 +90,8 @@ const SellerOrders = () => {
           if (order.id === updatedOrder.id) {
             return {
               ...order,
-              status: updatedOrder.status
+              status: updatedOrder.status,
+              price: updatedOrder.price
             };
           }
           return order;
@@ -98,6 +104,9 @@ const SellerOrders = () => {
         title: "Заказ подтвержден",
         description: "Статус заказа успешно обновлен",
       });
+
+      setIsPriceDialogOpen(false);
+      setSelectedOrder(null);
     },
     onError: (error) => {
       console.error('Error confirming order:', error);
@@ -157,6 +166,11 @@ const SellerOrders = () => {
       });
     },
   });
+
+  const handleConfirmOrder = (orderId: string, currentPrice: number) => {
+    setSelectedOrder({ id: orderId, price: currentPrice });
+    setIsPriceDialogOpen(true);
+  };
 
   const getCardHighlightColor = (status: string) => {
     switch (status) {
@@ -318,7 +332,7 @@ const SellerOrders = () => {
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={(e) => {
                               e.stopPropagation();
-                              confirmOrderMutation.mutate(order.id);
+                              handleConfirmOrder(order.id, order.price);
                             }}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
@@ -370,6 +384,21 @@ const SellerOrders = () => {
           )}
         </div>
       </div>
+
+      <OrderPriceConfirmDialog
+        open={isPriceDialogOpen}
+        onOpenChange={setIsPriceDialogOpen}
+        currentPrice={selectedOrder?.price || 0}
+        onConfirm={(newPrice) => {
+          if (selectedOrder) {
+            confirmOrderMutation.mutate({ 
+              orderId: selectedOrder.id, 
+              newPrice 
+            });
+          }
+        }}
+        isSubmitting={confirmOrderMutation.isPending}
+      />
     </Layout>
   );
 };
