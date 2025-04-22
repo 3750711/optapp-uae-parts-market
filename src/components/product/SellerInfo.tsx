@@ -15,6 +15,9 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
   seller_name, 
   children 
 }) => {
+  // Check if we have a valid seller ID
+  const hasValidId = sellerProfile && sellerProfile.id && sellerProfile.id !== "";
+  
   return (
     <div className="border rounded-lg p-4 mb-6">
       <h3 className="text-lg font-semibold mb-3 flex items-center">
@@ -24,13 +27,19 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
       
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
-          <Link 
-            to={`/seller/${sellerProfile.id}`}
-            className="text-primary font-medium hover:underline transition-colors flex items-center"
-          >
-            {seller_name}
-            <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
-          </Link>
+          {hasValidId ? (
+            <Link 
+              to={`/seller/${sellerProfile.id}`}
+              className="text-primary font-medium hover:underline transition-colors flex items-center"
+            >
+              {seller_name}
+              <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
+            </Link>
+          ) : (
+            <span className="font-medium">
+              {seller_name}
+            </span>
+          )}
           
           {sellerProfile?.opt_id && (
             <div className="text-sm">

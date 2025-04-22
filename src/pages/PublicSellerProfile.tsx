@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -18,13 +17,22 @@ const PublicSellerProfile = () => {
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: async () => {
+      if (!id) {
+        console.error("Seller ID is undefined");
+        return null;
+      }
+
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching seller profile:", error);
+        throw error;
+      }
+      
       return data;
     },
     enabled: !!id,
@@ -33,6 +41,8 @@ const PublicSellerProfile = () => {
   const { data: products, isLoading: isProductsLoading } = useQuery({
     queryKey: ["seller-products", id],
     queryFn: async () => {
+      if (!id) return [];
+
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary)")
@@ -40,7 +50,7 @@ const PublicSellerProfile = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!id,
   });
@@ -83,11 +93,31 @@ const PublicSellerProfile = () => {
     );
   }
 
-  if (!profile) {
+  if (!id || !profile) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <p className="text-center text-red-500">Продавец не найден</p>
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-4" 
+              onClick={() => navigate(-1)}
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+            </Button>
+          </div>
+          <div className="text-center">
+            <p className="text-lg text-red-500">Профиль продавца не най��ен</p>
+            <p className="text-gray-500 mt-2">Запрошенный профиль не существует или был удален</p>
+            <Button 
+              variant="default" 
+              className="mt-4"
+              onClick={() => navigate('/')}
+            >
+              Вернуться на главную
+            </Button>
+          </div>
         </div>
       </Layout>
     );
