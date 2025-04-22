@@ -69,7 +69,7 @@ const ProductCard: React.FC<ProductProps> = ({
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-destructive/90 text-destructive-foreground font-bold text-3xl py-3 px-6 rotate-[-35deg] w-[150%] text-center shadow-xl">
-              ПРОДАНО
+              SOLD OUT
             </div>
           </div>
         )}
