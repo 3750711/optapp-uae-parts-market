@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { ChevronLeft } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -144,6 +145,17 @@ const Profile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-4" 
+            onClick={() => navigate(-1)}
+          >
+            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+          </Button>
+          <h1 className="text-2xl font-bold">Мой профиль</h1>
+        </div>
         <div className="flex flex-col md:flex-row gap-8">
           <ProfileSidebar 
             profile={profile}

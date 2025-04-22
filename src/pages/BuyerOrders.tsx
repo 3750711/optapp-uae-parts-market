@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -114,9 +116,19 @@ const BuyerOrders = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">
-          {isSeller ? 'Заказы по моим объявлениям' : 'Мои заказы'}
-        </h1>
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-4" 
+            onClick={() => navigate(-1)}
+          >
+            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+          </Button>
+          <h1 className="text-2xl font-bold">
+            {isSeller ? 'Заказы по моим объявлениям' : 'Мои заказы'}
+          </h1>
+        </div>
         
         {orders && orders.length > 0 ? (
           <div className="bg-white rounded-lg shadow overflow-x-auto">

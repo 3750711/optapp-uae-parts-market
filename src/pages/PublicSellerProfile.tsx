@@ -1,6 +1,6 @@
-
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { ChevronLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -8,9 +8,11 @@ import { Star } from "lucide-react";
 import ProductGrid from "@/components/product/ProductGrid";
 import { ProductProps } from "@/components/product/ProductCard";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
@@ -47,7 +49,6 @@ const PublicSellerProfile = () => {
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg';
     
-    // Ensure the condition matches one of the allowed values
     let condition: "Новый" | "Б/У" | "Восстановленный" = "Б/У";
     
     if (product.condition === "Новый" || product.condition === "Восстановленный") {
@@ -94,6 +95,17 @@ const PublicSellerProfile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="mr-4" 
+            onClick={() => navigate(-1)}
+          >
+            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+          </Button>
+        </div>
+        
         <div className="bg-white rounded-xl shadow-card p-6 mb-8">
           <div className="flex flex-col md:flex-row gap-6">
             {profile.avatar_url && (
