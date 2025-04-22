@@ -15,6 +15,8 @@ import ProductVideos from "@/components/product/ProductVideos";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { InfoIcon } from 'lucide-react';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -172,6 +174,15 @@ const ProductDetail = () => {
           </div>
         )}
 
+        {/* Warning message */}
+        <Alert variant="default" className="bg-yellow-50 border-yellow-200 mb-4">
+          <InfoIcon className="h-5 w-5 text-yellow-600" />
+          <AlertDescription className="text-yellow-900">
+            Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+            Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
+          </AlertDescription>
+        </Alert>
+
         {isMobile ? (
           <div className="flex flex-col gap-3">
             <div className="mt-2">
@@ -262,6 +273,21 @@ const ProductDetail = () => {
                   />
                 </div>
               </SellerInfo>
+              
+              {/* Warning message at the bottom of the right column */}
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-start space-x-3">
+                  <InfoIcon className="h-6 w-6 text-yellow-600 mt-1 flex-shrink-0" />
+                  <div className="text-yellow-900">
+                    <p className="font-semibold mb-2">Внимание!</p>
+                    <p>
+                      Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+                      Перед совершением сделки проверьте все детали. 
+                      Больше информации вы можете найти в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
