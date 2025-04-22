@@ -1,23 +1,10 @@
 
 import React, { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
-import { Edit2, Trash2, Link } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { AdminOrderEditDialog } from './AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from './AdminOrderDeleteDialog';
 import { Database } from '@/integrations/supabase/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { AdminOrderCard } from './AdminOrderCard';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -55,149 +42,17 @@ export const AdminOrdersTable: React.FC<AdminOrdersTableProps> = ({ orders }) =>
     setShowDeleteDialog(true);
   };
 
-  const getDeliveryMethodLabel = (method: Database['public']['Enums']['delivery_method']) => {
-    switch (method) {
-      case 'self_pickup':
-        return 'Самовывоз';
-      case 'cargo_rf':
-        return 'Доставка Cargo РФ';
-      case 'cargo_kz':
-        return 'Доставка Cargo KZ';
-      default:
-        return method;
-    }
-  };
-
-  const handleDeliveryMethodChange = async (orderId: string, newMethod: Database['public']['Enums']['delivery_method']) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ delivery_method: newMethod })
-        .eq('id', orderId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно обновлено",
-        description: "Способ доставки успешно изменен",
-      });
-    } catch (error) {
-      console.error('Error updating delivery method:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить способ доставки",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>№ заказа</TableHead>
-              <TableHead>Наименование</TableHead>
-              <TableHead>Продавец</TableHead>
-              <TableHead>Покупатель</TableHead>
-              <TableHead>Цена</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead>Способ доставки</TableHead>
-              <TableHead>Дата создания</TableHead>
-              <TableHead>Действия</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell>{order.order_number}</TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div>{order.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {order.brand} {order.model}
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div>{order.seller?.full_name || 'Не указано'}</div>
-                    {order.seller?.opt_id && (
-                      <Badge variant="outline" className="font-mono">
-                        {order.seller.opt_id}
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="space-y-1">
-                    <div>{order.buyer?.full_name || 'Не указано'}</div>
-                    {order.buyer?.opt_id && (
-                      <Badge variant="outline" className="font-mono">
-                        {order.buyer.opt_id}
-                      </Badge>
-                    )}
-                    {order.buyer?.telegram && (
-                      <a
-                        href={`https://t.me/${order.buyer.telegram.replace('@', '')}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline flex items-center gap-1 text-sm"
-                      >
-                        {order.buyer.telegram}
-                        <Link className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell>{order.price} AED</TableCell>
-                <TableCell>
-                  <OrderStatusBadge status={order.status} />
-                </TableCell>
-                <TableCell>
-                  <Select
-                    value={order.delivery_method}
-                    onValueChange={(value: Database['public']['Enums']['delivery_method']) => 
-                      handleDeliveryMethodChange(order.id, value)
-                    }
-                  >
-                    <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Выберите способ доставки" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border border-gray-200 shadow-md">
-                      <SelectItem value="self_pickup">Самовывоз</SelectItem>
-                      <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-                      <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  {new Date(order.created_at).toLocaleDateString('ru-RU')}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEdit(order)}
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-600"
-                      onClick={() => handleDelete(order)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {orders.map((order) => (
+          <AdminOrderCard
+            key={order.id}
+            order={order}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        ))}
       </div>
 
       <AdminOrderEditDialog
