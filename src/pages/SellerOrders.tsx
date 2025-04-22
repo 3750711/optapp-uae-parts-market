@@ -165,7 +165,7 @@ const SellerOrders = () => {
       case 'admin_confirmed':
         return 'bg-green-50';
       case 'created':
-        return 'bg-yellow-50 animate-pulse';
+        return 'bg-yellow-50 animate-pulse-soft border-2 border-yellow-200 shadow-md';
       default:
         return '';
     }
