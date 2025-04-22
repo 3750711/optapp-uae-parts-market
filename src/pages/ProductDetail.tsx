@@ -49,6 +49,12 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
+      // Don't show pending products to non-admin users
+      if (!isAdmin && data.status === 'pending') {
+        navigate('/404');
+        return null;
+      }
+      
       console.log("Fetched product details:", data);
       console.log("Product ID from API:", data.id);
       return data as Product;

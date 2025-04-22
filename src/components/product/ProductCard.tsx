@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Badge } from "lucide-react";
+import { MapPin, Badge, Star } from "lucide-react";
 
 export interface ProductProps {
   id: string;
@@ -22,14 +23,6 @@ export interface ProductProps {
   seller_id: string;
 }
 
-const SoldWatermark = () => (
-  <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-    <span className="bg-white/80 px-7 py-2 rounded-xl font-extrabold text-2xl text-destructive shadow-lg select-none tracking-wider animate-pulse-soft">
-      ПРОДАНО
-    </span>
-  </div>
-);
-
 const NewBadge = () => (
   <span className="ml-2 inline-flex items-center gap-1 bg-secondary/20 text-secondary text-xs px-2.5 py-0.5 rounded-full font-medium">
     Новый
@@ -47,7 +40,6 @@ const ProductCard: React.FC<ProductProps> = ({
   brand,
   model,
   seller_name,
-  status,
   seller_id
 }) => {
   return (
@@ -58,7 +50,6 @@ const ProductCard: React.FC<ProductProps> = ({
           alt={name} 
           className="h-full w-full object-cover group-hover:scale-105 transition-all duration-500"
         />
-        {status === 'sold' && <SoldWatermark />}
       </div>
       <CardContent className="p-4 pb-0 flex-grow">
         <div className="flex flex-row justify-between items-center mb-2">
