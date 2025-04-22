@@ -38,6 +38,7 @@ const PublicSellerProfile = () => {
         .from("profiles")
         .select("*")
         .eq("id", id)
+        .eq("user_type", "seller")
         .maybeSingle();
 
       if (error) {
@@ -59,6 +60,7 @@ const PublicSellerProfile = () => {
         .from("products")
         .select("*, product_images(url, is_primary)")
         .eq("seller_id", id)
+        .eq("status", "active")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
