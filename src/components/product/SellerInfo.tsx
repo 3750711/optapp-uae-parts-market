@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star } from "lucide-react";
+import { ShieldCheck, CircleDollarSign, Star, User } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 
 interface SellerInfoProps {
@@ -17,18 +17,24 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 }) => {
   return (
     <div className="border rounded-lg p-4 mb-6">
+      <h3 className="text-lg font-semibold mb-3 flex items-center">
+        <User className="h-5 w-5 mr-2 text-primary" />
+        Информация о продавце
+      </h3>
+      
       <div className="flex flex-col space-y-3">
         <div className="flex items-center justify-between">
           {sellerProfile && sellerProfile.id ? (
             <Link 
               to={`/seller/${sellerProfile.id}`}
-              className="font-medium hover:text-primary transition-colors"
+              className="text-primary font-medium hover:underline transition-colors flex items-center"
             >
-              Продавец: {seller_name}
+              {seller_name}
+              <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
             </Link>
           ) : (
             <span className="font-medium">
-              Продавец: {seller_name}
+              {seller_name}
             </span>
           )}
           {sellerProfile?.opt_id && (
