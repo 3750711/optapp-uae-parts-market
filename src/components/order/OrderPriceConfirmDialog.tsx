@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,13 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
   isSubmitting
 }) => {
   const [price, setPrice] = useState(currentPrice);
+
+  // Reset price to currentPrice when dialog opens
+  useEffect(() => {
+    if (open) {
+      setPrice(currentPrice);
+    }
+  }, [open, currentPrice]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
