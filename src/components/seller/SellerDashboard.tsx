@@ -47,9 +47,9 @@ const SellerDashboard = () => {
               <FileText className="h-8 w-8 text-optapp-yellow" />
             </CardHeader>
             <CardContent>
-              <CardTitle className="text-lg">Мои объявления</CardTitle>
+              <CardTitle className="text-lg">Мой склад</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                Просмотр всех ваших объявлений
+                Просмотр всех ваших товаров на складе
               </p>
             </CardContent>
           </Card>
