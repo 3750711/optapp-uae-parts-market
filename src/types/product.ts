@@ -59,4 +59,6 @@ export interface Product {
   rating_seller?: number | null;
   optid_created?: string | null;
   status: 'pending' | 'active' | 'sold' | 'archived';
+  created_at: string; // Added this field
+  updated_at?: string; // Added this optional field for completeness
 }
