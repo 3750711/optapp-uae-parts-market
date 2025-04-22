@@ -92,7 +92,7 @@ const ProductCard: React.FC<ProductProps> = ({
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-3 flex items-end justify-between">
-        <p className="font-bold text-lg text-primary">{price} AED</p>
+        <p className="font-bold text-lg text-primary">{price} $</p>
         <Link to={`/product/${id}`} className="w-auto ml-2">
           <Button 
             variant="ghost"

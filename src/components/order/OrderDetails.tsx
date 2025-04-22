@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Link } from 'lucide-react';
@@ -45,7 +44,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         </div>
         <div>
           <Label className="text-sm text-gray-500">Цена</Label>
-          <p className="text-lg font-medium">{order.price} AED</p>
+          <p className="text-lg font-medium">{order.price} $</p>
         </div>
         <div>
           <Label className="text-sm text-gray-500">Количество мест</Label>

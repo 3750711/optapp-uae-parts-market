@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -145,7 +144,7 @@ const BuyerOrders = () => {
                     <TableCell>{order.brand}</TableCell>
                     <TableCell>{order.model}</TableCell>
                     <TableCell>{order.order_seller_name}</TableCell>
-                    <TableCell>{order.price} AED</TableCell>
+                    <TableCell>{order.price} $</TableCell>
                     <TableCell>{order.buyer_opt_id || 'Не указан'}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
