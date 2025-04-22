@@ -1,13 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminOrderCard } from "@/components/admin/AdminOrderCard";
 import { Loader2, Eye } from "lucide-react";
 import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
@@ -122,20 +116,20 @@ const AdminOrders = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {orders?.map((order) => (
-                <div key={order.id} className="relative">
+                <div key={order.id} className="relative group">
                   <AdminOrderCard
                     order={order}
                     onEdit={handleEdit}
                     onDelete={handleDelete}
                   />
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-2 right-2"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     onClick={() => handleViewDetails(order.id)}
+                    title="Посмотреть детали заказа"
                   >
-                    <Eye className="h-4 w-4 mr-1" />
-                    Детали
+                    <Eye className="h-4 w-4" />
                   </Button>
                 </div>
               ))}
