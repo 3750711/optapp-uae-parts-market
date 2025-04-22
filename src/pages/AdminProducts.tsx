@@ -36,7 +36,7 @@ const AdminProducts = () => {
           product_images(url, is_primary),
           profiles(full_name, rating, opt_id)
         `)
-        .order('status', { ascending: true, nullsLast: true }) // Sort by status (pending first)
+        .order('status', { ascending: true }) // Sort by status (pending first)
         .order('created_at', { ascending: false }); // Then by creation date
       
       if (error) throw error;
