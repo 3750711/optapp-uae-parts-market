@@ -45,6 +45,11 @@ const productSchema = z.object({
   model: z.string().min(1, {
     message: "Укажите модель автомобиля",
   }),
+  placeNumber: z.string().min(1, {
+    message: "Укажите количество мест",
+  }).refine((val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)), {
+    message: "Количество мест должно быть целым положительным числом",
+  }),
   description: z.string().optional(),
 });
 
@@ -64,6 +69,7 @@ const SellerAddProduct = () => {
       price: "",
       brand: "",
       model: "",
+      placeNumber: "1",
       description: "",
     },
   });
@@ -153,12 +159,29 @@ const SellerAddProduct = () => {
           description: values.description || null,
           seller_id: user.id,
           seller_name: profile.full_name || user.email,
-          status: 'pending'
+          status: 'pending',
         })
         .select('id')
         .single() as any;
 
       if (productError) throw productError;
+
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          product_id: product.id,
+          seller_id: user.id,
+          buyer_id: user.id,
+          title: values.title,
+          price: parseFloat(values.price),
+          brand: values.brand,
+          model: values.model,
+          description: values.description || null,
+          place_number: parseInt(values.placeNumber),
+          status: 'created'
+        });
+
+      if (orderError) throw orderError;
 
       const uploadedImages = await uploadImages(product.id);
       
@@ -307,13 +330,32 @@ const SellerAddProduct = () => {
                   
                   <FormField
                     control={form.control}
+                    name="placeNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Количество мест для отправки</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            min="1"
+                            placeholder="Укажите количество мест"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Описание (необязательно)</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необязательно)" 
+                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необя��ательно)" 
                             rows={6}
                             {...field}
                           />
