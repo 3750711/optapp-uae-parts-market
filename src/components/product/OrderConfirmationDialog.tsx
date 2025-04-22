@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, InfoIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -18,7 +19,7 @@ interface OrderConfirmationDialogProps {
   onConfirm: () => void;
   isSubmitting: boolean;
   product: {
-    id?: string; // add this! (This is product_id)
+    id?: string; 
     title: string;
     brand: string;
     model: string;
@@ -45,44 +46,44 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 }) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6">
+        <DialogHeader className="space-y-1 pb-2">
           <DialogTitle>Подтверждение заказа</DialogTitle>
-          <DialogDescription>
-            Проверьте информацию перед подтверждением заказа
+          <DialogDescription className="text-xs sm:text-sm">
+            Проверьте информацию перед подтверждением
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-3 sm:space-y-4 text-sm">
           <div>
-            <h3 className="font-semibold mb-2">Информация о товаре</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+            <h3 className="font-semibold text-sm mb-1.5">Информация о товаре</h3>
+            <div className="space-y-1 text-xs sm:text-sm">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Наименование:</span>
-                <span className="font-medium">{product.title}</span>
+                <span className="font-medium text-right max-w-[60%] break-words">{product.title}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Бренд:</span>
                 <span className="font-medium">{product.brand}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Модель:</span>
                 <span className="font-medium">{product.model}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Цена:</span>
                 <span className="font-medium">{product.price} AED</span>
               </div>
               {product.lot_number !== undefined && product.lot_number !== null && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-gray-500">Номер лота:</span>
                   <span className="font-medium">{product.lot_number}</span>
                 </div>
               )}
               {product.id && (
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-gray-500">ID товара:</span>
-                  <span className="font-medium">{product.id}</span>
+                  <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
                 </div>
               )}
             </div>
@@ -91,13 +92,13 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           <Separator />
 
           <div>
-            <h3 className="font-semibold mb-2">Информация о продавце</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+            <h3 className="font-semibold text-sm mb-1.5">Информация о продавце</h3>
+            <div className="space-y-1 text-xs sm:text-sm">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Продавец:</span>
                 <span className="font-medium">{product.seller_name || 'Не указан'}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">OPT ID:</span>
                 <span className="font-medium">{product.optid_created || 'Не указан'}</span>
               </div>
@@ -107,13 +108,13 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           <Separator />
 
           <div>
-            <h3 className="font-semibold mb-2">Информация о покупателе</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
+            <h3 className="font-semibold text-sm mb-1.5">Информация о покупателе</h3>
+            <div className="space-y-1 text-xs sm:text-sm">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Ваш OPT ID:</span>
                 <span className="font-medium">{profile?.opt_id || 'Не указан'}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center">
                 <span className="text-gray-500">Ваш Telegram:</span>
                 <span className="font-medium">{profile?.telegram || 'Не указан'}</span>
               </div>
@@ -121,22 +122,35 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="flex gap-2 sm:gap-0 mt-6">
+        <div className="mt-3">
+          <Alert variant="default" className="bg-yellow-50 border-yellow-200 p-2 sm:p-3">
+            <div className="flex items-start space-x-2">
+              <InfoIcon className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+              <AlertDescription className="text-yellow-900 text-xs sm:text-sm">
+                Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+                Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
+              </AlertDescription>
+            </div>
+          </Alert>
+        </div>
+
+        <DialogFooter className="flex sm:justify-end justify-between gap-2 sm:gap-0 mt-3 sm:mt-4 pt-0 px-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
+            className="text-xs sm:text-sm h-8 sm:h-9"
           >
             Отмена
           </Button>
           <Button
             onClick={onConfirm}
-            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-xs sm:text-sm h-8 sm:h-9"
             disabled={isSubmitting}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                 Обработка...
               </>
             ) : (
@@ -150,4 +164,3 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 };
 
 export default OrderConfirmationDialog;
-
