@@ -70,7 +70,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       telegram: profile.telegram || "",
       optId: profile.opt_id || "",
       userType: profile.user_type,
-      description: profile.description || "",
+      description: profile.description_user || "",
     },
   });
 

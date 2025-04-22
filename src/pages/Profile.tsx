@@ -53,7 +53,7 @@ const Profile = () => {
           company_name: data.companyName,
           telegram: data.telegram,
           opt_id: data.optId === "" ? null : data.optId,
-          description: data.description,
+          description_user: data.description,
           // Don't update user_type since it cannot be changed
         })
         .eq('id', user.id);

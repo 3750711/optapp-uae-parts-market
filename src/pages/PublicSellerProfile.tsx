@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -120,10 +121,10 @@ const PublicSellerProfile = () => {
             <div className="flex-grow">
               <h1 className="text-2xl font-bold mb-4">{profile.full_name || "Продавец"}</h1>
               
-              {profile.description && (
+              {profile.description_user && (
                 <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
                   <h3 className="text-lg font-semibold mb-2">О продавце</h3>
-                  <p className="text-gray-700">{profile.description}</p>
+                  <p className="text-gray-700">{profile.description_user}</p>
                 </div>
               )}
 
