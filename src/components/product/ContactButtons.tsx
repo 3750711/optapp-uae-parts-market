@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -86,8 +85,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setIsSubmitting(true);
 
     try {
-      if (!product.seller_id) {
-        throw new Error('Missing seller information');
+      if (!product.seller_id || !product.id) {
+        throw new Error('Missing required product information');
       }
 
       let lotNumberOrder: number | null = null;
@@ -133,72 +132,40 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         order_seller_name: product.seller_name || "Unknown Seller",
         order_created_type: 'ads_order' as OrderCreatedType,
         telegram_url_order: profile?.telegram || null,
-        product_id: product.id ? product.id : null,
+        product_id: product.id,
         lot_number_order: lotNumberOrder,
         images: productImages,
       };
 
-      const { data: order, error } = await supabase
+      const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating order:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
-        throw error;
-      }
-
-      // After successfully creating the order, update the product status to 'sold'
-      if (product.id) {
-        // First, check the current status of the product
-        const { data: currentProduct, error: fetchError } = await supabase
-          .from('products')
-          .select('status')
-          .eq('id', product.id)
-          .single();
-          
-        if (fetchError) {
-          console.error('Error fetching current product status:', fetchError);
-        } else {
-          console.log('Current product status:', currentProduct?.status);
-          
-          // Then update if it's active
-          const { error: productUpdateError } = await supabase
-            .from('products')
-            .update({ status: 'sold' })
-            .eq('id', product.id)
-            .eq('status', 'active'); // Only update if the product is still active
-
-          if (productUpdateError) {
-            console.error('Error updating product status:', productUpdateError);
-            console.error('Error details:', JSON.stringify(productUpdateError, null, 2));
-            toast({
-              title: "Внимание",
-              description: "Заказ успешно создан, но не удалось обновить статус товара.",
-              variant: "destructive",
-            });
-          } else {
-            console.log('Product status updated to "sold"');
-            
-            // Verify the update worked
-            const { data: verifyProduct, error: verifyError } = await supabase
-              .from('products')
-              .select('status')
-              .eq('id', product.id)
-              .single();
-              
-            if (verifyError) {
-              console.error('Error verifying product status update:', verifyError);
-            } else {
-              console.log('Verified product status after update:', verifyProduct?.status);
-            }
-          }
-        }
+      if (orderError) {
+        console.error('Error creating order:', orderError);
+        throw orderError;
       }
 
       console.log('Order created successfully:', order);
+
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ status: 'sold' })
+        .eq('id', product.id)
+        .eq('status', 'active');
+
+      if (updateError) {
+        console.error('Error updating product status:', updateError);
+        toast({
+          title: "Внимание",
+          description: "Заказ создан, но статус товара не обновился. Пожалуйста, сообщите администратору.",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Product status updated to sold successfully');
+      }
 
       toast({
         title: "Заказ успешно создан",
@@ -208,7 +175,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       setShowConfirmDialog(false);
       navigate('/orders');
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Error handling order:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось создать заказ. Попробуйте позже.",
