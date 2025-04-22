@@ -391,6 +391,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_user_account: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean

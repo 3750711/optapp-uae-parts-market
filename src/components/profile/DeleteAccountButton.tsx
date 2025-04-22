@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   AlertDialog,
@@ -11,11 +10,10 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { Loader2 } from "lucide-react";
 
 export const DeleteAccountButton: React.FC = () => {
   const [open, setOpen] = useState(false);
@@ -25,9 +23,8 @@ export const DeleteAccountButton: React.FC = () => {
   const handleDeleteAccount = async () => {
     setIsDeleting(true);
     try {
-      // Call the stored function to delete the account
-      // Using type assertion to tell TypeScript this RPC function exists
-      const { error } = await supabase.rpc("delete_user_account" as string);
+      // Using the correctly typed RPC function call
+      const { data, error } = await supabase.functions.invoke('delete_user_account');
       
       if (error) {
         throw error;
