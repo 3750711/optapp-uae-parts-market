@@ -1,7 +1,7 @@
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, Truck, ClipboardList, FileSearch } from 'lucide-react';
+import { Users, Package, ShoppingCart, FileSearch } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
@@ -70,6 +70,17 @@ const AdminDashboard = () => {
     }
   });
 
+  const { data: pendingUsersCount, isLoading: isLoadingPendingUsers } = useQuery({
+    queryKey: ['admin', 'pending-users-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('verification_status', 'pending');
+      return count;
+    }
+  });
+
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
@@ -82,7 +93,7 @@ const AdminDashboard = () => {
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Link to="/admin/users">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className={`hover:shadow-lg transition-shadow cursor-pointer ${(pendingUsersCount || 0) > 0 ? 'bg-[#FEF7CD]' : ''}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Пользователи</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
@@ -93,6 +104,9 @@ const AdminDashboard = () => {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Всего зарегистрированных пользователей
+                  {(pendingUsersCount || 0) > 0 && (
+                    <span className="ml-1 text-amber-600">({pendingUsersCount} ожидает)</span>
+                  )}
                 </p>
               </CardContent>
             </Card>
