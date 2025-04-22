@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { 
   Sidebar, 
@@ -16,7 +17,7 @@ const AdminSidebar = () => {
   const location = useLocation();
 
   return (
-    <Sidebar>
+    <Sidebar className="bg-white border-r border-gray-200">
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
@@ -25,10 +26,11 @@ const AdminSidebar = () => {
                 asChild 
                 isActive={location.pathname === '/admin'}
                 tooltip="Дашборд"
+                className="py-3"
               >
                 <Link to="/admin" className="flex items-center w-full group transition-colors">
-                  <LayoutDashboard className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                  <span>Дашборд</span>
+                  <LayoutDashboard className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                  <span className="text-base">Дашборд</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -38,10 +40,11 @@ const AdminSidebar = () => {
                 asChild 
                 isActive={location.pathname === '/admin/users'}
                 tooltip="Пользователи"
+                className="py-3"
               >
                 <Link to="/admin/users" className="flex items-center w-full group transition-colors">
-                  <Users className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                  <span>Пользователи</span>
+                  <Users className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                  <span className="text-base">Пользователи</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -51,10 +54,11 @@ const AdminSidebar = () => {
                 asChild 
                 isActive={location.pathname === '/admin/products'}
                 tooltip="Товары"
+                className="py-3"
               >
                 <Link to="/admin/products" className="flex items-center w-full group transition-colors">
-                  <Package className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                  <span>Товары</span>
+                  <Package className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                  <span className="text-base">Товары</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -64,10 +68,11 @@ const AdminSidebar = () => {
                 asChild 
                 isActive={location.pathname === '/admin/orders'}
                 tooltip="Заказы"
+                className="py-3"
               >
                 <Link to="/admin/orders" className="flex items-center w-full group transition-colors">
-                  <ShoppingCart className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                  <span>Заказы</span>
+                  <ShoppingCart className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                  <span className="text-base">Заказы</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -77,10 +82,11 @@ const AdminSidebar = () => {
                 asChild 
                 isActive={location.pathname === '/admin/analytics'}
                 tooltip="Аналитика"
+                className="py-3"
               >
                 <Link to="/admin/analytics" className="flex items-center w-full group transition-colors">
-                  <BarChart className="mr-2 h-4 w-4 transition-transform group-hover:scale-110" />
-                  <span>Аналитика</span>
+                  <BarChart className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
+                  <span className="text-base">Аналитика</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
