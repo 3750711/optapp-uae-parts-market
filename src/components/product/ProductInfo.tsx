@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,16 +71,16 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     );
   }
 
+  const location = product.profiles?.location || product.location || "Dubai";
+
   return (
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           {getStatusBadge()}
-          {product.location && (
-            <span className="text-muted-foreground flex items-center">
-              <MapPin className="h-4 w-4 mr-1" /> {product.location}
-            </span>
-          )}
+          <span className="text-muted-foreground flex items-center text-sm">
+            <MapPin className="h-4 w-4 mr-1" /> {location}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <Button
