@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -10,17 +9,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AdminOrderCard } from "@/components/admin/AdminOrderCard";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from '@/components/admin/AdminOrderDeleteDialog';
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
-// Define a type for the order status filter that includes 'all'
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
 const AdminOrders = () => {
+  const navigate = useNavigate();
   const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
   const [showEditDialog, setShowEditDialog] = React.useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
@@ -68,6 +69,10 @@ const AdminOrders = () => {
       return data;
     }
   });
+
+  const handleViewDetails = (orderId: string) => {
+    navigate(`/seller/orders/${orderId}`);
+  };
 
   const handleEdit = (order: any) => {
     setSelectedOrder(order);
@@ -117,12 +122,22 @@ const AdminOrders = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {orders?.map((order) => (
-                <AdminOrderCard
-                  key={order.id}
-                  order={order}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
+                <div key={order.id} className="relative">
+                  <AdminOrderCard
+                    order={order}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="absolute top-2 right-2"
+                    onClick={() => handleViewDetails(order.id)}
+                  >
+                    <Eye className="h-4 w-4 mr-1" />
+                    Детали
+                  </Button>
+                </div>
               ))}
             </div>
           </CardContent>
