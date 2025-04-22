@@ -148,14 +148,19 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
       {/* Information Section */}
       <div className="flex-1 flex flex-col gap-2">
+        <label htmlFor="title" className="text-sm font-medium">Название товара</label>
         <Input
+          id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Название товара"
           className="text-base font-bold h-8"
           disabled={!isCreator}
         />
+
+        <label htmlFor="price" className="text-sm font-medium">Цена</label>
         <Input
+          id="price"
           type="number"
           value={formData.price}
           onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
@@ -163,23 +168,35 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           className="h-8"
           disabled={!isCreator}
         />
+
         <div className="grid grid-cols-2 gap-2">
-          <Input
-            value={formData.brand}
-            onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-            placeholder="Марка"
-            className="h-8"
-            disabled={!isCreator}
-          />
-          <Input
-            value={formData.model}
-            onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-            placeholder="Модель"
-            className="h-8"
-            disabled={!isCreator}
-          />
+          <div>
+            <label htmlFor="brand" className="text-sm font-medium">Марка</label>
+            <Input
+              id="brand"
+              value={formData.brand}
+              onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
+              placeholder="Марка"
+              className="h-8"
+              disabled={!isCreator}
+            />
+          </div>
+          <div>
+            <label htmlFor="model" className="text-sm font-medium">Модель</label>
+            <Input
+              id="model"
+              value={formData.model}
+              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              placeholder="Модель"
+              className="h-8"
+              disabled={!isCreator}
+            />
+          </div>
         </div>
+
+        <label htmlFor="place_number" className="text-sm font-medium">Количество мест для отправки</label>
         <Input
+          id="place_number"
           type="number"
           min="1"
           value={formData.place_number}
@@ -188,7 +205,10 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           className="h-8"
           disabled={!isCreator}
         />
+
+        <label htmlFor="description" className="text-sm font-medium">Описание товара</label>
         <Textarea
+          id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Описание товара"
