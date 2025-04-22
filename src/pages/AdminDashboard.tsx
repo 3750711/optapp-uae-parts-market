@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Package, ShoppingCart, Truck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
   const { data: userCount, isLoading: isLoadingUsers } = useQuery({
@@ -59,65 +60,73 @@ const AdminDashboard = () => {
         </div>
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Пользователи</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingUsers ? '...' : userCount || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Всего зарегистрированных пользователей
-              </p>
-            </CardContent>
-          </Card>
+          <Link to="/admin/users">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Пользователи</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoadingUsers ? '...' : userCount || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Всего зарегистрированных пользователей
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Товары</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingProducts ? '...' : productCount || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Всего товаров в каталоге
-              </p>
-            </CardContent>
-          </Card>
+          <Link to="/admin/products">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Товары</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoadingProducts ? '...' : productCount || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Всего товаров в каталоге
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Заказы</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingOrders ? '...' : orderCount || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Всего оформленных заказов
-              </p>
-            </CardContent>
-          </Card>
+          <Link to="/admin/orders">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Заказы</CardTitle>
+                <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoadingOrders ? '...' : orderCount || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Всего оформленных заказов
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">В обработке</CardTitle>
-              <Truck className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {isLoadingPendingOrders ? '...' : pendingOrderCount || 0}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                Заказов в обработке
-              </p>
-            </CardContent>
-          </Card>
+          <Link to="/admin/orders">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">В обработке</CardTitle>
+                <Truck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {isLoadingPendingOrders ? '...' : pendingOrderCount || 0}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Заказов в обработке
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     </AdminLayout>
