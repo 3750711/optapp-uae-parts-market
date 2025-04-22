@@ -20,6 +20,7 @@ const formSchema = z.object({
   companyName: z.string().optional(),
   telegram: z.string().optional(),
   optId: z.string().optional(),
+  description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
   // Remove userType from the form schema as it cannot be changed
 });
 
@@ -52,6 +53,7 @@ const Profile = () => {
           company_name: data.companyName,
           telegram: data.telegram,
           opt_id: data.optId === "" ? null : data.optId,
+          description: data.description,
           // Don't update user_type since it cannot be changed
         })
         .eq('id', user.id);

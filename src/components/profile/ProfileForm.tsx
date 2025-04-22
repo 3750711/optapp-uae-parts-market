@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -15,6 +16,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ProfileType } from "./types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { UserTypeField } from "./fields/UserTypeField";
+import { OptIdField } from "./fields/OptIdField";
+import { TelegramField } from "./fields/TelegramField";
+import { ProfileTextField } from "./fields/ProfileTextField";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
