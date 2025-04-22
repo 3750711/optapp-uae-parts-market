@@ -86,15 +86,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      // Принудительно завершаем сессию 
+      await supabase.auth.signOut();
       
-      // Сбросим состояние аутентификации вручную
+      // Сбрасываем все состояния
       setUser(null);
       setSession(null);
       setProfile(null);
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('Ошибка при выходе из системы:', error);
+      throw error; // Пробрасываем ошибку, чтобы вызывающий код мог обработать
     }
   };
 
@@ -119,3 +121,4 @@ export function useAuth() {
   }
   return context;
 }
+
