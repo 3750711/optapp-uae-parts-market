@@ -103,7 +103,11 @@ const AdminProducts = () => {
   };
 
   const getProductCardBackground = (status: string) => {
-    return status === 'pending' ? 'bg-[#FEF7CD]' : 'bg-white';
+    switch (status) {
+      case 'pending': return 'bg-[#FEF7CD]';
+      case 'active': return 'bg-[#F2FCE2]';
+      default: return 'bg-white';
+    }
   };
 
   if (isLoading) {
