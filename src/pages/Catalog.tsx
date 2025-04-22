@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Search } from "lucide-react";
@@ -18,8 +19,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
 const Catalog = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const productsPerPage = 8;
   const isMobile = useIsMobile();
 
@@ -84,6 +86,10 @@ const Catalog = () => {
     };
   });
 
+  const handlePageChange = (page: number) => {
+    setSearchParams({ page: page.toString() });
+  };
+
   return (
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
@@ -136,7 +142,7 @@ const Catalog = () => {
                 <PaginationContent className={isMobile ? "flex-wrap justify-center gap-2" : ""}>
                   <PaginationItem>
                     <PaginationPrevious 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
                       className={`${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} transition-transform hover:scale-105`}
                     />
                   </PaginationItem>
@@ -144,7 +150,7 @@ const Catalog = () => {
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <PaginationItem key={page}>
                       <PaginationLink
-                        onClick={() => setCurrentPage(page)}
+                        onClick={() => handlePageChange(page)}
                         isActive={page === currentPage}
                         className={page === currentPage ? "bg-link text-white border-transparent transition-all duration-200" : "text-gray-700 hover:bg-gray-100 transition-all duration-200"}
                       >
@@ -155,7 +161,7 @@ const Catalog = () => {
                   
                   <PaginationItem>
                     <PaginationNext 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
                       className={`${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} transition-transform hover:scale-105`}
                     />
                   </PaginationItem>

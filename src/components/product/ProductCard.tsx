@@ -1,6 +1,5 @@
-
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Badge as BadgeIcon, Star } from "lucide-react";
@@ -39,6 +38,9 @@ const ProductCard: React.FC<ProductProps> = ({
   status,
   onStatusChange
 }) => {
+  const [searchParams] = useSearchParams();
+  const currentPage = searchParams.get("page") || "1";
+
   const getStatusBadge = () => {
     switch (status) {
       case 'pending':
@@ -98,7 +100,7 @@ const ProductCard: React.FC<ProductProps> = ({
       <CardFooter className="p-4 pt-3 flex flex-col gap-2">
         <div className="flex items-end justify-between w-full">
           <p className="font-bold text-lg text-primary">{price} $</p>
-          <Link to={`/product/${id}`} className="w-auto ml-2">
+          <Link to={`/product/${id}?from_page=${currentPage}`} className="w-auto ml-2">
             <Button 
               variant="ghost"
               size="sm"

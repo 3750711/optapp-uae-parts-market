@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +29,8 @@ const ProductDetail = () => {
   const { isAdmin } = useAdminAccess();
   const [adminEditOpen, setAdminEditOpen] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("self_pickup");
+  const [searchParams] = useSearchParams();
+  const fromPage = searchParams.get("from_page");
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -135,6 +137,14 @@ const ProductDetail = () => {
     setDeliveryMethod(method);
   };
 
+  const handleBack = () => {
+    if (fromPage) {
+      navigate(`/catalog?page=${fromPage}`);
+    } else {
+      navigate(-1);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -170,7 +180,7 @@ const ProductDetail = () => {
             variant="ghost" 
             size="sm" 
             className="mr-4" 
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
           >
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
