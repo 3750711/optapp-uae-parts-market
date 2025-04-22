@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,20 @@ const AdminUsers = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'pending' | 'verified'>('all');
+
+  // Query to get pending users count
+  const { data: pendingUsersCount } = useQuery({
+    queryKey: ['admin', 'users', 'pending-count'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true })
+        .eq('verification_status', 'pending');
+      
+      if (error) throw error;
+      return count || 0;
+    }
+  });
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin', 'users', statusFilter],
@@ -77,9 +90,14 @@ const AdminUsers = () => {
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <Card>
+        <Card className={pendingUsersCount && pendingUsersCount > 0 ? 'bg-[#FEC6A1]' : ''}>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Пользователи</CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle>Пользователи</CardTitle>
+              {pendingUsersCount && pendingUsersCount > 0 && (
+                <Badge variant="secondary">{pendingUsersCount} ожидает</Badge>
+              )}
+            </div>
             <Select
               value={statusFilter}
               onValueChange={(value: 'all' | 'pending' | 'verified') => setStatusFilter(value)}
