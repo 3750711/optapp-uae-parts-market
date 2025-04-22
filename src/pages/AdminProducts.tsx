@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, ArrowUpAZ, ArrowDownAZ } from "lucide-react";
+import { Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -17,29 +17,45 @@ const AdminProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title'>('created_at');
+  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   
   const { data: products, isLoading } = useQuery({
     queryKey: ['admin', 'products', sortField, sortOrder],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('products')
         .select(`
           *,
           product_images(url, is_primary),
           profiles(full_name, rating, opt_id)
-        `)
-        .order(sortField, { ascending: sortOrder === 'asc' });
+        `);
+
+      if (sortField === 'status') {
+        // Custom ordering for status: pending first, then active, sold, and archived
+        query = query.order('status', { ascending: true });
+      } else {
+        query = query.order(sortField, { ascending: sortOrder === 'asc' });
+      }
       
+      const { data, error } = await query;
       if (error) throw error;
+
+      // If sorting by status with pending first, we need to manually sort
+      if (sortField === 'status') {
+        const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
+        return (data as Product[]).sort((a, b) => 
+          statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
+        );
+      }
+
       return data as Product[];
     }
   });
 
   const handleSortChange = (value: string) => {
     const [field, order] = value.split('-');
-    setSortField(field as 'created_at' | 'price' | 'title');
+    setSortField(field as 'created_at' | 'price' | 'title' | 'status');
     setSortOrder(order as 'asc' | 'desc');
   };
 
@@ -109,6 +125,7 @@ const AdminProducts = () => {
               <SelectValue placeholder="Сортировка" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="status-asc">Сначала ожидает проверки</SelectItem>
               <SelectItem value="created_at-desc">Сначала новые</SelectItem>
               <SelectItem value="created_at-asc">Сначала старые</SelectItem>
               <SelectItem value="price-desc">Цена по убыванию</SelectItem>
