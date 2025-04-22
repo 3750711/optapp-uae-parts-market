@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -38,7 +37,6 @@ const SellerListingsContent = () => {
       name: product.title,
       price: Number(product.price),
       image: primaryImage,
-      condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
       location: product.location || '',
       brand: product.brand || '',
       model: product.model || '',

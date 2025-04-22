@@ -75,9 +75,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     <div className="animate-fade-in">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant={product.condition === "Новый" ? "secondary" : "outline"} className={product.condition === "Новый" ? "" : "bg-gray-100"}>
-            {product.condition}
-          </Badge>
           <span className="text-muted-foreground flex items-center">
             <MapPin className="h-4 w-4 mr-1" /> {product.location || "Не указано"}
           </span>
