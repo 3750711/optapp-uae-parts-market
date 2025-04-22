@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,17 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     );
   }
 
-  const location = product.profiles?.location || product.location || "Dubai";
+  // Get location correctly from available sources with proper fallback
+  const getLocation = () => {
+    if (product.profiles?.location) {
+      return product.profiles.location;
+    } else if (product.location) {
+      return product.location;
+    }
+    return "Dubai";
+  };
+
+  const location = getLocation();
 
   return (
     <div className="animate-fade-in">
