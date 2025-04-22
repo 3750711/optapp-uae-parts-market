@@ -84,7 +84,8 @@ const Catalog = () => {
       seller_name: product.seller_name,
       status: product.status,
       seller_id: product.seller_id,
-      seller_verification: product.profiles?.verification_status
+      seller_verification: product.profiles?.verification_status,
+      created_at: product.created_at
     };
   });
 

@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge as BadgeIcon, Star, Crown } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star, Crown, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 
@@ -23,6 +22,7 @@ export interface ProductProps {
   seller_id: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
   seller_verification?: 'pending' | 'verified' | 'blocked';
+  created_at?: string;
   onStatusChange?: () => void;
 }
 
@@ -39,10 +39,19 @@ const ProductCard: React.FC<ProductProps> = ({
   seller_id,
   status,
   seller_verification,
+  created_at,
   onStatusChange
 }) => {
   const [searchParams] = useSearchParams();
   const currentPage = searchParams.get("page") || "1";
+
+  const isHotLot = () => {
+    if (!created_at) return false;
+    const createdDate = new Date(created_at);
+    const now = new Date();
+    const diffInMinutes = (now.getTime() - createdDate.getTime()) / (1000 * 60);
+    return diffInMinutes <= 10;
+  };
 
   const getStatusBadge = () => {
     switch (status) {
@@ -76,8 +85,14 @@ const ProductCard: React.FC<ProductProps> = ({
             </div>
           </div>
         )}
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 flex flex-col gap-2">
           {getStatusBadge()}
+          {isHotLot() && (
+            <Badge className="bg-red-500 text-white border-none flex items-center gap-1">
+              <Flame className="h-3 w-3 fill-white" />
+              HOT LOT
+            </Badge>
+          )}
         </div>
       </div>
       <CardContent className="p-4 pb-0 flex-grow">
