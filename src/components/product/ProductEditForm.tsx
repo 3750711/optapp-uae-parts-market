@@ -2,12 +2,13 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Save, Loader2 } from "lucide-react";
+import { X, Save, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminProductImagesManager } from "@/components/admin/AdminProductImagesManager";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface ProductEditFormProps {
   product: Product;
@@ -70,6 +71,66 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     
     checkIsCreator();
   }, [isCreator, product.seller_id]);
+
+  const handleImageUpload = async (newUrls: string[]) => {
+    try {
+      // Insert new image records in the product_images table
+      const imageInserts = newUrls.map(url => ({
+        product_id: product.id,
+        url: url,
+        is_primary: false
+      }));
+
+      const { error } = await supabase
+        .from('product_images')
+        .insert(imageInserts);
+
+      if (error) throw error;
+
+      // Update local state
+      setImages([...images, ...newUrls]);
+
+      toast({
+        title: "Фото добавлены",
+        description: `Добавлено ${newUrls.length} фотографий`,
+      });
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить фотографии",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImageDelete = async (urlToDelete: string) => {
+    try {
+      // Remove from database
+      const { error } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', product.id)
+        .eq('url', urlToDelete);
+
+      if (error) throw error;
+
+      // Update local state
+      setImages(images.filter(url => url !== urlToDelete));
+
+      toast({
+        title: "Фото удалено",
+        description: "Фотография успешно удалена",
+      });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить фотографию",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,10 +199,11 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       {/* Media Section */}
       <div className="flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-4 md:border-gray-100">
         <div>
-          <AdminProductImagesManager
-            productId={product.id}
+          <ImageUpload 
             images={images}
-            onImagesChange={isCreator ? setImages : () => {}}
+            onUpload={handleImageUpload}
+            onDelete={handleImageDelete}
+            maxImages={10}
           />
         </div>
         <div>
