@@ -2,21 +2,47 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock, Check, X } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+
+const statusColors = {
+  created: 'bg-gray-100 text-gray-800',
+  seller_confirmed: 'bg-blue-100 text-blue-800',
+  admin_confirmed: 'bg-purple-100 text-purple-800',
+  processed: 'bg-yellow-100 text-yellow-800',
+  shipped: 'bg-orange-100 text-orange-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+
+const statusIcons = {
+  created: <CalendarClock className="w-5 h-5 text-gray-400" />,
+  seller_confirmed: <Check className="w-5 h-5 text-blue-500" />,
+  admin_confirmed: <PackageCheck className="w-5 h-5 text-purple-500" />,
+  processed: <Package className="w-5 h-5 text-yellow-500" />,
+  shipped: <Truck className="w-5 h-5 text-orange-500" />,
+  delivered: <PackageCheck className="w-5 h-5 text-green-500" />,
+  cancelled: <PackageX className="w-5 h-5 text-red-500" />,
+};
+
+const statusLabels = {
+  created: 'Создан',
+  seller_confirmed: 'Подтвержден продавцом',
+  admin_confirmed: 'Подтвержден администратором',
+  processed: 'В обработке',
+  shipped: 'Отправлен',
+  delivered: 'Доставлен',
+  cancelled: 'Отменен',
+};
+
+const orderTypeLabels = {
+  free_order: 'Свободный заказ',
+  ads_order: 'Заказ по объявлению',
+};
 
 const BuyerOrders = () => {
   const { user, profile } = useAuth();
@@ -27,7 +53,6 @@ const BuyerOrders = () => {
     queryKey: ['buyer-orders', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      
       const query = supabase
         .from('orders')
         .select(`
@@ -48,66 +73,24 @@ const BuyerOrders = () => {
       } else {
         query.eq('buyer_id', user.id);
       }
-
       const { data, error } = await query.order('created_at', { ascending: false });
-
       if (error) {
         console.error("Error fetching orders:", error);
         throw error;
       }
-      
       return data || [];
     },
     enabled: !!user,
   });
 
-  const getOrderTypeLabel = (type: 'free_order' | 'ads_order') => {
-    return type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению';
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'created':
-        return 'Создан';
-      case 'seller_confirmed':
-        return 'Подтвержден продавцом';
-      case 'admin_confirmed':
-        return 'Подтвержден администратором';
-      case 'processed':
-        return 'В обработке';
-      case 'shipped':
-        return 'Отправлен';
-      case 'delivered':
-        return 'Доставлен';
-      default:
-        return status;
-    }
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'created':
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-      case 'seller_confirmed':
-        return 'bg-blue-100 text-blue-800 hover:bg-blue-200';
-      case 'admin_confirmed':
-        return 'bg-purple-100 text-purple-800 hover:bg-purple-200';
-      case 'processed':
-        return 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200';
-      case 'shipped':
-        return 'bg-orange-100 text-orange-800 hover:bg-orange-200';
-      case 'delivered':
-        return 'bg-green-100 text-green-800 hover:bg-green-200';
-      default:
-        return 'bg-gray-100 text-gray-800 hover:bg-gray-200';
-    }
-  };
-
   if (isLoading) {
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+          <svg className="h-8 w-8 animate-spin text-optapp-yellow" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4" />
+          </svg>
         </div>
       </Layout>
     );
@@ -117,10 +100,10 @@ const BuyerOrders = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-4" 
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mr-4"
             onClick={() => navigate(-1)}
           >
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
@@ -129,63 +112,70 @@ const BuyerOrders = () => {
             {isSeller ? 'Заказы по моим объявлениям' : 'Мои заказы'}
           </h1>
         </div>
-        
+
         {orders && orders.length > 0 ? (
-          <div className="bg-white rounded-lg shadow overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Номер заказа</TableHead>
-                  <TableHead>Номер лота</TableHead>
-                  <TableHead>Наименование</TableHead>
-                  <TableHead>Бренд</TableHead>
-                  <TableHead>Модель</TableHead>
-                  <TableHead>Продавец</TableHead>
-                  <TableHead>Цена</TableHead>
-                  <TableHead>OPT ID</TableHead>
-                  <TableHead>Тип заказа</TableHead>
-                  <TableHead>Статус</TableHead>
-                  <TableHead>Детали</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id} className="hover:bg-gray-50">
-                    <TableCell>{order.order_number}</TableCell>
-                    <TableCell>{order.products?.lot_number || 'Н/Д'}</TableCell>
-                    <TableCell>{order.title}</TableCell>
-                    <TableCell>{order.brand}</TableCell>
-                    <TableCell>{order.model}</TableCell>
-                    <TableCell>{order.order_seller_name}</TableCell>
-                    <TableCell>{order.price} $</TableCell>
-                    <TableCell>{order.buyer_opt_id || 'Не указан'}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {getOrderTypeLabel(order.order_created_type)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusBadgeColor(order.status)}>
-                        {getStatusLabel(order.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Link 
-                        to={`/product/${order.product_id}`}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-                      >
-                        Подробнее
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {orders.map((order) => (
+              <div
+                key={order.id}
+                className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all flex flex-col
+                ${order.status === 'delivered' ? 'border-green-200' :
+                    order.status === 'cancelled' ? 'border-red-200' :
+                    order.status === 'seller_confirmed' ? 'border-blue-200' :
+                    order.status === 'admin_confirmed' ? 'border-purple-200' :
+                    order.status === 'shipped' ? 'border-orange-200' :
+                    order.status === 'processed' ? 'border-yellow-200' :
+                    'border-gray-100'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2 px-4 pt-4">
+                  {statusIcons[order.status] || statusIcons['created']}
+                  <Badge className={`text-base px-3 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
+                    {statusLabels[order.status] || order.status}
+                  </Badge>
+                </div>
+                <div className="flex-1 flex flex-col px-4 py-2">
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="font-semibold text-lg">Заказ № {order.order_number}</span>
+                    <span className="text-sm text-muted-foreground">Лот: {order.products?.lot_number || "Н/Д"}</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="font-medium text-base truncate">{order.title}</div>
+                    <div className="text-sm text-muted-foreground">{order.brand} {order.model}</div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="font-medium text-optapp-dark">{order.price} $</span>
+                    <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                    <Badge variant="outline">{orderTypeLabels[order.order_created_type]}</Badge>
+                    <Badge variant="outline">
+                      {order.buyer_opt_id || 'Не указан'}
+                    </Badge>
+                  </div>
+                  <div className="text-sm text-gray-500 mb-1">
+                    Продавец: <span className="font-medium">{order.order_seller_name}</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
+                  <Link
+                    to={`/product/${order.product_id}`}
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+                  >
+                    Подробнее
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-8">
             <p className="text-gray-500">У вас пока нет заказов</p>
-            <Button 
+            <Button
               className="mt-4 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               onClick={() => navigate('/catalog')}
             >
@@ -199,3 +189,4 @@ const BuyerOrders = () => {
 };
 
 export default BuyerOrders;
+
