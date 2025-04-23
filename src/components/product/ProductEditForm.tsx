@@ -6,9 +6,9 @@ import { X, Save, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminProductImagesManager } from "@/components/admin/AdminProductImagesManager";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ProductEditFormProps {
   product: Product;
@@ -25,6 +25,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const [formData, setFormData] = React.useState({
     title: product.title,
@@ -56,11 +57,9 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   }, [product]);
 
   React.useEffect(() => {
-    // Check if user is the creator (owner) of the product
     const checkIsCreator = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        // If we're not explicitly set as creator and auth check fails, default to false
         if (!isCreator && (!user || user.id !== product.seller_id)) {
           console.log("User is not the creator of this product");
         }
@@ -68,13 +67,11 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         console.error("Error checking product ownership:", error);
       }
     };
-    
     checkIsCreator();
   }, [isCreator, product.seller_id]);
 
   const handleImageUpload = async (newUrls: string[]) => {
     try {
-      // Insert new image records in the product_images table
       const imageInserts = newUrls.map(url => ({
         product_id: product.id,
         url: url,
@@ -87,9 +84,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
       if (error) throw error;
 
-      // Update local state
       setImages([...images, ...newUrls]);
-
       toast({
         title: "Фото добавлены",
         description: `Добавлено ${newUrls.length} фотографий`,
@@ -106,7 +101,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const handleImageDelete = async (urlToDelete: string) => {
     try {
-      // Remove from database
       const { error } = await supabase
         .from('product_images')
         .delete()
@@ -115,9 +109,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
       if (error) throw error;
 
-      // Update local state
       setImages(images.filter(url => url !== urlToDelete));
-
       toast({
         title: "Фото удалено",
         description: "Фотография успешно удалена",
@@ -147,11 +139,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setIsLoading(true);
 
     try {
-      console.log("Updating product with data:", {
-        ...formData,
-        place_number: formData.place_number
-      });
-      
       const { error } = await supabase
         .from("products")
         .update({
@@ -190,14 +177,14 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white rounded-2xl shadow-md mx-auto w-full max-w-3xl flex flex-col md:flex-row items-stretch gap-6 p-4"
+      className={`bg-white rounded-2xl shadow-md mx-auto w-full flex flex-col ${isMobile ? "gap-2 p-2" : "md:flex-row gap-6 p-4 max-w-3xl"}`}
       style={{
         minHeight: "440px",
-        maxWidth: "98vw",
+        maxWidth: isMobile ? "100vw" : "98vw",
       }}
     >
       {/* Media Section */}
-      <div className="flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-4 md:border-gray-100">
+      <div className={isMobile ? "mb-2 border-b pb-3" : "flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-4 md:border-gray-100"}>
         <div>
           <ImageUpload 
             images={images}
@@ -216,54 +203,54 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       </div>
 
       {/* Information Section */}
-      <div className="flex-1 flex flex-col gap-2">
-        <label htmlFor="title" className="text-sm font-medium">Название товара</label>
+      <div className="flex-1 flex flex-col gap-1 sm:gap-2">
+        <label htmlFor="title" className="text-xs sm:text-sm font-medium">Название товара</label>
         <Input
           id="title"
           value={formData.title}
           onChange={(e) => setFormData({ ...formData, title: e.target.value })}
           placeholder="Название товара"
-          className="text-base font-bold h-8"
+          className="text-base font-bold h-8 sm:h-8"
           disabled={!isCreator}
         />
 
-        <label htmlFor="price" className="text-sm font-medium">Цена</label>
+        <label htmlFor="price" className="text-xs sm:text-sm font-medium">Цена</label>
         <Input
           id="price"
           type="number"
           value={formData.price}
           onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
           placeholder="Цена"
-          className="h-8"
+          className="h-8 sm:h-8"
           disabled={!isCreator}
         />
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label htmlFor="brand" className="text-sm font-medium">Марка</label>
+            <label htmlFor="brand" className="text-xs sm:text-sm font-medium">Марка</label>
             <Input
               id="brand"
               value={formData.brand}
               onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
               placeholder="Марка"
-              className="h-8"
+              className="h-8 sm:h-8"
               disabled={!isCreator}
             />
           </div>
           <div>
-            <label htmlFor="model" className="text-sm font-medium">Модель</label>
+            <label htmlFor="model" className="text-xs sm:text-sm font-medium">Модель</label>
             <Input
               id="model"
               value={formData.model}
               onChange={(e) => setFormData({ ...formData, model: e.target.value })}
               placeholder="Модель"
-              className="h-8"
+              className="h-8 sm:h-8"
               disabled={!isCreator}
             />
           </div>
         </div>
 
-        <label htmlFor="place_number" className="text-sm font-medium">Количество мест для отправки</label>
+        <label htmlFor="place_number" className="text-xs sm:text-sm font-medium">Количество мест для отп��авки</label>
         <Input
           id="place_number"
           type="number"
@@ -271,50 +258,82 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           value={formData.place_number}
           onChange={(e) => setFormData({ ...formData, place_number: parseInt(e.target.value) || 1 })}
           placeholder="Количество мест для отправки"
-          className="h-8"
+          className="h-8 sm:h-8"
           disabled={!isCreator}
         />
 
-        <label htmlFor="description" className="text-sm font-medium">Описание товара</label>
+        <label htmlFor="description" className="text-xs sm:text-sm font-medium">Описание товара</label>
         <Textarea
           id="description"
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           placeholder="Описание товара"
-          className="min-h-[36px] max-h-[80px] text-sm"
+          className="min-h-[36px] max-h-[80px] text-xs sm:text-sm"
           rows={2}
           disabled={!isCreator}
         />
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onCancel}
-            disabled={isLoading}
-            className="h-8 px-3 text-xs"
-          >
-            <X className="h-4 w-4 mr-1" />
-            Отмена
-          </Button>
-          <Button
-            type="submit"
-            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-8 px-3 text-xs"
-            disabled={isLoading || !isCreator}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                Сохранение...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-1" />
-                Сохранить
-              </>
-            )}
-          </Button>
-        </div>
+        {isMobile ? (
+          <div className="fixed bottom-0 left-0 w-full bg-white z-40 border-t flex justify-between p-2 gap-1 rounded-none shadow-xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isLoading}
+              className="h-9 flex-1 text-xs"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Отмена
+            </Button>
+            <Button
+              type="submit"
+              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-9 flex-1 text-xs"
+              disabled={isLoading || !isCreator}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1" />
+                  Сохранить
+                </>
+              )}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onCancel}
+              disabled={isLoading}
+              className="h-8 px-3 text-xs"
+            >
+              <X className="h-4 w-4 mr-1" />
+              Отмена
+            </Button>
+            <Button
+              type="submit"
+              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-8 px-3 text-xs"
+              disabled={isLoading || !isCreator}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-1" />
+                  Сохранить
+                </>
+              )}
+            </Button>
+          </div>
+        )}
       </div>
     </form>
   );
