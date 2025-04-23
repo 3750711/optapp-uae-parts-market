@@ -76,10 +76,10 @@ const SellerAddProduct = () => {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      if (images.length + e.target.files.length > 8) {
+      if (images.length + e.target.files.length > 30) {
         toast({
           title: "Ошибка",
-          description: "Максимальное количество фотографий - 8",
+          description: "Максимальное количество фотографий - 30",
           variant: "destructive",
         });
         return;
@@ -160,7 +160,7 @@ const SellerAddProduct = () => {
           seller_id: user.id,
           seller_name: profile.full_name || user.email,
           status: 'pending',
-          place_number: parseInt(values.placeNumber), // Save place_number to products table
+          place_number: parseInt(values.placeNumber),
         })
         .select('id')
         .single() as any;
@@ -230,7 +230,7 @@ const SellerAddProduct = () => {
                 <CardHeader>
                   <CardTitle>Информация о товаре</CardTitle>
                   <CardDescription>
-                    Заполните все поля для размещения вашего товара на маркетплейсе
+                    Заполните все поля для размещения вашего товара на ма��кетплейсе
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -375,7 +375,7 @@ const SellerAddProduct = () => {
                         </div>
                       ))}
                       
-                      {images.length < 8 && (
+                      {images.length < 30 && (
                         <label className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 aspect-square">
                           <div className="text-3xl text-gray-300">+</div>
                           <p className="text-sm text-gray-500">Добавить фото</p>
@@ -390,7 +390,7 @@ const SellerAddProduct = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-2">
-                      Добавьте до 8 фотографий. Первое фото будет главным в объявлении.
+                      Добавьте до 30 фотографий. Первое фото будет главным в объявлении.
                     </p>
                   </div>
                   
