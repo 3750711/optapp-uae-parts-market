@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { ProductImage } from "@/types/product";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -11,10 +11,16 @@ interface ProductGalleryProps {
   title: string;
 }
 
+const SWIPE_THRESHOLD = 50; // минимальное расстояние в пикселях для активации свайпа
+
 const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
   const [activeImage, setActiveImage] = useState<string>(images[0] || "");
   const [isOpen, setIsOpen] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string>("");
+
+  // для touch-событий
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
 
   const handleImageClick = (image: string) => {
     setFullScreenImage(image);
@@ -35,6 +41,37 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
     const currentIndex = images.indexOf(fullScreenImage);
     const prevIndex = (currentIndex - 1 + images.length) % images.length;
     setFullScreenImage(images[prevIndex]);
+  };
+
+  // Touch events для свайпа на мобильных
+  const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const onTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (touchStartX.current !== null) {
+      touchEndX.current = e.touches[0].clientX;
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (
+      touchStartX.current !== null &&
+      touchEndX.current !== null
+    ) {
+      const diffX = touchStartX.current - touchEndX.current;
+
+      if (diffX > SWIPE_THRESHOLD) {
+        // swipe left -> next image
+        handleNextImage();
+      } else if (diffX < -SWIPE_THRESHOLD) {
+        // swipe right -> prev image
+        handlePrevImage();
+      }
+    }
+    // Сбросить значения
+    touchStartX.current = null;
+    touchEndX.current = null;
   };
 
   return (
@@ -71,7 +108,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-[90vw] h-[90vh] p-0">
-          <div className="relative w-full h-full flex items-center justify-center bg-black/95">
+          <div
+            className="relative w-full h-full flex items-center justify-center bg-black/95"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
             <Button
               variant="ghost"
               size="icon"
@@ -115,3 +157,4 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
 };
 
 export default ProductGallery;
+
