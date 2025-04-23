@@ -33,7 +33,7 @@ const statusLabels = {
   created: 'Создан',
   seller_confirmed: 'Подтвержден продавцом',
   admin_confirmed: 'Подтвержден администратором',
-  processed: 'В обработке',
+  processed: 'Зарегистрирован', // Updated status label
   shipped: 'Отправлен',
   delivered: 'Доставлен',
   cancelled: 'Отменен',

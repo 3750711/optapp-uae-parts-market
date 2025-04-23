@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Database } from '@/integrations/supabase/types';
@@ -18,7 +17,7 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
         return 'bg-blue-100 text-blue-800';
       case 'admin_confirmed':
         return 'bg-purple-100 text-purple-800';
-      case 'processed': // Keep using 'processed' as it's the value in the database enum
+      case 'processed':
         return 'bg-yellow-100 text-yellow-800';
       case 'shipped':
         return 'bg-orange-100 text-orange-800';
@@ -39,7 +38,7 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
         return 'Подтвержден продавцом';
       case 'admin_confirmed':
         return 'Подтвержден администратором';
-      case 'processed': // Keep using 'processed' but display as 'Зарегистрирован'
+      case 'processed':
         return 'Зарегистрирован';
       case 'shipped':
         return 'Отправлен';
