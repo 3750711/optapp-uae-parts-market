@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -54,7 +53,6 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
-      // Allow product owner and admins to view pending products, redirect others to 404
       if (data.status === 'pending' && data.seller_id !== user?.id && !isAdmin) {
         navigate('/404');
         return null;
@@ -147,6 +145,27 @@ const ProductDetail = () => {
       navigate(-1);
     }
   };
+
+  const RenderFullSizeImages = () => (
+    <div className="mb-8">
+      <div className="font-semibold text-base mb-2 text-gray-500">Фото товара</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+        {images.map((img, idx) => (
+          <div
+            key={img + idx}
+            className="w-full overflow-hidden rounded-md border bg-gray-50 flex items-center justify-center"
+          >
+            <img
+              src={img}
+              alt={`Фото товара ${idx + 1}`}
+              className="object-contain max-h-[400px] w-full"
+              loading="lazy"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   if (isLoading) {
     return (
@@ -254,6 +273,7 @@ const ProductDetail = () => {
             <div className="mt-2">
               <ProductVideos videos={videos} />
             </div>
+            <RenderFullSizeImages />
           </div>
         ) : (
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
@@ -264,6 +284,7 @@ const ProductDetail = () => {
               <div className="mb-8">
                 <ProductVideos videos={videos} />
               </div>
+              <RenderFullSizeImages />
             </div>
             <div>
               <ProductInfo
