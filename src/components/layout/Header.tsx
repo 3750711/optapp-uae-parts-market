@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -31,7 +30,10 @@ const Header = () => {
   const navigate = useNavigate();
 
   const getUserTypeLabel = (type: string | undefined) => {
-    return type === 'seller' ? 'Продавец' : 'Покупатель';
+    if (type === 'seller') return 'Продавец';
+    if (type === 'buyer') return 'Покупатель';
+    if (type === 'admin') return 'Администратор';
+    return '';
   };
 
   const handleLogout = async () => {
@@ -75,7 +77,6 @@ const Header = () => {
       >
         О нас
       </Link>      
-      {/* Контакты убраны из верхнего меню */}
       {profile?.user_type === 'seller' && (
         <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
           <Button variant="secondary" size="sm" className="animate-float">
