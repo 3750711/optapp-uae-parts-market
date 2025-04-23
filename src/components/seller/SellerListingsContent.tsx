@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -30,7 +29,6 @@ const SellerListingsContent = () => {
     refetch();
   };
 
-  // Map database products to the format expected by ProductCard
   const mappedProducts: ProductProps[] = products?.map(product => {
     const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
                         product.product_images?.[0]?.url || 

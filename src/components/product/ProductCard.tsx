@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { MapPin, Badge as BadgeIcon, Star, Crown, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
+import ProductDeleteDialog from "./ProductDeleteDialog";
 
 export interface ProductProps {
   id: string;
@@ -85,10 +86,19 @@ const ProductCard: React.FC<ProductProps> = ({
             </div>
           </div>
         )}
-        <div className="absolute top-2 right-2 flex flex-col gap-2">
-          {getStatusBadge()}
+        <div className="absolute top-2 right-2 flex flex-col gap-2 z-10">
+          <div className="flex gap-2">
+            {getStatusBadge()}
+            {typeof onStatusChange === "function" && (
+              <ProductDeleteDialog
+                productId={id}
+                productName={name}
+                onDeleted={onStatusChange}
+              />
+            )}
+          </div>
           {isHotLot() && (
-            <Badge className="bg-red-500 text-white border-none flex items-center gap-1">
+            <Badge className="bg-red-500 text-white border-none flex items-center gap-1 mt-2">
               <Flame className="h-3 w-3 fill-white" />
               HOT LOT
             </Badge>
