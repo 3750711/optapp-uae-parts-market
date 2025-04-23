@@ -193,12 +193,14 @@ const Header = () => {
                     </>
                   )}
                   
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to={ordersLink} className="flex w-full items-center">
-                      <Package className="mr-2 h-4 w-4" />
-                      <span>Мои заказы</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  {profile?.user_type !== 'admin' && (
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to={ordersLink} className="flex w-full items-center">
+                        <Package className="mr-2 h-4 w-4" />
+                        <span>Мои заказы</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/catalog" className="flex w-full items-center">
                       <ShoppingCart className="mr-2 h-4 w-4" />
