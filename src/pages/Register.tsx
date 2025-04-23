@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -22,10 +23,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { countries } from "@/data/countries";
+import { Check, User, Store } from "lucide-react";
 
 const formSchema = z.object({
   fullName: z.string().optional(),
@@ -72,6 +74,7 @@ const Register = () => {
   });
 
   const optId = form.watch('optId');
+  const selectedUserType = form.watch('userType');
   
   useEffect(() => {
     setHasOptId(!!optId);
@@ -245,30 +248,41 @@ const Register = () => {
                     <FormItem>
                       <FormLabel>Тип аккаунта *</FormLabel>
                       <FormControl>
-                        <RadioGroup 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          className="grid grid-cols-2 gap-4 pt-2"
-                        >
-                          <div>
-                            <RadioGroupItem value="buyer" id="buyer" className="peer sr-only" />
-                            <FormLabel
-                              htmlFor="buyer"
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-optapp-yellow [&:has([data-state=checked])]:border-optapp-yellow cursor-pointer"
-                            >
-                              <span>Покупатель</span>
-                            </FormLabel>
-                          </div>
-                          <div>
-                            <RadioGroupItem value="seller" id="seller" className="peer sr-only" />
-                            <FormLabel
-                              htmlFor="seller"
-                              className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-optapp-yellow [&:has([data-state=checked])]:border-optapp-yellow cursor-pointer"
-                            >
-                              <span>Продавец</span>
-                            </FormLabel>
-                          </div>
-                        </RadioGroup>
+                        <div className="grid grid-cols-2 gap-4 pt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`flex flex-col items-center justify-center h-24 border-2 ${
+                              field.value === "buyer" 
+                                ? "border-optapp-yellow bg-yellow-50" 
+                                : "border-muted hover:border-optapp-yellow"
+                            }`}
+                            onClick={() => form.setValue("userType", "buyer")}
+                          >
+                            <User className={`h-8 w-8 mb-2 ${field.value === "buyer" ? "text-optapp-yellow" : ""}`} />
+                            <span>Покупатель</span>
+                            {field.value === "buyer" && (
+                              <Check className="absolute top-2 right-2 h-4 w-4 text-optapp-yellow" />
+                            )}
+                          </Button>
+                          
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`flex flex-col items-center justify-center h-24 border-2 ${
+                              field.value === "seller" 
+                                ? "border-optapp-yellow bg-yellow-50" 
+                                : "border-muted hover:border-optapp-yellow"
+                            }`}
+                            onClick={() => form.setValue("userType", "seller")}
+                          >
+                            <Store className={`h-8 w-8 mb-2 ${field.value === "seller" ? "text-optapp-yellow" : ""}`} />
+                            <span>Продавец</span>
+                            {field.value === "seller" && (
+                              <Check className="absolute top-2 right-2 h-4 w-4 text-optapp-yellow" />
+                            )}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
