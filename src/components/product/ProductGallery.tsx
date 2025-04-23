@@ -1,6 +1,5 @@
 
 import React, { useState, useRef } from "react";
-import { ProductImage } from "@/types/product";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
@@ -62,10 +61,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
       const diffX = touchStartX.current - touchEndX.current;
 
       if (diffX > SWIPE_THRESHOLD) {
-        // swipe left -> next image
+        // свайп влево -> следующая картинка
         handleNextImage();
       } else if (diffX < -SWIPE_THRESHOLD) {
-        // swipe right -> prev image
+        // свайп вправо -> предыдущая картинка
         handlePrevImage();
       }
     }
@@ -148,6 +147,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
               src={fullScreenImage}
               alt={title}
               className="max-h-full max-w-full object-contain"
+              loading="lazy"
             />
           </div>
         </DialogContent>
