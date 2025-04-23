@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogFooter, AlertDialogAction, AlertDialogCancel, AlertDialogDescription } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { trash } from "lucide-react";
+import { Trash } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -35,7 +35,7 @@ const ProductDeleteDialog: React.FC<ProductDeleteDialogProps> = ({ productId, pr
       toast({
         title: "Объявление удалено",
         description: `«${productName}» успешно удалено`,
-        variant: "success"
+        variant: "default"
       });
       onDeleted();
     }
@@ -46,7 +46,7 @@ const ProductDeleteDialog: React.FC<ProductDeleteDialogProps> = ({ productId, pr
       <AlertDialogTrigger asChild>
         <Button variant="destructive" size="icon" className="ml-2" aria-label="Удалить объявление">
           <span className="sr-only">Удалить</span>
-          <trash className="w-4 h-4" />
+          <Trash className="w-4 h-4" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
