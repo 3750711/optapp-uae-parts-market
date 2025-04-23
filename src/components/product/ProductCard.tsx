@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -71,14 +70,13 @@ const ProductCard: React.FC<ProductProps> = ({
 
   return (
     <Card className="group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in">
-      <div className="overflow-hidden relative rounded-t-xl bg-white" style={{ height: "240px" }}>
+      <div className="h-[240px] overflow-hidden relative rounded-t-xl bg-white flex items-center justify-center">
         <img 
           src={image || "/placeholder.svg"} 
           alt={name} 
-          className={`h-full w-full object-contain group-hover:scale-105 transition-all duration-500 bg-white ${
+          className={`max-h-full max-w-full object-contain group-hover:scale-105 transition-all duration-500 bg-white ${
             status === 'sold' ? 'opacity-50' : ''
           }`}
-          style={{ objectFit: "contain", backgroundColor: "#fff" }}
         />
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -160,4 +158,3 @@ const ProductCard: React.FC<ProductProps> = ({
 };
 
 export default ProductCard;
-
