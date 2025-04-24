@@ -108,7 +108,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-500">Цена:</span>
-                <span className="font-medium">{product.price} AED</span>
+                <span className="font-medium">{product.price} $</span>
               </div>
               {product.lot_number !== undefined && product.lot_number !== null && (
                 <div className="flex justify-between items-center">
