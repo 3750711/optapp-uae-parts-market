@@ -34,12 +34,10 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
               {seller_name}
               <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
             </Link>
-            {sellerProfile?.opt_status && (
+            {sellerProfile?.opt_status === 'opt_user' && (
               <div className="ml-2 flex items-center text-yellow-600">
                 <Crown className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">
-                  {sellerProfile.opt_status === 'opt_user' ? 'OPTSELLER' : ''}
-                </span>
+                <span className="text-sm font-medium">OPTSELLER</span>
               </div>
             )}
           </div>
