@@ -1,7 +1,6 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star, User, Crown } from "lucide-react";
+import { ShieldCheck, CircleDollarSign, Star, User } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 
 interface SellerInfoProps {
@@ -35,10 +34,9 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
               <span className="text-xs ml-2 text-gray-500">(Открыть профиль)</span>
             </Link>
             {sellerProfile?.opt_status === 'opt_user' && (
-              <div className="ml-2 flex items-center text-yellow-600">
-                <Crown className="h-4 w-4 mr-1" />
-                <span className="text-sm font-medium">OPTSELLER</span>
-              </div>
+              <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">
+                OPT
+              </span>
             )}
           </div>
           
