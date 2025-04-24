@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 const AdminLogistics = () => {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [editingContainer, setEditingContainer] = useState<string | null>(null);
@@ -27,6 +28,27 @@ const AdminLogistics = () => {
   const [bulkEditingContainer, setBulkEditingContainer] = useState(false);
   const [bulkContainerNumber, setBulkContainerNumber] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('orders-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders'
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['logistics-orders'],
