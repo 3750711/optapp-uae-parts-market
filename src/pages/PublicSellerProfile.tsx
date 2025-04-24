@@ -176,10 +176,9 @@ const PublicSellerProfile = () => {
                   <div className="flex items-center gap-2">
                     <h2 className="text-2xl font-bold mb-2">{profile.full_name || "Продавец"}</h2>
                     {profile.opt_status === 'opt_user' && (
-                      <div className="flex items-center text-yellow-600">
-                        <Crown className="h-5 w-5 mr-1" />
-                        <span className="text-sm font-medium">OPTSELLER</span>
-                      </div>
+                      <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">
+                        OPT
+                      </span>
                     )}
                   </div>
                   <Badge variant="outline" className="text-sm">
