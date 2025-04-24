@@ -2,14 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import * as XLSX from 'xlsx';
+import { fileExport } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -344,6 +339,45 @@ const AdminLogistics = () => {
     }
   };
 
+  const handleExportToXLSX = () => {
+    if (selectedOrders.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Выберите заказы для экспорта",
+      });
+      return;
+    }
+
+    const selectedOrdersData = orders
+      .filter(order => selectedOrders.includes(order.id))
+      .map(order => ({
+        'Номер заказа': order.order_number,
+        'Продавец': order.seller?.full_name || 'Не указано',
+        'ID продавца': order.seller?.opt_id || 'Не указано',
+        'Покупатель': order.buyer?.full_name || 'Не указано',
+        'ID покупателя': order.buyer?.opt_id || 'Не указано',
+        'Количество мест': order.place_number,
+        'Цена доставки': order.delivery_price_confirm || '-',
+        'Статус': order.status,
+        'Номер контейнера': order.container_number || 'Не указан',
+        'Статус контейнера': getStatusLabel(order.container_status as ContainerStatus),
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(selectedOrdersData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Заказы");
+    
+    const date = new Date().toISOString().split('T')[0];
+    
+    XLSX.writeFile(wb, `orders_export_${date}.xlsx`);
+
+    toast({
+      title: "Успешно",
+      description: `Экспортировано ${selectedOrdersData.length} заказов`,
+    });
+  };
+
   if (error) {
     return (
       <AdminLayout>
@@ -450,6 +484,14 @@ const AdminLogistics = () => {
                     >
                       <Container className="h-4 w-4 mr-2" />
                       Изменить статус контейнера
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={handleExportToXLSX}
+                      size="sm"
+                    >
+                      <fileExport className="h-4 w-4 mr-2" />
+                      Экспорт в Excel
                     </Button>
                   </div>
                 ) : bulkEditingContainerStatus ? (
@@ -598,7 +640,7 @@ const AdminLogistics = () => {
                               </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
+                              <SelectItem value="sent_from_uae">Отправле�� из ОАЭ</SelectItem>
                               <SelectItem value="transit_iran">Транзит Иран</SelectItem>
                               <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
                               <SelectItem value="customs">Таможня</SelectItem>
@@ -642,49 +684,47 @@ const AdminLogistics = () => {
         </Card>
       </div>
 
-          {/* Status Change Confirmation Dialog */}
-          <AlertDialog open={confirmStatusDialog} onOpenChange={setConfirmStatusDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Подтвердите изменение статуса</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {pendingStatusChange.isBulk 
-                    ? `Вы уверены, что хотите изменить статус контейнера для ${selectedOrders.length} заказов?`
-                    : 'Вы уверены, что хотите изменить статус контейнера?'}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPendingStatusChange({})}>
-                  Отмена
-                </AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmedStatusChange}>
-                  Подтвердить
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+      <AlertDialog open={confirmStatusDialog} onOpenChange={setConfirmStatusDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтвердите изменение статуса</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingStatusChange.isBulk 
+                ? `Вы уверены, что хотите изменить статус контейнера для ${selectedOrders.length} заказов?`
+                : 'Вы уверены, что хотите изменить статус контейнера?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingStatusChange({})}>
+              Отмена
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmedStatusChange}>
+              Подтвердить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-          {/* Container Number Change Confirmation Dialog */}
-          <AlertDialog open={confirmContainerDialog} onOpenChange={setConfirmContainerDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Подтвердите изменение номера контейнера</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {pendingContainerChange.isBulk 
-                    ? `Вы уверены, что хотите изменить номер контейнера для ${selectedOrders.length} заказов?`
-                    : 'Вы уверены, что хотите изменить номер контейнера?'}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setPendingContainerChange({})}>
-                  Отмена
-                </AlertDialogCancel>
-                <AlertDialogAction onClick={handleConfirmedContainerChange}>
-                  Подтвердить
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+      <AlertDialog open={confirmContainerDialog} onOpenChange={setConfirmContainerDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтвердите изменение номера контейнера</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingContainerChange.isBulk 
+                ? `Вы уверены, что хотите изменить номер контейнера для ${selectedOrders.length} заказов?`
+                : 'Вы уверены, что хотите изменить номер контейнера?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingContainerChange({})}>
+              Отмена
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmedContainerChange}>
+              Подтвердить
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
