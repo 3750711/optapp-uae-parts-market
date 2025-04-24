@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useState, useEffect, useRef } from 'react';
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
@@ -36,7 +36,7 @@ import {
 
 type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 
-const ITEMS_PER_PAGE = 15; // Increased items per page
+const ITEMS_PER_PAGE = 20;
 
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
@@ -46,7 +46,7 @@ const AdminLogistics = () => {
   const [tempContainerNumber, setTempContainerNumber] = useState<string>('');
   const [bulkEditingContainer, setBulkEditingContainer] = useState(false);
   const [bulkContainerNumber, setBulkContainerNumber] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,48 +70,67 @@ const AdminLogistics = () => {
     };
   }, [queryClient]);
 
-  const { data: ordersData, isLoading, error } = useQuery({
-    queryKey: ['logistics-orders', currentPage],
-    queryFn: async () => {
-      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error
+  } = useInfiniteQuery({
+    queryKey: ['logistics-orders'],
+    queryFn: async ({ pageParam = 0 }) => {
+      const from = pageParam * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      const [{ data: orders, error: ordersError }, { count: totalCount, error: countError }] = await Promise.all([
-        supabase
-          .from('orders')
-          .select(`
-            *,
-            buyer:profiles!orders_buyer_id_fkey (
-              full_name,
-              location,
-              opt_id
-            ),
-            seller:profiles!orders_seller_id_fkey (
-              full_name,
-              location,
-              opt_id
-            )
-          `)
-          .order('created_at', { ascending: false })
-          .range(from, to),
-        supabase
-          .from('orders')
-          .select('*', { count: 'exact', head: true })
-      ]);
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          *,
+          buyer:profiles!orders_buyer_id_fkey (
+            full_name,
+            location,
+            opt_id
+          ),
+          seller:profiles!orders_seller_id_fkey (
+            full_name,
+            location,
+            opt_id
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (ordersError) throw ordersError;
-      if (countError) throw countError;
-
-      return {
-        orders,
-        totalCount: totalCount || 0,
-        totalPages: Math.ceil((totalCount || 0) / ITEMS_PER_PAGE)
-      };
-    }
+      return orders;
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage?.length === ITEMS_PER_PAGE ? allPages.length : undefined;
+    },
   });
 
-  const orders = ordersData?.orders || [];
-  const totalPages = ordersData?.totalPages || 1;
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const orders = data?.pages.flat() || [];
 
   const selectedOrdersDeliverySum = orders
     ?.filter(order => selectedOrders.includes(order.id))
@@ -453,35 +472,20 @@ const AdminLogistics = () => {
                 </TableBody>
               </Table>
             </div>
-            <div className="mt-4">
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => setCurrentPage(page)}
-                        isActive={currentPage === page}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+            <div ref={loadMoreRef} className="py-4 text-center">
+              {isFetchingNextPage ? (
+                <div className="flex justify-center items-center py-4">
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+              ) : hasNextPage ? (
+                <div className="text-sm text-muted-foreground">
+                  Прокрутите вниз для загрузки дополнительных заказов
+                </div>
+              ) : orders.length > 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  Все заказы загружены
+                </div>
+              ) : null}
             </div>
           </CardContent>
         </Card>
