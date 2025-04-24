@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -18,7 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface OrderConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (orderData?: any) => void; // Updated type definition to accept optional data
+  onConfirm: (orderData: { text_order?: string }) => void;
   isSubmitting: boolean;
   product: {
     id?: string; 
@@ -49,7 +48,6 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   const [textOrder, setTextOrder] = useState<string>("");
 
   const handleConfirm = () => {
-    // Pass the additional information to the onConfirm handler
     onConfirm({ text_order: textOrder });
   };
 

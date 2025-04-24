@@ -16,6 +16,7 @@ import { Database } from "@/integrations/supabase/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
@@ -55,6 +56,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   onDeliveryMethodChange,
 }) => {
   const [contactConsent, setContactConsent] = useState(false);
+  const [textOrder, setTextOrder] = useState<string>("");
 
   const handleConfirm = () => {
     if (deliveryMethod === 'self_pickup' && !contactConsent) {
@@ -211,6 +213,17 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   <span className="font-medium">{profile?.telegram || 'Не указан'}</span>
                 </div>
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-sm mb-1">Дополнительная информация</h3>
+              <Textarea
+                placeholder="Укажите дополнительную информацию по заказу (необязательно)"
+                className="resize-none text-sm"
+                rows={3}
+                value={textOrder}
+                onChange={(e) => setTextOrder(e.target.value)}
+              />
             </div>
           </div>
         </ScrollArea>
