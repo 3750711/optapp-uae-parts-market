@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock, Check } from 'lucide-react';
+import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
+import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 
 const statusColors = {
   created: 'bg-gray-100 text-gray-800',
@@ -158,10 +159,7 @@ const BuyerOrders = () => {
                     {statusLabels[order.status] || order.status}
                   </Badge>
                   {order.hasConfirmImages && (
-                    <div className="flex items-center gap-2 text-green-600 text-sm">
-                      <Check className="h-4 w-4" />
-                      <span>Фото с подтверждением получены</span>
-                    </div>
+                    <OrderConfirmImagesDialog orderId={order.id} />
                   )}
                 </div>
                 <div className="flex-1 flex flex-col px-4 py-2">
