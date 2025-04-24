@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
-import { FileText, QrCode, Download } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save } from "lucide-react";
@@ -378,65 +378,6 @@ const AdminLogistics = () => {
     });
   };
 
-  const handleExportToPDF = async () => {
-    if (selectedOrders.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Выберите заказы для экспорта",
-      });
-      return;
-    }
-
-    try {
-      const [QRCode, jsPDF] = await Promise.all([
-        import('qrcode'),
-        import('jspdf')
-      ]);
-
-      const pdf = new jsPDF.default();
-      let yOffset = 10;
-
-      for (const orderId of selectedOrders) {
-        const order = orders.find(o => o.id === orderId);
-        if (!order) continue;
-
-        const qrDataUrl = await QRCode.toDataURL(`https://preview--optapp-uae-parts-market.lovable.app/order/${order.id}`);
-
-        pdf.setFontSize(12);
-        pdf.text(`Заказ #${order.order_number}`, 10, yOffset);
-        pdf.text(`Продавец: ${order.seller?.full_name || 'Не указано'}`, 10, yOffset + 7);
-        pdf.text(`Покупатель: ${order.buyer?.full_name || 'Не указано'}`, 10, yOffset + 14);
-        pdf.text(`Контейнер: ${order.container_number || 'Не указан'}`, 10, yOffset + 21);
-        pdf.text(`Статус: ${getStatusLabel(order.container_status as ContainerStatus)}`, 10, yOffset + 28);
-        
-        pdf.addImage(qrDataUrl, 'PNG', 150, yOffset, 40, 40);
-
-        yOffset += 60;
-
-        if (yOffset > 250) {
-          pdf.addPage();
-          yOffset = 10;
-        }
-      }
-
-      const date = new Date().toISOString().split('T')[0];
-      pdf.save(`orders_qr_${date}.pdf`);
-
-      toast({
-        title: "Успешно",
-        description: `Экспортировано ${selectedOrders.length} заказов в PDF`,
-      });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось создать PDF файл",
-      });
-    }
-  };
-
   if (error) {
     return (
       <AdminLayout>
@@ -551,14 +492,6 @@ const AdminLogistics = () => {
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Экспорт в Excel
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={handleExportToPDF}
-                      size="sm"
-                    >
-                      <QrCode className="h-4 w-4 mr-2" />
-                      Экспорт в PDF с QR
                     </Button>
                   </div>
                 ) : bulkEditingContainerStatus ? (
