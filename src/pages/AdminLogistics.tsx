@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -16,9 +16,11 @@ import { Loader2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const AdminLogistics = () => {
   const navigate = useNavigate();
+  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['logistics-orders'],
@@ -49,6 +51,26 @@ const AdminLogistics = () => {
     navigate(`/admin/orders/${orderId}`);
   };
 
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrders(prev => {
+      if (prev.includes(orderId)) {
+        return prev.filter(id => id !== orderId);
+      } else {
+        return [...prev, orderId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (orders) {
+      if (selectedOrders.length === orders.length) {
+        setSelectedOrders([]);
+      } else {
+        setSelectedOrders(orders.map(order => order.id));
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -71,6 +93,12 @@ const AdminLogistics = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[50px]">
+                      <Checkbox 
+                        checked={orders?.length === selectedOrders.length}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Номер заказа</TableHead>
                     <TableHead>Лот</TableHead>
                     <TableHead>Продавец</TableHead>
@@ -83,6 +111,12 @@ const AdminLogistics = () => {
                 <TableBody>
                   {orders?.map((order) => (
                     <TableRow key={order.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedOrders.includes(order.id)}
+                          onCheckedChange={() => handleSelectOrder(order.id)}
+                        />
+                      </TableCell>
                       <TableCell>{order.order_number}</TableCell>
                       <TableCell>{order.lot_number_order}</TableCell>
                       <TableCell>
