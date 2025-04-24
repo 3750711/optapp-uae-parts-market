@@ -104,6 +104,8 @@ const AdminLogistics = () => {
                     <TableHead>Продавец</TableHead>
                     <TableHead>Покупатель</TableHead>
                     <TableHead>Количество мест</TableHead>
+                    <TableHead>Цена</TableHead>
+                    <TableHead>Цена доставки</TableHead>
                     <TableHead>Статус</TableHead>
                     <TableHead>Действия</TableHead>
                   </TableRow>
@@ -136,6 +138,13 @@ const AdminLogistics = () => {
                         </div>
                       </TableCell>
                       <TableCell>{order.place_number}</TableCell>
+                      <TableCell>{order.price.toLocaleString('ru-RU')} ₽</TableCell>
+                      <TableCell>
+                        {order.delivery_price_confirm ? 
+                          `${order.delivery_price_confirm.toLocaleString('ru-RU')} ₽` : 
+                          'Не указана'
+                        }
+                      </TableCell>
                       <TableCell>
                         <OrderStatusBadge status={order.status} />
                       </TableCell>
