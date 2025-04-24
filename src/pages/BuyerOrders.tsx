@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock, Check, X } from 'lucide-react';
+import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock, Check } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,13 +74,29 @@ const BuyerOrders = () => {
       } else {
         query.eq('buyer_id', user.id);
       }
-      const { data, error } = await query.order('created_at', { ascending: false });
+      const { data: ordersData, error } = await query.order('created_at', { ascending: false });
+      
       if (error) {
         console.error("Error fetching orders:", error);
         throw error;
       }
-      console.log("Fetched orders:", data);
-      return data || [];
+
+      const ordersWithConfirmations = await Promise.all(ordersData.map(async (order) => {
+        const { data: confirmImages, error: confirmError } = await supabase
+          .from('confirm_images')
+          .select('url')
+          .eq('order_id', order.id);
+
+        if (confirmError) console.error("Error fetching confirm images:", confirmError);
+        
+        return {
+          ...order,
+          hasConfirmImages: confirmImages && confirmImages.length > 0
+        };
+      }));
+
+      console.log("Fetched orders:", ordersWithConfirmations);
+      return ordersWithConfirmations || [];
     },
     enabled: !!user,
     staleTime: 15000,
@@ -136,11 +152,17 @@ const BuyerOrders = () => {
                   }
                 `}
               >
-                <div className="flex items-center gap-2 px-4 pt-4">
+                <div className="flex items-center justify-between gap-2 px-4 pt-4">
                   {statusIcons[order.status] || statusIcons['created']}
                   <Badge className={`text-base px-3 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
                     {statusLabels[order.status] || order.status}
                   </Badge>
+                  {order.hasConfirmImages && (
+                    <div className="flex items-center gap-2 text-green-600 text-sm">
+                      <Check className="h-4 w-4" />
+                      <span>Фото с подтверждением получены</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 flex flex-col px-4 py-2">
                   <div className="flex items-center justify-between mt-2">
