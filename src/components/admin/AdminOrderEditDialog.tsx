@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -71,6 +70,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       status: order?.status || 'created',
       description: order?.description || '',
       delivery_price_confirm: order?.delivery_price_confirm?.toString() || '',
+      delivery_method: order?.delivery_method || 'self_pickup',
     }
   });
 
@@ -85,6 +85,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         status: order.status,
         description: order.description || '',
         delivery_price_confirm: order.delivery_price_confirm?.toString() || '',
+        delivery_method: order.delivery_method,
       });
     }
   }, [order, form]);
@@ -191,6 +192,29 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                     <FormControl>
                       <Input {...field} type="number" />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="delivery_method"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Способ доставки</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите способ доставки" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                        <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                        <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
