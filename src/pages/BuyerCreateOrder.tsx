@@ -12,6 +12,7 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -32,6 +33,7 @@ const BuyerCreateOrder = () => {
     lot_number: undefined as number | undefined,
     deliveryMethod: 'self_pickup' as DeliveryMethod,
     place_number: "1",
+    text_order: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -244,6 +246,7 @@ const BuyerCreateOrder = () => {
         images: productImages,
         delivery_method: formData.deliveryMethod as DeliveryMethod,
         place_number: parseInt(formData.place_number),
+        text_order: formData.text_order || null,
       };
 
       console.log("Order payload:", orderPayload);
@@ -253,7 +256,10 @@ const BuyerCreateOrder = () => {
         .insert(orderPayload)
         .select();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error("Error creating order:", orderError);
+        throw orderError;
+      }
 
       console.log("Created order:", createdOrder);
 
@@ -489,6 +495,17 @@ const BuyerCreateOrder = () => {
                       <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Дополнительная информация</Label>
+                  <Textarea 
+                    placeholder="Укажите дополнительную информацию по заказу (необязательно)"
+                    className="resize-none"
+                    rows={3}
+                    value={formData.text_order}
+                    onChange={(e) => handleInputChange('text_order', e.target.value)}
+                  />
                 </div>
               </CardContent>
               <CardFooter className="flex justify-end space-x-4">

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -23,7 +24,7 @@ type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 interface OrderConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (orderData: { text_order?: string }) => void;
   isSubmitting: boolean;
   product: {
     id?: string; 
@@ -67,7 +68,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
       });
       return;
     }
-    onConfirm();
+    console.log("Submitting text_order:", textOrder);
+    onConfirm({ text_order: textOrder });
   };
 
   const getDeliveryMethodLabel = (method: DeliveryMethod) => {

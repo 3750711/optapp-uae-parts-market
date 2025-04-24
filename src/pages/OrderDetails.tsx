@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -190,6 +191,7 @@ const OrderDetails = () => {
               const preservedFields = {
                 telegram_url_order: orderData.order.telegram_url_order,
                 buyer_opt_id: orderData.order.buyer_opt_id,
+                text_order: orderData.order.text_order,
               };
               const mergedOrder = { ...preservedFields, ...updatedOrder };
               queryClient.setQueryData(['order', id], {
