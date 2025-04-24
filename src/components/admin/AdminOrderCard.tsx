@@ -162,12 +162,26 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
           </div>
         )}
 
-        {order.delivery_price_confirm && (
-          <div className="flex justify-between items-center text-sm text-muted-foreground">
-            <span className="font-medium">Стоимость доставки:</span>
-            <span>{order.delivery_price_confirm} $</span>
+        <div className="space-y-2 border-t pt-2">
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Стоимость товара:</span>
+            <span className="text-lg">{order.price} $</span>
           </div>
-        )}
+          
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Стоимость доставки:</span>
+            <span className="text-lg text-primary">
+              {order.delivery_price_confirm ? `${order.delivery_price_confirm} $` : 'Не указана'}
+            </span>
+          </div>
+
+          {order.delivery_price_confirm && (
+            <div className="flex justify-between items-center font-bold text-lg border-t pt-2">
+              <span>Итого:</span>
+              <span>{Number(order.price) + Number(order.delivery_price_confirm)} $</span>
+            </div>
+          )}
+        </div>
 
         <OrderConfirmationImages 
           orderId={order.id} 
@@ -175,7 +189,6 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
         />
 
         <div className="pt-2 space-y-2">
-          <div className="font-medium text-lg">{order.price} $</div>
           <div className="flex justify-between items-center text-sm text-muted-foreground">
             <span>{new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
             <div className="flex items-center gap-1">
