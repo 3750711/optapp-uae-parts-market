@@ -43,7 +43,7 @@ const ProductDetail = () => {
         .select(`
           *,
           product_images(url, is_primary),
-          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram),
+          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram, opt_status),
           product_videos(url)
         `)
         .eq("id", id)
@@ -228,6 +228,7 @@ const ProductDetail = () => {
           )}
         </div>
         {isMobile ? (
+          // Mobile layout
           <div className="flex flex-col gap-3">
             <div className="mt-2">
               <ProductGallery images={images} title={product.title} />
@@ -277,6 +278,7 @@ const ProductDetail = () => {
             <RenderFullSizeImages />
           </div>
         ) : (
+          // Desktop layout
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
             <div>
               <div className="mb-4">
