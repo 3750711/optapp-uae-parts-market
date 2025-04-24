@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,6 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,7 +28,14 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
   onConfirm,
   isSubmitting,
 }) => {
-  const [price, setPrice] = useState(currentPrice.toString());
+  const [price, setPrice] = useState("");
+
+  // Reset price when dialog opens or currentPrice changes
+  useEffect(() => {
+    if (open && currentPrice) {
+      setPrice(currentPrice.toString());
+    }
+  }, [open, currentPrice]);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -47,10 +55,13 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Подтверждение заказа</DialogTitle>
+          <DialogDescription>
+            Подтвердите или измените цену заказа
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-3">
           <div className="space-y-2">
-            <Label htmlFor="price">Подтвердите или измените цену (AED)</Label>
+            <Label htmlFor="price">Подтвердите или измените цену ($)</Label>
             <Input
               id="price"
               type="number"

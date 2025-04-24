@@ -185,7 +185,12 @@ const SellerOrders = () => {
   });
 
   const handleConfirmOrder = (orderId: string, currentPrice: number) => {
-    setSelectedOrder({ id: orderId, price: currentPrice });
+    const numericPrice = typeof currentPrice === 'number' ? currentPrice : parseFloat(String(currentPrice));
+    console.log("Opening price dialog with price:", numericPrice);
+    setSelectedOrder({ 
+      id: orderId, 
+      price: numericPrice 
+    });
     setIsPriceDialogOpen(true);
   };
 
@@ -318,7 +323,7 @@ const SellerOrders = () => {
                     <div className="flex justify-between items-center">
                       <div className="font-medium text-lg">{order.price} $</div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <span className="font-medium">Мест для отправки:</span>
+                        <span className="font-medium">Мест для о��правки:</span>
                         <span>{order.place_number || 1}</span>
                       </div>
                     </div>
@@ -376,7 +381,7 @@ const SellerOrders = () => {
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleConfirmOrder(order.id, order.price);
+                              handleConfirmOrder(order.id, order.price || 0);
                             }}
                           >
                             <CheckCircle className="h-4 w-4 mr-2" />
@@ -445,6 +450,7 @@ const SellerOrders = () => {
         currentPrice={selectedOrder?.price || 0}
         onConfirm={(newPrice) => {
           if (selectedOrder) {
+            console.log("Confirming order with new price:", newPrice);
             confirmOrderMutation.mutate({ 
               orderId: selectedOrder.id, 
               newPrice 

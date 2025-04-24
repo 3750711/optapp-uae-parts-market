@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -208,7 +207,10 @@ const OrderDetails = () => {
         {canConfirm && (
           <div className="mt-6 flex justify-center">
             <Button 
-              onClick={() => setIsPriceDialogOpen(true)}
+              onClick={() => {
+                console.log("Opening price dialog with price:", orderData?.order?.price);
+                setIsPriceDialogOpen(true);
+              }}
               disabled={isUpdating}
               className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3"
             >
