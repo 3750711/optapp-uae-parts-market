@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Share, Package2 } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Share, Package2, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -103,8 +102,21 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
       </div>
       
       <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
-      <div className="text-2xl font-bold text-primary mb-4 flex items-center">
-        {product.price} <span className="ml-1 text-xl">$</span>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="font-bold text-2xl text-primary">
+          {product.price} $
+        </span>
+        {product.delivery_price !== null && product.delivery_price !== undefined && product.delivery_price > 0 && (
+          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Truck className="w-4 h-4 text-gray-500" />
+            <span>Доставка: {product.delivery_price} $</span>
+          </div>
+        )}
+        {(product.delivery_price === null || product.delivery_price === undefined || product.delivery_price === 0) && (
+          <div className="text-sm text-gray-500">
+            Стоимость доставки не указана
+          </div>
+        )}
       </div>
       
       <div className="mb-6 space-y-4">
