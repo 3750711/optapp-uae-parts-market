@@ -23,6 +23,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChevronDown } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const formSchema = z.object({
   delivery_price: z.string().refine(
@@ -51,6 +57,7 @@ export const ProductPublishDialog = ({
 }: ProductPublishDialogProps) => {
   const { toast } = useToast();
   const [internalOpen, setInternalOpen] = React.useState(false);
+  const [isGuideOpen, setIsGuideOpen] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
 
@@ -172,12 +179,34 @@ Nose cut (Ноускат) высокий - $260
           </form>
         </Form>
 
-        <ScrollArea className="flex-1 px-1 mt-4 border-t pt-4">
-          <div className="text-sm text-muted-foreground whitespace-pre-line">
-            <p className="font-medium mb-2">Справочник стоимости доставки:</p>
-            {deliveryPriceGuide}
-          </div>
-        </ScrollArea>
+        <div className="mt-4 border-t pt-4">
+          <Collapsible
+            open={isGuideOpen}
+            onOpenChange={setIsGuideOpen}
+            className="w-full"
+          >
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="ghost"
+                className="flex w-full justify-between p-0 font-medium"
+              >
+                <span>Справочник стоимости доставки</span>
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform duration-200 ${
+                    isGuideOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ScrollArea className="mt-2 max-h-[300px]">
+                <div className="text-sm text-muted-foreground whitespace-pre-line">
+                  {deliveryPriceGuide}
+                </div>
+              </ScrollArea>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       </DialogContent>
     </Dialog>
   );
