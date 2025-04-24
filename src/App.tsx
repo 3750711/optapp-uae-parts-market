@@ -12,6 +12,7 @@ import PublicSellerProfile from "@/pages/PublicSellerProfile";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminProducts from "./pages/AdminProducts";
+import AdminLogistics from "./pages/AdminLogistics";
 
 // Pages
 import Catalog from "./pages/Catalog";
