@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +21,7 @@ import { Input } from "@/components/ui/input";
 const AdminLogistics = () => {
   const navigate = useNavigate();
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [editingContainer, setEditingContainer] = useState<string | null>(null);
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['logistics-orders'],
@@ -61,6 +61,7 @@ const AdminLogistics = () => {
     if (error) {
       console.error('Error updating container number:', error);
     }
+    setEditingContainer(null);
   };
 
   const handleSelectOrder = (orderId: string) => {
@@ -163,14 +164,34 @@ const AdminLogistics = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Input
-                            type="text"
-                            placeholder="Номер контейнера"
-                            defaultValue={order.container_number || ''}
-                            onBlur={(e) => handleUpdateContainerNumber(order.id, e.target.value)}
-                            className="w-32"
-                          />
-                          <Container className="h-4 w-4 text-muted-foreground" />
+                          {editingContainer === order.id ? (
+                            <div className="flex items-center space-x-2">
+                              <Input
+                                type="text"
+                                placeholder="Введите номер контейнера"
+                                defaultValue={order.container_number || ''}
+                                autoFocus
+                                onBlur={(e) => handleUpdateContainerNumber(order.id, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleUpdateContainerNumber(order.id, e.currentTarget.value);
+                                  }
+                                }}
+                                className="w-32"
+                              />
+                              <Container className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <div 
+                              className="flex items-center space-x-2 cursor-pointer hover:text-primary"
+                              onClick={() => setEditingContainer(order.id)}
+                            >
+                              <span>
+                                {order.container_number || 'Не отправлен'}
+                              </span>
+                              <Container className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
