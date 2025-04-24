@@ -198,6 +198,23 @@ const AdminProducts = () => {
                           queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
                         }}
                       />
+                      {product.status === 'pending' && (
+                        <ProductPublishDialog
+                          product={product}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                            >
+                              Опубликовать
+                            </Button>
+                          }
+                          onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                          }}
+                        />
+                      )}
                       <ProductStatusDialog
                         product={product}
                         trigger={
