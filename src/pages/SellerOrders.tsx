@@ -241,7 +241,7 @@ const SellerOrders = () => {
       case 'admin_confirmed':
         return 'Подтвержден администратором';
       case 'processed':
-        return 'В обработке';
+        return 'Зарегистрирован';
       case 'shipped':
         return 'Отправлен';
       case 'delivered':
