@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -154,7 +153,7 @@ const BuyerOrders = () => {
                     <span className="font-medium text-optapp-dark">{order.price} $</span>
                     <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <Badge variant="outline">{orderTypeLabels[order.order_created_type]}</Badge>
                     <Badge variant="outline">
                       {order.buyer_opt_id || 'Не указан'}
@@ -163,6 +162,13 @@ const BuyerOrders = () => {
                   <div className="text-sm text-gray-500 mb-1">
                     Продавец: <span className="font-medium">{order.order_seller_name}</span>
                   </div>
+                  
+                  {order.text_order && (
+                    <div className="text-sm text-gray-600 mt-2 border-t pt-2">
+                      <span className="font-medium">Доп. информация:</span>
+                      <p className="mt-1 whitespace-pre-wrap">{order.text_order}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
                   <Link
