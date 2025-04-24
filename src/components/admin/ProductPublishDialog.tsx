@@ -95,6 +95,24 @@ export const ProductPublishDialog = ({
         <DialogHeader>
           <DialogTitle>Опубликовать товар</DialogTitle>
         </DialogHeader>
+
+        <div className="space-y-4 mb-4">
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-1">Название</h4>
+            <p className="text-sm">{product.title}</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">Марка</h4>
+              <p className="text-sm">{product.brand}</p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">Модель</h4>
+              <p className="text-sm">{product.model}</p>
+            </div>
+          </div>
+        </div>
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
