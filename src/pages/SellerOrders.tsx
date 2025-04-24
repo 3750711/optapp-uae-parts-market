@@ -270,7 +270,14 @@ const SellerOrders = () => {
                 >
                   <CardHeader className="space-y-2">
                     <div className="flex justify-between items-start">
-                      <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
+                      <div className="space-y-1">
+                        <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
+                        {order.lot_number_order && (
+                          <div className="text-sm text-muted-foreground">
+                            Лот: {order.lot_number_order}
+                          </div>
+                        )}
+                      </div>
                       <Badge className={getStatusBadgeColor(order.status)}>
                         {getStatusLabel(order.status)}
                       </Badge>
