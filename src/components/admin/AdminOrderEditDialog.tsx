@@ -66,12 +66,11 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       brand: order?.brand || '',
       model: order?.model || '',
       price: order?.price?.toString() || '',
-      quantity: order?.quantity?.toString() || '1',
+      place_number: order?.place_number?.toString() || '1',
       status: order?.status || 'created',
       description: order?.description || '',
       delivery_price_confirm: order?.delivery_price_confirm?.toString() || '',
       delivery_method: order?.delivery_method || 'self_pickup',
-      place_number: order?.place_number?.toString() || '1',
     }
   });
 
@@ -82,24 +81,14 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         brand: order.brand,
         model: order.model,
         price: order.price?.toString(),
-        quantity: order.quantity?.toString(),
+        place_number: order.place_number?.toString(),
         status: order.status,
         description: order.description || '',
         delivery_price_confirm: order.delivery_price_confirm?.toString() || '',
         delivery_method: order.delivery_method,
-        place_number: order.place_number?.toString(),
       });
     }
   }, [order, form]);
-
-  React.useEffect(() => {
-    const subscription = form.watch((value, { name }) => {
-      if (name === 'quantity') {
-        form.setValue('place_number', value.quantity || '1');
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
 
   const updateOrderMutation = useMutation({
     mutationFn: async (values: any) => {
@@ -110,7 +99,8 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         .update({
           ...values,
           price: Number(values.price),
-          quantity: Number(values.quantity),
+          quantity: Number(values.place_number),
+          place_number: Number(values.place_number),
           delivery_price_confirm: values.delivery_price_confirm ? Number(values.delivery_price_confirm) : null,
         })
         .eq('id', order.id)
@@ -239,20 +229,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                     <FormLabel>Подтвержденная стоимость доставки ($)</FormLabel>
                     <FormControl>
                       <Input {...field} type="number" step="0.01" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Количество</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" min="1" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
