@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -226,6 +227,7 @@ const AdminLogistics = () => {
                       />
                     </TableHead>
                     <TableHead>Номер заказа</TableHead>
+                    <TableHead>Наименование</TableHead>
                     <TableHead>Лот</TableHead>
                     <TableHead>Продавец</TableHead>
                     <TableHead>Покупатель</TableHead>
@@ -247,6 +249,7 @@ const AdminLogistics = () => {
                         />
                       </TableCell>
                       <TableCell>{order.order_number}</TableCell>
+                      <TableCell>{order.title}</TableCell>
                       <TableCell>{order.lot_number_order}</TableCell>
                       <TableCell>
                         <div className="flex flex-col">
