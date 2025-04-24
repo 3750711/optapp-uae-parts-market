@@ -191,14 +191,18 @@ const AdminLogistics = () => {
 
   const getStatusColor = (status: string | null) => {
     switch (status) {
-      case 'waiting':
-        return 'text-yellow-600';
-      case 'in_transit':
+      case 'sent_from_uae':
         return 'text-blue-600';
-      case 'delivered':
-        return 'text-green-600';
-      case 'lost':
+      case 'transit_iran':
+        return 'text-orange-600';
+      case 'to_kazakhstan':
+        return 'text-yellow-600';
+      case 'customs':
         return 'text-red-600';
+      case 'cleared_customs':
+        return 'text-purple-600';
+      case 'received':
+        return 'text-green-600';
       default:
         return 'text-gray-600';
     }
@@ -206,14 +210,18 @@ const AdminLogistics = () => {
 
   const getStatusLabel = (status: string | null) => {
     switch (status) {
-      case 'waiting':
-        return 'Ожидание';
-      case 'in_transit':
-        return 'В пути';
-      case 'delivered':
-        return 'Доставлен';
-      case 'lost':
-        return 'Утерян';
+      case 'sent_from_uae':
+        return 'Отправлен из ОАЭ';
+      case 'transit_iran':
+        return 'Транзит Иран';
+      case 'to_kazakhstan':
+        return 'Следует в Казахстан';
+      case 'customs':
+        return 'Таможня';
+      case 'cleared_customs':
+        return 'Вышел с таможни';
+      case 'received':
+        return 'Получен';
       default:
         return 'Не указан';
     }
@@ -383,10 +391,12 @@ const AdminLogistics = () => {
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="waiting">Ожидание</SelectItem>
-                            <SelectItem value="in_transit">В пути</SelectItem>
-                            <SelectItem value="delivered">Доставлен</SelectItem>
-                            <SelectItem value="lost">Утерян</SelectItem>
+                            <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
+                            <SelectItem value="transit_iran">Транзит Иран</SelectItem>
+                            <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
+                            <SelectItem value="customs">Таможня</SelectItem>
+                            <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
+                            <SelectItem value="received">Получен</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
