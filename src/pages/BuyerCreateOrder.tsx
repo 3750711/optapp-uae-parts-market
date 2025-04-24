@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -178,36 +177,7 @@ const BuyerCreateOrder = () => {
       let resolvedProductId = productId;
       let usedLotNumber = formData.lot_number;
 
-      if (!productId) {
-        const { data: insertedProducts, error: productError } = await supabase
-          .from('products')
-          .insert({
-            title: formData.title,
-            price: parseFloat(formData.price),
-            brand: formData.brand,
-            model: formData.model,
-            seller_id: sellerData.id,
-            seller_name: sellerData.full_name || 'Unknown',
-            condition: 'new',
-          })
-          .select();
-
-        if (productError) {
-          console.error("Ошибка создания вспомогательного продукта:", productError);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось создать временный товар для заказа",
-            variant: "destructive",
-          });
-          setIsSubmitting(false);
-          return;
-        }
-        
-        if (insertedProducts && insertedProducts.length > 0) {
-          resolvedProductId = insertedProducts[0].id;
-          usedLotNumber = insertedProducts[0].lot_number;
-        }
-      } else {
+      if (productId) {
         const { data: currentProduct, error: productCheckError } = await supabase
           .from('products')
           .select('status')

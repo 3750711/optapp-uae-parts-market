@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -171,37 +170,7 @@ const SellerCreateOrder = () => {
       console.log("Working with product ID:", productId);
       let resolvedProductId = productId;
 
-      if (!productId) {
-        console.log("Creating temporary product for the order");
-        const { data: productInsert, error: productError } = await supabase
-          .from('products')
-          .insert({
-            title: formData.title,
-            price: parseFloat(formData.price),
-            brand: formData.brand,
-            model: formData.model,
-            seller_id: user.id,
-            seller_name: profile?.full_name || 'Unknown',
-            condition: 'new',
-            status: 'active',
-          })
-          .select();
-
-        if (productError) {
-          console.error("Ошибка создания товара для заказа:", productError);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось создать временный товар для заказа",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        if (productInsert && productInsert.length > 0) {
-          resolvedProductId = productInsert[0].id;
-          console.log("Created temporary product with ID:", resolvedProductId);
-        }
-      } else {
+      if (productId) {
         const { data: currentProduct, error: productCheckError } = await supabase
           .from('products')
           .select('status')
@@ -223,7 +192,7 @@ const SellerCreateOrder = () => {
         }
       }
 
-      console.log("Preparing to create order with product_id:", resolvedProductId);
+      console.log("Preparing to create order");
 
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       
@@ -237,8 +206,8 @@ const SellerCreateOrder = () => {
         buyer_id: buyerData.id,
         brand: formData.brand,
         model: formData.model,
-        status: productId ? ('created' as OrderStatus) : ('seller_confirmed' as OrderStatus),
-        order_created_type: productId ? ('ads_order' as OrderCreatedType) : ('free_order' as OrderCreatedType),
+        status: 'seller_confirmed' as OrderStatus,
+        order_created_type: 'free_order' as OrderCreatedType,
         telegram_url_order: buyerData.telegram || null,
         images: images,
         product_id: resolvedProductId || null,
@@ -266,11 +235,11 @@ const SellerCreateOrder = () => {
         throw new Error("Order was created but no data was returned");
       }
       
-      if (resolvedProductId) {
+      if (productId) {
         const { error: updateError } = await supabase
           .from('products')
           .update({ status: 'sold' })
-          .eq('id', resolvedProductId);
+          .eq('id', productId);
 
         if (updateError) {
           console.error("Error updating product status:", updateError);

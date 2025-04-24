@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -167,6 +166,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         images: productImages,
         delivery_method: deliveryMethod,
         text_order: orderData.text_order || null,
+        delivery_price_confirm: null,
       };
 
       const { data: order, error: orderError } = await supabase
