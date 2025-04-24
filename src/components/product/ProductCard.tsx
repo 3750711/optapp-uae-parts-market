@@ -1,8 +1,9 @@
+
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge as BadgeIcon, Star, Truck } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star, Truck, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
