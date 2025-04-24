@@ -162,6 +162,13 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
           </div>
         )}
 
+        {order.delivery_price_confirm && (
+          <div className="flex justify-between items-center text-sm text-muted-foreground">
+            <span className="font-medium">Стоимость доставки:</span>
+            <span>{order.delivery_price_confirm} AED</span>
+          </div>
+        )}
+
         <OrderConfirmationImages 
           orderId={order.id} 
           canEdit={true}

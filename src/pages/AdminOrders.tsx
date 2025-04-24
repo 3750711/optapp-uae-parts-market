@@ -42,7 +42,8 @@ const AdminOrders = () => {
             full_name,
             opt_id,
             email,
-            phone
+            phone,
+            opt_status
           )
         `)
         .order('created_at', { ascending: false });
