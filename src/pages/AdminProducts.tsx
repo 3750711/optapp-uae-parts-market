@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ import { Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
-import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog'; // Add this import
+import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
 import { Badge } from '@/components/ui/badge';
@@ -171,8 +170,14 @@ const AdminProducts = () => {
                 <div className="space-y-2">
                   <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {product.price} AED
+                    {product.price} $
                   </p>
+                  
+                  {product.delivery_price !== null && product.delivery_price !== undefined && (
+                    <p className="text-xs text-muted-foreground">
+                      Доставка: {product.delivery_price} $
+                    </p>
+                  )}
                   
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="truncate">{product.seller_name}</span>
