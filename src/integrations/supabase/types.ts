@@ -134,6 +134,7 @@ export type Database = {
           brand: string
           buyer_id: string
           buyer_opt_id: string | null
+          container_number: string | null
           created_at: string
           delivery_method: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm: number | null
@@ -161,6 +162,7 @@ export type Database = {
           brand: string
           buyer_id: string
           buyer_opt_id?: string | null
+          container_number?: string | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm?: number | null
@@ -188,6 +190,7 @@ export type Database = {
           brand?: string
           buyer_id?: string
           buyer_opt_id?: string | null
+          container_number?: string | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm?: number | null

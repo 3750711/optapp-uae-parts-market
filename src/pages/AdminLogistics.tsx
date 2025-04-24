@@ -12,11 +12,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye } from "lucide-react";
+import { Loader2, Eye, Container } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 
 const AdminLogistics = () => {
   const navigate = useNavigate();
@@ -49,6 +50,17 @@ const AdminLogistics = () => {
 
   const handleViewDetails = (orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
+  };
+
+  const handleUpdateContainerNumber = async (orderId: string, containerNumber: string) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ container_number: containerNumber })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Error updating container number:', error);
+    }
   };
 
   const handleSelectOrder = (orderId: string) => {
@@ -107,6 +119,7 @@ const AdminLogistics = () => {
                     <TableHead>Цена</TableHead>
                     <TableHead>Цена доставки</TableHead>
                     <TableHead>Статус</TableHead>
+                    <TableHead>Номер контейнера</TableHead>
                     <TableHead>Действия</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -147,6 +160,18 @@ const AdminLogistics = () => {
                       </TableCell>
                       <TableCell>
                         <OrderStatusBadge status={order.status} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            type="text"
+                            placeholder="Номер контейнера"
+                            defaultValue={order.container_number || ''}
+                            onBlur={(e) => handleUpdateContainerNumber(order.id, e.target.value)}
+                            className="w-32"
+                          />
+                          <Container className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Button
