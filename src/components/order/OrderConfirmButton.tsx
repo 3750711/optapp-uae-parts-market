@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, Check } from "lucide-react";
@@ -10,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 interface OrderConfirmButtonProps {
@@ -50,6 +50,10 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
       return data?.map(img => img.url) || [];
     }
   });
+
+  const handleConfirm = () => {
+    setIsOpen(false);
+  };
 
   if (images.length > 0) {
     return (
@@ -102,9 +106,18 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
 
             <OrderConfirmationImages orderId={orderId} canEdit={true} />
           </div>
+
+          <DialogFooter>
+            <Button 
+              onClick={handleConfirm}
+              className="w-full sm:w-auto"
+              variant="default"
+            >
+              Подтвердить
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 };
-
