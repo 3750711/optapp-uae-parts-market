@@ -48,6 +48,9 @@ const SellerOrders = () => {
           *,
           buyer:profiles!orders_buyer_id_fkey (
             telegram
+          ),
+          seller:profiles!orders_seller_id_fkey (
+            opt_status
           )
         `)
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
@@ -59,7 +62,6 @@ const SellerOrders = () => {
         throw error;
       }
 
-      // Fetch confirmation images for each order
       const ordersWithConfirmations = await Promise.all(data.map(async (order) => {
         const { data: confirmImages } = await supabase
           .from('confirm_images')
@@ -260,7 +262,7 @@ const SellerOrders = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto py-4 px-2 md:py-8 md:px-4">
+      <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col gap-4 md:gap-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">Мои заказы</h1>
@@ -271,12 +273,8 @@ const SellerOrders = () => {
           
           <Separator />
 
-          {!orders || orders.length === 0 ? (
-            <div className="text-center p-4 md:p-8 text-muted-foreground">
-              У вас пока нет заказов
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {orders && orders.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {orders?.map((order) => (
                 <Card 
                   key={order.id}
@@ -285,7 +283,6 @@ const SellerOrders = () => {
                 >
                   <CardHeader className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
-                      {/* Display confirmation images indicator if present */}
                       {order.hasConfirmImages && (
                         <div 
                           className="flex items-center gap-2 text-green-600 text-sm cursor-pointer hover:text-green-700"
@@ -325,6 +322,13 @@ const SellerOrders = () => {
                         <span>{order.place_number || 1}</span>
                       </div>
                     </div>
+
+                    {order.seller?.opt_status === 'opt_user' && order.delivery_price_confirm && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="font-medium">Стоимость доставки:</span>
+                        <span>{order.delivery_price_confirm} $</span>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-muted-foreground">Покупатель</div>
@@ -426,6 +430,10 @@ const SellerOrders = () => {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          ) : (
+            <div className="text-center p-4 md:p-8 text-muted-foreground">
+              У вас пока нет заказов
             </div>
           )}
         </div>
