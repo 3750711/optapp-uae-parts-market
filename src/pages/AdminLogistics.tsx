@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,14 +26,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
+import { Database } from "@/integrations/supabase/types";
+
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  buyer: {
+    full_name: string | null;
+    location: string | null;
+    opt_id: string | null;
+  } | null;
+  seller: {
+    full_name: string | null;
+    location: string | null;
+    opt_id: string | null;
+  } | null;
+};
 
 type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 
@@ -102,11 +109,12 @@ const AdminLogistics = () => {
         .range(from, to);
 
       if (ordersError) throw ordersError;
-      return orders;
+      return orders as Order[];
     },
     getNextPageParam: (lastPage, allPages) => {
       return lastPage?.length === ITEMS_PER_PAGE ? allPages.length : undefined;
     },
+    initialPageParam: 0,
   });
 
   useEffect(() => {
@@ -303,7 +311,7 @@ const AdminLogistics = () => {
     );
   }
 
-  const getCompactOrderInfo = (order: any) => {
+  const getCompactOrderInfo = (order: Order) => {
     const buyer = order.buyer?.full_name || 'Не указано';
     const seller = order.seller?.full_name || 'Не указано';
     return {
@@ -362,7 +370,7 @@ const AdminLogistics = () => {
                   <TableRow>
                     <TableHead className="w-[40px]">
                       <Checkbox 
-                        checked={orders?.length === selectedOrders.length}
+                        checked={orders?.length > 0 && orders.length === selectedOrders.length}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
@@ -438,7 +446,7 @@ const AdminLogistics = () => {
                         </TableCell>
                         <TableCell>
                           <Select
-                            value={order.container_status as ContainerStatus || 'sent_from_uae'}
+                            value={(order.container_status as ContainerStatus) || 'sent_from_uae'}
                             onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
                           >
                             <SelectTrigger className={`w-[160px] h-8 text-sm ${getStatusColor(order.container_status as ContainerStatus)}`}>
