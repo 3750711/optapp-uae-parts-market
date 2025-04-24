@@ -11,17 +11,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, Container } from "lucide-react";
+import { Loader2, Eye, Container, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminLogistics = () => {
   const navigate = useNavigate();
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [editingContainer, setEditingContainer] = useState<string | null>(null);
+  const [tempContainerNumber, setTempContainerNumber] = useState<string>('');
+  const { toast } = useToast();
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['logistics-orders'],
@@ -60,8 +63,19 @@ const AdminLogistics = () => {
 
     if (error) {
       console.error('Error updating container number:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить номер контейнера",
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: "Номер контейнера обновлен",
+      });
     }
     setEditingContainer(null);
+    setTempContainerNumber('');
   };
 
   const handleSelectOrder = (orderId: string) => {
@@ -171,20 +185,24 @@ const AdminLogistics = () => {
                                 placeholder="Введите номер контейнера"
                                 defaultValue={order.container_number || ''}
                                 autoFocus
-                                onBlur={(e) => handleUpdateContainerNumber(order.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleUpdateContainerNumber(order.id, e.currentTarget.value);
-                                  }
-                                }}
+                                onChange={(e) => setTempContainerNumber(e.target.value)}
                                 className="w-32"
                               />
-                              <Container className="h-4 w-4 text-muted-foreground" />
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleUpdateContainerNumber(order.id, tempContainerNumber)}
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
                             </div>
                           ) : (
                             <div 
                               className="flex items-center space-x-2 cursor-pointer hover:text-primary"
-                              onClick={() => setEditingContainer(order.id)}
+                              onClick={() => {
+                                setEditingContainer(order.id);
+                                setTempContainerNumber(order.container_number || '');
+                              }}
                             >
                               <span>
                                 {order.container_number || 'Не отправлен'}
