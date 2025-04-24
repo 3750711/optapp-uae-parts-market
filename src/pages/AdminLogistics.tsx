@@ -75,6 +75,10 @@ const AdminLogistics = () => {
     }
   });
 
+  const selectedOrdersDeliverySum = orders
+    ?.filter(order => selectedOrders.includes(order.id))
+    .reduce((sum, order) => sum + (order.delivery_price_confirm || 0), 0);
+
   const handleViewDetails = (orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
   };
@@ -178,6 +182,9 @@ const AdminLogistics = () => {
             {selectedOrders.length > 0 && (
               <div className="mb-4 p-4 border rounded-lg bg-muted/50 flex items-center gap-4">
                 <span>Выбрано заказов: {selectedOrders.length}</span>
+                <span className="font-medium">
+                  Сумма доставки: {selectedOrdersDeliverySum?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                </span>
                 {!bulkEditingContainer ? (
                   <Button
                     variant="secondary"
