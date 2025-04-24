@@ -144,140 +144,136 @@ const AdminProducts = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {products?.map((product) => {
-            const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
-                               product.product_images?.[0]?.url || 
-                               '/placeholder.svg';
-            
-            return (
-              <div 
-                key={product.id} 
-                className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
-              >
-                <div className="relative aspect-square mb-4">
-                  <img 
-                    src={primaryImage} 
-                    alt={product.title} 
-                    className="object-cover w-full h-full rounded-md"
-                  />
-                  <Badge 
-                    className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
-                  >
-                    {getStatusLabel(product.status)}
-                  </Badge>
-                </div>
+          {products?.map((product) => (
+            <div 
+              key={product.id} 
+              className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
+            >
+              <div className="relative aspect-square mb-4">
+                <img 
+                  src={product.product_images?.find(img => img.is_primary)?.url || 
+                     product.product_images?.[0]?.url || 
+                     '/placeholder.svg'} 
+                  alt={product.title} 
+                  className="object-cover w-full h-full rounded-md"
+                />
+                <Badge 
+                  className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
+                >
+                  {getStatusLabel(product.status)}
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {product.price} $
+                </p>
                 
-                <div className="space-y-2">
-                  <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {product.price} $
+                {product.delivery_price !== null && product.delivery_price !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    Доставка: {product.delivery_price} $
                   </p>
-                  
-                  {product.delivery_price !== null && product.delivery_price !== undefined && (
-                    <p className="text-xs text-muted-foreground">
-                      Доставка: {product.delivery_price} $
-                    </p>
+                )}
+                
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="truncate">{product.seller_name}</span>
+                  {product.optid_created && (
+                    <Badge variant="outline" className="text-xs">
+                      {product.optid_created}
+                    </Badge>
                   )}
-                  
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="truncate">{product.seller_name}</span>
-                    {product.optid_created && (
-                      <Badge variant="outline" className="text-xs">
-                        {product.optid_created}
-                      </Badge>
-                    )}
-                  </div>
+                </div>
 
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-1">
-                      <ProductEditDialog
+                <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center gap-1">
+                    <ProductEditDialog
+                      product={product}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      }
+                      onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                      }}
+                    />
+                    {product.status === 'pending' && (
+                      <ProductPublishDialog
                         product={product}
                         trigger={
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
+                            variant="outline"
+                            size="sm"
+                            className="h-8"
                           >
-                            <Edit className="h-4 w-4" />
+                            Опубликовать
                           </Button>
                         }
                         onSuccess={() => {
                           queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
                         }}
                       />
-                      {product.status === 'pending' && (
-                        <ProductPublishDialog
-                          product={product}
-                          trigger={
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8"
-                            >
-                              Опубликовать
-                            </Button>
-                          }
-                          onSuccess={() => {
-                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                          }}
-                        />
-                      )}
-                      <ProductStatusDialog
-                        product={product}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        }
-                        onSuccess={() => {
-                          queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                        }}
-                      />
-                      <AlertDialog open={deleteProductId === product.id} onOpenChange={(open) => !open && setDeleteProductId(null)}>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600"
-                            onClick={() => setDeleteProductId(product.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Удаление товара</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Отмена</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700">
-                              Удалить
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                    <Link to={`/product/${product.id}`} target="_blank">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs"
-                      >
-                        Просмотр
-                      </Button>
-                    </Link>
+                    )}
+                    <ProductStatusDialog
+                      product={product}
+                      trigger={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      }
+                      onSuccess={() => {
+                        queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                      }}
+                    />
+                    <AlertDialog open={deleteProductId === product.id} onOpenChange={(open) => !open && setDeleteProductId(null)}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-600"
+                          onClick={() => setDeleteProductId(product.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Удаление товара</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Отмена</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700">
+                            Удалить
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
+                  <Link to={`/product/${product.id}`} target="_blank">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-xs"
+                    >
+                      Просмотр
+                    </Button>
+                  </Link>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       </div>
     </AdminLayout>
