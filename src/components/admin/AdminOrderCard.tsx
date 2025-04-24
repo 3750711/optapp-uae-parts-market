@@ -37,9 +37,9 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
   const queryClient = useQueryClient();
   
   const highlightColor = 
-    order.status === 'processed' ? 'bg-[#F2FCE2]' : // Green-like highlight
-    order.status === 'created' || order.status === 'seller_confirmed' ? 'bg-[#FEF7CD]' : // Yellow highlight
-    order.status === 'admin_confirmed' ? 'bg-[#FED7AA]' : // Orange highlight
+    order.status === 'processed' ? 'bg-[#F2FCE2]' :
+    order.status === 'created' || order.status === 'seller_confirmed' ? 'bg-[#FEF7CD]' :
+    order.status === 'admin_confirmed' ? 'bg-[#FED7AA]' :
     '';
 
   const handleConfirm = async () => {
@@ -154,6 +154,13 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
             )}
           </div>
         </div>
+
+        {order.text_order && order.text_order.trim() !== "" && (
+          <div className="text-sm text-gray-600 mt-2 border-t pt-2">
+            <span className="font-medium">Дополнительная информация:</span>
+            <p className="mt-1 whitespace-pre-wrap line-clamp-3">{order.text_order}</p>
+          </div>
+        )}
 
         <div className="pt-2 space-y-2">
           <div className="font-medium text-lg">{order.price} AED</div>
