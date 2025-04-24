@@ -39,6 +39,35 @@ export type Database = {
         }
         Relationships: []
       }
+      confirm_images: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confirm_images_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_images: {
         Row: {
           created_at: string

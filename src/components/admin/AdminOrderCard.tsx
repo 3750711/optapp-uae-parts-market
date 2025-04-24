@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +8,7 @@ import { Database } from '@/integrations/supabase/types';
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
+import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -161,6 +161,11 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
             <p className="mt-1 whitespace-pre-wrap line-clamp-3">{order.text_order}</p>
           </div>
         )}
+
+        <OrderConfirmationImages 
+          orderId={order.id} 
+          canEdit={true}
+        />
 
         <div className="pt-2 space-y-2">
           <div className="font-medium text-lg">{order.price} AED</div>
