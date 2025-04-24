@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,10 @@ interface ProductInfoProps {
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
-  const { profile } = user;
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
