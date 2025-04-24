@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -30,7 +31,7 @@ const ProductDetail = () => {
   const { isAdmin } = useAdminAccess();
   const { user } = useAuth();
   const [adminEditOpen, setAdminEditOpen] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("self_pickup");
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("cargo_rf");
   const [searchParams] = useSearchParams();
   const fromPage = searchParams.get("from_page");
 
