@@ -87,7 +87,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     }
   };
 
-  const showDeliveryPrice = profile?.opt_status === 'opt_used' && deliveryMethod === 'cargo_rf';
+  // Updated condition to show delivery price when opt_status is 'opt_user' (was 'opt_used')
+  const showDeliveryPrice = profile?.opt_status === 'opt_user' && deliveryMethod === 'cargo_rf';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,12 +131,6 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500">ID товара:</span>
                     <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
-                  </div>
-                )}
-                {showDeliveryPrice && product.delivery_price !== undefined && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Стоимость доставки:</span>
-                    <span className="font-medium">{product.delivery_price} $</span>
                   </div>
                 )}
               </div>

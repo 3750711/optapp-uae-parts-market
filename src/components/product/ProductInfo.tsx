@@ -21,6 +21,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
 
+  // Updated condition to use 'opt_user' instead of 'opt_used'
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   const handleShare = () => {

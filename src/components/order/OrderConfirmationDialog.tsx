@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -58,7 +59,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     onConfirm({ text_order: textOrder });
   };
 
-  const showDeliveryPrice = profile?.opt_status === 'opt_used' && deliveryMethod === 'cargo_rf';
+  // Updated condition to show delivery price when opt_status is 'opt_user' (was 'opt_used')
+  const showDeliveryPrice = profile?.opt_status === 'opt_user' && deliveryMethod === 'cargo_rf';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -103,13 +105,22 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                     <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
                   </div>
                 )}
-                {showDeliveryPrice && product.delivery_price !== undefined && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Стоимость доставки:</span>
-                    <span className="font-medium">{product.delivery_price} $</span>
-                  </div>
-                )}
               </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
+              
+              {showDeliveryPrice && product.delivery_price !== undefined && (
+                <div className="mt-2 mb-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Стоимость доставки:</span>
+                    <span className="font-medium text-gray-900">{product.delivery_price} $</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <Separator />
