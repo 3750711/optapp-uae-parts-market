@@ -1,8 +1,7 @@
-
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, FileSearch, Clipboard } from 'lucide-react';
+import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
@@ -180,6 +179,23 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </Link>
+
+          <Link to="/admin/logistics">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Логистика</CardTitle>
+                <Truck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {(processingOrderCount || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Управление доставками
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </div>
     </AdminLayout>
@@ -187,4 +203,3 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
-
