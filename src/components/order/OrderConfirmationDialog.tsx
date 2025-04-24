@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -48,6 +49,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   const [textOrder, setTextOrder] = useState<string>("");
 
   const handleConfirm = () => {
+    console.log("Submitting text_order:", textOrder);
     onConfirm({ text_order: textOrder });
   };
 
