@@ -19,6 +19,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -56,6 +66,19 @@ const AdminLogistics = () => {
   const [bulkContainerStatus, setBulkContainerStatus] = useState<ContainerStatus>('sent_from_uae');
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  const [confirmStatusDialog, setConfirmStatusDialog] = useState(false);
+  const [confirmContainerDialog, setConfirmContainerDialog] = useState(false);
+  const [pendingStatusChange, setPendingStatusChange] = useState<{
+    orderId?: string;
+    status?: ContainerStatus;
+    isBulk?: boolean;
+  }>({});
+  const [pendingContainerChange, setPendingContainerChange] = useState<{
+    orderId?: string;
+    number?: string;
+    isBulk?: boolean;
+  }>({});
 
   useEffect(() => {
     const channel = supabase
@@ -150,6 +173,9 @@ const AdminLogistics = () => {
   };
 
   const handleUpdateContainerNumber = async (orderId: string, containerNumber: string) => {
+    setEditingContainer(null);
+    setTempContainerNumber('');
+    
     const { error } = await supabase
       .from('orders')
       .update({ container_number: containerNumber })
@@ -167,28 +193,6 @@ const AdminLogistics = () => {
         title: "Успешно",
         description: "Номер контейнера обновлен",
       });
-    }
-    setEditingContainer(null);
-    setTempContainerNumber('');
-  };
-
-  const handleSelectOrder = (orderId: string) => {
-    setSelectedOrders(prev => {
-      if (prev.includes(orderId)) {
-        return prev.filter(id => id !== orderId);
-      } else {
-        return [...prev, orderId];
-      }
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (orders) {
-      if (selectedOrders.length === orders.length) {
-        setSelectedOrders([]);
-      } else {
-        setSelectedOrders(orders.map(order => order.id));
-      }
     }
   };
 
@@ -225,6 +229,26 @@ const AdminLogistics = () => {
     setBulkEditingContainer(false);
     setBulkContainerNumber('');
     setSelectedOrders([]);
+  };
+
+  const handleSelectOrder = (orderId: string) => {
+    setSelectedOrders(prev => {
+      if (prev.includes(orderId)) {
+        return prev.filter(id => id !== orderId);
+      } else {
+        return [...prev, orderId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (orders) {
+      if (selectedOrders.length === orders.length) {
+        setSelectedOrders([]);
+      } else {
+        setSelectedOrders(orders.map(order => order.id));
+      }
+    }
   };
 
   const handleBulkUpdateContainerStatus = async () => {
@@ -355,6 +379,46 @@ const AdminLogistics = () => {
     };
   };
 
+  const initiateContainerStatusChange = (orderId: string, status: ContainerStatus) => {
+    setPendingStatusChange({ orderId, status, isBulk: false });
+    setConfirmStatusDialog(true);
+  };
+
+  const initiateBulkContainerStatusChange = () => {
+    setPendingStatusChange({ status: bulkContainerStatus, isBulk: true });
+    setConfirmStatusDialog(true);
+  };
+
+  const initiateContainerNumberChange = (orderId: string, number: string) => {
+    setPendingContainerChange({ orderId, number, isBulk: false });
+    setConfirmContainerDialog(true);
+  };
+
+  const initiateBulkContainerNumberChange = () => {
+    setPendingContainerChange({ number: bulkContainerNumber, isBulk: true });
+    setConfirmContainerDialog(true);
+  };
+
+  const handleConfirmedStatusChange = async () => {
+    if (pendingStatusChange.isBulk) {
+      await handleBulkUpdateContainerStatus();
+    } else if (pendingStatusChange.orderId && pendingStatusChange.status) {
+      await handleUpdateContainerStatus(pendingStatusChange.orderId, pendingStatusChange.status);
+    }
+    setConfirmStatusDialog(false);
+    setPendingStatusChange({});
+  };
+
+  const handleConfirmedContainerChange = async () => {
+    if (pendingContainerChange.isBulk) {
+      await handleBulkUpdateContainerNumber();
+    } else if (pendingContainerChange.orderId && pendingContainerChange.number) {
+      await handleUpdateContainerNumber(pendingContainerChange.orderId, pendingContainerChange.number);
+    }
+    setConfirmContainerDialog(false);
+    setPendingContainerChange({});
+  };
+
   return (
     <AdminLayout>
       <div className="container mx-auto py-4">
@@ -409,7 +473,7 @@ const AdminLogistics = () => {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={handleBulkUpdateContainerStatus}
+                      onClick={initiateBulkContainerStatusChange}
                     >
                       <Save className="h-4 w-4 mr-2" />
                       Сохранить
@@ -434,7 +498,7 @@ const AdminLogistics = () => {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={handleBulkUpdateContainerNumber}
+                      onClick={initiateBulkContainerNumberChange}
                     >
                       <Save className="h-4 w-4 mr-2" />
                       Сохранить
@@ -503,7 +567,7 @@ const AdminLogistics = () => {
                                 variant="ghost" 
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => handleUpdateContainerNumber(order.id, tempContainerNumber)}
+                                onClick={() => initiateContainerNumberChange(order.id, tempContainerNumber)}
                               >
                                 <Save className="h-4 w-4" />
                               </Button>
@@ -526,7 +590,7 @@ const AdminLogistics = () => {
                         <TableCell>
                           <Select
                             value={(order.container_status as ContainerStatus) || 'sent_from_uae'}
-                            onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
+                            onValueChange={(value) => initiateContainerStatusChange(order.id, value as ContainerStatus)}
                           >
                             <SelectTrigger className={`w-[160px] h-8 text-sm ${getStatusColor(order.container_status as ContainerStatus)}`}>
                               <SelectValue>
@@ -577,6 +641,50 @@ const AdminLogistics = () => {
           </CardContent>
         </Card>
       </div>
+
+          {/* Status Change Confirmation Dialog */}
+          <AlertDialog open={confirmStatusDialog} onOpenChange={setConfirmStatusDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Подтвердите изменение статуса</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {pendingStatusChange.isBulk 
+                    ? `Вы уверены, что хотите изменить статус контейнера для ${selectedOrders.length} заказов?`
+                    : 'Вы уверены, что хотите изменить статус контейнера?'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setPendingStatusChange({})}>
+                  Отмена
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmedStatusChange}>
+                  Подтвердить
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Container Number Change Confirmation Dialog */}
+          <AlertDialog open={confirmContainerDialog} onOpenChange={setConfirmContainerDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Подтвердите изменение номера контейнера</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {pendingContainerChange.isBulk 
+                    ? `Вы уверены, что хотите изменить номер контейнера для ${selectedOrders.length} заказов?`
+                    : 'Вы уверены, что хотите изменить номер контейнера?'}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setPendingContainerChange({})}>
+                  Отмена
+                </AlertDialogCancel>
+                <AlertDialogAction onClick={handleConfirmedContainerChange}>
+                  Подтвердить
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
     </AdminLayout>
   );
 };
