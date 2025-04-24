@@ -136,6 +136,7 @@ export type Database = {
           buyer_opt_id: string | null
           created_at: string
           delivery_method: Database["public"]["Enums"]["delivery_method"]
+          delivery_price_confirm: number | null
           description: string | null
           id: string
           images: string[] | null
@@ -162,6 +163,7 @@ export type Database = {
           buyer_opt_id?: string | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          delivery_price_confirm?: number | null
           description?: string | null
           id?: string
           images?: string[] | null
@@ -188,6 +190,7 @@ export type Database = {
           buyer_opt_id?: string | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
+          delivery_price_confirm?: number | null
           description?: string | null
           id?: string
           images?: string[] | null

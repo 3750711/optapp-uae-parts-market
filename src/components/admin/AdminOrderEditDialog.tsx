@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -70,6 +69,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       quantity: order?.quantity?.toString() || '1',
       status: order?.status || 'created',
       description: order?.description || '',
+      delivery_price_confirm: order?.delivery_price_confirm?.toString() || '',
     }
   });
 
@@ -83,6 +83,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         quantity: order.quantity?.toString(),
         status: order.status,
         description: order.description || '',
+        delivery_price_confirm: order.delivery_price_confirm?.toString() || '',
       });
     }
   }, [order, form]);
@@ -229,6 +230,20 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                         <SelectItem value="cancelled">Отменен</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="delivery_price_confirm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Подтвержденная стоимость доставки (AED)</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
