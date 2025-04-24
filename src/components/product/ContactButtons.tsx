@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -208,10 +207,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           duration: 3000,
         });
         setShowConfirmDialog(false);
-        // Use a timeout to ensure the toast is displayed before navigating
+        
         setTimeout(() => {
-          navigate('/orders', { replace: true });
-        }, 1000);
+          window.location.href = '/orders';
+        }, 1500);
       }
     } catch (error) {
       console.error('Error handling order:', error);
@@ -227,9 +226,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
   const handleSuccessDialogClose = () => {
     setShowSuccessDialog(false);
-    // Use replace: true to replace the current history entry
-    // This ensures users can't "back" into the product page after completing the order
-    navigate('/orders', { replace: true });
+    window.location.href = '/orders';
   };
 
   return (

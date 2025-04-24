@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock, Check, X } from 'lucide-react';
@@ -33,7 +33,7 @@ const statusLabels = {
   created: 'Создан',
   seller_confirmed: 'Подтвержден продавцом',
   admin_confirmed: 'Подтвержден администратором',
-  processed: 'Зарегистрирован', // Updated status label
+  processed: 'Зарегистрирован',
   shipped: 'Отправлен',
   delivered: 'Доставлен',
   cancelled: 'Отменен',
@@ -49,7 +49,7 @@ const BuyerOrders = () => {
   const navigate = useNavigate();
   const isSeller = profile?.user_type === 'seller';
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, refetch } = useQuery({
     queryKey: ['buyer-orders', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -81,7 +81,13 @@ const BuyerOrders = () => {
       return data || [];
     },
     enabled: !!user,
+    staleTime: 15000, // Consider data fresh for 15 seconds to prevent excessive refetching
   });
+  
+  // Force a refetch when component mounts to ensure we have the latest data after navigation
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   if (isLoading) {
     return (
@@ -189,4 +195,3 @@ const BuyerOrders = () => {
 };
 
 export default BuyerOrders;
-
