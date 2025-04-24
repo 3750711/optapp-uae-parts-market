@@ -174,7 +174,7 @@ const BuyerOrders = () => {
                       </div>
                     )}
                   </div>
-                  {order.status === 'processed' && isSeller && (
+                  {order.status === 'admin_confirmed' && isSeller && (
                     <div className="px-4 pb-4">
                       <OrderConfirmButton orderId={order.id} />
                     </div>
