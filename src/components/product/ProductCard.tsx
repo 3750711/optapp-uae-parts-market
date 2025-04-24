@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
