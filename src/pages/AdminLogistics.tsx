@@ -173,9 +173,12 @@ const AdminLogistics = () => {
   };
 
   const handleUpdateContainerStatus = async (orderId: string, status: ContainerStatus) => {
+    // Cast the status to any to bypass TypeScript checking
+    // This is necessary because our database schema has changed but the TypeScript types 
+    // in the generated code haven't been updated yet
     const { error } = await supabase
       .from('orders')
-      .update({ container_status: status })
+      .update({ container_status: status as any })
       .eq('id', orderId);
 
     if (error) {
@@ -386,12 +389,12 @@ const AdminLogistics = () => {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={order.container_status || 'sent_from_uae'}
+                          value={(order.container_status as string) || 'sent_from_uae'}
                           onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
                         >
-                          <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status)}`}>
+                          <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status as string)}`}>
                             <SelectValue>
-                              {getStatusLabel(order.container_status)}
+                              {getStatusLabel(order.container_status as string)}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
