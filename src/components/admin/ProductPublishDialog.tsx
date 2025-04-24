@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const formSchema = z.object({
   delivery_price: z.string().refine(
@@ -61,6 +61,30 @@ export const ProductPublishDialog = ({
     },
   });
 
+  const deliveryPriceGuide = `
+ДВС без КПП малый, 4-цилиндровый, без навесного - $164
+ДВС без КПП малый, 4-цилиндровый - $184
+ДВС+КПП малый, 4-цилиндровый - $222
+ДВС без КПП 4-цилиндровый (тип N20) - $250
+ДВС без КПП средний, 6-цилиндровый - $250
+ДВС+КПП средний, 6-цилиндровый, маленькая коробка (тип 1MZ, G6BA, VQ35) - $300
+ДВС+КПП средний, 6-цилиндровый (тип BMW, Mercedes) - $333
+ДВС+КПП большой, 8-цилиндровый (тип VK56, 1GR, 2UZ) - $333
+ДВС+КПП большой, 8-цилиндровый (тип VK56, 1GR, 2UZ) - $400
+Nose cut (Ноускат) низкий - $202
+Nose cut (Ноускат) высокий - $260
+АКПП/МКПП - $90
+Балка/подрамник - $27
+Бампер/Крышка багажника - $27
+Радиатор - $27
+Редуктор - $27
+Крылья малые (пара) - $35
+Крылья большие (пара) - $54
+Капот - $41
+Кассета радиаторов - $45
+Дверь багажника/боковая - $90
+Мелочь (1 место) - $12`;
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const { error } = await supabase
       .from('products')
@@ -91,12 +115,12 @@ export const ProductPublishDialog = ({
       <DialogTrigger asChild>
         {trigger}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Опубликовать товар</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mb-4">
+        <div className="space-y-4 mb-4 overflow-y-auto">
           <div>
             <h4 className="text-sm font-medium text-muted-foreground mb-1">Название</h4>
             <p className="text-sm">{product.title}</p>
@@ -147,6 +171,13 @@ export const ProductPublishDialog = ({
             </div>
           </form>
         </Form>
+
+        <ScrollArea className="flex-1 px-1 mt-4 border-t pt-4">
+          <div className="text-sm text-muted-foreground whitespace-pre-line">
+            <p className="font-medium mb-2">Справочник стоимости доставки:</p>
+            {deliveryPriceGuide}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
