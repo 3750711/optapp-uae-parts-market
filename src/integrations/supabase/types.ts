@@ -473,7 +473,17 @@ export type Database = {
       }
     }
     Enums: {
-      container_status: "waiting" | "in_transit" | "delivered" | "lost"
+      container_status:
+        | "waiting"
+        | "in_transit"
+        | "delivered"
+        | "lost"
+        | "sent_from_uae"
+        | "transit_iran"
+        | "to_kazakhstan"
+        | "customs"
+        | "cleared_customs"
+        | "received"
       delivery_method: "self_pickup" | "cargo_rf" | "cargo_kz"
       opt_user_status: "free_user" | "opt_user"
       order_created_type: "free_order" | "ads_order"
@@ -603,7 +613,18 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      container_status: ["waiting", "in_transit", "delivered", "lost"],
+      container_status: [
+        "waiting",
+        "in_transit",
+        "delivered",
+        "lost",
+        "sent_from_uae",
+        "transit_iran",
+        "to_kazakhstan",
+        "customs",
+        "cleared_customs",
+        "received",
+      ],
       delivery_method: ["self_pickup", "cargo_rf", "cargo_kz"],
       opt_user_status: ["free_user", "opt_user"],
       order_created_type: ["free_order", "ads_order"],

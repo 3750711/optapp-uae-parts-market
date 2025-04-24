@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,12 +172,9 @@ const AdminLogistics = () => {
   };
 
   const handleUpdateContainerStatus = async (orderId: string, status: ContainerStatus) => {
-    // Cast the status to any to bypass TypeScript checking
-    // This is necessary because our database schema has changed but the TypeScript types 
-    // in the generated code haven't been updated yet
     const { error } = await supabase
       .from('orders')
-      .update({ container_status: status as any })
+      .update({ container_status: status })
       .eq('id', orderId);
 
     if (error) {
@@ -196,7 +192,7 @@ const AdminLogistics = () => {
     }
   };
 
-  const getStatusColor = (status: string | null) => {
+  const getStatusColor = (status: ContainerStatus | null) => {
     switch (status) {
       case 'sent_from_uae':
         return 'text-blue-600';
@@ -215,7 +211,7 @@ const AdminLogistics = () => {
     }
   };
 
-  const getStatusLabel = (status: string | null) => {
+  const getStatusLabel = (status: ContainerStatus | null) => {
     switch (status) {
       case 'sent_from_uae':
         return 'Отправлен из ОАЭ';
@@ -389,12 +385,12 @@ const AdminLogistics = () => {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={(order.container_status as string) || 'sent_from_uae'}
+                          value={order.container_status as ContainerStatus || 'sent_from_uae'}
                           onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
                         >
-                          <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status as string)}`}>
+                          <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status as ContainerStatus)}`}>
                             <SelectValue>
-                              {getStatusLabel(order.container_status as string)}
+                              {getStatusLabel(order.container_status as ContainerStatus)}
                             </SelectValue>
                           </SelectTrigger>
                           <SelectContent>
