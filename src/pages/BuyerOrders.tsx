@@ -171,9 +171,18 @@ const BuyerOrders = () => {
                     <div className="font-medium text-base truncate">{order.title}</div>
                     <div className="text-sm text-muted-foreground">{order.brand} {order.model}</div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <span className="font-medium text-optapp-dark">{order.price} $</span>
-                    <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-optapp-dark">{order.price} $</span>
+                      <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
+                    </div>
+                    
+                    {order.delivery_price_confirm && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-600">Стоимость доставки:</span>
+                        <span className="font-medium text-optapp-dark">{order.delivery_price_confirm} $</span>
+                      </div>
+                    )}
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <Badge variant="outline">{orderTypeLabels[order.order_created_type]}</Badge>
