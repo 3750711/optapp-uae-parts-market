@@ -39,6 +39,13 @@ const formSchema = z.object({
   brand: z.string().min(1, { message: "Введите бренд" }),
   model: z.string().min(1, { message: "Введите модель" }),
   place_number: z.number().min(1, { message: "Минимальное количество мест - 1" }),
+  delivery_price: z.string().refine(
+    (val) => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num >= 0;
+    },
+    { message: "Стоимость доставки должна быть неотрицательным числом" }
+  ),
 });
 
 interface ProductEditDialogProps {
@@ -86,6 +93,7 @@ export const ProductEditDialog = ({
       brand: product.brand || "",
       model: product.model || "",
       place_number: product.place_number || 1,
+      delivery_price: product.delivery_price?.toString() || "0",
     },
   });
 
@@ -99,6 +107,7 @@ export const ProductEditDialog = ({
         brand: values.brand,
         model: values.model,
         place_number: values.place_number,
+        delivery_price: parseFloat(values.delivery_price),
       })
       .eq('id', product.id);
 
@@ -230,6 +239,25 @@ export const ProductEditDialog = ({
                     <FormLabel className="text-xs mb-0.5">Описание</FormLabel>
                     <FormControl>
                       <Textarea placeholder="Подробное описание" className="min-h-[60px] max-h-[80px] text-sm" rows={3} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="delivery_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs mb-0.5">Стоимость доставки (AED)</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        placeholder="0.00" 
+                        className="h-8 text-sm" 
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

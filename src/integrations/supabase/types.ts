@@ -298,6 +298,7 @@ export type Database = {
           brand: string
           condition: string
           created_at: string
+          delivery_price: number | null
           description: string | null
           id: string
           location: string | null
@@ -321,6 +322,7 @@ export type Database = {
           brand: string
           condition: string
           created_at?: string
+          delivery_price?: number | null
           description?: string | null
           id?: string
           location?: string | null
@@ -344,6 +346,7 @@ export type Database = {
           brand?: string
           condition?: string
           created_at?: string
+          delivery_price?: number | null
           description?: string | null
           id?: string
           location?: string | null

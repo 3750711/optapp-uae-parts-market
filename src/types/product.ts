@@ -1,4 +1,3 @@
-
 export interface ProductProps {
   id: string;
   name: string;
@@ -18,6 +17,7 @@ export interface ProductProps {
   created_at?: string;
   seller_opt_status?: 'free_user' | 'opt_user';
   onStatusChange?: () => void;
+  delivery_price?: number | null;
 }
 
 export interface ProductImage {
@@ -67,4 +67,5 @@ export interface Product {
   created_at: string;
   updated_at?: string;
   place_number?: number | null;
+  delivery_price?: number | null;
 }

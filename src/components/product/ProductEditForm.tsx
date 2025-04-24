@@ -34,6 +34,9 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     brand: product.brand || "",
     model: product.model || "",
     place_number: product.place_number || 1,
+    delivery_price: typeof product.delivery_price === "string" 
+      ? parseFloat(product.delivery_price) 
+      : product.delivery_price || 0,
   });
 
   const [images, setImages] = React.useState<string[]>(
@@ -148,6 +151,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           brand: formData.brand,
           model: formData.model,
           place_number: formData.place_number,
+          delivery_price: formData.delivery_price,
         })
         .eq("id", product.id);
 
@@ -183,7 +187,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         maxWidth: isMobile ? "100vw" : "98vw",
       }}
     >
-      {/* Media Section */}
       <div className={isMobile ? "mb-2 border-b pb-3" : "flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-4 md:border-gray-100"}>
         <div>
           <ImageUpload 
@@ -202,7 +205,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         </div>
       </div>
 
-      {/* Information Section */}
       <div className="flex-1 flex flex-col gap-1 sm:gap-2">
         <label htmlFor="title" className="text-xs sm:text-sm font-medium">Название товара</label>
         <Input
@@ -270,6 +272,20 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           placeholder="Описание товара"
           className="min-h-[36px] max-h-[80px] text-xs sm:text-sm"
           rows={2}
+          disabled={!isCreator}
+        />
+
+        <label htmlFor="delivery_price" className="text-xs sm:text-sm font-medium">Стоимость доставки</label>
+        <Input
+          id="delivery_price"
+          type="number"
+          value={formData.delivery_price}
+          onChange={(e) => setFormData({ 
+            ...formData, 
+            delivery_price: parseFloat(e.target.value) || 0 
+          })}
+          placeholder="Стоимость доставки"
+          className="h-8 sm:h-8"
           disabled={!isCreator}
         />
 
