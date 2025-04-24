@@ -135,6 +135,9 @@ export type Database = {
           buyer_id: string
           buyer_opt_id: string | null
           container_number: string | null
+          container_status:
+            | Database["public"]["Enums"]["container_status"]
+            | null
           created_at: string
           delivery_method: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm: number | null
@@ -163,6 +166,9 @@ export type Database = {
           buyer_id: string
           buyer_opt_id?: string | null
           container_number?: string | null
+          container_status?:
+            | Database["public"]["Enums"]["container_status"]
+            | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm?: number | null
@@ -191,6 +197,9 @@ export type Database = {
           buyer_id?: string
           buyer_opt_id?: string | null
           container_number?: string | null
+          container_status?:
+            | Database["public"]["Enums"]["container_status"]
+            | null
           created_at?: string
           delivery_method?: Database["public"]["Enums"]["delivery_method"]
           delivery_price_confirm?: number | null
@@ -464,6 +473,7 @@ export type Database = {
       }
     }
     Enums: {
+      container_status: "waiting" | "in_transit" | "delivered" | "lost"
       delivery_method: "self_pickup" | "cargo_rf" | "cargo_kz"
       opt_user_status: "free_user" | "opt_user"
       order_created_type: "free_order" | "ads_order"
@@ -593,6 +603,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      container_status: ["waiting", "in_transit", "delivered", "lost"],
       delivery_method: ["self_pickup", "cargo_rf", "cargo_kz"],
       opt_user_status: ["free_user", "opt_user"],
       order_created_type: ["free_order", "ads_order"],

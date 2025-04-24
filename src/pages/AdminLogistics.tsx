@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +18,13 @@ import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
@@ -162,6 +168,57 @@ const AdminLogistics = () => {
     setSelectedOrders([]);
   };
 
+  const handleUpdateContainerStatus = async (orderId: string, status: string) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ container_status: status })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Error updating container status:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить статус контейнера",
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: "Статус контейнера обновлен",
+      });
+    }
+  };
+
+  const getStatusColor = (status: string | null) => {
+    switch (status) {
+      case 'waiting':
+        return 'text-yellow-600';
+      case 'in_transit':
+        return 'text-blue-600';
+      case 'delivered':
+        return 'text-green-600';
+      case 'lost':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const getStatusLabel = (status: string | null) => {
+    switch (status) {
+      case 'waiting':
+        return 'Ожидание';
+      case 'in_transit':
+        return 'В пути';
+      case 'delivered':
+        return 'Доставлен';
+      case 'lost':
+        return 'Утерян';
+      default:
+        return 'Не указан';
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -236,6 +293,7 @@ const AdminLogistics = () => {
                     <TableHead>Цена доставки</TableHead>
                     <TableHead>Статус</TableHead>
                     <TableHead>Номер контейнера</TableHead>
+                    <TableHead>Статус контейнера</TableHead>
                     <TableHead>Действия</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -313,6 +371,24 @@ const AdminLogistics = () => {
                             </div>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={order.container_status || 'waiting'}
+                          onValueChange={(value) => handleUpdateContainerStatus(order.id, value)}
+                        >
+                          <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status)}`}>
+                            <SelectValue>
+                              {getStatusLabel(order.container_status)}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="waiting">Ожидание</SelectItem>
+                            <SelectItem value="in_transit">В пути</SelectItem>
+                            <SelectItem value="delivered">Доставлен</SelectItem>
+                            <SelectItem value="lost">Утерян</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
                       <TableCell>
                         <Button
