@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -28,23 +28,30 @@ const PublicSellerProfile = () => {
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: async () => {
-      if (!id) {
-        console.error("Seller ID is undefined");
-        return null;
-      }
-
+      if (!id) return null;
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching seller profile:", error);
-        throw error;
-      }
-      
+      if (error) throw error;
       return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: orderCount } = useQuery({
+    queryKey: ["seller-orders-count", id],
+    queryFn: async () => {
+      if (!id) return 0;
+      const { count, error } = await supabase
+        .from("orders")
+        .select("*", { count: 'exact', head: true })
+        .eq("seller_id", id);
+
+      if (error) throw error;
+      return count || 0;
     },
     enabled: !!id,
   });
@@ -222,7 +229,7 @@ const PublicSellerProfile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {profile.rating !== null && (
+              {profile?.rating !== null && (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-500">Рейтинг продавца</p>
                   <div className="flex items-center gap-1">
@@ -243,15 +250,23 @@ const PublicSellerProfile = () => {
                 </div>
               )}
 
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm text-gray-500">Всего объявлений</p>
                 <p className="text-2xl font-bold">{mappedProducts.length}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">Выполнено заказов</p>
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5 text-primary" />
+                  <p className="text-2xl font-bold">{orderCount}</p>
+                </div>
               </div>
 
               <div>
                 <p className="text-sm text-gray-500">На платформе с</p>
                 <p className="font-medium">
-                  {new Date(profile.created_at).toLocaleDateString()}
+                  {new Date(profile?.created_at || '').toLocaleDateString()}
                 </p>
               </div>
             </CardContent>
