@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -8,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
 
 const statusColors = {
   created: 'bg-gray-100 text-gray-800',
@@ -83,10 +83,9 @@ const BuyerOrders = () => {
       return data || [];
     },
     enabled: !!user,
-    staleTime: 15000, // Consider data fresh for 15 seconds to prevent excessive refetching
+    staleTime: 15000,
   });
-  
-  // Force a refetch when component mounts to ensure we have the latest data after navigation
+
   useEffect(() => {
     refetch();
   }, [refetch]);
@@ -175,6 +174,11 @@ const BuyerOrders = () => {
                       </div>
                     )}
                   </div>
+                  {order.status === 'processed' && isSeller && (
+                    <div className="px-4 pb-4">
+                      <OrderConfirmButton orderId={order.id} />
+                    </div>
+                  )}
                   <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
                     <Link
                       to={`/product/${order.product_id}`}
