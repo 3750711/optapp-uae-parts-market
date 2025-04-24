@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +24,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import OrderPriceConfirmDialog from "@/components/order/OrderPriceConfirmDialog";
+import { Check } from "lucide-react";
+import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
 
 type OrderStatus = "created" | "seller_confirmed" | "admin_confirmed" | "processed" | "shipped" | "delivered" | "cancelled";
 
@@ -57,9 +58,21 @@ const SellerOrders = () => {
         console.error("Error fetching orders:", error);
         throw error;
       }
+
+      // Fetch confirmation images for each order
+      const ordersWithConfirmations = await Promise.all(data.map(async (order) => {
+        const { data: confirmImages } = await supabase
+          .from('confirm_images')
+          .select('url')
+          .eq('order_id', order.id);
+        
+        return {
+          ...order,
+          hasConfirmImages: confirmImages && confirmImages.length > 0
+        };
+      }));
       
-      console.log("Fetched orders with buyer info:", data);
-      return data || [];
+      return ordersWithConfirmations || [];
     },
     enabled: !!user?.id
   });
@@ -264,25 +277,36 @@ const SellerOrders = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {orders.map((order) => (
+              {orders?.map((order) => (
                 <Card 
                   key={order.id}
                   className={`cursor-pointer hover:shadow-md transition-all ${getCardHighlightColor(order.status)}`}
                   onClick={() => navigate(`/seller/orders/${order.id}`)}
                 >
                   <CardHeader className="space-y-2">
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
-                        {order.lot_number_order && (
-                          <div className="text-sm text-muted-foreground">
-                            Лот: {order.lot_number_order}
-                          </div>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between gap-2">
+                      {/* Display confirmation images indicator if present */}
+                      {order.hasConfirmImages && (
+                        <div 
+                          className="flex items-center gap-2 text-green-600 text-sm cursor-pointer hover:text-green-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
+                          <OrderConfirmImagesDialog orderId={order.id} />
+                        </div>
+                      )}
                       <Badge className={getStatusBadgeColor(order.status)}>
                         {getStatusLabel(order.status)}
                       </Badge>
+                    </div>
+                    <div className="space-y-1">
+                      <CardTitle className="text-xl font-bold">№ {order.order_number}</CardTitle>
+                      {order.lot_number_order && (
+                        <div className="text-sm text-muted-foreground">
+                          Лот: {order.lot_number_order}
+                        </div>
+                      )}
                     </div>
                   </CardHeader>
                   
