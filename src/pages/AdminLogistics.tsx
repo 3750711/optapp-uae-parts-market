@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +52,8 @@ const AdminLogistics = () => {
   const [tempContainerNumber, setTempContainerNumber] = useState<string>('');
   const [bulkEditingContainer, setBulkEditingContainer] = useState(false);
   const [bulkContainerNumber, setBulkContainerNumber] = useState('');
+  const [bulkEditingContainerStatus, setBulkEditingContainerStatus] = useState(false);
+  const [bulkContainerStatus, setBulkContainerStatus] = useState<ContainerStatus>('sent_from_uae');
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -226,6 +227,40 @@ const AdminLogistics = () => {
     setSelectedOrders([]);
   };
 
+  const handleBulkUpdateContainerStatus = async () => {
+    if (!selectedOrders.length) return;
+
+    let hasError = false;
+    
+    for (const orderId of selectedOrders) {
+      const { error } = await supabase
+        .from('orders')
+        .update({ container_status: bulkContainerStatus })
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error updating container status:', error);
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить статусы контейнеров для некоторых заказов",
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: `Статус контейнера обновлен для ${selectedOrders.length} заказов`,
+      });
+    }
+
+    setBulkEditingContainerStatus(false);
+    setSelectedOrders([]);
+  };
+
   const handleUpdateContainerStatus = async (orderId: string, status: ContainerStatus) => {
     const { error } = await supabase
       .from('orders')
@@ -334,15 +369,59 @@ const AdminLogistics = () => {
                 <span className="font-medium">
                   Сумма доставки: {selectedOrdersDeliverySum?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                 </span>
-                {!bulkEditingContainer ? (
-                  <Button
-                    variant="secondary"
-                    onClick={() => setBulkEditingContainer(true)}
-                    size="sm"
-                  >
-                    <Container className="h-4 w-4 mr-2" />
-                    Изменить номер контейнера
-                  </Button>
+                {!bulkEditingContainer && !bulkEditingContainerStatus ? (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => setBulkEditingContainer(true)}
+                      size="sm"
+                    >
+                      <Container className="h-4 w-4 mr-2" />
+                      Изменить номер контейнера
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setBulkEditingContainerStatus(true)}
+                      size="sm"
+                    >
+                      <Container className="h-4 w-4 mr-2" />
+                      Изменить статус контейнера
+                    </Button>
+                  </div>
+                ) : bulkEditingContainerStatus ? (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={bulkContainerStatus}
+                      onValueChange={(value) => setBulkContainerStatus(value as ContainerStatus)}
+                    >
+                      <SelectTrigger className="w-[200px] h-8 text-sm">
+                        <SelectValue>{getStatusLabel(bulkContainerStatus)}</SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
+                        <SelectItem value="transit_iran">Транзит Иран</SelectItem>
+                        <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
+                        <SelectItem value="customs">Таможня</SelectItem>
+                        <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
+                        <SelectItem value="received">Получен</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleBulkUpdateContainerStatus}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Сохранить
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setBulkEditingContainerStatus(false)}
+                    >
+                      Отмена
+                    </Button>
+                  </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Input
