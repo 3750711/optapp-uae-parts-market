@@ -138,10 +138,10 @@ const AdminLogistics = () => {
                         </div>
                       </TableCell>
                       <TableCell>{order.place_number}</TableCell>
-                      <TableCell>{order.price.toLocaleString('ru-RU')} ₽</TableCell>
+                      <TableCell>{order.price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
                       <TableCell>
                         {order.delivery_price_confirm ? 
-                          `${order.delivery_price_confirm.toLocaleString('ru-RU')} ₽` : 
+                          order.delivery_price_confirm.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : 
                           'Не указана'
                         }
                       </TableCell>
