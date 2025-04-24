@@ -28,7 +28,6 @@ import {
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -37,7 +36,7 @@ import {
 
 type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 15; // Increased items per page
 
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
@@ -285,17 +284,26 @@ const AdminLogistics = () => {
     );
   }
 
+  const getCompactOrderInfo = (order: any) => {
+    const buyer = order.buyer?.full_name || 'Не указано';
+    const seller = order.seller?.full_name || 'Не указано';
+    return {
+      buyerInfo: `${buyer} ${order.buyer?.opt_id ? `(${order.buyer.opt_id})` : ''}`,
+      sellerInfo: `${seller} ${order.seller?.opt_id ? `(${order.seller.opt_id})` : ''}`
+    };
+  };
+
   return (
     <AdminLayout>
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto py-4">
         <Card>
-          <CardHeader>
+          <CardHeader className="py-4">
             <CardTitle>Управление логистикой</CardTitle>
           </CardHeader>
           <CardContent>
             {selectedOrders.length > 0 && (
-              <div className="mb-4 p-4 border rounded-lg bg-muted/50 flex items-center gap-4">
-                <span>Выбрано заказов: {selectedOrders.length}</span>
+              <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center gap-4 text-sm">
+                <span>Выбрано: {selectedOrders.length}</span>
                 <span className="font-medium">
                   Сумма доставки: {selectedOrdersDeliverySum?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
                 </span>
@@ -315,7 +323,7 @@ const AdminLogistics = () => {
                       placeholder="Введите номер контейнера"
                       value={bulkContainerNumber}
                       onChange={(e) => setBulkContainerNumber(e.target.value)}
-                      className="w-48"
+                      className="w-48 h-8 text-sm"
                     />
                     <Button
                       variant="secondary"
@@ -329,84 +337,66 @@ const AdminLogistics = () => {
                 )}
               </div>
             )}
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50px]">
+                    <TableHead className="w-[40px]">
                       <Checkbox 
                         checked={orders?.length === selectedOrders.length}
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead>Номер заказа</TableHead>
-                    <TableHead>Наименование</TableHead>
-                    <TableHead>Лот</TableHead>
-                    <TableHead>Продавец</TableHead>
-                    <TableHead>Покупатель</TableHead>
-                    <TableHead>Количество мест</TableHead>
-                    <TableHead>Цена</TableHead>
-                    <TableHead>Цена доставки</TableHead>
-                    <TableHead>Статус</TableHead>
-                    <TableHead>Номер контейнера</TableHead>
-                    <TableHead>Статус контейнера</TableHead>
-                    <TableHead>Действия</TableHead>
+                    <TableHead className="w-[100px]">№ заказа</TableHead>
+                    <TableHead className="min-w-[200px]">Продавец</TableHead>
+                    <TableHead className="min-w-[200px]">Покупатель</TableHead>
+                    <TableHead className="w-[80px]">Мест</TableHead>
+                    <TableHead className="w-[100px]">Цена дост.</TableHead>
+                    <TableHead className="w-[120px]">Статус</TableHead>
+                    <TableHead className="min-w-[150px]">Контейнер</TableHead>
+                    <TableHead className="min-w-[180px]">Статус контейнера</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedOrders.includes(order.id)}
-                          onCheckedChange={() => handleSelectOrder(order.id)}
-                        />
-                      </TableCell>
-                      <TableCell>{order.order_number}</TableCell>
-                      <TableCell>{order.title}</TableCell>
-                      <TableCell>{order.lot_number_order}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span>{order.seller?.full_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            OPT ID: {order.seller?.opt_id}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span>{order.buyer?.full_name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            OPT ID: {order.buyer?.opt_id}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{order.place_number}</TableCell>
-                      <TableCell>{order.price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</TableCell>
-                      <TableCell>
-                        {order.delivery_price_confirm ? 
-                          order.delivery_price_confirm.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : 
-                          'Не указана'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <OrderStatusBadge status={order.status} />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
+                  {orders.map((order) => {
+                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
+                    return (
+                      <TableRow key={order.id} className="text-sm">
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedOrders.includes(order.id)}
+                            onCheckedChange={() => handleSelectOrder(order.id)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{order.order_number}</TableCell>
+                        <TableCell>{sellerInfo}</TableCell>
+                        <TableCell>{buyerInfo}</TableCell>
+                        <TableCell>{order.place_number}</TableCell>
+                        <TableCell>
+                          {order.delivery_price_confirm ? 
+                            `$${order.delivery_price_confirm}` : 
+                            '-'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <OrderStatusBadge status={order.status} />
+                        </TableCell>
+                        <TableCell>
                           {editingContainer === order.id ? (
                             <div className="flex items-center space-x-2">
                               <Input
                                 type="text"
-                                placeholder="Введите номер контейнера"
+                                placeholder="№ контейнера"
                                 defaultValue={order.container_number || ''}
                                 autoFocus
                                 onChange={(e) => setTempContainerNumber(e.target.value)}
-                                className="w-32"
+                                className="w-28 h-8 text-sm"
                               />
                               <Button 
                                 variant="ghost" 
                                 size="icon"
+                                className="h-8 w-8"
                                 onClick={() => handleUpdateContainerNumber(order.id, tempContainerNumber)}
                               >
                                 <Save className="h-4 w-4" />
@@ -420,45 +410,46 @@ const AdminLogistics = () => {
                                 setTempContainerNumber(order.container_number || '');
                               }}
                             >
-                              <span>
-                                {order.container_number || 'Не отправлен'}
+                              <span className="truncate max-w-[120px]">
+                                {order.container_number || 'Не указан'}
                               </span>
                               <Container className="h-4 w-4 text-muted-foreground" />
                             </div>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={order.container_status as ContainerStatus || 'sent_from_uae'}
-                          onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
-                        >
-                          <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status as ContainerStatus)}`}>
-                            <SelectValue>
-                              {getStatusLabel(order.container_status as ContainerStatus)}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
-                            <SelectItem value="transit_iran">Транзит Иран</SelectItem>
-                            <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
-                            <SelectItem value="customs">Таможня</SelectItem>
-                            <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
-                            <SelectItem value="received">Получен</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleViewDetails(order.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={order.container_status as ContainerStatus || 'sent_from_uae'}
+                            onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
+                          >
+                            <SelectTrigger className={`w-[160px] h-8 text-sm ${getStatusColor(order.container_status as ContainerStatus)}`}>
+                              <SelectValue>
+                                {getStatusLabel(order.container_status as ContainerStatus)}
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
+                              <SelectItem value="transit_iran">Транзит Иран</SelectItem>
+                              <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
+                              <SelectItem value="customs">Таможня</SelectItem>
+                              <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
+                              <SelectItem value="received">Получен</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleViewDetails(order.id)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
