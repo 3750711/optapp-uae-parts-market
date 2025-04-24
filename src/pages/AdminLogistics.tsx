@@ -223,9 +223,8 @@ const AdminLogistics = () => {
                     <TableHead>Продавец</TableHead>
                     <TableHead>Покупатель</TableHead>
                     <TableHead>Количество мест</TableHead>
-                    <TableHead>Цена товара</TableHead>
+                    <TableHead>Цена</TableHead>
                     <TableHead>Цена доставки</TableHead>
-                    <TableHead>Итого</TableHead>
                     <TableHead>Статус</TableHead>
                     <TableHead>Номер контейнера</TableHead>
                     <TableHead>Действия</TableHead>
@@ -264,12 +263,6 @@ const AdminLogistics = () => {
                         {order.delivery_price_confirm ? 
                           order.delivery_price_confirm.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : 
                           'Не указана'
-                        }
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {order.delivery_price_confirm ? 
-                          (Number(order.price) + Number(order.delivery_price_confirm)).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : 
-                          order.price.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
                         }
                       </TableCell>
                       <TableCell>
