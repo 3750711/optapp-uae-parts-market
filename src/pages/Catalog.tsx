@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
@@ -85,6 +84,7 @@ const Catalog = () => {
       status: product.status,
       seller_id: product.seller_id,
       seller_verification: product.profiles?.verification_status,
+      seller_opt_status: product.profiles?.opt_status,
       created_at: product.created_at
     };
   });

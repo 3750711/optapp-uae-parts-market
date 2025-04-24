@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -24,7 +25,7 @@ export interface ProductProps {
   status: 'pending' | 'active' | 'sold' | 'archived';
   seller_verification?: 'pending' | 'verified' | 'blocked';
   created_at?: string;
-  onStatusChange?: () => void;
+  seller_opt_status?: 'free_user' | 'opt_user';
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -41,6 +42,7 @@ const ProductCard: React.FC<ProductProps> = ({
   status,
   seller_verification,
   created_at,
+  seller_opt_status,
   onStatusChange
 }) => {
   const [searchParams] = useSearchParams();
@@ -127,11 +129,10 @@ const ProductCard: React.FC<ProductProps> = ({
             >
               {seller_name}
             </Link>
-            {seller_verification === 'verified' && (
-              <Badge variant="outline" className="bg-purple-50 border-purple-200 text-purple-700 flex items-center gap-1 py-0.5">
-                <Crown className="h-3 w-3 text-purple-500 fill-purple-500" />
-                <span className="text-[10px]">Проверенный</span>
-              </Badge>
+            {seller_opt_status === 'opt_user' && (
+              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-[10px] font-medium">
+                OPT
+              </span>
             )}
           </div>
           {rating_seller !== undefined && (
