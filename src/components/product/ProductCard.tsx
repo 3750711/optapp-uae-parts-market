@@ -6,6 +6,7 @@ import { MapPin, Badge as BadgeIcon, Star, Truck, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ProductProps {
   id: string;
@@ -48,7 +49,10 @@ const ProductCard: React.FC<ProductProps> = ({
   delivery_price
 }) => {
   const [searchParams] = useSearchParams();
+  const { profile } = useAuth();
   const currentPage = searchParams.get("page") || "1";
+  
+  const canViewDeliveryPrice = profile?.opt_status === 'opt_user';
 
   const isHotLot = () => {
     if (!created_at) return false;
@@ -155,7 +159,7 @@ const ProductCard: React.FC<ProductProps> = ({
         <div className="flex items-end justify-between w-full">
           <div className="flex items-center gap-2">
             <p className="font-bold text-lg text-primary">{price} $</p>
-            {delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
+            {canViewDeliveryPrice && delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
               <span className="text-sm text-muted-foreground flex items-center gap-1">
                 <Truck className="w-3 h-3" />
                 +{delivery_price} $

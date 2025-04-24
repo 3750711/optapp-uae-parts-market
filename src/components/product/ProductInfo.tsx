@@ -19,6 +19,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
+  const { profile } = user;
+
+  const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   const handleShare = () => {
     const text = encodeURIComponent(
@@ -106,15 +109,20 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         <span className="font-bold text-2xl text-primary">
           {product.price} $
         </span>
-        {product.delivery_price !== null && product.delivery_price !== undefined && product.delivery_price > 0 && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Truck className="w-4 h-4 text-gray-500" />
-            <span>Доставка: {product.delivery_price} $</span>
-          </div>
-        )}
-        {(product.delivery_price === null || product.delivery_price === undefined || product.delivery_price === 0) && (
+        {canViewDeliveryPrice ? (
+          product.delivery_price !== null && product.delivery_price !== undefined && product.delivery_price > 0 ? (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Truck className="w-4 h-4 text-gray-500" />
+              <span>Доставка: {product.delivery_price} $</span>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              Стоимость доставки не указана
+            </div>
+          )
+        ) : (
           <div className="text-sm text-gray-500">
-            Стоимость доставки не указана
+            Стоимость доставки доступна для OPT пользователей
           </div>
         )}
       </div>
