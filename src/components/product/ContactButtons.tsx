@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -30,6 +31,7 @@ interface ContactButtonsProps {
     seller_name?: string;
     lot_number?: string | number | null;
     status?: string;
+    delivery_price?: number;
   };
   deliveryMethod: DeliveryMethod;
   onDeliveryMethodChange: (method: DeliveryMethod) => void;

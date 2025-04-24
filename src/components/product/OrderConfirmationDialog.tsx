@@ -37,10 +37,12 @@ interface OrderConfirmationDialogProps {
     seller_id?: string;
     seller_name?: string;
     lot_number?: string | number | null;
+    delivery_price?: number;
   };
   profile?: {
     opt_id?: string;
     telegram?: string;
+    opt_status?: string;
   } | null;
   deliveryMethod: DeliveryMethod;
   onDeliveryMethodChange: (method: DeliveryMethod) => void;
@@ -85,6 +87,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     }
   };
 
+  const showDeliveryPrice = profile?.opt_status === 'opt_used' && deliveryMethod === 'cargo_rf';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-w-[95vw] p-3 sm:p-6 max-h-[85vh] flex flex-col">
@@ -126,6 +130,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500">ID товара:</span>
                     <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
+                  </div>
+                )}
+                {showDeliveryPrice && product.delivery_price !== undefined && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Стоимость доставки:</span>
+                    <span className="font-medium">{product.delivery_price} $</span>
                   </div>
                 )}
               </div>
