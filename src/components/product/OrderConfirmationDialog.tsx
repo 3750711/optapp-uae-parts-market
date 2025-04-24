@@ -130,8 +130,10 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           <div className="space-y-2">
             <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
             <Select 
-              value={deliveryMethod} 
-              onValueChange={onDeliveryMethodChange}
+              value={deliveryMethod || 'cargo_rf'}
+              onValueChange={(value) => {
+                onDeliveryMethodChange(value as Database["public"]["Enums"]["delivery_method"]);
+              }}
             >
               <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow">
                 <SelectValue placeholder="Выберите способ доставки" />
