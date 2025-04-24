@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -148,6 +149,9 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
+      // Set the seller name, ensuring it's never null
+      const sellerName = profile.full_name || user.email || "Unknown Seller";
+
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -158,12 +162,12 @@ const SellerAddProduct = () => {
           model: values.model,
           description: values.description || null,
           seller_id: user.id,
-          seller_name: profile.full_name || user.email,
+          seller_name: sellerName,
           status: 'pending',
           place_number: parseInt(values.placeNumber),
         })
         .select('id')
-        .single() as any;
+        .single();
 
       if (productError) throw productError;
 
@@ -177,7 +181,7 @@ const SellerAddProduct = () => {
             url: img.url,
             is_primary: img.is_primary
           }))
-        ) as any;
+        );
 
       if (imagesError) throw imagesError;
 
@@ -185,7 +189,7 @@ const SellerAddProduct = () => {
         const { error: videosError } = await supabase
           .from('product_videos')
           .insert(
-            videoUrls.map((url, idx) => ({
+            videoUrls.map((url) => ({
               product_id: product.id,
               url
             }))
