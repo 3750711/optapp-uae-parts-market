@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
+// Define the container status type to match our updated database enum
+type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
 
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
@@ -168,7 +172,7 @@ const AdminLogistics = () => {
     setSelectedOrders([]);
   };
 
-  const handleUpdateContainerStatus = async (orderId: string, status: string) => {
+  const handleUpdateContainerStatus = async (orderId: string, status: ContainerStatus) => {
     const { error } = await supabase
       .from('orders')
       .update({ container_status: status })
@@ -382,8 +386,8 @@ const AdminLogistics = () => {
                       </TableCell>
                       <TableCell>
                         <Select
-                          value={order.container_status || 'waiting'}
-                          onValueChange={(value) => handleUpdateContainerStatus(order.id, value)}
+                          value={order.container_status || 'sent_from_uae'}
+                          onValueChange={(value) => handleUpdateContainerStatus(order.id, value as ContainerStatus)}
                         >
                           <SelectTrigger className={`w-[200px] ${getStatusColor(order.container_status)}`}>
                             <SelectValue>
