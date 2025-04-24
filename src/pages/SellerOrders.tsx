@@ -293,7 +293,7 @@ const SellerOrders = () => {
                     </div>
 
                     <div className="flex justify-between items-center">
-                      <div className="font-medium text-lg">{order.price} AED</div>
+                      <div className="font-medium text-lg">{order.price} $</div>
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <span className="font-medium">Мест для отправки:</span>
                         <span>{order.place_number || 1}</span>
