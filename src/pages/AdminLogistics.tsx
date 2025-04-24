@@ -24,6 +24,8 @@ const AdminLogistics = () => {
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [editingContainer, setEditingContainer] = useState<string | null>(null);
   const [tempContainerNumber, setTempContainerNumber] = useState<string>('');
+  const [bulkEditingContainer, setBulkEditingContainer] = useState(false);
+  const [bulkContainerNumber, setBulkContainerNumber] = useState('');
   const { toast } = useToast();
 
   const { data: orders, isLoading } = useQuery({
@@ -98,6 +100,41 @@ const AdminLogistics = () => {
     }
   };
 
+  const handleBulkUpdateContainerNumber = async () => {
+    if (!selectedOrders.length || !bulkContainerNumber.trim()) return;
+
+    let hasError = false;
+    
+    for (const orderId of selectedOrders) {
+      const { error } = await supabase
+        .from('orders')
+        .update({ container_number: bulkContainerNumber })
+        .eq('id', orderId);
+
+      if (error) {
+        console.error('Error updating container number:', error);
+        hasError = true;
+      }
+    }
+
+    if (hasError) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить номера контейнеров для некоторых заказов",
+      });
+    } else {
+      toast({
+        title: "Успешно",
+        description: `Номер контейнера обновлен для ${selectedOrders.length} заказов`,
+      });
+    }
+
+    setBulkEditingContainer(false);
+    setBulkContainerNumber('');
+    setSelectedOrders([]);
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -116,6 +153,39 @@ const AdminLogistics = () => {
             <CardTitle>Управление логистикой</CardTitle>
           </CardHeader>
           <CardContent>
+            {selectedOrders.length > 0 && (
+              <div className="mb-4 p-4 border rounded-lg bg-muted/50 flex items-center gap-4">
+                <span>Выбрано заказов: {selectedOrders.length}</span>
+                {!bulkEditingContainer ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setBulkEditingContainer(true)}
+                    size="sm"
+                  >
+                    <Container className="h-4 w-4 mr-2" />
+                    Изменить номер контейнера
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="text"
+                      placeholder="Введите номер контейнера"
+                      value={bulkContainerNumber}
+                      onChange={(e) => setBulkContainerNumber(e.target.value)}
+                      className="w-48"
+                    />
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleBulkUpdateContainerNumber}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Сохранить
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
