@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -154,7 +153,15 @@ const ProductCard: React.FC<ProductProps> = ({
       </CardContent>
       <CardFooter className="p-4 pt-3 flex flex-col gap-2">
         <div className="flex items-end justify-between w-full">
-          <p className="font-bold text-lg text-primary">{price} $</p>
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-lg text-primary">{price} $</p>
+            {delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
+              <span className="text-sm text-muted-foreground flex items-center gap-1">
+                <Truck className="w-3 h-3" />
+                +{delivery_price} $
+              </span>
+            )}
+          </div>
           <Link to={`/product/${id}?from_page=${currentPage}`} className="w-auto ml-2">
             <Button 
               variant="ghost"
