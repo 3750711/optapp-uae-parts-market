@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -100,6 +101,7 @@ const BuyerCreateOrder = () => {
             lot_number: product.lot_number,
             deliveryMethod: 'self_pickup',
             place_number: "1",
+            text_order: "", // Add the missing text_order property
           });
 
           const { data: images, error: imagesError } = await supabase

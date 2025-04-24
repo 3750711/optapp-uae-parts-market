@@ -13,6 +13,7 @@ import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard"
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VideoUpload } from "@/components/ui/video-upload";
+import { Textarea } from "@/components/ui/textarea";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -42,7 +43,8 @@ const SellerCreateOrder = () => {
     optid_created: "",
     seller_opt_id: "",
     deliveryMethod: 'self_pickup' as DeliveryMethod,
-    place_number: "1"
+    place_number: "1",
+    text_order: ""
   });
 
   useEffect(() => {
@@ -105,7 +107,8 @@ const SellerCreateOrder = () => {
             optid_created: product.optid_created || "",
             seller_opt_id: product.seller?.opt_id || "",
             deliveryMethod: 'self_pickup',
-            place_number: "1"
+            place_number: "1",
+            text_order: ""
           });
         }
       }
@@ -234,7 +237,8 @@ const SellerCreateOrder = () => {
         telegram_url_order: buyerData.telegram || null,
         images: images,
         product_id: resolvedProductId || null,
-        delivery_method: formData.deliveryMethod as DeliveryMethod
+        delivery_method: formData.deliveryMethod as DeliveryMethod,
+        text_order: formData.text_order || null
       };
 
       console.log("Order payload:", orderPayload);
@@ -376,7 +380,8 @@ const SellerCreateOrder = () => {
                   optid_created: "",
                   seller_opt_id: "",
                   deliveryMethod: 'self_pickup',
-                  place_number: "1"
+                  place_number: "1",
+                  text_order: ""
                 });
                 setImages([]);
               }}
@@ -554,6 +559,17 @@ const SellerCreateOrder = () => {
                     required 
                     min="1"
                     placeholder="Укажите количество мест"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Дополнительная информация</Label>
+                  <Textarea 
+                    placeholder="Укажите дополнительную информацию по заказу (необязательно)"
+                    className="resize-none"
+                    rows={3}
+                    value={formData.text_order}
+                    onChange={(e) => handleInputChange('text_order', e.target.value)}
                   />
                 </div>
               </CardContent>
