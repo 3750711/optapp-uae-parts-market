@@ -100,7 +100,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       const { data: currentProduct, error: productCheckError } = await supabase
         .from('products')
-        .select('status')
+        .select('status, delivery_price')
         .eq('id', product.id)
         .single();
         
@@ -147,7 +147,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         }
       }
 
-      console.log('Product delivery price:', product.delivery_price);
+      console.log('Product delivery price:', currentProduct.delivery_price);
 
       const orderPayload = {
         title: product.title,
@@ -169,7 +169,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         images: productImages,
         delivery_method: deliveryMethod,
         text_order: orderData.text_order || null,
-        delivery_price_confirm: product.delivery_price !== undefined ? product.delivery_price : null,
+        delivery_price_confirm: currentProduct.delivery_price,
       };
 
       console.log('Order payload with delivery price:', orderPayload);
@@ -224,7 +224,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.error('Error handling order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать заказ. Попробуйте позже.",
+        description: "Не удалось создать заказ. Попробуйте ��озже.",
         variant: "destructive",
       });
     } finally {
