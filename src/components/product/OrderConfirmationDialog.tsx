@@ -83,19 +83,19 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6 max-h-[90vh] flex flex-col">
-        <DialogHeader className="space-y-1 pb-2 flex-shrink-0">
+      <DialogContent className="sm:max-w-md max-w-[95vw] p-3 sm:p-6 max-h-[85vh] flex flex-col">
+        <DialogHeader className="space-y-0.5 pb-2 flex-shrink-0">
           <DialogTitle>Подтверждение заказа</DialogTitle>
-          <DialogDescription className="text-xs sm:text-sm">
+          <DialogDescription className="text-xs">
             Проверьте информацию перед подтверждением
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow overflow-y-auto pr-4">
-          <div className="space-y-3 sm:space-y-4 text-sm">
+        <ScrollArea className="flex-grow overflow-y-auto pr-3">
+          <div className="space-y-2 sm:space-y-4 text-sm">
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">Информация о товаре</h3>
-              <div className="space-y-1 text-xs sm:text-sm">
+              <h3 className="font-semibold text-sm mb-1">Информация о товаре</h3>
+              <div className="space-y-0.5 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Наименование:</span>
                   <span className="font-medium text-right max-w-[60%] break-words">{product.title}</span>
@@ -127,10 +127,10 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               </div>
             </div>
 
-            <Separator />
+            <Separator className="my-1.5" />
 
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
+            <div className="space-y-1.5">
+              <h3 className="font-semibold text-sm mb-1">Способ доставки</h3>
               <Select 
                 defaultValue="cargo_rf"
                 value={deliveryMethod || 'cargo_rf'}
@@ -164,7 +164,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               </Select>
               
               {deliveryMethod === 'self_pickup' && (
-                <div className="flex items-center space-x-2 mt-2">
+                <div className="flex items-start space-x-2 mt-1.5">
                   <Checkbox 
                     id="contactConsent"
                     checked={contactConsent}
@@ -173,7 +173,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   />
                   <label
                     htmlFor="contactConsent"
-                    className="text-sm text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    className="text-xs text-gray-700 leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                   >
                     Даю согласие поделиться моими контактными данными с продавцом
                   </label>
@@ -181,11 +181,11 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               )}
             </div>
 
-            <Separator />
+            <Separator className="my-1.5" />
 
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">Информация о продавце</h3>
-              <div className="space-y-1 text-xs sm:text-sm">
+              <h3 className="font-semibold text-sm mb-1">Информация о продавце</h3>
+              <div className="space-y-0.5 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Продавец:</span>
                   <span className="font-medium">{product.seller_name || 'Не указан'}</span>
@@ -197,11 +197,11 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               </div>
             </div>
 
-            <Separator />
+            <Separator className="my-1.5" />
 
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">Информация о покупателе</h3>
-              <div className="space-y-1 text-xs sm:text-sm">
+              <h3 className="font-semibold text-sm mb-1">Информация о покупателе</h3>
+              <div className="space-y-0.5 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-500">Ваш OPT ID:</span>
                   <span className="font-medium">{profile?.opt_id || 'Не указан'}</span>
@@ -215,11 +215,11 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           </div>
         </ScrollArea>
 
-        <div className="mt-3 flex-shrink-0">
-          <Alert variant="default" className="bg-yellow-50 border-yellow-200 p-2 sm:p-3">
+        <div className="mt-2 flex-shrink-0">
+          <Alert variant="default" className="bg-yellow-50 border-yellow-200 p-2">
             <div className="flex items-start space-x-2">
               <InfoIcon className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-              <AlertDescription className="text-yellow-900 text-xs sm:text-sm">
+              <AlertDescription className="text-yellow-900 text-xs">
                 Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
                 Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
               </AlertDescription>
@@ -227,7 +227,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           </Alert>
         </div>
 
-        <DialogFooter className="flex sm:justify-end justify-between gap-2 sm:gap-0 mt-3 sm:mt-4 pt-0 px-0 flex-shrink-0">
+        <DialogFooter className="flex sm:justify-end justify-between gap-2 sm:gap-0 mt-2 pt-0 px-0 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
