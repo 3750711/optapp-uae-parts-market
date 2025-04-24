@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
-import { fileExport } from "lucide-react";
+import { FileText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save } from "lucide-react";
@@ -490,7 +490,7 @@ const AdminLogistics = () => {
                       onClick={handleExportToXLSX}
                       size="sm"
                     >
-                      <fileExport className="h-4 w-4 mr-2" />
+                      <FileText className="h-4 w-4 mr-2" />
                       Экспорт в Excel
                     </Button>
                   </div>
