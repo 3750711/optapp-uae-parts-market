@@ -1,7 +1,6 @@
-
 import React from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2 } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -167,7 +166,15 @@ const PublicSellerProfile = () => {
                   />
                 )}
                 <div>
-                  <h2 className="text-2xl font-bold mb-2">{profile.full_name || "Продавец"}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-2xl font-bold mb-2">{profile.full_name || "Продавец"}</h2>
+                    {profile.opt_status === 'opt_user' && (
+                      <div className="flex items-center text-yellow-600">
+                        <Crown className="h-5 w-5 mr-1" />
+                        <span className="text-sm font-medium">OPTSELLER</span>
+                      </div>
+                    )}
+                  </div>
                   <Badge variant="outline" className="text-sm">
                     {profile.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
                   </Badge>
