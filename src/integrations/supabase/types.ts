@@ -386,6 +386,7 @@ export type Database = {
           listing_count: number
           location: string
           opt_id: string | null
+          opt_status: Database["public"]["Enums"]["opt_user_status"]
           phone: string | null
           rating: number | null
           telegram: string | null
@@ -405,6 +406,7 @@ export type Database = {
           listing_count?: number
           location?: string
           opt_id?: string | null
+          opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
           rating?: number | null
           telegram?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           listing_count?: number
           location?: string
           opt_id?: string | null
+          opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
           rating?: number | null
           telegram?: string | null
@@ -453,6 +456,7 @@ export type Database = {
     }
     Enums: {
       delivery_method: "self_pickup" | "cargo_rf" | "cargo_kz"
+      opt_user_status: "free_user" | "opt_user"
       order_created_type: "free_order" | "ads_order"
       order_status:
         | "created"
@@ -581,6 +585,7 @@ export const Constants = {
   public: {
     Enums: {
       delivery_method: ["self_pickup", "cargo_rf", "cargo_kz"],
+      opt_user_status: ["free_user", "opt_user"],
       order_created_type: ["free_order", "ads_order"],
       order_status: [
         "created",

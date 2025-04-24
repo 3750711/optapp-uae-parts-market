@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,13 +9,19 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCheck, UserX, Edit, Star, ExternalLink, Ban } from "lucide-react";
+import { UserCheck, UserX, Edit, Star, ExternalLink, Ban, UserCog } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const AdminUsers = () => {
   const { toast } = useToast();
@@ -92,6 +97,27 @@ const AdminUsers = () => {
       toast({
         title: "Успех",
         description: "Статус пользователя обновлен"
+      });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    }
+  };
+
+  const handleOptStatusChange = async (userId: string, newStatus: 'free_user' | 'opt_user') => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ opt_status: newStatus })
+      .eq('id', userId);
+
+    if (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось изменить OPT статус пользователя",
+        variant: "destructive"
+      });
+    } else {
+      toast({
+        title: "Успех",
+        description: "OPT статус пользователя обновлен"
       });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     }
@@ -248,6 +274,35 @@ const AdminUsers = () => {
                           >
                             <UserX className="h-4 w-4 text-orange-600" />
                           </Button>
+                        )}
+
+                        {user.user_type === 'seller' && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Изменить OPT статус"
+                              >
+                                <UserCog className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem
+                                onClick={() => handleOptStatusChange(user.id, 'free_user')}
+                                className={user.opt_status === 'free_user' ? 'bg-accent' : ''}
+                              >
+                                Свободный пользователь
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleOptStatusChange(user.id, 'opt_user')}
+                                className={user.opt_status === 'opt_user' ? 'bg-accent' : ''}
+                              >
+                                OPT пользователь
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
 
                         <UserEditDialog
