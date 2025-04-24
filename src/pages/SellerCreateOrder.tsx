@@ -195,6 +195,7 @@ const SellerCreateOrder = () => {
       console.log("Preparing to create order");
 
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
+      console.log("Delivery price to be saved:", deliveryPrice);
       
       const orderPayload = {
         title: formData.title,
@@ -216,7 +217,7 @@ const SellerCreateOrder = () => {
         delivery_price_confirm: deliveryPrice,
       };
 
-      console.log("Order payload:", orderPayload);
+      console.log("Order payload with delivery price:", orderPayload);
 
       const { data: createdOrderData, error: orderError } = await supabase
         .from('orders')
@@ -230,6 +231,7 @@ const SellerCreateOrder = () => {
 
       const createdOrder = createdOrderData?.[0];
       console.log("Created order:", createdOrder);
+      console.log("Saved delivery price:", createdOrder?.delivery_price_confirm);
 
       if (!createdOrder) {
         throw new Error("Order was created but no data was returned");

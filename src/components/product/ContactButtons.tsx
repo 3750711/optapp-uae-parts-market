@@ -147,6 +147,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         }
       }
 
+      console.log('Product delivery price:', product.delivery_price);
+
       const orderPayload = {
         title: product.title,
         quantity: 1,
@@ -167,8 +169,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         images: productImages,
         delivery_method: deliveryMethod,
         text_order: orderData.text_order || null,
-        delivery_price_confirm: product.delivery_price || null,
+        delivery_price_confirm: product.delivery_price !== undefined ? product.delivery_price : null,
       };
+
+      console.log('Order payload with delivery price:', orderPayload);
 
       const { data: order, error: orderError } = await supabase
         .from('orders')
@@ -182,6 +186,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       }
 
       console.log('Order created successfully:', order);
+      console.log('Saved delivery price:', order.delivery_price_confirm);
 
       const { error: updateError } = await supabase
         .from('products')
