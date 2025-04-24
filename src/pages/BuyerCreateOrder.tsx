@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,7 @@ const BuyerCreateOrder = () => {
             deliveryMethod: 'self_pickup',
             place_number: "1",
             text_order: "",
+            delivery_price: product.delivery_price ? product.delivery_price.toString() : "",
           });
 
           const { data: images, error: imagesError } = await supabase
