@@ -31,11 +31,15 @@ interface OrderConfirmationDialogProps {
     seller_id?: string;
     seller_name?: string;
     lot_number?: string | number | null;
+    delivery_price?: number;
   };
   profile?: {
     opt_id?: string;
     telegram?: string;
+    opt_status?: string;
   } | null;
+  deliveryMethod: Database["public"]["Enums"]["delivery_method"];
+  onDeliveryMethodChange: (method: Database["public"]["Enums"]["delivery_method"]) => void;
 }
 
 const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
@@ -45,6 +49,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   isSubmitting,
   product,
   profile,
+  deliveryMethod,
 }) => {
   const [textOrder, setTextOrder] = useState<string>("");
 
@@ -52,6 +57,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     console.log("Submitting text_order:", textOrder);
     onConfirm({ text_order: textOrder });
   };
+
+  const showDeliveryPrice = profile?.opt_status === 'opt_used' && deliveryMethod === 'cargo_rf';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,6 +101,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-gray-500">ID товара:</span>
                     <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
+                  </div>
+                )}
+                {showDeliveryPrice && product.delivery_price !== undefined && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Стоимость доставки:</span>
+                    <span className="font-medium">{product.delivery_price} $</span>
                   </div>
                 )}
               </div>
