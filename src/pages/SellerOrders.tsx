@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { Link, Loader2, CheckCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { OrderConfirmButton } from "@/components/order/OrderConfirmButton";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -389,6 +391,12 @@ const SellerOrders = () => {
                             </AlertDialogContent>
                           </AlertDialog>
                         </>
+                      )}
+                      
+                      {order.status === 'admin_confirmed' && (
+                        <div className="w-full pt-2" onClick={(e) => e.stopPropagation()}>
+                          <OrderConfirmButton orderId={order.id} />
+                        </div>
                       )}
                     </div>
                   </CardContent>
