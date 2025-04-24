@@ -1,9 +1,8 @@
-
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge as BadgeIcon, Star, Crown, Flame } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
@@ -27,6 +26,7 @@ export interface ProductProps {
   created_at?: string;
   seller_opt_status?: 'free_user' | 'opt_user';
   onStatusChange?: () => void;
+  delivery_price?: number;
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -44,7 +44,8 @@ const ProductCard: React.FC<ProductProps> = ({
   seller_verification,
   created_at,
   seller_opt_status,
-  onStatusChange
+  onStatusChange,
+  delivery_price
 }) => {
   const [searchParams] = useSearchParams();
   const currentPage = searchParams.get("page") || "1";
@@ -143,6 +144,12 @@ const ProductCard: React.FC<ProductProps> = ({
             </span>
           )}
         </div>
+        {delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
+          <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+            <Truck className="w-3 h-3" />
+            <span>Доставка: {delivery_price} $</span>
+          </div>
+        )}
       </CardContent>
       <CardFooter className="p-4 pt-3 flex flex-col gap-2">
         <div className="flex items-end justify-between w-full">
