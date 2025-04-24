@@ -48,8 +48,8 @@ const SellerOrders = () => {
           )
         `)
         .or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`)
-        .order('status', { ascending: true }) // Sort by status first (created comes first alphabetically)
-        .order('created_at', { ascending: false }); // Then by creation date
+        .order('status', { ascending: true })
+        .order('created_at', { ascending: false });
         
       if (error) {
         console.error("Error fetching orders:", error);
@@ -181,7 +181,7 @@ const SellerOrders = () => {
       case 'admin_confirmed':
         return 'bg-green-50';
       case 'processed':
-        return 'bg-[#F2FCE2] border-green-200 border-2 shadow-md'; // Bright green highlight
+        return 'bg-[#F2FCE2] border-green-200 border-2 shadow-md';
       case 'created':
         return 'bg-yellow-50 animate-pulse-soft border-2 border-yellow-200 shadow-md';
       default:
@@ -320,6 +320,13 @@ const SellerOrders = () => {
                         )}
                       </div>
                     </div>
+
+                    {order.text_order && order.text_order.trim() !== "" && (
+                      <div className="text-sm text-gray-600 mt-2 border-t pt-2">
+                        <span className="font-medium">Дополнительная информация:</span>
+                        <p className="mt-1 whitespace-pre-wrap line-clamp-3">{order.text_order}</p>
+                      </div>
+                    )}
 
                     <div className="pt-2 flex items-center justify-between">
                       <Badge variant="outline">
