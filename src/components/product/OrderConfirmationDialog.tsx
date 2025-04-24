@@ -177,6 +177,15 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 </SelectContent>
               </Select>
               
+              {showDeliveryPrice && product.delivery_price !== undefined && (
+                <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Стоимость доставки:</span>
+                    <span className="font-medium text-gray-900">{product.delivery_price} $</span>
+                  </div>
+                </div>
+              )}
+
               {deliveryMethod === 'self_pickup' && (
                 <div className="flex items-start space-x-2 mt-1.5">
                   <Checkbox 
