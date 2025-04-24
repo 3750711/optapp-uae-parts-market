@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +8,7 @@ import { Edit, Trash2, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
+import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog'; // Add this import
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
 import { Badge } from '@/components/ui/badge';
