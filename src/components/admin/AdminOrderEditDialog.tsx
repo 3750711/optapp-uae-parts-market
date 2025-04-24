@@ -99,6 +99,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           ...values,
           price: Number(values.price),
           quantity: Number(values.quantity),
+          delivery_price_confirm: values.delivery_price_confirm ? Number(values.delivery_price_confirm) : null,
         })
         .eq('id', order.id)
         .select()
@@ -197,6 +198,20 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
               <FormField
                 control={form.control}
+                name="delivery_price_confirm"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Подтвержденная стоимость доставки ($)</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" step="0.01" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="quantity"
                 render={({ field }) => (
                   <FormItem>
@@ -231,20 +246,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                         <SelectItem value="cancelled">Отменен</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="delivery_price_confirm"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Подтвержденная стоимость доставки ($)</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" step="0.01" />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -293,4 +294,3 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     </Dialog>
   );
 };
-
