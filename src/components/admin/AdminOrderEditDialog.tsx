@@ -71,6 +71,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       description: order?.description || '',
       delivery_price_confirm: order?.delivery_price_confirm?.toString() || '',
       delivery_method: order?.delivery_method || 'self_pickup',
+      place_number: order?.place_number?.toString() || '1',
     }
   });
 
@@ -86,9 +87,19 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         description: order.description || '',
         delivery_price_confirm: order.delivery_price_confirm?.toString() || '',
         delivery_method: order.delivery_method,
+        place_number: order.place_number?.toString(),
       });
     }
   }, [order, form]);
+
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'quantity') {
+        form.setValue('place_number', value.quantity || '1');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   const updateOrderMutation = useMutation({
     mutationFn: async (values: any) => {
@@ -241,7 +252,21 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                   <FormItem>
                     <FormLabel>Количество</FormLabel>
                     <FormControl>
-                      <Input {...field} type="number" />
+                      <Input {...field} type="number" min="1" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="place_number"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Количество мест</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="number" min="1" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -305,7 +330,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                 {updateOrderMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Сохранение...
+                    Сохранен��е...
                   </>
                 ) : (
                   'Сохранить'
