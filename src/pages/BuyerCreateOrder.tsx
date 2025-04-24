@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -244,14 +243,14 @@ const BuyerCreateOrder = () => {
         brand: formData.brand,
         model: formData.model,
         status: 'created' as OrderStatus,
-        order_created_type: productId ? 'ads_order' as OrderCreatedType : 'free_order' as OrderCreatedType,
+        order_created_type: productId ? ('ads_order' as OrderCreatedType) : ('free_order' as OrderCreatedType),
         product_id: resolvedProductId || null,
-        lot_number_order: usedLotNumber !== undefined ? usedLotNumber : null,
         images: productImages,
         delivery_method: formData.deliveryMethod as DeliveryMethod,
         place_number: parseInt(formData.place_number),
         text_order: formData.text_order || null,
         delivery_price: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
+        delivery_price_confirm: !productId && formData.delivery_price ? parseFloat(formData.delivery_price) : null,
       };
 
       console.log("Order payload:", orderPayload);

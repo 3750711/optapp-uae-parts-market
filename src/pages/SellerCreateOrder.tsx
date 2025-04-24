@@ -242,6 +242,7 @@ const SellerCreateOrder = () => {
         delivery_method: formData.deliveryMethod as DeliveryMethod,
         text_order: formData.text_order || null,
         delivery_price: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
+        delivery_price_confirm: !productId && formData.delivery_price ? parseFloat(formData.delivery_price) : null,
       };
 
       console.log("Order payload:", orderPayload);
