@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -185,7 +186,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Цена (AED)</FormLabel>
+                    <FormLabel>Цена ($)</FormLabel>
                     <FormControl>
                       <Input {...field} type="number" />
                     </FormControl>
@@ -240,7 +241,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                 name="delivery_price_confirm"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Подтвержденная стоимость доставки (AED)</FormLabel>
+                    <FormLabel>Подтвержденная стоимость доставки ($)</FormLabel>
                     <FormControl>
                       <Input {...field} type="number" step="0.01" />
                     </FormControl>
@@ -292,3 +293,4 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     </Dialog>
   );
 };
+
