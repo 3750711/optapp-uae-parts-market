@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -87,7 +88,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     navigate('/profile');
   };
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = async (orderData: { text_order?: string }) => {
     if (isSubmitting) return;
 
     setIsSubmitting(true);
@@ -165,6 +166,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         lot_number_order: lotNumberOrder,
         images: productImages,
         delivery_method: deliveryMethod,
+        text_order: orderData.text_order || null,
       };
 
       const { data: order, error: orderError } = await supabase

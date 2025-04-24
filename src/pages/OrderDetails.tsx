@@ -75,6 +75,7 @@ const OrderDetails = () => {
 
       if (!order) return null;
       console.log("Fetched order data:", order);
+      console.log("Order", order.order_number, "text_order:", order.text_order);
 
       let images: string[] = [];
       let videos: string[] = [];

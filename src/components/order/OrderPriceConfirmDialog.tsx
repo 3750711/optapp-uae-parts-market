@@ -1,16 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
-import { Input } from "@/components/ui/input";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 interface OrderPriceConfirmDialogProps {
@@ -26,63 +25,44 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
   onOpenChange,
   currentPrice,
   onConfirm,
-  isSubmitting
+  isSubmitting,
 }) => {
-  const [price, setPrice] = useState(currentPrice);
-  const [isChecked, setIsChecked] = useState(false);
-  const isPriceUnchanged = price === currentPrice;
+  const [price, setPrice] = useState(currentPrice.toString());
 
-  // Reset price and checkbox when dialog opens
-  useEffect(() => {
-    if (open) {
-      setPrice(currentPrice);
-      setIsChecked(false);
-    }
-  }, [open, currentPrice]);
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setPrice(value);
+  };
 
-  const handleConfirm = () => {
-    if (isPriceUnchanged && !isChecked) {
-      return; // Prevent confirmation if price unchanged and checkbox unchecked
+  const handleSubmit = () => {
+    const numPrice = parseFloat(price);
+    if (isNaN(numPrice) || numPrice <= 0) {
+      return;
     }
-    onConfirm(price);
+    onConfirm(numPrice);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Подтверждение стоимости</DialogTitle>
-          <DialogDescription>
-            Проверьте стоимость, возможно вы договаривались о цене. Если цена не верна, впишите нужную.
-          </DialogDescription>
+          <DialogTitle>Подтверждение заказа</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="flex flex-col gap-2">
+        <div className="space-y-4 pt-3">
+          <div className="space-y-2">
+            <Label htmlFor="price">Подтвердите или измените цену (AED)</Label>
             <Input
               id="price"
               type="number"
               value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              placeholder="Введите стоимость"
+              onChange={handlePriceChange}
+              min="0"
+              step="0.01"
+              className="text-lg"
             />
           </div>
-          {isPriceUnchanged && (
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="noAgreement"
-                checked={isChecked}
-                onCheckedChange={(checked) => setIsChecked(checked as boolean)}
-              />
-              <label
-                htmlFor="noAgreement"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                Я не договаривался с покупателем о цене
-              </label>
-            </div>
-          )}
         </div>
-        <DialogFooter>
+        <DialogFooter className="pt-4">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -91,16 +71,17 @@ const OrderPriceConfirmDialog: React.FC<OrderPriceConfirmDialogProps> = ({
             Отмена
           </Button>
           <Button
-            onClick={handleConfirm}
-            disabled={isSubmitting || (isPriceUnchanged && !isChecked)}
+            onClick={handleSubmit}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            disabled={isSubmitting || parseFloat(price) <= 0 || isNaN(parseFloat(price))}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Обработка...
+                <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                Подтверждение...
               </>
             ) : (
-              "Подтвердить"
+              <>Подтвердить</>
             )}
           </Button>
         </DialogFooter>
