@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, Link, CheckCircle } from "lucide-react";
+import { Edit2, Trash2, Link, CheckCircle, Truck } from "lucide-react";
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -93,6 +93,19 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
   const showRegisterButton = order.status === 'admin_confirmed';
 
+  const getDeliveryMethodLabel = (method: string) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Доставка Cargo РФ';
+      case 'cargo_kz':
+        return 'Доставка Cargo KZ';
+      default:
+        return 'Не указан';
+    }
+  };
+
   return (
     <Card className={`h-full ${highlightColor} flex flex-col`}>
       <CardHeader className="space-y-2">
@@ -168,6 +181,14 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
             <span className="text-lg">{order.price} $</span>
           </div>
           
+          <div className="flex justify-between items-center">
+            <span className="font-medium">Способ доставки:</span>
+            <div className="flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              <span>{getDeliveryMethodLabel(order.delivery_method)}</span>
+            </div>
+          </div>
+
           <div className="flex justify-between items-center">
             <span className="font-medium">Стоимость доставки:</span>
             <span className="text-lg text-primary">
