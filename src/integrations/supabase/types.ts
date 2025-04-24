@@ -124,6 +124,7 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
           telegram_url_buyer: string | null
           telegram_url_order: string | null
+          text_order: string | null
           title: string
         }
         Insert: {
@@ -149,6 +150,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           telegram_url_buyer?: string | null
           telegram_url_order?: string | null
+          text_order?: string | null
           title: string
         }
         Update: {
@@ -174,6 +176,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["order_status"]
           telegram_url_buyer?: string | null
           telegram_url_order?: string | null
+          text_order?: string | null
           title?: string
         }
         Relationships: [
