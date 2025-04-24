@@ -25,9 +25,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
-// Define the container status type to match our updated database enum
 type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
+
+const ITEMS_PER_PAGE = 10;
 
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
@@ -37,6 +47,7 @@ const AdminLogistics = () => {
   const [tempContainerNumber, setTempContainerNumber] = useState<string>('');
   const [bulkEditingContainer, setBulkEditingContainer] = useState(false);
   const [bulkContainerNumber, setBulkContainerNumber] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,30 +71,48 @@ const AdminLogistics = () => {
     };
   }, [queryClient]);
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ['logistics-orders'],
+  const { data: ordersData, isLoading, error } = useQuery({
+    queryKey: ['logistics-orders', currentPage],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey (
-            full_name,
-            location,
-            opt_id
-          ),
-          seller:profiles!orders_seller_id_fkey (
-            full_name,
-            location,
-            opt_id
-          )
-        `)
-        .order('created_at', { ascending: false });
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
 
-      if (error) throw error;
-      return data;
+      const [{ data: orders, error: ordersError }, { count: totalCount, error: countError }] = await Promise.all([
+        supabase
+          .from('orders')
+          .select(`
+            *,
+            buyer:profiles!orders_buyer_id_fkey (
+              full_name,
+              location,
+              opt_id
+            ),
+            seller:profiles!orders_seller_id_fkey (
+              full_name,
+              location,
+              opt_id
+            )
+          `)
+          .order('created_at', { ascending: false })
+          .range(from, to),
+        supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+      ]);
+
+      if (ordersError) throw ordersError;
+      if (countError) throw countError;
+
+      return {
+        orders,
+        totalCount: totalCount || 0,
+        totalPages: Math.ceil((totalCount || 0) / ITEMS_PER_PAGE)
+      };
     }
   });
+
+  const orders = ordersData?.orders || [];
+  const totalPages = ordersData?.totalPages || 1;
 
   const selectedOrdersDeliverySum = orders
     ?.filter(order => selectedOrders.includes(order.id))
@@ -230,6 +259,22 @@ const AdminLogistics = () => {
     }
   };
 
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="container mx-auto py-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center text-red-600">
+                Произошла ошибка при загрузке данных. Пожалуйста, попробуйте позже.
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -309,7 +354,7 @@ const AdminLogistics = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders?.map((order) => (
+                  {orders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell>
                         <Checkbox
@@ -416,6 +461,36 @@ const AdminLogistics = () => {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+            <div className="mt-4">
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </CardContent>
         </Card>
