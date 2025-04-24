@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -200,6 +201,15 @@ const AdminUsers = () => {
                         }`}>
                           {user.verification_status}
                         </Badge>
+                        {user.opt_status && (
+                          <Badge className={`${
+                            user.opt_status === 'opt_user'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {user.opt_status === 'opt_user' ? 'OPT' : 'Free User'}
+                          </Badge>
+                        )}
                       </div>
 
                       <div className="space-y-1">
@@ -276,34 +286,32 @@ const AdminUsers = () => {
                           </Button>
                         )}
 
-                        {user.user_type === 'seller' && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Изменить OPT статус"
-                              >
-                                <UserCog className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem
-                                onClick={() => handleOptStatusChange(user.id, 'free_user')}
-                                className={user.opt_status === 'free_user' ? 'bg-accent' : ''}
-                              >
-                                Свободный пользователь
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleOptStatusChange(user.id, 'opt_user')}
-                                className={user.opt_status === 'opt_user' ? 'bg-accent' : ''}
-                              >
-                                OPT пользователь
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              title="Изменить OPT статус"
+                            >
+                              <UserCog className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem
+                              onClick={() => handleOptStatusChange(user.id, 'free_user')}
+                              className={user.opt_status === 'free_user' ? 'bg-accent' : ''}
+                            >
+                              Свободный пользователь
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handleOptStatusChange(user.id, 'opt_user')}
+                              className={user.opt_status === 'opt_user' ? 'bg-accent' : ''}
+                            >
+                              OPT пользователь
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
 
                         <UserEditDialog
                           user={user}
