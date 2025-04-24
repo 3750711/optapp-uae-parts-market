@@ -1,3 +1,4 @@
+
 export interface ProductProps {
   id: string;
   name: string;
@@ -34,6 +35,7 @@ export interface SellerProfile {
   telegram?: string;
   description_user?: string;
   location?: string;
+  opt_status?: 'free_user' | 'opt_user';
 }
 
 export interface Product {
