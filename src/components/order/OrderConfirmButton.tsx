@@ -79,13 +79,23 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
 
           <div className="space-y-6">
             <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-              <p className="font-medium text-yellow-800">
+              <p className="font-medium text-yellow-800 mb-4">
                 Напишите на проданном товаре номер заказа и ID покупателя
               </p>
               {orderDetails && (
-                <div className="mt-2 space-y-1 text-sm">
-                  <p><span className="font-medium">Номер заказа:</span> {orderDetails.order_number}</p>
-                  <p><span className="font-medium">OPT_ID покупателя:</span> {orderDetails.buyer?.opt_id || 'Не указан'}</p>
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded-lg shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Номер заказа:</h3>
+                    <p className="text-2xl font-extrabold text-primary">
+                      {orderDetails.order_number || 'Не указан'}
+                    </p>
+                  </div>
+                  <div className="bg-white p-3 rounded-lg shadow-sm">
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">OPT_ID покупателя:</h3>
+                    <p className="text-2xl font-extrabold text-secondary">
+                      {orderDetails.buyer?.opt_id || 'Не указан'}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
@@ -97,3 +107,4 @@ export const OrderConfirmButton: React.FC<OrderConfirmButtonProps> = ({ orderId 
     </div>
   );
 };
+
