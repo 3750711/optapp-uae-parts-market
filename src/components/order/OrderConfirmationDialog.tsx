@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
 import {
@@ -17,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 interface OrderConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: () => void;
+  onConfirm: (orderData?: any) => void; // Updated type definition to accept optional data
   isSubmitting: boolean;
   product: {
     id?: string; 
@@ -45,6 +46,13 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   product,
   profile,
 }) => {
+  const [textOrder, setTextOrder] = useState<string>("");
+
+  const handleConfirm = () => {
+    // Pass the additional information to the onConfirm handler
+    onConfirm({ text_order: textOrder });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6">
@@ -131,19 +139,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 placeholder="Укажите дополнительную информацию по заказу (необязательно)"
                 className="resize-none text-sm"
                 rows={3}
-                onChange={(e) => {
-                  const textOrder = e.target.value;
-                  if (typeof onConfirm === 'function') {
-                    const originalOnConfirm = onConfirm;
-                    onConfirm = () => {
-                      const orderData = {
-                        text_order: textOrder,
-                        // ... other order data
-                      };
-                      originalOnConfirm(orderData);
-                    };
-                  }
-                }}
+                value={textOrder}
+                onChange={(e) => setTextOrder(e.target.value)}
               />
             </div>
           </div>
@@ -171,7 +168,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             Отмена
           </Button>
           <Button
-            onClick={onConfirm}
+            onClick={handleConfirm}
             className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-xs sm:text-sm h-8 sm:h-9"
             disabled={isSubmitting}
           >
