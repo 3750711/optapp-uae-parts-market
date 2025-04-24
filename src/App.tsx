@@ -122,6 +122,11 @@ const App = () => {
                   <OrderDetails />
                 </ProtectedRoute>
               } />
+              <Route path="/admin/logistics" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminLogistics />
+                </ProtectedRoute>
+              } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
