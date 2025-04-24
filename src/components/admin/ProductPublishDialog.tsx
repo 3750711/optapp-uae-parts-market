@@ -120,7 +120,7 @@ export const ProductPublishDialog = ({
               name="delivery_price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Стоимость доставки (AED)</FormLabel>
+                  <FormLabel>Стоимость доставки ($)</FormLabel>
                   <FormControl>
                     <Input 
                       type="number" 
