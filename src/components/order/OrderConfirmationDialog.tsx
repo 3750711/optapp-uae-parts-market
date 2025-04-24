@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -14,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
+import { Database } from "@/integrations/supabase/types";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
