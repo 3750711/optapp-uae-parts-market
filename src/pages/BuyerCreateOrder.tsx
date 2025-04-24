@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -35,6 +34,7 @@ const BuyerCreateOrder = () => {
     deliveryMethod: 'self_pickup' as DeliveryMethod,
     place_number: "1",
     text_order: "",
+    delivery_price: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -101,7 +101,7 @@ const BuyerCreateOrder = () => {
             lot_number: product.lot_number,
             deliveryMethod: 'self_pickup',
             place_number: "1",
-            text_order: "", // Add the missing text_order property
+            text_order: "",
           });
 
           const { data: images, error: imagesError } = await supabase
@@ -249,6 +249,7 @@ const BuyerCreateOrder = () => {
         delivery_method: formData.deliveryMethod as DeliveryMethod,
         place_number: parseInt(formData.place_number),
         text_order: formData.text_order || null,
+        delivery_price: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
       };
 
       console.log("Order payload:", orderPayload);
@@ -391,7 +392,7 @@ const BuyerCreateOrder = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Цена (AED) *</Label>
+                    <Label htmlFor="price">Цена ($) *</Label>
                     <Input 
                       id="price" 
                       type="number" 
@@ -404,22 +405,22 @@ const BuyerCreateOrder = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="place_number">Количество мест для отправки</Label>
+                    <Label htmlFor="delivery_price">Стоимость доставки ($)</Label>
                     <Input 
-                      id="place_number" 
+                      id="delivery_price"
                       type="number"
-                      value={formData.place_number}
-                      onChange={(e) => handleInputChange('place_number', e.target.value)}
-                      required 
-                      min="1"
-                      placeholder="Укажите количество мест"
+                      value={formData.delivery_price}
+                      onChange={(e) => handleInputChange('delivery_price', e.target.value)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>OPT_ID продавца</Label>
+                    <Label>OPT_ID продав��а</Label>
                     <Input 
                       value={formData.sellerOptId}
                       readOnly 

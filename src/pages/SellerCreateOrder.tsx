@@ -44,7 +44,8 @@ const SellerCreateOrder = () => {
     seller_opt_id: "",
     deliveryMethod: 'self_pickup' as DeliveryMethod,
     place_number: "1",
-    text_order: ""
+    text_order: "",
+    delivery_price: "",
   });
 
   useEffect(() => {
@@ -108,7 +109,8 @@ const SellerCreateOrder = () => {
             seller_opt_id: product.seller?.opt_id || "",
             deliveryMethod: 'self_pickup',
             place_number: "1",
-            text_order: ""
+            text_order: "",
+            delivery_price: "",
           });
         }
       }
@@ -238,7 +240,8 @@ const SellerCreateOrder = () => {
         images: images,
         product_id: resolvedProductId || null,
         delivery_method: formData.deliveryMethod as DeliveryMethod,
-        text_order: formData.text_order || null
+        text_order: formData.text_order || null,
+        delivery_price: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
       };
 
       console.log("Order payload:", orderPayload);
@@ -381,7 +384,8 @@ const SellerCreateOrder = () => {
                   seller_opt_id: "",
                   deliveryMethod: 'self_pickup',
                   place_number: "1",
-                  text_order: ""
+                  text_order: "",
+                  delivery_price: "",
                 });
                 setImages([]);
               }}
@@ -458,6 +462,21 @@ const SellerCreateOrder = () => {
                       step="0.01"
                     />
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery_price">Стоимость доставки ($)</Label>
+                    <Input 
+                      id="delivery_price"
+                      type="number"
+                      value={formData.delivery_price}
+                      onChange={(e) => handleInputChange('delivery_price', e.target.value)}
+                      placeholder="0.00"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
                     <Select
