@@ -122,77 +122,74 @@ const BuyerOrders = () => {
 
         {orders && orders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orders.map((order) => {
-              console.log(`Order ${order.order_number} text_order:`, order.text_order);
-              return (
-                <div
-                  key={order.id}
-                  className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all flex flex-col
+            {orders.map((order) => (
+              <div
+                key={order.id}
+                className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all flex flex-col
                   ${order.status === 'delivered' ? 'border-green-200' :
-                      order.status === 'cancelled' ? 'border-red-200' :
-                      order.status === 'seller_confirmed' ? 'border-blue-200' :
-                      order.status === 'admin_confirmed' ? 'border-purple-200' :
-                      order.status === 'shipped' ? 'border-orange-200' :
-                      order.status === 'processed' ? 'border-yellow-200' :
-                      'border-gray-100'
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-2 px-4 pt-4">
-                    {statusIcons[order.status] || statusIcons['created']}
-                    <Badge className={`text-base px-3 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
-                      {statusLabels[order.status] || order.status}
+                    order.status === 'cancelled' ? 'border-red-200' :
+                    order.status === 'seller_confirmed' ? 'border-blue-200' :
+                    order.status === 'admin_confirmed' ? 'border-purple-200' :
+                    order.status === 'shipped' ? 'border-orange-200' :
+                    order.status === 'processed' ? 'border-yellow-200' :
+                    'border-gray-100'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-2 px-4 pt-4">
+                  {statusIcons[order.status] || statusIcons['created']}
+                  <Badge className={`text-base px-3 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
+                    {statusLabels[order.status] || order.status}
+                  </Badge>
+                </div>
+                <div className="flex-1 flex flex-col px-4 py-2">
+                  <div className="flex items-center justify-between mt-2">
+                    <span className="font-semibold text-lg">Заказ № {order.order_number}</span>
+                    <span className="text-sm text-muted-foreground">Лот: {order.products?.lot_number || "Н/Д"}</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="font-medium text-base truncate">{order.title}</div>
+                    <div className="text-sm text-muted-foreground">{order.brand} {order.model}</div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="font-medium text-optapp-dark">{order.price} $</span>
+                    <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Badge variant="outline">{orderTypeLabels[order.order_created_type]}</Badge>
+                    <Badge variant="outline">
+                      {order.buyer_opt_id || 'Не указан'}
                     </Badge>
                   </div>
-                  <div className="flex-1 flex flex-col px-4 py-2">
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="font-semibold text-lg">Заказ № {order.order_number}</span>
-                      <span className="text-sm text-muted-foreground">Лот: {order.products?.lot_number || "Н/Д"}</span>
-                    </div>
-                    <div className="mt-2">
-                      <div className="font-medium text-base truncate">{order.title}</div>
-                      <div className="text-sm text-muted-foreground">{order.brand} {order.model}</div>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <span className="font-medium text-optapp-dark">{order.price} $</span>
-                      <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Badge variant="outline">{orderTypeLabels[order.order_created_type]}</Badge>
-                      <Badge variant="outline">
-                        {order.buyer_opt_id || 'Не указан'}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-gray-500 mb-1">
-                      Продавец: <span className="font-medium">{order.order_seller_name}</span>
-                    </div>
-                    
-                    {order.text_order && order.text_order.trim() !== "" && (
-                      <div className="text-sm text-gray-600 mt-2 border-t pt-2">
-                        <span className="font-medium">Доп. информация:</span>
-                        <p className="mt-1 whitespace-pre-wrap">{order.text_order}</p>
-                      </div>
-                    )}
+                  <div className="text-sm text-gray-500 mb-1">
+                    Продавец: <span className="font-medium">{order.order_seller_name}</span>
                   </div>
-                  {order.status === 'admin_confirmed' && isSeller && (
-                    <div className="px-4 pb-4">
-                      <OrderConfirmButton orderId={order.id} />
+                  
+                  {order.text_order && order.text_order.trim() !== "" && (
+                    <div className="text-sm text-gray-600 mt-2 border-t pt-2">
+                      <span className="font-medium">Доп. информация:</span>
+                      <p className="mt-1 whitespace-pre-wrap">{order.text_order}</p>
                     </div>
                   )}
-                  <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
-                    <Link
-                      to={`/product/${order.product_id}`}
-                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-                    >
-                      Подробнее
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
-                    </span>
-                  </div>
                 </div>
-              );
-            })}
+                {order.status === 'admin_confirmed' && isSeller && (
+                  <div className="mt-2 space-y-2">
+                    <OrderConfirmButton orderId={order.id} />
+                  </div>
+                )}
+                <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
+                  <Link
+                    to={`/product/${order.product_id}`}
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+                  >
+                    Подробнее
+                  </Link>
+                  <span className="text-xs text-muted-foreground">
+                    {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="text-center py-8">
