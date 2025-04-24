@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -69,8 +68,7 @@ export const ProductPublishDialog = ({
     },
   });
 
-  const deliveryPriceGuide = `
-ДВС без КПП малый, 4-цилиндровый, без навесного - $164
+  const deliveryPriceGuide = `ДВС без КПП малый, 4-цилиндровый, без навесного - $164
 ДВС без КПП малый, 4-цилиндровый - $184
 ДВС+КПП малый, 4-цилиндровый - $222
 ДВС без КПП 4-цилиндровый (тип N20) - $250
