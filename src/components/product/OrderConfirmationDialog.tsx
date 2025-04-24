@@ -69,12 +69,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
   const getDeliveryMethodLabel = (method: DeliveryMethod) => {
     switch (method) {
-      case 'self_pickup':
-        return 'Самовывоз';
       case 'cargo_rf':
         return 'Доставка Cargo РФ';
       case 'cargo_kz':
         return 'Доставка Cargo KZ';
+      case 'self_pickup':
+        return 'Самовывоз';
       default:
         return method;
     }
@@ -138,12 +138,6 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               </SelectTrigger>
               <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-md">
                 <SelectItem 
-                  value="self_pickup" 
-                  className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
-                >
-                  Самовывоз
-                </SelectItem>
-                <SelectItem 
                   value="cargo_rf" 
                   className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                 >
@@ -154,6 +148,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                 >
                   Доставка Cargo KZ
+                </SelectItem>
+                <SelectItem 
+                  value="self_pickup" 
+                  className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                >
+                  Самовывоз
                 </SelectItem>
               </SelectContent>
             </Select>
