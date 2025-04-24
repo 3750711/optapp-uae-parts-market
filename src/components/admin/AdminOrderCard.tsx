@@ -165,7 +165,7 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
         {order.delivery_price_confirm && (
           <div className="flex justify-between items-center text-sm text-muted-foreground">
             <span className="font-medium">Стоимость доставки:</span>
-            <span>{order.delivery_price_confirm} AED</span>
+            <span>{order.delivery_price_confirm} $</span>
           </div>
         )}
 
@@ -175,7 +175,7 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
         />
 
         <div className="pt-2 space-y-2">
-          <div className="font-medium text-lg">{order.price} AED</div>
+          <div className="font-medium text-lg">{order.price} $</div>
           <div className="flex justify-between items-center text-sm text-muted-foreground">
             <span>{new Date(order.created_at).toLocaleDateString('ru-RU')}</span>
             <div className="flex items-center gap-1">
