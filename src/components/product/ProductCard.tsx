@@ -26,6 +26,7 @@ export interface ProductProps {
   seller_verification?: 'pending' | 'verified' | 'blocked';
   created_at?: string;
   seller_opt_status?: 'free_user' | 'opt_user';
+  onStatusChange?: () => void;
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 

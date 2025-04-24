@@ -14,6 +14,9 @@ export interface ProductProps {
   seller_name: string;
   seller_id: string;
   status: 'pending' | 'active' | 'sold' | 'archived';
+  seller_verification?: 'pending' | 'verified' | 'blocked';
+  created_at?: string;
+  seller_opt_status?: 'free_user' | 'opt_user';
   onStatusChange?: () => void;
 }
 
