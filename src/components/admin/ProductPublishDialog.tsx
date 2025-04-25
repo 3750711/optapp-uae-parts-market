@@ -24,7 +24,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { Product } from '@/types/product';
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import {
   Collapsible,
   CollapsibleContent,
@@ -59,6 +59,7 @@ export const ProductPublishDialog = ({
   const { toast } = useToast();
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [isGuideOpen, setIsGuideOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
 
@@ -94,6 +95,8 @@ Nose cut (Ноускат) высокий - $260
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
+      setIsSubmitting(true);
+      
       // Update product status and delivery price
       const { error } = await supabase
         .from('products')
@@ -118,8 +121,13 @@ Nose cut (Ноускат) высокий - $260
         throw productError;
       }
 
+      toast({
+        title: "Товар опубликован",
+        description: "Отправка уведомления в Telegram...",
+      });
+
       // Send Telegram notification
-      const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+      const { data: notificationData, error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
         body: { product: updatedProduct }
       });
 
@@ -130,12 +138,12 @@ Nose cut (Ноускат) высокий - $260
           description: "Товар опубликован, но возникла ошибка при отправке уведомления в Telegram",
           variant: "default",
         });
+      } else {
+        toast({
+          title: "Успех",
+          description: "Товар успешно опубликован и отправлен в Telegram канал",
+        });
       }
-
-      toast({
-        title: "Успех",
-        description: "Товар успешно опубликован",
-      });
       
       handleOpenChange(false);
       if (onSuccess) onSuccess();
@@ -146,6 +154,8 @@ Nose cut (Ноускат) высокий - $260
         description: "Не удалось опубликовать товар",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,11 +211,19 @@ Nose cut (Ноускат) высокий - $260
                 type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
+                disabled={isSubmitting}
               >
                 Отмена
               </Button>
-              <Button type="submit">
-                Опубликовать
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Публикация...
+                  </>
+                ) : (
+                  'Опубликовать'
+                )}
               </Button>
             </div>
           </form>
