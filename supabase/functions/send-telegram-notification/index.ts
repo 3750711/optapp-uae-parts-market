@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -79,7 +80,7 @@ serve(async (req) => {
       })
     }
 
-    // Format the message text with lot number
+    // Format the message text with lot number and product link
     const message = `🆕 Новый товар опубликован!\n\n` +
       `📦 Название: ${product.title}\n` +
       `🔢 Номер товара: ${product.lot_number}\n` +
@@ -90,7 +91,8 @@ serve(async (req) => {
       `📦 Количество мест: ${product.place_number}\n` +
       (product.delivery_price ? `🚚 Стоимость доставки: ${product.delivery_price} $\n` : '') +
       (product.seller_name ? `👤 Продавец: ${product.seller_name}\n` : '') +
-      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}` : '');
+      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}\n` : '') +
+      `\n🔍 Посмотреть товар: ${product.product_url}`;
 
     console.log('Sending message to Telegram:', message)
     console.log('Using BOT_TOKEN:', BOT_TOKEN)
