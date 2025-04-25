@@ -94,14 +94,17 @@ const AdminUsers = () => {
         description: "Не удалось изменить статус пользователя",
         variant: "destructive"
       });
-    } else {
+      return;
+    }
+
+    if (newStatus !== 'blocked') {
       const { data: userData } = await supabase
         .from('profiles')
         .select('telegram, user_type')
         .eq('id', userId)
         .single();
 
-      if (userData?.telegram && newStatus !== 'blocked') {
+      if (userData?.telegram) {
         try {
           console.log('Sending notification with data:', {
             userId,
@@ -120,17 +123,44 @@ const AdminUsers = () => {
           });
           
           console.log('Telegram notification response:', response);
+          
+          if (response.error) {
+            console.error('Failed to send Telegram notification:', response.error);
+            
+            toast({
+              title: "Статус обновлен",
+              description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено. Возможно, пользователь не начал чат с ботом.",
+              variant: "warning"
+            });
+          } else {
+            toast({
+              title: "Успех",
+              description: "Статус пользователя обновлен и уведомление отправлено"
+            });
+          }
         } catch (notificationError) {
           console.error('Failed to send Telegram notification:', notificationError);
+          
+          toast({
+            title: "Статус обновлен",
+            description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено из-за ошибки",
+            variant: "warning"
+          });
         }
+      } else {
+        toast({
+          title: "Успех",
+          description: "Статус пользователя обновлен (Telegram не указан, уведомление не отправлено)"
+        });
       }
-
+    } else {
       toast({
         title: "Успех",
-        description: "Статус пользователя обновлен"
+        description: "Статус пользователя обновлен на 'заблокирован'"
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     }
+    
+    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
   };
 
   const handleOptStatusChange = async (userId: string, newStatus: 'free_user' | 'opt_user') => {
