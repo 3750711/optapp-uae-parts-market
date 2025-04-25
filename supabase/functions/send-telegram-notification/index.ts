@@ -12,6 +12,53 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper function to wait
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to make API calls with retry logic for rate limiting
+async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
+  let retries = 0;
+  
+  while (retries < maxRetries) {
+    try {
+      const response = await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/${endpoint}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        }
+      );
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        // Check if it's a rate limit error
+        if (response.status === 429 && result.parameters && result.parameters.retry_after) {
+          const retryAfter = (result.parameters.retry_after + 1) * 1000; // Convert to ms and add buffer
+          console.log(`Rate limited. Waiting for ${retryAfter}ms before retry. Attempt ${retries + 1}/${maxRetries}`);
+          await sleep(retryAfter);
+          retries++;
+          continue;
+        }
+        
+        throw new Error(`Telegram API error: ${JSON.stringify(result)}`);
+      }
+      
+      return result;
+    } catch (error) {
+      if (retries >= maxRetries - 1) {
+        throw error;
+      }
+      console.error(`API call failed. Retrying... (${retries + 1}/${maxRetries})`);
+      await sleep(1000); // Wait 1 second before retry
+      retries++;
+    }
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -71,50 +118,22 @@ serve(async (req) => {
           ...(i === 0 && index === 0 ? { caption: fullMessage, parse_mode: 'HTML' } : {})
         }));
 
-        const mediaResponse = await fetch(
-          `https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chat_id: GROUP_CHAT_ID,
-              media: mediaGroup,
-              ...(i === 0 && {
-                reply_markup: {
-                  inline_keyboard: [[
-                    {
-                      text: "Посмотреть лот",
-                      url: product.product_url
-                    }
-                  ]]
-                }
-              })
-            })
-          }
-        )
+        // For the first group, we'll add a button after sending the media group
+        const mediaResult = await callTelegramAPI('sendMediaGroup', {
+          chat_id: GROUP_CHAT_ID,
+          media: mediaGroup
+        });
         
-        const mediaResult = await mediaResponse.json()
-        console.log('Media group response:', mediaResult)
+        console.log('Media group response:', mediaResult);
         
-        if (!mediaResponse.ok) {
-          throw new Error(`Telegram API error: ${JSON.stringify(mediaResult)}`)
-        }
-      }
-    } else {
-      // If no images, just send text message with button
-      const messageResponse = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+        // If this is the first group, send a follow-up message with the button
+        if (i === 0 && product.product_url) {
+          // Wait a moment to ensure messages are processed in order
+          await sleep(500);
+          
+          const buttonResult = await callTelegramAPI('sendMessage', {
             chat_id: GROUP_CHAT_ID,
-            text: fullMessage,
-            parse_mode: 'HTML',
+            text: "Для просмотра полной информации о лоте нажмите кнопку ниже:",
             reply_markup: {
               inline_keyboard: [[
                 {
@@ -123,16 +142,28 @@ serve(async (req) => {
                 }
               ]]
             }
-          })
+          });
+          
+          console.log('Button message response:', buttonResult);
         }
-      )
-      
-      const messageResult = await messageResponse.json()
-      console.log('Text message response:', messageResult)
-      
-      if (!messageResponse.ok) {
-        throw new Error(`Telegram API error: ${JSON.stringify(messageResult)}`)
       }
+    } else {
+      // If no images, just send text message with button
+      const messageResult = await callTelegramAPI('sendMessage', {
+        chat_id: GROUP_CHAT_ID,
+        text: fullMessage,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [[
+            {
+              text: "Посмотреть лот",
+              url: product.product_url
+            }
+          ]]
+        }
+      });
+      
+      console.log('Text message response:', messageResult);
     }
 
     return new Response(JSON.stringify({ success: true }), {
@@ -146,4 +177,3 @@ serve(async (req) => {
     })
   }
 })
-
