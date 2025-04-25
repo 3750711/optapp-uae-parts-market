@@ -128,9 +128,9 @@ const AdminUsers = () => {
             console.error('Failed to send Telegram notification:', response.error);
             
             toast({
-              title: "Статус обновлен",
+              title: "Предупреждение: Telegram",
               description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено. Возможно, пользователь не начал чат с ботом.",
-              variant: "warning"
+              variant: "default"
             });
           } else {
             toast({
@@ -142,9 +142,9 @@ const AdminUsers = () => {
           console.error('Failed to send Telegram notification:', notificationError);
           
           toast({
-            title: "Статус обновлен",
-            description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено из-за ошибки",
-            variant: "warning"
+              title: "Предупреждение: Telegram",
+              description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено из-за ошибки",
+              variant: "default"
           });
         }
       } else {
