@@ -106,12 +106,12 @@ serve(async (req) => {
 
       // Send each group of images
       for (let i = 0; i < imageGroups.length; i++) {
-        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
-          type: 'photo',
-          media: img.url,
-          // Add caption and button to the first image only
-          ...(i === 0 && index === 0 ? { 
-            caption: message,
+        // For the first group only, send a normal message with button first
+        if (i === 0) {
+          // Send a text message with button first
+          await callTelegramAPI('sendMessage', {
+            chat_id: GROUP_CHAT_ID,
+            text: message,
             parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [[
@@ -121,15 +121,42 @@ serve(async (req) => {
                 }
               ]]
             }
-          } : {})
-        }));
-
-        const mediaResult = await callTelegramAPI('sendMediaGroup', {
-          chat_id: GROUP_CHAT_ID,
-          media: mediaGroup
-        });
+          });
+          
+          // Allow a small delay between requests to avoid rate limiting
+          await sleep(300);
+          
+          // Then send media group without caption (since we already sent the text)
+          const mediaGroup = imageGroups[i].map((img: any) => ({
+            type: 'photo',
+            media: img.url
+          }));
+          
+          const mediaResult = await callTelegramAPI('sendMediaGroup', {
+            chat_id: GROUP_CHAT_ID,
+            media: mediaGroup
+          });
+          
+          console.log('Media group response:', mediaResult);
+        } else {
+          // For subsequent groups, just send media with no buttons or text
+          const mediaGroup = imageGroups[i].map((img: any) => ({
+            type: 'photo',
+            media: img.url
+          }));
+          
+          const mediaResult = await callTelegramAPI('sendMediaGroup', {
+            chat_id: GROUP_CHAT_ID,
+            media: mediaGroup
+          });
+          
+          console.log('Media group response:', mediaResult);
+        }
         
-        console.log('Media group response:', mediaResult);
+        // Add a small delay between media groups to avoid rate limiting
+        if (i < imageGroups.length - 1) {
+          await sleep(300);
+        }
       }
     } else {
       // If no images, just send text message with button
@@ -161,4 +188,3 @@ serve(async (req) => {
     })
   }
 })
-
