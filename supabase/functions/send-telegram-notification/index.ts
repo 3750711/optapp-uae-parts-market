@@ -2,9 +2,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-// Use string format for token and chat ID - this is crucial for Telegram API
 const BOT_TOKEN = '8090742953:AAH4wZUmHFiD3x0kd_5q0oGLJZeyMl62KMA'
-const GROUP_CHAT_ID = '-4669451616' // Added hyphen prefix for group chat ID
+const GROUP_CHAT_ID = '-4669451616'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
@@ -57,34 +56,12 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN)
     console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID)
 
-    // First send the text message
-    const messageResponse = await fetch(
-      `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: GROUP_CHAT_ID,
-          text: fullMessage,
-        })
-      }
-    )
-    
-    const messageResult = await messageResponse.json()
-    console.log('Telegram message API response:', messageResult)
-    
-    if (!messageResponse.ok) {
-      throw new Error(`Telegram API error: ${JSON.stringify(messageResult)}`)
-    }
-
-    // If there are images, send only the primary image
+    // If there are images, send message with the primary image
     if (product.product_images && product.product_images.length > 0) {
       const primaryImage = product.product_images.find((img: any) => img.is_primary) || product.product_images[0];
       
-      // Send primary image
-      const primaryImageResponse = await fetch(
+      // Send message with primary image
+      const photoResponse = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`,
         {
           method: 'POST',
@@ -94,16 +71,40 @@ serve(async (req) => {
           body: JSON.stringify({
             chat_id: GROUP_CHAT_ID,
             photo: primaryImage.url,
-            caption: '📸 Основное фото'
+            caption: fullMessage,
+            parse_mode: 'HTML'
           })
         }
       )
       
-      const primaryImageResult = await primaryImageResponse.json()
-      console.log('Primary image response:', primaryImageResult)
+      const photoResult = await photoResponse.json()
+      console.log('Photo message response:', photoResult)
       
-      if (!primaryImageResponse.ok) {
-        console.error('Warning: Failed to send primary image:', primaryImageResult)
+      if (!photoResponse.ok) {
+        throw new Error(`Telegram API error: ${JSON.stringify(photoResult)}`)
+      }
+    } else {
+      // If no images, just send text message
+      const messageResponse = await fetch(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: GROUP_CHAT_ID,
+            text: fullMessage,
+            parse_mode: 'HTML'
+          })
+        }
+      )
+      
+      const messageResult = await messageResponse.json()
+      console.log('Text message response:', messageResult)
+      
+      if (!messageResponse.ok) {
+        throw new Error(`Telegram API error: ${JSON.stringify(messageResult)}`)
       }
     }
 
