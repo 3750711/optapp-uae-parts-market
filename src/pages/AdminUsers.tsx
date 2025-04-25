@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,6 +94,26 @@ const AdminUsers = () => {
         variant: "destructive"
       });
     } else {
+      const { data: userData } = await supabase
+        .from('profiles')
+        .select('telegram')
+        .eq('id', userId)
+        .single();
+
+      if (userData?.telegram) {
+        try {
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: JSON.stringify({
+              userId,
+              status: newStatus,
+              telegram: userData.telegram
+            })
+          });
+        } catch (notificationError) {
+          console.error('Failed to send Telegram notification:', notificationError);
+        }
+      }
+
       toast({
         title: "Успех",
         description: "Статус пользователя обновлен"
