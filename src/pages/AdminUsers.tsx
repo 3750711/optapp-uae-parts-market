@@ -97,7 +97,7 @@ const AdminUsers = () => {
     } else {
       const { data: userData } = await supabase
         .from('profiles')
-        .select('telegram')
+        .select('telegram, user_type')
         .eq('id', userId)
         .single();
 
@@ -107,7 +107,8 @@ const AdminUsers = () => {
             body: JSON.stringify({
               userId,
               status: newStatus,
-              telegram: userData.telegram
+              telegram: userData.telegram,
+              userType: userData.user_type
             })
           });
         } catch (notificationError) {

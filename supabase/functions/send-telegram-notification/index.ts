@@ -1,10 +1,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
-const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +20,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, status, telegram } = await req.json()
+    const { userId, status, telegram, userType } = await req.json()
 
     // Validate input
     if (!userId || !status || !telegram) {
@@ -33,10 +30,21 @@ serve(async (req) => {
       })
     }
 
-    // Send Telegram message
-    const message = status === 'verified' 
-      ? '✅ Ваш аккаунт был подтвержден!' 
-      : '⏳ Статус вашего аккаунта изменен на ожидание подтверждения.'
+    // Customize message based on user type and status
+    let message = '';
+    if (userType === 'buyer') {
+      message = status === 'verified' 
+        ? '✅ Ваш аккаунт покупателя был подтвержден!' 
+        : status === 'pending'
+        ? '⏳ Статус вашего аккаунта покупателя изменен на ожидание подтверждения.'
+        : '🚫 Ваш аккаунт покупателя был заблокирован.';
+    } else if (userType === 'seller') {
+      message = status === 'verified' 
+        ? '✅ Ваш аккаунт продавца был подтвержден!' 
+        : status === 'pending'
+        ? '⏳ Статус вашего аккаунта продавца изменен на ожидание подтверждения.'
+        : '🚫 Ваш аккаунт продавца был заблокирован.';
+    }
 
     const telegramResponse = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, 
@@ -53,6 +61,7 @@ serve(async (req) => {
     )
 
     const result = await telegramResponse.json()
+    console.log('Telegram notification sent:', result);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
