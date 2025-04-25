@@ -57,34 +57,41 @@ serve(async (req) => {
     console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID)
 
     if (product.product_images && product.product_images.length > 0) {
-      // Prepare media group with all images
-      const mediaGroup = product.product_images.map((img: any, index: number) => ({
-        type: 'photo',
-        media: img.url,
-        // Add caption only to the first image
-        ...(index === 0 ? { caption: fullMessage, parse_mode: 'HTML' } : {})
-      }));
+      // Split images into groups of 10 (Telegram's limit)
+      const imageGroups = [];
+      for (let i = 0; i < product.product_images.length; i += 10) {
+        imageGroups.push(product.product_images.slice(i, i + 10));
+      }
 
-      // Send all images as a media group
-      const mediaResponse = await fetch(
-        `https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chat_id: GROUP_CHAT_ID,
-            media: mediaGroup
-          })
+      // Send each group of images
+      for (let i = 0; i < imageGroups.length; i++) {
+        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
+          type: 'photo',
+          media: img.url,
+          // Add caption only to the first image of the first group
+          ...(i === 0 && index === 0 ? { caption: fullMessage, parse_mode: 'HTML' } : {})
+        }));
+
+        const mediaResponse = await fetch(
+          `https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: GROUP_CHAT_ID,
+              media: mediaGroup
+            })
+          }
+        )
+        
+        const mediaResult = await mediaResponse.json()
+        console.log('Media group response:', mediaResult)
+        
+        if (!mediaResponse.ok) {
+          throw new Error(`Telegram API error: ${JSON.stringify(mediaResult)}`)
         }
-      )
-      
-      const mediaResult = await mediaResponse.json()
-      console.log('Media group response:', mediaResult)
-      
-      if (!mediaResponse.ok) {
-        throw new Error(`Telegram API error: ${JSON.stringify(mediaResult)}`)
       }
     } else {
       // If no images, just send text message
