@@ -49,6 +49,10 @@ serve(async (req) => {
     // Clean telegram handle - remove @ if present
     const cleanTelegramHandle = telegram.replace('@', '');
 
+    // Add instructions on how to start a chat with the bot if needed
+    const botUsername = BOT_TOKEN.split(':')[0];
+    message += `\n\nЕсли вы еще не общались с нашим ботом, пожалуйста, найдите @${botUsername} в Telegram и отправьте ему сообщение /start.`;
+
     const telegramResponse = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, 
       {
@@ -65,6 +69,10 @@ serve(async (req) => {
 
     const result = await telegramResponse.json()
     console.log('Telegram notification sent:', result);
+
+    if (!result.ok) {
+      console.error('Telegram API error:', result);
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

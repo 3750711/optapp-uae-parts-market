@@ -43,10 +43,12 @@ export const UserStatusChangeDialog = ({
         <DialogHeader>
           <DialogTitle>Подтверждение изменения статуса</DialogTitle>
           <DialogDescription>
-            Вы уверены, что хотите {statusMessages[status]} этого пользователя?
+            <p>
+              Вы уверены, что хотите {statusMessages[status]} этого пользователя?
+            </p>
             {status !== 'blocked' && (
               <p className="mt-2">
-                Пользователю будет отправлено уведомление в Telegram об изменении статуса.
+                Пользователю будет отправлено уведомление в Telegram об изменении статуса, если указан корректный Telegram и пользователь уже начал диалог с ботом.
               </p>
             )}
           </DialogDescription>

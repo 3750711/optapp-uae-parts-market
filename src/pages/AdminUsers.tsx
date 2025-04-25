@@ -103,14 +103,23 @@ const AdminUsers = () => {
 
       if (userData?.telegram && newStatus !== 'blocked') {
         try {
-          await supabase.functions.invoke('send-telegram-notification', {
-            body: JSON.stringify({
+          console.log('Sending notification with data:', {
+            userId,
+            status: newStatus,
+            telegram: userData.telegram,
+            userType: userData.user_type
+          });
+          
+          const response = await supabase.functions.invoke('send-telegram-notification', {
+            body: {
               userId,
               status: newStatus,
               telegram: userData.telegram,
               userType: userData.user_type
-            })
+            }
           });
+          
+          console.log('Telegram notification response:', response);
         } catch (notificationError) {
           console.error('Failed to send Telegram notification:', notificationError);
         }
