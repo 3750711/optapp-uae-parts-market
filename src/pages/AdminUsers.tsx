@@ -13,7 +13,6 @@ import { UserCheck, UserX, Edit, Star, ExternalLink, Ban, UserCog } from "lucide
 import { useToast } from "@/hooks/use-toast";
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
-import { UserStatusChangeDialog } from '@/components/admin/UserStatusChangeDialog';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -94,73 +93,33 @@ const AdminUsers = () => {
         description: "Не удалось изменить статус пользователя",
         variant: "destructive"
       });
-      return;
-    }
-
-    if (newStatus !== 'blocked') {
+    } else {
       const { data: userData } = await supabase
         .from('profiles')
-        .select('telegram, user_type')
+        .select('telegram')
         .eq('id', userId)
         .single();
 
       if (userData?.telegram) {
         try {
-          console.log('Sending notification with data:', {
-            userId,
-            status: newStatus,
-            telegram: userData.telegram,
-            userType: userData.user_type
-          });
-          
-          const response = await supabase.functions.invoke('send-telegram-notification', {
-            body: {
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: JSON.stringify({
               userId,
               status: newStatus,
-              telegram: userData.telegram,
-              userType: userData.user_type
-            }
+              telegram: userData.telegram
+            })
           });
-          
-          console.log('Telegram notification response:', response);
-          
-          if (response.error) {
-            console.error('Failed to send Telegram notification:', response.error);
-            
-            toast({
-              title: "Предупреждение: Telegram",
-              description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено. Возможно, пользователь не начал чат с ботом.",
-              variant: "default"
-            });
-          } else {
-            toast({
-              title: "Успех",
-              description: "Статус пользователя обновлен и уведомление отправлено"
-            });
-          }
         } catch (notificationError) {
           console.error('Failed to send Telegram notification:', notificationError);
-          
-          toast({
-              title: "Предупреждение: Telegram",
-              description: "Статус пользователя обновлен, но уведомление в Telegram не доставлено из-за ошибки",
-              variant: "default"
-          });
         }
-      } else {
-        toast({
-          title: "Успех",
-          description: "Статус пользователя обновлен (Telegram не указан, уведомление не отправлено)"
-        });
       }
-    } else {
+
       toast({
         title: "Успех",
-        description: "Статус пользователя обновлен на 'заблокирован'"
+        description: "Статус пользователя обновлен"
       });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     }
-    
-    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
   };
 
   const handleOptStatusChange = async (userId: string, newStatus: 'free_user' | 'opt_user') => {
@@ -311,54 +270,39 @@ const AdminUsers = () => {
                         </Button>
 
                         {user.verification_status !== 'verified' && (
-                          <UserStatusChangeDialog
-                            status="verified"
-                            onConfirm={() => handleQuickStatusChange(user.id, 'verified')}
-                            trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Подтвердить пользователя"
-                              >
-                                <UserCheck className="h-4 w-4 text-green-600" />
-                              </Button>
-                            }
-                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleQuickStatusChange(user.id, 'verified')}
+                            className="h-8 w-8"
+                            title="Подтвердить пользователя"
+                          >
+                            <UserCheck className="h-4 w-4 text-green-600" />
+                          </Button>
                         )}
 
                         {user.verification_status !== 'blocked' && (
-                          <UserStatusChangeDialog
-                            status="blocked"
-                            onConfirm={() => handleQuickStatusChange(user.id, 'blocked')}
-                            trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Заблокировать пользователя"
-                              >
-                                <Ban className="h-4 w-4 text-red-600" />
-                              </Button>
-                            }
-                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleQuickStatusChange(user.id, 'blocked')}
+                            className="h-8 w-8"
+                            title="Заблокировать пользователя"
+                          >
+                            <Ban className="h-4 w-4 text-red-600" />
+                          </Button>
                         )}
 
                         {user.verification_status !== 'pending' && (
-                          <UserStatusChangeDialog
-                            status="pending"
-                            onConfirm={() => handleQuickStatusChange(user.id, 'pending')}
-                            trigger={
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                title="Сбросить статус на 'Ожидает'"
-                              >
-                                <UserX className="h-4 w-4 text-orange-600" />
-                              </Button>
-                            }
-                          />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleQuickStatusChange(user.id, 'pending')}
+                            className="h-8 w-8"
+                            title="Сбросить статус на 'Ожидает'"
+                          >
+                            <UserX className="h-4 w-4 text-orange-600" />
+                          </Button>
                         )}
 
                         <DropdownMenu>
