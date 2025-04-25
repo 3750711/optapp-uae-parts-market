@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -676,6 +675,8 @@ const AdminLogistics = () => {
                     <TableHead className="w-[100px]">№ заказа</TableHead>
                     <TableHead className="min-w-[200px]">Продавец</TableHead>
                     <TableHead className="min-w-[200px]">Покупатель</TableHead>
+                    <TableHead className="min-w-[200px]">Наименование</TableHead>
+                    <TableHead className="w-[100px]">Цена ($)</TableHead>
                     <TableHead className="w-[80px]">Мест</TableHead>
                     <TableHead className="w-[100px]">Цена дост.</TableHead>
                     <TableHead className="w-[120px]">Статус</TableHead>
@@ -698,6 +699,15 @@ const AdminLogistics = () => {
                         <TableCell className="font-medium">{order.order_number}</TableCell>
                         <TableCell>{sellerInfo}</TableCell>
                         <TableCell>{buyerInfo}</TableCell>
+                        <TableCell className="max-w-[200px] truncate" title={order.title}>
+                          {order.title || 'Нет названия'}
+                        </TableCell>
+                        <TableCell>
+                          {order.price ? 
+                            order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
+                            : '-'
+                          }
+                        </TableCell>
                         <TableCell>{order.place_number}</TableCell>
                         <TableCell>
                           {order.delivery_price_confirm ? 
