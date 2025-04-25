@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, ChevronUp, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save } from "lucide-react";
@@ -65,6 +65,11 @@ type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'cus
 
 const ITEMS_PER_PAGE = 20;
 
+type SortConfig = {
+  field: keyof Order | null;
+  direction: 'asc' | 'desc' | null;
+};
+
 const AdminLogistics = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -95,6 +100,11 @@ const AdminLogistics = () => {
   const [showExportHistory, setShowExportHistory] = useState(false);
   const [exportHistory, setExportHistory] = useState<Database['public']['Tables']['logistics_exports']['Row'][]>([]);
 
+  const [sortConfig, setSortConfig] = useState<SortConfig>({
+    field: null,
+    direction: null
+  });
+
   useEffect(() => {
     const channel = supabase
       .channel('orders-changes')
@@ -124,12 +134,12 @@ const AdminLogistics = () => {
     isLoading,
     error
   } = useInfiniteQuery({
-    queryKey: ['logistics-orders'],
+    queryKey: ['logistics-orders', sortConfig],
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
 
-      const { data: orders, error: ordersError } = await supabase
+      let query = supabase
         .from('orders')
         .select(`
           *,
@@ -143,9 +153,15 @@ const AdminLogistics = () => {
             location,
             opt_id
           )
-        `)
-        .order('created_at', { ascending: false })
-        .range(from, to);
+        `);
+
+      if (sortConfig.field && sortConfig.direction) {
+        query = query.order(sortConfig.field, { ascending: sortConfig.direction === 'asc' });
+      } else {
+        query = query.order('created_at', { ascending: false });
+      }
+
+      const { data: orders, error: ordersError } = await query.range(from, to);
 
       if (ordersError) throw ordersError;
       return orders as Order[];
@@ -560,6 +576,20 @@ const AdminLogistics = () => {
     setPendingContainerChange({});
   };
 
+  const handleSort = (field: keyof Order) => {
+    setSortConfig(current => ({
+      field,
+      direction: 
+        current.field === field
+          ? current.direction === 'asc'
+            ? 'desc'
+            : current.direction === 'desc'
+              ? null
+              : 'asc'
+          : 'asc'
+    }));
+  };
+
   return (
     <AdminLayout>
       <div className="container mx-auto py-4">
@@ -672,16 +702,86 @@ const AdminLogistics = () => {
                         onCheckedChange={handleSelectAll}
                       />
                     </TableHead>
-                    <TableHead className="w-[100px]">№ заказа</TableHead>
-                    <TableHead className="min-w-[200px]">Продавец</TableHead>
-                    <TableHead className="min-w-[200px]">Покупатель</TableHead>
-                    <TableHead className="min-w-[200px]">Наименование</TableHead>
-                    <TableHead className="w-[100px]">Цена ($)</TableHead>
-                    <TableHead className="w-[80px]">Мест</TableHead>
-                    <TableHead className="w-[100px]">Цена дост.</TableHead>
-                    <TableHead className="w-[120px]">Статус</TableHead>
-                    <TableHead className="min-w-[150px]">Контейнер</TableHead>
-                    <TableHead className="min-w-[180px]">Статус контейнера</TableHead>
+                    <TableHead 
+                      className="w-[100px]"
+                      sortable
+                      sorted={sortConfig.field === 'order_number' ? sortConfig.direction : null}
+                      onSort={() => handleSort('order_number')}
+                    >
+                      № заказа
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[200px]"
+                      sortable
+                      sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
+                      onSort={() => handleSort('seller_opt_id')}
+                    >
+                      Продавец
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[200px]"
+                      sortable
+                      sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
+                      onSort={() => handleSort('buyer_opt_id')}
+                    >
+                      Покупатель
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[200px]"
+                      sortable
+                      sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
+                      onSort={() => handleSort('title')}
+                    >
+                      Наименование
+                    </TableHead>
+                    <TableHead 
+                      className="w-[100px]"
+                      sortable
+                      sorted={sortConfig.field === 'price' ? sortConfig.direction : null}
+                      onSort={() => handleSort('price')}
+                    >
+                      Цена ($)
+                    </TableHead>
+                    <TableHead 
+                      className="w-[80px]"
+                      sortable
+                      sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
+                      onSort={() => handleSort('place_number')}
+                    >
+                      Мест
+                    </TableHead>
+                    <TableHead 
+                      className="w-[100px]"
+                      sortable
+                      sorted={sortConfig.field === 'delivery_price_confirm' ? sortConfig.direction : null}
+                      onSort={() => handleSort('delivery_price_confirm')}
+                    >
+                      Цена дост.
+                    </TableHead>
+                    <TableHead 
+                      className="w-[120px]"
+                      sortable
+                      sorted={sortConfig.field === 'status' ? sortConfig.direction : null}
+                      onSort={() => handleSort('status')}
+                    >
+                      Статус
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[150px]"
+                      sortable
+                      sorted={sortConfig.field === 'container_number' ? sortConfig.direction : null}
+                      onSort={() => handleSort('container_number')}
+                    >
+                      Контейнер
+                    </TableHead>
+                    <TableHead 
+                      className="min-w-[180px]"
+                      sortable
+                      sorted={sortConfig.field === 'container_status' ? sortConfig.direction : null}
+                      onSort={() => handleSort('container_status')}
+                    >
+                      Статус контейнера
+                    </TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
                 </TableHeader>

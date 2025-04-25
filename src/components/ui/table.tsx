@@ -68,16 +68,42 @@ TableRow.displayName = "TableRow"
 
 const TableHead = React.forwardRef<
   HTMLTableCellElement,
-  React.ThHTMLAttributes<HTMLTableCellElement>
->(({ className, ...props }, ref) => (
+  React.ThHTMLAttributes<HTMLTableCellElement> & {
+    sortable?: boolean;
+    sorted?: 'asc' | 'desc' | null;
+    onSort?: () => void;
+  }
+>(({ className, sortable, sorted, onSort, children, ...props }, ref) => (
   <th
     ref={ref}
     className={cn(
       "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      sortable && "cursor-pointer select-none",
       className
     )}
+    onClick={sortable ? onSort : undefined}
     {...props}
-  />
+  >
+    <div className="flex items-center gap-2">
+      {children}
+      {sortable && (
+        <span className="flex flex-col gap-[2px] ml-1">
+          <ChevronUp
+            className={cn(
+              "h-3 w-3 transition-colors",
+              sorted === 'asc' ? "text-primary" : "text-muted-foreground/30"
+            )}
+          />
+          <ChevronDown
+            className={cn(
+              "h-3 w-3 transition-colors",
+              sorted === 'desc' ? "text-primary" : "text-muted-foreground/30"
+            )}
+          />
+        </span>
+      )}
+    </div>
+  </th>
 ))
 TableHead.displayName = "TableHead"
 
