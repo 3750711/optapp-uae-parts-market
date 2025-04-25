@@ -46,6 +46,9 @@ serve(async (req) => {
         : '🚫 Ваш аккаунт продавца был заблокирован.';
     }
 
+    // Clean telegram handle - remove @ if present
+    const cleanTelegramHandle = telegram.replace('@', '');
+
     const telegramResponse = await fetch(
       `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, 
       {
@@ -54,7 +57,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: telegram.replace('@', ''),
+          chat_id: cleanTelegramHandle,
           text: message
         })
       }
