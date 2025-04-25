@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -92,27 +93,59 @@ Nose cut (Ноускат) высокий - $260
 Мелочь (1 место) - $12`;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { error } = await supabase
-      .from('products')
-      .update({
-        status: 'active',
-        delivery_price: parseFloat(values.delivery_price),
-      })
-      .eq('id', product.id);
+    try {
+      // Update product status and delivery price
+      const { error } = await supabase
+        .from('products')
+        .update({
+          status: 'active',
+          delivery_price: parseFloat(values.delivery_price),
+        })
+        .eq('id', product.id);
 
-    if (error) {
+      if (error) {
+        throw error;
+      }
+
+      // Get product with images for Telegram notification
+      const { data: updatedProduct, error: productError } = await supabase
+        .from('products')
+        .select('*, product_images(*)')
+        .eq('id', product.id)
+        .single();
+
+      if (productError) {
+        throw productError;
+      }
+
+      // Send Telegram notification
+      const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+        body: { product: updatedProduct }
+      });
+
+      if (notificationError) {
+        console.error('Error sending Telegram notification:', notificationError);
+        toast({
+          title: "Внимание",
+          description: "Товар опубликован, но возникла ошибка при отправке уведомления в Telegram",
+          variant: "default",
+        });
+      }
+
+      toast({
+        title: "Успех",
+        description: "Товар успешно опубликован",
+      });
+      
+      handleOpenChange(false);
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error('Error publishing product:', error);
       toast({
         title: "Ошибка",
         description: "Не удалось опубликовать товар",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Успех",
-        description: "Товар успешно опубликован",
-      });
-      handleOpenChange(false);
-      if (onSuccess) onSuccess();
     }
   };
 
