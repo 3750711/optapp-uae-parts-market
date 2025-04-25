@@ -89,16 +89,11 @@ serve(async (req) => {
       `📝 Модель: ${product.model}\n` +
       (product.description ? `📄 Описание:\n${product.description}\n` : '') +
       `📦 Количество мест: ${product.place_number}\n` +
-      (product.delivery_price ? `🚚 Стоимость доставки: ${product.delivery_price} $\n` : '')
-
-    // Add seller info
-    const additionalInfo = 
+      (product.delivery_price ? `🚚 Стоимость доставки: ${product.delivery_price} $\n` : '') +
       (product.seller_name ? `👤 Продавец: ${product.seller_name}\n` : '') +
-      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}\n` : '');
+      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}` : '');
 
-    const fullMessage = message + additionalInfo;
-
-    console.log('Sending message to Telegram:', fullMessage)
+    console.log('Sending message to Telegram:', message)
     console.log('Using BOT_TOKEN:', BOT_TOKEN)
     console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID)
 
@@ -114,26 +109,10 @@ serve(async (req) => {
         const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
           type: 'photo',
           media: img.url,
-          // Add caption only to the first image of the first group
-          ...(i === 0 && index === 0 ? { caption: fullMessage, parse_mode: 'HTML' } : {})
-        }));
-
-        // For the first group, we'll add a button after sending the media group
-        const mediaResult = await callTelegramAPI('sendMediaGroup', {
-          chat_id: GROUP_CHAT_ID,
-          media: mediaGroup
-        });
-        
-        console.log('Media group response:', mediaResult);
-        
-        // If this is the first group, send a follow-up message with the button
-        if (i === 0 && product.product_url) {
-          // Wait a moment to ensure messages are processed in order
-          await sleep(500);
-          
-          const buttonResult = await callTelegramAPI('sendMessage', {
-            chat_id: GROUP_CHAT_ID,
-            text: "Для просмотра полной информации о лоте нажмите кнопку ниже:",
+          // Add caption and button to the first image only
+          ...(i === 0 && index === 0 ? { 
+            caption: message,
+            parse_mode: 'HTML',
             reply_markup: {
               inline_keyboard: [[
                 {
@@ -142,16 +121,21 @@ serve(async (req) => {
                 }
               ]]
             }
-          });
-          
-          console.log('Button message response:', buttonResult);
-        }
+          } : {})
+        }));
+
+        const mediaResult = await callTelegramAPI('sendMediaGroup', {
+          chat_id: GROUP_CHAT_ID,
+          media: mediaGroup
+        });
+        
+        console.log('Media group response:', mediaResult);
       }
     } else {
       // If no images, just send text message with button
       const messageResult = await callTelegramAPI('sendMessage', {
         chat_id: GROUP_CHAT_ID,
-        text: fullMessage,
+        text: message,
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [[
@@ -177,3 +161,4 @@ serve(async (req) => {
     })
   }
 })
+
