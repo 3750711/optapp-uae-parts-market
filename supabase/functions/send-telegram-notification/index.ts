@@ -79,7 +79,7 @@ serve(async (req) => {
       throw new Error(`Telegram API error: ${JSON.stringify(messageResult)}`)
     }
 
-    // If there are images, first send the primary image separately
+    // If there are images, send only the primary image
     if (product.product_images && product.product_images.length > 0) {
       const primaryImage = product.product_images.find((img: any) => img.is_primary) || product.product_images[0];
       
@@ -104,42 +104,6 @@ serve(async (req) => {
       
       if (!primaryImageResponse.ok) {
         console.error('Warning: Failed to send primary image:', primaryImageResult)
-      }
-
-      // Then send the rest of the images as a group (excluding the primary image)
-      const remainingImages = product.product_images.filter((img: any) => img.url !== primaryImage.url);
-      
-      if (remainingImages.length > 0) {
-        console.log(`Sending ${remainingImages.length} additional images to Telegram`)
-        
-        const media = remainingImages.map((image: any) => ({
-          type: 'photo',
-          media: image.url
-        }));
-
-        // Send up to 9 additional images maximum (10 total with primary)
-        const mediaToSend = media.slice(0, 9);
-        
-        const mediaResponse = await fetch(
-          `https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              chat_id: GROUP_CHAT_ID,
-              media: mediaToSend
-            })
-          }
-        )
-        
-        const mediaResult = await mediaResponse.json()
-        console.log('Telegram media API response:', mediaResult)
-        
-        if (!mediaResponse.ok) {
-          console.error('Warning: Failed to send additional images:', mediaResult)
-        }
       }
     }
 
