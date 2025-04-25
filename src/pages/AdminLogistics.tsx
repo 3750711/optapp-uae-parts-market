@@ -3,8 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
-import { FileText, Printer } from "lucide-react";
-import { generateOrdersPDF } from '@/utils/pdfExport';
+import { FileText } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save } from "lucide-react";
@@ -379,26 +378,6 @@ const AdminLogistics = () => {
     });
   };
 
-  const handleExportToPDF = () => {
-    if (selectedOrders.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Выберите заказы для экспорта",
-      });
-      return;
-    }
-
-    const selectedOrdersData = orders.filter(order => selectedOrders.includes(order.id));
-    const baseUrl = window.location.origin;
-    generateOrdersPDF(selectedOrdersData, baseUrl);
-
-    toast({
-      title: "Успешно",
-      description: `Экспортировано ${selectedOrdersData.length} заказов в PDF`,
-    });
-  };
-
   if (error) {
     return (
       <AdminLayout>
@@ -513,14 +492,6 @@ const AdminLogistics = () => {
                     >
                       <FileText className="h-4 w-4 mr-2" />
                       Экспорт в Excel
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={handleExportToPDF}
-                      size="sm"
-                    >
-                      <Printer className="h-4 w-4 mr-2" />
-                      Экспорт в PDF с QR
                     </Button>
                   </div>
                 ) : bulkEditingContainerStatus ? (
