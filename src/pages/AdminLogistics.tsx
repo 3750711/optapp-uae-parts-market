@@ -3,7 +3,7 @@ import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import * as XLSX from 'xlsx';
-import { FileText } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Eye, Container, Save } from "lucide-react";
@@ -13,16 +13,22 @@ import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
+import {
+  Table as UITable,
+  TableBody as UITableBody,
+  TableCell as UITableCell,
+  TableHead as UITableHead,
+  TableHeader as UITableHeader,
+  TableRow as UITableRow
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -61,6 +67,7 @@ const AdminLogistics = () => {
   const [bulkContainerStatus, setBulkContainerStatus] = useState<ContainerStatus>('sent_from_uae');
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { profile } = useAuth();
 
   const [confirmStatusDialog, setConfirmStatusDialog] = useState(false);
   const [confirmContainerDialog, setConfirmContainerDialog] = useState(false);
@@ -74,6 +81,9 @@ const AdminLogistics = () => {
     number?: string;
     isBulk?: boolean;
   }>({});
+
+  const [showExportHistory, setShowExportHistory] = useState(false);
+  const [exportHistory, setExportHistory] = useState<Database['public']['Tables']['logistics_exports']['Row'][]>([]);
 
   useEffect(() => {
     const channel = supabase
@@ -339,7 +349,7 @@ const AdminLogistics = () => {
     }
   };
 
-  const handleExportToXLSX = () => {
+  const handleExportToXLSX = async () => {
     if (selectedOrders.length === 0) {
       toast({
         variant: "destructive",
@@ -368,15 +378,102 @@ const AdminLogistics = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Заказы");
     
-    const date = new Date().toISOString().split('T')[0];
+    const date = new Date().toISOString().replace(/:/g, '-');
+    const filename = `orders_export_${date}.xlsx`;
     
-    XLSX.writeFile(wb, `orders_export_${date}.xlsx`);
+    const file = new Blob([XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('logistics-exports')
+      .upload(filename, file, {
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+
+    if (uploadError) {
+      console.error('Error uploading file:', uploadError);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось сохранить файл экспорта",
+      });
+      return;
+    }
+
+    const { error: dbError } = await supabase
+      .from('logistics_exports')
+      .insert({
+        file_name: filename,
+        file_url: uploadData.path,
+        created_by: profile?.id,
+        order_count: selectedOrdersData.length
+      });
+
+    if (dbError) {
+      console.error('Error saving export record:', dbError);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось сохранить запись об экс��орте",
+      });
+    }
+
+    XLSX.writeFile(wb, filename);
 
     toast({
       title: "Успешно",
       description: `Экспортировано ${selectedOrdersData.length} заказов`,
     });
+
+    fetchExportHistory();
   };
+
+  const downloadExportFile = async (fileUrl: string, fileName: string) => {
+    const { data, error } = await supabase.storage
+      .from('logistics-exports')
+      .download(fileUrl);
+
+    if (error) {
+      console.error('Error downloading file:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось скачать файл",
+      });
+      return;
+    }
+
+    const url = window.URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const fetchExportHistory = async () => {
+    const { data, error } = await supabase
+      .from('logistics_exports')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching export history:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось загрузить историю экспорта",
+      });
+    } else {
+      setExportHistory(data || []);
+    }
+  };
+
+  useEffect(() => {
+    if (showExportHistory) {
+      fetchExportHistory();
+    }
+  }, [showExportHistory]);
 
   if (error) {
     return (
@@ -457,8 +554,14 @@ const AdminLogistics = () => {
     <AdminLayout>
       <div className="container mx-auto py-4">
         <Card>
-          <CardHeader className="py-4">
+          <CardHeader className="py-4 flex flex-row justify-between items-center">
             <CardTitle>Управление логистикой</CardTitle>
+            <Button
+              variant="secondary"
+              onClick={() => setShowExportHistory(true)}
+            >
+              История экспорта
+            </Button>
           </CardHeader>
           <CardContent>
             {selectedOrders.length > 0 && (
@@ -683,6 +786,48 @@ const AdminLogistics = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={showExportHistory} onOpenChange={setShowExportHistory}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>История экспорта</DialogTitle>
+            <DialogDescription>
+              Список ранее экспортированных файлов
+            </DialogDescription>
+          </DialogHeader>
+          <UITable>
+            <UITableHeader>
+              <UITableRow>
+                <UITableHead>Дата</UITableHead>
+                <UITableHead>Название файла</UITableHead>
+                <UITableHead>Количество заказов</UITableHead>
+                <UITableHead>Действия</UITableHead>
+              </UITableRow>
+            </UITableHeader>
+            <UITableBody>
+              {exportHistory.map((export_item) => (
+                <UITableRow key={export_item.id}>
+                  <UITableCell>
+                    {new Date(export_item.created_at).toLocaleString()}
+                  </UITableCell>
+                  <UITableCell>{export_item.file_name}</UITableCell>
+                  <UITableCell>{export_item.order_count}</UITableCell>
+                  <UITableCell>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadExportFile(export_item.file_url, export_item.file_name)}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Скачать
+                    </Button>
+                  </UITableCell>
+                </UITableRow>
+              ))}
+            </UITableBody>
+          </UITable>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={confirmStatusDialog} onOpenChange={setConfirmStatusDialog}>
         <AlertDialogContent>

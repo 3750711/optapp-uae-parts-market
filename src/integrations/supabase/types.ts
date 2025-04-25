@@ -68,6 +68,33 @@ export type Database = {
           },
         ]
       }
+      logistics_exports: {
+        Row: {
+          created_at: string
+          created_by: string
+          file_name: string
+          file_url: string
+          id: string
+          order_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          file_name: string
+          file_url: string
+          id?: string
+          order_count: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          order_count?: number
+        }
+        Relationships: []
+      }
       order_images: {
         Row: {
           created_at: string
