@@ -44,11 +44,10 @@ serve(async (req) => {
       `📦 Количество мест: ${product.place_number}\n` +
       (product.delivery_price ? `🚚 Стоимость доставки: ${product.delivery_price} $\n` : '')
 
-    // Add seller info and product URL if available
+    // Add seller info
     const additionalInfo = 
       (product.seller_name ? `👤 Продавец: ${product.seller_name}\n` : '') +
-      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}\n` : '') +
-      (product.product_url ? `🔗 Ссылка: ${product.product_url}\n` : '');
+      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}\n` : '');
 
     const fullMessage = message + additionalInfo;
 
@@ -81,7 +80,17 @@ serve(async (req) => {
             },
             body: JSON.stringify({
               chat_id: GROUP_CHAT_ID,
-              media: mediaGroup
+              media: mediaGroup,
+              ...(i === 0 && {
+                reply_markup: {
+                  inline_keyboard: [[
+                    {
+                      text: "Посмотреть лот",
+                      url: product.product_url
+                    }
+                  ]]
+                }
+              })
             })
           }
         )
@@ -94,7 +103,7 @@ serve(async (req) => {
         }
       }
     } else {
-      // If no images, just send text message
+      // If no images, just send text message with button
       const messageResponse = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
         {
@@ -105,7 +114,15 @@ serve(async (req) => {
           body: JSON.stringify({
             chat_id: GROUP_CHAT_ID,
             text: fullMessage,
-            parse_mode: 'HTML'
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [[
+                {
+                  text: "Посмотреть лот",
+                  url: product.product_url
+                }
+              ]]
+            }
           })
         }
       )
@@ -129,3 +146,4 @@ serve(async (req) => {
     })
   }
 })
+
