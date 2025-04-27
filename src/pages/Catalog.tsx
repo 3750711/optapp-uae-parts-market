@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -9,14 +8,25 @@ import { Database } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIntersection } from "@/hooks/useIntersection";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
 const Catalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const productsPerPage = 8;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const {
     data,
@@ -27,7 +37,7 @@ const Catalog = () => {
     isError,
     refetch
   } = useInfiniteQuery({
-    queryKey: ["products-infinite", searchQuery],
+    queryKey: ["products-infinite", debouncedSearchQuery],
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
@@ -39,12 +49,11 @@ const Catalog = () => {
         .in('status', ['active', 'sold'])
         .order("created_at", { ascending: false });
 
-      // Add search filter if there's a search query
-      if (searchQuery) {
+      if (debouncedSearchQuery) {
         query = query.or(
-          `title.ilike.%${searchQuery}%,` +
-          `brand.ilike.%${searchQuery}%,` +
-          `model.ilike.%${searchQuery}%`
+          `title.ilike.%${debouncedSearchQuery}%,` +
+          `brand.ilike.%${debouncedSearchQuery}%,` +
+          `model.ilike.%${debouncedSearchQuery}%`
         );
       }
 
@@ -63,12 +72,10 @@ const Catalog = () => {
     initialPageParam: 0
   });
 
-  // Effect to refetch when search query changes
   useEffect(() => {
     refetch();
-  }, [searchQuery, refetch]);
+  }, [debouncedSearchQuery, refetch]);
 
-  // Using both effect and manual trigger to ensure reliable loading
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
       console.log("Load more element is visible in catalog, fetching next page");
@@ -81,6 +88,14 @@ const Catalog = () => {
       console.log("Manual load more triggered");
       fetchNextPage();
     }
+  };
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
   };
 
   const allProducts = data?.pages.flat() || [];
@@ -127,19 +142,35 @@ const Catalog = () => {
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
           <div className="mb-10 flex justify-center">
-            <form onSubmit={(e) => e.preventDefault()} className="w-full max-w-xl flex items-center relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="w-full max-w-xl relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
                 <Search className="h-5 w-5"/>
               </span>
-              <input 
+              <Input 
                 type="text"
                 placeholder="Поиск по названию, бренду, модели..." 
-                className="flex-grow pl-11 pr-3 py-2 md:py-3 border border-gray-200 rounded-xl text-[#181920] bg-white focus:border-link focus:ring-2 focus:ring-link/10 transition-all duration-300 shadow-sm"
+                className="pl-10 pr-10 py-2 md:py-3 shadow-sm text-base"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ borderRadius: 14, fontSize: "1rem" }}
+                onChange={handleSearchInputChange}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (isMobile) {
+                      (e.target as HTMLElement).blur();
+                    }
+                  }
+                }}
               />
-            </form>
+              {searchQuery && (
+                <button 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           
           {isLoading && (
