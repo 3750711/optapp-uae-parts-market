@@ -1,5 +1,4 @@
-
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -16,7 +15,7 @@ const Catalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const productsPerPage = 8;
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
+  const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
 
   const {
     data,
@@ -26,11 +25,12 @@ const Catalog = () => {
     isLoading,
     isError
   } = useInfiniteQuery({
-    queryKey: ["products-infinite"],
+    queryKey: ["products-infinite", searchQuery],
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
+      console.log(`Fetching catalog products: ${from} to ${to}`);
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
@@ -51,9 +51,9 @@ const Catalog = () => {
     initialPageParam: 0
   });
 
-  // Effect to fetch next page when intersection observer detects the load more element
-  React.useEffect(() => {
+  useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
+      console.log("Load more element is visible in catalog, fetching next page");
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
@@ -62,8 +62,8 @@ const Catalog = () => {
     e.preventDefault();
   };
 
-  // Flatten the pages into a single array of products
   const allProducts = data?.pages.flat() || [];
+  console.log(`Total catalog products loaded: ${allProducts.length}`);
   
   const filteredProducts = allProducts.filter(product => 
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -170,15 +170,19 @@ const Catalog = () => {
             </div>
           )}
           
-          {/* Invisible load more trigger element */}
           {(hasNextPage || isFetchingNextPage) && (
-            <div className="mt-8">
-              <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
-                {isFetchingNextPage && (
+            <div className="mt-8 h-24 flex items-center justify-center">
+              <div 
+                ref={loadMoreRef} 
+                className="h-10 w-full flex items-center justify-center"
+              >
+                {isFetchingNextPage ? (
                   <div className="flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
                     <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                   </div>
+                ) : (
+                  <span className="text-muted-foreground">Прокрутите вниз для загрузки</span>
                 )}
               </div>
             </div>

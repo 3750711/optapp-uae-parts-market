@@ -1,5 +1,5 @@
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +13,7 @@ import { useIntersection } from "@/hooks/useIntersection";
 const SellerListingsContent = () => {
   const { user } = useAuth();
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
+  const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const productsPerPage = 8;
   
   const {
@@ -29,6 +29,7 @@ const SellerListingsContent = () => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
+      console.log(`Fetching seller products: ${from} to ${to}`);
       const { data, error } = await supabase
         .from('products')
         .select('*, product_images(url, is_primary)')
@@ -40,6 +41,7 @@ const SellerListingsContent = () => {
       return data as Product[];
     },
     getNextPageParam: (lastPage, allPages) => {
+      // Only return next page if we got a full page of results
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
@@ -47,8 +49,9 @@ const SellerListingsContent = () => {
   });
 
   // Effect to fetch next page when intersection observer detects the load more element
-  React.useEffect(() => {
+  useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
+      console.log("Load more element is visible, fetching next page");
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
@@ -59,6 +62,7 @@ const SellerListingsContent = () => {
 
   // Flatten the pages into a single array of products
   const allProducts = data?.pages.flat() || [];
+  console.log(`Total seller products loaded: ${allProducts.length}`);
 
   const mappedProducts: ProductProps[] = allProducts.map(product => {
     const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
@@ -123,22 +127,27 @@ const SellerListingsContent = () => {
         <>
           <ProductGrid products={mappedProducts} />
           
-          {/* Invisible load more trigger element */}
+          {/* Load more trigger element with better visibility */}
           {(hasNextPage || isFetchingNextPage) && (
-            <div className="mt-8">
-              <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
-                {isFetchingNextPage && (
+            <div className="mt-8 h-24 flex items-center justify-center">
+              <div 
+                ref={loadMoreRef} 
+                className="h-10 w-full flex items-center justify-center"
+              >
+                {isFetchingNextPage ? (
                   <div className="flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
                     <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                   </div>
+                ) : (
+                  <span className="text-muted-foreground">Прокрутите вниз для загрузки</span>
                 )}
               </div>
             </div>
           )}
           
-          {!hasNextPage && (
-            <div className="text-center py-2 text-gray-500">
+          {!hasNextPage && !isFetchingNextPage && mappedProducts.length > 0 && (
+            <div className="text-center py-6 text-gray-500">
               Вы просмотрели все ваши объявления
             </div>
           )}
