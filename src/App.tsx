@@ -33,11 +33,6 @@ import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 import BuyerOrders from "./pages/BuyerOrders";
 import AdminOrders from "./pages/AdminOrders";
 import SellerListings from "./pages/SellerListings";
-import Stores from "./pages/Stores";
-import StoreDetail from "./pages/StoreDetail";
-import StoreCreate from "./pages/StoreCreate";
-import StoreEdit from "./pages/StoreEdit";
-import StoreReview from "./pages/StoreReview";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -50,9 +45,9 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/" element={<Catalog />} />
+              <Route path="/catalog" element={<Catalog />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/profile" element={
@@ -60,16 +55,8 @@ const App = () => {
                   <Profile />
                 </ProtectedRoute>
               } />
-              <Route path="/catalog" element={<Catalog />} />
-              
-              {/* Store routes */}
-              <Route path="/stores" element={<Stores />} />
-              <Route path="/store/:id" element={<StoreDetail />} />
-              <Route path="/store/create" element={<ProtectedRoute><StoreCreate /></ProtectedRoute>} />
-              <Route path="/store/edit/:id" element={<ProtectedRoute><StoreEdit /></ProtectedRoute>} />
-              <Route path="/store/:id/review" element={<ProtectedRoute><StoreReview /></ProtectedRoute>} />
-
-              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
               <Route path="/seller/dashboard" element={
                 <ProtectedRoute allowedRoles={['seller']}>
                   <SellerProfile />
