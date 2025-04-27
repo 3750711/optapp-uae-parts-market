@@ -1,239 +1,120 @@
-
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { 
+import React from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from "@/hooks/use-toast"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "@/components/ui/use-toast";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { LogOut, User, Store, Settings } from 'lucide-react';
 
 const Header = () => {
-  const { user, profile, signOut } = useAuth();
-  const { isAdmin } = useAdminAccess();
-  const isMobile = useIsMobile();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
-
-  const getUserTypeLabel = (type: string | undefined) => {
-    if (type === 'seller') return 'Продавец';
-    if (type === 'buyer') return 'Покупатель';
-    if (type === 'admin') return 'Администратор';
-    return '';
-  };
-
+  const { toast } = useToast()
+  
   const handleLogout = async () => {
     try {
-      await signOut();
+      await logout();
       toast({
-        title: "Выход выполнен",
-        description: "Вы успешно вышли из системы"
-      });
+        title: "Вы вышли из аккаунта",
+        description: "До свидания!",
+      })
       navigate('/login');
     } catch (error) {
-      console.error('Ошибка при выходе из системы:', error);
+      console.error("Logout failed:", error);
       toast({
         title: "Ошибка",
-        description: "Не удалось выйти из системы",
-        variant: "destructive"
-      });
+        description: "Не удалось выйти из аккаунта",
+        variant: "destructive",
+      })
     }
   };
-
-  const NavLinks = ({ onClick }: { onClick?: () => void }) => (
-    <nav className="flex flex-col md:flex-row items-center gap-2 md:gap-5">
-      <Link 
-        to="/" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        Главная
-      </Link>
-      <Link 
-        to="/catalog" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        Каталог
-      </Link>
-      <Link 
-        to="/about" 
-        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
-        onClick={onClick}
-      >
-        О нас
-      </Link>      
-      {profile?.user_type === 'seller' && (
-        <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
-          <Button variant="secondary" size="sm" className="animate-float">
-            Панель продавца
-          </Button>
-        </Link>
-      )}
-    </nav>
-  );
-
-  const ordersLink = profile?.user_type === 'seller' ? '/seller/orders' : '/orders';
+  
+  const navigation = [
+    { name: 'Главная', href: '/' },
+    { name: 'Каталог', href: '/catalog' },
+    { name: 'Магазины', href: '/stores' },
+    { name: 'О проекте', href: '/about' },
+    { name: 'Контакт', href: '/contact' },
+  ];
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
-      <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
-        <Link 
-          to="/" 
-          className="text-2xl font-extrabold tracking-tight"
-        >
-          <span className="text-primary">partsbay</span>
-          <span className="text-secondary">.ae</span>
+    <header className="bg-white shadow-md">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <Link to="/" className="text-2xl font-bold text-gray-800">
+          Your Brand
         </Link>
 
-        {isMobile ? (
-          <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-            <SheetTrigger asChild>
-              <Button variant="ghost" className="md:hidden p-2">
-                <Menu className="h-6 w-6" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="bg-white border-r border-gray-200 shadow-2xl w-[82vw]">
-              <div className="flex flex-col space-y-6 py-6">
-                <NavLinks onClick={() => setIsMenuOpen(false)} />
-              </div>
-            </SheetContent>
-          </Sheet>
-        ) : (
-          <NavLinks />
-        )}
+        <nav className="hidden md:flex space-x-6">
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              {item.name}
+            </Link>
+          ))}
+        </nav>
 
-        <div className="flex items-center space-x-3">
-          {user ? (
-            <div className="flex items-center space-x-2">
-              {profile?.user_type && !isMobile && (
-                <Badge variant="outline" className="hidden sm:flex bg-accent text-primary border border-primary/20"> 
-                  {getUserTypeLabel(profile.user_type)}
-                </Badge>
+        {user ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="rounded-full h-10 w-10 overflow-hidden border-2 border-gray-200 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <Avatar>
+                  <AvatarImage src={user.avatar_url || `https://api.dicebear.com/7.x/ лица /: ${user.id}`} alt={user.full_name || user.email} />
+                  <AvatarFallback>{user.full_name?.slice(0, 2).toUpperCase() || user.email?.slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 mr-2">
+              <DropdownMenuLabel>{user.full_name || user.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate('/profile')}>
+                <User className="mr-2 h-4 w-4" />
+                <span>Профиль</span>
+              </DropdownMenuItem>
+              {user.user_type === 'seller' && (
+                <DropdownMenuItem onClick={() => navigate('/seller-profile')}>
+                  <Store className="mr-2 h-4 w-4" />
+                  <span>Личный кабинет</span>
+                </DropdownMenuItem>
               )}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="relative rounded-full h-10 w-10 p-0 text-primary bg-accent/50 border border-primary/20 transition-transform hover:scale-110"
-                  >
-                    <Avatar className="h-9 w-9">
-                      <AvatarImage 
-                        src={profile?.avatar_url || ''} 
-                        alt={profile?.full_name || 'User'} 
-                      />
-                      <AvatarFallback className="bg-primary text-white">
-                        {profile?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
-                  <DropdownMenuLabel className="flex flex-col gap-1">
-                    <span>{profile?.full_name || user.email}</span>
-                    {profile?.user_type && (
-                      <Badge variant="outline" className="w-fit bg-accent text-primary border border-primary/20">
-                        {getUserTypeLabel(profile.user_type)}
-                      </Badge>
-                    )}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  
-                  {isAdmin && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to="/admin" className="flex w-full items-center">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Панель администратора</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/profile" className="flex w-full items-center">
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Мой профиль</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  
-                  {profile?.user_type === 'seller' && (
-                    <>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/dashboard" className="flex w-full items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Личный кабинет</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/add-product" className="flex w-full items-center">
-                          <Plus className="mr-2 h-4 w-4" />
-                          <span>Добавить товар</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/create-order" className="flex w-full items-center">
-                          <Package className="mr-2 h-4 w-4" />
-                          <span>Создать заказ</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  
-                  {profile?.user_type !== 'admin' && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to={ordersLink} className="flex w-full items-center">
-                        <Package className="mr-2 h-4 w-4" />
-                        <span>Мои заказы</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/catalog" className="flex w-full items-center">
-                      <ShoppingCart className="mr-2 h-4 w-4" />
-                      <span>Каталог</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleLogout} 
-                    className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Выйти</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          ) : (
-            <div className="flex items-center space-x-2">
-              <Button 
-                asChild 
-                variant="ghost"
-                className="text-foreground hover:text-primary"
-              >
-                <Link to="/login">Вход</Link>
-              </Button>
-              <Button asChild variant="default">
-                <Link to="/register">Регистрация</Link>
-              </Button>
-            </div>
-          )}
-        </div>
+              {user.user_type === 'admin' && (
+                <DropdownMenuItem onClick={() => navigate('/admin')}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Панель администратора</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Выйти</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <div className="space-x-3">
+            <Link
+              to="/login"
+              className="text-gray-600 hover:text-gray-800"
+            >
+              Войти
+            </Link>
+            <Link
+              to="/register"
+              className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+            >
+              Регистрация
+            </Link>
+          </div>
+        )}
       </div>
     </header>
   );
