@@ -9,8 +9,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
           <div className="animate-fade-in" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-xl font-bold mb-4">
-              <span className="text-primary">PARTS</span>
-              <span className="text-secondary">BAY</span>
+              <span className="text-primary">parts</span>
+              <span className="text-secondary">bay.ae</span>
             </h3>
             <p className="text-foreground/80 leading-relaxed">
               Торговая площадка автозапчастей в ОАЭ напрямую от поставщиков и магазинов.
