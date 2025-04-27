@@ -481,6 +481,127 @@ export type Database = {
         }
         Relationships: []
       }
+      store_images: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          store_id: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          store_id?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          store_id?: string | null
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_images_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          rating: number | null
+          store_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          rating?: number | null
+          store_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          rating?: number | null
+          store_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores: {
+        Row: {
+          address: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          phone: string | null
+          rating: number | null
+          seller_id: string | null
+          tags: Database["public"]["Enums"]["store_tag"][] | null
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          rating?: number | null
+          seller_id?: string | null
+          tags?: Database["public"]["Enums"]["store_tag"][] | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          rating?: number | null
+          seller_id?: string | null
+          tags?: Database["public"]["Enums"]["store_tag"][] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -523,6 +644,12 @@ export type Database = {
         | "delivered"
         | "cancelled"
       product_status: "active" | "sold" | "pending" | "archived"
+      store_tag:
+        | "electronics"
+        | "auto_parts"
+        | "accessories"
+        | "spare_parts"
+        | "other"
       user_type: "buyer" | "seller" | "admin"
       verification_status: "verified" | "pending" | "blocked"
     }
@@ -665,6 +792,13 @@ export const Constants = {
         "cancelled",
       ],
       product_status: ["active", "sold", "pending", "archived"],
+      store_tag: [
+        "electronics",
+        "auto_parts",
+        "accessories",
+        "spare_parts",
+        "other",
+      ],
       user_type: ["buyer", "seller", "admin"],
       verification_status: ["verified", "pending", "blocked"],
     },

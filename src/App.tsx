@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -33,6 +34,9 @@ import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 import BuyerOrders from "./pages/BuyerOrders";
 import AdminOrders from "./pages/AdminOrders";
 import SellerListings from "./pages/SellerListings";
+import Stores from "./pages/Stores";
+import StoreDetail from "./pages/StoreDetail";
+import CreateStore from "./pages/CreateStore";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -128,6 +132,13 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
+              <Route path="/stores" element={<Stores />} />
+              <Route path="/stores/:id" element={<StoreDetail />} />
+              <Route path="/stores/create" element={
+                <ProtectedRoute allowedRoles={['seller']}>
+                  <CreateStore />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

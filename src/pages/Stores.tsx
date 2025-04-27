@@ -1,0 +1,126 @@
+
+import React from 'react';
+import Layout from '@/components/layout/Layout';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+import { MapPin, Phone, Star } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/AuthContext';
+import { Skeleton } from '@/components/ui/skeleton';
+import { StoreWithImages } from '@/types/store';
+
+const Stores: React.FC = () => {
+  const { profile } = useAuth();
+  const { data: stores, isLoading } = useQuery({
+    queryKey: ['stores'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stores')
+        .select(`
+          *,
+          store_images(*)
+        `)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as StoreWithImages[];
+    }
+  });
+
+  const getMainImageUrl = (store: StoreWithImages) => {
+    const primaryImage = store.store_images?.find(img => img.is_primary);
+    return primaryImage?.url || store.store_images?.[0]?.url || '/placeholder.svg';
+  };
+
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Магазины</h1>
+          {profile?.user_type === 'seller' && (
+            <Button asChild>
+              <Link to="/stores/create">Создать магазин</Link>
+            </Button>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="overflow-hidden">
+                <Skeleton className="h-48 w-full" />
+                <CardHeader>
+                  <Skeleton className="h-6 w-2/3 mb-2" />
+                  <Skeleton className="h-4 w-full" />
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : stores?.length === 0 ? (
+          <div className="text-center py-10">
+            <p className="text-xl text-muted-foreground">Пока нет магазинов</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stores?.map((store) => (
+              <Card key={store.id} className="overflow-hidden h-full flex flex-col">
+                <div className="aspect-video relative overflow-hidden">
+                  <img
+                    src={getMainImageUrl(store)}
+                    alt={store.name}
+                    className="object-cover w-full h-full transition-transform hover:scale-105"
+                  />
+                </div>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <Link to={`/stores/${store.id}`} className="hover:text-primary">
+                      {store.name}
+                    </Link>
+                    <div className="flex items-center">
+                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
+                      <span>{store.rating?.toFixed(1) || '-'}</span>
+                    </div>
+                  </CardTitle>
+                  <CardDescription className="line-clamp-2">{store.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 flex-grow">
+                  <div className="flex items-center text-sm">
+                    <MapPin className="w-4 h-4 mr-1 text-muted-foreground" />
+                    <span>{store.address}</span>
+                  </div>
+                  {store.phone && (
+                    <div className="flex items-center text-sm">
+                      <Phone className="w-4 h-4 mr-1 text-muted-foreground" />
+                      <span>{store.phone}</span>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {store.tags?.map((tag, index) => (
+                      <Badge key={index} variant="outline" className="capitalize">
+                        {tag.replace('_', ' ')}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to={`/stores/${store.id}`}>Подробнее</Link>
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </Layout>
+  );
+};
+
+export default Stores;
