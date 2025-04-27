@@ -1,61 +1,77 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
+import React, { useState, useRef } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useIntersection } from "@/hooks/useIntersection";
+import { Button } from "@/components/ui/button";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
 const Catalog = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
-  const currentPage = parseInt(searchParams.get("page") || "1", 10);
   const productsPerPage = 8;
-  const isMobile = useIsMobile();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError
+  } = useInfiniteQuery({
+    queryKey: ["products-infinite"],
+    queryFn: async ({ pageParam = 0 }) => {
+      const from = pageParam * productsPerPage;
+      const to = from + productsPerPage - 1;
+      
       const { data, error } = await supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
         .in('status', ['active', 'sold'])
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
       
       if (error) {
         console.error("Error fetching products:", error);
         throw new Error("Failed to fetch products");
       }
+      
       return data || [];
     },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === productsPerPage ? allPages.length : undefined;
+    },
+    initialPageParam: 0
   });
 
-  const handleSearch = (e: React.FormEvent) => { e.preventDefault(); };
+  // Effect to fetch next page when intersection observer detects the load more element
+  React.useEffect(() => {
+    if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const filteredProducts = products?.filter(product => 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+  };
+
+  // Flatten the pages into a single array of products
+  const allProducts = data?.pages.flat() || [];
+  
+  const filteredProducts = allProducts.filter(product => 
     product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
     product.model.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  );
 
-  const totalPages = Math.ceil((filteredProducts.length || 0) / productsPerPage);
-  const startIndex = (currentPage - 1) * productsPerPage;
-  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + productsPerPage);
-
-  const mappedProducts = paginatedProducts.map(product => {
+  const mappedProducts = filteredProducts.map(product => {
     let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
     if (product.product_images && product.product_images.length > 0) {
       const primaryImage = product.product_images.find(img => img.is_primary);
@@ -86,13 +102,10 @@ const Catalog = () => {
       seller_id: product.seller_id,
       seller_verification: product.profiles?.verification_status,
       seller_opt_status: product.profiles?.opt_status,
-      created_at: product.created_at
+      created_at: product.created_at,
+      delivery_price: product.delivery_price
     };
   });
-
-  const handlePageChange = (page: number) => {
-    setSearchParams({ page: page.toString() });
-  };
 
   return (
     <Layout>
@@ -115,19 +128,36 @@ const Catalog = () => {
           </div>
           
           {isLoading && (
-            <div className="text-center py-12">
-              <div className="animate-pulse flex flex-col items-center">
-                <div className="h-8 w-64 bg-gray-200 rounded mb-4"></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 w-full">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-gray-100 rounded-lg h-64"></div>
-                  ))}
-                </div>
+            <div className="animate-pulse">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl shadow-card overflow-hidden">
+                    <Skeleton className="h-[240px] w-full" />
+                    <div className="p-4">
+                      <Skeleton className="h-5 w-3/4 mb-2" />
+                      <Skeleton className="h-4 w-1/2 mb-4" />
+                      <Skeleton className="h-4 w-full mb-2" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
-          {!isLoading && filteredProducts.length === 0 && (
+          {isError && (
+            <div className="text-center py-12">
+              <p className="text-lg text-red-600">Ошибка при загрузке товаров</p>
+              <Button 
+                onClick={() => window.location.reload()}
+                className="mt-4"
+              >
+                Попробовать снова
+              </Button>
+            </div>
+          )}
+
+          {!isLoading && !isError && filteredProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
@@ -140,37 +170,23 @@ const Catalog = () => {
             </div>
           )}
           
-          {!isLoading && filteredProducts.length > 0 && (
-            <div className="mt-10">
-              <Pagination>
-                <PaginationContent className={isMobile ? "flex-wrap justify-center gap-2" : ""}>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => handlePageChange(Math.max(currentPage - 1, 1))}
-                      className={`${currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"} transition-transform hover:scale-105`}
-                    />
-                  </PaginationItem>
-                  
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        onClick={() => handlePageChange(page)}
-                        isActive={page === currentPage}
-                        className={page === currentPage ? "bg-link text-white border-transparent transition-all duration-200" : "text-gray-700 hover:bg-gray-100 transition-all duration-200"}
-                      >
-                        {page}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => handlePageChange(Math.min(currentPage + 1, totalPages))}
-                      className={`${currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"} transition-transform hover:scale-105`}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+          {/* Invisible load more trigger element */}
+          {(hasNextPage || isFetchingNextPage) && (
+            <div className="mt-8">
+              <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+                {isFetchingNextPage && (
+                  <div className="flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
+                    <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!hasNextPage && !isLoading && filteredProducts.length > 0 && (
+            <div className="text-center py-8 text-gray-600">
+              Вы просмотрели все доступные товары
             </div>
           )}
         </div>
