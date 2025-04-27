@@ -36,7 +36,7 @@ const Index = () => {
               <span className="text-foreground">Оптовый рынок </span> 
               <span className="text-primary">автозапчастей</span> 
               <br className="hidden md:block" />
-              <span className="text-secondary">в ОАЭ</span>
+              <span className="text-secondary">partsbay.ae</span>
             </h1>
             <p className="text-lg text-foreground/80 mb-8 max-w-lg">
               PartsBay - платформа, объединяющая продавцов и покупателей автозапчастей. Здесь каждый найдет качественные товары, надежных партнеров и комфортный сервис.
