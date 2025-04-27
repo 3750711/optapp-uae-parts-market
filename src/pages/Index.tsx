@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,6 @@ const FEATURES = [
 const Index = () => {
   return (
     <div className="bg-background">
-      {/* Hero секция */}
       <section className="bg-gradient-to-br from-primary/5 to-secondary/5 relative overflow-hidden">
         <div className="container mx-auto px-6 py-20 md:py-32 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 text-center md:text-left mb-12 md:mb-0 animate-fade-in">
@@ -41,7 +39,7 @@ const Index = () => {
               <span className="text-secondary">в ОАЭ</span>
             </h1>
             <p className="text-lg text-foreground/80 mb-8 max-w-lg">
-              Платформа, объединяющая продавцов и покупателей автозапчастей. Здесь каждый найдет качественные товары, надежных партнеров и комфортный сервис.
+              PartsBay - платформа, объединяющая продавцов и покупателей автозапчастей. Здесь каждый найдет качественные товары, надежных партнеров и комфортный сервис.
             </p>
             <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4">
               <Button size="lg" className="group">
@@ -67,7 +65,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Секция особенностей */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-16">Наши преимущества</h2>
@@ -89,7 +86,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Секция доставки */}
       <section id="delivery" className="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
         <div className="container mx-auto px-6">
           <div className="bg-white rounded-xl shadow-elevation p-8 md:p-12 max-w-4xl mx-auto text-center animate-fade-in">
@@ -105,7 +101,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Секция для продавцов и покупателей */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-8">
@@ -160,12 +155,11 @@ const Index = () => {
         </div>
       </section>
 
-      {/* CTA секция */}
       <section className="py-16 bg-gradient-to-br from-primary to-primary-focus">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">Готовы начать?</h2>
           <p className="text-white/80 mb-8 max-w-lg mx-auto">
-            Присоединяйтесь к тысячам продавцов и покупателей на нашей платформе уже сегодня
+            Присоединяйтесь к тысячам продавцов и покупателей на платформе PartsBay уже сегодня
           </p>
           <Button variant="secondary" size="lg" className="animate-pulse-soft" asChild>
             <Link to="/register">Зарегистрироваться</Link>

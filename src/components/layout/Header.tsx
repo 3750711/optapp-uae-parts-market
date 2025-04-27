@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -96,8 +97,8 @@ const Header = () => {
           to="/" 
           className="text-2xl font-extrabold tracking-tight flex flex-col items-start gap-0"
         >
-          <span className="text-primary">OPT</span>
-          <span className="text-secondary">APP</span>
+          <span className="text-primary">PARTS</span>
+          <span className="text-secondary">BAY</span>
         </Link>
 
         {isMobile ? (
