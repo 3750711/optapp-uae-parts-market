@@ -97,8 +97,8 @@ const Header = () => {
           to="/" 
           className="text-2xl font-extrabold tracking-tight"
         >
-          <span className="text-primary">parts</span>
-          <span className="text-secondary">.bay.ae</span>
+          <span className="text-primary">partsbay</span>
+          <span className="text-secondary">.ae</span>
         </Link>
 
         {isMobile ? (
