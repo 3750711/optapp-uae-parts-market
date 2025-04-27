@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -51,6 +52,7 @@ const Catalog = () => {
     initialPageParam: 0
   });
 
+  // Using both effect and manual trigger to ensure reliable loading
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
       console.log("Load more element is visible in catalog, fetching next page");
@@ -60,6 +62,13 @@ const Catalog = () => {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+  };
+  
+  const handleLoadMoreClick = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      console.log("Manual load more triggered");
+      fetchNextPage();
+    }
   };
 
   const allProducts = data?.pages.flat() || [];
@@ -171,10 +180,10 @@ const Catalog = () => {
           )}
           
           {(hasNextPage || isFetchingNextPage) && (
-            <div className="mt-8 h-24 flex items-center justify-center">
+            <div className="mt-8 flex flex-col items-center justify-center">
               <div 
                 ref={loadMoreRef} 
-                className="h-10 w-full flex items-center justify-center"
+                className="h-20 w-full flex items-center justify-center"
               >
                 {isFetchingNextPage ? (
                   <div className="flex items-center justify-center">
@@ -182,7 +191,12 @@ const Catalog = () => {
                     <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground">Прокрутите вниз для загрузки</span>
+                  <Button 
+                    onClick={handleLoadMoreClick}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    Загрузить ещё
+                  </Button>
                 )}
               </div>
             </div>

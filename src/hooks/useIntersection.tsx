@@ -20,7 +20,7 @@ export const useIntersection = (
         // Update state when intersection status changes
         setIsVisible(entry.isIntersecting);
       },
-      { rootMargin }
+      { rootMargin, threshold: 0.1 } // Added threshold to make detection more reliable
     );
 
     const currentElement = element?.current;
@@ -28,7 +28,7 @@ export const useIntersection = (
     // Start observing if element exists
     if (currentElement) {
       observerRef.current.observe(currentElement);
-      console.log("Now observing element for intersection");
+      console.log("Now observing element for intersection with threshold 0.1");
     }
 
     // Clean up on component unmount

@@ -9,6 +9,7 @@ import { Product } from "@/types/product";
 import { ProductProps } from "@/components/product/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIntersection } from "@/hooks/useIntersection";
+import { Button } from "@/components/ui/button";
 
 const SellerListingsContent = () => {
   const { user } = useAuth();
@@ -51,10 +52,18 @@ const SellerListingsContent = () => {
   // Effect to fetch next page when intersection observer detects the load more element
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
-      console.log("Load more element is visible, fetching next page");
+      console.log("Load more element is visible in seller listings, fetching next page");
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Add manual load more function
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetchingNextPage) {
+      console.log("Manual load more triggered in seller listings");
+      fetchNextPage();
+    }
+  };
 
   const handleStatusChange = () => {
     refetch();
@@ -127,12 +136,12 @@ const SellerListingsContent = () => {
         <>
           <ProductGrid products={mappedProducts} />
           
-          {/* Load more trigger element with better visibility */}
+          {/* Load more with both scroll trigger and button */}
           {(hasNextPage || isFetchingNextPage) && (
-            <div className="mt-8 h-24 flex items-center justify-center">
+            <div className="mt-8 flex flex-col items-center justify-center">
               <div 
                 ref={loadMoreRef} 
-                className="h-10 w-full flex items-center justify-center"
+                className="h-20 w-full flex items-center justify-center"
               >
                 {isFetchingNextPage ? (
                   <div className="flex items-center justify-center">
@@ -140,7 +149,12 @@ const SellerListingsContent = () => {
                     <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground">Прокрутите вниз для загрузки</span>
+                  <Button 
+                    onClick={handleLoadMore}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    Загрузить ещё
+                  </Button>
                 )}
               </div>
             </div>
