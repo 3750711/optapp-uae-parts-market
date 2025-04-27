@@ -95,10 +95,10 @@ const Header = () => {
       <div className="container flex items-center justify-between py-3 md:py-4 px-4 md:px-8 mx-auto">
         <Link 
           to="/" 
-          className="text-2xl font-extrabold tracking-tight flex flex-col items-start gap-0"
+          className="text-2xl font-extrabold tracking-tight"
         >
           <span className="text-primary">parts</span>
-          <span className="text-secondary">bay.ae</span>
+          <span className="text-secondary">.bay.ae</span>
         </Link>
 
         {isMobile ? (
