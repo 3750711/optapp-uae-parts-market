@@ -24,7 +24,8 @@ const Catalog = () => {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
-    isError
+    isError,
+    refetch
   } = useInfiniteQuery({
     queryKey: ["products-infinite", searchQuery],
     queryFn: async ({ pageParam = 0 }) => {
@@ -32,12 +33,22 @@ const Catalog = () => {
       const to = from + productsPerPage - 1;
       
       console.log(`Fetching catalog products: ${from} to ${to}`);
-      const { data, error } = await supabase
+      let query = supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
         .in('status', ['active', 'sold'])
-        .order("created_at", { ascending: false })
-        .range(from, to);
+        .order("created_at", { ascending: false });
+
+      // Add search filter if there's a search query
+      if (searchQuery) {
+        query = query.or(
+          `title.ilike.%${searchQuery}%,` +
+          `brand.ilike.%${searchQuery}%,` +
+          `model.ilike.%${searchQuery}%`
+        );
+      }
+
+      const { data, error } = await query.range(from, to);
       
       if (error) {
         console.error("Error fetching products:", error);
@@ -52,6 +63,11 @@ const Catalog = () => {
     initialPageParam: 0
   });
 
+  // Effect to refetch when search query changes
+  useEffect(() => {
+    refetch();
+  }, [searchQuery, refetch]);
+
   // Using both effect and manual trigger to ensure reliable loading
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
@@ -59,10 +75,6 @@ const Catalog = () => {
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-  };
   
   const handleLoadMoreClick = () => {
     if (hasNextPage && !isFetchingNextPage) {
@@ -73,14 +85,8 @@ const Catalog = () => {
 
   const allProducts = data?.pages.flat() || [];
   console.log(`Total catalog products loaded: ${allProducts.length}`);
-  
-  const filteredProducts = allProducts.filter(product => 
-    product.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.model.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
-  const mappedProducts = filteredProducts.map(product => {
+  const mappedProducts = allProducts.map(product => {
     let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
     if (product.product_images && product.product_images.length > 0) {
       const primaryImage = product.product_images.find(img => img.is_primary);
@@ -121,7 +127,7 @@ const Catalog = () => {
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
           <div className="mb-10 flex justify-center">
-            <form onSubmit={handleSearch} className="w-full max-w-xl flex items-center relative">
+            <form onSubmit={(e) => e.preventDefault()} className="w-full max-w-xl flex items-center relative">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
                 <Search className="h-5 w-5"/>
               </span>
@@ -166,14 +172,14 @@ const Catalog = () => {
             </div>
           )}
 
-          {!isLoading && !isError && filteredProducts.length === 0 && (
+          {!isLoading && !isError && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
             </div>
           )}
           
-          {!isLoading && filteredProducts.length > 0 && (
+          {!isLoading && allProducts.length > 0 && (
             <div className="animate-fade-in">
               <ProductGrid products={mappedProducts} />
             </div>
@@ -202,7 +208,7 @@ const Catalog = () => {
             </div>
           )}
 
-          {!hasNextPage && !isLoading && filteredProducts.length > 0 && (
+          {!hasNextPage && !isLoading && allProducts.length > 0 && (
             <div className="text-center py-8 text-gray-600">
               Вы просмотрели все доступные товары
             </div>
