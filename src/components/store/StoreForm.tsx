@@ -253,10 +253,10 @@ const StoreForm: React.FC<StoreFormProps> = ({ initialData, onSuccess }) => {
               <FormLabel>Фотографии магазина</FormLabel>
               <div className="mb-4">
                 <ImageUpload 
-                  value={images}
-                  onChange={setImages}
-                  onRemove={(url) => setImages(images.filter(img => img !== url))}
-                  disabled={isSubmitting}
+                  images={images}
+                  onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
+                  onDelete={(url) => setImages(images.filter(img => img !== url))}
+                  maxImages={10}
                 />
               </div>
             </div>
