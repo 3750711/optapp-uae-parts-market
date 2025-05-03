@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -93,17 +92,36 @@ const SellerAddProduct = () => {
       description: "",
       deliveryPrice: "0",
     },
+    mode: "onChange", // Enable validation on change
   });
 
   const watchBrandId = form.watch("brandId");
+  const watchModelId = form.watch("modelId");
 
   // When brand changes, reset model selection and update models list
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
-      form.setValue("modelId", "");
+      
+      // Only reset model if the brand has changed and we have a selected model
+      if (watchModelId) {
+        const modelBelongsToBrand = brandModels.some(model => model.id === watchModelId && model.brand_id === watchBrandId);
+        if (!modelBelongsToBrand) {
+          form.setValue("modelId", "");
+        }
+      }
     }
-  }, [watchBrandId, selectBrand, form]);
+  }, [watchBrandId, selectBrand, form, brandModels, watchModelId]);
+
+  // Validate model when brandModels change (to handle async loading)
+  useEffect(() => {
+    if (watchModelId && brandModels.length > 0) {
+      const modelExists = brandModels.some(model => model.id === watchModelId);
+      if (!modelExists) {
+        form.setValue("modelId", "");
+      }
+    }
+  }, [brandModels, watchModelId, form]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -158,6 +176,16 @@ const SellerAddProduct = () => {
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
+    // Verify modelId belongs to the selected brand
+    const selectedModel = brandModels.find(model => model.id === values.modelId);
+    if (!selectedModel || selectedModel.brand_id !== values.brandId) {
+      form.setError('modelId', { 
+        type: 'manual', 
+        message: 'Выбранная модель не принадлежит выбранной марке'
+      });
+      return;
+    }
+
     if (!user || !profile) {
       toast({
         title: "Ошибка",
@@ -352,7 +380,7 @@ const SellerAddProduct = () => {
                             <FormLabel>Марка</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
-                              defaultValue={field.value}
+                              value={field.value}
                               disabled={isLoadingCarData}
                             >
                               <FormControl>
@@ -360,7 +388,7 @@ const SellerAddProduct = () => {
                                   <SelectValue placeholder="Выберите марку" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
+                              <SelectContent className="max-h-[300px]">
                                 {brands.map((brand) => (
                                   <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
                                 ))}
@@ -379,18 +407,22 @@ const SellerAddProduct = () => {
                             <FormLabel>Модель</FormLabel>
                             <Select 
                               onValueChange={field.onChange} 
-                              defaultValue={field.value}
-                              disabled={!watchBrandId || isLoadingCarData}
+                              value={field.value || ""}
+                              disabled={!watchBrandId || isLoadingCarData || brandModels.length === 0}
                             >
                               <FormControl>
                                 <SelectTrigger>
                                   <SelectValue placeholder="Выберите модель" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
-                                {brandModels.map((model) => (
-                                  <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                                ))}
+                              <SelectContent className="max-h-[300px]">
+                                {brandModels.length === 0 && watchBrandId ? (
+                                  <SelectItem value="loading" disabled>Загрузка моделей...</SelectItem>
+                                ) : (
+                                  brandModels.map((model) => (
+                                    <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />

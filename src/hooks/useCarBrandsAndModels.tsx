@@ -88,25 +88,31 @@ export function useCarBrandsAndModels() {
     }
   }, [selectedBrand, fetchModelsByBrand]);
 
-  const selectBrand = (brandId: string) => {
+  const selectBrand = useCallback((brandId: string) => {
     setSelectedBrand(brandId);
-  };
+    // We don't clear brandModels here anymore, we'll wait for the fetch to complete
+  }, []);
 
   // Helper function to find brand ID by name
-  const findBrandIdByName = (brandName: string) => {
+  const findBrandIdByName = useCallback((brandName: string) => {
     const brand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
     return brand?.id || null;
-  };
+  }, [brands]);
   
   // Helper function to find model ID by name and brand ID
-  const findModelIdByName = (modelName: string, brandId: string) => {
+  const findModelIdByName = useCallback((modelName: string, brandId: string) => {
     if (!brandId) return null;
     
     const model = brandModels.find(
       m => m.brand_id === brandId && m.name.toLowerCase() === modelName.toLowerCase()
     );
     return model?.id || null;
-  };
+  }, [brandModels]);
+
+  // New helper to validate if a model belongs to a brand
+  const validateModelBrand = useCallback((modelId: string, brandId: string) => {
+    return brandModels.some(model => model.id === modelId && model.brand_id === brandId);
+  }, [brandModels]);
 
   return {
     brands,
@@ -116,6 +122,7 @@ export function useCarBrandsAndModels() {
     isLoading,
     error,
     findBrandIdByName,
-    findModelIdByName
+    findModelIdByName,
+    validateModelBrand
   };
 }
