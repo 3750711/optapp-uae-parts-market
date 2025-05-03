@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { MapPin } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface LocationPickerProps {
   initialLocation: string;
@@ -16,21 +17,43 @@ const StoreLocationPicker: React.FC<LocationPickerProps> = ({
   const [mapLoaded, setMapLoaded] = useState(false);
   const [currentLocation, setCurrentLocation] = useState(initialLocation || "Dubai");
   const [mapUrl, setMapUrl] = useState("");
+  const [selectedMarker, setSelectedMarker] = useState<{ lat: number; lng: number } | null>(null);
 
   // Update map URL when location changes
   useEffect(() => {
     setMapUrl(`https://maps.google.com/maps?q=${encodeURIComponent(currentLocation)}&output=embed`);
   }, [currentLocation]);
 
+  // Handle location selection when user clicks on the map
+  const handleLocationSelect = async (lat: number, lng: number) => {
+    try {
+      // Store coordinates in a readable format
+      const locationString = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      setCurrentLocation(locationString);
+      onLocationChange(locationString);
+      setSelectedMarker({ lat, lng });
+      
+      toast({
+        title: "Местоположение выбрано",
+        description: `Координаты: ${locationString}`,
+      });
+    } catch (error) {
+      console.error("Error selecting location:", error);
+      toast({
+        title: "Ошибка выбора местоположения",
+        description: "Не удалось выбрать местоположение",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Setup click handler on map iframe
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // This will receive messages from our injected script in the iframe
       if (event.data && event.data.type === 'MAP_LOCATION_SELECTED') {
-        const { latitude, longitude, address } = event.data;
-        const locationString = address || `${latitude}, ${longitude}`;
-        setCurrentLocation(locationString);
-        onLocationChange(locationString);
+        const { latitude, longitude } = event.data;
+        handleLocationSelect(latitude, longitude);
       }
     };
 
@@ -45,44 +68,55 @@ const StoreLocationPicker: React.FC<LocationPickerProps> = ({
     const iframe = document.querySelector('iframe');
     if (!iframe || !iframe.contentWindow) return;
 
-    // Try to inject script once the iframe has loaded
-    const injectScript = () => {
-      try {
-        if (iframe.contentDocument) {
+    try {
+      // Try to inject script once the iframe has loaded
+      iframe.addEventListener('load', () => {
+        try {
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+          if (!iframeDoc) return;
+          
           // Create script element
           const script = document.createElement('script');
           script.textContent = `
-            // Make the map interactive
             document.addEventListener('click', function(e) {
-              // Get click coordinates
-              const lat = e.clientY / window.innerHeight * 180 - 90;
-              const lng = e.clientX / window.innerWidth * 360 - 180;
+              // Get map container coordinates
+              const mapContainer = document.querySelector('div[role="application"]');
+              if (!mapContainer) return;
               
-              // Geocode the coordinates (simplified version)
-              const address = "Selected location";
+              // Calculate click position relative to the map
+              const rect = mapContainer.getBoundingClientRect();
+              const x = e.clientX - rect.left;
+              const y = e.clientY - rect.top;
+              
+              // Convert to geo coordinates (approximate)
+              // This is a simplified calculation and not 100% accurate
+              const latPerPixel = 180 / mapContainer.clientHeight;
+              const lngPerPixel = 360 / mapContainer.clientWidth;
+              
+              const centerLat = 0; // Assuming center is at equator
+              const centerLng = 0; // Assuming center is at prime meridian
+              
+              const clickLat = centerLat + (mapContainer.clientHeight/2 - y) * latPerPixel;
+              const clickLng = centerLng + (x - mapContainer.clientWidth/2) * lngPerPixel;
               
               // Send message to parent window
               window.parent.postMessage({
                 type: 'MAP_LOCATION_SELECTED',
-                latitude: lat.toFixed(6),
-                longitude: lng.toFixed(6),
-                address: address
+                latitude: clickLat,
+                longitude: clickLng
               }, '*');
             });
           `;
-          iframe.contentDocument.body.appendChild(script);
+          
+          // Add the script to the iframe's document
+          iframeDoc.body.appendChild(script);
+        } catch (error) {
+          console.error("Error accessing iframe document:", error);
         }
-      } catch (error) {
-        console.error("Error injecting script into iframe:", error);
-      }
-    };
-
-    // Attempt to inject after iframe loads
-    iframe.addEventListener('load', injectScript);
-    
-    return () => {
-      iframe.removeEventListener('load', injectScript);
-    };
+      });
+    } catch (error) {
+      console.error("Error injecting script into iframe:", error);
+    }
   }, [mapLoaded]);
 
   return (
