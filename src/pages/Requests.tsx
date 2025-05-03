@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, MessageSquare, Sparkles, Send } from 'lucide-react';
+import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -58,13 +58,34 @@ const Requests: React.FC = () => {
           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
               <h1 className="text-3xl font-bold text-white mb-2">Запросы на запчасти</h1>
-              <p className="text-white/90 max-w-2xl">
-                Ваш запрос будет отправлен более чем 100 продавцам и магазинам. 
-                Получите предложения в считанные минуты и выберите лучшую цену только на partsbay.ae
-              </p>
+              <div className="text-white/90 max-w-2xl space-y-3">
+                <p className="text-xl font-medium leading-relaxed animate-fade-in" style={{animationDelay: '100ms'}}>
+                  <span className="bg-gradient-to-r from-amber-200 to-yellow-100 bg-clip-text text-transparent font-semibold">Мгновенный доступ к сети из 100+ продавцов</span> — ваш запрос будет виден всем!
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white/20 rounded-full">
+                      <Clock className="h-4 w-4 text-amber-200" />
+                    </div>
+                    <p className="text-sm">Предложения в течение минут</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white/20 rounded-full">
+                      <ShoppingBag className="h-4 w-4 text-amber-200" />
+                    </div>
+                    <p className="text-sm">Огромный выбор запчастей</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white/20 rounded-full">
+                      <Award className="h-4 w-4 text-amber-200" />
+                    </div>
+                    <p className="text-sm">Лучшие цены на partsbay.ae</p>
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <Button size="lg" className="group relative overflow-hidden" asChild>
+            <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-lg" asChild>
               <Link to="/requests/create">
                 <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
                 <Send className="mr-2 h-4 w-4" />
@@ -99,7 +120,7 @@ const Requests: React.FC = () => {
               Создайте запрос на поиск запчасти, и более 100 продавцов получат его. 
               Вы получите предложения с лучшими ценами в кратчайшие сроки.
             </p>
-            <Button size="lg" className="group relative overflow-hidden" asChild>
+            <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-lg" asChild>
               <Link to="/requests/create">
                 <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
                 <Sparkles className="mr-2 h-4 w-4" />
@@ -147,16 +168,16 @@ const Requests: React.FC = () => {
         {requests && requests.length > 0 && (
           <div className="mt-8 p-6 rounded-xl border bg-gradient-to-r from-blue-50 to-purple-50 animate-fade-in">
             <div className="flex items-center gap-3 mb-3">
-              <div className="p-2 rounded-full bg-primary/10">
-                <Sparkles className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-full bg-amber-100">
+                <Sparkles className="h-5 w-5 text-amber-500" />
               </div>
               <h3 className="font-bold text-lg">Нужна еще одна запчасть?</h3>
             </div>
-            <p className="mb-4">
-              Создайте новый запрос и получите лучшие предложения от более чем 100 продавцов и магазинов.
-              Экономьте время и деньги с partsbay.ae!
+            <p className="mb-4 text-gray-700">
+              Создайте новый запрос и получите <span className="font-semibold text-amber-600">лучшие предложения от более чем 100 продавцов</span> и магазинов.
+              Экономьте время и деньги с <span className="font-semibold">partsbay.ae</span> — самая большая база поставщиков запчастей в регионе!
             </p>
-            <Button className="group relative overflow-hidden" asChild>
+            <Button className="group relative overflow-hidden bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-lg" asChild>
               <Link to="/requests/create">
                 <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
                 <Send className="mr-2 h-4 w-4" />
