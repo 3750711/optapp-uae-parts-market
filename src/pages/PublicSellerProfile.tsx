@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Share2, Send } from "lucide-react";
@@ -126,10 +127,13 @@ const PublicSellerProfile = () => {
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg';
     
-    let condition: "Новый" | "Б/У" | "Восстан��вленный" = "Б/У";
+    // Fix the condition type to match exactly what's expected
+    let condition: "Новый" | "Б/У" | "Восстановленный" = "Б/У";
     
-    if (product.condition === "Новый" || product.condition === "Восстановленный") {
-      condition = product.condition as "Новый" | "Восстановленный";
+    if (product.condition === "Новый") {
+      condition = "Новый";
+    } else if (product.condition === "Восстановленный") {
+      condition = "Восстановленный";
     }
     
     return {
