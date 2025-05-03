@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Loader2 } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -29,7 +29,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import VideoUpload from "@/components/ui/video-upload";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -40,11 +48,11 @@ const productSchema = z.object({
   }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Цена должна быть положительным числом",
   }),
-  brand: z.string().min(1, {
-    message: "Укажите марку автомобиля",
+  brandId: z.string().min(1, {
+    message: "Выберите марку автомобиля",
   }),
-  model: z.string().min(1, {
-    message: "Укажите модель автомобиля",
+  modelId: z.string().min(1, {
+    message: "Выберите модель автомобиля",
   }),
   placeNumber: z.string().min(1, {
     message: "Укажите количество мест",
@@ -52,6 +60,9 @@ const productSchema = z.object({
     message: "Количество мест должно быть целым положительным числом",
   }),
   description: z.string().optional(),
+  deliveryPrice: z.string().optional().refine((val) => val === '' || !isNaN(Number(val)), {
+    message: "Стоимость доставки должна быть числом",
+  }),
 });
 
 const SellerAddProduct = () => {
@@ -62,18 +73,37 @@ const SellerAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Use our custom hook for car brands and models
+  const { 
+    brands, 
+    brandModels, 
+    selectBrand, 
+    isLoading: isLoadingCarData 
+  } = useCarBrandsAndModels();
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       title: "",
       price: "",
-      brand: "",
-      model: "",
+      brandId: "",
+      modelId: "",
       placeNumber: "1",
       description: "",
+      deliveryPrice: "0",
     },
   });
+
+  const watchBrandId = form.watch("brandId");
+
+  // When brand changes, reset model selection and update models list
+  useEffect(() => {
+    if (watchBrandId) {
+      selectBrand(watchBrandId);
+      form.setValue("modelId", "");
+    }
+  }, [watchBrandId, selectBrand, form]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -149,6 +179,20 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
+      // Get brand and model names for the database
+      const selectedBrand = brands.find(brand => brand.id === values.brandId);
+      const selectedModel = brandModels.find(model => model.id === values.modelId);
+
+      if (!selectedBrand || !selectedModel) {
+        toast({
+          title: "Ошибка",
+          description: "Выбранная марка или модель не найдена",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       // Set the seller name, ensuring it's never null
       const sellerName = profile.full_name || user.email || "Unknown Seller";
 
@@ -158,13 +202,14 @@ const SellerAddProduct = () => {
           title: values.title,
           price: parseFloat(values.price),
           condition: "Новый",
-          brand: values.brand,
-          model: values.model,
+          brand: selectedBrand.name, // Use the brand name, not ID
+          model: selectedModel.name, // Use the model name, not ID
           description: values.description || null,
           seller_id: user.id,
           seller_name: sellerName,
           status: 'pending',
           place_number: parseInt(values.placeNumber),
+          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
         })
         .select('id')
         .single();
@@ -234,7 +279,7 @@ const SellerAddProduct = () => {
                 <CardHeader>
                   <CardTitle>Информация о товаре</CardTitle>
                   <CardDescription>
-                    Заполните все поля для размещения вашего товара на ма��кетплейсе
+                    Заполните все поля для размещения вашего товара на маркетплейсе
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -274,6 +319,24 @@ const SellerAddProduct = () => {
                           </FormItem>
                         )}
                       />
+
+                      <FormField
+                        control={form.control}
+                        name="deliveryPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Стоимость доставки ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="0.00" 
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
                   
@@ -283,32 +346,53 @@ const SellerAddProduct = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="brand"
+                        name="brandId"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Марка</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Например: BMW" 
-                                {...field}
-                              />
-                            </FormControl>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                              disabled={isLoadingCarData}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите марку" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {brands.map((brand) => (
+                                  <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
+                      
                       <FormField
                         control={form.control}
-                        name="model"
+                        name="modelId"
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Модель</FormLabel>
-                            <FormControl>
-                              <Input 
-                                placeholder="Например: X5" 
-                                {...field}
-                              />
-                            </FormControl>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                              disabled={!watchBrandId || isLoadingCarData}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите модель" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {brandModels.map((model) => (
+                                  <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -343,7 +427,7 @@ const SellerAddProduct = () => {
                         <FormLabel>Описание (необязательно)</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необя��ательно)" 
+                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необязательно)" 
                             rows={6}
                             {...field}
                           />

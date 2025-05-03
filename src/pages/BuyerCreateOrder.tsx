@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -18,27 +19,100 @@ type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
+interface CarBrand {
+  id: string;
+  name: string;
+}
+
+interface CarModel {
+  id: string;
+  name: string;
+  brand_id: string;
+}
+
 const BuyerCreateOrder = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const productId = searchParams.get('productId');
+  
   const [formData, setFormData] = useState({
     title: "",
     price: "",
     quantity: "1",
     sellerOptId: "",
-    brand: "",
-    model: "",
-    lot_number: undefined as number | undefined,
-    deliveryMethod: 'self_pickup' as DeliveryMethod,
     place_number: "1",
     text_order: "",
     delivery_price: "",
   });
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [productImages, setProductImages] = useState<string[]>([]);
   const [orderVideos, setOrderVideos] = useState<string[]>([]);
+  
+  // Car brands and models state
+  const [brands, setBrands] = useState<CarBrand[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [brandModels, setBrandModels] = useState<CarModel[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+
+  // Fetch car brands when component mounts
+  useEffect(() => {
+    const fetchBrands = async () => {
+      setLoadingBrands(true);
+      try {
+        const { data, error } = await supabase
+          .from('car_brands')
+          .select('*')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching car brands:', error);
+        } else {
+          setBrands(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching car brands:', err);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchBrands();
+  }, []);
+
+  // Fetch models when brand is selected
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!selectedBrandId) {
+        setBrandModels([]);
+        return;
+      }
+      
+      setLoadingModels(true);
+      try {
+        const { data, error } = await supabase
+          .from('car_models')
+          .select('*')
+          .eq('brand_id', selectedBrandId)
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching car models:', error);
+        } else {
+          setBrandModels(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching car models:', err);
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, [selectedBrandId]);
 
   async function fetchUserProfile(userId: string) {
     try {
@@ -96,14 +170,37 @@ const BuyerCreateOrder = () => {
             price: product.price.toString(),
             quantity: "1",
             sellerOptId: product.optid_created || "",
-            brand: product.brand || "",
-            model: product.model || "",
-            lot_number: product.lot_number,
-            deliveryMethod: 'self_pickup',
-            place_number: "1",
+            place_number: product.place_number ? product.place_number.toString() : "1",
             text_order: "",
             delivery_price: product.delivery_price ? product.delivery_price.toString() : "",
           });
+
+          // Find matching brand ID and set it
+          if (product.brand) {
+            const { data: brandData } = await supabase
+              .from('car_brands')
+              .select('*')
+              .eq('name', product.brand)
+              .single();
+              
+            if (brandData) {
+              setSelectedBrandId(brandData.id);
+              
+              // Then fetch models for this brand
+              if (product.model) {
+                const { data: modelData } = await supabase
+                  .from('car_models')
+                  .select('*')
+                  .eq('brand_id', brandData.id)
+                  .eq('name', product.model)
+                  .single();
+                  
+                if (modelData) {
+                  setSelectedModelId(modelData.id);
+                }
+              }
+            }
+          }
 
           const { data: images, error: imagesError } = await supabase
             .from('product_images')
@@ -122,6 +219,13 @@ const BuyerCreateOrder = () => {
 
     fetchProductData();
   }, [productId, navigate]);
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +257,15 @@ const BuyerCreateOrder = () => {
       return;
     }
 
+    if (!selectedBrandId || !selectedModelId) {
+      toast({
+        title: "Ошибка",
+        description: "Выберите марку и модель автомобиля",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -174,8 +287,22 @@ const BuyerCreateOrder = () => {
         return;
       }
 
+      // Get the brand and model names for storage
+      const selectedBrand = brands.find(b => b.id === selectedBrandId);
+      const selectedModel = brandModels.find(m => m.id === selectedModelId);
+      
+      if (!selectedBrand || !selectedModel) {
+        toast({
+          title: "Ошибка",
+          description: "Выбранная марка или модель недоступна",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       let resolvedProductId = productId;
-      let usedLotNumber = formData.lot_number;
+      let usedLotNumber = undefined;
 
       if (productId) {
         const { data: currentProduct, error: productCheckError } = await supabase
@@ -213,13 +340,13 @@ const BuyerCreateOrder = () => {
         seller_opt_id: formData.sellerOptId,
         buyer_id: user.id,
         buyer_opt_id: profile?.opt_id || null,
-        brand: formData.brand,
-        model: formData.model,
+        brand: selectedBrand.name,
+        model: selectedModel.name,
         status: 'created' as OrderStatus,
         order_created_type: productId ? ('ads_order' as OrderCreatedType) : ('free_order' as OrderCreatedType),
         product_id: resolvedProductId || null,
         images: productImages,
-        delivery_method: formData.deliveryMethod as DeliveryMethod,
+        delivery_method: 'self_pickup' as DeliveryMethod,
         place_number: parseInt(formData.place_number),
         text_order: formData.text_order || null,
         delivery_price_confirm: deliveryPrice,
@@ -298,13 +425,6 @@ const BuyerCreateOrder = () => {
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -344,22 +464,38 @@ const BuyerCreateOrder = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="brand">Бренд</Label>
-                    <Input 
-                      id="brand" 
-                      value={formData.brand}
-                      onChange={(e) => handleInputChange('brand', e.target.value)}
-                      placeholder="Введите бренд"
-                    />
+                    <Label htmlFor="brand">Марка</Label>
+                    <Select
+                      value={selectedBrandId || ""}
+                      onValueChange={setSelectedBrandId}
+                      disabled={loadingBrands}
+                    >
+                      <SelectTrigger id="brand">
+                        <SelectValue placeholder="Выберите марку" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brands.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="model">Модель</Label>
-                    <Input 
-                      id="model"
-                      value={formData.model}
-                      onChange={(e) => handleInputChange('model', e.target.value)}
-                      placeholder="Введите модель"
-                    />
+                    <Select
+                      value={selectedModelId || ""}
+                      onValueChange={setSelectedModelId}
+                      disabled={!selectedBrandId || loadingModels}
+                    >
+                      <SelectTrigger id="model">
+                        <SelectValue placeholder="Выберите модель" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brandModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -393,7 +529,7 @@ const BuyerCreateOrder = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>OPT_ID продав��а</Label>
+                    <Label>OPT_ID продавца</Label>
                     <Input 
                       value={formData.sellerOptId}
                       readOnly 
@@ -410,13 +546,6 @@ const BuyerCreateOrder = () => {
                     className="bg-gray-100"
                   />
                 </div>
-
-                {formData.lot_number !== undefined && (
-                  <div className="space-y-2">
-                    <Label>Номер лота</Label>
-                    <Input value={formData.lot_number ?? ""} readOnly className="bg-gray-100" />
-                  </div>
-                )}
 
                 <div className="space-y-2">
                   <Label>Телеграм покупателя</Label>
@@ -459,7 +588,7 @@ const BuyerCreateOrder = () => {
                 <div className="space-y-2">
                   <Label>Способ доставки</Label>
                   <Select
-                    value={formData.deliveryMethod}
+                    value="self_pickup"
                     onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
                   >
                     <SelectTrigger>
@@ -471,6 +600,18 @@ const BuyerCreateOrder = () => {
                       <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="place_number">Количество мест для отправки</Label>
+                  <Input 
+                    id="place_number"
+                    type="number"
+                    min="1"
+                    value={formData.place_number}
+                    onChange={(e) => handleInputChange('place_number', e.target.value)}
+                    placeholder="Укажите количество мест"
+                  />
                 </div>
 
                 <div className="space-y-2">

@@ -39,6 +39,53 @@ export type Database = {
         }
         Relationships: []
       }
+      car_brands: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      car_models: {
+        Row: {
+          brand_id: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          brand_id: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          brand_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_models_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "car_brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       confirm_images: {
         Row: {
           created_at: string
@@ -630,6 +677,15 @@ export type Database = {
       is_seller: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      search_car_brands_and_models: {
+        Args: { search_term: string }
+        Returns: {
+          brand_id: string
+          brand_name: string
+          model_id: string
+          model_name: string
+        }[]
       }
     }
     Enums: {

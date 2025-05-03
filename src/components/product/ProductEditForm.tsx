@@ -1,20 +1,39 @@
-import React from "react";
+
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Save, Loader2, Upload } from "lucide-react";
+import { X, Save, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
 
 interface ProductEditFormProps {
   product: Product;
   onCancel: () => void;
   onSave: () => void;
   isCreator?: boolean;
+}
+
+interface CarBrand {
+  id: string;
+  name: string;
+}
+
+interface CarModel {
+  id: string;
+  name: string;
+  brand_id: string;
 }
 
 const ProductEditForm: React.FC<ProductEditFormProps> = ({
@@ -39,6 +58,14 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       : product.delivery_price || 0,
   });
 
+  // Car brands and models state
+  const [brands, setBrands] = useState<CarBrand[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [brandModels, setBrandModels] = useState<CarModel[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+
   const [images, setImages] = React.useState<string[]>(
     Array.isArray(product.product_images)
       ? product.product_images.map((img: any) => img.url)
@@ -49,6 +76,99 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       ? product.product_videos.map((vid: any) => vid.url)
       : []
   );
+
+  // Fetch car brands when component mounts
+  useEffect(() => {
+    const fetchBrands = async () => {
+      setLoadingBrands(true);
+      try {
+        const { data, error } = await supabase
+          .from('car_brands')
+          .select('*')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching car brands:', error);
+        } else {
+          setBrands(data || []);
+          
+          // Find brand ID by name
+          const matchingBrand = data?.find(b => b.name === product.brand);
+          if (matchingBrand) {
+            setSelectedBrandId(matchingBrand.id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching car brands:', err);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchBrands();
+  }, [product.brand]);
+
+  // Fetch models for selected brand
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!selectedBrandId) return;
+      
+      setLoadingModels(true);
+      try {
+        const { data, error } = await supabase
+          .from('car_models')
+          .select('*')
+          .eq('brand_id', selectedBrandId)
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching car models:', error);
+        } else {
+          setBrandModels(data || []);
+          
+          // Find model ID by name
+          const matchingModel = data?.find(m => m.name === product.model);
+          if (matchingModel) {
+            setSelectedModelId(matchingModel.id);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching car models:', err);
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, [selectedBrandId, product.model]);
+
+  // When brand changes, update formData and reset model
+  const handleBrandChange = (brandId: string) => {
+    setSelectedBrandId(brandId);
+    setSelectedModelId(null);
+    
+    const selectedBrand = brands.find(b => b.id === brandId);
+    if (selectedBrand) {
+      setFormData({
+        ...formData,
+        brand: selectedBrand.name,
+        model: '' // Reset model when brand changes
+      });
+    }
+  };
+
+  // When model changes, update formData
+  const handleModelChange = (modelId: string) => {
+    setSelectedModelId(modelId);
+    
+    const selectedModel = brandModels.find(m => m.id === modelId);
+    if (selectedModel) {
+      setFormData({
+        ...formData,
+        model: selectedModel.name
+      });
+    }
+  };
 
   React.useEffect(() => {
     setImages(
@@ -230,29 +350,41 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label htmlFor="brand" className="text-xs sm:text-sm font-medium">Марка</label>
-            <Input
-              id="brand"
-              value={formData.brand}
-              onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-              placeholder="Марка"
-              className="h-8 sm:h-8"
-              disabled={!isCreator}
-            />
+            <Select
+              disabled={!isCreator || loadingBrands}
+              value={selectedBrandId || ""}
+              onValueChange={handleBrandChange}
+            >
+              <SelectTrigger id="brand" className="h-8 sm:h-8">
+                <SelectValue placeholder="Выберите марку" />
+              </SelectTrigger>
+              <SelectContent>
+                {brands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label htmlFor="model" className="text-xs sm:text-sm font-medium">Модель</label>
-            <Input
-              id="model"
-              value={formData.model}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              placeholder="Модель"
-              className="h-8 sm:h-8"
-              disabled={!isCreator}
-            />
+            <Select
+              disabled={!isCreator || !selectedBrandId || loadingModels}
+              value={selectedModelId || ""}
+              onValueChange={handleModelChange}
+            >
+              <SelectTrigger id="model" className="h-8 sm:h-8">
+                <SelectValue placeholder="Выберите модель" />
+              </SelectTrigger>
+              <SelectContent>
+                {brandModels.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <label htmlFor="place_number" className="text-xs sm:text-sm font-medium">Количество мест для отп��авки</label>
+        <label htmlFor="place_number" className="text-xs sm:text-sm font-medium">Количество мест для отправки</label>
         <Input
           id="place_number"
           type="number"
