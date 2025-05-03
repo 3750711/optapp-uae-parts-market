@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -118,8 +119,16 @@ const StoreDetail: React.FC = () => {
   });
 
   const getMainImageUrl = () => {
-    const primaryImage = store?.store_images?.find(img => img.is_primary);
-    return primaryImage?.url || store?.store_images?.[0]?.url || '/placeholder.svg';
+    // Первое загруженное фото всегда будет главным
+    if (store?.store_images && store.store_images.length > 0) {
+      // Сначала проверяем, есть ли фото с is_primary = true
+      const primaryImage = store.store_images.find(img => img.is_primary);
+      if (primaryImage) return primaryImage.url;
+      
+      // Иначе возвращаем первое фото из массива
+      return store.store_images[0].url;
+    }
+    return '/placeholder.svg';
   };
 
   const onReviewSubmitted = () => {
@@ -213,6 +222,27 @@ const StoreDetail: React.FC = () => {
                   <div>
                     <h3 className="font-medium mb-2">Описание</h3>
                     <p className="text-muted-foreground">{store.description}</p>
+                  </div>
+                )}
+                
+                {/* Отображаем фотографии магазина после описания */}
+                {store.store_images && store.store_images.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="font-medium mb-2 flex items-center">
+                      <Image className="w-4 h-4 mr-2" />
+                      Фотографии магазина
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {store.store_images.map((image) => (
+                        <div key={image.id} className="aspect-square overflow-hidden rounded-md">
+                          <img 
+                            src={image.url} 
+                            alt={store.name} 
+                            className="object-cover w-full h-full hover:scale-105 transition-transform"
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
                 
