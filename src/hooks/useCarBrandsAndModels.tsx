@@ -18,9 +18,11 @@ export function useCarBrandsAndModels() {
   const [brandModels, setBrandModels] = useState<CarModel[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchBrands = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const { data, error } = await supabase
         .from('car_brands')
@@ -29,12 +31,14 @@ export function useCarBrandsAndModels() {
 
       if (error) {
         console.error('Error fetching car brands:', error);
+        setError('Failed to load car brands');
         return;
       }
 
       setBrands(data || []);
     } catch (err) {
       console.error('Error in fetchBrands:', err);
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -47,6 +51,7 @@ export function useCarBrandsAndModels() {
     }
 
     setIsLoading(true);
+    setError(null);
     try {
       const { data, error } = await supabase
         .from('car_models')
@@ -56,12 +61,14 @@ export function useCarBrandsAndModels() {
 
       if (error) {
         console.error('Error fetching car models:', error);
+        setError('Failed to load car models');
         return;
       }
 
       setBrandModels(data || []);
     } catch (err) {
       console.error('Error in fetchModelsByBrand:', err);
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -85,11 +92,30 @@ export function useCarBrandsAndModels() {
     setSelectedBrand(brandId);
   };
 
+  // Helper function to find brand ID by name
+  const findBrandIdByName = (brandName: string) => {
+    const brand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
+    return brand?.id || null;
+  };
+  
+  // Helper function to find model ID by name and brand ID
+  const findModelIdByName = (modelName: string, brandId: string) => {
+    if (!brandId) return null;
+    
+    const model = brandModels.find(
+      m => m.brand_id === brandId && m.name.toLowerCase() === modelName.toLowerCase()
+    );
+    return model?.id || null;
+  };
+
   return {
     brands,
     brandModels,
     selectedBrand,
     selectBrand,
-    isLoading
+    isLoading,
+    error,
+    findBrandIdByName,
+    findModelIdByName
   };
 }

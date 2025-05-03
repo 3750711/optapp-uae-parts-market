@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { 
   Select, 
   SelectContent, 
@@ -23,17 +24,6 @@ interface ProductEditFormProps {
   onCancel: () => void;
   onSave: () => void;
   isCreator?: boolean;
-}
-
-interface CarBrand {
-  id: string;
-  name: string;
-}
-
-interface CarModel {
-  id: string;
-  name: string;
-  brand_id: string;
 }
 
 const ProductEditForm: React.FC<ProductEditFormProps> = ({
@@ -58,13 +48,17 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       : product.delivery_price || 0,
   });
 
-  // Car brands and models state
-  const [brands, setBrands] = useState<CarBrand[]>([]);
-  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
-  const [brandModels, setBrandModels] = useState<CarModel[]>([]);
+  // Use our car brands and models hook
+  const { 
+    brands, 
+    brandModels, 
+    selectedBrand, 
+    selectBrand, 
+    isLoading: loadingBrands,
+    findBrandIdByName
+  } = useCarBrandsAndModels();
+
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-  const [loadingBrands, setLoadingBrands] = useState(false);
-  const [loadingModels, setLoadingModels] = useState(false);
 
   const [images, setImages] = React.useState<string[]>(
     Array.isArray(product.product_images)
@@ -77,74 +71,42 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       : []
   );
 
-  // Fetch car brands when component mounts
+  // Set initial selected brand when the component mounts and brands are loaded
   useEffect(() => {
-    const fetchBrands = async () => {
-      setLoadingBrands(true);
-      try {
-        const { data, error } = await supabase
-          .from('car_brands')
-          .select('*')
-          .order('name');
+    if (brands.length > 0 && product.brand) {
+      const brandId = findBrandIdByName(product.brand);
+      if (brandId) {
+        selectBrand(brandId);
+      }
+    }
+  }, [brands, product.brand, findBrandIdByName, selectBrand]);
 
-        if (error) {
-          console.error('Error fetching car brands:', error);
-        } else {
-          setBrands(data || []);
-          
-          // Find brand ID by name
-          const matchingBrand = data?.find(b => b.name === product.brand);
-          if (matchingBrand) {
-            setSelectedBrandId(matchingBrand.id);
-          }
+  React.useEffect(() => {
+    setImages(
+      Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []
+    );
+    setVideos(
+      Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []
+    );
+  }, [product]);
+
+  React.useEffect(() => {
+    const checkIsCreator = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!isCreator && (!user || user.id !== product.seller_id)) {
+          console.log("User is not the creator of this product");
         }
-      } catch (err) {
-        console.error('Error fetching car brands:', err);
-      } finally {
-        setLoadingBrands(false);
+      } catch (error) {
+        console.error("Error checking product ownership:", error);
       }
     };
-
-    fetchBrands();
-  }, [product.brand]);
-
-  // Fetch models for selected brand
-  useEffect(() => {
-    const fetchModels = async () => {
-      if (!selectedBrandId) return;
-      
-      setLoadingModels(true);
-      try {
-        const { data, error } = await supabase
-          .from('car_models')
-          .select('*')
-          .eq('brand_id', selectedBrandId)
-          .order('name');
-
-        if (error) {
-          console.error('Error fetching car models:', error);
-        } else {
-          setBrandModels(data || []);
-          
-          // Find model ID by name
-          const matchingModel = data?.find(m => m.name === product.model);
-          if (matchingModel) {
-            setSelectedModelId(matchingModel.id);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching car models:', err);
-      } finally {
-        setLoadingModels(false);
-      }
-    };
-
-    fetchModels();
-  }, [selectedBrandId, product.model]);
+    checkIsCreator();
+  }, [isCreator, product.seller_id]);
 
   // When brand changes, update formData and reset model
   const handleBrandChange = (brandId: string) => {
-    setSelectedBrandId(brandId);
+    selectBrand(brandId);
     setSelectedModelId(null);
     
     const selectedBrand = brands.find(b => b.id === brandId);
@@ -169,29 +131,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       });
     }
   };
-
-  React.useEffect(() => {
-    setImages(
-      Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []
-    );
-    setVideos(
-      Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []
-    );
-  }, [product]);
-
-  React.useEffect(() => {
-    const checkIsCreator = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!isCreator && (!user || user.id !== product.seller_id)) {
-          console.log("User is not the creator of this product");
-        }
-      } catch (error) {
-        console.error("Error checking product ownership:", error);
-      }
-    };
-    checkIsCreator();
-  }, [isCreator, product.seller_id]);
 
   const handleImageUpload = async (newUrls: string[]) => {
     try {
@@ -352,13 +291,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
             <label htmlFor="brand" className="text-xs sm:text-sm font-medium">Марка</label>
             <Select
               disabled={!isCreator || loadingBrands}
-              value={selectedBrandId || ""}
+              value={selectedBrand || ""}
               onValueChange={handleBrandChange}
             >
               <SelectTrigger id="brand" className="h-8 sm:h-8">
                 <SelectValue placeholder="Выберите марку" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 {brands.map((brand) => (
                   <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
                 ))}
@@ -368,14 +307,14 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           <div>
             <label htmlFor="model" className="text-xs sm:text-sm font-medium">Модель</label>
             <Select
-              disabled={!isCreator || !selectedBrandId || loadingModels}
+              disabled={!isCreator || !selectedBrand || loadingBrands}
               value={selectedModelId || ""}
               onValueChange={handleModelChange}
             >
               <SelectTrigger id="model" className="h-8 sm:h-8">
                 <SelectValue placeholder="Выберите модель" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px]">
                 {brandModels.map((model) => (
                   <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
                 ))}
