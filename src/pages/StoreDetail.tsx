@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront, Share } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -355,7 +355,7 @@ const StoreDetail: React.FC = () => {
                     onClick={handleShareStore}
                     className="flex items-center gap-1"
                   >
-                    <Share2 className="h-4 w-4" />
+                    <Share className="h-4 w-4" />
                     <span className="sr-only md:not-sr-only">Поделиться</span>
                   </Button>
                 </div>
