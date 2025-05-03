@@ -23,16 +23,6 @@ import { UserTypeField } from "./fields/UserTypeField";
 import { OptIdField } from "./fields/OptIdField";
 import { TelegramField } from "./fields/TelegramField";
 import { ProfileTextField } from "./fields/ProfileTextField";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { countries } from "@/data/countries";
-import { MapPin } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -50,7 +40,6 @@ const formSchema = z.object({
   optId: z.string().optional(),
   userType: z.enum(["buyer", "seller", "admin"]).optional(),
   description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
-  location: z.string().min(2, { message: "Укажите местоположение" }).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -71,8 +60,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
   const canEditOptId = (user?.id === profile.id) || isAdmin;
-  const [isLocationPopoverOpen, setIsLocationPopoverOpen] = useState(false);
-  const [mapUrl, setMapUrl] = useState("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -85,17 +72,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
       optId: profile.opt_id || "",
       userType: profile.user_type,
       description: profile.description_user || "",
-      location: profile.location || "Dubai",
     },
   });
-
-  // Update map URL when location changes
-  useEffect(() => {
-    const location = form.watch("location");
-    if (location) {
-      setMapUrl(`https://maps.google.com/maps?q=${encodeURIComponent(location)}&output=embed`);
-    }
-  }, [form.watch("location")]);
 
   const handleSubmit = async (data: FormData) => {
     try {
@@ -150,71 +128,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               telegram_edit_count={profile.telegram_edit_count || 0}
             />
             <OptIdField control={form.control} canEditOptId={canEditOptId} />
-            
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Местоположение *</FormLabel>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Выберите страну" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country} value={country}>
-                              {country}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      
-                      <Popover open={isLocationPopoverOpen} onOpenChange={setIsLocationPopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="icon"
-                          >
-                            <MapPin className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-[300px] md:w-[500px]" align="end">
-                          <div className="aspect-video w-full">
-                            <iframe
-                              src={mapUrl}
-                              width="100%"
-                              height="100%"
-                              style={{ border: 0 }}
-                              allowFullScreen
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                              title="Google Maps"
-                            ></iframe>
-                          </div>
-                          <div className="p-2 text-xs text-muted-foreground">
-                            Текущее местоположение: {field.value}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                  <FormDescription>
-                    Это местоположение будет использоваться для вашего магазина
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             
             <FormField
               control={form.control}

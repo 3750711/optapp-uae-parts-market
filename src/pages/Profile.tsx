@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -21,7 +22,6 @@ const formSchema = z.object({
   telegram: z.string().optional(),
   optId: z.string().optional(),
   description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
-  location: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -53,7 +53,6 @@ const Profile = () => {
           telegram: data.telegram,
           opt_id: data.optId === "" ? null : data.optId,
           description_user: data.description,
-          location: data.location,
         })
         .eq('id', user.id);
 

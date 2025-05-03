@@ -5,19 +5,30 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "@/components/ui/use-toast";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreTag } from "@/types/store";
+import { MapPin } from "lucide-react";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { countries } from "@/data/countries";
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
   description: z.string().optional(),
   address: z.string().min(5, 'Адрес должен быть не менее 5 символов'),
   phone: z.string().optional(),
+  location: z.string().min(2, { message: "Укажите местоположение" }),
 });
 
 type StoreFormValues = z.infer<typeof storeFormSchema>;
@@ -32,6 +43,8 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   const [storeData, setStoreData] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const [isLocationPopoverOpen, setIsLocationPopoverOpen] = useState(false);
+  const [mapUrl, setMapUrl] = useState("");
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),
@@ -40,6 +53,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       description: '',
       address: '',
       phone: '',
+      location: 'Dubai',
     },
   });
 
@@ -65,6 +79,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: data.description || '',
             address: data.address,
             phone: data.phone || '',
+            location: data.location || 'Dubai',
           });
           
           // Extract images from store_images
@@ -83,6 +98,14 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
     }
   }, [sellerId]);
 
+  // Update map URL when location changes
+  useEffect(() => {
+    const location = form.watch("location");
+    if (location) {
+      setMapUrl(`https://maps.google.com/maps?q=${encodeURIComponent(location)}&output=embed`);
+    }
+  }, [form.watch("location")]);
+
   const onSubmit = async (values: StoreFormValues) => {
     setIsLoading(true);
     
@@ -96,6 +119,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: values.description || null,
             address: values.address,
             phone: values.phone || null,
+            location: values.location,
           })
           .eq('id', storeId);
           
@@ -197,6 +221,71 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                       value={field.value || ''}
                     />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Местоположение *</FormLabel>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Select 
+                        onValueChange={field.onChange} 
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder="Выберите страну" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {countries.map((country) => (
+                            <SelectItem key={country} value={country}>
+                              {country}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      
+                      <Popover open={isLocationPopoverOpen} onOpenChange={setIsLocationPopoverOpen}>
+                        <PopoverTrigger asChild>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="icon"
+                          >
+                            <MapPin className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="p-0 w-[300px] md:w-[500px]" align="end">
+                          <div className="aspect-video w-full">
+                            <iframe
+                              src={mapUrl}
+                              width="100%"
+                              height="100%"
+                              style={{ border: 0 }}
+                              allowFullScreen
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                              title="Google Maps"
+                            ></iframe>
+                          </div>
+                          <div className="p-2 text-xs text-muted-foreground">
+                            Текущее местоположение: {field.value}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+                  <FormDescription>
+                    Это местоположение будет использоваться для вашего магазина
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
