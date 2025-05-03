@@ -312,7 +312,7 @@ const Register = () => {
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Выберите город" />
+                            <SelectValue placeholder="Выберите страну" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
