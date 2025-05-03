@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -243,52 +242,77 @@ const AdminAddProduct = () => {
         return;
       }
 
-      // Create the product record and associate it with the selected seller
+      // Using RPC to create the product using admin permissions
+      // This bypasses RLS policies by using a database function
       const { data: product, error: productError } = await supabase
-        .from('products')
-        .insert({
-          title: values.title,
-          price: parseFloat(values.price),
-          condition: "Новый",
-          brand: selectedBrand.name, // Use the brand name, not ID
-          model: selectedModel.name, // Use the model name, not ID
-          description: values.description || null,
-          seller_id: values.sellerId, // Use the selected seller ID
-          seller_name: selectedSeller.full_name || "Unknown Seller",
-          status: 'pending',
-          place_number: parseInt(values.placeNumber),
-          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
-        })
-        .select('id')
-        .single();
+        .rpc('admin_create_product', {
+          p_title: values.title,
+          p_price: parseFloat(values.price),
+          p_condition: "Новый",
+          p_brand: selectedBrand.name,
+          p_model: selectedModel.name,
+          p_description: values.description || null,
+          p_seller_id: values.sellerId,
+          p_seller_name: selectedSeller.full_name || "Unknown Seller",
+          p_status: 'pending',
+          p_place_number: parseInt(values.placeNumber),
+          p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+        });
 
-      if (productError) throw productError;
+      if (productError) {
+        console.error("Error creating product via RPC:", productError);
+        throw productError;
+      }
 
-      const uploadedImages = await uploadImages(product.id);
+      // If RPC doesn't return the product ID, fetch it
+      let productId;
+      if (product && typeof product === 'object' && 'id' in product) {
+        productId = product.id;
+      } else if (product) {
+        productId = product;
+      } else {
+        // Fallback - get the latest product by this seller
+        const { data: latestProduct, error: fetchError } = await supabase
+          .from('products')
+          .select('id')
+          .eq('seller_id', values.sellerId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+          
+        if (fetchError) throw fetchError;
+        productId = latestProduct.id;
+      }
       
-      const { error: imagesError } = await supabase
-        .from('product_images')
-        .insert(
-          uploadedImages.map(img => ({
-            product_id: product.id,
-            url: img.url,
-            is_primary: img.is_primary
-          }))
-        );
+      if (!productId) {
+        throw new Error("Failed to get product ID");
+      }
 
-      if (imagesError) throw imagesError;
+      const uploadedImages = await uploadImages(productId);
+      
+      // Use RPC to insert images as admin
+      for (const img of uploadedImages) {
+        const { error: imageError } = await supabase
+          .rpc('admin_insert_product_image', {
+            p_product_id: productId,
+            p_url: img.url,
+            p_is_primary: img.is_primary
+          });
+          
+        if (imageError) throw imageError;
+      }
 
       if (videoUrls.length > 0) {
-        const { error: videosError } = await supabase
-          .from('product_videos')
-          .insert(
-            videoUrls.map((url) => ({
-              product_id: product.id,
-              url
-            }))
-          );
-
-        if (videosError) throw videosError;
+        // Use RPC to insert videos as admin
+        for (const videoUrl of videoUrls) {
+          const { error: videoError } = await supabase
+            .rpc('admin_insert_product_video', {
+              p_product_id: productId,
+              p_url: videoUrl
+            });
+            
+          if (videoError) throw videoError;
+        }
       }
 
       toast({
@@ -358,7 +382,7 @@ const AdminAddProduct = () => {
                       </FormItem>
                     )}
                   />
-
+                  
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -490,7 +514,7 @@ const AdminAddProduct = () => {
                           <Input 
                             type="number"
                             min="1"
-                            placeholder="Укажите количество мест"
+                            placeholder="Укажите количес��во мест"
                             {...field}
                           />
                         </FormControl>
