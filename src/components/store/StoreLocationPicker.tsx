@@ -1,9 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LocationPickerProps {
   initialLocation: string;
@@ -15,6 +17,33 @@ const StoreLocationPicker: React.FC<LocationPickerProps> = ({
   onLocationChange
 }) => {
   const [address, setAddress] = useState(initialLocation || "");
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    // Fetch profile location when component mounts
+    const fetchProfileLocation = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('location')
+          .eq('id', user.id)
+          .single();
+          
+        if (error) throw error;
+        
+        if (data?.location && !initialLocation) {
+          setAddress(data.location);
+          onLocationChange(data.location);
+        }
+      } catch (error) {
+        console.error("Error fetching profile location:", error);
+      }
+    };
+    
+    fetchProfileLocation();
+  }, [user, initialLocation, onLocationChange]);
 
   const handleLocationUpdate = () => {
     try {

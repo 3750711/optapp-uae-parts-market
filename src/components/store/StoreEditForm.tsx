@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StoreTag } from "@/types/store";
 import { MapPin } from "lucide-react";
 import StoreLocationPicker from "./StoreLocationPicker";
+import { useAuth } from "@/contexts/AuthContext";
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
@@ -35,6 +36,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   const [storeData, setStoreData] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const { user } = useAuth();
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),
@@ -83,10 +85,32 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       }
     }
 
+    // Fetch user's profile location
+    async function fetchProfileLocation() {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('location')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data?.location) {
+          form.setValue('location', data.location);
+        }
+      } catch (error) {
+        console.error("Error fetching profile location:", error);
+      }
+    }
+
     if (sellerId) {
       fetchStoreData();
+      fetchProfileLocation();
     }
-  }, [sellerId]);
+  }, [sellerId, user]);
 
   const onSubmit = async (values: StoreFormValues) => {
     setIsLoading(true);
@@ -167,6 +191,10 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
     );
   }
 
+  const handleLocationChange = (newLocation: string) => {
+    form.setValue('location', newLocation);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -231,6 +259,26 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                   <FormControl>
                     <Input placeholder="Введите телефон магазина" {...field} value={field.value || ''} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Местоположение</FormLabel>
+                  <FormControl>
+                    <StoreLocationPicker 
+                      initialLocation={field.value || ''} 
+                      onLocationChange={handleLocationChange}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Местоположение автоматически подтягивается из вашего профиля
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
