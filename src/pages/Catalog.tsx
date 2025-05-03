@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -221,9 +222,6 @@ const Catalog = () => {
             </div>
           </div>
           
-          {/* Only show RequestPartsPromo when user has searched something */}
-          {debouncedSearchQuery && <RequestPartsPromo />}
-          
           {isLoading && (
             <div className="animate-pulse">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -254,27 +252,35 @@ const Catalog = () => {
             </div>
           )}
 
-          {!isLoading && !isError && allProducts.length === 0 && (
+          {!isLoading && !isError && debouncedSearchQuery && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
+              
+              {/* Show RequestPartsPromo when no search results are found */}
+              <div className="mt-10">
+                <RequestPartsPromo />
+              </div>
             </div>
           )}
           
           {!isLoading && allProducts.length > 0 && (
             <div className="animate-fade-in space-y-12">
-              {/* Use chunking to insert the promo block after every 30 products, 
-                  but only if the user has searched for something */}
               {Array.from({ length: Math.ceil(mappedProducts.length / 30) }).map((_, chunkIndex) => {
                 const chunk = mappedProducts.slice(chunkIndex * 30, (chunkIndex + 1) * 30);
                 return (
                   <React.Fragment key={`chunk-${chunkIndex}`}>
                     <ProductGrid products={chunk} />
-                    {/* Add promo after each chunk only when user has searched */}
-                    {chunkIndex > 0 && debouncedSearchQuery && <RequestPartsPromo />}
                   </React.Fragment>
                 );
               })}
+              
+              {/* Show RequestPartsPromo after all products when search results are found */}
+              {debouncedSearchQuery && (
+                <div className="mt-6">
+                  <RequestPartsPromo />
+                </div>
+              )}
             </div>
           )}
           
