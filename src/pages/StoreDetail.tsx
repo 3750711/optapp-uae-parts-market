@@ -99,6 +99,24 @@ const StoreDetail: React.FC = () => {
     enabled: !!store?.seller_id
   });
 
+  // Запрос количества проданных объявлений продавца
+  const { data: soldProductCount = 0, isLoading: isSoldCountLoading } = useQuery({
+    queryKey: ['seller-sold-products-count', store?.seller_id],
+    queryFn: async () => {
+      if (!store?.seller_id) return 0;
+      
+      const { count, error } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('seller_id', store.seller_id)
+        .eq('status', 'sold');
+      
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!store?.seller_id
+  });
+
   const getMainImageUrl = () => {
     const primaryImage = store?.store_images?.find(img => img.is_primary);
     return primaryImage?.url || store?.store_images?.[0]?.url || '/placeholder.svg';
@@ -386,13 +404,19 @@ const StoreDetail: React.FC = () => {
                   </p>
                 </div>
 
-                {/* Add product count information */}
+                {/* Информация о количестве объявлений */}
                 <div>
                   <h3 className="font-medium mb-1">Объявления</h3>
-                  <p className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-muted-foreground" />
-                    <span>{isCountLoading ? "Загрузка..." : productCount} объявлений</span>
-                  </p>
+                  <div className="space-y-1">
+                    <p className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-muted-foreground" />
+                      <span>{isCountLoading ? "Загрузка..." : productCount} активных</span>
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-green-500" />
+                      <span>{isSoldCountLoading ? "Загрузка..." : soldProductCount} проданных</span>
+                    </p>
+                  </div>
                 </div>
 
                 <Separator />
