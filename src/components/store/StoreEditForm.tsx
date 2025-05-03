@@ -13,15 +13,6 @@ import { ImageUpload } from "@/components/ui/image-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreTag } from "@/types/store";
 import { MapPin } from "lucide-react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { countries } from "@/data/countries";
 import StoreLocationPicker from "./StoreLocationPicker";
 
 const storeFormSchema = z.object({
