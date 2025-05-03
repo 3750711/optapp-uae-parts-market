@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -24,6 +24,7 @@ import {
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
@@ -40,6 +41,24 @@ const PublicSellerProfile = () => {
     },
     enabled: !!id,
   });
+
+  useEffect(() => {
+    const fetchStoreInfo = async () => {
+      if (!id) return;
+      
+      const { data, error } = await supabase
+        .from('stores')
+        .select('id, name')
+        .eq('seller_id', id)
+        .maybeSingle();
+        
+      if (!error && data) {
+        setStoreInfo(data);
+      }
+    };
+
+    fetchStoreInfo();
+  }, [id]);
 
   const { data: orderCount } = useQuery({
     queryKey: ["seller-orders-count", id],
@@ -165,7 +184,7 @@ const PublicSellerProfile = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-start gap-4">
-                {profile.avatar_url && (
+                {profile?.avatar_url && (
                   <img 
                     src={profile.avatar_url} 
                     alt={profile.full_name || "Продавец"} 
@@ -174,21 +193,38 @@ const PublicSellerProfile = () => {
                 )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-2xl font-bold mb-2">{profile.full_name || "Продавец"}</h2>
-                    {profile.opt_status === 'opt_user' && (
+                    <h2 className="text-2xl font-bold mb-2">{profile?.full_name || "Продавец"}</h2>
+                    {profile?.opt_status === 'opt_user' && (
                       <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-md text-sm font-medium">
                         OPT
                       </span>
                     )}
                   </div>
                   <Badge variant="outline" className="text-sm">
-                    {profile.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
+                    {profile?.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
                   </Badge>
                 </div>
               </div>
 
+              {storeInfo && (
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 flex justify-between items-center">
+                  <div className="flex items-center">
+                    <StoreIcon className="h-5 w-5 mr-2 text-primary" />
+                    <div>
+                      <div className="font-medium">{storeInfo.name}</div>
+                      <div className="text-sm text-gray-600">Магазин продавца</div>
+                    </div>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="whitespace-nowrap">
+                    <Link to={`/stores/${storeInfo.id}`}>
+                      Посмотреть магазин
+                    </Link>
+                  </Button>
+                </div>
+              )}
+
               <Accordion type="single" collapsible>
-                {profile.description_user && (
+                {profile?.description_user && (
                   <AccordionItem value="description">
                     <AccordionTrigger>О продавце</AccordionTrigger>
                     <AccordionContent>
@@ -201,13 +237,13 @@ const PublicSellerProfile = () => {
                   <AccordionTrigger>Контактная информация</AccordionTrigger>
                   <AccordionContent>
                     <div className="space-y-2">
-                      {profile.company_name && (
+                      {profile?.company_name && (
                         <div className="flex items-center gap-2">
                           <Building2 className="h-4 w-4 text-gray-500" />
                           <span>{profile.company_name}</span>
                         </div>
                       )}
-                      {profile.telegram && (
+                      {profile?.telegram && (
                         <div className="flex items-center gap-2">
                           <MessageSquare className="h-4 w-4 text-gray-500" />
                           <span>{profile.telegram}</span>
@@ -276,11 +312,11 @@ const PublicSellerProfile = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Объявления продавца</CardTitle>
             <Badge variant="outline" className="text-lg">
-              {mappedProducts.length}
+              {mappedProducts?.length}
             </Badge>
           </CardHeader>
           <CardContent>
-            {mappedProducts.length > 0 ? (
+            {mappedProducts && mappedProducts.length > 0 ? (
               <ProductGrid products={mappedProducts} />
             ) : (
               <p className="text-center py-8 text-gray-500">

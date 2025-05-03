@@ -1,8 +1,10 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star, User } from "lucide-react";
+import { ShieldCheck, CircleDollarSign, Star, User, Store } from "lucide-react";
 import { SellerProfile } from "@/types/product";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface SellerInfoProps {
   sellerProfile: SellerProfile;
@@ -17,6 +19,26 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
   seller_id,
   children 
 }) => {
+  const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    const fetchStoreInfo = async () => {
+      if (!seller_id) return;
+      
+      const { data, error } = await supabase
+        .from('stores')
+        .select('id, name')
+        .eq('seller_id', seller_id)
+        .maybeSingle();
+        
+      if (!error && data) {
+        setStoreInfo(data);
+      }
+    };
+
+    fetchStoreInfo();
+  }, [seller_id]);
+
   return (
     <div className="border rounded-lg p-4 mb-6">
       <h3 className="text-lg font-semibold mb-3 flex items-center">
@@ -48,6 +70,23 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
             </div>
           )}
         </div>
+        
+        {storeInfo && (
+          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 flex justify-between items-center">
+            <div className="flex items-center">
+              <Store className="h-5 w-5 mr-2 text-primary" />
+              <div>
+                <div className="font-medium">{storeInfo.name}</div>
+                <div className="text-sm text-gray-600">Магазин продавца</div>
+              </div>
+            </div>
+            <Button asChild variant="outline" size="sm" className="whitespace-nowrap">
+              <Link to={`/stores/${storeInfo.id}`}>
+                Посмотреть магазин
+              </Link>
+            </Button>
+          </div>
+        )}
         
         {sellerProfile?.description_user && (
           <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
