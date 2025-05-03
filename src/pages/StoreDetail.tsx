@@ -364,14 +364,6 @@ const StoreDetail: React.FC = () => {
               {/* Reviews tab */}
               <TabsContent value="reviews">
                 <div className="space-y-6">
-                  {user && (
-                    <div className="mb-6">
-                      <Button onClick={() => setIsReviewDialogOpen(true)}>
-                        Написать отзыв
-                      </Button>
-                    </div>
-                  )}
-
                   {isReviewsLoading ? (
                     <div className="space-y-4">
                       {[1, 2].map((i) => (
