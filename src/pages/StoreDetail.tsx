@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -20,6 +21,7 @@ const StoreDetail: React.FC = () => {
   const { user } = useAuth();
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
 
+  // Запрос данных магазина
   const { data: store, isLoading: isStoreLoading, refetch } = useQuery({
     queryKey: ['store', id],
     queryFn: async () => {
@@ -37,6 +39,27 @@ const StoreDetail: React.FC = () => {
     }
   });
 
+  // Запрос объявлений продавца
+  const { data: sellerProducts, isLoading: isProductsLoading } = useQuery({
+    queryKey: ['seller-products', store?.seller_id],
+    queryFn: async () => {
+      if (!store?.seller_id) return [];
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, title, price, created_at, status')
+        .eq('seller_id', store.seller_id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!store?.seller_id
+  });
+
+  // Запрос отзывов
   const { data: reviews, isLoading: isReviewsLoading } = useQuery({
     queryKey: ['store-reviews', id],
     queryFn: async () => {
@@ -107,10 +130,15 @@ const StoreDetail: React.FC = () => {
             <div className="mb-6">
               <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
                 {store.name}
-                {store.verified && (
+                {/* Отображаем статус верификации */}
+                {store.verified ? (
                   <Badge variant="success" className="flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" />
                     Проверено
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    Не проверено
                   </Badge>
                 )}
               </h1>
@@ -141,6 +169,7 @@ const StoreDetail: React.FC = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="about">О магазине</TabsTrigger>
                 <TabsTrigger value="photos">Фото</TabsTrigger>
+                <TabsTrigger value="products">Объявления</TabsTrigger>
                 <TabsTrigger value="reviews">Отзывы</TabsTrigger>
               </TabsList>
 
@@ -179,6 +208,63 @@ const StoreDetail: React.FC = () => {
                 ) : (
                   <p className="text-muted-foreground">У этого магазина пока нет фотографий</p>
                 )}
+              </TabsContent>
+
+              {/* Новая вкладка для отображения объявлений продавца */}
+              <TabsContent value="products">
+                <div className="space-y-4">
+                  {isProductsLoading ? (
+                    <div className="space-y-4">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-16 w-full" />
+                      ))}
+                    </div>
+                  ) : sellerProducts && sellerProducts.length > 0 ? (
+                    <div>
+                      <div className="space-y-3">
+                        {sellerProducts.map((product) => (
+                          <Card key={product.id}>
+                            <CardContent className="p-4 flex justify-between items-center">
+                              <div>
+                                <Link 
+                                  to={`/product/${product.id}`} 
+                                  className="font-medium hover:text-primary"
+                                >
+                                  {product.title}
+                                </Link>
+                                <div className="text-sm text-muted-foreground">
+                                  Цена: {product.price} AED
+                                </div>
+                              </div>
+                              <Button asChild variant="outline" size="sm">
+                                <Link to={`/product/${product.id}`}>
+                                  Просмотреть
+                                </Link>
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                      
+                      <div className="mt-6 text-right">
+                        <Button asChild variant="outline">
+                          <Link to={`/seller/${store.seller_id}`}>
+                            <Package className="mr-2" />
+                            Все объявления продавца
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <div className="flex justify-center mb-4">
+                        <Package className="h-12 w-12 text-muted-foreground opacity-50" />
+                      </div>
+                      <h3 className="font-medium mb-2">У продавца пока нет объявлений</h3>
+                      <p className="text-muted-foreground mb-6">Загляните позже, возможно здесь появятся новые товары</p>
+                    </div>
+                  )}
+                </div>
               </TabsContent>
 
               <TabsContent value="reviews">
@@ -285,10 +371,18 @@ const StoreDetail: React.FC = () => {
 
                 <Separator />
 
-                <div className="text-center">
+                <div className="text-center mb-4">
                   <div className="font-medium">{reviews?.length || 0}</div>
                   <div className="text-sm text-muted-foreground">отзывов</div>
                 </div>
+
+                {/* Добавляем кнопку для перехода к объявлениям продавца */}
+                <Button asChild className="w-full">
+                  <Link to={`/seller/${store.seller_id}`}>
+                    <Package className="mr-2" />
+                    Все объявления продавца
+                  </Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
