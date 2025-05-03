@@ -303,19 +303,12 @@ const StoreDetail: React.FC = () => {
                       <MapPin className="w-4 h-4 mr-2" />
                       Местоположение
                     </h3>
-                    <div className="rounded-md overflow-hidden border">
-                      <iframe
-                        src={`https://maps.google.com/maps?q=${encodeURIComponent(store.location)}&output=embed`}
-                        width="100%"
-                        height="300"
-                        style={{ border: 0 }}
-                        allowFullScreen
-                        loading="lazy"
-                        referrerPolicy="no-referrer-when-downgrade"
-                        title="Google Maps"
-                      ></iframe>
+                    <div className="border rounded-md p-4 bg-muted/10">
+                      <p className="text-muted-foreground flex items-center">
+                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
+                        {formatLocation(store.location)}
+                      </p>
                     </div>
-                    <p className="mt-2 text-muted-foreground">{formatLocation(store.location)}</p>
                   </div>
                 )}
                 

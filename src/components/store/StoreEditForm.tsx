@@ -35,8 +35,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   const [storeData, setStoreData] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
-  const [isLocationPopoverOpen, setIsLocationPopoverOpen] = useState(false);
-  const [mapUrl, setMapUrl] = useState("");
 
   const form = useForm<StoreFormValues>({
     resolver: zodResolver(storeFormSchema),
@@ -223,7 +221,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                     />
                   </FormControl>
                   <FormDescription>
-                    Выберите местоположение вашего магазина, нажав на нужное место на карте
+                    Введите координаты вашего магазина (широта, долгота)
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
