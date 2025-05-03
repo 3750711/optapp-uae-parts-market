@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -249,7 +250,8 @@ const StoreDetail: React.FC = () => {
       } else {
         // Fallback to clipboard copy
         await navigator.clipboard.writeText(url);
-        toast("Ссылка скопирована", {
+        toast({
+          title: "Ссылка скопирована",
           description: "Ссылка на магазин скопирована в буфер обмена"
         });
       }

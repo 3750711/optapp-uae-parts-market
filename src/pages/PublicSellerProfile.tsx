@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Share2 } from "lucide-react";
@@ -160,7 +161,8 @@ const PublicSellerProfile = () => {
       } else {
         // Fallback to clipboard copy
         await navigator.clipboard.writeText(url);
-        toast("Ссылка скопирована", {
+        toast({
+          title: "Ссылка скопирована",
           description: "Ссылка на профиль продавца скопирована в буфер обмена"
         });
       }
