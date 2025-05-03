@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -38,6 +39,53 @@ const StoreDetail: React.FC = () => {
       if (error) throw error;
       return data as StoreWithImages;
     }
+  });
+
+  // Car brands and models query
+  const { data: carBrandsData, isLoading: isBrandsLoading } = useQuery({
+    queryKey: ['store-car-brands', id],
+    queryFn: async () => {
+      if (!id) return [];
+      
+      const { data: brandData, error: brandError } = await supabase
+        .from('store_car_brands')
+        .select(`
+          car_brands(id, name)
+        `)
+        .eq('store_id', id);
+      
+      if (brandError) throw brandError;
+      
+      // Get all models for this store
+      const { data: modelData, error: modelError } = await supabase
+        .from('store_car_models')
+        .select(`
+          car_models(id, name, brand_id)
+        `)
+        .eq('store_id', id);
+        
+      if (modelError) throw modelError;
+      
+      // Group models by brand_id for easier display
+      const carBrands = brandData.map((brand) => {
+        const brandId = brand.car_brands.id;
+        const models = modelData
+          .filter(model => model.car_models.brand_id === brandId)
+          .map(model => ({
+            id: model.car_models.id,
+            name: model.car_models.name
+          }));
+        
+        return {
+          id: brandId,
+          name: brand.car_brands.name,
+          models: models
+        };
+      });
+      
+      return carBrands;
+    },
+    enabled: !!id
   });
 
   // Seller products query
@@ -286,6 +334,43 @@ const StoreDetail: React.FC = () => {
                   </div>
                 )}
                 
+                {/* Car brands and models display */}
+                {carBrandsData && carBrandsData.length > 0 && (
+                  <div className="mt-6 bg-muted/30 p-4 rounded-lg border">
+                    <h3 className="font-medium mb-3 flex items-center">
+                      <Car className="w-4 h-4 mr-2" />
+                      Марки и модели автомобилей
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-4">
+                      {carBrandsData.map((brand) => (
+                        <div key={brand.id} className="bg-card rounded-md p-3 border">
+                          <div className="flex items-center mb-2">
+                            <CarFront className="w-4 h-4 mr-2 text-primary" />
+                            <span className="font-medium">{brand.name}</span>
+                          </div>
+                          {brand.models && brand.models.length > 0 ? (
+                            <div className="flex flex-wrap gap-1 ml-6">
+                              {brand.models.map((model) => (
+                                <Badge 
+                                  key={model.id} 
+                                  variant="secondary"
+                                  className="text-xs"
+                                >
+                                  {model.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-muted-foreground ml-6">
+                              Все модели
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Store photos after description */}
                 {store.store_images && store.store_images.length > 0 && (
                   <div className="mt-6">
@@ -488,6 +573,20 @@ const StoreDetail: React.FC = () => {
                     </p>
                   </div>
                 </div>
+
+                {/* Car brands summary for sidebar */}
+                {carBrandsData && carBrandsData.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-1">Марки автомобилей</h3>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {carBrandsData.map((brand) => (
+                        <Badge key={brand.id} variant="outline">
+                          {brand.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <Separator />
 

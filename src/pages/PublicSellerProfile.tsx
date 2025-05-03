@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -26,6 +26,7 @@ const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
+  const [carBrands, setCarBrands] = useState<string[]>([]);
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
@@ -55,6 +56,22 @@ const PublicSellerProfile = () => {
         
       if (!error && data) {
         setStoreInfo(data);
+        
+        // Fetch car brands if store exists
+        if (data.id) {
+          const { data: brandsData, error: brandsError } = await supabase
+            .from('store_car_brands')
+            .select('car_brands(name)')
+            .eq('store_id', data.id);
+            
+          if (!brandsError && brandsData) {
+            const brandNames = brandsData
+              .map(item => item.car_brands?.name)
+              .filter(Boolean) as string[];
+              
+            setCarBrands(brandNames);
+          }
+        }
       }
     };
 
@@ -208,7 +225,7 @@ const PublicSellerProfile = () => {
               </div>
 
               {storeInfo && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 flex justify-between items-center">
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="flex items-center">
                     <StoreIcon className="h-5 w-5 mr-2 text-primary" />
                     <div>
@@ -216,7 +233,22 @@ const PublicSellerProfile = () => {
                       <div className="text-sm text-gray-600">Магазин продавца</div>
                     </div>
                   </div>
-                  <Button asChild variant="outline" size="sm" className="whitespace-nowrap">
+
+                  {/* Show car brands if available */}
+                  {carBrands.length > 0 && (
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-0 sm:ml-4">
+                      <Car className="h-4 w-4 text-primary flex-shrink-0" />
+                      <div className="flex flex-wrap gap-1">
+                        {carBrands.map((brand, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {brand}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <Button asChild variant="outline" size="sm" className="whitespace-nowrap mt-2 sm:mt-0">
                     <Link to={`/stores/${storeInfo.id}`}>
                       Посмотреть магазин
                     </Link>
