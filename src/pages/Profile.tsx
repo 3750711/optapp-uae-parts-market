@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
 import { Button } from "@/components/ui/button";
+import StoreEditForm from "@/components/store/StoreEditForm";
 import { UserType } from "@/components/profile/types";
 
 const formSchema = z.object({
@@ -142,6 +143,8 @@ const Profile = () => {
     );
   }
 
+  const isSeller = profile.user_type === 'seller';
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -162,13 +165,20 @@ const Profile = () => {
             isLoading={isLoading}
             onAvatarUpdate={handleAvatarUpdate}
           />
-          <div className="w-full md:w-2/3">
+          <div className="w-full md:w-2/3 space-y-8">
             <ProfileForm
               profile={profile}
               onSubmit={handleSubmit}
               isLoading={isLoading}
               readOnlyUserType={true}
             />
+            
+            {isSeller && user && (
+              <div className="mt-8">
+                <StoreEditForm sellerId={user.id} />
+              </div>
+            )}
+            
             <Button 
               variant="destructive" 
               className="mt-4 w-full"
