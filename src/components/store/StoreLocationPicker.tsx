@@ -15,9 +15,23 @@ const StoreLocationPicker: React.FC<LocationPickerProps> = ({
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState(initialLocation || "Dubai");
+  const [currentLocation, setCurrentLocation] = useState(initialLocation || "25.276987, 55.296249"); // Dubai coordinates as default
   const [mapUrl, setMapUrl] = useState("");
   const [selectedMarker, setSelectedMarker] = useState<{ lat: number; lng: number } | null>(null);
+
+  // Parse initial location if it's in coordinate format
+  useEffect(() => {
+    try {
+      if (initialLocation && initialLocation.includes(",")) {
+        const [lat, lng] = initialLocation.split(",").map(coord => parseFloat(coord.trim()));
+        if (!isNaN(lat) && !isNaN(lng)) {
+          setSelectedMarker({ lat, lng });
+        }
+      }
+    } catch (error) {
+      console.error("Error parsing initial location:", error);
+    }
+  }, [initialLocation]);
 
   // Update map URL when location changes
   useEffect(() => {
@@ -88,23 +102,45 @@ const StoreLocationPicker: React.FC<LocationPickerProps> = ({
               const x = e.clientX - rect.left;
               const y = e.clientY - rect.top;
               
-              // Convert to geo coordinates (approximate)
-              // This is a simplified calculation and not 100% accurate
-              const latPerPixel = 180 / mapContainer.clientHeight;
-              const lngPerPixel = 360 / mapContainer.clientWidth;
-              
-              const centerLat = 0; // Assuming center is at equator
-              const centerLng = 0; // Assuming center is at prime meridian
-              
-              const clickLat = centerLat + (mapContainer.clientHeight/2 - y) * latPerPixel;
-              const clickLng = centerLng + (x - mapContainer.clientWidth/2) * lngPerPixel;
-              
-              // Send message to parent window
-              window.parent.postMessage({
-                type: 'MAP_LOCATION_SELECTED',
-                latitude: clickLat,
-                longitude: clickLng
-              }, '*');
+              // This is a simplified calculation for demo purposes
+              // In a real application, we would need more accurate geo calculations
+              const mapBounds = window.mapBounds;
+              if (!mapBounds) {
+                // Approximate calculation if bounds not available
+                const centerLat = 25.276987; // Default center latitude (Dubai)
+                const centerLng = 55.296249; // Default center longitude (Dubai)
+                const latPerPixel = 0.01 / (rect.height / 2);
+                const lngPerPixel = 0.01 / (rect.width / 2);
+                
+                const clickLat = centerLat - (y - rect.height/2) * latPerPixel;
+                const clickLng = centerLng + (x - rect.width/2) * lngPerPixel;
+                
+                window.parent.postMessage({
+                  type: 'MAP_LOCATION_SELECTED',
+                  latitude: clickLat,
+                  longitude: clickLng
+                }, '*');
+              } else {
+                // Use map bounds for more accurate calculation
+                // This would require access to Google Maps API directly
+                // Simplified approximation for now
+                const n = mapBounds.north;
+                const s = mapBounds.south;
+                const e = mapBounds.east;
+                const w = mapBounds.west;
+                
+                const latRatio = (rect.height - y) / rect.height;
+                const lngRatio = x / rect.width;
+                
+                const clickLat = s + (n - s) * latRatio;
+                const clickLng = w + (e - w) * lngRatio;
+                
+                window.parent.postMessage({
+                  type: 'MAP_LOCATION_SELECTED',
+                  latitude: clickLat,
+                  longitude: clickLng
+                }, '*');
+              }
             });
           `;
           

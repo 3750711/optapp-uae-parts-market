@@ -119,6 +119,22 @@ const StoreDetail: React.FC = () => {
     enabled: !!store?.seller_id
   });
 
+  // Format coordinates for display
+  const formatLocation = (coordinates: string | null) => {
+    if (!coordinates) return 'Unknown location';
+    
+    // If coordinates contain a comma, format as lat, lng
+    if (coordinates.includes(',')) {
+      const [lat, lng] = coordinates.split(',').map(coord => parseFloat(coord.trim()));
+      if (!isNaN(lat) && !isNaN(lng)) {
+        return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+      }
+    }
+    
+    // Return as is if not in coordinate format
+    return coordinates;
+  };
+
   const getMainImageUrl = () => {
     // First uploaded photo will always be the main one
     if (store?.store_images && store.store_images.length > 0) {
@@ -299,7 +315,7 @@ const StoreDetail: React.FC = () => {
                         title="Google Maps"
                       ></iframe>
                     </div>
-                    <p className="mt-2 text-muted-foreground">{store.location}</p>
+                    <p className="mt-2 text-muted-foreground">{formatLocation(store.location)}</p>
                   </div>
                 )}
                 
@@ -481,7 +497,7 @@ const StoreDetail: React.FC = () => {
                     <h3 className="font-medium mb-1">Местоположение</h3>
                     <p className="text-muted-foreground flex items-center">
                       <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {store.location}
+                      {formatLocation(store.location)}
                     </p>
                   </div>
                 )}

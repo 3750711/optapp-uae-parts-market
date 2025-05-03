@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
@@ -53,7 +54,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       description: '',
       address: '',
       phone: '',
-      location: 'Dubai',
+      location: '25.276987, 55.296249', // Dubai coordinates as default
     },
   });
 
@@ -79,7 +80,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: data.description || '',
             address: data.address,
             phone: data.phone || '',
-            location: data.location || 'Dubai',
+            location: data.location || '25.276987, 55.296249', // Default to Dubai coordinates if not set
           });
           
           // Extract images from store_images
