@@ -203,7 +203,9 @@ const StoreDetail: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Left column content */}
           <div className="md:col-span-2">
+            {/* Store name, rating, tags */}
             <div className="mb-6">
               <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
                 {store.name}
@@ -243,6 +245,7 @@ const StoreDetail: React.FC = () => {
             </div>
 
             <Tabs defaultValue="about">
+              {/* Tabs list */}
               <TabsList className="mb-4">
                 <TabsTrigger value="about">О магазине</TabsTrigger>
                 <TabsTrigger value="photos">Фото</TabsTrigger>
@@ -250,6 +253,7 @@ const StoreDetail: React.FC = () => {
                 <TabsTrigger value="reviews">Отзывы</TabsTrigger>
               </TabsList>
 
+              {/* About tab */}
               <TabsContent value="about" className="space-y-4">
                 {store.description && (
                   <div>
@@ -290,6 +294,7 @@ const StoreDetail: React.FC = () => {
                 )}
               </TabsContent>
 
+              {/* Photos tab */}
               <TabsContent value="photos">
                 {store.store_images && store.store_images.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -308,7 +313,7 @@ const StoreDetail: React.FC = () => {
                 )}
               </TabsContent>
 
-              {/* Таб для отображения объявлений продавца */}
+              {/* Products tab */}
               <TabsContent value="products">
                 <div className="space-y-4">
                   {isProductsLoading ? (
@@ -365,6 +370,7 @@ const StoreDetail: React.FC = () => {
                 </div>
               </TabsContent>
 
+              {/* Reviews tab */}
               <TabsContent value="reviews">
                 <div className="space-y-6">
                   {user && (
@@ -425,6 +431,7 @@ const StoreDetail: React.FC = () => {
             </Tabs>
           </div>
 
+          {/* Right column - Store info and contact */}
           <div>
             <div className="aspect-square overflow-hidden rounded-lg mb-4">
               <img
@@ -439,6 +446,7 @@ const StoreDetail: React.FC = () => {
                 <CardTitle className="text-xl">Информация</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Store info */}
                 <div>
                   <h3 className="font-medium mb-1">Адрес</h3>
                   <p className="text-muted-foreground">{store.address}</p>
@@ -489,9 +497,9 @@ const StoreDetail: React.FC = () => {
                   <div className="text-sm text-muted-foreground">отзывов</div>
                 </div>
 
-                {/* Кнопки для связи */}
-                <div className="space-y-2">
-                  {store?.phone && (
+                {/* Contact buttons - make sure they're always visible if phone is available */}
+                {store?.phone && (
+                  <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
                         onClick={handleContactTelegram}
@@ -506,10 +514,10 @@ const StoreDetail: React.FC = () => {
                         <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
                       </Button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* Кнопка для перехода к объявлениям продавца */}
+                {/* Button to seller products */}
                 <Button asChild className="w-full">
                   <Link to={`/seller/${store?.seller_id}`}>
                     <Package className="mr-2" />
