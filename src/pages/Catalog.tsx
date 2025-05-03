@@ -190,6 +190,9 @@ const Catalog = () => {
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
+          {/* Show promo at the top, before the search bar */}
+          <RequestPartsPromo />
+          
           <div className="mb-10 flex justify-center">
             <div className="w-full max-w-xl relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
@@ -221,9 +224,6 @@ const Catalog = () => {
               )}
             </div>
           </div>
-          
-          {/* Show promo at the top of the catalog */}
-          <RequestPartsPromo />
           
           {isLoading && (
             <div className="animate-pulse">
