@@ -21,7 +21,7 @@ const StoreDetail: React.FC = () => {
   const { user } = useAuth();
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
 
-  // Запрос данных магазина
+  // Store data query
   const { data: store, isLoading: isStoreLoading, refetch } = useQuery({
     queryKey: ['store', id],
     queryFn: async () => {
@@ -39,7 +39,7 @@ const StoreDetail: React.FC = () => {
     }
   });
 
-  // Запрос объявлений продавца
+  // Seller products query
   const { data: sellerProducts, isLoading: isProductsLoading } = useQuery({
     queryKey: ['seller-products', store?.seller_id],
     queryFn: async () => {
@@ -59,7 +59,7 @@ const StoreDetail: React.FC = () => {
     enabled: !!store?.seller_id
   });
 
-  // Запрос отзывов
+  // Reviews query
   const { data: reviews, isLoading: isReviewsLoading } = useQuery({
     queryKey: ['store-reviews', id],
     queryFn: async () => {
@@ -82,7 +82,7 @@ const StoreDetail: React.FC = () => {
     }
   });
 
-  // Запрос общего количества объявлений продавца
+  // Seller product count query
   const { data: productCount = 0, isLoading: isCountLoading } = useQuery({
     queryKey: ['seller-products-count', store?.seller_id],
     queryFn: async () => {
@@ -100,7 +100,7 @@ const StoreDetail: React.FC = () => {
     enabled: !!store?.seller_id
   });
 
-  // Запрос количества проданных объявлений продавца
+  // Sold product count query
   const { data: soldProductCount = 0, isLoading: isSoldCountLoading } = useQuery({
     queryKey: ['seller-sold-products-count', store?.seller_id],
     queryFn: async () => {
@@ -119,13 +119,13 @@ const StoreDetail: React.FC = () => {
   });
 
   const getMainImageUrl = () => {
-    // Первое загруженное фото всегда будет главным
+    // First uploaded photo will always be the main one
     if (store?.store_images && store.store_images.length > 0) {
-      // Сначала проверяем, есть ли фото с is_primary = true
+      // First check if there's an image with is_primary = true
       const primaryImage = store.store_images.find(img => img.is_primary);
       if (primaryImage) return primaryImage.url;
       
-      // Иначе возвращаем первое фото из массива
+      // Otherwise return the first image from the array
       return store.store_images[0].url;
     }
     return '/placeholder.svg';
@@ -136,7 +136,7 @@ const StoreDetail: React.FC = () => {
   };
 
   const handleContactTelegram = () => {
-    if (!store?.phone) {
+    if (!store?.telegram && !store?.phone) {
       toast({
         title: "Контакт недоступен",
         description: "У этого магазина нет контактной информации Telegram",
@@ -145,12 +145,13 @@ const StoreDetail: React.FC = () => {
       return;
     }
     
-    // Формируем ссылку для Telegram
-    const telegramUsername = store.phone.startsWith('@') 
-      ? store.phone.substring(1) 
-      : store.phone;
+    // Use store.telegram if available, otherwise use phone for backward compatibility
+    const telegramUsername = store.telegram || store.phone;
+    const formattedUsername = telegramUsername?.startsWith('@') 
+      ? telegramUsername.substring(1) 
+      : telegramUsername;
       
-    window.open(`https://t.me/${telegramUsername}`, '_blank');
+    window.open(`https://t.me/${formattedUsername}`, '_blank');
   };
 
   const handleContactWhatsApp = () => {
@@ -163,7 +164,7 @@ const StoreDetail: React.FC = () => {
       return;
     }
     
-    // Очищаем номер от всего, кроме цифр
+    // Clean the number, only keep digits
     const phoneNumber = store.phone.replace(/\D/g, '');
     window.open(`https://wa.me/${phoneNumber}`, '_blank');
   };
@@ -209,7 +210,7 @@ const StoreDetail: React.FC = () => {
             <div className="mb-6">
               <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
                 {store.name}
-                {/* Отображаем статус верификации */}
+                {/* Verification status badge */}
                 {store.verified ? (
                   <Badge variant="success" className="flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" />
@@ -262,7 +263,7 @@ const StoreDetail: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Отображаем фотографии магазина после описания */}
+                {/* Store photos after description */}
                 {store.store_images && store.store_images.length > 0 && (
                   <div className="mt-6">
                     <h3 className="font-medium mb-2 flex items-center">
@@ -283,15 +284,24 @@ const StoreDetail: React.FC = () => {
                   </div>
                 )}
                 
-                {store.phone && (
-                  <div>
-                    <h3 className="font-medium mb-2">Контакты</h3>
-                    <div className="flex items-center">
-                      <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                      <span>{store.phone}</span>
-                    </div>
+                {/* Contact information */}
+                <div>
+                  <h3 className="font-medium mb-2">Контакты</h3>
+                  <div className="space-y-2">
+                    {store.phone && (
+                      <div className="flex items-center">
+                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span>{store.phone}</span>
+                      </div>
+                    )}
+                    {store.telegram && (
+                      <div className="flex items-center">
+                        <Send className="w-4 h-4 mr-2 text-muted-foreground" />
+                        <span>{store.telegram}</span>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </TabsContent>
 
               {/* Photos tab */}
@@ -452,10 +462,18 @@ const StoreDetail: React.FC = () => {
                   <p className="text-muted-foreground">{store.address}</p>
                 </div>
 
+                {/* Contact information */}
                 {store.phone && (
                   <div>
                     <h3 className="font-medium mb-1">Телефон</h3>
                     <p className="text-muted-foreground">{store.phone}</p>
+                  </div>
+                )}
+
+                {store.telegram && (
+                  <div>
+                    <h3 className="font-medium mb-1">Telegram</h3>
+                    <p className="text-muted-foreground">{store.telegram}</p>
                   </div>
                 )}
 
@@ -475,7 +493,7 @@ const StoreDetail: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Информация о количестве объявлений */}
+                {/* Product information */}
                 <div>
                   <h3 className="font-medium mb-1">Объявления</h3>
                   <div className="space-y-1">
@@ -497,8 +515,8 @@ const StoreDetail: React.FC = () => {
                   <div className="text-sm text-muted-foreground">отзывов</div>
                 </div>
 
-                {/* Contact buttons - make sure they're always visible if phone is available */}
-                {store?.phone && (
+                {/* Contact buttons - make sure they're always visible if contact info is available */}
+                {(store?.phone || store?.telegram) && (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <Button 
@@ -510,6 +528,7 @@ const StoreDetail: React.FC = () => {
                       <Button 
                         onClick={handleContactWhatsApp}
                         className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white"
+                        disabled={!store?.phone}
                       >
                         <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
                       </Button>

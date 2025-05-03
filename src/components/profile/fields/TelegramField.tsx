@@ -13,11 +13,15 @@ import { Input } from "@/components/ui/input";
 interface TelegramFieldProps {
   control: any;
   telegram_edit_count?: number;
+  disabled?: boolean;
+  description?: string;
 }
 
 export const TelegramField: React.FC<TelegramFieldProps> = ({ 
   control,
-  telegram_edit_count = 0
+  telegram_edit_count = 0,
+  disabled = false,
+  description
 }) => (
   <FormField
     control={control}
@@ -29,10 +33,12 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
           <Input 
             placeholder="@username" 
             {...field} 
-            disabled={telegram_edit_count >= 1}
+            disabled={disabled || telegram_edit_count >= 1}
           />
         </FormControl>
-        {telegram_edit_count >= 1 ? (
+        {description ? (
+          <FormDescription>{description}</FormDescription>
+        ) : telegram_edit_count >= 1 ? (
           <FormDescription className="text-yellow-600">
             Telegram ID можно изменить только один раз
           </FormDescription>

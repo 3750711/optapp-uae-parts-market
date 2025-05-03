@@ -567,6 +567,7 @@ export type Database = {
           rating: number | null
           seller_id: string | null
           tags: Database["public"]["Enums"]["store_tag"][] | null
+          telegram: string | null
           updated_at: string | null
           verified: boolean
         }
@@ -581,6 +582,7 @@ export type Database = {
           rating?: number | null
           seller_id?: string | null
           tags?: Database["public"]["Enums"]["store_tag"][] | null
+          telegram?: string | null
           updated_at?: string | null
           verified?: boolean
         }
@@ -595,6 +597,7 @@ export type Database = {
           rating?: number | null
           seller_id?: string | null
           tags?: Database["public"]["Enums"]["store_tag"][] | null
+          telegram?: string | null
           updated_at?: string | null
           verified?: boolean
         }
