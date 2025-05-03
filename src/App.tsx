@@ -40,6 +40,7 @@ import Stores from "./pages/Stores";
 import StoreDetail from "./pages/StoreDetail";
 import CreateStore from "./pages/CreateStore";
 import Requests from "./pages/Requests";
+import CreateRequest from "./pages/CreateRequest";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -153,6 +154,7 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/requests" element={<Requests />} />
+              <Route path="/requests/create" element={<CreateRequest />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
