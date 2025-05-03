@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Share2, Send } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -27,12 +26,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -153,33 +146,6 @@ const PublicSellerProfile = () => {
     };
   }) || [];
 
-  // Share functionality 
-  const handleShareProfile = async () => {
-    const url = window.location.href;
-    const sellerName = profile?.full_name || "Продавец";
-    const shareData = {
-      title: `${sellerName} - Профиль продавца на OPT`,
-      text: `Посмотрите профиль продавца: ${sellerName}`,
-      url: url,
-    };
-
-    try {
-      if (navigator.share) {
-        // Use Web Share API if available
-        await navigator.share(shareData);
-      } else {
-        // Fallback to clipboard copy
-        await navigator.clipboard.writeText(url);
-        toast({
-          title: "Ссылка скопирована",
-          description: "Ссылка на профиль продавца скопирована в буфер обмена"
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
-
   // Share to Telegram directly
   const handleShareToTelegram = () => {
     const url = encodeURIComponent(window.location.href);
@@ -242,27 +208,16 @@ const PublicSellerProfile = () => {
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
           
-          {/* Share dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon" 
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleShareProfile}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Поделиться
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleShareToTelegram}>
-                <Send className="h-4 w-4 mr-2" />
-                Отправить в Telegram
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Direct Telegram share button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleShareToTelegram}
+            className="flex items-center gap-2"
+          >
+            <Send className="h-4 w-4" /> 
+            Поделиться в Telegram
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

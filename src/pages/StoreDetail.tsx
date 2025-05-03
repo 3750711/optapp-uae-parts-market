@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront, Share2 } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -21,12 +20,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -310,7 +303,7 @@ const StoreDetail: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        {/* Back button */}
+        {/* Back button and share button */}
         <div className="mb-6 flex justify-between items-center">
           <Button 
             variant="ghost" 
@@ -321,27 +314,16 @@ const StoreDetail: React.FC = () => {
             Назад
           </Button>
           
-          {/* Share dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="icon"
-              >
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleShareStore}>
-                <Share2 className="h-4 w-4 mr-2" />
-                Поделиться
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleShareToTelegram}>
-                <Send className="h-4 w-4 mr-2" />
-                Отправить в Telegram
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Direct Telegram share button */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleShareToTelegram}
+            className="flex items-center gap-2"
+          >
+            <Send className="h-4 w-4" /> 
+            Поделиться в Telegram
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
