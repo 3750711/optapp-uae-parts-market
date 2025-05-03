@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { countries } from "@/data/countries";
+import StoreLocationPicker from "./StoreLocationPicker";
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
@@ -97,14 +97,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       fetchStoreData();
     }
   }, [sellerId]);
-
-  // Update map URL when location changes
-  useEffect(() => {
-    const location = form.watch("location");
-    if (location) {
-      setMapUrl(`https://maps.google.com/maps?q=${encodeURIComponent(location)}&output=embed`);
-    }
-  }, [form.watch("location")]);
 
   const onSubmit = async (values: StoreFormValues) => {
     setIsLoading(true);
@@ -232,59 +224,14 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Местоположение *</FormLabel>
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Выберите страну" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {countries.map((country) => (
-                            <SelectItem key={country} value={country}>
-                              {country}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      
-                      <Popover open={isLocationPopoverOpen} onOpenChange={setIsLocationPopoverOpen}>
-                        <PopoverTrigger asChild>
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            size="icon"
-                          >
-                            <MapPin className="h-4 w-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-[300px] md:w-[500px]" align="end">
-                          <div className="aspect-video w-full">
-                            <iframe
-                              src={mapUrl}
-                              width="100%"
-                              height="100%"
-                              style={{ border: 0 }}
-                              allowFullScreen
-                              loading="lazy"
-                              referrerPolicy="no-referrer-when-downgrade"
-                              title="Google Maps"
-                            ></iframe>
-                          </div>
-                          <div className="p-2 text-xs text-muted-foreground">
-                            Текущее местоположение: {field.value}
-                          </div>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
+                  <FormControl>
+                    <StoreLocationPicker 
+                      initialLocation={field.value} 
+                      onLocationChange={field.onChange}
+                    />
+                  </FormControl>
                   <FormDescription>
-                    Это местоположение будет использоваться для вашего магазина
+                    Выберите местоположение вашего магазина, нажав на нужное место на карте
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
