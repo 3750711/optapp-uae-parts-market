@@ -119,20 +119,10 @@ const StoreDetail: React.FC = () => {
     enabled: !!store?.seller_id
   });
 
-  // Format coordinates for display
-  const formatLocation = (coordinates: string | null) => {
-    if (!coordinates) return 'Unknown location';
-    
-    // If coordinates contain a comma, format as lat, lng
-    if (coordinates.includes(',')) {
-      const [lat, lng] = coordinates.split(',').map(coord => parseFloat(coord.trim()));
-      if (!isNaN(lat) && !isNaN(lng)) {
-        return `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      }
-    }
-    
-    // Return as is if not in coordinate format
-    return coordinates;
+  // Format location for display - simplified to just return the string
+  const formatLocation = (location: string | null) => {
+    if (!location) return 'Местоположение не указано';
+    return location;
   };
 
   const getMainImageUrl = () => {
@@ -296,7 +286,7 @@ const StoreDetail: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Location information with map */}
+                {/* Location information */}
                 {store.location && (
                   <div className="mt-6">
                     <h3 className="font-medium mb-2 flex items-center">
