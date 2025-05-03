@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Star } from 'lucide-react';
+import { MapPin, Phone, Star, Store } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -101,13 +101,15 @@ const Stores: React.FC = () => {
                       <span>{store.phone}</span>
                     </div>
                   )}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {store.tags?.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="capitalize">
-                        {tag.replace('_', ' ')}
-                      </Badge>
-                    ))}
-                  </div>
+                  {store.tags && store.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {store.tags.map((tag, index) => (
+                        <Badge key={index} variant="outline" className="capitalize">
+                          {tag.replace('_', ' ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
                 <CardFooter>
                   <Button asChild variant="outline" className="w-full">

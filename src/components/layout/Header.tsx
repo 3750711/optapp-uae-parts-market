@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu } from "lucide-react";
+import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -70,6 +70,13 @@ const Header = () => {
         onClick={onClick}
       >
         Каталог
+      </Link>
+      <Link 
+        to="/stores" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        Магазины
       </Link>
       <Link 
         to="/about" 
