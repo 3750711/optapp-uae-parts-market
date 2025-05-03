@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -244,7 +245,7 @@ const AdminAddProduct = () => {
 
       // Using RPC to create the product using admin permissions
       // This bypasses RLS policies by using a database function
-      const { data: product, error: productError } = await supabase
+      const { data: productId, error: productError } = await supabase
         .rpc('admin_create_product', {
           p_title: values.title,
           p_price: parseFloat(values.price),
@@ -264,30 +265,10 @@ const AdminAddProduct = () => {
         throw productError;
       }
 
-      // If RPC doesn't return the product ID, fetch it
-      let productId;
-      if (product && typeof product === 'object' && 'id' in product) {
-        productId = product.id;
-      } else if (product) {
-        productId = product;
-      } else {
-        // Fallback - get the latest product by this seller
-        const { data: latestProduct, error: fetchError } = await supabase
-          .from('products')
-          .select('id')
-          .eq('seller_id', values.sellerId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-          
-        if (fetchError) throw fetchError;
-        productId = latestProduct.id;
-      }
-      
       if (!productId) {
         throw new Error("Failed to get product ID");
       }
-
+      
       const uploadedImages = await uploadImages(productId);
       
       // Use RPC to insert images as admin
@@ -514,7 +495,7 @@ const AdminAddProduct = () => {
                           <Input 
                             type="number"
                             min="1"
-                            placeholder="Укажите количес��во мест"
+                            placeholder="Укажите количество мест"
                             {...field}
                           />
                         </FormControl>

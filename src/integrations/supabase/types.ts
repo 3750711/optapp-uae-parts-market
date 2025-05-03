@@ -666,6 +666,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_create_product: {
+        Args: {
+          p_title: string
+          p_price: number
+          p_condition: string
+          p_brand: string
+          p_model: string
+          p_description: string
+          p_seller_id: string
+          p_seller_name: string
+          p_status: Database["public"]["Enums"]["product_status"]
+          p_place_number: number
+          p_delivery_price: number
+        }
+        Returns: string
+      }
+      admin_insert_product_image: {
+        Args: { p_product_id: string; p_url: string; p_is_primary?: boolean }
+        Returns: undefined
+      }
+      admin_insert_product_video: {
+        Args: { p_product_id: string; p_url: string }
+        Returns: undefined
+      }
       delete_user_account: {
         Args: Record<PropertyKey, never>
         Returns: undefined
