@@ -280,6 +280,29 @@ const StoreDetail: React.FC = () => {
                   </div>
                 )}
                 
+                {/* Location information with map */}
+                {store.location && (
+                  <div className="mt-6">
+                    <h3 className="font-medium mb-2 flex items-center">
+                      <MapPin className="w-4 h-4 mr-2" />
+                      Местоположение
+                    </h3>
+                    <div className="rounded-md overflow-hidden border">
+                      <iframe
+                        src={`https://maps.google.com/maps?q=${encodeURIComponent(store.location)}&output=embed`}
+                        width="100%"
+                        height="300"
+                        style={{ border: 0 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Google Maps"
+                      ></iframe>
+                    </div>
+                    <p className="mt-2 text-muted-foreground">{store.location}</p>
+                  </div>
+                )}
+                
                 {/* Store photos after description */}
                 {store.store_images && store.store_images.length > 0 && (
                   <div className="mt-6">
@@ -451,6 +474,18 @@ const StoreDetail: React.FC = () => {
                   <h3 className="font-medium mb-1">Адрес</h3>
                   <p className="text-muted-foreground">{store.address}</p>
                 </div>
+
+                {/* Location info */}
+                {store.location && (
+                  <div>
+                    <h3 className="font-medium mb-1">Местоположение</h3>
+                    <p className="text-muted-foreground flex items-center">
+                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                      {store.location}
+                    </p>
+                  </div>
+                )}
+
                 <div>
                   <h3 className="font-medium mb-1">Статус</h3>
                   <div className="flex items-center">

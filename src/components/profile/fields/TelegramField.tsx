@@ -15,13 +15,15 @@ interface TelegramFieldProps {
   telegram_edit_count?: number;
   disabled?: boolean;
   description?: string;
+  placeholder?: string;
 }
 
 export const TelegramField: React.FC<TelegramFieldProps> = ({ 
   control,
   telegram_edit_count = 0,
   disabled = false,
-  description
+  description,
+  placeholder = "@username"
 }) => (
   <FormField
     control={control}
@@ -31,7 +33,7 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
         <FormLabel>Telegram</FormLabel>
         <FormControl>
           <Input 
-            placeholder="@username" 
+            placeholder={placeholder}
             {...field} 
             disabled={disabled || telegram_edit_count >= 1}
           />
