@@ -20,7 +20,7 @@ const storeFormSchema = z.object({
   description: z.string().optional(),
   address: z.string().min(5, 'Адрес должен быть не менее 5 символов'),
   phone: z.string().optional(),
-  location: z.string().min(2, { message: "Укажите местоположение" }),
+  location: z.string().optional(),
 });
 
 type StoreFormValues = z.infer<typeof storeFormSchema>;
@@ -43,7 +43,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       description: '',
       address: '',
       phone: '',
-      location: '25.276987, 55.296249', // Dubai coordinates as default
+      location: '',
     },
   });
 
@@ -69,7 +69,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: data.description || '',
             address: data.address,
             phone: data.phone || '',
-            location: data.location || '25.276987, 55.296249', // Default to Dubai coordinates if not set
+            location: data.location || '',
           });
           
           // Extract images from store_images
@@ -101,7 +101,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: values.description || null,
             address: values.address,
             phone: values.phone || null,
-            location: values.location,
+            location: values.location || null,
           })
           .eq('id', storeId);
           
@@ -203,26 +203,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                       value={field.value || ''}
                     />
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Местоположение *</FormLabel>
-                  <FormControl>
-                    <StoreLocationPicker 
-                      initialLocation={field.value} 
-                      onLocationChange={field.onChange}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Введите координаты вашего магазина (широта, долгота)
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
