@@ -1,10 +1,12 @@
+
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck } from 'lucide-react';
+import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 
 const AdminDashboard = () => {
   const { data: userCount, isLoading: isLoadingUsers } = useQuery({
@@ -86,8 +88,15 @@ const AdminDashboard = () => {
       <div className="space-y-4 md:space-y-6">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Обзор системы</h1>
-          <div className="text-sm text-muted-foreground">
-            Последнее обновление: {new Date().toLocaleString('ru-RU')}
+          <div className="flex items-center gap-4">
+            <Link to="/admin/add-product">
+              <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+                <Plus className="h-4 w-4 mr-2" /> Добавить объявление
+              </Button>
+            </Link>
+            <div className="text-sm text-muted-foreground">
+              Последнее обновление: {new Date().toLocaleString('ru-RU')}
+            </div>
           </div>
         </div>
 

@@ -1,0 +1,609 @@
+
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { supabase } from "@/integrations/supabase/client";
+import AdminLayout from "@/components/admin/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { X, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import VideoUpload from "@/components/ui/video-upload";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+
+const productSchema = z.object({
+  title: z.string().min(3, {
+    message: "Название должно содержать не менее 3 символов",
+  }),
+  price: z.string().min(1, {
+    message: "Укажите цену товара",
+  }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+    message: "Цена должна быть положительным числом",
+  }),
+  brandId: z.string().min(1, {
+    message: "Выберите марку автомобиля",
+  }),
+  modelId: z.string().min(1, {
+    message: "Выберите модель автомобиля",
+  }),
+  placeNumber: z.string().min(1, {
+    message: "Укажите количество мест",
+  }).refine((val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)), {
+    message: "Количество мест должно быть целым положительным числом",
+  }),
+  sellerId: z.string().min(1, {
+    message: "Выберите продавца",
+  }),
+  description: z.string().optional(),
+  deliveryPrice: z.string().optional().refine((val) => val === '' || !isNaN(Number(val)), {
+    message: "Стоимость доставки должна быть числом",
+  }),
+});
+
+const AdminAddProduct = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [images, setImages] = useState<File[]>([]);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sellers, setSellers] = useState<{ id: string; full_name: string }[]>([]);
+  
+  // Use our custom hook for car brands and models
+  const { 
+    brands, 
+    brandModels, 
+    selectBrand, 
+    isLoading: isLoadingCarData 
+  } = useCarBrandsAndModels();
+
+  const form = useForm<z.infer<typeof productSchema>>({
+    resolver: zodResolver(productSchema),
+    defaultValues: {
+      title: "",
+      price: "",
+      brandId: "",
+      modelId: "",
+      placeNumber: "1",
+      sellerId: "",
+      description: "",
+      deliveryPrice: "0",
+    },
+    mode: "onChange", // Enable validation on change
+  });
+
+  const watchBrandId = form.watch("brandId");
+  const watchModelId = form.watch("modelId");
+  const watchSellerId = form.watch("sellerId");
+
+  // Fetch sellers (only sellers, not buyers or admins)
+  useEffect(() => {
+    const fetchSellers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('user_type', 'seller');
+
+      if (error) {
+        console.error("Error fetching sellers:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список продавцов",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSellers(data || []);
+    };
+
+    fetchSellers();
+  }, [toast]);
+
+  // When brand changes, reset model selection and update models list
+  useEffect(() => {
+    if (watchBrandId) {
+      selectBrand(watchBrandId);
+      
+      // Only reset model if the brand has changed and we have a selected model
+      if (watchModelId) {
+        const modelBelongsToBrand = brandModels.some(model => model.id === watchModelId && model.brand_id === watchBrandId);
+        if (!modelBelongsToBrand) {
+          form.setValue("modelId", "");
+        }
+      }
+    }
+  }, [watchBrandId, selectBrand, form, brandModels, watchModelId]);
+
+  // Validate model when brandModels change (to handle async loading)
+  useEffect(() => {
+    if (watchModelId && brandModels.length > 0) {
+      const modelExists = brandModels.some(model => model.id === watchModelId);
+      if (!modelExists) {
+        form.setValue("modelId", "");
+      }
+    }
+  }, [brandModels, watchModelId, form]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      if (images.length + e.target.files.length > 30) {
+        toast({
+          title: "Ошибка",
+          description: "Максимальное количество фотографий - 30",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const filesArray = Array.from(e.target.files);
+      
+      const newImageUrls = filesArray.map((file) => URL.createObjectURL(file));
+      
+      setImages((prevImages) => [...prevImages, ...filesArray]);
+      setImageUrls((prevUrls) => [...prevUrls, ...newImageUrls]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(imageUrls[index]);
+    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
+    setImageUrls((prevUrls) => prevUrls.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async (productId: string) => {
+    const uploadPromises = images.map(async (file, index) => {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${productId}/${Date.now()}-${index}.${fileExt}`;
+      const { data, error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file);
+        
+      if (error) {
+        console.error("Error uploading image:", error);
+        throw error;
+      }
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+        
+      return {
+        url: publicUrl,
+        is_primary: index === 0
+      };
+    });
+
+    return await Promise.all(uploadPromises);
+  };
+
+  const onSubmit = async (values: z.infer<typeof productSchema>) => {
+    // Verify modelId belongs to the selected brand
+    const selectedModel = brandModels.find(model => model.id === values.modelId);
+    if (!selectedModel || selectedModel.brand_id !== values.brandId) {
+      form.setError('modelId', { 
+        type: 'manual', 
+        message: 'Выбранная модель не принадлежит выбранной марке'
+      });
+      return;
+    }
+
+    if (images.length === 0) {
+      toast({
+        title: "Ошибка",
+        description: "Добавьте хотя бы одну фотографию",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Get brand and model names for the database
+      const selectedBrand = brands.find(brand => brand.id === values.brandId);
+      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+
+      if (!selectedBrand || !selectedModel || !selectedSeller) {
+        toast({
+          title: "Ошибка",
+          description: "Выбранная марка, модель или продавец не найдены",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .insert({
+          title: values.title,
+          price: parseFloat(values.price),
+          condition: "Новый",
+          brand: selectedBrand.name, // Use the brand name, not ID
+          model: selectedModel.name, // Use the model name, not ID
+          description: values.description || null,
+          seller_id: values.sellerId, // Use the selected seller ID
+          seller_name: selectedSeller.full_name || "Unknown Seller",
+          status: 'pending',
+          place_number: parseInt(values.placeNumber),
+          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+        })
+        .select('id')
+        .single();
+
+      if (productError) throw productError;
+
+      const uploadedImages = await uploadImages(product.id);
+      
+      const { error: imagesError } = await supabase
+        .from('product_images')
+        .insert(
+          uploadedImages.map(img => ({
+            product_id: product.id,
+            url: img.url,
+            is_primary: img.is_primary
+          }))
+        );
+
+      if (imagesError) throw imagesError;
+
+      if (videoUrls.length > 0) {
+        const { error: videosError } = await supabase
+          .from('product_videos')
+          .insert(
+            videoUrls.map((url) => ({
+              product_id: product.id,
+              url
+            }))
+          );
+
+        if (videosError) throw videosError;
+      }
+
+      toast({
+        title: "Товар добавлен",
+        description: "Товар успешно размещен на маркетплейсе",
+      });
+
+      navigate('/admin/products');
+    } catch (error) {
+      console.error("Error adding product:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить товар. Попробуйте позже.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      imageUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  return (
+    <AdminLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-3xl mx-auto">
+          <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
+          
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Информация о товаре</CardTitle>
+                  <CardDescription>
+                    Заполните все поля для размещения товара на маркетплейсе
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="sellerId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Продавец</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Выберите продавца" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-[300px]">
+                            {sellers.map((seller) => (
+                              <SelectItem key={seller.id} value={seller.id}>
+                                {seller.full_name || "Продавец без имени"}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Название товара</FormLabel>
+                          <FormControl>
+                            <Input 
+                              placeholder="Например: Передний бампер BMW X5 F15"
+                              {...field}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="price"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Цена ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="0.00" 
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="deliveryPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Стоимость доставки ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                placeholder="0.00" 
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <h3 className="font-medium">Информация об автомобиле</h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="brandId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Марка</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value}
+                              disabled={isLoadingCarData}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите марку" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-[300px]">
+                                {brands.map((brand) => (
+                                  <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={form.control}
+                        name="modelId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Модель</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value || ""}
+                              disabled={!watchBrandId || isLoadingCarData || brandModels.length === 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите модель" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-[300px]">
+                                {brandModels.length === 0 && watchBrandId ? (
+                                  <SelectItem value="loading" disabled>Загрузка моделей...</SelectItem>
+                                ) : (
+                                  brandModels.map((model) => (
+                                    <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="placeNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Количество мест для отправки</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="number"
+                            min="1"
+                            placeholder="Укажите количество мест"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Описание (необязательно)</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необязательно)" 
+                            rows={6}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="space-y-2">
+                    <Label>Фотографии товара</Label>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {imageUrls.map((url, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
+                          <img 
+                            src={url} 
+                            alt={`Product ${index+1}`}
+                            className="h-full w-full object-cover"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-70"
+                          >
+                            <X size={16} />
+                          </button>
+                          {index === 0 && (
+                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-1">
+                              <p className="text-white text-xs text-center">Главное фото</p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      
+                      {images.length < 30 && (
+                        <label className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 aspect-square">
+                          <div className="text-3xl text-gray-300">+</div>
+                          <p className="text-sm text-gray-500">Добавить фото</p>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={handleImageChange}
+                            multiple
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Добавьте до 30 фотографий. Первое фото будет главным в объявлении.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Видео товара</Label>
+                    <VideoUpload 
+                      videos={videoUrls}
+                      onUpload={(urls) => setVideoUrls((prev) => [...prev, ...urls])}
+                      onDelete={(url) => setVideoUrls((prev) => prev.filter(u => u !== url))}
+                      maxVideos={2}
+                      storageBucket="product-videos"
+                      storagePrefix=""
+                    />
+                  </div>
+                </CardContent>
+                
+                <CardFooter className="flex justify-end space-x-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white"
+                    onClick={() => navigate('/admin/products')}
+                    disabled={isSubmitting}
+                  >
+                    Отмена
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Публикация...
+                      </>
+                    ) : (
+                      'Опубликовать товар'
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </form>
+          </Form>
+        </div>
+      </div>
+    </AdminLayout>
+  );
+};
+
+export default AdminAddProduct;

@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminProducts from "./pages/AdminProducts";
 import AdminLogistics from "./pages/AdminLogistics";
+import AdminAddProduct from "./pages/AdminAddProduct";
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -114,6 +115,11 @@ const App = () => {
               <Route path="/admin/products" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminProducts />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/add-product" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminAddProduct />
                 </ProtectedRoute>
               } />
               <Route path="/admin/orders" element={
