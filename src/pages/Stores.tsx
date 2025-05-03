@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Star, Store, Package } from 'lucide-react';
+import { MapPin, Phone, Star, Store, Package, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -95,12 +95,25 @@ const Stores: React.FC = () => {
                     alt={store.name}
                     className="object-cover w-full h-full transition-transform hover:scale-105"
                   />
+                  {store.verified && (
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="success" className="flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" />
+                        Проверено
+                      </Badge>
+                    </div>
+                  )}
                 </div>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
-                    <Link to={`/stores/${store.id}`} className="hover:text-primary">
-                      {store.name}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link to={`/stores/${store.id}`} className="hover:text-primary">
+                        {store.name}
+                      </Link>
+                      {store.verified && (
+                        <ShieldCheck className="w-4 h-4 text-green-500" />
+                      )}
+                    </div>
                     <div className="flex items-center">
                       <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
                       <span>{store.rating?.toFixed(1) || '-'}</span>

@@ -568,6 +568,7 @@ export type Database = {
           seller_id: string | null
           tags: Database["public"]["Enums"]["store_tag"][] | null
           updated_at: string | null
+          verified: boolean
         }
         Insert: {
           address: string
@@ -581,6 +582,7 @@ export type Database = {
           seller_id?: string | null
           tags?: Database["public"]["Enums"]["store_tag"][] | null
           updated_at?: string | null
+          verified?: boolean
         }
         Update: {
           address?: string
@@ -594,6 +596,7 @@ export type Database = {
           seller_id?: string | null
           tags?: Database["public"]["Enums"]["store_tag"][] | null
           updated_at?: string | null
+          verified?: boolean
         }
         Relationships: [
           {

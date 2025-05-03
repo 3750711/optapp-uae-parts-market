@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -106,7 +105,15 @@ const StoreDetail: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-2">
             <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-2">{store.name}</h1>
+              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                {store.name}
+                {store.verified && (
+                  <Badge variant="success" className="flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    Проверено
+                  </Badge>
+                )}
+              </h1>
               <div className="flex items-center mb-4">
                 <div className="flex items-center">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 mr-1" />
@@ -259,6 +266,22 @@ const StoreDetail: React.FC = () => {
                     <p className="text-muted-foreground">{store.phone}</p>
                   </div>
                 )}
+
+                <div>
+                  <h3 className="font-medium mb-1">Статус</h3>
+                  <p className="flex items-center">
+                    {store.verified ? (
+                      <Badge variant="success" className="flex items-center gap-1">
+                        <ShieldCheck className="w-3 h-3" />
+                        Проверено
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        Не проверено
+                      </Badge>
+                    )}
+                  </p>
+                </div>
 
                 <Separator />
 
