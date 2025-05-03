@@ -283,25 +283,6 @@ const StoreDetail: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
-                {/* Contact information */}
-                <div>
-                  <h3 className="font-medium mb-2">Контакты</h3>
-                  <div className="space-y-2">
-                    {store.phone && (
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{store.phone}</span>
-                      </div>
-                    )}
-                    {store.telegram && (
-                      <div className="flex items-center">
-                        <Send className="w-4 h-4 mr-2 text-muted-foreground" />
-                        <span>{store.telegram}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </TabsContent>
 
               {/* Photos tab */}
@@ -461,22 +442,6 @@ const StoreDetail: React.FC = () => {
                   <h3 className="font-medium mb-1">Адрес</h3>
                   <p className="text-muted-foreground">{store.address}</p>
                 </div>
-
-                {/* Contact information */}
-                {store.phone && (
-                  <div>
-                    <h3 className="font-medium mb-1">Телефон</h3>
-                    <p className="text-muted-foreground">{store.phone}</p>
-                  </div>
-                )}
-
-                {store.telegram && (
-                  <div>
-                    <h3 className="font-medium mb-1">Telegram</h3>
-                    <p className="text-muted-foreground">{store.telegram}</p>
-                  </div>
-                )}
-
                 <div>
                   <h3 className="font-medium mb-1">Статус</h3>
                   <div className="flex items-center">
