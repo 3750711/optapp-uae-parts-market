@@ -15,6 +15,8 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminProducts from "./pages/AdminProducts";
 import AdminLogistics from "./pages/AdminLogistics";
 import AdminAddProduct from "./pages/AdminAddProduct";
+import AdminOrders from "./pages/AdminOrders";
+import AdminStores from "./pages/AdminStores";
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -33,7 +35,6 @@ import SellerOrders from "./pages/SellerOrders";
 import OrderDetails from "./pages/OrderDetails";
 import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 import BuyerOrders from "./pages/BuyerOrders";
-import AdminOrders from "./pages/AdminOrders";
 import SellerListings from "./pages/SellerListings";
 import Stores from "./pages/Stores";
 import StoreDetail from "./pages/StoreDetail";
@@ -135,6 +136,11 @@ const App = () => {
               <Route path="/admin/logistics" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminLogistics />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/stores" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminStores />
                 </ProtectedRoute>
               } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
