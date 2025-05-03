@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Share2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -21,6 +20,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { toast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -138,6 +143,32 @@ const PublicSellerProfile = () => {
     };
   }) || [];
 
+  // Share functionality 
+  const handleShareProfile = async () => {
+    const url = window.location.href;
+    const sellerName = profile?.full_name || "Продавец";
+    const shareData = {
+      title: `${sellerName} - Профиль продавца на OPT`,
+      text: `Посмотрите профиль продавца: ${sellerName}`,
+      url: url,
+    };
+
+    try {
+      if (navigator.share) {
+        // Use Web Share API if available
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard copy
+        await navigator.clipboard.writeText(url);
+        toast("Ссылка скопирована", {
+          description: "Ссылка на профиль продавца скопирована в буфер обмена"
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   if (isProfileLoading || isProductsLoading) {
     return (
       <Layout>
@@ -181,15 +212,28 @@ const PublicSellerProfile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
+        <div className="flex items-center justify-between mb-6">
           <Button 
             variant="ghost" 
-            size="sm" 
-            className="mr-4" 
+            size="sm"
             onClick={() => navigate(-1)}
           >
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
+          
+          {/* Share button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleShareProfile}
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Поделиться</TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

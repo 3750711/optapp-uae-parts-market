@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,13 +8,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront, Share2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -228,6 +232,32 @@ const StoreDetail: React.FC = () => {
     navigate(-1);
   };
 
+  // Share functionality
+  const handleShareStore = async () => {
+    const url = window.location.href;
+    const storeName = store?.name || 'магазин';
+    const shareData = {
+      title: `${storeName} - Автозапчасти OPT`,
+      text: `Посмотрите этот магазин автозапчастей: ${storeName}`,
+      url: url,
+    };
+
+    try {
+      if (navigator.share) {
+        // Use Web Share API if available
+        await navigator.share(shareData);
+      } else {
+        // Fallback to clipboard copy
+        await navigator.clipboard.writeText(url);
+        toast("Ссылка скопирована", {
+          description: "Ссылка на магазин скопирована в буфер обмена"
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
   if (isStoreLoading) {
     return (
       <Layout>
@@ -263,15 +293,30 @@ const StoreDetail: React.FC = () => {
     <Layout>
       <div className="container mx-auto px-4 py-8">
         {/* Back button */}
-        <div className="mb-6">
+        <div className="mb-6 flex justify-between items-center">
           <Button 
             variant="ghost" 
-            className="flex items-center gap-2 mb-4" 
+            className="flex items-center gap-2" 
             onClick={handleGoBack}
           >
             <ChevronLeft className="h-5 w-5" />
             Назад
           </Button>
+          
+          {/* Share button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleShareStore}
+                className="ml-auto"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Поделиться</TooltipContent>
+          </Tooltip>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -279,20 +324,36 @@ const StoreDetail: React.FC = () => {
           <div className="md:col-span-2">
             {/* Store name, rating, tags */}
             <div className="mb-6">
-              <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                {store.name}
-                {/* Verification status badge */}
-                {store.verified ? (
-                  <Badge variant="success" className="flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" />
-                    Проверено
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    Не проверено
-                  </Badge>
-                )}
-              </h1>
+              <div className="flex justify-between items-start">
+                <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+                  {store.name}
+                  {/* Verification status badge */}
+                  {store.verified ? (
+                    <Badge variant="success" className="flex items-center gap-1">
+                      <ShieldCheck className="w-3 h-3" />
+                      Проверено
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      Не проверено
+                    </Badge>
+                  )}
+                </h1>
+                
+                {/* Mobile share button */}
+                <div className="md:hidden">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleShareStore}
+                    className="flex items-center gap-1"
+                  >
+                    <Share2 className="h-4 w-4" />
+                    <span className="sr-only md:not-sr-only">Поделиться</span>
+                  </Button>
+                </div>
+              </div>
+              
               <div className="flex items-center mb-4">
                 <div className="flex items-center">
                   <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 mr-1" />
