@@ -6,18 +6,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Star, Store } from 'lucide-react';
+import { MapPin, Phone, Star, Store, Package } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreWithImages } from '@/types/store';
+
+interface StoreWithProductCount extends StoreWithImages {
+  product_count?: number;
+}
 
 const Stores: React.FC = () => {
   const { profile } = useAuth();
   const { data: stores, isLoading } = useQuery({
     queryKey: ['stores'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch the stores
+      const { data: storesData, error: storesError } = await supabase
         .from('stores')
         .select(`
           *,
@@ -25,12 +30,30 @@ const Stores: React.FC = () => {
         `)
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data as StoreWithImages[];
+      if (storesError) throw storesError;
+      
+      if (!storesData) return [] as StoreWithProductCount[];
+      
+      // Now get the product counts for each store
+      const storesWithCounts = await Promise.all(
+        storesData.map(async (store) => {
+          const { count, error } = await supabase
+            .from('products')
+            .select('*', { count: 'exact', head: true })
+            .eq('seller_id', store.seller_id);
+            
+          return {
+            ...store,
+            product_count: error ? 0 : (count || 0)
+          };
+        })
+      );
+      
+      return storesWithCounts as StoreWithProductCount[];
     }
   });
 
-  const getMainImageUrl = (store: StoreWithImages) => {
+  const getMainImageUrl = (store: StoreWithProductCount) => {
     const primaryImage = store.store_images?.find(img => img.is_primary);
     return primaryImage?.url || store.store_images?.[0]?.url || '/placeholder.svg';
   };
@@ -101,6 +124,10 @@ const Stores: React.FC = () => {
                       <span>{store.phone}</span>
                     </div>
                   )}
+                  <div className="flex items-center text-sm">
+                    <Package className="w-4 h-4 mr-1 text-muted-foreground" />
+                    <span>{store.product_count} объявлений</span>
+                  </div>
                   {store.tags && store.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {store.tags.map((tag, index) => (
