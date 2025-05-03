@@ -1,8 +1,7 @@
-
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck, Plus } from 'lucide-react';
+import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck, Plus, Advertisement } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
@@ -89,11 +88,6 @@ const AdminDashboard = () => {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Обзор системы</h1>
           <div className="flex items-center gap-4">
-            <Link to="/admin/add-product">
-              <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
-                <Plus className="h-4 w-4 mr-2" /> Добавить объявление
-              </Button>
-            </Link>
             <div className="text-sm text-muted-foreground">
               Последнее обновление: {new Date().toLocaleString('ru-RU')}
             </div>
@@ -201,6 +195,23 @@ const AdminDashboard = () => {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Управление доставками
+                </p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/admin/add-product">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-optapp-yellow">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-optapp-dark">Добавить объявление</CardTitle>
+                <Plus className="h-4 w-4 text-optapp-dark" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-optapp-dark">
+                  +
+                </div>
+                <p className="text-xs text-optapp-dark mt-1">
+                  Создать новое объявление
                 </p>
               </CardContent>
             </Card>
