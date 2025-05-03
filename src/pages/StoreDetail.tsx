@@ -286,22 +286,6 @@ const StoreDetail: React.FC = () => {
                   </div>
                 )}
                 
-                {/* Location information */}
-                {store.location && (
-                  <div className="mt-6">
-                    <h3 className="font-medium mb-2 flex items-center">
-                      <MapPin className="w-4 h-4 mr-2" />
-                      Местоположение
-                    </h3>
-                    <div className="border rounded-md p-4 bg-muted/10">
-                      <p className="text-muted-foreground flex items-center">
-                        <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                        {formatLocation(store.location)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                
                 {/* Store photos after description */}
                 {store.store_images && store.store_images.length > 0 && (
                   <div className="mt-6">
@@ -473,17 +457,6 @@ const StoreDetail: React.FC = () => {
                   <h3 className="font-medium mb-1">Адрес</h3>
                   <p className="text-muted-foreground">{store.address}</p>
                 </div>
-
-                {/* Location info */}
-                {store.location && (
-                  <div>
-                    <h3 className="font-medium mb-1">Местоположение</h3>
-                    <p className="text-muted-foreground flex items-center">
-                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {formatLocation(store.location)}
-                    </p>
-                  </div>
-                )}
 
                 <div>
                   <h3 className="font-medium mb-1">Статус</h3>
