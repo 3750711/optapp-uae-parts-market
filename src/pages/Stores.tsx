@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { MapPin, Phone, Star, Store, Package, ShieldCheck } from 'lucide-react';
+import { MapPin, Star, Store, Package, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -141,12 +141,6 @@ const Stores: React.FC = () => {
                     <MapPin className="w-4 h-4 mr-1 text-muted-foreground" />
                     <span>{store.address}</span>
                   </div>
-                  {store.phone && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="w-4 h-4 mr-1 text-muted-foreground" />
-                      <span>{store.phone}</span>
-                    </div>
-                  )}
                   <div className="flex items-center text-sm">
                     <Package className="w-4 h-4 mr-1 text-muted-foreground" />
                     <span>{store.product_count} объявлений</span>
