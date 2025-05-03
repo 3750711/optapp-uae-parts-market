@@ -81,7 +81,8 @@ const AdminAddProduct = () => {
     brands, 
     brandModels, 
     selectBrand, 
-    isLoading: isLoadingCarData 
+    isLoading: isLoadingCarData,
+    validateModelBrand 
   } = useCarBrandsAndModels();
 
   const form = useForm<z.infer<typeof productSchema>>({
@@ -134,13 +135,13 @@ const AdminAddProduct = () => {
       
       // Only reset model if the brand has changed and we have a selected model
       if (watchModelId) {
-        const modelBelongsToBrand = brandModels.some(model => model.id === watchModelId && model.brand_id === watchBrandId);
+        const modelBelongsToBrand = validateModelBrand(watchModelId, watchBrandId);
         if (!modelBelongsToBrand) {
           form.setValue("modelId", "");
         }
       }
     }
-  }, [watchBrandId, selectBrand, form, brandModels, watchModelId]);
+  }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
 
   // Validate model when brandModels change (to handle async loading)
   useEffect(() => {
@@ -206,8 +207,8 @@ const AdminAddProduct = () => {
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     // Verify modelId belongs to the selected brand
-    const selectedModel = brandModels.find(model => model.id === values.modelId);
-    if (!selectedModel || selectedModel.brand_id !== values.brandId) {
+    const modelBelongsToBrand = validateModelBrand(values.modelId, values.brandId);
+    if (!modelBelongsToBrand) {
       form.setError('modelId', { 
         type: 'manual', 
         message: 'Выбранная модель не принадлежит выбранной марке'
@@ -229,6 +230,7 @@ const AdminAddProduct = () => {
     try {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
+      const selectedModel = brandModels.find(model => model.id === values.modelId);
       const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
 
       if (!selectedBrand || !selectedModel || !selectedSeller) {
@@ -241,6 +243,7 @@ const AdminAddProduct = () => {
         return;
       }
 
+      // Create the product record and associate it with the selected seller
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -310,7 +313,7 @@ const AdminAddProduct = () => {
     return () => {
       imageUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, []);
+  }, [imageUrls]);
 
   return (
     <AdminLayout>
