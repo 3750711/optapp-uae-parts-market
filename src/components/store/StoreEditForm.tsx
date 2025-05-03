@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
@@ -160,8 +159,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
           }
         }
 
-        toast({
-          title: "Магазин обновлен",
+        toast("Магазин обновлен", {
           description: "Данные магазина успешно обновлены",
         });
         
@@ -169,10 +167,8 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       }
     } catch (error: any) {
       console.error('Error updating store:', error);
-      toast({
-        title: "Ошибка обновления",
+      toast("Ошибка обновления", {
         description: error.message || "Произошла ошибка при обновлении данных магазина",
-        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
