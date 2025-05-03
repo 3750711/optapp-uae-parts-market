@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -19,6 +19,7 @@ import { toast } from '@/hooks/use-toast';
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
 
   // Store data query
@@ -169,6 +170,10 @@ const StoreDetail: React.FC = () => {
     window.open(`https://wa.me/${phoneNumber}`, '_blank');
   };
 
+  const handleGoBack = () => {
+    navigate(-1);
+  };
+
   if (isStoreLoading) {
     return (
       <Layout>
@@ -203,6 +208,18 @@ const StoreDetail: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
+        {/* Back button */}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            className="flex items-center gap-2 mb-4" 
+            onClick={handleGoBack}
+          >
+            <ChevronLeft className="h-5 w-5" />
+            Назад
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Left column content */}
           <div className="md:col-span-2">
