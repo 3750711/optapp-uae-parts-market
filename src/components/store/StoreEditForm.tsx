@@ -9,8 +9,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { StoreTag } from "@/types/store";
@@ -20,7 +18,6 @@ const storeFormSchema = z.object({
   description: z.string().optional(),
   address: z.string().min(5, 'Адрес должен быть не менее 5 символов'),
   phone: z.string().optional(),
-  tags: z.array(z.string()).optional(),
 });
 
 type StoreFormValues = z.infer<typeof storeFormSchema>;
@@ -43,7 +40,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       description: '',
       address: '',
       phone: '',
-      tags: [],
     },
   });
 
@@ -69,7 +65,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: data.description || '',
             address: data.address,
             phone: data.phone || '',
-            tags: data.tags as string[] || [],
           });
           
           // Extract images from store_images
@@ -101,7 +96,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
             description: values.description || null,
             address: values.address,
             phone: values.phone || null,
-            tags: values.tags as StoreTag[] || [],
           })
           .eq('id', storeId);
           
@@ -151,14 +145,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       setIsLoading(false);
     }
   };
-
-  const availableTags: { value: StoreTag; label: string }[] = [
-    { value: 'electronics', label: 'Электроника' },
-    { value: 'auto_parts', label: 'Авто запчасти' },
-    { value: 'accessories', label: 'Аксессуары' },
-    { value: 'spare_parts', label: 'Запчасти' },
-    { value: 'other', label: 'Другое' },
-  ];
 
   if (!storeData && !isLoading) {
     return (
@@ -243,28 +229,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                 </FormItem>
               )}
             />
-
-            <div className="space-y-2">
-              <FormLabel>Категории</FormLabel>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {availableTags.map((tag) => (
-                  <div key={tag.value} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`tag-${tag.value}`}
-                      checked={form.watch('tags')?.includes(tag.value)}
-                      onCheckedChange={(checked) => {
-                        const currentTags = form.getValues('tags') || [];
-                        const newTags = checked 
-                          ? [...currentTags, tag.value]
-                          : currentTags.filter(t => t !== tag.value);
-                        form.setValue('tags', newTags);
-                      }}
-                    />
-                    <Label htmlFor={`tag-${tag.value}`}>{tag.label}</Label>
-                  </div>
-                ))}
-              </div>
-            </div>
 
             <div className="space-y-2">
               <FormLabel>Фотографии магазина</FormLabel>
