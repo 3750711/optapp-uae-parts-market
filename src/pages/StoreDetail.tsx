@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Telegram, WhatsApp } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -304,11 +304,11 @@ const StoreDetail: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">У этого��о магазина пока нет фотографий</p>
+                  <p className="text-muted-foreground">У этого магазина пока нет фотографий</p>
                 )}
               </TabsContent>
 
-              {/* Новая вкладка для отображения объявлений продавца */}
+              {/* Таб для отображения объявлений продавца */}
               <TabsContent value="products">
                 <div className="space-y-4">
                   {isProductsLoading ? (
@@ -453,7 +453,7 @@ const StoreDetail: React.FC = () => {
 
                 <div>
                   <h3 className="font-medium mb-1">Статус</h3>
-                  <p className="flex items-center">
+                  <div className="flex items-center">
                     {store.verified ? (
                       <Badge variant="success" className="flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3" />
@@ -464,7 +464,7 @@ const StoreDetail: React.FC = () => {
                         Не проверено
                       </Badge>
                     )}
-                  </p>
+                  </div>
                 </div>
 
                 {/* Информация о количестве объявлений */}
@@ -492,26 +492,24 @@ const StoreDetail: React.FC = () => {
                 {/* Кнопки для связи */}
                 <div className="space-y-2">
                   {store?.phone && (
-                    <>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Button 
-                          onClick={handleContactTelegram}
-                          className="w-full bg-[#0088cc] hover:bg-[#0077b5] text-white"
-                        >
-                          <MessageSquare className="mr-2 h-4 w-4" /> Telegram
-                        </Button>
-                        <Button 
-                          onClick={handleContactWhatsApp}
-                          className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white"
-                        >
-                          <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp
-                        </Button>
-                      </div>
-                    </>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={handleContactTelegram}
+                        className="w-full bg-[#0088cc] hover:bg-[#0077b5] text-white"
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" /> Telegram
+                      </Button>
+                      <Button 
+                        onClick={handleContactWhatsApp}
+                        className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white"
+                      >
+                        <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp
+                      </Button>
+                    </div>
                   )}
                 </div>
 
-                {/* Добавляем кнопку для перехода к объявлениям продавца */}
+                {/* Кнопка для перехода к объявлениям продавца */}
                 <Button asChild className="w-full">
                   <Link to={`/seller/${store?.seller_id}`}>
                     <Package className="mr-2" />
