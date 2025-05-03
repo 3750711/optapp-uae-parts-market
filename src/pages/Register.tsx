@@ -176,7 +176,7 @@ const Register = () => {
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{hasOptId ? 'Имя и фамилия (необязательно)' : 'Имя и фамилия *'}</FormLabel>
+                      <FormLabel>{hasOptId ? 'Имя (необязательно)' : 'Имя *'}</FormLabel>
                       <FormControl>
                         <Input placeholder="Введите ваше имя" {...field} />
                       </FormControl>
