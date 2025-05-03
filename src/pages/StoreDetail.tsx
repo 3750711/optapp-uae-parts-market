@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Telegram, WhatsApp } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -497,13 +497,13 @@ const StoreDetail: React.FC = () => {
                         onClick={handleContactTelegram}
                         className="w-full bg-[#0088cc] hover:bg-[#0077b5] text-white"
                       >
-                        <MessageSquare className="mr-2 h-4 w-4" /> Telegram
+                        <Send className="mr-2 h-4 w-4" /> Telegram
                       </Button>
                       <Button 
                         onClick={handleContactWhatsApp}
                         className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white"
                       >
-                        <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp
+                        <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
                       </Button>
                     </div>
                   )}
