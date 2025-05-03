@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StoreWithImages } from '@/types/store';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface StoreWithProductCount extends StoreWithImages {
   product_count?: number;
@@ -95,14 +96,19 @@ const Stores: React.FC = () => {
                     alt={store.name}
                     className="object-cover w-full h-full transition-transform hover:scale-105"
                   />
-                  {store.verified && (
-                    <div className="absolute top-2 right-2">
+                  {/* Display verification status badge prominently */}
+                  <div className="absolute top-2 right-2">
+                    {store.verified ? (
                       <Badge variant="success" className="flex items-center gap-1">
                         <ShieldCheck className="w-3 h-3" />
                         Проверено
                       </Badge>
-                    </div>
-                  )}
+                    ) : (
+                      <Badge variant="outline" className="flex items-center gap-1 bg-white/80">
+                        Не проверено
+                      </Badge>
+                    )}
+                  </div>
                 </div>
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
@@ -111,7 +117,16 @@ const Stores: React.FC = () => {
                         {store.name}
                       </Link>
                       {store.verified && (
-                        <ShieldCheck className="w-4 h-4 text-green-500" />
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <ShieldCheck className="w-4 h-4 text-green-500" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Проверенный магазин</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       )}
                     </div>
                     <div className="flex items-center">
