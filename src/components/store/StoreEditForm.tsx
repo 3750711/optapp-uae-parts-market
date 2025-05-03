@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "sonner";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -204,7 +203,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
         <CardTitle>Управление магазином</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid grid-cols-2 w-full mb-4">
             <TabsTrigger value="general">Основная информация</TabsTrigger>
             <TabsTrigger value="car-models">Марки и модели авто</TabsTrigger>

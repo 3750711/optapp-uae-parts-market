@@ -28,6 +28,7 @@ const StoreCarBrandsEditor: React.FC<StoreCarBrandsEditorProps> = ({ storeId, on
   const [selectedCarBrands, setSelectedCarBrands] = useState<string[]>([]);
   const [selectedCarModels, setSelectedCarModels] = useState<{[brandId: string]: string[]}>({});
   const [selectedBrandForModels, setSelectedBrandForModels] = useState<string | null>(null);
+  const [selectAllModels, setSelectAllModels] = useState(false);
 
   const { 
     brands: allCarBrands,
@@ -125,6 +126,28 @@ const StoreCarBrandsEditor: React.FC<StoreCarBrandsEditorProps> = ({ storeId, on
         };
       }
     });
+  };
+
+  const handleToggleSelectAllModels = () => {
+    if (!selectedBrandForModels) return;
+    
+    const newSelectAllModels = !selectAllModels;
+    setSelectAllModels(newSelectAllModels);
+    
+    if (newSelectAllModels) {
+      // Select all models for the current brand
+      setSelectedCarModels(prev => ({
+        ...prev,
+        [selectedBrandForModels]: allCarModels.map(model => model.id)
+      }));
+    } else {
+      // Deselect all models for the current brand
+      setSelectedCarModels(prev => {
+        const newModels = { ...prev };
+        newModels[selectedBrandForModels] = [];
+        return newModels;
+      });
+    }
   };
 
   const handleSave = async () => {
@@ -234,6 +257,13 @@ const StoreCarBrandsEditor: React.FC<StoreCarBrandsEditorProps> = ({ storeId, on
                     onValueChange={(value) => {
                       setSelectedBrandForModels(value);
                       selectBrand(value);
+                      // Check if we should show all models as selected
+                      const brandModels = selectedCarModels[value] || [];
+                      const allModelsForBrand = allCarModels.filter(model => model.brand_id === value);
+                      setSelectAllModels(
+                        allModelsForBrand.length > 0 && 
+                        brandModels.length === allModelsForBrand.length
+                      );
                     }}
                   >
                     <SelectTrigger className="w-[180px]">

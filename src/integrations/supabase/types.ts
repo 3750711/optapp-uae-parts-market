@@ -528,6 +528,78 @@ export type Database = {
         }
         Relationships: []
       }
+      store_car_brands: {
+        Row: {
+          car_brand_id: string
+          created_at: string
+          id: string
+          store_id: string
+        }
+        Insert: {
+          car_brand_id: string
+          created_at?: string
+          id?: string
+          store_id: string
+        }
+        Update: {
+          car_brand_id?: string
+          created_at?: string
+          id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_car_brands_car_brand_id_fkey"
+            columns: ["car_brand_id"]
+            isOneToOne: false
+            referencedRelation: "car_brands"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_car_brands_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      store_car_models: {
+        Row: {
+          car_model_id: string
+          created_at: string
+          id: string
+          store_id: string
+        }
+        Insert: {
+          car_model_id: string
+          created_at?: string
+          id?: string
+          store_id: string
+        }
+        Update: {
+          car_model_id?: string
+          created_at?: string
+          id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_car_models_car_model_id_fkey"
+            columns: ["car_model_id"]
+            isOneToOne: false
+            referencedRelation: "car_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_car_models_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_images: {
         Row: {
           created_at: string | null
