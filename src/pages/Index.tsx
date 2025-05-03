@@ -35,10 +35,10 @@ const RequestPartsPromo = () => (
     
     <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
       <div>
-        <h2 className="text-2xl font-bold text-white mb-2">Запросы на запчасти</h2>
+        <h2 className="text-2xl font-bold text-white mb-2">Не можете найти нужную запчасть?</h2>
         <div className="text-white/90 max-w-2xl space-y-3">
           <p className="text-lg font-medium leading-relaxed animate-fade-in" style={{animationDelay: '100ms'}}>
-            <span className="bg-gradient-to-r from-amber-200 to-yellow-100 bg-clip-text text-transparent font-semibold">Мгновенный доступ к сети из 100+ продавцов</span> — ваш запрос будет виден всем!
+            <span className="bg-gradient-to-r from-amber-200 to-yellow-100 bg-clip-text text-transparent font-semibold">Оставьте запрос и получите предложения от 100+ продавцов</span> — быстро и без лишних усилий!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 pt-1">
             <div className="flex items-center gap-2">
@@ -67,7 +67,7 @@ const RequestPartsPromo = () => (
         <Link to="/requests/create">
           <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
           <Send className="mr-2 h-4 w-4" />
-          Создать запрос
+          Оставить запрос
         </Link>
       </Button>
     </div>
