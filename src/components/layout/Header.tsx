@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store } from "lucide-react";
+import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -77,6 +77,13 @@ const Header = () => {
         onClick={onClick}
       >
         Магазины
+      </Link>
+      <Link 
+        to="/requests" 
+        className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
+        onClick={onClick}
+      >
+        Запросы
       </Link>
       <Link 
         to="/about" 
@@ -200,6 +207,13 @@ const Header = () => {
                       <DropdownMenuSeparator />
                     </>
                   )}
+                  
+                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                    <Link to="/requests" className="flex w-full items-center">
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      <span>Запросы</span>
+                    </Link>
+                  </DropdownMenuItem>
                   
                   {profile?.user_type !== 'admin' && (
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">

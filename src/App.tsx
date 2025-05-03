@@ -39,6 +39,7 @@ import SellerListings from "./pages/SellerListings";
 import Stores from "./pages/Stores";
 import StoreDetail from "./pages/StoreDetail";
 import CreateStore from "./pages/CreateStore";
+import Requests from "./pages/Requests";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -151,6 +152,7 @@ const App = () => {
                   <CreateStore />
                 </ProtectedRoute>
               } />
+              <Route path="/requests" element={<Requests />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
