@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -18,6 +17,7 @@ type Product = Database["public"]["Tables"]["products"]["Row"];
 const Catalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  const [hasSearched, setHasSearched] = useState(false); // New state to track if user has completed a search
   const productsPerPage = 8;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
@@ -29,6 +29,13 @@ const Catalog = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [searchQuery]);
+
+  // When debouncedSearchQuery changes, update hasSearched state
+  useEffect(() => {
+    if (debouncedSearchQuery) {
+      setHasSearched(true);
+    }
+  }, [debouncedSearchQuery]);
 
   const {
     data,
@@ -98,6 +105,17 @@ const Catalog = () => {
 
   const handleClearSearch = () => {
     setSearchQuery("");
+    setHasSearched(false); // Reset hasSearched when clearing search
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // When user explicitly submits search, we update hasSearched
+    setHasSearched(!!searchQuery);
+    // Force refetch if search query hasn't changed
+    if (searchQuery === debouncedSearchQuery) {
+      refetch();
+    }
   };
 
   const allProducts = data?.pages.flat() || [];
@@ -191,7 +209,7 @@ const Catalog = () => {
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
           <div className="mb-10 flex justify-center">
-            <div className="w-full max-w-xl relative">
+            <form onSubmit={handleSearchSubmit} className="w-full max-w-xl relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
                 <Search className="h-5 w-5"/>
               </span>
@@ -204,6 +222,7 @@ const Catalog = () => {
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
+                    handleSearchSubmit(e);
                     if (isMobile) {
                       (e.target as HTMLElement).blur();
                     }
@@ -215,11 +234,12 @@ const Catalog = () => {
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   onClick={handleClearSearch}
                   aria-label="Clear search"
+                  type="button"
                 >
                   ✕
                 </button>
               )}
-            </div>
+            </form>
           </div>
           
           {isLoading && (
@@ -252,7 +272,7 @@ const Catalog = () => {
             </div>
           )}
 
-          {!isLoading && !isError && debouncedSearchQuery && allProducts.length === 0 && (
+          {!isLoading && !isError && hasSearched && debouncedSearchQuery && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
@@ -275,8 +295,8 @@ const Catalog = () => {
                 );
               })}
               
-              {/* Show RequestPartsPromo after all products when search results are found */}
-              {debouncedSearchQuery && (
+              {/* Show RequestPartsPromo after products when search was performed */}
+              {hasSearched && (
                 <div className="mt-6">
                   <RequestPartsPromo />
                 </div>
