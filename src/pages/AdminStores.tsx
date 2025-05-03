@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -21,12 +21,14 @@ import {
   SelectTrigger, SelectValue 
 } from '@/components/ui/select';
 import { 
-  Pencil, Shield, ShieldCheck, ShieldAlert, Store 
+  Pencil, Shield, ShieldCheck, ShieldAlert, Store, Car, Check
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StoreTag } from '@/types/store';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
+import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 // Store types with additional fields needed for the admin view
 type StoreWithDetails = {
@@ -51,6 +53,8 @@ type StoreWithDetails = {
   }[];
   seller_name?: string;
   seller_email?: string;
+  car_brands?: { id: string; name: string }[];
+  car_models?: { id: string; name: string; brand_id: string }[];
 };
 
 const AdminStores = () => {
@@ -59,6 +63,17 @@ const AdminStores = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<StoreWithDetails | null>(null);
   const [editedStore, setEditedStore] = useState<Partial<StoreWithDetails>>({});
+  const [selectedCarBrands, setSelectedCarBrands] = useState<string[]>([]);
+  const [selectedCarModels, setSelectedCarModels] = useState<{[brandId: string]: string[]}>({});
+  const [selectedBrandForModels, setSelectedBrandForModels] = useState<string | null>(null);
+  
+  const { 
+    brands: allCarBrands,
+    brandModels: allCarModels,
+    selectBrand,
+    selectedBrand,
+    isLoading: isBrandsLoading
+  } = useCarBrandsAndModels();
   
   // Fetch stores with related data
   const { data: stores, isLoading } = useQuery({
@@ -89,10 +104,26 @@ const AdminStores = () => {
             .eq('id', store.seller_id)
             .single();
           
+          // Fetch car brands and models associated with this store
+          const { data: storeBrands } = await supabase
+            .from('store_car_brands')
+            .select('car_brand_id, car_brands(id, name)')
+            .eq('store_id', store.id);
+            
+          const { data: storeModels } = await supabase
+            .from('store_car_models')
+            .select('car_model_id, car_models(id, name, brand_id)')
+            .eq('store_id', store.id);
+          
+          const carBrands = storeBrands?.map(item => item.car_brands) || [];
+          const carModels = storeModels?.map(item => item.car_models) || [];
+          
           return {
             ...store,
             seller_name: sellerData?.full_name || 'Неизвестно',
-            seller_email: sellerData?.email || 'Неизвестно'
+            seller_email: sellerData?.email || 'Неизвестно',
+            car_brands: carBrands,
+            car_models: carModels
           };
         })
       );
@@ -105,6 +136,7 @@ const AdminStores = () => {
   // Update store mutation
   const updateStoreMutation = useMutation({
     mutationFn: async (store: Partial<StoreWithDetails>) => {
+      // Update store basic info
       const { error } = await supabase
         .from('stores')
         .update({
@@ -121,6 +153,55 @@ const AdminStores = () => {
         .eq('id', store.id);
 
       if (error) throw error;
+      
+      // Update car brands
+      if (selectedCarBrands.length > 0) {
+        // First delete existing associations
+        await supabase
+          .from('store_car_brands')
+          .delete()
+          .eq('store_id', store.id);
+          
+        // Then add new associations
+        const brandInserts = selectedCarBrands.map(brandId => ({
+          store_id: store.id,
+          car_brand_id: brandId
+        }));
+        
+        const { error: brandError } = await supabase
+          .from('store_car_brands')
+          .insert(brandInserts);
+          
+        if (brandError) throw brandError;
+      }
+      
+      // Update car models
+      // First delete existing associations
+      await supabase
+        .from('store_car_models')
+        .delete()
+        .eq('store_id', store.id);
+        
+      // Then add new associations
+      const modelInserts: {store_id: string, car_model_id: string}[] = [];
+      
+      Object.keys(selectedCarModels).forEach(brandId => {
+        selectedCarModels[brandId].forEach(modelId => {
+          modelInserts.push({
+            store_id: store.id!,
+            car_model_id: modelId
+          });
+        });
+      });
+      
+      if (modelInserts.length > 0) {
+        const { error: modelError } = await supabase
+          .from('store_car_models')
+          .insert(modelInserts);
+          
+        if (modelError) throw modelError;
+      }
+      
       return store;
     },
     onSuccess: () => {
@@ -134,7 +215,7 @@ const AdminStores = () => {
     }
   });
 
-  const handleEditStore = (store: StoreWithDetails) => {
+  const handleEditStore = async (store: StoreWithDetails) => {
     setSelectedStore(store);
     setEditedStore({
       id: store.id,
@@ -148,6 +229,20 @@ const AdminStores = () => {
       verified: store.verified,
       telegram: store.telegram
     });
+    
+    // Initialize selected car brands and models
+    const storeBrands = store.car_brands?.map(brand => brand.id) || [];
+    setSelectedCarBrands(storeBrands);
+    
+    const modelsByBrand: {[brandId: string]: string[]} = {};
+    store.car_models?.forEach(model => {
+      if (!modelsByBrand[model.brand_id]) {
+        modelsByBrand[model.brand_id] = [];
+      }
+      modelsByBrand[model.brand_id].push(model.id);
+    });
+    setSelectedCarModels(modelsByBrand);
+    
     setIsEditDialogOpen(true);
   };
 
@@ -155,6 +250,9 @@ const AdminStores = () => {
     setIsEditDialogOpen(false);
     setSelectedStore(null);
     setEditedStore({});
+    setSelectedCarBrands([]);
+    setSelectedCarModels({});
+    setSelectedBrandForModels(null);
   };
 
   const handleSaveStore = () => {
@@ -173,6 +271,40 @@ const AdminStores = () => {
       : [...currentTags, tag];
     
     handleChange('tags', newTags);
+  };
+
+  const handleToggleCarBrand = (brandId: string) => {
+    setSelectedCarBrands(prev => {
+      if (prev.includes(brandId)) {
+        // If removing a brand, also remove all its models
+        setSelectedCarModels(prevModels => {
+          const newModels = { ...prevModels };
+          delete newModels[brandId];
+          return newModels;
+        });
+        return prev.filter(id => id !== brandId);
+      } else {
+        return [...prev, brandId];
+      }
+    });
+  };
+
+  const handleToggleCarModel = (modelId: string, brandId: string) => {
+    setSelectedCarModels(prev => {
+      const currentBrandModels = prev[brandId] || [];
+      
+      if (currentBrandModels.includes(modelId)) {
+        return {
+          ...prev,
+          [brandId]: currentBrandModels.filter(id => id !== modelId)
+        };
+      } else {
+        return {
+          ...prev,
+          [brandId]: [...currentBrandModels, modelId]
+        };
+      }
+    });
   };
 
   const getMainImageUrl = (store: StoreWithDetails) => {
@@ -293,7 +425,7 @@ const AdminStores = () => {
 
         {/* Edit Store Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Редактировать магазин</DialogTitle>
               <DialogDescription>
@@ -302,108 +434,211 @@ const AdminStores = () => {
             </DialogHeader>
 
             {selectedStore && (
-              <div className="space-y-4 py-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Название магазина</label>
-                  <Input
-                    value={editedStore.name || ''}
-                    onChange={(e) => handleChange('name', e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Описание</label>
-                  <Textarea
-                    value={editedStore.description || ''}
-                    onChange={(e) => handleChange('description', e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <ScrollArea className="h-[500px] pr-4">
+                <div className="space-y-4 py-2">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Адрес</label>
+                    <label className="text-sm font-medium">Название магазина</label>
                     <Input
-                      value={editedStore.address || ''}
-                      onChange={(e) => handleChange('address', e.target.value)}
+                      value={editedStore.name || ''}
+                      onChange={(e) => handleChange('name', e.target.value)}
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Город</label>
-                    <Input
-                      value={editedStore.location || ''}
-                      onChange={(e) => handleChange('location', e.target.value)}
+                    <label className="text-sm font-medium">Описание</label>
+                    <Textarea
+                      value={editedStore.description || ''}
+                      onChange={(e) => handleChange('description', e.target.value)}
+                      rows={3}
                     />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Адрес</label>
+                      <Input
+                        value={editedStore.address || ''}
+                        onChange={(e) => handleChange('address', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Город</label>
+                      <Input
+                        value={editedStore.location || ''}
+                        onChange={(e) => handleChange('location', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Телефон</label>
+                      <Input
+                        value={editedStore.phone || ''}
+                        onChange={(e) => handleChange('phone', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Имя владельца</label>
+                      <Input
+                        value={editedStore.owner_name || ''}
+                        onChange={(e) => handleChange('owner_name', e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Телефон</label>
+                    <label className="text-sm font-medium">Телеграм</label>
                     <Input
-                      value={editedStore.phone || ''}
-                      onChange={(e) => handleChange('phone', e.target.value)}
+                      value={editedStore.telegram || ''}
+                      onChange={(e) => handleChange('telegram', e.target.value)}
+                      placeholder="username или https://t.me/username"
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Имя владельца</label>
-                    <Input
-                      value={editedStore.owner_name || ''}
-                      onChange={(e) => handleChange('owner_name', e.target.value)}
-                    />
+                    <label className="text-sm font-medium">Теги</label>
+                    <div className="flex flex-wrap gap-2">
+                      {availableTags.map((tag) => (
+                        <div key={tag.value} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`tag-${tag.value}`}
+                            checked={(editedStore.tags || []).includes(tag.value)}
+                            onCheckedChange={() => handleToggleTag(tag.value)}
+                          />
+                          <label
+                            htmlFor={`tag-${tag.value}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                            {tag.label}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Телеграм</label>
-                  <Input
-                    value={editedStore.telegram || ''}
-                    onChange={(e) => handleChange('telegram', e.target.value)}
-                    placeholder="username или https://t.me/username"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Теги</label>
-                  <div className="flex flex-wrap gap-2">
-                    {availableTags.map((tag) => (
-                      <div key={tag.value} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`tag-${tag.value}`}
-                          checked={(editedStore.tags || []).includes(tag.value)}
-                          onCheckedChange={() => handleToggleTag(tag.value)}
-                        />
-                        <label
-                          htmlFor={`tag-${tag.value}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {tag.label}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="verified"
-                    checked={editedStore.verified}
-                    onCheckedChange={(checked) => handleChange('verified', !!checked)}
-                  />
-                  <div className="grid gap-1.5 leading-none">
-                    <label
-                      htmlFor="verified"
-                      className="text-sm font-medium leading-none flex items-center gap-1"
-                    >
-                      <Shield className="h-4 w-4" />
-                      Проверенный магазин
-                    </label>
+                  
+                  {/* Car Brands Selection */}
+                  <div className="space-y-2 border-t pt-4">
+                    <div className="flex items-center gap-2">
+                      <Car className="h-4 w-4" />
+                      <h3 className="text-sm font-medium">Марки и модели автомобилей</h3>
+                    </div>
                     <p className="text-sm text-muted-foreground">
-                      Проверенные магазины отображаются с отметкой проверки
+                      Выберите марки и модели автомобилей, с которыми работает этот магазин
                     </p>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      {allCarBrands.map((brand) => (
+                        <div key={brand.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`brand-${brand.id}`}
+                            checked={selectedCarBrands.includes(brand.id)}
+                            onCheckedChange={() => handleToggleCarBrand(brand.id)}
+                          />
+                          <label
+                            htmlFor={`brand-${brand.id}`}
+                            className="text-sm font-medium leading-none"
+                          >
+                            {brand.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Car Models Selection */}
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-sm font-medium">Модели автомобилей</label>
+                      {selectedCarBrands.length > 0 && (
+                        <Select 
+                          value={selectedBrandForModels || ''} 
+                          onValueChange={(value) => {
+                            setSelectedBrandForModels(value);
+                            selectBrand(value);
+                          }}
+                        >
+                          <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Выберите марку" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {selectedCarBrands.map(brandId => {
+                              const brand = allCarBrands.find(b => b.id === brandId);
+                              return brand ? (
+                                <SelectItem key={brand.id} value={brand.id}>
+                                  {brand.name}
+                                </SelectItem>
+                              ) : null;
+                            })}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
+                    
+                    {selectedBrandForModels && (
+                      <div className="border rounded-md p-2">
+                        {isBrandsLoading ? (
+                          <div className="text-center py-2">Загрузка моделей...</div>
+                        ) : allCarModels.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
+                            {allCarModels.map((model) => (
+                              <div key={model.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`model-${model.id}`}
+                                  checked={(selectedCarModels[selectedBrandForModels] || []).includes(model.id)}
+                                  onCheckedChange={() => handleToggleCarModel(model.id, selectedBrandForModels)}
+                                />
+                                <label
+                                  htmlFor={`model-${model.id}`}
+                                  className="text-sm leading-none"
+                                >
+                                  {model.name}
+                                </label>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-2 text-sm text-muted-foreground">
+                            Нет доступных моделей для этой марки
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {!selectedBrandForModels && selectedCarBrands.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        Выберите марку для отображения моделей
+                      </div>
+                    )}
+                    
+                    {selectedCarBrands.length === 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        Сначала выберите хотя бы одну марку автомобиля
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="verified"
+                      checked={editedStore.verified}
+                      onCheckedChange={(checked) => handleChange('verified', !!checked)}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <label
+                        htmlFor="verified"
+                        className="text-sm font-medium leading-none flex items-center gap-1"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Проверенный магазин
+                      </label>
+                      <p className="text-sm text-muted-foreground">
+                        Проверенные магазины отображаются с отметкой проверки
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </ScrollArea>
             )}
 
             <DialogFooter>

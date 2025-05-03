@@ -15,6 +15,8 @@ import { StoreTag } from "@/types/store";
 import { MapPin } from "lucide-react";
 import StoreLocationPicker from "./StoreLocationPicker";
 import { useAuth } from "@/contexts/AuthContext";
+import StoreCarBrandsEditor from "./StoreCarBrandsEditor";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
@@ -36,6 +38,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   const [storeData, setStoreData] = useState<any>(null);
   const [images, setImages] = useState<string[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("general");
   const { user } = useAuth();
 
   const form = useForm<StoreFormValues>({
@@ -198,114 +201,125 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Редактирование магазина</CardTitle>
+        <CardTitle>Управление магазином</CardTitle>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название магазина *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите название магазина" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+        <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-2 w-full mb-4">
+            <TabsTrigger value="general">Основная информация</TabsTrigger>
+            <TabsTrigger value="car-models">Марки и модели авто</TabsTrigger>
+          </TabsList>
+          <TabsContent value="general">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Название магазина *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите название магазина" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Описание</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Введите описание магазина" 
-                      className="min-h-[120px]" 
-                      {...field} 
-                      value={field.value || ''}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Описание</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Введите описание магазина" 
+                          className="min-h-[120px]" 
+                          {...field} 
+                          value={field.value || ''}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="address"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Адрес *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите адрес магазина" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Адрес *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите адрес магазина" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Телефон</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Введите телефон магазина" {...field} value={field.value || ''} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Телефон</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Введите телефон магазина" {...field} value={field.value || ''} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <FormField
-              control={form.control}
-              name="location"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Местоположение</FormLabel>
-                  <FormControl>
-                    <StoreLocationPicker 
-                      initialLocation={field.value || ''} 
-                      onLocationChange={handleLocationChange}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Местоположение автоматически подтягивается из вашего профиля
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="location"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Местоположение</FormLabel>
+                      <FormControl>
+                        <StoreLocationPicker 
+                          initialLocation={field.value || ''} 
+                          onLocationChange={handleLocationChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Местоположение автоматически подтягивается из вашего профиля
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <div className="space-y-2">
-              <FormLabel>Фотографии магазина</FormLabel>
-              <p className="text-sm text-muted-foreground mb-2">
-                Добавьте фотографии вашего магазина, чтобы покупатели могли лучше узнать о нем
-              </p>
-              <ImageUpload 
-                images={images}
-                onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
-                onDelete={(url) => setImages(images.filter(img => img !== url))}
-                maxImages={10}
-              />
-            </div>
+                <div className="space-y-2">
+                  <FormLabel>Фотографии магазина</FormLabel>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Добавьте фотографии вашего магазина, чтобы покупатели могли лучше узнать о нем
+                  </p>
+                  <ImageUpload 
+                    images={images}
+                    onUpload={(uploadedUrls) => setImages([...images, ...uploadedUrls])}
+                    onDelete={(url) => setImages(images.filter(img => img !== url))}
+                    maxImages={10}
+                  />
+                </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading}
-            >
-              {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
-            </Button>
-          </form>
-        </Form>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Сохранение...' : 'Сохранить изменения'}
+                </Button>
+              </form>
+            </Form>
+          </TabsContent>
+          <TabsContent value="car-models">
+            {storeId && <StoreCarBrandsEditor storeId={storeId} />}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
