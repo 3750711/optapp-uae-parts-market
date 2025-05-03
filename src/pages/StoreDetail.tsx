@@ -21,6 +21,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -259,6 +265,16 @@ const StoreDetail: React.FC = () => {
       console.error('Error sharing:', error);
     }
   };
+  
+  // Share directly to Telegram
+  const handleShareToTelegram = () => {
+    const url = encodeURIComponent(window.location.href);
+    const storeName = encodeURIComponent(store?.name || "магазин автозапчастей");
+    const text = encodeURIComponent(`Посмотрите этот магазин автозапчастей: ${store?.name || "магазин"}`);
+    
+    const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
+    window.open(telegramUrl, '_blank');
+  };
 
   if (isStoreLoading) {
     return (
@@ -305,20 +321,27 @@ const StoreDetail: React.FC = () => {
             Назад
           </Button>
           
-          {/* Share button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
+          {/* Share dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
-                size="icon" 
-                onClick={handleShareStore}
-                className="ml-auto"
+                size="icon"
               >
                 <Share2 className="h-4 w-4" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Поделиться</TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleShareStore}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Поделиться
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShareToTelegram}>
+                <Send className="h-4 w-4 mr-2" />
+                Отправить в Telegram
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

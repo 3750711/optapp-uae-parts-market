@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Share2 } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Share2, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -27,6 +26,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -121,7 +126,7 @@ const PublicSellerProfile = () => {
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg';
     
-    let condition: "Новый" | "Б/У" | "Восстановленный" = "Б/У";
+    let condition: "Новый" | "Б/У" | "Восстан��вленный" = "Б/У";
     
     if (product.condition === "Новый" || product.condition === "Восстановленный") {
       condition = product.condition as "Новый" | "Восстановленный";
@@ -169,6 +174,16 @@ const PublicSellerProfile = () => {
     } catch (error) {
       console.error('Error sharing:', error);
     }
+  };
+
+  // Share to Telegram directly
+  const handleShareToTelegram = () => {
+    const url = encodeURIComponent(window.location.href);
+    const sellerName = encodeURIComponent(profile?.full_name || "Продавец на OPT");
+    const text = encodeURIComponent(`Посмотрите профиль продавца: ${profile?.full_name || "Продавец"}`);
+    
+    const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
+    window.open(telegramUrl, '_blank');
   };
 
   if (isProfileLoading || isProductsLoading) {
@@ -223,19 +238,27 @@ const PublicSellerProfile = () => {
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
           
-          {/* Share button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
+          {/* Share dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button 
                 variant="outline" 
                 size="icon" 
-                onClick={handleShareProfile}
               >
                 <Share2 className="h-4 w-4" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Поделиться</TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleShareProfile}>
+                <Share2 className="h-4 w-4 mr-2" />
+                Поделиться
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleShareToTelegram}>
+                <Send className="h-4 w-4 mr-2" />
+                Отправить в Telegram
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
