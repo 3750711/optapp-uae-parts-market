@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, MessageSquare } from 'lucide-react';
+import { CalendarClock, MessageSquare, Sparkles, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 
@@ -50,17 +50,34 @@ const Requests: React.FC = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Запросы</h1>
-          <Button asChild>
-            <Link to="/requests/create">Создать запрос</Link>
-          </Button>
+        {/* Enhanced header with gradient background */}
+        <div className="relative overflow-hidden rounded-xl mb-8 p-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+          <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+          
+          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+              <h1 className="text-3xl font-bold text-white mb-2">Запросы на запчасти</h1>
+              <p className="text-white/90 max-w-2xl">
+                Ваш запрос будет отправлен более чем 100 продавцам и магазинам. 
+                Получите предложения в считанные минуты и выберите лучшую цену только на partsbay.ae
+              </p>
+            </div>
+            
+            <Button size="lg" className="group relative overflow-hidden" asChild>
+              <Link to="/requests/create">
+                <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
+                <Send className="mr-2 h-4 w-4" />
+                Создать запрос
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="overflow-hidden">
+              <Card key={i} className="overflow-hidden animate-pulse">
                 <CardHeader>
                   <Skeleton className="h-6 w-2/3 mb-2" />
                   <Skeleton className="h-4 w-full" />
@@ -73,18 +90,28 @@ const Requests: React.FC = () => {
             ))}
           </div>
         ) : !requests || requests.length === 0 ? (
-          <div className="text-center py-10">
-            <MessageSquare className="w-12 h-12 mx-auto text-muted-foreground opacity-50 mb-4" />
-            <p className="text-xl text-muted-foreground">Пока нет запросов</p>
-            <p className="text-muted-foreground mt-2">Создайте новый запрос, чтобы начать</p>
-            <Button className="mt-4" asChild>
-              <Link to="/requests/create">Создать запрос</Link>
+          <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed animate-fade-in">
+            <div className="p-3 rounded-full bg-primary/10 mx-auto w-fit mb-5">
+              <MessageSquare className="w-10 h-10 text-primary opacity-80" />
+            </div>
+            <h2 className="text-2xl font-bold mb-2">У вас пока нет запросов</h2>
+            <p className="text-muted-foreground max-w-md mx-auto mb-6">
+              Создайте запрос на поиск запчасти, и более 100 продавцов получат его. 
+              Вы получите предложения с лучшими ценами в кратчайшие сроки.
+            </p>
+            <Button size="lg" className="group relative overflow-hidden" asChild>
+              <Link to="/requests/create">
+                <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Создать первый запрос
+              </Link>
             </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {requests.map((request) => (
-              <Card key={request.id} className="overflow-hidden h-full flex flex-col">
+              <Card key={request.id} className="overflow-hidden h-full flex flex-col border group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 animate-fade-in">
+                <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
                 <CardHeader>
                   <CardTitle className="line-clamp-1">
                     {request.title}
@@ -107,12 +134,35 @@ const Requests: React.FC = () => {
                   </CardDescription>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full" asChild>
+                  <Button variant="outline" className="w-full transition-all hover:bg-primary hover:text-primary-foreground" asChild>
                     <Link to={`/requests/${request.id}`}>Подробнее</Link>
                   </Button>
                 </CardFooter>
               </Card>
             ))}
+          </div>
+        )}
+        
+        {/* Benefits banner */}
+        {requests && requests.length > 0 && (
+          <div className="mt-8 p-6 rounded-xl border bg-gradient-to-r from-blue-50 to-purple-50 animate-fade-in">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-bold text-lg">Нужна еще одна запчасть?</h3>
+            </div>
+            <p className="mb-4">
+              Создайте новый запрос и получите лучшие предложения от более чем 100 продавцов и магазинов.
+              Экономьте время и деньги с partsbay.ae!
+            </p>
+            <Button className="group relative overflow-hidden" asChild>
+              <Link to="/requests/create">
+                <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
+                <Send className="mr-2 h-4 w-4" />
+                Создать новый запрос
+              </Link>
+            </Button>
           </div>
         )}
       </div>
