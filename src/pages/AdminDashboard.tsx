@@ -1,7 +1,7 @@
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck, Plus, Advertisement } from 'lucide-react';
+import { Users, Package, ShoppingCart, FileSearch, Clipboard, Truck, Plus } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
