@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -80,6 +79,24 @@ const StoreDetail: React.FC = () => {
         user_avatar: review.profiles?.avatar_url
       })) as StoreReview[];
     }
+  });
+
+  // Запрос общего количества объявлений продавца
+  const { data: productCount = 0, isLoading: isCountLoading } = useQuery({
+    queryKey: ['seller-products-count', store?.seller_id],
+    queryFn: async () => {
+      if (!store?.seller_id) return 0;
+      
+      const { count, error } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('seller_id', store.seller_id)
+        .eq('status', 'active');
+      
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!store?.seller_id
   });
 
   const getMainImageUrl = () => {
@@ -366,6 +383,15 @@ const StoreDetail: React.FC = () => {
                         Не проверено
                       </Badge>
                     )}
+                  </p>
+                </div>
+
+                {/* Add product count information */}
+                <div>
+                  <h3 className="font-medium mb-1">Объявления</h3>
+                  <p className="flex items-center gap-2">
+                    <Package className="w-4 h-4 text-muted-foreground" />
+                    <span>{isCountLoading ? "Загрузка..." : productCount} объявлений</span>
                   </p>
                 </div>
 
