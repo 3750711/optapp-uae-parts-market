@@ -528,6 +528,39 @@ export type Database = {
         }
         Relationships: []
       }
+      requests: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: []
+      }
       store_car_brands: {
         Row: {
           car_brand_id: string

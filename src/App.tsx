@@ -41,6 +41,7 @@ import StoreDetail from "./pages/StoreDetail";
 import CreateStore from "./pages/CreateStore";
 import Requests from "./pages/Requests";
 import CreateRequest from "./pages/CreateRequest";
+import RequestDetail from "./pages/RequestDetail";
 
 const App = () => {
   const queryClient = new QueryClient();
@@ -155,6 +156,7 @@ const App = () => {
               } />
               <Route path="/requests" element={<Requests />} />
               <Route path="/requests/create" element={<CreateRequest />} />
+              <Route path="/requests/:id" element={<RequestDetail />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
