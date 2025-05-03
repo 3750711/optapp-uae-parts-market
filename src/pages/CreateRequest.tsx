@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -28,7 +27,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Car, FileSparkles, Send } from 'lucide-react';
+import { Check, Car, Sparkles, Send } from 'lucide-react';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Название должно содержать минимум 2 символа" }),
@@ -147,7 +146,7 @@ const CreateRequest = () => {
               <CardHeader className="space-y-1 pb-4">
                 <div className="flex items-center space-x-2">
                   <div className="p-2 rounded-full bg-primary/10">
-                    <FileSparkles className="h-6 w-6 text-primary" />
+                    <Sparkles className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <CardTitle className="text-2xl">Создать запрос на запчасть</CardTitle>
