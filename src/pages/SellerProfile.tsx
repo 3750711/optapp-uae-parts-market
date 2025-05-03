@@ -5,7 +5,6 @@ import { ChevronLeft, Store } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import SellerDashboard from "@/components/seller/SellerDashboard";
 import { Button } from "@/components/ui/button";
-import StoreEditForm from "@/components/store/StoreEditForm";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +48,7 @@ const SellerProfile = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3">
             {storeInfo && (
               <Card className="bg-blue-50 mb-6">
                 <CardHeader>
@@ -72,10 +71,6 @@ const SellerProfile = () => {
               </Card>
             )}
             <SellerDashboard />
-          </div>
-          
-          <div className="space-y-6">
-            {user && <StoreEditForm sellerId={user.id} />}
           </div>
         </div>
       </div>
