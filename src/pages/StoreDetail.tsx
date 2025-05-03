@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -9,12 +8,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image } from 'lucide-react';
+import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -133,6 +133,39 @@ const StoreDetail: React.FC = () => {
 
   const onReviewSubmitted = () => {
     refetch();
+  };
+
+  const handleContactTelegram = () => {
+    if (!store?.phone) {
+      toast({
+        title: "Контакт недоступен",
+        description: "У этого магазина нет контактной информации Telegram",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Формируем ссылку для Telegram
+    const telegramUsername = store.phone.startsWith('@') 
+      ? store.phone.substring(1) 
+      : store.phone;
+      
+    window.open(`https://t.me/${telegramUsername}`, '_blank');
+  };
+
+  const handleContactWhatsApp = () => {
+    if (!store?.phone) {
+      toast({
+        title: "Контакт недоступен",
+        description: "У этого магазина нет номера телефона для WhatsApp",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Очищаем номер от всего, кроме цифр
+    const phoneNumber = store.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/${phoneNumber}`, '_blank');
   };
 
   if (isStoreLoading) {
@@ -271,7 +304,7 @@ const StoreDetail: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">У этого магазина пока нет фотографий</p>
+                  <p className="text-muted-foreground">У этого��о магазина пока нет фотографий</p>
                 )}
               </TabsContent>
 
@@ -456,9 +489,31 @@ const StoreDetail: React.FC = () => {
                   <div className="text-sm text-muted-foreground">отзывов</div>
                 </div>
 
+                {/* Кнопки для связи */}
+                <div className="space-y-2">
+                  {store?.phone && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Button 
+                          onClick={handleContactTelegram}
+                          className="w-full bg-[#0088cc] hover:bg-[#0077b5] text-white"
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" /> Telegram
+                        </Button>
+                        <Button 
+                          onClick={handleContactWhatsApp}
+                          className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white"
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
                 {/* Добавляем кнопку для перехода к объявлениям продавца */}
                 <Button asChild className="w-full">
-                  <Link to={`/seller/${store.seller_id}`}>
+                  <Link to={`/seller/${store?.seller_id}`}>
                     <Package className="mr-2" />
                     Все объявления продавца
                   </Link>
@@ -472,7 +527,7 @@ const StoreDetail: React.FC = () => {
       <WriteReviewDialog 
         open={isReviewDialogOpen} 
         onOpenChange={setIsReviewDialogOpen} 
-        storeId={store.id}
+        storeId={store?.id || ''}
         onSubmitted={onReviewSubmitted}
       />
     </Layout>
