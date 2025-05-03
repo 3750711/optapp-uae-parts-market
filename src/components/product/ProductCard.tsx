@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -49,10 +50,10 @@ const ProductCard: React.FC<ProductProps> = ({
   delivery_price
 }) => {
   const [searchParams] = useSearchParams();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const currentPage = searchParams.get("page") || "1";
   
-  const canViewDeliveryPrice = profile?.opt_status === 'opt_user';
+  const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   const isHotLot = () => {
     if (!created_at) return false;
@@ -148,7 +149,7 @@ const ProductCard: React.FC<ProductProps> = ({
             </span>
           )}
         </div>
-        {delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
+        {canViewDeliveryPrice && delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
           <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
             <Truck className="w-3 h-3" />
             <span>Доставка: {delivery_price} $</span>

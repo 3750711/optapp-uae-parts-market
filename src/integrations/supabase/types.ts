@@ -562,6 +562,7 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          owner_name: string | null
           phone: string | null
           rating: number | null
           seller_id: string | null
@@ -574,6 +575,7 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          owner_name?: string | null
           phone?: string | null
           rating?: number | null
           seller_id?: string | null
@@ -586,6 +588,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          owner_name?: string | null
           phone?: string | null
           rating?: number | null
           seller_id?: string | null

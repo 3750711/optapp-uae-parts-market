@@ -21,7 +21,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
 
-  // Updated condition to use 'opt_user' instead of 'opt_used'
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   const handleShare = () => {
@@ -122,9 +121,15 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
             </div>
           )
         ) : (
-          <div className="text-sm text-gray-500">
-            Стоимость доставки доступна для OPT пользователей
-          </div>
+          user ? (
+            <div className="text-sm text-gray-500">
+              Стоимость доставки доступна для OPT пользователей
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              <a href="/login" className="text-blue-500 hover:underline">Авторизуйтесь</a> для просмотра стоимости доставки
+            </div>
+          )
         )}
       </div>
       
