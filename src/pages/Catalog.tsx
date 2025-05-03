@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -190,9 +189,6 @@ const Catalog = () => {
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-          {/* Show promo at the top, before the search bar */}
-          <RequestPartsPromo />
-          
           <div className="mb-10 flex justify-center">
             <div className="w-full max-w-xl relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
@@ -224,6 +220,9 @@ const Catalog = () => {
               )}
             </div>
           </div>
+          
+          {/* Only show RequestPartsPromo when user has searched something */}
+          {debouncedSearchQuery && <RequestPartsPromo />}
           
           {isLoading && (
             <div className="animate-pulse">
@@ -264,14 +263,15 @@ const Catalog = () => {
           
           {!isLoading && allProducts.length > 0 && (
             <div className="animate-fade-in space-y-12">
-              {/* Use chunking to insert the promo block after every 30 products */}
+              {/* Use chunking to insert the promo block after every 30 products, 
+                  but only if the user has searched for something */}
               {Array.from({ length: Math.ceil(mappedProducts.length / 30) }).map((_, chunkIndex) => {
                 const chunk = mappedProducts.slice(chunkIndex * 30, (chunkIndex + 1) * 30);
                 return (
                   <React.Fragment key={`chunk-${chunkIndex}`}>
                     <ProductGrid products={chunk} />
-                    {/* Add promo after each chunk except the first (since we already have it at the top) */}
-                    {chunkIndex > 0 && <RequestPartsPromo />}
+                    {/* Add promo after each chunk only when user has searched */}
+                    {chunkIndex > 0 && debouncedSearchQuery && <RequestPartsPromo />}
                   </React.Fragment>
                 );
               })}
