@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -29,6 +29,17 @@ const Requests: React.FC = () => {
   const { profile } = useAuth();
   const navigate = useNavigate();
   
+  // State to track requests the user has marked as "Don't have"
+  const [hiddenRequestIds, setHiddenRequestIds] = useState<string[]>([]);
+  
+  // Load hidden requests from local storage on component mount
+  useEffect(() => {
+    const storedHiddenRequests = localStorage.getItem('hiddenRequests');
+    if (storedHiddenRequests) {
+      setHiddenRequestIds(JSON.parse(storedHiddenRequests));
+    }
+  }, []);
+  
   const { data: requests, isLoading } = useQuery({
     queryKey: ['requests'],
     queryFn: async () => {
@@ -50,9 +61,16 @@ const Requests: React.FC = () => {
   
   // Handler for "Нету" button
   const handleDontHave = (requestId: string) => {
-    // Just navigate to next request or show feedback that user doesn't have this part
-    navigate('/requests');
+    // Add the request ID to the list of hidden requests
+    const updatedHiddenRequests = [...hiddenRequestIds, requestId];
+    setHiddenRequestIds(updatedHiddenRequests);
+    
+    // Store the updated hidden requests in local storage
+    localStorage.setItem('hiddenRequests', JSON.stringify(updatedHiddenRequests));
   };
+
+  // Filter out hidden requests from the displayed list
+  const visibleRequests = requests?.filter(request => !hiddenRequestIds.includes(request.id));
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -83,7 +101,7 @@ const Requests: React.FC = () => {
               </Card>
             ))}
           </div>
-        ) : !requests || requests.length === 0 ? (
+        ) : !visibleRequests || visibleRequests.length === 0 ? (
           <div className="text-center py-12 bg-muted/30 rounded-xl border border-dashed animate-fade-in">
             <div className="p-3 rounded-full bg-primary/10 mx-auto w-fit mb-5">
               <MessageSquare className="w-10 h-10 text-primary opacity-80" />
@@ -103,7 +121,7 @@ const Requests: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {requests.map((request) => (
+            {visibleRequests.map((request) => (
               <Card 
                 key={request.id} 
                 className="overflow-hidden h-full flex flex-col border group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 animate-fade-in cursor-pointer"
@@ -176,7 +194,7 @@ const Requests: React.FC = () => {
         )}
         
         {/* Benefits banner */}
-        {requests && requests.length > 0 && (
+        {visibleRequests && visibleRequests.length > 0 && (
           <div className="mt-8 p-6 rounded-xl border bg-gradient-to-r from-blue-50 to-purple-50 animate-fade-in">
             <div className="flex items-center gap-3 mb-3">
               <div className="p-2 rounded-full bg-amber-100">
