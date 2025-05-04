@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
-import { Search, Clock, ShoppingBag, Award, Send } from "lucide-react";
+import { Search, X, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +12,20 @@ import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
@@ -19,11 +33,28 @@ const Catalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 8;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  // Car brands and models state
+  const {
+    brands,
+    brandModels,
+    selectedBrand,
+    selectBrand,
+    isLoading: isLoadingBrands
+  } = useCarBrandsAndModels();
+  
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+
+  // Reset model when brand changes
+  useEffect(() => {
+    setSelectedModel(null);
+  }, [selectedBrand]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -32,12 +63,12 @@ const Catalog = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // When debouncedSearchQuery changes, update hasSearched state
+  // When debouncedSearchQuery, selectedBrand, or selectedModel changes, update hasSearched state
   useEffect(() => {
-    if (debouncedSearchQuery) {
+    if (debouncedSearchQuery || selectedBrand || selectedModel) {
       setHasSearched(true);
     }
-  }, [debouncedSearchQuery]);
+  }, [debouncedSearchQuery, selectedBrand, selectedModel]);
 
   const {
     data,
@@ -48,24 +79,63 @@ const Catalog = () => {
     isError,
     refetch
   } = useInfiniteQuery({
-    queryKey: ["products-infinite", debouncedSearchQuery],
+    queryKey: ["products-infinite", debouncedSearchQuery, selectedBrand, selectedModel],
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
       console.log(`Fetching catalog products: ${from} to ${to}`);
+      console.log(`Search criteria: query=${debouncedSearchQuery}, brand=${selectedBrand}, model=${selectedModel}`);
+      
       let query = supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
         .in('status', ['active', 'sold'])
         .order("created_at", { ascending: false });
 
-      if (debouncedSearchQuery) {
-        query = query.or(
-          `title.ilike.%${debouncedSearchQuery}%,` +
-          `brand.ilike.%${debouncedSearchQuery}%,` +
-          `model.ilike.%${debouncedSearchQuery}%`
-        );
+      // Apply search filters
+      if (debouncedSearchQuery || selectedBrand || selectedModel) {
+        let conditions = [];
+        
+        // Text search with partial matching
+        if (debouncedSearchQuery) {
+          conditions.push(`title.ilike.%${debouncedSearchQuery}%`);
+          conditions.push(`brand.ilike.%${debouncedSearchQuery}%`);
+          conditions.push(`model.ilike.%${debouncedSearchQuery}%`);
+          
+          // Try to handle possible typos by checking for similar terms (simplified approach)
+          // This splits the search query into words and searches for each word separately
+          const searchTerms = debouncedSearchQuery.trim().split(/\s+/).filter(t => t.length > 2);
+          searchTerms.forEach(term => {
+            // For each term longer than 2 chars, create a fuzzy search condition
+            if (term.length > 2) {
+              conditions.push(`title.ilike.%${term.substring(0, term.length-1)}%`); // Match with last char removed
+              conditions.push(`brand.ilike.%${term.substring(0, term.length-1)}%`);
+              conditions.push(`model.ilike.%${term.substring(0, term.length-1)}%`);
+            }
+          });
+        }
+        
+        // Brand filter
+        if (selectedBrand) {
+          const brand = brands.find(b => b.id === selectedBrand);
+          if (brand) {
+            query = query.ilike('brand', `%${brand.name}%`);
+          }
+        }
+        
+        // Model filter (only if brand is selected)
+        if (selectedModel && selectedBrand) {
+          const model = brandModels.find(m => m.id === selectedModel);
+          if (model) {
+            query = query.ilike('model', `%${model.name}%`);
+          }
+        }
+        
+        // Apply text search conditions with OR logic
+        if (conditions.length > 0) {
+          query = query.or(conditions.join(','));
+        }
       }
 
       const { data, error } = await query.range(from, to);
@@ -122,7 +192,7 @@ const Catalog = () => {
 
   useEffect(() => {
     refetch();
-  }, [debouncedSearchQuery, refetch]);
+  }, [debouncedSearchQuery, selectedBrand, selectedModel, refetch]);
 
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
@@ -144,16 +214,21 @@ const Catalog = () => {
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    setHasSearched(false); // Reset hasSearched when clearing search
+    setSelectedBrand(null);
+    setSelectedModel(null);
+    setHasSearched(false);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // When user explicitly submits search, we update hasSearched
-    setHasSearched(!!searchQuery);
-    // Force refetch if search query hasn't changed
-    if (searchQuery === debouncedSearchQuery) {
-      refetch();
+    setHasSearched(!!(searchQuery || selectedBrand || selectedModel));
+    // Force refetch
+    refetch();
+    
+    // Close mobile keyboard if applicable
+    if (isMobile) {
+      document.activeElement instanceof HTMLElement && document.activeElement.blur();
     }
   };
 
@@ -247,38 +322,181 @@ const Catalog = () => {
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-          <div className="mb-10 flex justify-center">
-            <form onSubmit={handleSearchSubmit} className="w-full max-w-xl relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
-                <Search className="h-5 w-5"/>
-              </span>
-              <Input 
-                type="text"
-                placeholder="Поиск по названию, бренду, модели..." 
-                className="pl-10 pr-10 py-2 md:py-3 shadow-sm text-base"
-                value={searchQuery}
-                onChange={handleSearchInputChange}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleSearchSubmit(e);
-                    if (isMobile) {
-                      (e.target as HTMLElement).blur();
-                    }
-                  }
-                }}
-              />
-              {searchQuery && (
-                <button 
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={handleClearSearch}
-                  aria-label="Clear search"
-                  type="button"
-                >
-                  ✕
-                </button>
+          <div className="mb-6 flex flex-col gap-4">
+            {/* Search form */}
+            <form onSubmit={handleSearchSubmit} className="w-full flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Text search input */}
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
+                    <Search className="h-5 w-5"/>
+                  </span>
+                  <Input 
+                    type="text"
+                    placeholder="Поиск по названию, бренду, модели..." 
+                    className="pl-10 pr-10 py-2 md:py-3 shadow-sm text-base"
+                    value={searchQuery}
+                    onChange={handleSearchInputChange}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearchSubmit(e);
+                        if (isMobile) {
+                          (e.target as HTMLElement).blur();
+                        }
+                      }
+                    }}
+                  />
+                  {searchQuery && (
+                    <button 
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      onClick={() => setSearchQuery("")}
+                      aria-label="Clear search"
+                      type="button"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                
+                {/* Mobile filters toggle */}
+                <div className="block sm:hidden">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2"
+                    onClick={() => setShowFilters(!showFilters)}
+                  >
+                    <Filter className="h-4 w-4" />
+                    Фильтры
+                  </Button>
+                </div>
+                
+                {/* Desktop filters always visible */}
+                <div className="hidden sm:flex gap-3">
+                  {/* Brand select */}
+                  <Select
+                    value={selectedBrand || ""}
+                    onValueChange={(value) => selectBrand(value || null)}
+                  >
+                    <SelectTrigger className="w-[180px] bg-white">
+                      <SelectValue placeholder="Марка" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Все марки</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Model select */}
+                  <Select
+                    value={selectedModel || ""}
+                    onValueChange={(value) => setSelectedModel(value || null)}
+                    disabled={!selectedBrand}
+                  >
+                    <SelectTrigger className="w-[180px] bg-white">
+                      <SelectValue placeholder="Модель" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Все модели</SelectItem>
+                      {brandModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                
+                  {/* Search button */}
+                  <Button type="submit" className="bg-primary hover:bg-primary/90">
+                    <Search className="h-4 w-4 mr-2" />
+                    Поиск
+                  </Button>
+                </div>
+              </div>
+              
+              {/* Mobile filters (collapsible) */}
+              {showFilters && (
+                <div className="sm:hidden flex flex-col gap-3 p-3 bg-white rounded-lg shadow-sm border animate-fade-in">
+                  {/* Brand select */}
+                  <Select
+                    value={selectedBrand || ""}
+                    onValueChange={(value) => selectBrand(value || null)}
+                  >
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Марка" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Все марки</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>
+                          {brand.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Model select */}
+                  <Select
+                    value={selectedModel || ""}
+                    onValueChange={(value) => setSelectedModel(value || null)}
+                    disabled={!selectedBrand}
+                  >
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue placeholder="Модель" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Все модели</SelectItem>
+                      {brandModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  {/* Search button */}
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+                    <Search className="h-4 w-4 mr-2" />
+                    Поиск
+                  </Button>
+                </div>
               )}
             </form>
+
+            {/* Active filters display */}
+            {(searchQuery || selectedBrand || selectedModel) && (
+              <div className="flex items-center gap-2 text-sm">
+                <span className="text-gray-500">Активные фильтры:</span>
+                <div className="flex flex-wrap gap-2">
+                  {searchQuery && (
+                    <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center">
+                      Запрос: {searchQuery}
+                    </div>
+                  )}
+                  {selectedBrand && (
+                    <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center">
+                      Марка: {brands.find(b => b.id === selectedBrand)?.name}
+                    </div>
+                  )}
+                  {selectedModel && (
+                    <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center">
+                      Модель: {brandModels.find(m => m.id === selectedModel)?.name}
+                    </div>
+                  )}
+                  <button 
+                    onClick={handleClearSearch}
+                    className="text-blue-600 underline hover:text-blue-800 text-sm"
+                  >
+                    Сбросить все
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
           
           {isLoading && (
@@ -311,7 +529,7 @@ const Catalog = () => {
             </div>
           )}
 
-          {!isLoading && !isError && hasSearched && debouncedSearchQuery && allProducts.length === 0 && (
+          {!isLoading && !isError && hasSearched && (debouncedSearchQuery || selectedBrand || selectedModel) && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
