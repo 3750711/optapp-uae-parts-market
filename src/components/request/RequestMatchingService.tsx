@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -198,7 +197,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Database className="h-5 w-5 text-amber-500" />
-            <h3 className="text-lg font-medium">Точные совпадения</h3>
+            <h3 className="text-lg font-medium">Найденые позиции в каталоге</h3>
             <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
               Найдено {mappedProducts.length}
             </Badge>
