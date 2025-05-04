@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import RequestDetailDialog from '@/components/request/RequestDetailDialog';
 
 interface Request {
   id: string;
@@ -23,6 +24,26 @@ interface Request {
 
 const Requests: React.FC = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isNewRequest, setIsNewRequest] = useState(false);
+  
+  // Check if we just came from the create request page
+  React.useEffect(() => {
+    const fromCreate = sessionStorage.getItem('fromRequestCreate');
+    const requestId = sessionStorage.getItem('createdRequestId');
+    
+    if (fromCreate === 'true' && requestId) {
+      setSelectedRequestId(requestId);
+      setIsNewRequest(true);
+      setIsDialogOpen(true);
+      // Clear the flags so a refresh won't show the processing screen again
+      sessionStorage.removeItem('fromRequestCreate');
+      sessionStorage.removeItem('createdRequestId');
+    }
+  }, [location]);
   
   const { data: requests, isLoading } = useQuery({
     queryKey: ['requests'],
@@ -37,6 +58,12 @@ const Requests: React.FC = () => {
     },
     enabled: !!profile
   });
+
+  const handleRequestClick = (requestId: string) => {
+    setSelectedRequestId(requestId);
+    setIsNewRequest(false);
+    setIsDialogOpen(true);
+  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -131,7 +158,11 @@ const Requests: React.FC = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {requests.map((request) => (
-              <Card key={request.id} className="overflow-hidden h-full flex flex-col border group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 animate-fade-in">
+              <Card 
+                key={request.id} 
+                className="overflow-hidden h-full flex flex-col border group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 animate-fade-in cursor-pointer"
+                onClick={() => handleRequestClick(request.id)}
+              >
                 <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
                 <CardHeader>
                   <CardTitle className="line-clamp-1">
@@ -155,8 +186,15 @@ const Requests: React.FC = () => {
                   </CardDescription>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full transition-all hover:bg-primary hover:text-primary-foreground" asChild>
-                    <Link to={`/requests/${request.id}`}>Подробнее</Link>
+                  <Button 
+                    variant="outline" 
+                    className="w-full transition-all hover:bg-primary hover:text-primary-foreground"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/requests/${request.id}`);
+                    }}
+                  >
+                    Подробнее
                   </Button>
                 </CardFooter>
               </Card>
@@ -187,6 +225,13 @@ const Requests: React.FC = () => {
           </div>
         )}
       </div>
+
+      <RequestDetailDialog
+        requestId={selectedRequestId}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        isNewRequest={isNewRequest}
+      />
     </Layout>
   );
 };

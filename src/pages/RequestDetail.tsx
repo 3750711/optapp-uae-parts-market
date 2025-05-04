@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,16 +12,18 @@ import RequestProcessing from '@/components/request/RequestProcessing';
 
 const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [isNewRequest, setIsNewRequest] = useState(() => {
+  const navigate = useNavigate();
+  const [isNewRequest, setIsNewRequest] = useState(false);
+  
+  useEffect(() => {
     // Check if we just came from the create request page
     const fromCreate = sessionStorage.getItem('fromRequestCreate');
     if (fromCreate === 'true' && id) {
       // Clear the flag so a refresh won't show the processing screen again
       sessionStorage.removeItem('fromRequestCreate');
-      return true;
+      setIsNewRequest(true);
     }
-    return false;
-  });
+  }, [id]);
   
   const { data: request, isLoading } = useQuery({
     queryKey: ['request', id],
