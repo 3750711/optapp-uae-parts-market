@@ -181,7 +181,7 @@ const Catalog = () => {
                 <div className="p-1.5 bg-white/20 rounded-full">
                   <ShoppingBag className="h-4 w-4 text-amber-200" />
                 </div>
-                <p className="text-sm">Огромный выбор запчастей</p>
+                <p className="text-sm">Огромный выбор ��апчастей</p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-white/20 rounded-full">

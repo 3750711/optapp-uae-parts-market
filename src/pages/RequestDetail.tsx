@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import ProductCard from '@/components/product/ProductCard';
 import ProductGrid from '@/components/product/ProductGrid';
 import RequestStatusBadge from '@/components/request/RequestStatusBadge';
+import RequestMatchingService from '@/components/request/RequestMatchingService';
 
 const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -48,7 +49,7 @@ const RequestDetail: React.FC = () => {
     enabled: !!id
   });
   
-  // Fetch matching catalog products with improved matching logic for title, brand, and model
+  // Fetch matching catalog products with improved exact matching logic
   const { data: catalogMatches = [], isLoading: isLoadingCatalog } = useQuery({
     queryKey: ['catalog-matches', request?.title, request?.brand, request?.model],
     queryFn: async () => {
@@ -146,6 +147,9 @@ const RequestDetail: React.FC = () => {
       return scoredProducts.slice(0, 4);
     },
     enabled: !!request?.title && showResponseOptions,
+    // Crucial: reduce stale time and add refetch interval to check for new matching products periodically
+    staleTime: 30000, // 30 seconds
+    refetchInterval: 60000, // Refetch every minute to check for new matches
   });
 
   // Map products to the format expected by ProductCard
@@ -228,6 +232,14 @@ const RequestDetail: React.FC = () => {
           {/* Always show the request processing component */}
           <RequestProcessing requestId={id || ''} requestTitle={request.title} />
           
+          {/* Add the real-time matching service */}
+          <RequestMatchingService 
+            requestId={id || ''} 
+            requestTitle={request.title}
+            requestBrand={request.brand}
+            requestModel={request.model}
+          />
+          
           {showResponseOptions && (
             <Card className="border shadow-lg animate-fade-in overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-400"></div>
@@ -260,7 +272,7 @@ const RequestDetail: React.FC = () => {
                           <Database className="h-5 w-5 text-amber-500" />
                           <h3 className="text-lg font-medium">Найдено в каталоге</h3>
                           <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
-                            Точное совпадение
+                            {mappedProducts.some(p => p.matchScore >= 20) ? "Точное совпадение" : "Частичное совпадение"}
                           </Badge>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
