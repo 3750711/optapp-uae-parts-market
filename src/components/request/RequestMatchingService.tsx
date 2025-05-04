@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import ProductCard from '@/components/product/ProductCard';
 import RequestMatchCount from './RequestMatchCount';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 interface RequestMatchingServiceProps {
   requestId: string;
@@ -28,6 +29,8 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
 }) => {
   const navigate = useNavigate();
   const [showMatches, setShowMatches] = useState(false);
+  const { user } = useAuth();
+  const { isAdmin } = useAdminAccess();
   
   // Delay showing the component to improve perceived performance
   useEffect(() => {
@@ -113,7 +116,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
     refetchInterval: 60000,
   });
 
-  // Map products to the format expected by ProductCard
+  // Map products to the format expected by the compact list view
   const mappedProducts = catalogMatches.map(product => {
     let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
     if (product.product_images && product.product_images.length > 0) {
@@ -132,7 +135,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       name: product.title,
       price: Number(product.price),
       image: imageUrl,
-      condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
+      condition: product.condition,
       location: sellerLocation,
       seller_opt_id: product.profiles?.opt_id,
       seller_rating: product.profiles?.rating,
@@ -191,7 +194,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-8">
-        {/* Block 1: Catalog matches section - vertical layout */}
+        {/* Block 1: Catalog matches section - compact row layout */}
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Database className="h-5 w-5 text-amber-500" />
@@ -202,10 +205,34 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
           </div>
 
           {mappedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-2">
               {mappedProducts.map((product) => (
-                <div key={product.id}>
-                  <ProductCard {...product} />
+                <div 
+                  key={product.id}
+                  className="flex items-center p-2 rounded-md border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/product/${product.id}`)}
+                >
+                  {/* Image */}
+                  <div className="h-14 w-14 flex-shrink-0 rounded-md overflow-hidden">
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                  
+                  {/* Product info */}
+                  <div className="ml-3 flex-grow overflow-hidden">
+                    <h4 className="font-medium text-sm truncate">{product.name}</h4>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {product.brand} {product.model}
+                    </p>
+                  </div>
+                  
+                  {/* Price */}
+                  <div className="flex-shrink-0 ml-2">
+                    <Badge variant="secondary">{product.price} AED</Badge>
+                  </div>
                 </div>
               ))}
             </div>
