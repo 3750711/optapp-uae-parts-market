@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap');
 
 @tailwind base;
@@ -73,11 +74,21 @@
   animation: scaleIn 0.3s ease-out forwards;
 }
 
-/* Add scrollbar hiding for the horizontal product list */
+/* Enhanced scrollbar hiding for the horizontal product list */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Product card adjustments for horizontal layout */
+.product-card-horizontal {
+  width: 220px;
+  flex-shrink: 0;
+  transition: transform 0.3s;
+}
+.product-card-horizontal:hover {
+  transform: translateY(-4px);
 }

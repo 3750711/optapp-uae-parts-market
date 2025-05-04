@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from '@/components/product/ProductCard';
 import RequestMatchCount from './RequestMatchCount';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface RequestMatchingServiceProps {
   requestId: string;
@@ -176,7 +177,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       </CardHeader>
       
       <CardContent>
-        {/* Catalog matches section - horizontal layout */}
+        {/* Catalog matches section - single row horizontal layout */}
         {mappedProducts.length > 0 ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -188,15 +189,15 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
             </div>
 
             {/* Horizontal scrollable container */}
-            <div className="relative">
-              <div className="flex overflow-x-auto pb-4 space-x-4 scrollbar-hide">
+            <ScrollArea className="w-full whitespace-nowrap pb-4">
+              <div className="flex gap-4 pb-4">
                 {mappedProducts.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-[280px]">
+                  <div key={product.id} className="flex-shrink-0 w-[220px]">
                     <ProductCard {...product} />
                   </div>
                 ))}
               </div>
-            </div>
+            </ScrollArea>
 
             {mappedProducts.length > 3 && (
               <div className="text-center mt-4">
