@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock } from 'lucide-react';
+import { CalendarClock, Tag, Vin } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import RequestProcessing from '@/components/request/RequestProcessing';
 
@@ -89,8 +89,30 @@ const RequestDetailDialog: React.FC<RequestDetailDialogProps> = ({
                 </Badge>
               </div>
             </DialogHeader>
-            <div className="space-y-4 whitespace-pre-wrap">
-              {request.description}
+            
+            <div className="space-y-4">
+              {(request.brand || request.model) && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Tag className="h-4 w-4" />
+                  <span className="font-medium">
+                    {request.brand} {request.model && `${request.model}`}
+                  </span>
+                </div>
+              )}
+              
+              {request.vin && (
+                <div className="flex items-center gap-2 text-sm">
+                  <Vin className="h-4 w-4" />
+                  <span className="font-medium">VIN: {request.vin}</span>
+                </div>
+              )}
+              
+              {request.description && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium mb-1">Дополнительная информация:</h3>
+                  <div className="text-sm whitespace-pre-wrap">{request.description}</div>
+                </div>
+              )}
             </div>
           </>
         )}

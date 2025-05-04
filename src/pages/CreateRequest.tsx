@@ -9,6 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
+import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const CreateRequest: React.FC = () => {
   const { user } = useAuth();
@@ -16,7 +19,15 @@ const CreateRequest: React.FC = () => {
   const { toast } = useToast();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [vinCode, setVinCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { 
+    brands, 
+    brandModels, 
+    selectedBrand, 
+    selectBrand,
+    isLoading 
+  } = useCarBrandsAndModels();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,10 +41,10 @@ const CreateRequest: React.FC = () => {
       return;
     }
     
-    if (!title || !description) {
+    if (!title || !selectedBrand) {
       toast({
         title: "Заполните все поля",
-        description: "Название и описание запроса обязательны для заполнения",
+        description: "Название запроса и марка автомобиля обязательны для заполнения",
         variant: "destructive"
       });
       return;
@@ -42,6 +53,13 @@ const CreateRequest: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      // Get the brand and model names from their IDs
+      const brandName = brands.find(b => b.id === selectedBrand)?.name || "";
+      const selectedModel = brandModels.length > 0 ? brandModels[0].id : null;
+      const modelName = selectedModel 
+        ? brandModels.find(m => m.id === selectedModel)?.name || "" 
+        : "";
+      
       const { data, error } = await supabase
         .from('requests')
         .insert([
@@ -51,6 +69,9 @@ const CreateRequest: React.FC = () => {
             status: 'pending',
             user_id: user.id,
             user_name: user.email,
+            brand: brandName,
+            model: modelName,
+            vin: vinCode || null,
           },
         ])
         .select()
@@ -89,24 +110,67 @@ const CreateRequest: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="title" className="text-sm font-medium">
-                  Название запроса
-                </label>
+                <Label htmlFor="title">Название запроса</Label>
                 <Input
                   id="title"
                   placeholder="Например: Передний бампер для Toyota Camry 2020"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="brand">Марка автомобиля</Label>
+                <Select
+                  value={selectedBrand || ""}
+                  onValueChange={selectBrand}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger id="brand">
+                    <SelectValue placeholder="Выберите марку автомобиля" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="model">Модель автомобиля</Label>
+                <Select disabled={!selectedBrand || brandModels.length === 0}>
+                  <SelectTrigger id="model">
+                    <SelectValue placeholder="Выберите модель автомобиля" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brandModels.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="vin">VIN номер (не обязательно)</Label>
+                <Input
+                  id="vin"
+                  placeholder="Введите VIN номер автомобиля"
+                  value={vinCode}
+                  onChange={(e) => setVinCode(e.target.value)}
                 />
               </div>
               
               <div className="space-y-2">
-                <label htmlFor="description" className="text-sm font-medium">
-                  Подробное описание
-                </label>
+                <Label htmlFor="description">Дополнительная информация</Label>
                 <Textarea
                   id="description"
-                  placeholder="Укажите все, что может быть важным: марка, модель, год выпуска, оригинальная/аналог, состояние, цвет, и т.д."
+                  placeholder="Укажите все, что может быть важным: год выпуска, оригинальная/аналог, состояние, цвет, и т.д."
                   rows={5}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -117,7 +181,7 @@ const CreateRequest: React.FC = () => {
               <Button 
                 type="submit" 
                 className="w-full" 
-                disabled={isSubmitting || !title || !description}
+                disabled={isSubmitting || !title || !selectedBrand}
               >
                 {isSubmitting ? "Создание запроса..." : "Отправить запрос"}
               </Button>
