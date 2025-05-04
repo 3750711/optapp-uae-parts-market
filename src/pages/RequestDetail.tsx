@@ -48,7 +48,7 @@ const RequestDetail: React.FC = () => {
     enabled: !!id
   });
   
-  // Fetch matching catalog products based on title, brand and model
+  // Fetch matching catalog products based on title, brand and model with exact matching
   const { data: catalogMatches = [], isLoading: isLoadingCatalog } = useQuery({
     queryKey: ['catalog-matches', request?.title, request?.brand, request?.model],
     queryFn: async () => {
@@ -64,17 +64,19 @@ const RequestDetail: React.FC = () => {
       let query = supabase
         .from('products')
         .select('*, product_images(url, is_primary), profiles:seller_id(*)')
-        .ilike('title', `%${request.title}%`)
         .in('status', ['active', 'sold']);
       
-      // Add brand filter if available
+      // Use exact matching for title (case-insensitive)
+      query = query.ilike('title', `%${request.title.trim()}%`);
+      
+      // Add brand filter if available with exact matching
       if (request.brand) {
-        query = query.ilike('brand', `%${request.brand}%`);
+        query = query.ilike('brand', `%${request.brand.trim()}%`);
       }
       
-      // Add model filter if available
+      // Add model filter if available with exact matching
       if (request.model) {
-        query = query.ilike('model', `%${request.model}%`);
+        query = query.ilike('model', `%${request.model.trim()}%`);
       }
       
       const { data, error } = await query.limit(4);
@@ -85,7 +87,37 @@ const RequestDetail: React.FC = () => {
       }
       
       console.log("Found catalog matches:", data?.length || 0);
-      return data || [];
+      
+      // Sort the matches based on exact matching criteria
+      const sortedMatches = data ? data.sort((a, b) => {
+        // Calculate match score for each product
+        const getMatchScore = (product) => {
+          let score = 0;
+          
+          // Exact title match gets highest score
+          if (product.title.toLowerCase() === request.title.toLowerCase()) {
+            score += 10;
+          }
+          
+          // Brand match
+          if (request.brand && product.brand && 
+              product.brand.toLowerCase() === request.brand.toLowerCase()) {
+            score += 5;
+          }
+          
+          // Model match
+          if (request.model && product.model && 
+              product.model.toLowerCase() === request.model.toLowerCase()) {
+            score += 5;
+          }
+          
+          return score;
+        };
+        
+        return getMatchScore(b) - getMatchScore(a);
+      }) : [];
+      
+      return sortedMatches || [];
     },
     enabled: !!request?.title && showResponseOptions,
   });
