@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -215,7 +214,7 @@ const Catalog = () => {
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    selectBrand(null); // This was the error - using selectBrand instead of setSelectedBrand
+    selectBrand(null); // Using selectBrand from the hook
     setSelectedModel(null);
     setHasSearched(false);
   };
@@ -384,7 +383,7 @@ const Catalog = () => {
                       <SelectValue placeholder="Марка" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все марки</SelectItem>
+                      <SelectItem value="all-brands">Все марки</SelectItem>
                       {brands.map((brand) => (
                         <SelectItem key={brand.id} value={brand.id}>
                           {brand.name}
@@ -403,7 +402,7 @@ const Catalog = () => {
                       <SelectValue placeholder="Модель" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все модели</SelectItem>
+                      <SelectItem value="all-models">Все модели</SelectItem>
                       {brandModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           {model.name}
@@ -432,7 +431,7 @@ const Catalog = () => {
                       <SelectValue placeholder="Марка" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все марки</SelectItem>
+                      <SelectItem value="all-brands">Все марки</SelectItem>
                       {brands.map((brand) => (
                         <SelectItem key={brand.id} value={brand.id}>
                           {brand.name}
@@ -451,7 +450,7 @@ const Catalog = () => {
                       <SelectValue placeholder="Модель" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все модели</SelectItem>
+                      <SelectItem value="all-models">Все модели</SelectItem>
                       {brandModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           {model.name}
@@ -532,7 +531,7 @@ const Catalog = () => {
 
           {!isLoading && !isError && hasSearched && (debouncedSearchQuery || selectedBrand || selectedModel) && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
-              <p className="text-lg text-gray-800">Товары не найдены</p>
+              <p className="text-lg text-gray-800">Това��ы не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
               
               {/* Show RequestPartsPromo when no search results are found */}
