@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,20 @@ import { CalendarClock } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import RequestProcessing from '@/components/request/RequestProcessing';
 
 const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [isNewRequest, setIsNewRequest] = useState(() => {
+    // Check if we just came from the create request page
+    const fromCreate = sessionStorage.getItem('fromRequestCreate');
+    if (fromCreate === 'true' && id) {
+      // Clear the flag so a refresh won't show the processing screen again
+      sessionStorage.removeItem('fromRequestCreate');
+      return true;
+    }
+    return false;
+  });
   
   const { data: request, isLoading } = useQuery({
     queryKey: ['request', id],
@@ -70,31 +81,35 @@ const RequestDetail: React.FC = () => {
       </Layout>
     );
   }
-
+  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-2xl mb-2">{request.title}</CardTitle>
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <CalendarClock className="w-4 h-4 mr-2" />
-                  {new Date(request.created_at).toLocaleDateString('ru-RU')}
+        {isNewRequest ? (
+          <RequestProcessing requestId={id} requestTitle={request.title} />
+        ) : (
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle className="text-2xl mb-2">{request.title}</CardTitle>
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <CalendarClock className="w-4 h-4 mr-2" />
+                    {new Date(request.created_at).toLocaleDateString('ru-RU')}
+                  </div>
                 </div>
+                <Badge variant={getStatusBadgeVariant(request.status)}>
+                  {request.status === 'pending' && 'В ожидании'}
+                  {request.status === 'processing' && 'В обработке'}
+                  {request.status === 'completed' && 'Завершен'}
+                </Badge>
               </div>
-              <Badge variant={getStatusBadgeVariant(request.status)}>
-                {request.status === 'pending' && 'В ожидании'}
-                {request.status === 'processing' && 'В обработке'}
-                {request.status === 'completed' && 'Завершен'}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4 whitespace-pre-wrap">
-            {request.description}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent className="space-y-4 whitespace-pre-wrap">
+              {request.description}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

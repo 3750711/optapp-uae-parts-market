@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from "zod";
@@ -86,7 +87,7 @@ const CreateRequest = () => {
     try {
       const description = `Марка: ${data.brand}\nМодель: ${data.model}\nГод: ${data.year}${data.vin ? `\nVIN: ${data.vin}` : ''}${data.description ? `\n\nДополнительная информация:\n${data.description}` : ''}`;
 
-      const { error } = await supabase
+      const { data: newRequest, error } = await supabase
         .from('requests')
         .insert({
           title: data.title,
@@ -94,18 +95,27 @@ const CreateRequest = () => {
           user_id: profile.id,
           user_name: profile.full_name || 'Пользователь',
           status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       
       setSubmitted(true);
       
       setTimeout(() => {
-        toast({
-          title: "Запрос создан",
-          description: "Ваш запрос успешно отправлен"
-        });
-        navigate('/requests');
+        // Set a flag in sessionStorage indicating we just created a request
+        // This will be used in RequestDetail to show the processing animation
+        if (newRequest?.id) {
+          sessionStorage.setItem('fromRequestCreate', 'true');
+          navigate(`/requests/${newRequest.id}`);
+        } else {
+          toast({
+            title: "Запрос создан",
+            description: "Ваш запрос успешно отправлен"
+          });
+          navigate('/requests');
+        }
       }, 1500);
     } catch (error: any) {
       console.error("Error creating request:", error);
