@@ -1,11 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ProgressSteps } from './ProgressSteps';
 import { Check, Send, MessageSquare } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const STEP_DURATION = 15000; // 15 seconds per step
 
@@ -33,28 +36,79 @@ interface RequestProcessingProps {
   requestTitle: string;
 }
 
-const RequestProcessing: React.FC<RequestProcessingProps> = ({ requestId, requestTitle }) => {
+const RequestProcessing: React.FC<RequestProcessingProps> = ({ 
+  requestId, 
+  requestTitle 
+}) => {
   const [processingComplete, setProcessingComplete] = useState(false);
   const [contactType, setContactType] = useState<'whatsapp' | 'telegram'>('whatsapp');
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  
+  // Initialize contact info from profile if available
+  useEffect(() => {
+    if (profile) {
+      if (profile.telegram) {
+        setContactType('telegram');
+        setContactInfo(profile.telegram);
+      } else if (profile.phone) {
+        setContactType('whatsapp');
+        setContactInfo(profile.phone);
+      }
+    }
+  }, [profile]);
 
   const handleProcessingComplete = () => {
     setProcessingComplete(true);
+    
+    // Check if user is already authenticated and has contact info
+    if (user && profile && (profile.telegram || profile.phone)) {
+      // User has contact info, we can proceed
+      console.log("User already has contact info, no need to ask");
+    }
   };
 
   const handleContactSubmit = async () => {
     setIsSubmitting(true);
     
     try {
-      // Here we would save the contact information to the database
-      // For now we'll just simulate a successful save
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Save the contact information
+      let updateData = {};
+      if (contactType === 'whatsapp') {
+        updateData = { phone: contactInfo };
+      } else {
+        updateData = { telegram: contactInfo };
+      }
+      
+      if (user) {
+        // If user is authenticated, update their profile
+        const { error } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', user.id);
+        
+        if (error) throw error;
+      }
+      
+      // Also save contact info specifically for this request
+      const { error: requestError } = await supabase
+        .from('requests')
+        .update({
+          [contactType === 'whatsapp' ? 'phone' : 'telegram']: contactInfo
+        })
+        .eq('id', requestId);
+      
+      if (requestError) throw requestError;
       
       toast({
         title: "Контактная информация сохранена",
         description: "Мы свяжемся с вами, как только найдем подходящие варианты.",
       });
+      
+      // No redirect, stay on the page
     } catch (error) {
       console.error("Error saving contact information:", error);
       toast({
