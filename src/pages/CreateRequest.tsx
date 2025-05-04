@@ -21,6 +21,8 @@ const CreateRequest: React.FC = () => {
   const [description, setDescription] = useState('');
   const [vinCode, setVinCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('');
+  
   const { 
     brands, 
     brandModels, 
@@ -55,7 +57,6 @@ const CreateRequest: React.FC = () => {
     try {
       // Get the brand and model names from their IDs
       const brandName = brands.find(b => b.id === selectedBrand)?.name || "";
-      const selectedModel = brandModels.length > 0 ? brandModels[0].id : null;
       const modelName = selectedModel 
         ? brandModels.find(m => m.id === selectedModel)?.name || "" 
         : "";
@@ -142,7 +143,11 @@ const CreateRequest: React.FC = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="model">Модель автомобиля</Label>
-                <Select disabled={!selectedBrand || brandModels.length === 0}>
+                <Select 
+                  value={selectedModel} 
+                  onValueChange={setSelectedModel}
+                  disabled={!selectedBrand || brandModels.length === 0}
+                >
                   <SelectTrigger id="model">
                     <SelectValue placeholder="Выберите модель автомобиля" />
                   </SelectTrigger>

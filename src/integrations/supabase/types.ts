@@ -530,34 +530,43 @@ export type Database = {
       }
       requests: {
         Row: {
+          brand: string | null
           created_at: string
           description: string
           id: string
+          model: string | null
           status: string
           title: string
           updated_at: string
           user_id: string
           user_name: string
+          vin: string | null
         }
         Insert: {
+          brand?: string | null
           created_at?: string
           description: string
           id?: string
+          model?: string | null
           status?: string
           title: string
           updated_at?: string
           user_id: string
           user_name: string
+          vin?: string | null
         }
         Update: {
+          brand?: string | null
           created_at?: string
           description?: string
           id?: string
+          model?: string | null
           status?: string
           title?: string
           updated_at?: string
           user_id?: string
           user_name?: string
+          vin?: string | null
         }
         Relationships: []
       }
