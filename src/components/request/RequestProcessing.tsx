@@ -52,12 +52,12 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
   const [contactType, setContactType] = useState<'whatsapp' | 'telegram'>('whatsapp');
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasRun, setHasRun] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
   const { toast } = useToast();
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   
-  // Check if this animation has already been shown for this request
+  // Check if animation has already been shown for this request
   useEffect(() => {
     const checkAnimationStatus = async () => {
       try {
@@ -66,17 +66,19 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
         const animationShown = localStorage.getItem(animationKey);
         
         if (animationShown) {
-          // Animation already shown before, skip to completed state
+          // Animation already shown before, skip to completed state immediately
           setProcessingComplete(true);
-          setHasRun(true);
+          setShowAnimation(false);
         } else {
-          // First time viewing, show animation
-          setHasRun(false);
+          // First time viewing, show animation and mark as shown
+          setShowAnimation(true);
+          localStorage.setItem(animationKey, 'true');
         }
       } catch (error) {
         console.error("Error checking animation status:", error);
         // Default to showing completed state if there's an error
         setProcessingComplete(true);
+        setShowAnimation(false);
       }
     };
     
@@ -98,15 +100,6 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
 
   const handleProcessingComplete = () => {
     setProcessingComplete(true);
-    
-    // Mark this request's animation as shown
-    try {
-      const animationKey = `request_${requestId}_animation_shown`;
-      localStorage.setItem(animationKey, 'true');
-      setHasRun(true);
-    } catch (error) {
-      console.error("Error saving animation status:", error);
-    }
   };
 
   const handleContactSubmit = async () => {
@@ -173,7 +166,7 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {!processingComplete ? (
+        {!processingComplete && showAnimation ? (
           <ProgressSteps 
             steps={PROCESSING_STEPS} 
             stepDuration={STEP_DURATION}
