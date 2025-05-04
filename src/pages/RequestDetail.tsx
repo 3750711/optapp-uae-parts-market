@@ -21,7 +21,6 @@ const RequestDetail: React.FC = () => {
   const { user } = useAuth();
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showResponseOptions, setShowResponseOptions] = useState(false);
-  const [progressValue, setProgressValue] = useState(0);
   
   const { data: request, isLoading } = useQuery({
     queryKey: ['request', id],
@@ -44,26 +43,6 @@ const RequestDetail: React.FC = () => {
     },
     enabled: !!id
   });
-
-  // Simulate progress loading animation when status is pending
-  useEffect(() => {
-    if (request?.status === 'pending') {
-      const timer = setInterval(() => {
-        setProgressValue((oldValue) => {
-          const newValue = oldValue + 1;
-          if (newValue >= 100) {
-            clearInterval(timer);
-            return 100;
-          }
-          return newValue;
-        });
-      }, 300);
-      
-      return () => {
-        clearInterval(timer);
-      };
-    }
-  }, [request?.status]);
   
   if (isLoading || !dataLoaded) {
     return (
@@ -114,6 +93,9 @@ const RequestDetail: React.FC = () => {
                 <CardTitle className="text-2xl flex items-center">
                   <Sparkles className="mr-3 h-5 w-5 text-amber-500" />
                   Предложения по запросу
+                  {request.status === 'pending' && (
+                    <Loader className="h-5 w-5 text-amber-500 animate-spin ml-3" />
+                  )}
                 </CardTitle>
                 <CardDescription>
                   Мы находим для вас лучшие предложения по запрошенной запчасти
@@ -122,17 +104,8 @@ const RequestDetail: React.FC = () => {
               
               <CardContent className="space-y-6">
                 {request.status === 'pending' ? (
-                  <div className="text-center py-8 space-y-4">
-                    <div className="flex justify-center mb-4">
-                      <Loader className="h-10 w-10 text-amber-500 animate-spin" />
-                    </div>
-                    <p className="text-muted-foreground mb-2">
-                      Поиск предложений...
-                    </p>
-                    <div className="w-full max-w-md mx-auto">
-                      <Progress value={progressValue} className="h-2 bg-amber-100" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">
                       В настоящее время мы ищем для вас лучшие предложения
                     </p>
                   </div>
