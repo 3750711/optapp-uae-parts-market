@@ -1,8 +1,9 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
-import { Search, X, Filter } from "lucide-react";
+import { Search, X, Filter, Clock, ShoppingBag, Award, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Database } from "@/integrations/supabase/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -214,7 +215,7 @@ const Catalog = () => {
 
   const handleClearSearch = () => {
     setSearchQuery("");
-    setSelectedBrand(null);
+    selectBrand(null); // This was the error - using selectBrand instead of setSelectedBrand
     setSelectedModel(null);
     setHasSearched(false);
   };
