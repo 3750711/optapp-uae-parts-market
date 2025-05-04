@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -119,13 +120,12 @@ const RequestDetail: React.FC = () => {
                   </div>
                 </div>
                 <Badge variant={
-                  request.status === 'pending' ? 'outline' : 
                   request.status === 'processing' ? 'secondary' : 
-                  request.status === 'completed' ? 'success' : 'outline'
+                  request.status === 'completed' ? 'success' : 'secondary'
                 }>
-                  {request.status === 'pending' && 'В ожидании'}
-                  {request.status === 'processing' && 'В обработке'}
-                  {request.status === 'completed' && 'Завершен'}
+                  {request.status === 'pending' && 'В работе'}
+                  {request.status === 'processing' && 'В работе'}
+                  {request.status === 'completed' && 'Выполнен'}
                 </Badge>
               </div>
             </CardHeader>

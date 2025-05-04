@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
@@ -41,10 +40,10 @@ const Requests: React.FC = () => {
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'pending': return 'outline';
+      case 'pending': return 'secondary';
       case 'processing': return 'secondary';
       case 'completed': return 'success';
-      default: return 'outline';
+      default: return 'secondary';
     }
   };
 
@@ -144,9 +143,9 @@ const Requests: React.FC = () => {
                   </CardTitle>
                   <div className="flex justify-between items-center">
                     <Badge variant={getStatusBadgeVariant(request.status)}>
-                      {request.status === 'pending' && 'В ожидании'}
-                      {request.status === 'processing' && 'В обработке'}
-                      {request.status === 'completed' && 'Завершен'}
+                      {request.status === 'pending' && 'В работе'}
+                      {request.status === 'processing' && 'В работе'}
+                      {request.status === 'completed' && 'Выполнен'}
                     </Badge>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <CalendarClock className="w-3 h-3 mr-1" />
