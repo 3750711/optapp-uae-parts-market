@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, Tag, FileText, Check, MessageSquare, Send, Sparkles, Loader } from 'lucide-react';
+import { CalendarClock, Tag, FileText, Check, MessageSquare, Send, Sparkles, Loader, Database } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,6 +13,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import RequestProcessing from '@/components/request/RequestProcessing';
 import { Progress } from "@/components/ui/progress";
+import ProductCard from '@/components/product/ProductCard';
+import ProductGrid from '@/components/product/ProductGrid';
+import RequestStatusBadge from '@/components/request/RequestStatusBadge';
 
 const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,6 +25,7 @@ const RequestDetail: React.FC = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showResponseOptions, setShowResponseOptions] = useState(false);
   
+  // Fetch request details
   const { data: request, isLoading } = useQuery({
     queryKey: ['request', id],
     queryFn: async () => {
@@ -42,6 +46,85 @@ const RequestDetail: React.FC = () => {
       return data;
     },
     enabled: !!id
+  });
+  
+  // Fetch matching catalog products based on title, brand and model
+  const { data: catalogMatches = [], isLoading: isLoadingCatalog } = useQuery({
+    queryKey: ['catalog-matches', request?.title, request?.brand, request?.model],
+    queryFn: async () => {
+      // Only search if we have a title at minimum
+      if (!request?.title) return [];
+      
+      console.log("Searching catalog for matches with:", {
+        title: request.title,
+        brand: request.brand,
+        model: request.model
+      });
+      
+      let query = supabase
+        .from('products')
+        .select('*, product_images(url, is_primary), profiles:seller_id(*)')
+        .ilike('title', `%${request.title}%`)
+        .in('status', ['active', 'sold']);
+      
+      // Add brand filter if available
+      if (request.brand) {
+        query = query.ilike('brand', `%${request.brand}%`);
+      }
+      
+      // Add model filter if available
+      if (request.model) {
+        query = query.ilike('model', `%${request.model}%`);
+      }
+      
+      const { data, error } = await query.limit(4);
+      
+      if (error) {
+        console.error("Error fetching catalog matches:", error);
+        throw error;
+      }
+      
+      console.log("Found catalog matches:", data?.length || 0);
+      return data || [];
+    },
+    enabled: !!request?.title && showResponseOptions,
+  });
+
+  // Map products to the format expected by ProductCard
+  const mappedProducts = catalogMatches.map(product => {
+    let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
+    if (product.product_images && product.product_images.length > 0) {
+      const primaryImage = product.product_images.find(img => img.is_primary);
+      if (primaryImage) {
+        imageUrl = primaryImage.url;
+      } else if (product.product_images[0]) {
+        imageUrl = product.product_images[0].url;
+      }
+    }
+    
+    const sellerLocation = product.profiles?.location || product.location || "Dubai";
+    
+    return {
+      id: product.id,
+      name: product.title,
+      price: Number(product.price),
+      image: imageUrl,
+      condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
+      location: sellerLocation,
+      seller_opt_id: product.profiles?.opt_id,
+      seller_rating: product.profiles?.rating,
+      optid_created: product.optid_created,
+      rating_seller: product.rating_seller,
+      brand: product.brand,
+      model: product.model,
+      seller_name: product.seller_name,
+      status: product.status,
+      seller_id: product.seller_id,
+      seller_verification: product.profiles?.verification_status,
+      seller_opt_status: product.profiles?.opt_status,
+      created_at: product.created_at,
+      delivery_price: product.delivery_price
+    };
   });
   
   if (isLoading || !dataLoaded) {
@@ -102,7 +185,7 @@ const RequestDetail: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8">
                 {request.status === 'pending' ? (
                   <div className="text-center py-8">
                     <p className="text-muted-foreground">
@@ -110,11 +193,41 @@ const RequestDetail: React.FC = () => {
                     </p>
                   </div>
                 ) : (
-                  <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
-                    <p className="text-muted-foreground">
-                      Ожидайте предложения от продавцов в ближайшее время
-                    </p>
-                  </div>
+                  <>
+                    {/* Catalog matches section */}
+                    {mappedProducts.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <Database className="h-5 w-5 text-amber-500" />
+                          <h3 className="text-lg font-medium">Найдено в каталоге</h3>
+                          <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
+                            Точное совпадение
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {mappedProducts.map((product) => (
+                            <ProductCard key={product.id} {...product} />
+                          ))}
+                        </div>
+                        {mappedProducts.length > 2 && (
+                          <div className="text-center mt-4">
+                            <Button variant="outline" onClick={() => navigate('/catalog')}>
+                              Смотреть все предложения в каталоге
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Show this if no catalog matches and not in pending state */}
+                    {mappedProducts.length === 0 && request.status !== 'pending' && (
+                      <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
+                        <p className="text-muted-foreground">
+                          Ожидайте предложения от продавцов в ближайшее время
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -131,14 +244,7 @@ const RequestDetail: React.FC = () => {
                     {new Date(request.created_at).toLocaleDateString('ru-RU')}
                   </div>
                 </div>
-                <Badge variant={
-                  request.status === 'processing' ? 'secondary' : 
-                  request.status === 'completed' ? 'success' : 'secondary'
-                }>
-                  {request.status === 'pending' && 'В работе'}
-                  {request.status === 'processing' && 'В работе'}
-                  {request.status === 'completed' && 'Выполнен'}
-                </Badge>
+                <RequestStatusBadge status={request.status} />
               </div>
             </CardHeader>
             
