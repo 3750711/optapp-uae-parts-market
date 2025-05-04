@@ -11,6 +11,7 @@ import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import RequestMatchCount from '@/components/request/RequestMatchCount';
+import RequestResponseDialog from '@/components/request/RequestResponseDialog';
 
 interface Request {
   id: string;
@@ -31,6 +32,10 @@ const Requests: React.FC = () => {
   
   // State to track requests the user has marked as "Don't have"
   const [hiddenRequestIds, setHiddenRequestIds] = useState<string[]>([]);
+  
+  // State for the response dialog
+  const [responseDialogOpen, setResponseDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
   
   // Fetch user's request responses from the database
   const { data: userResponses } = useQuery({
@@ -76,8 +81,9 @@ const Requests: React.FC = () => {
   });
 
   // Handler for "У меня есть" button
-  const handleIHave = (requestId: string) => {
-    navigate(`/requests/${requestId}`);
+  const handleIHave = (request: Request) => {
+    setSelectedRequest(request);
+    setResponseDialogOpen(true);
   };
   
   // Handler for "Нету" button
@@ -214,7 +220,7 @@ const Requests: React.FC = () => {
                   <Button 
                     variant="outline" 
                     className="flex-1 border-green-500 hover:bg-green-500 hover:text-white transition-all"
-                    onClick={() => handleIHave(request.id)}
+                    onClick={() => handleIHave(request)}
                   >
                     <Check className="mr-1 h-4 w-4" />
                     У меня есть
@@ -256,6 +262,17 @@ const Requests: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {/* Response Dialog */}
+      {selectedRequest && (
+        <RequestResponseDialog 
+          open={responseDialogOpen}
+          onOpenChange={setResponseDialogOpen}
+          requestId={selectedRequest.id}
+          requestTitle={selectedRequest.title}
+          userId={profile?.id || ''}
+        />
+      )}
     </Layout>
   );
 };
