@@ -48,7 +48,7 @@ const RequestDetail: React.FC = () => {
     enabled: !!id
   });
   
-  // Fetch matching catalog products based on title, brand and model with exact matching
+  // Fetch matching catalog products with improved matching logic
   const { data: catalogMatches = [], isLoading: isLoadingCatalog } = useQuery({
     queryKey: ['catalog-matches', request?.title, request?.brand, request?.model],
     queryFn: async () => {
@@ -61,63 +61,81 @@ const RequestDetail: React.FC = () => {
         model: request.model
       });
       
-      let query = supabase
+      // Prepare the values for comparison - normalize text by trimming and converting to lowercase
+      const normalizedTitle = request.title.trim().toLowerCase();
+      const normalizedBrand = request.brand ? request.brand.trim().toLowerCase() : null;
+      const normalizedModel = request.model ? request.model.trim().toLowerCase() : null;
+      
+      // Get active and sold products
+      let { data, error } = await supabase
         .from('products')
         .select('*, product_images(url, is_primary), profiles:seller_id(*)')
         .in('status', ['active', 'sold']);
       
-      // Use exact matching for title (case-insensitive)
-      query = query.ilike('title', `%${request.title.trim()}%`);
-      
-      // Add brand filter if available with exact matching
-      if (request.brand) {
-        query = query.ilike('brand', `%${request.brand.trim()}%`);
-      }
-      
-      // Add model filter if available with exact matching
-      if (request.model) {
-        query = query.ilike('model', `%${request.model.trim()}%`);
-      }
-      
-      const { data, error } = await query.limit(4);
-      
       if (error) {
-        console.error("Error fetching catalog matches:", error);
+        console.error("Error fetching catalog products:", error);
         throw error;
       }
       
-      console.log("Found catalog matches:", data?.length || 0);
+      console.log("Found total catalog products:", data?.length || 0);
       
-      // Sort the matches based on exact matching criteria
-      const sortedMatches = data ? data.sort((a, b) => {
-        // Calculate match score for each product
-        const getMatchScore = (product) => {
-          let score = 0;
-          
-          // Exact title match gets highest score
-          if (product.title.toLowerCase() === request.title.toLowerCase()) {
-            score += 10;
-          }
-          
-          // Brand match
-          if (request.brand && product.brand && 
-              product.brand.toLowerCase() === request.brand.toLowerCase()) {
-            score += 5;
-          }
-          
-          // Model match
-          if (request.model && product.model && 
-              product.model.toLowerCase() === request.model.toLowerCase()) {
-            score += 5;
-          }
-          
-          return score;
-        };
+      // Filter and score products client-side for more precise matching
+      let scoredProducts = data ? data.map(product => {
+        const productTitle = (product.title || "").trim().toLowerCase();
+        const productBrand = (product.brand || "").trim().toLowerCase();
+        const productModel = (product.model || "").trim().toLowerCase();
         
-        return getMatchScore(b) - getMatchScore(a);
+        // Calculate match score for each product
+        let score = 0;
+        
+        // Check if the title contains the search term or vice versa
+        if (productTitle.includes(normalizedTitle) || normalizedTitle.includes(productTitle)) {
+          score += 5;
+          // Exact title match gets higher score
+          if (productTitle === normalizedTitle) {
+            score += 5;
+          }
+        }
+        
+        // Check brand match if brand is provided
+        if (normalizedBrand && productBrand) {
+          if (productBrand.includes(normalizedBrand) || normalizedBrand.includes(productBrand)) {
+            score += 3;
+            // Exact brand match gets higher score
+            if (productBrand === normalizedBrand) {
+              score += 2;
+            }
+          }
+        }
+        
+        // Check model match if model is provided
+        if (normalizedModel && productModel) {
+          if (productModel.includes(normalizedModel) || normalizedModel.includes(productModel)) {
+            score += 3;
+            // Exact model match gets higher score
+            if (productModel === normalizedModel) {
+              score += 2;
+            }
+          }
+        }
+        
+        return { ...product, matchScore: score };
       }) : [];
       
-      return sortedMatches || [];
+      // Filter out non-matching products (score 0) and sort by score
+      scoredProducts = scoredProducts.filter(product => product.matchScore > 0);
+      scoredProducts.sort((a, b) => b.matchScore - a.matchScore);
+      
+      console.log("Found matching products after scoring:", scoredProducts.length);
+      console.log("Top matches:", scoredProducts.slice(0, 4).map(p => ({
+        title: p.title,
+        brand: p.brand,
+        model: p.model,
+        score: p.matchScore
+      })));
+      
+      // Return top 4 matches
+      return scoredProducts.slice(0, 4);
     },
     enabled: !!request?.title && showResponseOptions,
   });
