@@ -532,6 +532,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          images: string[] | null
+          price: number | null
           request_id: string
           response_type: string
           user_id: string
@@ -539,6 +541,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          images?: string[] | null
+          price?: number | null
           request_id: string
           response_type: string
           user_id: string
@@ -546,6 +550,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          images?: string[] | null
+          price?: number | null
           request_id?: string
           response_type?: string
           user_id?: string
