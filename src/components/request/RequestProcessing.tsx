@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ProgressSteps } from './ProgressSteps';
-import { Check, Send, MessageSquare } from 'lucide-react';
+import { Check, Send, MessageSquare, CheckCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,14 @@ const PROCESSING_STEPS = [
     title: 'Передаем запрос нашим специалистам для расширенного поиска',
     description: 'Эксперты проводят дополнительный анализ для поиска лучших вариантов',
   },
+];
+
+const COMPLETION_STEPS = [
+  'Мы отправили ваш запрос всем продавцам',
+  'Мы отправили запрос всем магазинам',
+  'Мы отправили ваш запрос профессиональным подборщикам',
+  'Мы подбираем магазины где могут быть ваши запчасти',
+  'Наши специалисты работают по вашему запросу, пытаются вручную найти нужную вам запчасть'
 ];
 
 interface RequestProcessingProps {
@@ -178,10 +186,24 @@ const RequestProcessing: React.FC<RequestProcessingProps> = ({
                 <Check className="h-10 w-10 text-green-500" />
               </div>
               <h2 className="text-2xl font-bold text-center mb-2">Ваш запрос отправлен!</h2>
-              <p className="text-muted-foreground text-center max-w-md">
+              <p className="text-muted-foreground text-center max-w-md mb-6">
                 Еще чуть-чуть и вы начнете получать предложения. 
                 {!user && "Пожалуйста, оставьте контактную информацию, чтобы мы могли отправить вам лучшие варианты."}
               </p>
+              
+              {/* Checklist with checkmarks */}
+              <div className="w-full max-w-md bg-green-50 rounded-lg p-4 border border-green-100">
+                <ul className="space-y-3">
+                  {COMPLETION_STEPS.map((step, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <div className="mt-0.5 text-green-600">
+                        <CheckCircle className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm">{step}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
             
             {/* Only show contact form if user is not authenticated */}
