@@ -32,13 +32,34 @@ const Requests: React.FC = () => {
   // State to track requests the user has marked as "Don't have"
   const [hiddenRequestIds, setHiddenRequestIds] = useState<string[]>([]);
   
-  // Load hidden requests from local storage on component mount
+  // Fetch user's request responses from the database
+  const { data: userResponses } = useQuery({
+    queryKey: ['userRequestResponses'],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('request_answers')
+        .select('*')
+        .eq('user_id', profile.id)
+        .eq('response_type', 'dont_have');
+        
+      if (error) {
+        console.error('Error fetching user request responses:', error);
+        return [];
+      }
+      return data || [];
+    },
+    enabled: !!profile?.id
+  });
+  
+  // Update hidden request IDs when userResponses change
   useEffect(() => {
-    const storedHiddenRequests = localStorage.getItem('hiddenRequests');
-    if (storedHiddenRequests) {
-      setHiddenRequestIds(JSON.parse(storedHiddenRequests));
+    if (userResponses) {
+      const dontHaveIds = userResponses.map(response => response.request_id);
+      setHiddenRequestIds(dontHaveIds);
     }
-  }, []);
+  }, [userResponses]);
   
   const { data: requests, isLoading } = useQuery({
     queryKey: ['requests'],
@@ -60,13 +81,32 @@ const Requests: React.FC = () => {
   };
   
   // Handler for "Нету" button
-  const handleDontHave = (requestId: string) => {
-    // Add the request ID to the list of hidden requests
-    const updatedHiddenRequests = [...hiddenRequestIds, requestId];
-    setHiddenRequestIds(updatedHiddenRequests);
+  const handleDontHave = async (requestId: string) => {
+    if (!profile?.id) return;
     
-    // Store the updated hidden requests in local storage
-    localStorage.setItem('hiddenRequests', JSON.stringify(updatedHiddenRequests));
+    try {
+      // Store the response in the database
+      const { error } = await supabase
+        .from('request_answers')
+        .upsert([
+          {
+            user_id: profile.id,
+            request_id: requestId,
+            response_type: 'dont_have'
+          }
+        ], { onConflict: 'user_id,request_id' });
+        
+      if (error) {
+        console.error('Error saving response:', error);
+        return;
+      }
+      
+      // Update local state to hide the request immediately
+      setHiddenRequestIds(prev => [...prev, requestId]);
+      
+    } catch (error) {
+      console.error('Error in handleDontHave:', error);
+    }
   };
 
   // Filter out hidden requests from the displayed list

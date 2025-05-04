@@ -528,6 +528,45 @@ export type Database = {
         }
         Relationships: []
       }
+      request_answers: {
+        Row: {
+          created_at: string
+          id: string
+          request_id: string
+          response_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          request_id: string
+          response_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          request_id?: string
+          response_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "request_answers_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "request_answers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       requests: {
         Row: {
           brand: string | null
