@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
@@ -6,9 +7,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award } from 'lucide-react';
+import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award, Tag } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import RequestMatchCount from '@/components/request/RequestMatchCount';
 
 interface Request {
   id: string;
@@ -18,6 +20,9 @@ interface Request {
   status: 'pending' | 'processing' | 'completed';
   user_id: string;
   user_name: string;
+  brand?: string;
+  model?: string;
+  vin?: string;
 }
 
 const Requests: React.FC = () => {
@@ -154,9 +159,27 @@ const Requests: React.FC = () => {
                   </div>
                 </CardHeader>
                 <CardContent className="flex-grow">
+                  {(request.brand || request.model) && (
+                    <div className="flex items-center gap-1.5 mb-2 text-sm text-muted-foreground">
+                      <Tag className="h-3.5 w-3.5" />
+                      <span>
+                        {request.brand || ""} {request.model ? request.model : ""}
+                      </span>
+                    </div>
+                  )}
+                  
                   <CardDescription className="line-clamp-3 mb-2">
                     {request.description}
                   </CardDescription>
+                  
+                  {/* Display count of matching products */}
+                  <div className="mt-2">
+                    <RequestMatchCount 
+                      requestTitle={request.title} 
+                      requestBrand={request.brand} 
+                      requestModel={request.model} 
+                    />
+                  </div>
                 </CardContent>
                 <CardFooter>
                   <Button 
