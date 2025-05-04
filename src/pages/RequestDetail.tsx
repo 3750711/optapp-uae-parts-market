@@ -48,7 +48,7 @@ const RequestDetail: React.FC = () => {
     enabled: !!id
   });
   
-  // Fetch matching catalog products with improved matching logic
+  // Fetch matching catalog products with improved matching logic for title, brand, and model
   const { data: catalogMatches = [], isLoading: isLoadingCatalog } = useQuery({
     queryKey: ['catalog-matches', request?.title, request?.brand, request?.model],
     queryFn: async () => {
@@ -66,18 +66,18 @@ const RequestDetail: React.FC = () => {
       const normalizedBrand = request.brand ? request.brand.trim().toLowerCase() : null;
       const normalizedModel = request.model ? request.model.trim().toLowerCase() : null;
       
-      // Get active and sold products
+      // Get all active products
       let { data, error } = await supabase
         .from('products')
         .select('*, product_images(url, is_primary), profiles:seller_id(*)')
-        .in('status', ['active', 'sold']);
+        .eq('status', 'active');
       
       if (error) {
         console.error("Error fetching catalog products:", error);
         throw error;
       }
       
-      console.log("Found total catalog products:", data?.length || 0);
+      console.log("Found total active catalog products:", data?.length || 0);
       
       // Filter and score products client-side for more precise matching
       let scoredProducts = data ? data.map(product => {
@@ -87,8 +87,10 @@ const RequestDetail: React.FC = () => {
         
         // Calculate match score for each product
         let score = 0;
+        let brandExactMatch = false;
+        let modelExactMatch = false;
         
-        // Check if the title contains the search term or vice versa
+        // Check title match (partial match is acceptable)
         if (productTitle.includes(normalizedTitle) || normalizedTitle.includes(productTitle)) {
           score += 5;
           // Exact title match gets higher score
@@ -97,26 +99,32 @@ const RequestDetail: React.FC = () => {
           }
         }
         
-        // Check brand match if brand is provided
+        // Check brand match - must be exact
         if (normalizedBrand && productBrand) {
-          if (productBrand.includes(normalizedBrand) || normalizedBrand.includes(productBrand)) {
+          if (productBrand === normalizedBrand) {
+            score += 10;
+            brandExactMatch = true;
+          } else if (productBrand.includes(normalizedBrand) || normalizedBrand.includes(productBrand)) {
+            // Partial brand match gets lower score
             score += 3;
-            // Exact brand match gets higher score
-            if (productBrand === normalizedBrand) {
-              score += 2;
-            }
           }
         }
         
-        // Check model match if model is provided
+        // Check model match - must be exact 
         if (normalizedModel && productModel) {
-          if (productModel.includes(normalizedModel) || normalizedModel.includes(productModel)) {
+          if (productModel === normalizedModel) {
+            score += 10;
+            modelExactMatch = true;
+          } else if (productModel.includes(normalizedModel) || normalizedModel.includes(productModel)) {
+            // Partial model match gets lower score
             score += 3;
-            // Exact model match gets higher score
-            if (productModel === normalizedModel) {
-              score += 2;
-            }
           }
+        }
+        
+        // If either brand or model don't match exactly when they exist in the request, 
+        // significantly reduce score (but don't eliminate completely)
+        if ((normalizedBrand && !brandExactMatch) || (normalizedModel && !modelExactMatch)) {
+          score = Math.max(score - 7, 0); // Ensure score doesn't go below 0
         }
         
         return { ...product, matchScore: score };
@@ -173,7 +181,8 @@ const RequestDetail: React.FC = () => {
       seller_verification: product.profiles?.verification_status,
       seller_opt_status: product.profiles?.opt_status,
       created_at: product.created_at,
-      delivery_price: product.delivery_price
+      delivery_price: product.delivery_price,
+      matchScore: product.matchScore
     };
   });
   
