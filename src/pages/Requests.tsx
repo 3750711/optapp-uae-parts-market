@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Layout from '@/components/layout/Layout';
 import { useQuery } from '@tanstack/react-query';
@@ -6,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award, Tag } from 'lucide-react';
+import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award, Tag, Check, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import RequestMatchCount from '@/components/request/RequestMatchCount';
@@ -41,6 +42,17 @@ const Requests: React.FC = () => {
     },
     enabled: !!profile
   });
+
+  // Handler for "У меня есть" button
+  const handleIHave = (requestId: string) => {
+    navigate(`/requests/${requestId}`);
+  };
+  
+  // Handler for "Нету" button
+  const handleDontHave = (requestId: string) => {
+    // Just navigate to next request or show feedback that user doesn't have this part
+    navigate('/requests');
+  };
 
   const getStatusBadgeVariant = (status: string) => {
     switch (status) {
@@ -95,7 +107,10 @@ const Requests: React.FC = () => {
               <Card 
                 key={request.id} 
                 className="overflow-hidden h-full flex flex-col border group hover:shadow-lg transition-all duration-200 hover:-translate-y-1 animate-fade-in cursor-pointer"
-                onClick={() => navigate(`/requests/${request.id}`)}
+                onClick={(e) => {
+                  // Prevent navigation when clicking on the card if the click target is not a button
+                  e.stopPropagation();
+                }}
               >
                 <div className="h-1 w-full bg-gradient-to-r from-blue-500 to-purple-500"></div>
                 <CardHeader>
@@ -137,12 +152,22 @@ const Requests: React.FC = () => {
                     />
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex justify-between gap-2 flex-col sm:flex-row">
                   <Button 
                     variant="outline" 
-                    className="w-full transition-all hover:bg-primary hover:text-primary-foreground"
+                    className="flex-1 border-green-500 hover:bg-green-500 hover:text-white transition-all"
+                    onClick={() => handleIHave(request.id)}
                   >
-                    Подробнее
+                    <Check className="mr-1 h-4 w-4" />
+                    У меня есть
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 border-red-500 hover:bg-red-500 hover:text-white transition-all"
+                    onClick={() => handleDontHave(request.id)}
+                  >
+                    <X className="mr-1 h-4 w-4" />
+                    Нету
                   </Button>
                 </CardFooter>
               </Card>
