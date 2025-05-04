@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, Tag, Vin } from 'lucide-react';
+import { CalendarClock, Tag, FileText } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import RequestProcessing from '@/components/request/RequestProcessing';
 
@@ -102,7 +102,7 @@ const RequestDetailDialog: React.FC<RequestDetailDialogProps> = ({
               
               {request.vin && (
                 <div className="flex items-center gap-2 text-sm">
-                  <Vin className="h-4 w-4" />
+                  <FileText className="h-4 w-4" />
                   <span className="font-medium">VIN: {request.vin}</span>
                 </div>
               )}

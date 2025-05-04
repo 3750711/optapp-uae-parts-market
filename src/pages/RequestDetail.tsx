@@ -4,7 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CalendarClock, Tag, Vin } from 'lucide-react';
+import { CalendarClock, Tag, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -120,7 +120,7 @@ const RequestDetail: React.FC = () => {
               
               {request.vin && (
                 <div className="flex items-center gap-2">
-                  <Vin className="h-4 w-4" />
+                  <FileText className="h-4 w-4" />
                   <span className="font-medium">VIN: {request.vin}</span>
                 </div>
               )}
