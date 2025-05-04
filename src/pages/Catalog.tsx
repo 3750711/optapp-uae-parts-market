@@ -11,17 +11,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Link } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
 const Catalog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [hasSearched, setHasSearched] = useState(false); // New state to track if user has completed a search
+  const [hasSearched, setHasSearched] = useState(false);
   const productsPerPage = 8;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -80,6 +82,43 @@ const Catalog = () => {
     },
     initialPageParam: 0
   });
+
+  // Subscribe to real-time product insertions for debugging
+  useEffect(() => {
+    const channel = supabase
+      .channel('catalog-debug')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'products',
+        },
+        (payload) => {
+          const newProduct = payload.new as any;
+          console.log("Catalog detected new product insertion:", {
+            id: newProduct.id,
+            title: newProduct.title,
+            brand: newProduct.brand,
+            model: newProduct.model,
+            status: newProduct.status
+          });
+          
+          toast({
+            title: "Новый товар добавлен",
+            description: `Добавлен товар: ${newProduct.title}`,
+          });
+          
+          // Refresh the query to include the new product
+          refetch();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [refetch, toast]);
 
   useEffect(() => {
     refetch();
@@ -181,7 +220,7 @@ const Catalog = () => {
                 <div className="p-1.5 bg-white/20 rounded-full">
                   <ShoppingBag className="h-4 w-4 text-amber-200" />
                 </div>
-                <p className="text-sm">Огромный выбор ��апчастей</p>
+                <p className="text-sm">Огромный выбор запчастей</p>
               </div>
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-white/20 rounded-full">

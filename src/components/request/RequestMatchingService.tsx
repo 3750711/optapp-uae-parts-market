@@ -25,6 +25,13 @@ export const RequestMatchingService = ({
   useEffect(() => {
     if (!requestId || !requestTitle) return;
     
+    console.log("RequestMatchingService initialized with:", {
+      requestId,
+      requestTitle,
+      requestBrand,
+      requestModel
+    });
+    
     // Subscribe to real-time updates for new product insertions
     const channel = supabase
       .channel('request-matching')
@@ -39,7 +46,17 @@ export const RequestMatchingService = ({
           // Get the newly added product
           const newProduct = payload.new as any;
           
-          if (!newProduct || newProduct.status !== 'active') return;
+          if (!newProduct || newProduct.status !== 'active') {
+            console.log("Product skipped - not active:", newProduct?.status);
+            return;
+          }
+          
+          console.log("New product detected:", {
+            title: newProduct.title,
+            brand: newProduct.brand,
+            model: newProduct.model,
+            status: newProduct.status
+          });
           
           // Check for match with current request
           const isMatch = checkProductMatch(
@@ -50,6 +67,11 @@ export const RequestMatchingService = ({
           );
           
           if (isMatch) {
+            console.log("Match found for request!", {
+              productTitle: newProduct.title,
+              requestTitle
+            });
+            
             toast({
               title: "Найдено новое предложение!",
               description: `Новое предложение "${newProduct.title}" соответствует вашему запросу`,
@@ -60,6 +82,15 @@ export const RequestMatchingService = ({
             // This is a simple approach - in a more complex app, you might want to use
             // queryClient.invalidateQueries instead
             window.location.reload();
+          } else {
+            console.log("No match for request", {
+              productTitle: newProduct.title,
+              requestTitle,
+              productBrand: newProduct.brand,
+              requestBrand,
+              productModel: newProduct.model,
+              requestModel
+            });
           }
         }
       )
@@ -76,7 +107,7 @@ export const RequestMatchingService = ({
 };
 
 /**
- * Check if a product matches the request criteria
+ * Check if a product matches the request criteria with enhanced logic
  */
 function checkProductMatch(
   product: any, 
@@ -97,17 +128,35 @@ function checkProductMatch(
 
   // Check title match (partial match is acceptable)
   const titleMatch = normalizedProductTitle.includes(normalizedRequestTitle) || 
-                    normalizedRequestTitle.includes(normalizedProductTitle);
+                     normalizedRequestTitle.includes(normalizedProductTitle);
   
-  // Brand and model must match exactly if they exist in the request
-  const brandMatch = normalizedRequestBrand ? 
-                     normalizedProductBrand === normalizedRequestBrand : true;
+  // Brand match - check for exact match first, then partial match if no exact match
+  let brandMatch = true; // Default to true if no brand specified
+  if (normalizedRequestBrand) {
+    brandMatch = normalizedProductBrand === normalizedRequestBrand || 
+                normalizedProductBrand.includes(normalizedRequestBrand) || 
+                normalizedRequestBrand.includes(normalizedProductBrand);
+  }
   
-  const modelMatch = normalizedRequestModel ? 
-                     normalizedProductModel === normalizedRequestModel : true;
+  // Model match - check for exact match first, then partial match if no exact match
+  let modelMatch = true; // Default to true if no model specified
+  if (normalizedRequestModel) {
+    modelMatch = normalizedProductModel === normalizedRequestModel || 
+                normalizedProductModel.includes(normalizedRequestModel) || 
+                normalizedRequestModel.includes(normalizedProductModel);
+  }
 
-  // Title must match partially, brand and model must match exactly if specified
-  return titleMatch && brandMatch && modelMatch;
+  // Must match on all criteria
+  const isMatch = titleMatch && brandMatch && modelMatch;
+  
+  console.log("Match check:", { 
+    titleMatch, 
+    brandMatch, 
+    modelMatch,
+    result: isMatch
+  });
+
+  return isMatch;
 }
 
 export default RequestMatchingService;

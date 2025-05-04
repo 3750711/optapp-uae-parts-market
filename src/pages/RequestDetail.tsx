@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -62,13 +61,8 @@ const RequestDetail: React.FC = () => {
         model: request.model
       });
       
-      // Prepare the values for comparison - normalize text by trimming and converting to lowercase
-      const normalizedTitle = request.title.trim().toLowerCase();
-      const normalizedBrand = request.brand ? request.brand.trim().toLowerCase() : null;
-      const normalizedModel = request.model ? request.model.trim().toLowerCase() : null;
-      
       // Get all active products
-      let { data, error } = await supabase
+      let { data: allProducts, error } = await supabase
         .from('products')
         .select('*, product_images(url, is_primary), profiles:seller_id(*)')
         .eq('status', 'active');
@@ -78,61 +72,74 @@ const RequestDetail: React.FC = () => {
         throw error;
       }
       
-      console.log("Found total active catalog products:", data?.length || 0);
+      if (!allProducts || allProducts.length === 0) {
+        console.log("No active products found in catalog");
+        return [];
+      }
+      
+      console.log(`Found total active catalog products: ${allProducts.length || 0}`);
+      
+      // Prepare the values for comparison - normalize text by trimming and converting to lowercase
+      const normalizedTitle = request.title?.trim().toLowerCase() || "";
+      const normalizedBrand = request.brand?.trim().toLowerCase() || "";
+      const normalizedModel = request.model?.trim().toLowerCase() || "";
       
       // Filter and score products client-side for more precise matching
-      let scoredProducts = data ? data.map(product => {
+      let scoredProducts = allProducts.map(product => {
         const productTitle = (product.title || "").trim().toLowerCase();
         const productBrand = (product.brand || "").trim().toLowerCase();
         const productModel = (product.model || "").trim().toLowerCase();
         
         // Calculate match score for each product
         let score = 0;
-        let brandExactMatch = false;
-        let modelExactMatch = false;
         
-        // Check title match (partial match is acceptable)
+        // Title match (partial match is acceptable)
+        // Both ways check - if product title contains request title OR vice versa
         if (productTitle.includes(normalizedTitle) || normalizedTitle.includes(productTitle)) {
           score += 5;
-          // Exact title match gets higher score
           if (productTitle === normalizedTitle) {
-            score += 5;
+            score += 5; // Extra points for exact title match
           }
         }
         
-        // Check brand match - must be exact
-        if (normalizedBrand && productBrand) {
+        // Brand match with more flexibility
+        if (normalizedBrand) {
+          // Exact brand match gets highest score
           if (productBrand === normalizedBrand) {
             score += 10;
-            brandExactMatch = true;
-          } else if (productBrand.includes(normalizedBrand) || normalizedBrand.includes(productBrand)) {
-            // Partial brand match gets lower score
+          }
+          // Partial brand matches get lower score (both ways)
+          else if (productBrand.includes(normalizedBrand) || normalizedBrand.includes(productBrand)) {
             score += 3;
+          } 
+          // No brand match significantly reduces the overall score
+          else {
+            score = Math.max(score - 5, 0);
           }
         }
         
-        // Check model match - must be exact 
-        if (normalizedModel && productModel) {
+        // Model match with more flexibility
+        if (normalizedModel) {
+          // Exact model match gets highest score
           if (productModel === normalizedModel) {
             score += 10;
-            modelExactMatch = true;
-          } else if (productModel.includes(normalizedModel) || normalizedModel.includes(productModel)) {
-            // Partial model match gets lower score
+          }
+          // Partial model matches get lower score (both ways)
+          else if (productModel.includes(normalizedModel) || normalizedModel.includes(productModel)) {
             score += 3;
           }
-        }
-        
-        // If either brand or model don't match exactly when they exist in the request, 
-        // significantly reduce score (but don't eliminate completely)
-        if ((normalizedBrand && !brandExactMatch) || (normalizedModel && !modelExactMatch)) {
-          score = Math.max(score - 7, 0); // Ensure score doesn't go below 0
+          // No model match significantly reduces the overall score
+          else {
+            score = Math.max(score - 5, 0);
+          }
         }
         
         return { ...product, matchScore: score };
-      }) : [];
+      });
       
-      // Filter out non-matching products (score 0) and sort by score
-      scoredProducts = scoredProducts.filter(product => product.matchScore > 0);
+      // Filter out non-matching products (score below minimum threshold) and sort by score
+      const minimumScore = 5; // Adjust this threshold as needed
+      scoredProducts = scoredProducts.filter(product => product.matchScore >= minimumScore);
       scoredProducts.sort((a, b) => b.matchScore - a.matchScore);
       
       console.log("Found matching products after scoring:", scoredProducts.length);
@@ -143,7 +150,7 @@ const RequestDetail: React.FC = () => {
         score: p.matchScore
       })));
       
-      // Return top 4 matches
+      // Return top matches
       return scoredProducts.slice(0, 4);
     },
     enabled: !!request?.title && showResponseOptions,
@@ -266,7 +273,7 @@ const RequestDetail: React.FC = () => {
                 ) : (
                   <>
                     {/* Catalog matches section */}
-                    {mappedProducts.length > 0 && (
+                    {mappedProducts.length > 0 ? (
                       <div className="space-y-4">
                         <div className="flex items-center gap-2">
                           <Database className="h-5 w-5 text-amber-500" />
@@ -288,13 +295,13 @@ const RequestDetail: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    )}
-                    
-                    {/* Show this if no catalog matches and not in pending state */}
-                    {mappedProducts.length === 0 && request.status !== 'pending' && (
+                    ) : (
                       <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
                         <p className="text-muted-foreground">
                           Ожидайте предложения от продавцов в ближайшее время
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-2">
+                          Вы получите уведомление когда появится подходящее предложение
                         </p>
                       </div>
                     )}
