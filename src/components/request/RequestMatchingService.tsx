@@ -9,7 +9,6 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import ProductCard from '@/components/product/ProductCard';
 import RequestMatchCount from './RequestMatchCount';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface RequestMatchingServiceProps {
   requestId: string;
@@ -106,7 +105,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       
       console.log("Found exact matching products:", matchedProducts.length);
       
-      // Return top matches, limited to 8 for horizontal display
+      // Return top matches
       return matchedProducts.slice(0, 8);
     },
     enabled: !!requestTitle && showMatches,
@@ -177,7 +176,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       </CardHeader>
       
       <CardContent>
-        {/* Catalog matches section - single row horizontal layout */}
+        {/* Catalog matches section - vertical layout */}
         {mappedProducts.length > 0 ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -188,16 +187,14 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
               </Badge>
             </div>
 
-            {/* Horizontal scrollable container */}
-            <ScrollArea className="w-full whitespace-nowrap pb-4">
-              <div className="flex gap-4 pb-4">
-                {mappedProducts.map((product) => (
-                  <div key={product.id} className="flex-shrink-0 w-[220px]">
-                    <ProductCard {...product} />
-                  </div>
-                ))}
-              </div>
-            </ScrollArea>
+            {/* Vertical layout of products */}
+            <div className="grid grid-cols-1 gap-4">
+              {mappedProducts.map((product) => (
+                <div key={product.id}>
+                  <ProductCard {...product} />
+                </div>
+              ))}
+            </div>
 
             {mappedProducts.length > 3 && (
               <div className="text-center mt-4">
