@@ -74,79 +74,43 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       const normalizedBrand = requestBrand?.trim().toLowerCase() || "";
       const normalizedModel = requestModel?.trim().toLowerCase() || "";
       
-      // Filter and score products client-side for more precise matching
-      let scoredProducts = allProducts.map(product => {
-        const productTitle = (product.title || "").trim().toLowerCase();
+      // Filter for exact brand and model matches only
+      let matchedProducts = allProducts.filter(product => {
         const productBrand = (product.brand || "").trim().toLowerCase();
         const productModel = (product.model || "").trim().toLowerCase();
         
-        // Calculate match score for each product
-        let score = 0;
+        // For exact brand and model matching
+        const brandMatch = normalizedBrand && productBrand === normalizedBrand;
+        const modelMatch = normalizedModel && productModel === normalizedModel;
         
-        // Title match (partial match is acceptable)
-        // Both ways check - if product title contains request title OR vice versa
-        if (productTitle.includes(normalizedTitle) || normalizedTitle.includes(productTitle)) {
-          score += 5;
-          if (productTitle === normalizedTitle) {
-            score += 5; // Extra points for exact title match
-          }
+        // Must have exact brand and model match if both are provided
+        if (normalizedBrand && normalizedModel) {
+          return brandMatch && modelMatch;
+        } 
+        // If only brand is provided, match on brand
+        else if (normalizedBrand) {
+          return brandMatch;
         }
-        
-        // Brand match with more flexibility
-        if (normalizedBrand) {
-          // Exact brand match gets highest score
-          if (productBrand === normalizedBrand) {
-            score += 10;
-          }
-          // Partial brand matches get lower score (both ways)
-          else if (productBrand.includes(normalizedBrand) || normalizedBrand.includes(productBrand)) {
-            score += 3;
-          } 
-          // No brand match significantly reduces the overall score
-          else {
-            score = Math.max(score - 5, 0);
-          }
+        // If only model is provided, match on model
+        else if (normalizedModel) {
+          return modelMatch;
         }
-        
-        // Model match with more flexibility
-        if (normalizedModel) {
-          // Exact model match gets highest score
-          if (productModel === normalizedModel) {
-            score += 10;
-          }
-          // Partial model matches get lower score (both ways)
-          else if (productModel.includes(normalizedModel) || normalizedModel.includes(productModel)) {
-            score += 3;
-          }
-          // No model match significantly reduces the overall score
-          else {
-            score = Math.max(score - 5, 0);
-          }
+        // If neither provided, match on title
+        else {
+          return productBrand.includes(normalizedTitle) || 
+                productModel.includes(normalizedTitle) ||
+                product.title.toLowerCase().includes(normalizedTitle);
         }
-        
-        return { ...product, matchScore: score };
       });
       
-      // Filter out non-matching products (score below minimum threshold) and sort by score
-      const minimumScore = 5; // Adjust this threshold as needed
-      scoredProducts = scoredProducts.filter(product => product.matchScore >= minimumScore);
-      scoredProducts.sort((a, b) => b.matchScore - a.matchScore);
+      console.log("Found exact matching products:", matchedProducts.length);
       
-      console.log("Found matching products after scoring:", scoredProducts.length);
-      console.log("Top matches:", scoredProducts.slice(0, 4).map(p => ({
-        title: p.title,
-        brand: p.brand,
-        model: p.model,
-        score: p.matchScore
-      })));
-      
-      // Return top matches
-      return scoredProducts.slice(0, 4);
+      // Return top matches, limited to 8 for horizontal display
+      return matchedProducts.slice(0, 8);
     },
     enabled: !!requestTitle && showMatches,
-    // Reduce stale time and add refetch interval to check for new matching products
-    staleTime: 30000, // 30 seconds
-    refetchInterval: 60000, // Refetch every minute
+    staleTime: 30000,
+    refetchInterval: 60000,
   });
 
   // Map products to the format expected by ProductCard
@@ -183,7 +147,6 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
       seller_opt_status: product.profiles?.opt_status,
       created_at: product.created_at,
       delivery_price: product.delivery_price,
-      matchScore: product.matchScore
     };
   });
 
@@ -212,23 +175,30 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-8">
-        {/* Catalog matches section */}
+      <CardContent>
+        {/* Catalog matches section - horizontal layout */}
         {mappedProducts.length > 0 ? (
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-amber-500" />
-              <h3 className="text-lg font-medium">Найдено в каталоге</h3>
+              <h3 className="text-lg font-medium">Точные совпадения</h3>
               <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
-                {mappedProducts.some(p => p.matchScore >= 20) ? "Точное совпадение" : "Частичное совпадение"}
+                Найдено {mappedProducts.length}
               </Badge>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {mappedProducts.map((product) => (
-                <ProductCard key={product.id} {...product} />
-              ))}
+
+            {/* Horizontal scrollable container */}
+            <div className="relative">
+              <div className="flex overflow-x-auto pb-4 space-x-4 scrollbar-hide">
+                {mappedProducts.map((product) => (
+                  <div key={product.id} className="flex-shrink-0 w-[280px]">
+                    <ProductCard {...product} />
+                  </div>
+                ))}
+              </div>
             </div>
-            {mappedProducts.length > 2 && (
+
+            {mappedProducts.length > 3 && (
               <div className="text-center mt-4">
                 <Button variant="outline" onClick={() => navigate('/catalog')}>
                   Смотреть все предложения в каталоге
@@ -239,7 +209,7 @@ const RequestMatchingService: React.FC<RequestMatchingServiceProps> = ({
         ) : (
           <div className="text-center py-8 bg-muted/20 rounded-lg border border-dashed">
             <p className="text-muted-foreground">
-              Ожидайте предложения от продавцов в ближайшее время
+              Точных совпадений не найдено
             </p>
             <p className="text-xs text-muted-foreground/70 mt-2">
               Вы получите уведомление когда появится подходящее предложение

@@ -42,30 +42,18 @@ export const RequestMatchCount: React.FC<RequestMatchCountProps> = ({
           .select("id")
           .eq('status', 'active');
 
-        // Create search conditions array
-        const searchConditions = [];
-        
-        // Basic title search
-        searchConditions.push(`title.ilike.%${normalizedRequestTitle}%`);
-
-        // Split title into words for more flexible matching
-        const titleWords = normalizedRequestTitle.split(/\s+/).filter(word => word.length > 2);
-        titleWords.forEach(word => {
-          // For each significant word, add to search conditions
-          searchConditions.push(`title.ilike.%${word}%`);
-        });
-
-        // Apply the OR conditions for title search
-        query = query.or(searchConditions.join(','));
-
-        // Add brand filter if available (exact match is better, but allow flexible matching)
+        // For exact matching, we need to add specific conditions
         if (normalizedRequestBrand) {
-          query = query.ilike('brand', `%${normalizedRequestBrand}%`);
+          query = query.ilike('brand', normalizedRequestBrand);
         }
 
-        // Add model filter if available (exact match is better, but allow flexible matching)
         if (normalizedRequestModel) {
-          query = query.ilike('model', `%${normalizedRequestModel}%`);
+          query = query.ilike('model', normalizedRequestModel);
+        }
+
+        // Only apply title search if brand and model aren't specified
+        if (!normalizedRequestBrand && !normalizedRequestModel) {
+          query = query.ilike('title', `%${normalizedRequestTitle}%`);
         }
 
         const { data, error } = await query;
