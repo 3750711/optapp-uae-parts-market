@@ -43,16 +43,7 @@ const RequestDetail: React.FC = () => {
   const [contactType, setContactType] = useState<'whatsapp' | 'telegram'>('whatsapp');
   const [contactInfo, setContactInfo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  useEffect(() => {
-    // Check if we just came from the create request page
-    const fromCreate = sessionStorage.getItem('fromRequestCreate');
-    if (fromCreate === 'true' && id) {
-      // Clear the flag so a refresh won't show the processing screen again
-      sessionStorage.removeItem('fromRequestCreate');
-      setIsNewRequest(true);
-    }
-  }, [id]);
+  const [dataLoaded, setDataLoaded] = useState(false);
   
   const { data: request, isLoading } = useQuery({
     queryKey: ['request', id],
@@ -64,13 +55,27 @@ const RequestDetail: React.FC = () => {
         .single();
         
       if (error) throw error;
+      setDataLoaded(true); // Mark data as loaded only when we actually have the data
       return data;
     },
     enabled: !!id
   });
+  
+  useEffect(() => {
+    // Check if we just came from the create request page
+    const fromCreate = sessionStorage.getItem('fromRequestCreate');
+    if (fromCreate === 'true' && id) {
+      // Clear the flag so a refresh won't show the processing screen again
+      sessionStorage.removeItem('fromRequestCreate');
+      setIsNewRequest(true);
+    }
+  }, [id]);
 
   const handleProcessingComplete = () => {
-    setProcessingComplete(true);
+    // Only set processing complete if the data is loaded
+    if (dataLoaded) {
+      setProcessingComplete(true);
+    }
   };
 
   const handleContactSubmit = async () => {
@@ -109,7 +114,7 @@ const RequestDetail: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !dataLoaded) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
