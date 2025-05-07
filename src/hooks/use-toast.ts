@@ -4,7 +4,7 @@ import * as React from "react";
 
 export type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
 
-export type ToastActionElement = React.ReactElement<typeof sonnerToast.action>;
+export type ToastActionElement = React.ReactElement<unknown>;
 
 export type ToasterToast = {
   id: string;
@@ -14,8 +14,8 @@ export type ToasterToast = {
   variant?: "default" | "destructive" | "success";
 };
 
-const useToast = () => {
-  function toast({ variant, title, description, ...props }: ToasterToast) {
+export const useToast = () => {
+  const toast = ({ variant, title, description, ...props }: ToasterToast) => {
     return sonnerToast(title as string, {
       description,
       ...props,
@@ -24,7 +24,7 @@ const useToast = () => {
         "border-green-600": variant === "success",
       }),
     });
-  }
+  };
 
   return {
     toast,
@@ -62,4 +62,8 @@ export const notifyTelegramAboutNewProduct = async (product: any) => {
   }
 };
 
-export { toast };
+// Export toast as a convenience function
+export const toast = (props: ToasterToast) => {
+  const { toast: toastFn } = useToast();
+  return toastFn(props);
+};
