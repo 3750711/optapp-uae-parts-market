@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -51,9 +50,7 @@ const productSchema = z.object({
   brandId: z.string().min(1, {
     message: "Выберите марку автомобиля",
   }),
-  modelId: z.string().min(1, {
-    message: "Выберите модель автомобиля",
-  }),
+  modelId: z.string().optional(), // Make modelId optional
   placeNumber: z.string().min(1, {
     message: "Укажите количество мест",
   }).refine((val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)), {
@@ -189,16 +186,8 @@ const SellerAddProduct = () => {
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    // Verify modelId belongs to the selected brand
-    const selectedModel = brandModels.find(model => model.id === values.modelId);
-    if (!selectedModel || selectedModel.brand_id !== values.brandId) {
-      form.setError('modelId', { 
-        type: 'manual', 
-        message: 'Выбранная модель не принадлежит выбранной марке'
-      });
-      return;
-    }
-
+    // Remove verification that modelId belongs to the selected brand since model is now optional
+    
     if (!user || !profile) {
       toast({
         title: "Ошибка",
@@ -222,12 +211,18 @@ const SellerAddProduct = () => {
     try {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      const selectedModel = brandModels.find(model => model.id === values.modelId);
+      
+      // Model is now optional, handle it accordingly
+      let modelName = null;
+      if (values.modelId) {
+        const selectedModel = brandModels.find(model => model.id === values.modelId);
+        modelName = selectedModel?.name || null;
+      }
 
-      if (!selectedBrand || !selectedModel) {
+      if (!selectedBrand) {
         toast({
           title: "Ошибка",
-          description: "Выбранная марка или модель не найдена",
+          description: "Выбранная марка не найдена",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -243,8 +238,8 @@ const SellerAddProduct = () => {
           title: values.title,
           price: parseFloat(values.price),
           condition: "Новый",
-          brand: selectedBrand.name, // Use the brand name, not ID
-          model: selectedModel.name, // Use the model name, not ID
+          brand: selectedBrand.name,
+          model: modelName, // This can be null now
           description: values.description || null,
           seller_id: user.id,
           seller_name: sellerName,
@@ -463,7 +458,7 @@ const SellerAddProduct = () => {
                         name="modelId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Модель</FormLabel>
+                            <FormLabel>Модель (необязательно)</FormLabel>
                             <div className="relative">
                               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Search className="h-4 w-4 text-gray-400" />
@@ -483,7 +478,7 @@ const SellerAddProduct = () => {
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Выберите модель" />
+                                  <SelectValue placeholder="Выберите модель (необязательно)" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="max-h-[300px]">

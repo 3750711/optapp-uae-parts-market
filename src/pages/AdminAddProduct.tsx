@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -50,9 +49,7 @@ const productSchema = z.object({
   brandId: z.string().min(1, {
     message: "Выберите марку автомобиля",
   }),
-  modelId: z.string().min(1, {
-    message: "Выберите модель автомобиля",
-  }),
+  modelId: z.string().optional(), // Make modelId optional
   placeNumber: z.string().min(1, {
     message: "Укажите количество мест",
   }).refine((val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)), {
@@ -224,16 +221,8 @@ const AdminAddProduct = () => {
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    // Verify modelId belongs to the selected brand
-    const modelBelongsToBrand = validateModelBrand(values.modelId, values.brandId);
-    if (!modelBelongsToBrand) {
-      form.setError('modelId', { 
-        type: 'manual', 
-        message: 'Выбранная модель не принадлежит выбранной марке'
-      });
-      return;
-    }
-
+    // Remove verification that modelId belongs to the selected brand since model is now optional
+    
     if (images.length === 0) {
       toast({
         title: "Ошибка",
@@ -248,13 +237,19 @@ const AdminAddProduct = () => {
     try {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      const selectedModel = brandModels.find(model => model.id === values.modelId);
       const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+      
+      // Model is now optional, handle it accordingly
+      let modelName = null;
+      if (values.modelId) {
+        const selectedModel = brandModels.find(model => model.id === values.modelId);
+        modelName = selectedModel?.name || null;
+      }
 
-      if (!selectedBrand || !selectedModel || !selectedSeller) {
+      if (!selectedBrand || !selectedSeller) {
         toast({
           title: "Ошибка",
-          description: "Выбранная марка, модель или продавец не найдены",
+          description: "Выбранная марка или продавец не найдены",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -268,7 +263,7 @@ const AdminAddProduct = () => {
           p_price: parseFloat(values.price),
           p_condition: "Новый",
           p_brand: selectedBrand.name,
-          p_model: selectedModel.name,
+          p_model: modelName, // This can be null now
           p_description: values.description || null,
           p_seller_id: values.sellerId,
           p_seller_name: selectedSeller.full_name || "Unknown Seller",
@@ -344,7 +339,7 @@ const AdminAddProduct = () => {
 
       toast({
         title: "Товар добавлен",
-        description: "Товар успешно размещен на маркетплейсе",
+        description: "Товар усп��шно размещен на маркетплейсе",
       });
 
       navigate('/admin/products');
@@ -537,7 +532,7 @@ const AdminAddProduct = () => {
                         name="modelId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Модель</FormLabel>
+                            <FormLabel>Модель (необязательно)</FormLabel>
                             <div className="relative">
                               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Search className="h-4 w-4 text-gray-400" />
@@ -557,7 +552,7 @@ const AdminAddProduct = () => {
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue placeholder="Выберите модель" />
+                                  <SelectValue placeholder="Выберите модель (необязательно)" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="max-h-[300px]">

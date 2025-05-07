@@ -68,8 +68,8 @@ export function useCarBrandsAndModels() {
   }, [brands]);
   
   // Helper function to find model ID by name and brand ID
-  const findModelIdByName = useCallback((modelName: string, brandId: string) => {
-    if (!brandId) return null;
+  const findModelIdByName = useCallback((modelName: string | null, brandId: string) => {
+    if (!brandId || !modelName) return null;
     
     const model = brandModels.find(
       m => m.brand_id === brandId && m.name.toLowerCase() === modelName.toLowerCase()

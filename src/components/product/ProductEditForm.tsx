@@ -208,7 +208,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           price: formData.price,
           description: formData.description,
           brand: formData.brand,
-          model: formData.model,
+          model: formData.model || null, // Allow null model
           place_number: formData.place_number,
           delivery_price: formData.delivery_price,
         })
@@ -305,7 +305,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
             </Select>
           </div>
           <div>
-            <label htmlFor="model" className="text-xs sm:text-sm font-medium">Модель</label>
+            <label htmlFor="model" className="text-xs sm:text-sm font-medium">Модель (необязательно)</label>
             <Select
               disabled={!isCreator || !selectedBrand || loadingBrands}
               value={selectedModelId || ""}
