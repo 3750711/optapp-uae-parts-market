@@ -7,7 +7,7 @@ export type ToastProps = React.ComponentPropsWithoutRef<typeof sonnerToast>;
 export type ToastActionElement = React.ReactElement<unknown>;
 
 export type ToasterToast = {
-  id: string;
+  id?: string; // Making id optional
   title?: React.ReactNode;
   description?: React.ReactNode;
   action?: ToastActionElement;
