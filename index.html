@@ -21,8 +21,22 @@
       /* Скрываем элементы с текстом "Edit with Lovable" */
       [data-gpte-select-info],
       [data-gpte-tooltip],
-      [data-lovable-info] {
+      [data-lovable-info],
+      [class*="lovable"],
+      #root > div:last-child[style*="position: fixed"][style*="bottom: 0"][style*="right: 0"],
+      div[style*="position: fixed"][style*="bottom: 0"][style*="right: 0"],
+      div:has(> span:contains("Edit with Lovable")),
+      div:has(> div:contains("Edit with Lovable")),
+      span:contains("Edit with Lovable"),
+      a:contains("Lovable"),
+      a[href*="lovable"],
+      div[class*="Chat_container"],
+      .built-with-lovable,
+      #lovable-badge {
         display: none !important;
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
       }
     </style>
   </head>
