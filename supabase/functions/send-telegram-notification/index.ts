@@ -125,14 +125,14 @@ serve(async (req) => {
     // Get status label
     const statusLabel = getStatusLabel(product.status);
 
-    // Updated message format with status
+    // Updated message format with status moved to the bottom
     const message = `🔢 Номер обьявления: ${product.lot_number}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
-      `📊 Статус: ${statusLabel}\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
-      `👤 Telegram продавца: ${telegramContact}`;
+      `👤 Telegram продавца: ${telegramContact}\n\n` +
+      `📊 Статус: ${statusLabel}`;
 
     const validatedChatId = validateChatId(GROUP_CHAT_ID);
     console.log('Sending message to Telegram:', message);
