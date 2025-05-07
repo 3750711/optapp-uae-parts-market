@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +20,7 @@ const AdminProducts = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
   
   const { data: products, isLoading } = useQuery({
     queryKey: ['admin', 'products', sortField, sortOrder],
@@ -86,6 +86,8 @@ const AdminProducts = () => {
 
   const handleSendNotification = async (product: Product) => {
     try {
+      setIsNotificationSending({...isNotificationSending, [product.id]: true});
+      
       // First, get a fresh product with all images
       const { data: freshProduct, error: fetchError } = await supabase
         .from('products')
@@ -116,7 +118,7 @@ const AdminProducts = () => {
         toast({
           title: "Внимание",
           description: (data && data.message) || "Уведомление не было отправлено",
-          variant: "destructive", // Changed from "warning" to "destructive" since "warning" isn't a valid variant
+          variant: "destructive", 
         });
       }
     } catch (error) {
@@ -126,6 +128,8 @@ const AdminProducts = () => {
         description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)),
         variant: "destructive",
       });
+    } finally {
+      setIsNotificationSending({...isNotificationSending, [product.id]: false});
     }
   };
 
@@ -274,9 +278,10 @@ const AdminProducts = () => {
                       size="icon"
                       className="h-8 w-8 text-blue-600"
                       onClick={() => handleSendNotification(product)}
+                      disabled={isNotificationSending[product.id]}
                       title="Отправить уведомление в Telegram"
                     >
-                      <Bell className="h-4 w-4" />
+                      <Bell className={`h-4 w-4 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
                     </Button>
                     
                     <ProductStatusDialog

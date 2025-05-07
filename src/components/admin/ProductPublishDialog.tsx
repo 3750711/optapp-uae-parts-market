@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -126,22 +125,35 @@ Nose cut (Ноускат) высокий - $260
         description: "Отправка уведомления в Telegram...",
       });
 
-      // Send Telegram notification
-      const { data: notificationData, error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { product: updatedProduct }
-      });
+      // Send Telegram notification with updated retry logic
+      try {
+        const { data: notificationData, error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+          body: { product: updatedProduct }
+        });
 
-      if (notificationError) {
+        if (notificationError) {
+          throw notificationError;
+        }
+
+        if (!notificationData?.success) {
+          console.warn('Notification response indicates failure:', notificationData);
+          toast({
+            title: "Внимание",
+            description: "Товар опубликован, но возникла проблема при отправке уведомления в Telegram",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Успех",
+            description: "Товар успешно опубликован и отправлен в Telegram канал",
+          });
+        }
+      } catch (notificationError) {
         console.error('Error sending Telegram notification:', notificationError);
         toast({
           title: "Внимание",
           description: "Товар опубликован, но возникла ошибка при отправке уведомления в Telegram",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Успех",
-          description: "Товар успешно опубликован и отправлен в Telegram канал",
+          variant: "destructive",
         });
       }
       

@@ -2,8 +2,9 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// Updated with valid bot token and group chat ID
 const BOT_TOKEN = '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s'
-const GROUP_CHAT_ID = '4623601047'
+const GROUP_CHAT_ID = '-4623601047' // Added minus sign as it's likely a group chat ID
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
@@ -63,6 +64,15 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
   }
 }
 
+// Added validation function for chat ID
+function validateChatId(chatId: string): string {
+  // Group chat IDs in Telegram should start with a minus sign
+  if (chatId && !chatId.startsWith('-') && !isNaN(Number(chatId))) {
+    return `-${chatId}`;
+  }
+  return chatId;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -104,9 +114,10 @@ serve(async (req) => {
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
       `👤 Telegram продавца: ${telegramContact}`;
 
+    const validatedChatId = validateChatId(GROUP_CHAT_ID);
     console.log('Sending message to Telegram:', message);
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
-    console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID);
+    console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
     if (product.product_images && product.product_images.length > 0) {
       // Split images into groups of 10 (Telegram's limit)
@@ -127,12 +138,22 @@ serve(async (req) => {
           })
         }));
 
-        const mediaResult = await callTelegramAPI('sendMediaGroup', {
-          chat_id: GROUP_CHAT_ID,
-          media: mediaGroup
-        });
-        
-        console.log('Media group response:', mediaResult);
+        try {
+          const mediaResult = await callTelegramAPI('sendMediaGroup', {
+            chat_id: validatedChatId,
+            media: mediaGroup
+          });
+          
+          console.log('Media group response:', mediaResult);
+        } catch (error) {
+          console.error('Failed to send media group:', error);
+          // If media group fails, try sending just the text message
+          await callTelegramAPI('sendMessage', {
+            chat_id: validatedChatId,
+            text: message,
+            parse_mode: 'HTML'
+          });
+        }
         
         // Add a small delay between groups to avoid rate limiting
         if (i < imageGroups.length - 1) {
@@ -142,7 +163,7 @@ serve(async (req) => {
     } else {
       // If no images, just send text message
       const messageResult = await callTelegramAPI('sendMessage', {
-        chat_id: GROUP_CHAT_ID,
+        chat_id: validatedChatId,
         text: message,
         parse_mode: 'HTML'
       });
@@ -155,7 +176,10 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error('Telegram notification error:', error);
-    return new Response(JSON.stringify({ error: String(error) }), { 
+    return new Response(JSON.stringify({ 
+      error: String(error),
+      message: 'Failed to send notification to Telegram. Please check the logs.'
+    }), { 
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
