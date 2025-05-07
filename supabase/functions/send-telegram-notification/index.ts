@@ -80,13 +80,24 @@ serve(async (req) => {
       })
     }
 
+    // List of OPT_IDs that require the special message
+    const specialOptIds = ['BSHR', 'JAKI', 'KAZI', 'MDY', 'MIR', 'MMD', 'YKB'];
+    
+    // Check if the seller's OPT_ID is in the special list
+    const isSpecialSeller = specialOptIds.includes(product.optid_created);
+    
+    // Customize the Telegram contact message based on seller type
+    const telegramContact = isSpecialSeller
+      ? 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo'
+      : `${product.telegram_url ? '@'+product.telegram_url : 'Не указан'}`;
+
     // Обновленный формат сообщения без ссылки на товар
     const message = `🔢 Номер обьявления: ${product.lot_number}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
-      `👤 Telegram продавца: ${product.telegram_url ? '@'+product.telegram_url : 'Не указан'}`;
+      `👤 Telegram продавца: ${telegramContact}`;
 
     console.log('Sending message to Telegram:', message)
     console.log('Using BOT_TOKEN:', BOT_TOKEN)
