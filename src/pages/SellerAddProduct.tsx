@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -72,6 +73,8 @@ const SellerAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchBrandTerm, setSearchBrandTerm] = useState("");
+  const [searchModelTerm, setSearchModelTerm] = useState("");
   
   // Use our custom hook for car brands and models
   const { 
@@ -80,6 +83,16 @@ const SellerAddProduct = () => {
     selectBrand, 
     isLoading: isLoadingCarData 
   } = useCarBrandsAndModels();
+
+  // Filter brands based on search term
+  const filteredBrands = brands.filter(brand => 
+    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+  );
+
+  // Filter models based on search term
+  const filteredModels = brandModels.filter(model => 
+    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+  );
 
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
@@ -378,6 +391,17 @@ const SellerAddProduct = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Марка</FormLabel>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-gray-400" />
+                              </div>
+                              <Input 
+                                className="pl-10 mb-2" 
+                                placeholder="Поиск марки..." 
+                                value={searchBrandTerm}
+                                onChange={(e) => setSearchBrandTerm(e.target.value)}
+                              />
+                            </div>
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value}
@@ -389,9 +413,15 @@ const SellerAddProduct = () => {
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent className="max-h-[300px]">
-                                {brands.map((brand) => (
-                                  <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
-                                ))}
+                                {filteredBrands.length === 0 ? (
+                                  <div className="p-2 text-center text-sm text-gray-500">
+                                    Марки не найдены
+                                  </div>
+                                ) : (
+                                  filteredBrands.map((brand) => (
+                                    <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                                  ))
+                                )}
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -405,6 +435,18 @@ const SellerAddProduct = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Модель</FormLabel>
+                            <div className="relative">
+                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Search className="h-4 w-4 text-gray-400" />
+                              </div>
+                              <Input 
+                                className="pl-10 mb-2" 
+                                placeholder="Поиск модели..." 
+                                value={searchModelTerm}
+                                onChange={(e) => setSearchModelTerm(e.target.value)}
+                                disabled={!watchBrandId}
+                              />
+                            </div>
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value || ""}
@@ -418,8 +460,12 @@ const SellerAddProduct = () => {
                               <SelectContent className="max-h-[300px]">
                                 {brandModels.length === 0 && watchBrandId ? (
                                   <SelectItem value="loading" disabled>Загрузка моделей...</SelectItem>
+                                ) : filteredModels.length === 0 ? (
+                                  <div className="p-2 text-center text-sm text-gray-500">
+                                    Модели не найдены
+                                  </div>
                                 ) : (
-                                  brandModels.map((model) => (
+                                  filteredModels.map((model) => (
                                     <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
                                   ))
                                 )}
