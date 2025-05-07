@@ -80,18 +80,13 @@ serve(async (req) => {
       })
     }
 
-    // Format the message text with lot number and product link
-    const message = `🆕 Новый товар опубликован!\n\n` +
-      `📦 Название: ${product.title}\n` +
-      `🔢 Номер товара: ${product.lot_number}\n` +
+    // Обновленный формат сообщения согласно запросу
+    const message = `🔢 Номер обьявления: ${product.lot_number}\n` +
+      `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
-      `🚗 Бренд: ${product.brand}\n` +
-      `📝 Модель: ${product.model}\n` +
-      (product.description ? `📄 Описание:\n${product.description}\n` : '') +
-      `📦 Количество мест: ${product.place_number}\n` +
-      (product.delivery_price ? `🚚 Стоимость доставки: ${product.delivery_price} $\n` : '') +
-      (product.seller_name ? `👤 Продавец: ${product.seller_name}\n` : '') +
-      (product.optid_created ? `🆔 ID продавца: ${product.optid_created}\n` : '') +
+      `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
+      `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
+      `👤 Telegram продавца: ${product.telegram_url ? '@'+product.telegram_url : 'Не указан'}\n` +
       `\n🔍 Посмотреть товар: ${product.product_url}`;
 
     console.log('Sending message to Telegram:', message)
