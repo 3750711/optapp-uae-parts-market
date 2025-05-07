@@ -80,14 +80,13 @@ serve(async (req) => {
       })
     }
 
-    // Обновленный формат сообщения согласно запросу
+    // Обновленный формат сообщения без ссылки на товар
     const message = `🔢 Номер обьявления: ${product.lot_number}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
-      `👤 Telegram продавца: ${product.telegram_url ? '@'+product.telegram_url : 'Не указан'}\n` +
-      `\n🔍 Посмотреть товар: ${product.product_url}`;
+      `👤 Telegram продавца: ${product.telegram_url ? '@'+product.telegram_url : 'Не указан'}`;
 
     console.log('Sending message to Telegram:', message)
     console.log('Using BOT_TOKEN:', BOT_TOKEN)
@@ -105,18 +104,10 @@ serve(async (req) => {
         const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
           type: 'photo',
           media: img.url,
-          // Add caption and button to the first image of the first group only
+          // Add caption to the first image of the first group only
           ...(i === 0 && index === 0 && {
             caption: message,
-            parse_mode: 'HTML',
-            reply_markup: {
-              inline_keyboard: [[
-                {
-                  text: "Посмотреть лот",
-                  url: product.product_url
-                }
-              ]]
-            }
+            parse_mode: 'HTML'
           })
         }));
 
@@ -133,19 +124,11 @@ serve(async (req) => {
         }
       }
     } else {
-      // If no images, just send text message with button
+      // If no images, just send text message
       const messageResult = await callTelegramAPI('sendMessage', {
         chat_id: GROUP_CHAT_ID,
         text: message,
-        parse_mode: 'HTML',
-        reply_markup: {
-          inline_keyboard: [[
-            {
-              text: "Посмотреть лот",
-              url: product.product_url
-            }
-          ]]
-        }
+        parse_mode: 'HTML'
       });
       
       console.log('Text message response:', messageResult);
