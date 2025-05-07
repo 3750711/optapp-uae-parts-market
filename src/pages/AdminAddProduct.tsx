@@ -262,7 +262,6 @@ const AdminAddProduct = () => {
       }
 
       // Using RPC to create the product using admin permissions
-      // This bypasses RLS policies by using a database function
       const { data: productId, error: productError } = await supabase
         .rpc('admin_create_product', {
           p_title: values.title,
@@ -311,6 +310,35 @@ const AdminAddProduct = () => {
             });
             
           if (videoError) throw videoError;
+        }
+      }
+
+      // Fetch the complete product with images for Telegram notification
+      const { data: productDetails } = await supabase
+        .from('products')
+        .select(`
+          *,
+          product_images (*),
+          product_videos (*)
+        `)
+        .eq('id', productId)
+        .single();
+
+      // Send Telegram notification for new product
+      if (productDetails) {
+        try {
+          const { error: notificationError } = await supabase.functions.invoke(
+            'send-telegram-notification', 
+            {
+              body: { product: productDetails }
+            }
+          );
+          
+          if (notificationError) {
+            console.error("Error sending Telegram notification:", notificationError);
+          }
+        } catch (telegramError) {
+          console.error("Failed to send Telegram notification:", telegramError);
         }
       }
 

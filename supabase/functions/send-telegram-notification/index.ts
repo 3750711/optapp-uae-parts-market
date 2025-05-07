@@ -144,8 +144,12 @@ serve(async (req) => {
     const statusPrefix = product.status === 'pending' ? '❗️❗️❗️ ' : '';
     const statusSuffix = product.status === 'pending' ? ' ❗️❗️❗️' : '';
 
-    // Updated message format with highlighted status for pending items
-    const message = `LOT(лот) #${formattedLotNumber}\n` +
+    // Check if this is a new product or status change
+    const isNewProduct = product.status === 'pending';
+    const eventPrefix = isNewProduct ? '🆕 НОВЫЙ ТОВАР! ' : '';
+
+    // Updated message format with highlighted status for pending items and new product indicator
+    const message = `${eventPrefix}LOT(лот) #${formattedLotNumber}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
