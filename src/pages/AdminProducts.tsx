@@ -86,18 +86,28 @@ const AdminProducts = () => {
 
   const handleSendNotification = async (product: Product) => {
     try {
-      const response = await fetch(`https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.session()?.access_token}`,
-        },
-        body: JSON.stringify({ product }),
-      });
+      // First, get a fresh product with all images
+      const { data: freshProduct, error: fetchError } = await supabase
+        .from('products')
+        .select(`*, product_images(*)`)
+        .eq('id', product.id)
+        .single();
 
-      const result = await response.json();
+      if (fetchError || !freshProduct) {
+        throw new Error(fetchError?.message || 'Failed to fetch product details');
+      }
       
-      if (result.success) {
+      // Now call the edge function with the complete product data
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: { product: freshProduct }
+      });
+      
+      if (error) {
+        console.error('Error calling function:', error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.success) {
         toast({
           title: "Успех",
           description: "Уведомление отправлено в Telegram",
@@ -105,7 +115,7 @@ const AdminProducts = () => {
       } else {
         toast({
           title: "Внимание",
-          description: result.message || "Уведомление не было отправлено",
+          description: (data && data.message) || "Уведомление не было отправлено",
           variant: "destructive", // Changed from "warning" to "destructive" since "warning" isn't a valid variant
         });
       }
@@ -113,7 +123,7 @@ const AdminProducts = () => {
       console.error('Error sending notification:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось отправить уведомление",
+        description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)),
         variant: "destructive",
       });
     }
@@ -256,17 +266,18 @@ const AdminProducts = () => {
                             queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
                           }}
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-600"
-                          onClick={() => handleSendNotification(product)}
-                          title="Отправить уведомление в Telegram"
-                        >
-                          <Bell className="h-4 w-4" />
-                        </Button>
                       </>
                     )}
+                    
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-blue-600"
+                      onClick={() => handleSendNotification(product)}
+                      title="Отправить уведомление в Telegram"
+                    >
+                      <Bell className="h-4 w-4" />
+                    </Button>
                     
                     <ProductStatusDialog
                       product={product}

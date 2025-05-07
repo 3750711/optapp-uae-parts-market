@@ -21,6 +21,8 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
   
   while (retries < maxRetries) {
     try {
+      console.log(`Calling Telegram API ${endpoint} with data:`, JSON.stringify(data));
+      
       const response = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/${endpoint}`,
         {
@@ -33,6 +35,7 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
       );
       
       const result = await response.json();
+      console.log(`Telegram API response:`, JSON.stringify(result));
       
       if (!response.ok) {
         // Check if it's a rate limit error
@@ -49,10 +52,11 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
       
       return result;
     } catch (error) {
+      console.error(`API call failed:`, error);
       if (retries >= maxRetries - 1) {
         throw error;
       }
-      console.error(`API call failed. Retrying... (${retries + 1}/${maxRetries})`);
+      console.error(`Retrying... (${retries + 1}/${maxRetries})`);
       await sleep(1000); // Wait 1 second before retry
       retries++;
     }
@@ -60,34 +64,25 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       headers: {
         ...corsHeaders,
         'Access-Control-Allow-Methods': 'POST',
       }
-    })
+    });
   }
 
   try {
-    const { product } = await req.json()
-    console.log('Received product data:', product)
+    const { product } = await req.json();
+    console.log('Received product data:', JSON.stringify(product));
 
     if (!product) {
       return new Response(JSON.stringify({ error: 'Missing product data' }), { 
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
-    // Only send notifications for products with "pending" status
-    if (product.status !== 'pending') {
-      return new Response(JSON.stringify({ 
-        success: false, 
-        message: 'Notification skipped - product is not in pending status' 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
+      });
     }
 
     // List of OPT_IDs that require the special message
@@ -109,9 +104,9 @@ serve(async (req) => {
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
       `👤 Telegram продавца: ${telegramContact}`;
 
-    console.log('Sending message to Telegram:', message)
-    console.log('Using BOT_TOKEN:', BOT_TOKEN)
-    console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID)
+    console.log('Sending message to Telegram:', message);
+    console.log('Using BOT_TOKEN:', BOT_TOKEN);
+    console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID);
 
     if (product.product_images && product.product_images.length > 0) {
       // Split images into groups of 10 (Telegram's limit)
@@ -157,12 +152,12 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    });
   } catch (error) {
-    console.error('Telegram notification error:', error)
-    return new Response(JSON.stringify({ error: error.message }), { 
+    console.error('Telegram notification error:', error);
+    return new Response(JSON.stringify({ error: String(error) }), { 
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    });
   }
-})
+});
