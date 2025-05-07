@@ -106,7 +106,7 @@ const AdminProducts = () => {
         toast({
           title: "Внимание",
           description: result.message || "Уведомление не было отправлено",
-          variant: "warning",
+          variant: "destructive", // Changed from "warning" to "destructive" since "warning" isn't a valid variant
         });
       }
     } catch (error) {
