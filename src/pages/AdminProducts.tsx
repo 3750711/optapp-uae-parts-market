@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye } from "lucide-react";
+import { Edit, Trash2, Eye, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -18,8 +19,8 @@ const AdminProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('created_at');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   
   const { data: products, isLoading } = useQuery({
     queryKey: ['admin', 'products', sortField, sortOrder],
@@ -81,6 +82,41 @@ const AdminProducts = () => {
     }
     
     setDeleteProductId(null);
+  };
+
+  const handleSendNotification = async (product: Product) => {
+    try {
+      const response = await fetch(`https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token}`,
+        },
+        body: JSON.stringify({ product }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Успех",
+          description: "Уведомление отправлено в Telegram",
+        });
+      } else {
+        toast({
+          title: "Внимание",
+          description: result.message || "Уведомление не было отправлено",
+          variant: "warning",
+        });
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить уведомление",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusBadgeColor = (status: string) => {
@@ -202,23 +238,36 @@ const AdminProducts = () => {
                         queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
                       }}
                     />
+                    
                     {product.status === 'pending' && (
-                      <ProductPublishDialog
-                        product={product}
-                        trigger={
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8"
-                          >
-                            Опубликовать
-                          </Button>
-                        }
-                        onSuccess={() => {
-                          queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                        }}
-                      />
+                      <>
+                        <ProductPublishDialog
+                          product={product}
+                          trigger={
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8"
+                            >
+                              Опубликовать
+                            </Button>
+                          }
+                          onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                          }}
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-600"
+                          onClick={() => handleSendNotification(product)}
+                          title="Отправить уведомление в Telegram"
+                        >
+                          <Bell className="h-4 w-4" />
+                        </Button>
+                      </>
                     )}
+                    
                     <ProductStatusDialog
                       product={product}
                       trigger={

@@ -2,8 +2,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const BOT_TOKEN = '8090742953:AAH4wZUmHFiD3x0kd_5q0oGLJZeyMl62KMA'
-const GROUP_CHAT_ID = '-4669451616'
+const BOT_TOKEN = '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s'
+const GROUP_CHAT_ID = '4623601047'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
@@ -76,6 +76,16 @@ serve(async (req) => {
     if (!product) {
       return new Response(JSON.stringify({ error: 'Missing product data' }), { 
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Only send notifications for products with "pending" status
+    if (product.status !== 'pending') {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        message: 'Notification skipped - product is not in pending status' 
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
