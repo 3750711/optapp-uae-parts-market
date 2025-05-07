@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -89,6 +88,18 @@ function getStatusLabel(status: string): string {
   }
 }
 
+// Function to format lot number with 00 prefix
+function formatLotNumber(lotNumber: string | number | null): string {
+  if (lotNumber === undefined || lotNumber === null) {
+    return 'б/н';
+  }
+  
+  const num = typeof lotNumber === 'string' ? parseInt(lotNumber, 10) : lotNumber;
+  if (isNaN(Number(num))) return 'б/н';
+  
+  return `00${num}`;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -125,8 +136,11 @@ serve(async (req) => {
     // Get status label
     const statusLabel = getStatusLabel(product.status);
 
-    // Updated message format with "LOT(лот) #" instead of "Номер обьявления"
-    const message = `LOT(лот) #${product.lot_number}\n` +
+    // Format lot number with 00 prefix
+    const formattedLotNumber = formatLotNumber(product.lot_number);
+
+    // Updated message format with "LOT(лот) #00" prefix for lot number
+    const message = `LOT(лот) #${formattedLotNumber}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
