@@ -125,8 +125,8 @@ serve(async (req) => {
     // Get status label
     const statusLabel = getStatusLabel(product.status);
 
-    // Updated message format with status moved to the bottom
-    const message = `🔢 Номер обьявления: ${product.lot_number}\n` +
+    // Updated message format with "LOT(лот) #" instead of "Номер обьявления"
+    const message = `LOT(лот) #${product.lot_number}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
