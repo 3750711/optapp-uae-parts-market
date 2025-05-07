@@ -28,7 +28,7 @@ const ProductDetail = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const isMobile = useIsMobile();
-  const { isAdmin } = useAdminAccess();
+  const { isAdmin, canViewProductStatus } = useAdminAccess();
   const { user } = useAuth();
   const [adminEditOpen, setAdminEditOpen] = useState(false);
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("cargo_rf");
@@ -54,7 +54,14 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
+      // Check product visibility based on status and user role
       if (data.status === 'pending' && data.seller_id !== user?.id && !isAdmin) {
+        navigate('/404');
+        return null;
+      }
+      
+      // For archived products, check permissions
+      if (data.status === 'archived' && data.seller_id !== user?.id && !isAdmin) {
         navigate('/404');
         return null;
       }
