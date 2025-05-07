@@ -148,9 +148,12 @@ serve(async (req) => {
     const isNewProduct = product.status === 'pending';
     const eventPrefix = isNewProduct ? '🆕 НОВЫЙ ТОВАР! ' : '';
 
+    // Get the model part of the message, but only include it if model is not null or empty
+    const modelPart = product.model ? ` ${product.model}` : '';
+
     // Updated message format with highlighted status for pending items and new product indicator
     const message = `${eventPrefix}LOT(лот) #${formattedLotNumber}\n` +
-      `📦 ${product.title} ${product.brand} ${product.model}\n` +
+      `📦 ${product.title} ${product.brand}${modelPart}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
