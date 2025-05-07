@@ -326,7 +326,7 @@ const AdminProducts = () => {
                       </AlertDialogContent>
                     </AlertDialog>
                   </div>
-                  <Link to={`/product/${product.id}`} target="_blank">
+                  <Link to={`/product/${product.id}`}>
                     <Button
                       variant="ghost"
                       size="sm"
