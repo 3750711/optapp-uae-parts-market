@@ -57,6 +57,7 @@ const brandSchema = z.object({
     .min(1, { message: "Название марки не может быть пустым" })
     .max(100, { message: "Название марки не может быть длиннее 100 символов" }),
 });
+type BrandFormValues = z.infer<typeof brandSchema>;
 
 // Schema for adding a new model
 const modelSchema = z.object({
@@ -66,6 +67,7 @@ const modelSchema = z.object({
   brandId: z.string()
     .min(1, { message: "Выберите марку" }),
 });
+type ModelFormValues = z.infer<typeof modelSchema>;
 
 const AdminCarCatalog = () => {
   const { toast } = useToast();
@@ -96,7 +98,7 @@ const AdminCarCatalog = () => {
   );
 
   // Form for adding/editing a brand
-  const brandForm = useForm<z.infer<typeof brandSchema>>({
+  const brandForm = useForm<BrandFormValues>({
     resolver: zodResolver(brandSchema),
     defaultValues: {
       name: "",
@@ -104,7 +106,7 @@ const AdminCarCatalog = () => {
   });
 
   // Form for adding/editing a model
-  const modelForm = useForm<z.infer<typeof modelSchema>>({
+  const modelForm = useForm<ModelFormValues>({
     resolver: zodResolver(modelSchema),
     defaultValues: {
       name: "",
@@ -135,7 +137,7 @@ const AdminCarCatalog = () => {
 
   // Mutation for adding a brand
   const addBrandMutation = useMutation({
-    mutationFn: async (data: { name: string }) => {
+    mutationFn: async (data: BrandFormValues) => {
       const { data: brand, error } = await supabase
         .from('car_brands')
         .insert([{ name: data.name }])
@@ -197,7 +199,7 @@ const AdminCarCatalog = () => {
 
   // Mutation for adding a model
   const addModelMutation = useMutation({
-    mutationFn: async (data: { name: string; brandId: string }) => {
+    mutationFn: async (data: ModelFormValues) => {
       const { data: model, error } = await supabase
         .from('car_models')
         .insert([{ name: data.name, brand_id: data.brandId }])
@@ -258,7 +260,7 @@ const AdminCarCatalog = () => {
   });
 
   // Handler for submitting the brand form
-  const onBrandSubmit = useCallback((data: z.infer<typeof brandSchema>) => {
+  const onBrandSubmit = useCallback((data: BrandFormValues) => {
     if (selectedBrandForEdit) {
       updateBrandMutation.mutate({ id: selectedBrandForEdit, name: data.name });
     } else {
@@ -267,7 +269,7 @@ const AdminCarCatalog = () => {
   }, [selectedBrandForEdit, addBrandMutation, updateBrandMutation]);
 
   // Handler for submitting the model form
-  const onModelSubmit = useCallback((data: z.infer<typeof modelSchema>) => {
+  const onModelSubmit = useCallback((data: ModelFormValues) => {
     if (selectedModelForEdit) {
       updateModelMutation.mutate({ id: selectedModelForEdit, name: data.name, brandId: data.brandId });
     } else {
