@@ -73,6 +73,22 @@ function validateChatId(chatId: string): string {
   return chatId;
 }
 
+// Function to get status label in Russian
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case 'pending':
+      return 'Ожидает проверки';
+    case 'active':
+      return 'Опубликован';
+    case 'sold':
+      return 'Продан';
+    case 'archived':
+      return 'Архив';
+    default:
+      return status;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -106,11 +122,15 @@ serve(async (req) => {
       ? 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo'
       : `${product.telegram_url ? '@'+product.telegram_url : 'Не указан'}`;
 
-    // Обновленный формат сообщения без ссылки на товар
+    // Get status label
+    const statusLabel = getStatusLabel(product.status);
+
+    // Updated message format with status
     const message = `🔢 Номер обьявления: ${product.lot_number}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
+      `📊 Статус: ${statusLabel}\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
       `👤 Telegram продавца: ${telegramContact}`;
 
