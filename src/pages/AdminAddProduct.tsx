@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -11,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Loader2, Search } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, notifyTelegramAboutNewProduct } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -314,6 +313,23 @@ const AdminAddProduct = () => {
         }
       }
 
+      // Fetch the complete product data with images for Telegram notification
+      const { data: completeProduct, error: fetchError } = await supabase
+        .from('products')
+        .select(`
+          *,
+          product_images(url, is_primary)
+        `)
+        .eq('id', productId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching complete product data:", fetchError);
+      } else {
+        // Send notification to Telegram
+        await notifyTelegramAboutNewProduct(completeProduct);
+      }
+
       toast({
         title: "Товар добавлен",
         description: "Товар успешно размещен на маркетплейсе",
@@ -342,7 +358,7 @@ const AdminAddProduct = () => {
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
+          <h1 className="text-3xl font-bold mb-8">Д��бавить товар</h1>
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -631,7 +647,7 @@ const AdminAddProduct = () => {
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-2">
-                      Добавьте до 30 фотографий. Первое фото будет главным в объявлении.
+                      Добавьте до 30 фотографий. Первое фото бу��ет главным в объявлении.
                     </p>
                   </div>
                   
