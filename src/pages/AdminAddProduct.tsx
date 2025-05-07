@@ -49,7 +49,7 @@ const productSchema = z.object({
   brandId: z.string().min(1, {
     message: "Выберите марку автомобиля",
   }),
-  modelId: z.string().optional(), // Make modelId optional
+  modelId: z.string().optional(), // Model is optional
   placeNumber: z.string().min(1, {
     message: "Укажите количество мест",
   }).refine((val) => !isNaN(Number(val)) && Number(val) > 0 && Number.isInteger(Number(val)), {
@@ -221,8 +221,6 @@ const AdminAddProduct = () => {
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
-    // Remove verification that modelId belongs to the selected brand since model is now optional
-    
     if (images.length === 0) {
       toast({
         title: "Ошибка",
@@ -239,7 +237,7 @@ const AdminAddProduct = () => {
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
       
-      // Model is now optional, handle it accordingly
+      // Model is optional, handle it accordingly
       let modelName = null;
       if (values.modelId) {
         const selectedModel = brandModels.find(model => model.id === values.modelId);

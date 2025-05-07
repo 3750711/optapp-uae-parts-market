@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +38,7 @@ const formSchema = z.object({
   ),
   description: z.string().optional(),
   brand: z.string().min(1, { message: "Введите бренд" }),
-  model: z.string().min(1, { message: "Введите модель" }),
+  model: z.string().optional(), // Make model optional
   place_number: z.number().min(1, { message: "Минимальное количество мест - 1" }),
   delivery_price: z.string().refine(
     (val) => {
@@ -91,13 +92,16 @@ export const ProductEditDialog = ({
       price: product.price?.toString() || "",
       description: product.description || "",
       brand: product.brand || "",
-      model: product.model || "",
+      model: product.model || "",  // Allow empty model
       place_number: product.place_number || 1,
       delivery_price: product.delivery_price?.toString() || "0",
     },
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    // Allow for empty model value
+    const modelValue = values.model === "" ? null : values.model;
+    
     const { error } = await supabase
       .from('products')
       .update({
@@ -105,13 +109,14 @@ export const ProductEditDialog = ({
         price: parseFloat(values.price),
         description: values.description,
         brand: values.brand,
-        model: values.model,
+        model: modelValue, // This can now be null
         place_number: values.place_number,
         delivery_price: parseFloat(values.delivery_price),
       })
       .eq('id', product.id);
 
     if (error) {
+      console.error("Error updating product:", error);
       toast({
         title: "Ошибка",
         description: "Не удалось обновить товар",

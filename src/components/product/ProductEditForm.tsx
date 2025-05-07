@@ -201,6 +201,9 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setIsLoading(true);
 
     try {
+      // Handle null model value properly
+      const modelValue = formData.model === "" ? null : formData.model;
+      
       const { error } = await supabase
         .from("products")
         .update({
@@ -208,7 +211,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           price: formData.price,
           description: formData.description,
           brand: formData.brand,
-          model: formData.model || null, // Allow null model
+          model: modelValue, // This can now be null
           place_number: formData.place_number,
           delivery_price: formData.delivery_price,
         })

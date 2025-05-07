@@ -392,7 +392,7 @@ export type Database = {
           id: string
           location: string | null
           lot_number: number
-          model: string
+          model: string | null
           optid_created: string | null
           phone_url: string | null
           place_number: number | null
@@ -416,7 +416,7 @@ export type Database = {
           id?: string
           location?: string | null
           lot_number?: number
-          model: string
+          model?: string | null
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
@@ -440,7 +440,7 @@ export type Database = {
           id?: string
           location?: string | null
           lot_number?: number
-          model?: string
+          model?: string | null
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
