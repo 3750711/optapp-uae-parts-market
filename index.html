@@ -16,61 +16,11 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@partsbayae" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <style>
-      /* Скрываем элементы с текстом "Edit with Lovable" и все связанные элементы */
-      [data-gpte-select-info],
-      [data-gpte-tooltip],
-      [data-lovable-info],
-      [class*="lovable"],
-      #root > div:last-child[style*="position: fixed"][style*="bottom: 0"][style*="right: 0"],
-      div[style*="position: fixed"][style*="bottom: 0"][style*="right: 0"],
-      div:has(> span:contains("Edit with Lovable")),
-      div:has(> div:contains("Edit with Lovable")),
-      span:contains("Edit with Lovable"),
-      a:contains("Lovable"),
-      a[href*="lovable"],
-      div[class*="Chat_container"],
-      .built-with-lovable,
-      #lovable-badge,
-      [id*="lovable"],
-      body > div:not(#root):last-child,
-      iframe[src*="lovable"],
-      div[role="dialog"][aria-label*="lovable" i],
-      div:has(img[alt*="lovable" i]),
-      div[class*="gptengineer"],
-      div[id*="gptengineer"] {
-        display: none !important;
-        opacity: 0 !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
-        width: 0 !important;
-        height: 0 !important;
-        overflow: hidden !important;
-        position: absolute !important;
-        top: -9999px !important;
-        left: -9999px !important;
-        z-index: -9999 !important;
-      }
-      
-      /* Убираем любой текст с "Lovable" */
-      *:contains("Lovable"),
-      *:contains("lovable"),
-      *:contains("LOVABLE"),
-      *:contains("Edit with") {
-        visibility: hidden !important;
-      }
-      
-      /* Принудительное скрытие всплывающих окон */
-      body > div:not(#root)[style*="position: fixed"] {
-        display: none !important;
-      }
-    </style>
   </head>
 
   <body>
     <div id="root"></div>
-    <!-- IMPORTANT: This script enables Lovable features -->
+    <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
     <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
