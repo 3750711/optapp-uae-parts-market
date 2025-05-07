@@ -260,30 +260,18 @@ const AdminCarCatalog = () => {
   // Handler for submitting the brand form
   const onBrandSubmit = useCallback((data: z.infer<typeof brandSchema>) => {
     if (selectedBrandForEdit) {
-      updateBrandMutation.mutate({ 
-        id: selectedBrandForEdit, 
-        name: data.name 
-      });
+      updateBrandMutation.mutate({ id: selectedBrandForEdit, name: data.name });
     } else {
-      addBrandMutation.mutate({ 
-        name: data.name 
-      });
+      addBrandMutation.mutate(data);
     }
   }, [selectedBrandForEdit, addBrandMutation, updateBrandMutation]);
 
   // Handler for submitting the model form
   const onModelSubmit = useCallback((data: z.infer<typeof modelSchema>) => {
     if (selectedModelForEdit) {
-      updateModelMutation.mutate({ 
-        id: selectedModelForEdit, 
-        name: data.name, 
-        brandId: data.brandId 
-      });
+      updateModelMutation.mutate({ id: selectedModelForEdit, name: data.name, brandId: data.brandId });
     } else {
-      addModelMutation.mutate({ 
-        name: data.name, 
-        brandId: data.brandId 
-      });
+      addModelMutation.mutate(data);
     }
   }, [selectedModelForEdit, addModelMutation, updateModelMutation]);
 

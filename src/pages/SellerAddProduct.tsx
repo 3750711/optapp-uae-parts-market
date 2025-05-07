@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Loader2, Search } from "lucide-react";
-import { useToast, notifyTelegramAboutNewProduct } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -281,23 +282,6 @@ const SellerAddProduct = () => {
           );
 
         if (videosError) throw videosError;
-      }
-
-      // Fetch the complete product data with images for Telegram notification
-      const { data: completeProduct, error: fetchError } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_images(url, is_primary)
-        `)
-        .eq('id', product.id)
-        .single();
-
-      if (fetchError) {
-        console.error("Error fetching complete product data:", fetchError);
-      } else {
-        // Send notification to Telegram
-        await notifyTelegramAboutNewProduct(completeProduct);
       }
 
       toast({
