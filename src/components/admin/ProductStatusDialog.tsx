@@ -45,6 +45,7 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
   const { isAdmin } = useAdminAccess();
+  const [isSendingNotification, setIsSendingNotification] = React.useState(false);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -52,6 +53,54 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       status: product.status,
     },
   });
+
+  const sendTelegramNotification = async (updatedProduct: Product) => {
+    setIsSendingNotification(true);
+    try {
+      // First, get a fresh product with all images
+      const { data: freshProduct, error: fetchError } = await supabase
+        .from('products')
+        .select(`*, product_images(*)`)
+        .eq('id', updatedProduct.id)
+        .single();
+
+      if (fetchError || !freshProduct) {
+        throw new Error(fetchError?.message || 'Failed to fetch product details');
+      }
+      
+      // Now call the edge function with the complete product data
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: { product: freshProduct }
+      });
+      
+      if (error) {
+        console.error('Error calling function:', error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.success) {
+        toast({
+          title: "Успех",
+          description: "Уведомление об изменении статуса отправлено в Telegram",
+        });
+      } else {
+        toast({
+          title: "Внимание",
+          description: (data && data.message) || "Уведомление не было отправлено",
+          variant: "destructive", 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!isAdmin) {
@@ -64,10 +113,11 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     }
 
     // Для административных действий мы позволяем изменять статус без ограничений
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('products')
       .update({ status: values.status })
-      .eq('id', product.id);
+      .eq('id', product.id)
+      .select();
 
     if (error) {
       toast({
@@ -80,6 +130,12 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         title: "Успех",
         description: "Статус товара успешно обновлен",
       });
+      
+      // Send a Telegram notification about the status change
+      if (data && data.length > 0) {
+        await sendTelegramNotification(data[0]);
+      }
+      
       setOpen(false);
       if (onSuccess) onSuccess();
     }
@@ -139,8 +195,8 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
               >
                 Отмена
               </Button>
-              <Button type="submit">
-                Сохранить
+              <Button type="submit" disabled={isSendingNotification}>
+                {isSendingNotification ? "Отправка..." : "Сохранить"}
               </Button>
             </div>
           </form>

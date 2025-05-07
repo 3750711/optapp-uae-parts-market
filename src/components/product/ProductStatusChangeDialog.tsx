@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,20 +27,66 @@ const ProductStatusChangeDialog = ({
   productName,
   onStatusChange,
 }: ProductStatusChangeDialogProps) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const sendTelegramNotification = async (productId: string) => {
+    try {
+      // First, get a fresh product with all images
+      const { data: freshProduct, error: fetchError } = await supabase
+        .from('products')
+        .select(`*, product_images(*)`)
+        .eq('id', productId)
+        .single();
+
+      if (fetchError || !freshProduct) {
+        throw new Error(fetchError?.message || 'Failed to fetch product details');
+      }
+      
+      // Now call the edge function with the complete product data
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: { product: freshProduct }
+      });
+      
+      if (error) {
+        console.error('Error calling function:', error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.success) {
+        console.log("Notification sent successfully");
+      } else {
+        console.error("Notification failed:", data?.message);
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  };
+
   const handleMarkAsSold = async () => {
     try {
-      const { error } = await supabase
+      setIsProcessing(true);
+      
+      const { data, error } = await supabase
         .from("products")
         .update({ status: "sold" })
-        .eq("id", productId);
+        .eq("id", productId)
+        .select();
 
       if (error) throw error;
 
       toast.success("Статус товара успешно изменен на 'Продано'");
+      
+      // Send notification about status change
+      if (data && data.length > 0) {
+        await sendTelegramNotification(productId);
+      }
+      
       onStatusChange();
     } catch (error) {
       toast.error("Ошибка при изменении статуса товара");
       console.error("Error marking product as sold:", error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -62,8 +108,11 @@ const ProductStatusChangeDialog = ({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Отмена</AlertDialogCancel>
-          <AlertDialogAction onClick={handleMarkAsSold}>
-            Подтвердить
+          <AlertDialogAction 
+            onClick={handleMarkAsSold}
+            disabled={isProcessing}
+          >
+            {isProcessing ? "Обработка..." : "Подтвердить"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
