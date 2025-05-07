@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -139,14 +140,18 @@ serve(async (req) => {
     // Format lot number with 00 prefix
     const formattedLotNumber = formatLotNumber(product.lot_number);
 
-    // Updated message format with "LOT(лот) #00" prefix for lot number
+    // Add red exclamation marks for pending status
+    const statusPrefix = product.status === 'pending' ? '❗️❗️❗️ ' : '';
+    const statusSuffix = product.status === 'pending' ? ' ❗️❗️❗️' : '';
+
+    // Updated message format with highlighted status for pending items
     const message = `LOT(лот) #${formattedLotNumber}\n` +
       `📦 ${product.title} ${product.brand} ${product.model}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
       `👤 Telegram продавца: ${telegramContact}\n\n` +
-      `📊 Статус: ${statusLabel}`;
+      `📊 Статус: ${statusPrefix}${statusLabel}${statusSuffix}`;
 
     const validatedChatId = validateChatId(GROUP_CHAT_ID);
     console.log('Sending message to Telegram:', message);
