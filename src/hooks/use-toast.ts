@@ -12,12 +12,14 @@ export type ToasterToast = {
   description?: React.ReactNode;
   action?: ToastActionElement;
   variant?: "default" | "destructive" | "success";
+  duration?: number; // Added duration property
 };
 
 export const useToast = () => {
-  const toast = ({ variant, title, description, ...props }: ToasterToast) => {
+  const toast = ({ variant, title, description, duration, ...props }: ToasterToast) => {
     return sonnerToast(title as string, {
       description,
+      duration,
       ...props,
       className: cn({
         "border-red-600": variant === "destructive",
