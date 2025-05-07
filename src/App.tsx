@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -17,6 +16,7 @@ import AdminLogistics from "./pages/AdminLogistics";
 import AdminAddProduct from "./pages/AdminAddProduct";
 import AdminOrders from "./pages/AdminOrders";
 import AdminStores from "./pages/AdminStores";
+import AdminCarCatalog from "./pages/AdminCarCatalog"; // Add import for new page
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -144,6 +144,11 @@ const App = () => {
               <Route path="/admin/stores" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminStores />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/car-catalog" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminCarCatalog />
                 </ProtectedRoute>
               } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
