@@ -2,6 +2,7 @@
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { Check, ChevronRight, Circle, Search } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 import { cn } from "@/lib/utils"
 
@@ -63,44 +64,60 @@ const DropdownMenuContent = React.forwardRef<
     searchValue?: string;
     showSearch?: boolean;
   }
->(({ className, sideOffset = 4, children, searchPlaceholder, onSearchChange, searchValue, showSearch = false, ...props }, ref) => (
-  <DropdownMenuPrimitive.Portal>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        className
-      )}
-      {...props}
-    >
-      {showSearch && (
-        <div className="sticky top-0 px-1 pt-1 pb-0">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
-            <input
-              placeholder={searchPlaceholder || "Поиск..."}
-              className="w-full px-8 py-2 border rounded-md border-input text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-              value={searchValue}
-              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-            />
-            {searchValue && (
-              <button
-                className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
-                onClick={() => onSearchChange && onSearchChange("")}
-                type="button"
-              >
-                <span className="sr-only">Очистить</span>
-                <span aria-hidden="true">×</span>
-              </button>
-            )}
+>(({ className, sideOffset = 4, children, searchPlaceholder, onSearchChange, searchValue, showSearch = false, ...props }, ref) => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <DropdownMenuPrimitive.Portal>
+      <DropdownMenuPrimitive.Content
+        ref={ref}
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+          className
+        )}
+        {...props}
+      >
+        {showSearch && (
+          <div className="sticky top-0 px-1 pt-1 pb-0 z-10 bg-popover">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+              <input
+                placeholder={searchPlaceholder || "Поиск..."}
+                className={cn(
+                  "w-full px-8 py-2 border rounded-md border-input text-sm focus:outline-none focus:ring-1 focus:ring-ring",
+                  isMobile && "text-base py-2.5" // Larger text and padding for mobile
+                )}
+                value={searchValue}
+                onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+                onTouchStart={(e) => e.stopPropagation()} // Prevent dropdown from closing on touch
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+              {searchValue && (
+                <button
+                  className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600 h-5 w-5 flex items-center justify-center"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onSearchChange && onSearchChange("");
+                  }}
+                  type="button"
+                >
+                  <span className="sr-only">Очистить</span>
+                  <span aria-hidden="true" className="text-lg">×</span>
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      )}
-      {children}
-    </DropdownMenuPrimitive.Content>
-  </DropdownMenuPrimitive.Portal>
-))
+        )}
+        {children}
+      </DropdownMenuPrimitive.Content>
+    </DropdownMenuPrimitive.Portal>
+  )
+})
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
 
 const DropdownMenuItem = React.forwardRef<
@@ -108,17 +125,22 @@ const DropdownMenuItem = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean
   }
->(({ className, inset, ...props }, ref) => (
-  <DropdownMenuPrimitive.Item
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      inset && "pl-8",
-      className
-    )}
-    {...props}
-  />
-))
+>(({ className, inset, ...props }, ref) => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <DropdownMenuPrimitive.Item
+      ref={ref}
+      className={cn(
+        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        inset && "pl-8",
+        isMobile && "py-2.5 text-base", // Larger size for mobile
+        className
+      )}
+      {...props}
+    />
+  )
+})
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName
 
 const DropdownMenuCheckboxItem = React.forwardRef<
