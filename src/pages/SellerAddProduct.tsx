@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import VideoUpload from "@/components/ui/video-upload";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useProductTitleParser } from "@/utils/productTitleParser";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -77,9 +78,19 @@ const SellerAddProduct = () => {
   const { 
     brands, 
     brandModels, 
-    selectBrand, 
+    selectBrand,
+    findBrandIdByName,
+    findModelIdByName, 
     isLoading: isLoadingCarData 
   } = useCarBrandsAndModels();
+
+  // Initialize our title parser
+  const { parseProductTitle } = useProductTitleParser(
+    brands,
+    brandModels,
+    findBrandIdByName,
+    findModelIdByName
+  );
 
   // Filter brands based on search term
   const filteredBrands = brands.filter(brand => 
@@ -107,6 +118,27 @@ const SellerAddProduct = () => {
 
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
+  const watchTitle = form.watch("title");
+
+  // When title changes, try to detect brand and model
+  useEffect(() => {
+    if (watchTitle && brands.length > 0 && !watchBrandId) {
+      const { brandId, modelId } = parseProductTitle(watchTitle);
+      
+      if (brandId) {
+        form.setValue("brandId", brandId);
+        
+        if (modelId) {
+          form.setValue("modelId", modelId);
+        }
+
+        toast({
+          title: "Авто обнаружено",
+          description: "Марка и модель автомобиля определены из названия",
+        });
+      }
+    }
+  }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
   // When brand changes, reset model selection and update models list
   useEffect(() => {

@@ -93,11 +93,6 @@ const DropdownMenuContent = React.forwardRef<
             e.preventDefault();
           }
         }}
-        onInteractOutside={(e) => {
-          if (showSearch && searchInputRef.current?.contains(e.target as Node)) {
-            e.preventDefault();
-          }
-        }}
         {...props}
       >
         {showSearch && (
