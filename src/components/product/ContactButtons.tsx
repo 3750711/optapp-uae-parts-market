@@ -160,11 +160,15 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       console.log('Product delivery price:', currentProduct.delivery_price);
 
+      // Ensure brand and model have default values if they're empty
+      const brandValue = product.brand || "Не указано";
+      const modelValue = product.model || "Не указано";
+
       const orderPayload = {
         title: product.title,
         quantity: 1,
-        brand: product.brand,
-        model: product.model,
+        brand: brandValue,
+        model: modelValue,
         price: product.price,
         description: product.description || null,
         buyer_id: user?.id,
@@ -235,7 +239,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       console.error('Error handling order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось создать заказ. Попробуйте ��озже.",
+        description: "Не удалось создать заказ. Попробуйте позже.",
         variant: "destructive",
       });
     } finally {
