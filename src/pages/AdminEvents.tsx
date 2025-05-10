@@ -42,6 +42,8 @@ const AdminEvents = () => {
   const { isAdmin } = useAdminAccess();
   const { toast } = useToast();
   const [selectedLogs, setSelectedLogs] = useState<EventLog[]>([]);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [savedLogsDialogOpen, setSavedLogsDialogOpen] = useState(false);
 
   const { 
     data: eventLogs, 
@@ -137,6 +139,16 @@ const AdminEvents = () => {
     return selectedLogs.some(selected => selected.id === logId);
   };
 
+  const handleOpenSavedLogsDialog = () => {
+    setSavedLogsDialogOpen(true);
+  };
+
+  const handleOpenSaveDialog = () => {
+    if (selectedLogs.length > 0) {
+      setSaveDialogOpen(true);
+    }
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
@@ -154,15 +166,24 @@ const AdminEvents = () => {
             </Button>
             
             {selectedLogs.length > 0 && (
-              <SaveEventLogsDialog 
-                logs={selectedLogs}
-                onSuccess={() => {
-                  setSelectedLogs([]);
-                }}
-              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleOpenSaveDialog}
+                className="flex items-center gap-1"
+              >
+                Сохранить выбранное
+              </Button>
             )}
             
-            <SavedEventLogsDialog />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleOpenSavedLogsDialog}
+              className="flex items-center gap-1"
+            >
+              Сохраненные логи
+            </Button>
           </div>
         </div>
         
@@ -268,6 +289,26 @@ const AdminEvents = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dialogs */}
+      <SaveEventLogsDialog 
+        logs={selectedLogs}
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        onSuccess={() => {
+          setSelectedLogs([]);
+          setSaveDialogOpen(false);
+        }}
+      />
+      
+      <SavedEventLogsDialog 
+        open={savedLogsDialogOpen}
+        onOpenChange={setSavedLogsDialogOpen}
+        onSelectLogs={(logs) => {
+          setSelectedLogs(logs);
+          setSavedLogsDialogOpen(false);
+        }}
+      />
     </AdminLayout>
   );
 };
