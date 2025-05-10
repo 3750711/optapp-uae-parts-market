@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -30,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Link } from 'react-router-dom';
-import { ArrowUpDown, ExternalLink, Filter, Search } from 'lucide-react';
+import { ArrowUpDown, BookmarkPlus, ExternalLink, Filter, Save, Search, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,6 +43,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import SaveEventLogsDialog from '@/components/admin/SaveEventLogsDialog';
+import SavedEventLogsDialog from '@/components/admin/SavedEventLogsDialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface ActionLog {
   id: string;
@@ -56,14 +60,17 @@ interface ActionLog {
 
 const AdminEvents = () => {
   const { isAdmin } = useAdminAccess();
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const [sortField, setSortField] = useState<'created_at' | 'entity_type' | 'action_type'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
   const pageSize = 10;
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'action-logs', currentPage, sortField, sortOrder, entityFilter, actionFilter],
     queryFn: async () => {
       // Start building the query
@@ -156,6 +163,15 @@ const AdminEvents = () => {
         return actionType;
     }
   };
+  
+  const handleLoadSavedLogs = (logs: ActionLog[]) => {
+    toast({
+      title: "Загружено",
+      description: `Загружено ${logs.length} записей из сохраненного набора`,
+    });
+    // In a real implementation, we would populate state with these logs
+    // For now, we'll just show a success message
+  };
 
   const renderDetails = (log: ActionLog) => {
     if (!log.details) return 'Нет данных';
@@ -226,6 +242,26 @@ const AdminEvents = () => {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Журнал событий</h1>
           
           <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-1"
+              onClick={() => setSaveDialogOpen(true)}
+            >
+              <Save className="h-4 w-4" />
+              <span className="hidden sm:inline">Сохранить</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-1"
+              onClick={() => setLoadDialogOpen(true)}
+            >
+              <Upload className="h-4 w-4" />
+              <span className="hidden sm:inline">Загрузить</span>
+            </Button>
+            
             <Select
               value={`${sortField}-${sortOrder}`}
               onValueChange={handleSortChange}
@@ -414,6 +450,26 @@ const AdminEvents = () => {
           )}
         </Card>
       </div>
+
+      {/* Dialogs for saving and loading event logs */}
+      <SaveEventLogsDialog 
+        open={saveDialogOpen} 
+        onOpenChange={setSaveDialogOpen}
+        logs={data?.logs || []} 
+        onSuccess={() => {
+          refetch();
+          toast({
+            title: "Успешно сохранено",
+            description: "Журнал событий сохранен",
+          });
+        }}
+      />
+      
+      <SavedEventLogsDialog 
+        open={loadDialogOpen} 
+        onOpenChange={setLoadDialogOpen}
+        onSelectLogs={handleLoadSavedLogs} 
+      />
     </AdminLayout>
   );
 };

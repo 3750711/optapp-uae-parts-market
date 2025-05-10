@@ -615,6 +615,36 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_action_logs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          log_count: number
+          logs: Json
+          name: string
+          saved_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          log_count: number
+          logs: Json
+          name: string
+          saved_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          log_count?: number
+          logs?: Json
+          name?: string
+          saved_by?: string
+        }
+        Relationships: []
+      }
       store_car_brands: {
         Row: {
           car_brand_id: string
