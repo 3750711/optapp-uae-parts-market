@@ -16,7 +16,8 @@ import AdminLogistics from "./pages/AdminLogistics";
 import AdminAddProduct from "./pages/AdminAddProduct";
 import AdminOrders from "./pages/AdminOrders";
 import AdminStores from "./pages/AdminStores";
-import AdminCarCatalog from "./pages/AdminCarCatalog"; // Add import for new page
+import AdminCarCatalog from "./pages/AdminCarCatalog";
+import AdminEvents from "./pages/AdminEvents"; // Add import for new Events page
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -149,6 +150,11 @@ const App = () => {
               <Route path="/admin/car-catalog" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminCarCatalog />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/events" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminEvents />
                 </ProtectedRoute>
               } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
