@@ -66,6 +66,22 @@ const ProductStatusChangeDialog = ({
     try {
       setIsProcessing(true);
       
+      // Manually log the action to ensure it's recorded
+      await supabase
+        .from("action_logs")
+        .insert({
+          action_type: "update",
+          entity_type: "product",
+          entity_id: productId,
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          details: {
+            title: productName,
+            old_status: "active", // Assuming it was active before
+            new_status: "sold",
+          }
+        });
+      
+      // Update the product status
       const { data, error } = await supabase
         .from("products")
         .update({ status: "sold" })

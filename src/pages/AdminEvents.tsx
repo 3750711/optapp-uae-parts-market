@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,6 +70,42 @@ const AdminEvents = () => {
   const [filteredLogs, setFilteredLogs] = useState<ActionLog[]>([]);
   const pageSize = 10;
 
+  // Create a test log entry on component mount to verify logging functionality
+  useEffect(() => {
+    const createTestLog = async () => {
+      if (isAdmin) {
+        console.log("Attempting to create a test log entry...");
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData.user?.id;
+        
+        if (!userId) return;
+        
+        const { data, error } = await supabase
+          .from("action_logs")
+          .insert({
+            action_type: "test",
+            entity_type: "system",
+            user_id: userId,
+            details: {
+              message: "Test log entry to verify action_logs functionality",
+              timestamp: new Date().toISOString(),
+            }
+          })
+          .select();
+          
+        if (error) {
+          console.error("Error creating test log:", error);
+        } else {
+          console.log("Test log created successfully:", data);
+          // Refetch logs after creating the test entry
+          refetch();
+        }
+      }
+    };
+    
+    createTestLog();
+  }, [isAdmin]);
+
   const { data, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'action-logs', currentPage, sortField, sortOrder, entityFilter, actionFilter],
     queryFn: async () => {
@@ -96,9 +131,13 @@ const AdminEvents = () => {
       const { data, error, count } = await query
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching action logs:", error);
+        throw error;
+      }
 
       console.log("Fetched action logs:", data);
+      console.log("Count:", count);
 
       // Process the data to include user email
       const processedData = data.map((log: any) => ({
@@ -316,6 +355,9 @@ const AdminEvents = () => {
                   <DropdownMenuItem onClick={() => setEntityFilter('user')} className={entityFilter === 'user' ? 'bg-accent' : ''}>
                     Пользователи
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setEntityFilter('system')} className={entityFilter === 'system' ? 'bg-accent' : ''}>
+                    Система
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 
                 <DropdownMenuSeparator />
@@ -336,6 +378,9 @@ const AdminEvents = () => {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setActionFilter('login')} className={actionFilter === 'login' ? 'bg-accent' : ''}>
                     Вход
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActionFilter('test')} className={actionFilter === 'test' ? 'bg-accent' : ''}>
+                    Тест
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
@@ -362,8 +407,8 @@ const AdminEvents = () => {
                     Загрузка...
                   </TableCell>
                 </TableRow>
-              ) : filteredLogs && filteredLogs.length > 0 ? (
-                filteredLogs.map((log) => (
+              ) : data && data.logs && data.logs.length > 0 ? (
+                data.logs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap">
                       {format(new Date(log.created_at), 'dd.MM.yyyy HH:mm:ss')}
@@ -411,14 +456,21 @@ const AdminEvents = () => {
               ) : (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8">
-                    Записи не найдены
+                    Записи не найдены. 
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto font-normal" 
+                      onClick={() => refetch()}
+                    >
+                      Обновить
+                    </Button>
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
           
-          {totalPages > 1 && (
+          {data && data.totalCount > 0 && data.totalCount > pageSize && (
             <div className="p-4">
               <Pagination>
                 <PaginationContent>
@@ -429,8 +481,9 @@ const AdminEvents = () => {
                     />
                   </PaginationItem>
                   
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  {(() => {
                     // Show pages around current page
+                    const totalPages = Math.ceil(data.totalCount / pageSize);
                     const pageNumbers = [];
                     const startPage = Math.max(1, currentPage - 2);
                     const endPage = Math.min(totalPages, startPage + 4);
@@ -449,12 +502,15 @@ const AdminEvents = () => {
                         </PaginationLink>
                       </PaginationItem>
                     ));
-                  })}
+                  })()}
                   
                   <PaginationItem>
                     <PaginationNext
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      onClick={() => {
+                        const totalPages = Math.ceil(data.totalCount / pageSize);
+                        setCurrentPage(Math.min(totalPages, currentPage + 1));
+                      }}
+                      className={currentPage === Math.ceil(data.totalCount / pageSize) ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                     />
                   </PaginationItem>
                 </PaginationContent>
