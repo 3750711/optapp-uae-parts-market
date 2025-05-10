@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -9,6 +10,7 @@ import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
 import SuccessOrderDialog from "./SuccessOrderDialog";
 import { Database } from "@/integrations/supabase/types";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -51,18 +53,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const isSeller = profile?.user_type === 'seller';
   const isProductSold = product.status === 'sold';
 
   const handleBuyNow = () => {
     if (!user) {
-      toast({
-        title: "Требуется авторизация",
-        description: "Пожалуйста, войдите в систему для совершения покупки",
-        variant: "destructive",
-      });
-      navigate('/login');
+      setShowAuthDialog(true);
       return;
     }
 
@@ -83,9 +81,22 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setShowConfirmDialog(true);
   };
 
+  const handleContactAction = (action: () => void) => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+    action();
+  };
+
   const handleGoToProfile = () => {
     setShowProfileWarning(false);
     navigate('/profile');
+  };
+
+  const handleGoToLogin = () => {
+    setShowAuthDialog(false);
+    navigate('/login');
   };
 
   const handleConfirmOrder = async (orderData: { text_order?: string }) => {
@@ -260,7 +271,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           variant="outline"
           className="border-primary border-2"
           size="lg"
-          onClick={onContactTelegram}
+          onClick={() => handleContactAction(onContactTelegram)}
         >
           <MessageSquare className="mr-2 h-5 w-5" /> Telegram
         </Button>
@@ -268,7 +279,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <Button 
           className="bg-[#25d366] hover:bg-[#20bd5c] text-white shadow-lg"
           size="lg"
-          onClick={onContactWhatsApp}
+          onClick={() => handleContactAction(onContactWhatsApp)}
         >
           <MessageSquare className="mr-2 h-5 w-5" /> WhatsApp
         </Button>
@@ -296,6 +307,26 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         onClose={handleSuccessDialogClose}
         orderNumber={orderNumber || 0}
       />
+
+      {/* Authentication Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Требуется авторизация</DialogTitle>
+            <DialogDescription>
+              Для использования этой функции необходимо войти в аккаунт или зарегистрироваться.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-center">
+            <Button onClick={handleGoToLogin} className="w-full sm:w-auto">
+              Войти / Зарегистрироваться
+            </Button>
+            <Button variant="outline" onClick={() => setShowAuthDialog(false)} className="w-full sm:w-auto">
+              Отмена
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

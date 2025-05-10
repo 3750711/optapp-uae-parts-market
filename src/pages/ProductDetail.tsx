@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -273,7 +272,8 @@ const ProductDetail = () => {
                       seller_id: product.seller_id,
                       seller_name: sellerName,
                       lot_number: product.lot_number,
-                      status: product.status
+                      status: product.status,
+                      delivery_price: product.delivery_price
                     }}
                   />
                 </div>
@@ -329,7 +329,8 @@ const ProductDetail = () => {
                       seller_id: product.seller_id,
                       seller_name: sellerName,
                       lot_number: product.lot_number,
-                      status: product.status
+                      status: product.status,
+                      delivery_price: product.delivery_price
                     }}
                   />
                 </div>

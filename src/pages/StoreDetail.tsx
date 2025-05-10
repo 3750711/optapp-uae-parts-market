@@ -15,6 +15,7 @@ import WriteReviewDialog from '@/components/store/WriteReviewDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Tooltip,
   TooltipContent,
@@ -26,6 +27,8 @@ const StoreDetail: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'telegram' | 'whatsapp' | null>(null);
 
   // Store data query
   const { data: store, isLoading: isStoreLoading, refetch } = useQuery({
@@ -195,6 +198,12 @@ const StoreDetail: React.FC = () => {
   };
 
   const handleContactTelegram = () => {
+    if (!user) {
+      setPendingAction('telegram');
+      setShowAuthDialog(true);
+      return;
+    }
+
     if (!store?.telegram && !store?.phone) {
       toast({
         title: "Контакт недоступен",
@@ -214,6 +223,12 @@ const StoreDetail: React.FC = () => {
   };
 
   const handleContactWhatsApp = () => {
+    if (!user) {
+      setPendingAction('whatsapp');
+      setShowAuthDialog(true);
+      return;
+    }
+
     if (!store?.phone) {
       toast({
         title: "Контакт недоступен",
@@ -230,6 +245,16 @@ const StoreDetail: React.FC = () => {
 
   const handleGoBack = () => {
     navigate(-1);
+  };
+
+  const handleGoToLogin = () => {
+    setShowAuthDialog(false);
+    navigate('/login');
+  };
+
+  const handleAuthDialogClose = () => {
+    setShowAuthDialog(false);
+    setPendingAction(null);
   };
 
   // Share functionality
@@ -703,6 +728,26 @@ const StoreDetail: React.FC = () => {
         storeId={store?.id || ''}
         onSubmitted={onReviewSubmitted}
       />
+
+      {/* Authentication Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={handleAuthDialogClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Требуется авторизация</DialogTitle>
+            <DialogDescription>
+              Для использования этой функции необходимо войти в аккаунт или зарегистрироваться.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-center">
+            <Button onClick={handleGoToLogin} className="w-full sm:w-auto">
+              Войти / Зарегистрироваться
+            </Button>
+            <Button variant="outline" onClick={handleAuthDialogClose} className="w-full sm:w-auto">
+              Отмена
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

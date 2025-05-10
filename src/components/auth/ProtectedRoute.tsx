@@ -1,5 +1,5 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, profile, isLoading } = useAuth();
+  const location = useLocation();
   
   // Show loading state while checking authentication
   if (isLoading) {
@@ -22,7 +23,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   
   // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/login" replace />;
+    // Store the current location so we can redirect back after login
+    return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
   
   // Check if user is blocked
