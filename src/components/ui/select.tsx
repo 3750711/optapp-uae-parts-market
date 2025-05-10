@@ -85,7 +85,7 @@ const SelectContent = React.forwardRef<
       // Use a small timeout to ensure the dropdown is fully open
       const timer = setTimeout(() => {
         searchInputRef.current?.focus();
-      }, 50);
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [showSearch]);
@@ -101,8 +101,13 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
-        // Prevent dropdown from closing when clicking in search input
+        // Prevent dropdown from closing when clicking or interacting with search input
         onPointerDownOutside={(e) => {
+          if (showSearch && searchInputRef.current?.contains(e.target as Node)) {
+            e.preventDefault();
+          }
+        }}
+        onInteractOutside={(e) => {
           if (showSearch && searchInputRef.current?.contains(e.target as Node)) {
             e.preventDefault();
           }
@@ -123,18 +128,30 @@ const SelectContent = React.forwardRef<
                 )}
                 value={searchValue || ""}
                 onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-                // Prevent dropdown from closing when clicking/touching the search input
+                // Comprehensive event handling to prevent dropdown closing
                 onClick={(e) => e.stopPropagation()}
                 onTouchStart={(e) => e.stopPropagation()} 
+                onTouchEnd={(e) => e.stopPropagation()} 
+                onTouchMove={(e) => e.stopPropagation()} 
                 onMouseDown={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
                 onKeyDown={(e) => {
+                  // Only stop propagation for keys that might close or interact with dropdown
                   if (e.key === 'Escape') {
                     // Let Escape close the dropdown but not clear the search
                     e.stopPropagation();
                     document.activeElement instanceof HTMLElement && document.activeElement.blur();
-                  } else if (['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) {
+                  } else if (['ArrowUp', 'ArrowDown', 'Enter', 'Tab', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
                     // Let these keys work for navigation but don't interrupt typing
                     e.stopPropagation();
+                  }
+                }}
+                // Prevent input from losing focus
+                onBlur={(e) => {
+                  // Prevent blur if it's related to dropdown interaction
+                  if (e.relatedTarget && (e.relatedTarget as HTMLElement).closest('[data-radix-select-content]')) {
+                    e.preventDefault();
+                    searchInputRef.current?.focus();
                   }
                 }}
                 autoCapitalize="none"
@@ -150,6 +167,13 @@ const SelectContent = React.forwardRef<
                     e.preventDefault();
                     onSearchChange && onSearchChange("");
                     searchInputRef.current?.focus();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
                   }}
                   type="button"
                 >
