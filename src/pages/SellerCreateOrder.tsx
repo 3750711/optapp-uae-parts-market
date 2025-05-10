@@ -252,29 +252,6 @@ const SellerCreateOrder = () => {
           });
         } else {
           console.log("Product status updated to sold successfully");
-          
-          // After marking as sold, send notification with complete product data
-          try {
-            const { data: freshProduct, error: fetchError } = await supabase
-              .from('products')
-              .select(`*, product_images(*), product_videos(*)`)
-              .eq('id', productId)
-              .single();
-
-            if (!fetchError && freshProduct) {
-              const { error: notifError } = await supabase.functions.invoke('send-telegram-notification', {
-                body: { product: freshProduct }
-              });
-              
-              if (notifError) {
-                console.error("Error sending notification:", notifError);
-              } else {
-                console.log("Product status notification sent successfully");
-              }
-            }
-          } catch (notifErr) {
-            console.error("Error in notification process:", notifErr);
-          }
         }
       }
 

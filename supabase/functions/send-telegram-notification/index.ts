@@ -17,18 +17,21 @@ const corsHeaders = {
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Helper function to make API calls with retry logic for rate limiting
-async function callTelegramAPI(endpoint: string, formData: FormData, maxRetries = 3) {
+async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
   let retries = 0;
   
   while (retries < maxRetries) {
     try {
-      console.log(`Calling Telegram API ${endpoint}`);
+      console.log(`Calling Telegram API ${endpoint} with data:`, JSON.stringify(data));
       
       const response = await fetch(
         `https://api.telegram.org/bot${BOT_TOKEN}/${endpoint}`,
         {
           method: 'POST',
-          body: formData
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
         }
       );
       
@@ -147,9 +150,9 @@ serve(async (req) => {
 
     // Get the model part of the message, but only include it if model is not null or empty
     const modelPart = product.model ? ` ${product.model}` : '';
-    
-    // Build the message
-    let message = `${eventPrefix}LOT(лот) #${formattedLotNumber}\n` +
+
+    // Updated message format with highlighted status for pending items and new product indicator
+    const message = `${eventPrefix}LOT(лот) #${formattedLotNumber}\n` +
       `📦 ${product.title} ${product.brand}${modelPart}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
@@ -158,111 +161,61 @@ serve(async (req) => {
       `📊 Статус: ${statusPrefix}${statusLabel}${statusSuffix}`;
 
     const validatedChatId = validateChatId(GROUP_CHAT_ID);
+    console.log('Sending message to Telegram:', message);
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
-    // Send message with photos using sendMediaGroup for multiple photos
     if (product.product_images && product.product_images.length > 0) {
-      try {
-        // Prepare media group with all photos
-        const mediaGroup = [];
-        const photoPromises = [];
-        
-        // Fetch all photos first
-        for (let i = 0; i < Math.min(product.product_images.length, 10); i++) {
-          const photo = product.product_images[i];
-          photoPromises.push(fetch(photo.url));
+      // Split images into groups of 10 (Telegram's limit)
+      const imageGroups = [];
+      for (let i = 0; i < product.product_images.length; i += 10) {
+        imageGroups.push(product.product_images.slice(i, i + 10));
+      }
+
+      // Send each group of images
+      for (let i = 0; i < imageGroups.length; i++) {
+        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
+          type: 'photo',
+          media: img.url,
+          // Add caption to the first image of the first group only
+          ...(i === 0 && index === 0 && {
+            caption: message,
+            parse_mode: 'HTML'
+          })
+        }));
+
+        try {
+          const mediaResult = await callTelegramAPI('sendMediaGroup', {
+            chat_id: validatedChatId,
+            media: mediaGroup
+          });
+          
+          console.log('Media group response:', mediaResult);
+        } catch (error) {
+          console.error('Failed to send media group:', error);
+          // If media group fails, try sending just the text message
+          await callTelegramAPI('sendMessage', {
+            chat_id: validatedChatId,
+            text: message,
+            parse_mode: 'HTML'
+          });
         }
         
-        const photoResponses = await Promise.all(photoPromises);
-        const photoBlobs = await Promise.all(photoResponses.map(r => r.ok ? r.blob() : null));
-        
-        // First photo with caption
-        if (photoBlobs[0]) {
-          const firstPhotoFormData = new FormData();
-          firstPhotoFormData.append('chat_id', validatedChatId);
-          firstPhotoFormData.append('photo', photoBlobs[0], 'photo0.jpg');
-          firstPhotoFormData.append('caption', message);
-          
-          // Send first photo with caption
-          await callTelegramAPI('sendPhoto', firstPhotoFormData);
-          
-          // Now prepare the rest of photos as media group if there are any
-          if (photoBlobs.length > 1) {
-            const mediaFormData = new FormData();
-            mediaFormData.append('chat_id', validatedChatId);
-            
-            // Create media array for the rest of photos
-            const mediaInputs = [];
-            for (let i = 1; i < photoBlobs.length; i++) {
-              if (photoBlobs[i]) {
-                mediaFormData.append(`photo${i}`, photoBlobs[i], `photo${i}.jpg`);
-                mediaInputs.push({
-                  type: 'photo',
-                  media: `attach://photo${i}`
-                });
-              }
-            }
-            
-            mediaFormData.append('media', JSON.stringify(mediaInputs));
-            
-            // Send remaining photos as media group if we have any
-            if (mediaInputs.length > 0) {
-              await callTelegramAPI('sendMediaGroup', mediaFormData);
-            }
-          }
-        } else {
-          // Fallback to text-only message
-          const textFormData = new FormData();
-          textFormData.append('chat_id', validatedChatId);
-          textFormData.append('text', message);
-          
-          await callTelegramAPI('sendMessage', textFormData);
+        // Add a small delay between groups to avoid rate limiting
+        if (i < imageGroups.length - 1) {
+          await sleep(300);
         }
-      } catch (photoError) {
-        console.error('Error sending photo message:', photoError);
-        
-        // Fallback to text-only message
-        const textFormData = new FormData();
-        textFormData.append('chat_id', validatedChatId);
-        textFormData.append('text', message);
-        
-        await callTelegramAPI('sendMessage', textFormData);
       }
     } else {
-      // No images, send text-only message
-      const textFormData = new FormData();
-      textFormData.append('chat_id', validatedChatId);
-      textFormData.append('text', message);
+      // If no images, just send text message
+      const messageResult = await callTelegramAPI('sendMessage', {
+        chat_id: validatedChatId,
+        text: message,
+        parse_mode: 'HTML'
+      });
       
-      await callTelegramAPI('sendMessage', textFormData);
+      console.log('Text message response:', messageResult);
     }
-    
-    // Send videos separately (if any)
-    if (product.product_videos && product.product_videos.length > 0) {
-      for (const video of product.product_videos) {
-        try {
-          const videoResponse = await fetch(video.url);
-          
-          if (!videoResponse.ok) {
-            console.error(`Failed to fetch video: ${videoResponse.status} ${videoResponse.statusText}`);
-            continue;
-          }
-          
-          const videoBlob = await videoResponse.blob();
-          const videoFormData = new FormData();
-          videoFormData.append('chat_id', validatedChatId);
-          videoFormData.append('video', videoBlob, 'video.mp4');
-          
-          await callTelegramAPI('sendVideo', videoFormData);
-        } catch (videoError) {
-          console.error(`Error sending video:`, videoError);
-          // Continue with other videos if any
-        }
-      }
-    }
-    
-    console.log('Notification sent successfully');
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
