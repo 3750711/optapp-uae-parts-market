@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -22,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { countries } from "@/data/countries";
@@ -105,6 +105,25 @@ const Register = () => {
       if (authError) throw authError;
       
       console.log("Registration successful:", authData);
+
+      // Ensure the profile data is also updated directly
+      if (authData.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: data.fullName || null,
+            user_type: data.userType,
+            phone: data.phone || null,
+            opt_id: data.optId || null,
+            telegram: data.telegram || null,
+            location: data.location,
+          })
+          .eq('id', authData.user.id);
+        
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+        }
+      }
 
       toast({
         title: "Регистрация прошла успешно",
