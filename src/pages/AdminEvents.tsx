@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -106,16 +107,13 @@ const AdminEvents = () => {
     createTestLog();
   }, [isAdmin]);
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch, error } = useQuery({
     queryKey: ['admin', 'action-logs', currentPage, sortField, sortOrder, entityFilter, actionFilter],
     queryFn: async () => {
       // Start building the query
       let query = supabase
         .from('action_logs')
-        .select(`
-          *,
-          profiles:user_id (email)
-        `, { count: 'exact' })
+        .select('*', { count: 'exact' })
         .order(sortField, { ascending: sortOrder === 'asc' });
       
       // Apply entity type filter
@@ -139,10 +137,36 @@ const AdminEvents = () => {
       console.log("Fetched action logs:", data);
       console.log("Count:", count);
 
-      // Process the data to include user email
+      // Process the logs to add user emails where possible
+      const userIds = data.map((log: any) => log.user_id).filter(Boolean);
+      
+      // Fetch user emails in a separate query if we have any user IDs
+      let userEmails: Record<string, string> = {};
+      
+      if (userIds.length > 0) {
+        try {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, email')
+            .in('id', userIds);
+            
+          if (!profilesError && profilesData) {
+            userEmails = profilesData.reduce((acc: Record<string, string>, profile: any) => {
+              acc[profile.id] = profile.email;
+              return acc;
+            }, {});
+          } else if (profilesError) {
+            console.warn("Error fetching user emails:", profilesError);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch user emails:", err);
+        }
+      }
+      
+      // Add emails to logs where available
       const processedData = data.map((log: any) => ({
         ...log,
-        user_email: log.profiles?.email,
+        user_email: userEmails[log.user_id] || undefined,
       }));
       
       // Update the filtered logs state for saving purposes
@@ -155,6 +179,13 @@ const AdminEvents = () => {
     },
     enabled: isAdmin
   });
+
+  // Log any errors for debugging
+  useEffect(() => {
+    if (error) {
+      console.error("Error in useQuery for action logs:", error);
+    }
+  }, [error]);
 
   const totalPages = data ? Math.ceil(data.totalCount / pageSize) : 0;
 
@@ -204,6 +235,8 @@ const AdminEvents = () => {
         return 'Удаление';
       case 'login':
         return 'Вход';
+      case 'test':
+        return 'Тест';
       default:
         return actionType;
     }
@@ -223,6 +256,14 @@ const AdminEvents = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleRefreshLogs = () => {
+    refetch();
+    toast({
+      title: "Обновление",
+      description: "Обновляем журнал событий...",
+    });
   };
 
   const renderDetails = (log: ActionLog) => {
@@ -277,6 +318,13 @@ const AdminEvents = () => {
           </div>
         );
       }
+    } else if (log.entity_type === 'system' && log.action_type === 'test') {
+      return (
+        <div className="space-y-1">
+          <div><span className="font-medium">Сообщение:</span> {log.details.message}</div>
+          <div><span className="font-medium">Время:</span> {format(new Date(log.details.timestamp), 'dd.MM.yyyy HH:mm:ss')}</div>
+        </div>
+      );
     }
     
     // Default fallback for other types of logs
@@ -294,6 +342,16 @@ const AdminEvents = () => {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Журнал событий</h1>
           
           <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-1"
+              onClick={handleRefreshLogs}
+            >
+              <ArrowUpDown className="h-4 w-4" />
+              <span className="hidden sm:inline">Обновить</span>
+            </Button>
+          
             <Button 
               variant="outline" 
               size="sm"
@@ -407,6 +465,22 @@ const AdminEvents = () => {
                     Загрузка...
                   </TableCell>
                 </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center py-8 text-red-500">
+                    Ошибка при загрузке данных. 
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto font-normal ml-2" 
+                      onClick={() => refetch()}
+                    >
+                      Попробовать снова
+                    </Button>
+                    <div className="mt-2 text-xs text-red-400">
+                      {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : data && data.logs && data.logs.length > 0 ? (
                 data.logs.map((log) => (
                   <TableRow key={log.id}>
@@ -459,7 +533,7 @@ const AdminEvents = () => {
                     Записи не найдены. 
                     <Button 
                       variant="link" 
-                      className="p-0 h-auto font-normal" 
+                      className="p-0 h-auto font-normal ml-2" 
                       onClick={() => refetch()}
                     >
                       Обновить

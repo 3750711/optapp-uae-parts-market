@@ -66,20 +66,33 @@ const ProductStatusChangeDialog = ({
     try {
       setIsProcessing(true);
       
+      // Get the current user for logging
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      if (!userId) {
+        toast.error("Не удалось получить информацию о пользователе");
+        return;
+      }
+      
       // Manually log the action to ensure it's recorded
-      await supabase
+      const { error: logError } = await supabase
         .from("action_logs")
         .insert({
           action_type: "update",
           entity_type: "product",
           entity_id: productId,
-          user_id: (await supabase.auth.getUser()).data.user?.id,
+          user_id: userId,
           details: {
             title: productName,
             old_status: "active", // Assuming it was active before
             new_status: "sold",
           }
         });
+      
+      if (logError) {
+        console.error("Error logging product status change:", logError);
+      }
       
       // Update the product status
       const { data, error } = await supabase
