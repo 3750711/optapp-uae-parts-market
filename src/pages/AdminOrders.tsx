@@ -81,6 +81,54 @@ const AdminOrders = () => {
     setShowDeleteDialog(true);
   };
 
+  const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
+    if (!selectedOrder) return;
+    
+    try {
+      const { data: updatedOrder, error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId)
+        .select('*, seller:profiles!orders_seller_id_fkey(*)')
+        .single();
+        
+      if (error) throw error;
+      
+      // Send notification about order status change
+      try {
+        // Get order images
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', orderId);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...updatedOrder, images },
+            action: 'status_change'
+          }
+        });
+      } catch (notifyError) {
+        console.error('Failed to send status update notification:', notifyError);
+      }
+      
+      setShowEditDialog(false);
+      toast({
+        title: "Статус обновлен",
+        description: `Статус заказа №${selectedOrder.order_number} обновлен`,
+      });
+    } catch (error) {
+      console.error("Failed to update order status:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить статус заказа",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -144,6 +192,7 @@ const AdminOrders = () => {
           open={showEditDialog}
           onOpenChange={setShowEditDialog}
           order={selectedOrder}
+          onStatusChange={handleOrderStatusChange}
         />
 
         <AdminOrderDeleteDialog

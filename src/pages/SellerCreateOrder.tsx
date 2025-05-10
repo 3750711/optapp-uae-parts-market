@@ -299,6 +299,19 @@ const SellerCreateOrder = () => {
         }
       }
 
+      // Send notification to Telegram
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...createdOrder, images },
+            action: 'create'
+          }
+        });
+        console.log("Telegram notification sent for new order");
+      } catch (notifyError) {
+        console.error('Failed to send order notification:', notifyError);
+      }
+
       setCreatedOrder(createdOrder);
       toast({
         title: "Заказ создан",

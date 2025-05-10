@@ -134,6 +134,19 @@ const OrderDetails = () => {
         });
         return;
       }
+      
+      // Send notification about order status change
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...orderData.order, status: 'seller_confirmed', price: newPrice, images: orderData.images },
+            action: 'status_change'
+          }
+        });
+      } catch (notifyError) {
+        console.error('Failed to send status notification:', notifyError);
+      }
+      
       toast({
         title: "Заказ подтвержден",
         description: "Статус заказа успешно обновлен",
@@ -176,16 +189,16 @@ const OrderDetails = () => {
     );
   }
 
-  const isSeller = profile?.user_type === 'seller' && orderData.order.seller_id === user?.id;
-  const canConfirm = isSeller && orderData.order.status === 'created';
+  const isSeller = profile?.user_type === 'seller' && orderData?.order?.seller_id === user?.id;
+  const canConfirm = isSeller && orderData?.order?.status === 'created';
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <OrderConfirmationCard
-          order={orderData.order}
-          images={orderData.images}
-          videos={orderData.videos}
+          order={orderData?.order}
+          images={orderData?.images || []}
+          videos={orderData?.videos || []}
           onOrderUpdate={(updatedOrder) => {
             if (orderData?.order) {
               const preservedFields = {
@@ -199,6 +212,18 @@ const OrderDetails = () => {
                 images: orderData.images,
                 videos: orderData.videos,
               });
+              
+              // Send notification about order update
+              try {
+                supabase.functions.invoke('send-telegram-notification', {
+                  body: { 
+                    order: { ...mergedOrder, images: orderData.images },
+                    action: 'status_change'
+                  }
+                });
+              } catch (error) {
+                console.error('Failed to send update notification:', error);
+              }
             }
             queryClient.invalidateQueries({ queryKey: ['order', id] });
           }}
@@ -236,11 +261,11 @@ const OrderDetails = () => {
 
         <div className="mt-10">
           <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
-          <OrderImages images={orderData.images} />
+          <OrderImages images={orderData?.images || []} />
         </div>
         <div className="mt-10">
           <h2 className="text-2xl font-semibold mb-4">Видео заказа</h2>
-          <OrderVideos videos={orderData.videos} />
+          <OrderVideos videos={orderData?.videos || []} />
         </div>
       </div>
     </Layout>
