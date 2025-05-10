@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -19,14 +19,18 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   maxImages = 10
 }) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const uploadImages = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      setIsUploading(true);
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
+      setIsUploading(true);
+      const newUploadProgress = Array(files.length).fill(0);
+      setUploadProgress(newUploadProgress);
+      
       const newUrls: string[] = [];
       
       for (let i = 0; i < files.length; i++) {
@@ -39,16 +43,47 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         }
         
         const file = files[i];
+        // Проверка размера файла (не более 5 МБ)
+        if (file.size > 5 * 1024 * 1024) {
+          toast({
+            title: "Ошибка",
+            description: `Файл ${file.name} слишком большой. Максимальный размер - 5 МБ`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Проверка типа файла
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Ошибка",
+            description: `Файл ${file.name} не является изображением`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        // Загрузка файла с отслеживанием прогресса
+        const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(filePath, file);
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            contentType: file.type,
+            upsert: false
+          });
 
         if (uploadError) {
-          throw uploadError;
+          console.error("Upload error:", uploadError);
+          toast({
+            title: "Ошибка",
+            description: `Не удалось загрузить ${file.name}: ${uploadError.message}`,
+            variant: "destructive",
+          });
+          continue;
         }
 
         const { data: { publicUrl } } = supabase.storage
@@ -56,6 +91,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           .getPublicUrl(filePath);
 
         newUrls.push(publicUrl);
+        
+        // Обновляем прогресс для текущего файла
+        newUploadProgress[i] = 100;
+        setUploadProgress([...newUploadProgress]);
       }
 
       if (newUrls.length > 0) {
@@ -74,6 +113,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress([]);
       // Reset the file input after upload
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
@@ -82,12 +122,20 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const handleDelete = async (url: string) => {
     try {
       // Extract the filename from the URL
-      const fileName = url.split('/').pop();
+      const pathParts = url.split('/');
+      const fileName = pathParts[pathParts.length - 1];
+      
       if (fileName) {
-        await supabase.storage
+        const { error } = await supabase.storage
           .from('order-images')
           .remove([fileName]);
+          
+        if (error) {
+          console.error("Error removing file from storage:", error);
+          // Continue with deletion even if storage removal fails
+        }
       }
+      
       onDelete(url);
       toast({
         title: "Успешно",
@@ -103,9 +151,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   };
 
-  // Function to trigger the file input click
-  const handleButtonClick = () => {
+  // Функция для открытия диалога выбора файла
+  const handleChooseImages = () => {
+    // Для Android - сначала очищаем input, чтобы сработал onChange даже при выборе тех же файлов
     if (fileInputRef.current) {
+      fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
   };
@@ -114,7 +164,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {images.map((url, index) => (
-          <div key={url} className="relative group aspect-square">
+          <div key={`${url}-${index}`} className="relative group aspect-square">
             <img
               src={url}
               alt={`Order image ${index + 1}`}
@@ -122,10 +172,21 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             />
             <button
               onClick={() => handleDelete(url)}
-              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-80 hover:opacity-100 transition-opacity"
+              disabled={isUploading}
             >
               <X className="h-4 w-4" />
             </button>
+          </div>
+        ))}
+
+        {/* Показываем индикаторы загрузки */}
+        {isUploading && uploadProgress.map((progress, index) => (
+          <div key={`progress-${index}`} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+              <span className="text-sm text-gray-500 mt-2">{progress}%</span>
+            </div>
           </div>
         ))}
       </div>
@@ -141,16 +202,26 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             className="hidden"
             onChange={uploadImages}
             disabled={isUploading}
+            capture="environment"
           />
           <Button 
             type="button"
             variant="outline"
             disabled={isUploading}
             className="flex items-center gap-2"
-            onClick={handleButtonClick}
+            onClick={handleChooseImages}
           >
-            <ImagePlus className="h-4 w-4" />
-            {isUploading ? "Загрузка..." : "Добавить фото"}
+            {isUploading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Загрузка...
+              </>
+            ) : (
+              <>
+                <ImagePlus className="h-4 w-4" />
+                Добавить фото
+              </>
+            )}
           </Button>
         </div>
       )}
