@@ -42,6 +42,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      // Попытка входа, но без использования триггеров action_logs
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -65,6 +66,9 @@ const Login = () => {
         // Получаем профиль пользователя для определения типа пользователя
         const checkUserType = async () => {
           try {
+            // Увеличиваем таймаут, чтобы избежать конфликтов с транзакциями
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('user_type')

@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Устанавливаем обработчик событий аутентификации перед проверкой текущей сессии
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("Auth state changed:", event);
@@ -63,22 +62,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
+          // Используем setTimeout для предотвращения конфликтов с транзакциями авторизации
           setTimeout(() => {
             fetchUserProfile(session.user.id);
-          }, 0);
+          }, 100);
         } else {
           setProfile(null);
         }
       }
     );
 
-    // Проверяем текущую сессию после установки обработчика
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        // Используем setTimeout для предотвращения конфликтов с транзакциями авторизации
+        setTimeout(() => {
+          fetchUserProfile(session.user.id);
+        }, 100);
       }
       setIsLoading(false);
     });
@@ -87,6 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    // Устанавливаем isLoading в true перед попыткой выхода
+    setIsLoading(true);
+    
     try {
       await supabase.auth.signOut();
       
