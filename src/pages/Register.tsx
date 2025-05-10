@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -85,7 +84,10 @@ const Register = () => {
     console.log("Form data submitting:", data); // Debug: log submitted data
     
     try {
-      // Register the user with Supabase auth, отключаем логирование в action_logs
+      // Добавляем задержку перед регистрацией
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Register the user with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -105,10 +107,13 @@ const Register = () => {
       
       console.log("Auth data returned:", authData); // Debug: log auth response
 
-      // После успешной регистрации используем setTimeout для предотвращения конфликтов с триггером на action_logs
+      // После успешной регистрации используем setTimeout для предотвращения конфликтов
       if (authData.user) {
         setTimeout(async () => {
           try {
+            // Добавляем дополнительную задержку
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             const { error: profileError } = await supabase
               .from('profiles')
               .upsert({
@@ -119,6 +124,7 @@ const Register = () => {
                 opt_id: data.optId || null,
                 telegram: data.telegram || null,
                 user_type: data.userType, // Explicitly set user_type in profiles table
+                location: data.location,
               }, { 
                 onConflict: 'id' 
               });
@@ -129,7 +135,7 @@ const Register = () => {
           } catch (err) {
             console.error("Error in delayed profile creation:", err);
           }
-        }, 300);
+        }, 1000);
       }
 
       toast({

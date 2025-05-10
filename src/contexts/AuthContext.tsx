@@ -25,6 +25,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchUserProfile(userId: string) {
     try {
+      // Увеличиваем задержку перед запросом профиля
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -65,20 +68,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          // Увеличиваем задержку для загрузки профиля
+          // Увеличиваем задержку для загрузки профиля для избежания конфликтов с другими запросами
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
-          }, 1000);
+          }, 1500);
         } else {
           setProfile(null);
         }
       }
     );
 
-    // Проверяем существующую сессию при загрузке
+    // Проверяем существующую сессию при загрузке с большей задержкой для избежания конфликтов
     const checkSession = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        // Добавляем небольшую задержку для избежания конфликтов
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Error getting session:", error);
+          setIsLoading(false);
+          return;
+        }
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -86,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Увеличиваем задержку для загрузки профиля
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
-          }, 1000);
+          }, 1500);
         }
       } catch (error) {
         console.error("Error getting session:", error);
@@ -104,7 +117,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     
     try {
+      // Добавляем задержку перед выходом для избежания конфликтов
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       await supabase.auth.signOut();
+      
+      // Очищаем все состояния после выхода
       setUser(null);
       setSession(null);
       setProfile(null);

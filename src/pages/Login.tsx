@@ -42,13 +42,19 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Выполняем вход без записи в action_logs
+      // Добавляем задержку перед авторизацией
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Выполняем вход напрямую без дополнительной записи в лог
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Login error:", error);
+        throw error;
+      }
 
       // Показываем сообщение об успешном входе
       toast({
@@ -56,19 +62,17 @@ const Login = () => {
         description: "Добро пожаловать в OPTAPP",
       });
       
-      // После успешного входа перенаправляем пользователя
       // Проверяем в URL параметр "from", чтобы перенаправить на нужную страницу
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // Перенаправляем пользователя после успешной авторизации
-      // Используем большую задержку для предотвращения конфликтов
+      // Увеличиваем задержку для перенаправления для избежания конфликтов
       setTimeout(() => {
         // Получаем профиль пользователя для определения типа пользователя
         const checkUserType = async () => {
           try {
             // Увеличиваем таймаут для избежания конфликтов с транзакциями
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 2000));
             
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
@@ -97,13 +101,15 @@ const Login = () => {
         };
 
         checkUserType();
-      }, 1500); // Увеличиваем задержку для предотвращения конфликтов
+      }, 2000); // Увеличиваем задержку для предотвращения конфликтов
     } catch (error: any) {
       console.error("Login error:", error);
       // Показываем сообщение об ошибке
       toast({
         title: "Ошибка входа",
-        description: "Неверный email или пароль",
+        description: error.message === "Database error granting user" 
+          ? "Ошибка входа. Пожалуйста, попробуйте еще раз через несколько секунд." 
+          : "Неверный email или пароль",
         variant: "destructive",
       });
     } finally {
