@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
@@ -26,6 +27,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
@@ -34,6 +37,7 @@ const Catalog = () => {
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const productsPerPage = 8;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
@@ -79,19 +83,25 @@ const Catalog = () => {
     isError,
     refetch
   } = useInfiniteQuery({
-    queryKey: ["products-infinite", debouncedSearchQuery, selectedBrand, selectedModel],
+    queryKey: ["products-infinite", debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts],
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
       console.log(`Fetching catalog products: ${from} to ${to}`);
-      console.log(`Search criteria: query=${debouncedSearchQuery}, brand=${selectedBrand}, model=${selectedModel}`);
+      console.log(`Search criteria: query=${debouncedSearchQuery}, brand=${selectedBrand}, model=${selectedModel}, hideSold=${hideSoldProducts}`);
       
       let query = supabase
         .from("products")
         .select("*, product_images(url, is_primary), profiles:seller_id(*)")
-        .in('status', ['active', 'sold'])
         .order("created_at", { ascending: false });
+
+      // Filter out sold products if checkbox is checked
+      if (hideSoldProducts) {
+        query = query.eq('status', 'active');
+      } else {
+        query = query.in('status', ['active', 'sold']);
+      }
 
       // Apply search filters
       if (debouncedSearchQuery || selectedBrand || selectedModel) {
@@ -192,7 +202,7 @@ const Catalog = () => {
 
   useEffect(() => {
     refetch();
-  }, [debouncedSearchQuery, selectedBrand, selectedModel, refetch]);
+  }, [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, refetch]);
 
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
@@ -468,6 +478,18 @@ const Catalog = () => {
               )}
             </form>
 
+            {/* Hide sold products checkbox */}
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="hide-sold" 
+                checked={hideSoldProducts}
+                onCheckedChange={(checked) => setHideSoldProducts(checked === true)}
+              />
+              <Label htmlFor="hide-sold" className="text-sm cursor-pointer">
+                Не показывать проданные
+              </Label>
+            </div>
+
             {/* Active filters display */}
             {(searchQuery || selectedBrand || selectedModel) && (
               <div className="flex items-center gap-2 text-sm">
@@ -486,6 +508,11 @@ const Catalog = () => {
                   {selectedModel && (
                     <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center">
                       Модель: {brandModels.find(m => m.id === selectedModel)?.name}
+                    </div>
+                  )}
+                  {hideSoldProducts && (
+                    <div className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md flex items-center">
+                      Без проданных товаров
                     </div>
                   )}
                   <button 
@@ -531,7 +558,7 @@ const Catalog = () => {
 
           {!isLoading && !isError && hasSearched && (debouncedSearchQuery || selectedBrand || selectedModel) && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
-              <p className="text-lg text-gray-800">Това��ы не найдены</p>
+              <p className="text-lg text-gray-800">Товары не найдены</p>
               <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
               
               {/* Show RequestPartsPromo when no search results are found */}
