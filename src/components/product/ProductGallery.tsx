@@ -4,6 +4,14 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { 
+  Carousel, 
+  CarouselContent, 
+  CarouselItem, 
+  CarouselNext, 
+  CarouselPrevious 
+} from "@/components/ui/carousel";
 
 interface ProductGalleryProps {
   images: string[];
@@ -17,6 +25,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title, compress
   const [activeImage, setActiveImage] = useState<string>(images[0] || "");
   const [isOpen, setIsOpen] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string>("");
+  const isMobile = useIsMobile();
 
   // для touch-событий
   const touchStartX = useRef<number | null>(null);
@@ -74,37 +83,78 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title, compress
     touchEndX.current = null;
   };
 
+  // Отображение главного изображения
+  const renderMainImage = () => (
+    <div 
+      className="mb-4 overflow-hidden rounded-lg cursor-pointer"
+      onClick={() => handleImageClick(activeImage)}
+    >
+      <AspectRatio ratio={16 / 9}>
+        <img 
+          src={activeImage} 
+          alt={title}
+          className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'} transition-transform duration-200 hover:scale-105`}
+        />
+      </AspectRatio>
+    </div>
+  );
+
+  // Отображение миниатюр изображений
+  const renderThumbnails = () => (
+    <div className="grid grid-cols-4 gap-2">
+      {images.map((image, index) => (
+        <div 
+          key={index} 
+          className={`overflow-hidden rounded-md border-2 aspect-square ${
+            activeImage === image ? 'border-optapp-yellow' : 'border-transparent'
+          } hover:border-optapp-yellow cursor-pointer`}
+          onClick={() => handleThumbnailClick(image)}
+        >
+          <img 
+            src={image} 
+            alt={`${title} ${index + 1}`} 
+            className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'}`}
+          />
+        </div>
+      ))}
+    </div>
+  );
+
+  // Мобильная карусель
+  const renderMobileCarousel = () => (
+    <div className="mb-4">
+      <Carousel className="w-full">
+        <CarouselContent>
+          {images.map((image, index) => (
+            <CarouselItem key={index} className="basis-full">
+              <div 
+                className="overflow-hidden rounded-lg cursor-pointer h-full flex items-center justify-center"
+                onClick={() => handleImageClick(image)}
+              >
+                <img 
+                  src={image} 
+                  alt={`${title} ${index + 1}`}
+                  className={`w-full h-auto ${compressed ? 'object-contain' : 'object-cover'} max-h-[50vh]`}
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        {images.length > 1 && (
+          <>
+            <CarouselPrevious className="left-2" />
+            <CarouselNext className="right-2" />
+          </>
+        )}
+      </Carousel>
+    </div>
+  );
+
   return (
     <div>
-      <div 
-        className="mb-4 overflow-hidden rounded-lg cursor-pointer"
-        onClick={() => handleImageClick(activeImage)}
-      >
-        <AspectRatio ratio={16 / 9}>
-          <img 
-            src={activeImage} 
-            alt={title}
-            className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'} transition-transform duration-200 hover:scale-105`}
-          />
-        </AspectRatio>
-      </div>
-      <div className="grid grid-cols-4 gap-2">
-        {images.map((image, index) => (
-          <div 
-            key={index} 
-            className={`overflow-hidden rounded-md border-2 aspect-square ${
-              activeImage === image ? 'border-optapp-yellow' : 'border-transparent'
-            } hover:border-optapp-yellow cursor-pointer`}
-            onClick={() => handleThumbnailClick(image)}
-          >
-            <img 
-              src={image} 
-              alt={`${title} ${index + 1}`} 
-              className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'}`}
-            />
-          </div>
-        ))}
-      </div>
+      {isMobile && images.length > 1 ? renderMobileCarousel() : renderMainImage()}
+      
+      {!isMobile && renderThumbnails()}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-[90vw] h-[90vh] p-0">
