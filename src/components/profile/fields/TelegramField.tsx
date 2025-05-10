@@ -48,7 +48,7 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
             <FormDescription>{description}</FormDescription>
           ) : !isEditable && initialValue ? (
             <FormDescription className="text-yellow-600">
-              Telegram ID можно изменить только один раз
+              Если вам нужно изменить telegram пожалуйста свяжитесь с администратором
             </FormDescription>
           ) : initialValue === "" ? (
             <FormDescription>
@@ -56,7 +56,7 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
             </FormDescription>
           ) : (
             <FormDescription>
-              У вас есть одна попытка изменить Telegram ID
+              Если вам нужно изменить telegram пожалуйста свяжитесь с администратором
             </FormDescription>
           )}
           <FormMessage />
