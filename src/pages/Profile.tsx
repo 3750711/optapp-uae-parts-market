@@ -179,11 +179,12 @@ const Profile = () => {
             )}
             
             <Button 
-              variant="destructive" 
-              className="mt-4 w-full"
+              variant="ghost" 
+              size="sm"
+              className="mt-4 text-gray-400 hover:text-gray-500 text-xs flex items-center opacity-60"
               onClick={handleSignOut}
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className="mr-1 h-3 w-3" />
               Выйти из аккаунта
             </Button>
           </div>
