@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -155,8 +156,8 @@ const ProductDetail = () => {
 
   const RenderFullSizeImages = () => (
     <div className="mb-8">
-      <div className="font-semibold text-base mb-2 text-gray-500">Фото товара</div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      <div className="font-semibold text-base mb-3 text-gray-700">Оригинальные фотографии товара</div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {images.map((img, idx) => (
           <div
             key={img + idx}
@@ -165,7 +166,7 @@ const ProductDetail = () => {
             <img
               src={img}
               alt={`Фото товара ${idx + 1}`}
-              className="object-contain max-h-[400px] w-full"
+              className="w-full h-auto object-contain max-h-[400px]"
               loading="lazy"
             />
           </div>
@@ -237,7 +238,7 @@ const ProductDetail = () => {
           // Mobile layout
           <div className="flex flex-col gap-3">
             <div className="mt-2">
-              <ProductGallery images={images} title={product.title} />
+              <ProductGallery images={images} title={product.title} compressed={true} />
             </div>
             <div>
               <ProductInfo
@@ -289,12 +290,11 @@ const ProductDetail = () => {
           <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
             <div>
               <div className="mb-4">
-                <ProductGallery images={images} title={product.title} />
+                <ProductGallery images={images} title={product.title} compressed={true} />
               </div>
               <div className="mb-8">
                 <ProductVideos videos={videos} />
               </div>
-              <RenderFullSizeImages />
             </div>
             <div>
               <ProductInfo
@@ -335,6 +335,9 @@ const ProductDetail = () => {
                   />
                 </div>
               </SellerInfo>
+            </div>
+            <div className="col-span-2">
+              <RenderFullSizeImages />
             </div>
           </div>
         )}

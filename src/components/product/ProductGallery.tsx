@@ -8,11 +8,12 @@ import { Button } from "@/components/ui/button";
 interface ProductGalleryProps {
   images: string[];
   title: string;
+  compressed?: boolean;
 }
 
 const SWIPE_THRESHOLD = 50; // минимальное расстояние в пикселях для активации свайпа
 
-const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
+const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title, compressed = true }) => {
   const [activeImage, setActiveImage] = useState<string>(images[0] || "");
   const [isOpen, setIsOpen] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string>("");
@@ -83,7 +84,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
           <img 
             src={activeImage} 
             alt={title}
-            className="w-full h-full object-cover transition-transform duration-200 hover:scale-105"
+            className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'} transition-transform duration-200 hover:scale-105`}
           />
         </AspectRatio>
       </div>
@@ -99,7 +100,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
             <img 
               src={image} 
               alt={`${title} ${index + 1}`} 
-              className="w-full h-full object-cover" 
+              className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'}`}
             />
           </div>
         ))}
@@ -157,4 +158,3 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title }) => {
 };
 
 export default ProductGallery;
-
