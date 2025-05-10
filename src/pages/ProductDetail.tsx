@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -204,8 +203,17 @@ const ProductDetail = () => {
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
 
+  // Prepare dynamic metadata for the Layout component
+  const productTitle = `${product.title} | partsbay.ae`;
+  const productDescription = `${product.brand || ''} ${product.model || ''} ${product.description || ''}`.trim();
+  const productImage = images.length > 0 ? images[0] : "https://partsbay.ae/og-image.png";
+
   return (
-    <Layout>
+    <Layout 
+      title={productTitle}
+      description={productDescription}
+      imageUrl={productImage}
+    >
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center mb-6">
           <Button 
