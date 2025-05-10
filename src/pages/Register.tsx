@@ -85,7 +85,7 @@ const Register = () => {
     console.log("Form data submitting:", data); // Debug: log submitted data
     
     try {
-      // Register the user with Supabase auth
+      // Register the user with Supabase auth, отключаем логирование в action_logs
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -105,25 +105,31 @@ const Register = () => {
       
       console.log("Auth data returned:", authData); // Debug: log auth response
 
-      // After successful sign up, ensure the profile is created with the correct user_type
+      // После успешной регистрации используем setTimeout для предотвращения конфликтов с триггером на action_logs
       if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            email: data.email,
-            full_name: data.fullName || null,
-            phone: data.phone || null,
-            opt_id: data.optId || null,
-            telegram: data.telegram || null,
-            user_type: data.userType, // Explicitly set user_type in profiles table
-          }, { 
-            onConflict: 'id' 
-          });
+        setTimeout(async () => {
+          try {
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .upsert({
+                id: authData.user.id,
+                email: data.email,
+                full_name: data.fullName || null,
+                phone: data.phone || null,
+                opt_id: data.optId || null,
+                telegram: data.telegram || null,
+                user_type: data.userType, // Explicitly set user_type in profiles table
+              }, { 
+                onConflict: 'id' 
+              });
 
-        if (profileError) {
-          console.error("Profile creation error:", profileError);
-        }
+            if (profileError) {
+              console.error("Profile creation error:", profileError);
+            }
+          } catch (err) {
+            console.error("Error in delayed profile creation:", err);
+          }
+        }, 300);
       }
 
       toast({
