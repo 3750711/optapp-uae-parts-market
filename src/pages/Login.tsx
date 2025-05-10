@@ -42,7 +42,7 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Используем параметр options.skipActionLogs чтобы пропустить запись в таблицу action_logs
+      // Выполняем вход без записи в action_logs
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -61,13 +61,14 @@ const Login = () => {
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // После большей задержки перенаправляем на нужную страницу
+      // Перенаправляем пользователя после успешной авторизации
+      // Используем большую задержку для предотвращения конфликтов
       setTimeout(() => {
         // Получаем профиль пользователя для определения типа пользователя
         const checkUserType = async () => {
           try {
-            // Увеличиваем таймаут, чтобы избежать конфликтов с транзакциями
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Увеличиваем таймаут для избежания конфликтов с транзакциями
+            await new Promise(resolve => setTimeout(resolve, 1000));
             
             const { data: profileData, error: profileError } = await supabase
               .from('profiles')
@@ -96,7 +97,7 @@ const Login = () => {
         };
 
         checkUserType();
-      }, 500);
+      }, 1500); // Увеличиваем задержку для предотвращения конфликтов
     } catch (error: any) {
       console.error("Login error:", error);
       // Показываем сообщение об ошибке

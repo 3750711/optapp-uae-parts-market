@@ -55,56 +55,61 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Предотвращаем запись в action_logs при авторизации
+    // Устанавливаем слушатель изменений авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, currentSession) => {
         console.log("Auth state changed:", event);
-        setSession(session);
-        setUser(session?.user ?? null);
         
-        if (session?.user) {
-          // Используем большую задержку для предотвращения конфликтов с транзакциями авторизации
+        // Обновляем локальное состояние сессии
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          // Увеличиваем задержку для загрузки профиля
           setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 500);
+            fetchUserProfile(currentSession.user.id);
+          }, 1000);
         } else {
           setProfile(null);
         }
       }
     );
 
-    // Используем меньше вызовов к базе данных при инициализации
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        // Используем большую задержку для предотвращения конфликтов с транзакциями авторизации
-        setTimeout(() => {
-          fetchUserProfile(session.user.id);
-        }, 500);
+    // Проверяем существующую сессию при загрузке
+    const checkSession = async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+        
+        if (currentSession?.user) {
+          // Увеличиваем задержку для загрузки профиля
+          setTimeout(() => {
+            fetchUserProfile(currentSession.user.id);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error("Error getting session:", error);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    };
+    
+    checkSession();
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signOut = async () => {
-    // Устанавливаем isLoading в true перед попыткой выхода
     setIsLoading(true);
     
     try {
-      // Отключаем запись в action_logs при выходе
       await supabase.auth.signOut();
-      
-      // Сбрасываем состояние
       setUser(null);
       setSession(null);
       setProfile(null);
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
-      throw error;
     } finally {
       setIsLoading(false);
     }
