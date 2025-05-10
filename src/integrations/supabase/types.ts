@@ -9,36 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      action_logs: {
-        Row: {
-          action_type: string
-          created_at: string
-          details: Json | null
-          entity_id: string | null
-          entity_type: string
-          id: string
-          user_id: string
-        }
-        Insert: {
-          action_type: string
-          created_at?: string
-          details?: Json | null
-          entity_id?: string | null
-          entity_type: string
-          id?: string
-          user_id: string
-        }
-        Update: {
-          action_type?: string
-          created_at?: string
-          details?: Json | null
-          entity_id?: string | null
-          entity_type?: string
-          id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       car_brands: {
         Row: {
           created_at: string
