@@ -1,9 +1,9 @@
-
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { compressImage, isImage, isVideo } from "@/utils/imageCompression";
 
 interface VideoUploadProps {
   videos: string[];
@@ -24,6 +24,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +40,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     }
     
     setUploading(true);
+    setUploadProgress(0);
     
     try {
       const uploadedUrls: string[] = [];
@@ -55,6 +57,8 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         return;
       }
       
+      let completedFiles = 0;
+      
       for (const file of files) {
         // Validate file size (limit to 100MB)
         const fileSizeMB = file.size / (1024 * 1024);
@@ -66,6 +70,22 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
           });
           continue;
         }
+
+        // Process file based on type
+        let processedFile = file;
+        
+        // For images, compress them
+        if (isImage(file)) {
+          try {
+            processedFile = await compressImage(file, 1024, 768, 0.8);
+            console.log(`Image compressed: ${file.size} -> ${processedFile.size}`);
+          } catch (error) {
+            console.error("Error compressing image:", error);
+            // Continue with the original file if compression fails
+          }
+        }
+        // For video files, we'll add proper handling later
+        // Currently, we keep the original file
         
         const ext = file.name.split('.').pop();
         const fileName = `${storagePrefix}${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
@@ -73,7 +93,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         console.log(`Uploading to bucket: ${storageBucket}, file: ${fileName}`);
         const { data, error } = await supabase.storage
           .from(storageBucket)
-          .upload(fileName, file, {
+          .upload(fileName, processedFile, {
             cacheControl: '3600',
             upsert: false
           });
@@ -92,6 +112,10 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             .getPublicUrl(fileName);
           uploadedUrls.push(publicUrl);
         }
+        
+        // Update progress
+        completedFiles++;
+        setUploadProgress(Math.round((completedFiles / files.length) * 100));
       }
       if (uploadedUrls.length > 0) {
         onUpload(uploadedUrls);
@@ -106,6 +130,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -186,7 +211,12 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         {videos.length < maxVideos && (
           <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 aspect-video" onClick={handleChooseVideos}>
             {uploading
-              ? <Loader2 className="animate-spin h-6 w-6" />
+              ? (
+                <div className="flex flex-col items-center">
+                  <Loader2 className="animate-spin h-6 w-6 mb-2" />
+                  <span className="text-xs text-gray-500">{uploadProgress}%</span>
+                </div>
+              ) 
               : (<>
                   <div className="text-2xl text-gray-400 font-bold">+</div>
                   <p className="text-xs text-gray-500">Добавить видео</p>
@@ -194,7 +224,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             }
             <input
               type="file"
-              accept="video/*"
+              accept="video/*,image/*"
               multiple
               className="hidden"
               ref={fileInputRef}
@@ -220,7 +250,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
           {uploading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Загрузка...
+              Загрузка... {uploadProgress}%
             </>
           ) : (
             <>

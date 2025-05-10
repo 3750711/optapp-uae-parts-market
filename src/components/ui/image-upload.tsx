@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { compressImage } from "@/utils/imageCompression";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -63,14 +64,24 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           continue;
         }
         
+        // Compress the image
+        let compressedFile = file;
+        try {
+          compressedFile = await compressImage(file, 1024, 768, 0.8);
+          console.log(`Image compressed: ${file.size} -> ${compressedFile.size} bytes`);
+        } catch (error) {
+          console.error("Error compressing image:", error);
+          // Continue with the original file if compression fails
+        }
+        
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Загрузка файла с отслеживанием прогресса
+        // Загрузка файла с обновлением прогресса
         const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(filePath, file, {
+          .upload(filePath, compressedFile, {
             cacheControl: '3600',
             contentType: file.type,
             upsert: false
