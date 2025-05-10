@@ -77,6 +77,18 @@ const SelectContent = React.forwardRef<
   }
 >(({ className, children, position = "popper", searchPlaceholder, onSearchChange, searchValue, showSearch = false, ...props }, ref) => {
   const isMobile = useIsMobile();
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Focus the search input when content opens
+  React.useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      // Use a small timeout to ensure the dropdown is fully open
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [showSearch]);
   
   return (
     <SelectPrimitive.Portal>
@@ -89,6 +101,12 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
+        // Prevent dropdown from closing when clicking in search input
+        onPointerDownOutside={(e) => {
+          if (showSearch && searchInputRef.current?.contains(e.target as Node)) {
+            e.preventDefault();
+          }
+        }}
         {...props}
       >
         <SelectScrollUpButton />
@@ -97,14 +115,28 @@ const SelectContent = React.forwardRef<
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
+                ref={searchInputRef}
                 placeholder={searchPlaceholder || "Поиск..."}
                 className={cn(
                   "w-full px-8 py-2 border rounded-md border-input text-sm focus:outline-none focus:ring-1 focus:ring-ring",
                   isMobile && "text-base py-2.5" // Larger text and padding for mobile
                 )}
-                value={searchValue}
+                value={searchValue || ""}
                 onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-                onTouchStart={(e) => e.stopPropagation()} // Prevent dropdown from closing on touch
+                // Prevent dropdown from closing when clicking/touching the search input
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()} 
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    // Let Escape close the dropdown but not clear the search
+                    e.stopPropagation();
+                    document.activeElement instanceof HTMLElement && document.activeElement.blur();
+                  } else if (['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) {
+                    // Let these keys work for navigation but don't interrupt typing
+                    e.stopPropagation();
+                  }
+                }}
                 autoCapitalize="none"
                 autoComplete="off"
                 autoCorrect="off"
@@ -117,6 +149,7 @@ const SelectContent = React.forwardRef<
                     e.stopPropagation();
                     e.preventDefault();
                     onSearchChange && onSearchChange("");
+                    searchInputRef.current?.focus();
                   }}
                   type="button"
                 >

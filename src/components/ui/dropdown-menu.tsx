@@ -66,6 +66,18 @@ const DropdownMenuContent = React.forwardRef<
   }
 >(({ className, sideOffset = 4, children, searchPlaceholder, onSearchChange, searchValue, showSearch = false, ...props }, ref) => {
   const isMobile = useIsMobile();
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Focus the search input when content opens
+  React.useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      // Use a small timeout to ensure the dropdown is fully open
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [showSearch]);
   
   return (
     <DropdownMenuPrimitive.Portal>
@@ -76,6 +88,12 @@ const DropdownMenuContent = React.forwardRef<
           "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
           className
         )}
+        // Prevent dropdown from closing when clicking in search input
+        onPointerDownOutside={(e) => {
+          if (showSearch && searchInputRef.current?.contains(e.target as Node)) {
+            e.preventDefault();
+          }
+        }}
         {...props}
       >
         {showSearch && (
@@ -83,14 +101,28 @@ const DropdownMenuContent = React.forwardRef<
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
               <input
+                ref={searchInputRef}
                 placeholder={searchPlaceholder || "Поиск..."}
                 className={cn(
                   "w-full px-8 py-2 border rounded-md border-input text-sm focus:outline-none focus:ring-1 focus:ring-ring",
                   isMobile && "text-base py-2.5" // Larger text and padding for mobile
                 )}
-                value={searchValue}
+                value={searchValue || ""}
                 onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
-                onTouchStart={(e) => e.stopPropagation()} // Prevent dropdown from closing on touch
+                // Prevent dropdown from closing when clicking/touching the search input
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()} 
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    // Let Escape close the dropdown but not clear the search
+                    e.stopPropagation();
+                    document.activeElement instanceof HTMLElement && document.activeElement.blur();
+                  } else if (['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) {
+                    // Let these keys work for navigation but don't interrupt typing
+                    e.stopPropagation();
+                  }
+                }}
                 autoCapitalize="none"
                 autoComplete="off"
                 autoCorrect="off"
@@ -103,6 +135,7 @@ const DropdownMenuContent = React.forwardRef<
                     e.stopPropagation();
                     e.preventDefault();
                     onSearchChange && onSearchChange("");
+                    searchInputRef.current?.focus();
                   }}
                   type="button"
                 >
