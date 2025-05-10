@@ -336,6 +336,9 @@ serve(async (req) => {
                              order.delivery_method === 'cargo_rf' ? 'Карго РФ' : 
                              order.delivery_method === 'cargo_kz' ? 'Карго KZ' : 'Не указан';
       
+      // Create the order detail page URL
+      const orderPageUrl = `https://partsbay.ae/admin/orders/${order.id}`;
+      
       const message = `🔔 ${actionText}\n\n` +
         `🛍 Заказ № ${orderNumber}\n` +
         `📦 Товар: ${order.title}\n` +
@@ -350,7 +353,8 @@ serve(async (req) => {
         `👤 Получатель OPT_ID: ${order.buyer_opt_id || 'Не указан'}\n` +
         `📊 Статус: ${orderStatus}\n` +
         (order.description ? `📝 Описание: ${order.description}\n` : '') +
-        (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '');
+        (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '') +
+        `\n🔗 <a href="${orderPageUrl}">Страница заказа</a>`;
 
       // Use the updated order-specific group chat ID for orders
       const chatId = ORDER_GROUP_CHAT_ID;
@@ -418,4 +422,3 @@ serve(async (req) => {
     });
   }
 });
-
