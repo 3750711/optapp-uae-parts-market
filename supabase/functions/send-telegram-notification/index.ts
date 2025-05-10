@@ -101,6 +101,26 @@ function formatLotNumber(lotNumber: string | number | null): string {
   return `00${num}`;
 }
 
+// New function to check if telegram username is in the trusted list
+function isTrustedSeller(telegramUsername: string | null | undefined): boolean {
+  if (!telegramUsername) return false;
+  
+  // Normalize username by removing @ if present
+  const normalizedUsername = telegramUsername.startsWith('@') 
+    ? telegramUsername.substring(1) 
+    : telegramUsername;
+  
+  // List of trusted Telegram usernames (without @ symbol)
+  const trustedUsernames = [
+    'Elena_gult',
+    'SanSanichUAE',
+    'OptSeller_Georgii',
+    'Nastya_PostingLots_OptCargo'
+  ];
+  
+  return trustedUsernames.includes(normalizedUsername);
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -121,6 +141,29 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // Create Supabase client
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Auto-approve products from trusted sellers by setting status to 'active'
+    if (product.status === 'pending' && isTrustedSeller(product.telegram_url)) {
+      console.log(`Auto-approving product from trusted seller: ${product.telegram_url}`);
+      
+      const { data: updatedProduct, error: updateError } = await supabase
+        .from('products')
+        .update({ status: 'active' })
+        .eq('id', product.id)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error("Failed to auto-approve product:", updateError);
+      } else {
+        console.log("Product auto-approved successfully");
+        // Update the product object with the new status for the notification
+        product.status = 'active';
+      }
     }
 
     // List of OPT_IDs that require the special message
