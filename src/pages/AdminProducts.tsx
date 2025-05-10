@@ -1,6 +1,5 @@
-
 import React, { useState, useRef, useCallback } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ const AdminProducts = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
-  const [page, setPage] = useState<number>(1);
   
   // Reference for the loading trigger element
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -40,7 +38,7 @@ const AdminProducts = () => {
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ['admin', 'products', sortField, sortOrder, searchQuery],
     queryFn: async ({ pageParam = 1 }) => {
       // Calculate the start and end range for pagination
@@ -57,13 +55,9 @@ const AdminProducts = () => {
 
       // Apply search filter if search query exists
       if (searchQuery) {
-        const query = searchQuery.toLowerCase().trim();
+        const searchTermLower = searchQuery.toLowerCase().trim();
         query = query
-          .or(`title.ilike.%${query}%`)
-          .or(`brand.ilike.%${query}%`)
-          .or(`model.ilike.%${query}%`)
-          .or(`lot_number.ilike.%${query}%`)
-          .or(`seller_name.ilike.%${query}%`);
+          .or(`title.ilike.%${searchTermLower}%,brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%,lot_number.ilike.%${searchTermLower}%,seller_name.ilike.%${searchTermLower}%`);
       }
 
       if (sortField === 'status') {
@@ -101,7 +95,7 @@ const AdminProducts = () => {
   });
 
   // Flatten the pages of products into a single array
-  const products = productsData?.pages.flatMap(page => page.products) || [];
+  const products = productsData?.pages?.flatMap(page => page.products) || [];
 
   // Filter products based on search query (client-side filtering for already loaded products)
   const filteredProducts = searchQuery ? products.filter(product => {
