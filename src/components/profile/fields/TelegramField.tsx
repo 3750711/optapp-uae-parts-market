@@ -16,6 +16,7 @@ interface TelegramFieldProps {
   disabled?: boolean;
   description?: string;
   placeholder?: string;
+  initialValue?: string;
 }
 
 export const TelegramField: React.FC<TelegramFieldProps> = ({ 
@@ -23,34 +24,44 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
   telegram_edit_count = 0,
   disabled = false,
   description,
-  placeholder = "@username"
-}) => (
-  <FormField
-    control={control}
-    name="telegram"
-    render={({ field }) => (
-      <FormItem>
-        <FormLabel>Telegram</FormLabel>
-        <FormControl>
-          <Input 
-            placeholder={placeholder}
-            {...field} 
-            disabled={disabled || telegram_edit_count >= 1}
-          />
-        </FormControl>
-        {description ? (
-          <FormDescription>{description}</FormDescription>
-        ) : telegram_edit_count >= 1 ? (
-          <FormDescription className="text-yellow-600">
-            Telegram ID можно изменить только один раз
-          </FormDescription>
-        ) : (
-          <FormDescription>
-            У вас есть одна попытка изменить Telegram ID
-          </FormDescription>
-        )}
-        <FormMessage />
-      </FormItem>
-    )}
-  />
-);
+  placeholder = "@username",
+  initialValue = ""
+}) => {
+  const isEditable = initialValue === "" && telegram_edit_count === 0;
+  
+  return (
+    <FormField
+      control={control}
+      name="telegram"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Telegram</FormLabel>
+          <FormControl>
+            <Input 
+              placeholder={placeholder}
+              {...field} 
+              disabled={disabled || !isEditable}
+              className={!isEditable ? "bg-gray-100 cursor-not-allowed" : ""}
+            />
+          </FormControl>
+          {description ? (
+            <FormDescription>{description}</FormDescription>
+          ) : !isEditable && initialValue ? (
+            <FormDescription className="text-yellow-600">
+              Telegram ID можно изменить только один раз
+            </FormDescription>
+          ) : initialValue === "" ? (
+            <FormDescription>
+              У вас есть одна попытка указать Telegram ID
+            </FormDescription>
+          ) : (
+            <FormDescription>
+              У вас есть одна попытка изменить Telegram ID
+            </FormDescription>
+          )}
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+};
