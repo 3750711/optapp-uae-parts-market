@@ -195,48 +195,50 @@ serve(async (req) => {
       console.log(`Found ${validImagesArray.length} valid images out of ${product.product_images.length}`);
     }
 
+    // Sending message with images all at once
     if (hasValidImages) {
       try {
-        // First try sending as a media group - more reliable approach
-        // Send only as a single image with caption first
-        const primaryImage = validImagesArray[0];
+        // Send as a media group with the first image having the caption
+        const mediaGroup = validImagesArray.map((img, index) => ({
+          type: 'photo',
+          media: img.url,
+          // Only add caption to the first image
+          caption: index === 0 ? message : undefined,
+          parse_mode: index === 0 ? 'HTML' : undefined
+        }));
         
-        const photoResult = await callTelegramAPI('sendPhoto', {
-          chat_id: validatedChatId,
-          photo: primaryImage.url,
-          caption: message,
-          parse_mode: 'HTML'
-        });
+        // Telegram API can only handle 10 media items per request
+        // Split into chunks of 10 if needed
+        const mediaChunks = [];
+        for (let i = 0; i < mediaGroup.length; i += 10) {
+          mediaChunks.push(mediaGroup.slice(i, i + 10));
+        }
         
-        console.log('Primary image with caption sent successfully');
-        
-        // If we have more images, send them as additional photos
-        if (validImagesArray.length > 1) {
-          // Send remaining images without caption in a separate media group
-          const remainingImages = validImagesArray.slice(1).map(img => ({
-            type: 'photo',
-            media: img.url
-          }));
+        // Send each chunk
+        for (let i = 0; i < mediaChunks.length; i++) {
+          const chunk = mediaChunks[i];
           
-          if (remainingImages.length > 0) {
-            // Split into groups of 10 (Telegram's limit)
-            for (let i = 0; i < remainingImages.length; i += 10) {
-              const imageGroup = remainingImages.slice(i, i + 10);
-              
-              await callTelegramAPI('sendMediaGroup', {
-                chat_id: validatedChatId,
-                media: imageGroup
-              });
-              
-              // Small delay between groups
-              if (i + 10 < remainingImages.length) {
-                await sleep(300);
-              }
-            }
+          // For first chunk, make sure we have the caption
+          if (i > 0) {
+            // If not the first chunk, no caption needed
+            chunk.forEach(item => {
+              item.caption = undefined;
+              item.parse_mode = undefined;
+            });
+          }
+          
+          await callTelegramAPI('sendMediaGroup', {
+            chat_id: validatedChatId,
+            media: chunk
+          });
+          
+          // Small delay between chunks if needed
+          if (i < mediaChunks.length - 1) {
+            await sleep(300);
           }
         }
       } catch (error) {
-        console.error('Failed to send images, falling back to text only:', error);
+        console.error('Failed to send media group, falling back to text-only message:', error);
         // Fallback to text-only message
         await callTelegramAPI('sendMessage', {
           chat_id: validatedChatId,
@@ -256,29 +258,34 @@ serve(async (req) => {
       console.log('Text message response:', messageResult);
     }
     
-    // Check if the product has videos and send them separately
+    // Check if the product has videos and send them in a separate message group
     if (product.product_videos && product.product_videos.length > 0) {
       try {
-        // For Telegram, we can send videos one by one
-        for (const video of product.product_videos.slice(0, 3)) { // Limit to first 3 videos
-          try {
-            await callTelegramAPI('sendVideo', {
-              chat_id: validatedChatId,
-              video: video.url,
-              caption: `Видео для лота #${formattedLotNumber}`
-            });
-            
-            // Give a short pause between video sends
-            await sleep(500);
-          } catch (videoError) {
-            console.error('Error sending video:', videoError);
-            // Continue with the next video if one fails
-            continue;
-          }
+        // For Telegram, we need to send videos as a separate message
+        // We'll send the first video with a simple caption
+        const videoCaption = `Видео для лота #${formattedLotNumber}`;
+        
+        // Send first video with caption
+        const firstVideo = product.product_videos[0];
+        await callTelegramAPI('sendVideo', {
+          chat_id: validatedChatId,
+          video: firstVideo.url,
+          caption: videoCaption
+        });
+        
+        // Send remaining videos if any
+        for (const video of product.product_videos.slice(1, 3)) { // Limit to 3 videos total
+          await callTelegramAPI('sendVideo', {
+            chat_id: validatedChatId,
+            video: video.url
+          });
+          
+          // Give a short pause between video sends
+          await sleep(300);
         }
-      } catch (videoGroupError) {
-        console.error('Error sending videos:', videoGroupError);
-        // Videos failed, but we already sent the text message, so continue
+      } catch (videoError) {
+        console.error('Error sending videos:', videoError);
+        // Videos failed, but we already sent the main message, so continue
       }
     }
 
