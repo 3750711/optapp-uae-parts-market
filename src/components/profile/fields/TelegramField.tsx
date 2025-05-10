@@ -42,7 +42,7 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
           <FormDescription>{description}</FormDescription>
         ) : telegram_edit_count >= 1 ? (
           <FormDescription className="text-yellow-600">
-            Telegram ID можно изменить только один раз
+            Если вам нужно поменять Telegram свяжитесь с администратором
           </FormDescription>
         ) : (
           <FormDescription>
