@@ -27,6 +27,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const handleShare = () => {
     const productUrl = `https://${domainName}/product/${product.id}`;
     
+    // Get product image URL
+    let imageUrl = "";
+    if (Array.isArray(product.product_images) && product.product_images.length > 0) {
+      const primaryImage = product.product_images.find(img => img.is_primary);
+      imageUrl = primaryImage ? primaryImage.url : product.product_images[0].url;
+    }
+    
     const text = encodeURIComponent(
       `🛍 Товар: ${product.title}\n` +
       `💰 Цена: ${product.price} $\n` +
@@ -36,7 +43,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     );
     
     const url = encodeURIComponent(productUrl);
-    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+    
+    // Include image URL in the Telegram share link if available
+    if (imageUrl) {
+      window.open(`https://t.me/share/url?url=${url}&text=${text}&image=${encodeURIComponent(imageUrl)}`, '_blank');
+    } else {
+      window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+    }
   };
 
   const getStatusBadge = () => {

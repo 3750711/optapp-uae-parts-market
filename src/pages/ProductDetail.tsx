@@ -112,7 +112,9 @@ const ProductDetail = () => {
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
       const message = `${productUrl} I'm interested in this product, please can you send pore information`;
-      window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
+      const imageUrl = getImageUrl();
+      // Include image URL in the message for Telegram
+      window.open(`https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}&photo=${encodeURIComponent(imageUrl)}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
@@ -125,7 +127,7 @@ const ProductDetail = () => {
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
       const message = `${productUrl} I'm interested in this product, please can you send pore information`;
-      window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
+      window.open(`https://wa.me/${product.phone_url}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
         title: "Ошибка",
