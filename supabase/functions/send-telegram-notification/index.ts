@@ -101,90 +101,28 @@ function formatLotNumber(lotNumber: string | number | null): string {
   return `00${num}`;
 }
 
-// Improved function to validate image URLs
-async function validateImageUrl(url: string): Promise<boolean> {
+// Modified function with direct URL validation only
+async function isURLAccessible(url: string): Promise<boolean> {
   if (!url) return false;
   
   try {
     // Ensure URL is properly formatted
     new URL(url);
-    
-    // Check if URL is accessible
-    const imageResponse = await fetch(url, { 
-      method: 'HEAD',
-      headers: {
-        'Accept': '*/*'  // Accept any content type to allow more images to pass validation
-      }
-    });
-    
-    if (!imageResponse.ok) {
-      console.log(`Image validation failed for ${url}: Status ${imageResponse.status}`);
-      return false;
-    }
-    
-    // Most images should have a content-type, but we're being more permissive
-    const contentType = imageResponse.headers.get('content-type');
-    if (contentType && !contentType.startsWith('image/')) {
-      console.log(`URL doesn't return an image: ${url}, Content-Type: ${contentType}`);
-      // Still return true if it's likely to be an image based on extension
-      if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
-        console.log(`But URL has image extension, allowing it: ${url}`);
-        return true;
-      }
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error(`Error validating image URL ${url}:`, error);
-    // For some image storage services that block HEAD requests, 
-    // check if the URL has an image extension and allow it
-    if (url.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/i)) {
-      console.log(`URL has image extension, allowing despite validation error: ${url}`);
-      return true;
-    }
-    return false;
-  }
-}
-
-// Similar function for video validation with more permissive checks
-async function validateVideoUrl(url: string): Promise<boolean> {
-  if (!url) return false;
-  
-  try {
-    // Ensure URL is properly formatted
-    new URL(url);
-    
-    // For videos, we'll be more permissive since some servers restrict HEAD requests
-    // Check if the URL has a video extension
-    if (url.match(/\.(mp4|mov|avi|wmv|flv|webm|mkv)$/i)) {
-      console.log(`URL has video extension, allowing it: ${url}`);
-      return true;
-    }
     
     // Simple HEAD request to check if the URL is accessible
     try {
       const response = await fetch(url, { 
-        method: 'HEAD',
-        headers: {
-          'Accept': '*/*'  // Accept any content type
-        }
+        method: 'HEAD'
       });
       
-      if (!response.ok) {
-        console.log(`Video validation failed for ${url}: Status ${response.status}`);
-        return false;
-      }
-      
-      // For videos we don't strictly check content type as it might be various formats
-      return true;
-    } catch (fetchError) {
-      // Some servers might block HEAD requests, try to handle gracefully
-      console.log(`HEAD request failed for video ${url}, will try to allow it anyway`);
+      return response.ok;
+    } catch {
+      // If HEAD fails, assume URL might still work for Telegram
+      // especially for CDNs that might block HEAD requests
       return true;
     }
   } catch (error) {
-    console.error(`Error validating video URL ${url}:`, error);
+    console.error(`URL validation error for ${url}:`, error);
     return false;
   }
 }
@@ -253,174 +191,85 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
-    // Improved handling of product images with more robust error handling
-    let mediaToSend = [];
-    let hasValidImages = false;
-    
+    // First send text message
+    await callTelegramAPI('sendMessage', {
+      chat_id: validatedChatId,
+      text: message,
+      parse_mode: 'HTML'
+    });
+
+    // Then try to send images if available
     if (product.product_images && product.product_images.length > 0) {
-      console.log(`Product has ${product.product_images.length} images, validating them...`);
+      console.log(`Product has ${product.product_images.length} images, sending them individually...`);
       
-      // Validate each image URL with improved validation logic
-      for (let i = 0; i < product.product_images.length; i++) {
+      // Send each image individually instead of as a group
+      for (let i = 0; i < Math.min(product.product_images.length, 10); i++) {
         const img = product.product_images[i];
-        console.log(`Validating image ${i}: ${img.url}`);
-        
-        // If URL is undefined or null, skip this image
         if (!img.url) {
           console.log(`Image ${i} has no URL, skipping`);
           continue;
         }
         
         try {
-          // More permissive validation
-          const isValid = await validateImageUrl(img.url);
-          console.log(`Image ${i} (${img.url}): ${isValid ? 'Valid' : 'Invalid'}`);
+          console.log(`Sending image ${i}: ${img.url}`);
           
-          if (isValid) {
-            mediaToSend.push({
-              type: 'photo',
-              media: img.url,
-              caption: mediaToSend.length === 0 ? message : undefined, // Add caption only to first media
-              parse_mode: mediaToSend.length === 0 ? 'HTML' : undefined
-            });
+          await callTelegramAPI('sendPhoto', {
+            chat_id: validatedChatId,
+            photo: img.url,
+            caption: i === 0 ? `Изображения для лота #${formattedLotNumber}` : undefined
+          });
+          
+          // Short delay between image sends
+          if (i < product.product_images.length - 1) {
+            await sleep(300);
           }
-        } catch (validationError) {
-          console.error(`Error validating image ${i}:`, validationError);
+        } catch (imgError) {
+          console.error(`Error sending image ${i}:`, imgError);
           // Continue with next image
         }
       }
-      
-      hasValidImages = mediaToSend.length > 0;
-      console.log(`Found ${mediaToSend.length} valid images out of ${product.product_images.length}`);
     }
 
-    let videoUrls = [];
+    // Finally send videos if available
     if (product.product_videos && product.product_videos.length > 0) {
-      console.log(`Product has ${product.product_videos.length} videos, validating them...`);
+      console.log(`Product has ${product.product_videos.length} videos, sending them...`);
       
-      // Validate videos with more permissive validation
-      for (const video of product.product_videos) {
+      // Send videos one by one
+      for (let i = 0; i < Math.min(product.product_videos.length, 3); i++) { // Limit to 3 videos
+        const video = product.product_videos[i];
         if (!video.url) {
           console.log(`Video has no URL, skipping`);
           continue;
         }
         
         try {
-          console.log(`Validating video: ${video.url}`);
-          const isValid = await validateVideoUrl(video.url);
-          console.log(`Video (${video.url}): ${isValid ? 'Valid' : 'Invalid'}`);
+          console.log(`Sending video ${i}: ${video.url}`);
           
-          if (isValid) {
-            videoUrls.push(video.url);
-          }
-        } catch (validationError) {
-          console.error(`Error validating video:`, validationError);
-          // Continue with next video
-        }
-      }
-    }
-
-    // If we have valid images, send as media group(s)
-    if (hasValidImages) {
-      try {
-        // Telegram API can only handle 10 media items per request
-        // Split into chunks of 10 if needed
-        const mediaChunks = [];
-        for (let i = 0; i < mediaToSend.length; i += 10) {
-          mediaChunks.push(mediaToSend.slice(i, i + 10));
-        }
-        
-        console.log(`Sending ${mediaChunks.length} media chunks`);
-        
-        // Send each chunk
-        for (let i = 0; i < mediaChunks.length; i++) {
-          const chunk = mediaChunks[i];
+          await callTelegramAPI('sendVideo', {
+            chat_id: validatedChatId,
+            video: video.url,
+            caption: i === 0 ? `Видео для лота #${formattedLotNumber}` : undefined
+          });
           
-          // For other chunks, no caption needed
-          if (i > 0) {
-            chunk.forEach(item => {
-              item.caption = undefined;
-              item.parse_mode = undefined;
-            });
-          }
-          
-          // More robust error handling for media groups
-          try {
-            await callTelegramAPI('sendMediaGroup', {
-              chat_id: validatedChatId,
-              media: chunk
-            });
-          } catch (chunkError) {
-            console.error(`Failed to send media chunk ${i}:`, chunkError);
-            
-            // If first chunk fails (with the caption), fall back to text-only message
-            if (i === 0) {
-              console.log('First chunk failed, falling back to text-only message');
-              await callTelegramAPI('sendMessage', {
-                chat_id: validatedChatId,
-                text: message,
-                parse_mode: 'HTML'
-              });
-            }
-          }
-          
-          // Small delay between chunks to avoid rate limiting
-          if (i < mediaChunks.length - 1) {
+          // Give a short pause between video sends
+          if (i < product.product_videos.length - 1) {
             await sleep(300);
           }
-        }
-      } catch (error) {
-        console.error('Failed to send media group, falling back to text-only message:', error);
-        // Fallback to text-only message
-        await callTelegramAPI('sendMessage', {
-          chat_id: validatedChatId,
-          text: message,
-          parse_mode: 'HTML'
-        });
-      }
-    } else {
-      // If no images, just send text message
-      console.log('No valid images available, sending text-only message');
-      const messageResult = await callTelegramAPI('sendMessage', {
-        chat_id: validatedChatId,
-        text: message,
-        parse_mode: 'HTML'
-      });
-      
-      console.log('Text message response:', messageResult);
-    }
-    
-    // Send videos if any
-    if (videoUrls.length > 0) {
-      try {
-        // Send videos one by one
-        const videoCaption = `Видео для лота #${formattedLotNumber}`;
-        
-        // Send first video with caption
-        await callTelegramAPI('sendVideo', {
-          chat_id: validatedChatId,
-          video: videoUrls[0],
-          caption: videoCaption
-        });
-        
-        // Send remaining videos if any
-        for (let i = 1; i < Math.min(videoUrls.length, 5); i++) { // Limit to 5 videos total to prevent spam
+        } catch (videoError) {
+          console.error(`Error sending video ${i}:`, videoError);
+          // Try alternative method for video
           try {
-            await callTelegramAPI('sendVideo', {
+            console.log('Trying to send as document instead...');
+            await callTelegramAPI('sendDocument', {
               chat_id: validatedChatId,
-              video: videoUrls[i]
+              document: video.url,
+              caption: i === 0 ? `Видео для лота #${formattedLotNumber}` : undefined
             });
-            
-            // Give a short pause between video sends
-            await sleep(300);
-          } catch (videoError) {
-            console.error(`Error sending video ${i}:`, videoError);
+          } catch (docError) {
+            console.error('Failed to send as document too:', docError);
             // Continue with next video
           }
         }
-      } catch (videoError) {
-        console.error('Error sending videos:', videoError);
-        // Videos failed, but we already sent the main message, so continue
       }
     }
 
