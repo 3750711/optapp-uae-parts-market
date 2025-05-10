@@ -62,7 +62,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          fetchUserProfile(session.user.id);
+          setTimeout(() => {
+            fetchUserProfile(session.user.id);
+          }, 0);
         } else {
           setProfile(null);
         }
@@ -84,15 +86,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      // Принудительно завершаем сессию 
       await supabase.auth.signOut();
       
+      // Сбрасываем все состояния
       setUser(null);
       setSession(null);
       setProfile(null);
       setIsLoading(false);
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
-      throw error;
+      throw error; // Пробрасываем ошибку, чтобы вызывающий код мог обработать
     }
   };
 
@@ -117,3 +121,4 @@ export function useAuth() {
   }
   return context;
 }
+

@@ -27,7 +27,7 @@ const ProfileWarningDialog: React.FC<ProfileWarningDialogProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Профиль не заполнен</AlertDialogTitle>
           <AlertDialogDescription>
-            Для совершения покупки необходимо указать ваш OPT ID или Telegram в профиле.
+            Для совершения покупки необходимо указать ваш OPT ID и Telegram в профиле.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

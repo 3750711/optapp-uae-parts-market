@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -34,10 +33,6 @@ const ProductDetail = () => {
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("cargo_rf");
   const [searchParams] = useSearchParams();
   const fromPage = searchParams.get("from_page");
-
-  // Get the site domain for sharing
-  const domainName = "partsbay.ae";
-  const productUrl = `https://${domainName}/product/${id}`;
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ["product", id],
@@ -111,6 +106,7 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
+      const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
       const message = `${productUrl} I'm interested in this product, please can you send pore information`;
       window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {
@@ -124,6 +120,7 @@ const ProductDetail = () => {
 
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
+      const productUrl = product?.product_url || `https://preview--optapp-uae-parts-market.lovable.app/product/${id}`;
       const message = `${productUrl} I'm interested in this product, please can you send pore information`;
       window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
     } else {

@@ -20,13 +20,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
-  const domainName = "partsbay.ae";
-  
+
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   const handleShare = () => {
-    const productUrl = `https://${domainName}/product/${product.id}`;
-    
     const text = encodeURIComponent(
       `🛍 Товар: ${product.title}\n` +
       `💰 Цена: ${product.price} $\n` +
@@ -35,7 +32,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
       (product.description ? `📄 Описание:\n${product.description}\n` : '')
     );
     
-    const url = encodeURIComponent(productUrl);
+    const url = encodeURIComponent(window.location.href);
     window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
   };
 

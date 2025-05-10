@@ -1,5 +1,4 @@
 
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -154,7 +153,7 @@ serve(async (req) => {
 
     // Updated message format with highlighted status for pending items and new product indicator
     const message = `${eventPrefix}LOT(лот) #${formattedLotNumber}\n` +
-      `📦 ${product.title} ${product.brand || ''}${modelPart}\n` +
+      `📦 ${product.title} ${product.brand}${modelPart}\n` +
       `💰 Цена: ${product.price} $\n` +
       `🚚 Цена доставки: ${product.delivery_price || 0} $\n` +
       `🆔 OPT_ID продавца: ${product.optid_created || 'Не указан'}\n` +
@@ -166,142 +165,56 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
-    // First send text message
-    await callTelegramAPI('sendMessage', {
-      chat_id: validatedChatId,
-      text: message,
-      parse_mode: 'HTML'
-    });
-
-    // Отправка изображений по отдельности с прямой передачей URL
     if (product.product_images && product.product_images.length > 0) {
-      console.log(`Product has ${product.product_images.length} images, sending them individually...`);
-      
-      // Отправляем только первые 10 изображений (ограничение Telegram)
-      const imagesToSend = product.product_images.slice(0, 10);
-      
-      for (let i = 0; i < imagesToSend.length; i++) {
-        const img = imagesToSend[i];
-        if (!img.url) continue;
-        
-        try {
-          console.log(`Sending image ${i+1}/${imagesToSend.length}: ${img.url}`);
-          
-          // Обходим ограничение путем использования подхода с формой и файлом
-          const response = await fetch(img.url);
-          if (!response.ok) {
-            console.error(`Failed to fetch image from URL: ${img.url}`);
-            continue;
-          }
-          
-          const imageBlob = await response.blob();
-          const formData = new FormData();
-          formData.append('chat_id', validatedChatId);
-          
-          // Добавляем подпись только к первому изображению
-          if (i === 0) {
-            formData.append('caption', `Изображения для лота #${formattedLotNumber}`);
-          }
-          
-          // Создаем уникальное имя файла для каждого изображения
-          const fileName = `product_image_${Date.now()}_${i}.jpg`;
-          formData.append('photo', new File([imageBlob], fileName, { type: 'image/jpeg' }));
-          
-          const telegramResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
-            method: 'POST',
-            body: formData
-          });
-          
-          const resultData = await telegramResponse.json();
-          console.log(`Telegram sendPhoto response:`, JSON.stringify(resultData));
-          
-          if (!telegramResponse.ok) {
-            console.error(`Error sending image ${i+1}: ${JSON.stringify(resultData)}`);
-          }
-          
-          // Небольшая пауза между отправками, чтобы избежать ограничений Telegram API
-          if (i < imagesToSend.length - 1) {
-            await sleep(300);
-          }
-        } catch (imgError) {
-          console.error(`Error processing image ${i+1}:`, imgError);
-        }
+      // Split images into groups of 10 (Telegram's limit)
+      const imageGroups = [];
+      for (let i = 0; i < product.product_images.length; i += 10) {
+        imageGroups.push(product.product_images.slice(i, i + 10));
       }
-    }
 
-    // Отправка видео с аналогичным подходом
-    if (product.product_videos && product.product_videos.length > 0) {
-      console.log(`Product has ${product.product_videos.length} videos, sending them...`);
-      
-      // Ограничиваем количество видео до 3
-      const videosToSend = product.product_videos.slice(0, 3);
-      
-      for (let i = 0; i < videosToSend.length; i++) {
-        const video = videosToSend[i];
-        if (!video.url) continue;
-        
+      // Send each group of images
+      for (let i = 0; i < imageGroups.length; i++) {
+        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
+          type: 'photo',
+          media: img.url,
+          // Add caption to the first image of the first group only
+          ...(i === 0 && index === 0 && {
+            caption: message,
+            parse_mode: 'HTML'
+          })
+        }));
+
         try {
-          console.log(`Sending video ${i+1}/${videosToSend.length}: ${video.url}`);
-          
-          const response = await fetch(video.url);
-          if (!response.ok) {
-            console.error(`Failed to fetch video from URL: ${video.url}`);
-            continue;
-          }
-          
-          const videoBlob = await response.blob();
-          const formData = new FormData();
-          formData.append('chat_id', validatedChatId);
-          
-          // Добавляем подпись только к первому видео
-          if (i === 0) {
-            formData.append('caption', `Видео для лота #${formattedLotNumber}`);
-          }
-          
-          // Создаем уникальное имя файла для каждого видео
-          const fileName = `product_video_${Date.now()}_${i}.mp4`;
-          formData.append('video', new File([videoBlob], fileName, { type: 'video/mp4' }));
-          
-          const telegramResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo`, {
-            method: 'POST',
-            body: formData
+          const mediaResult = await callTelegramAPI('sendMediaGroup', {
+            chat_id: validatedChatId,
+            media: mediaGroup
           });
           
-          const resultData = await telegramResponse.json();
-          console.log(`Telegram sendVideo response:`, JSON.stringify(resultData));
-          
-          if (!telegramResponse.ok) {
-            console.error(`Error sending video ${i+1}: ${JSON.stringify(resultData)}`);
-            
-            // Если не удалось отправить как видео, пробуем отправить как документ
-            console.log('Trying to send as document instead...');
-            
-            const docFormData = new FormData();
-            docFormData.append('chat_id', validatedChatId);
-            
-            if (i === 0) {
-              docFormData.append('caption', `Видео для лота #${formattedLotNumber} (документ)`);
-            }
-            
-            docFormData.append('document', new File([videoBlob], fileName));
-            
-            const docTelegramResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
-              method: 'POST',
-              body: docFormData
-            });
-            
-            const docResultData = await docTelegramResponse.json();
-            console.log(`Telegram sendDocument response:`, JSON.stringify(docResultData));
-          }
-          
-          // Пауза между отправками видео
-          if (i < videosToSend.length - 1) {
-            await sleep(500);
-          }
-        } catch (videoError) {
-          console.error(`Error processing video ${i+1}:`, videoError);
+          console.log('Media group response:', mediaResult);
+        } catch (error) {
+          console.error('Failed to send media group:', error);
+          // If media group fails, try sending just the text message
+          await callTelegramAPI('sendMessage', {
+            chat_id: validatedChatId,
+            text: message,
+            parse_mode: 'HTML'
+          });
+        }
+        
+        // Add a small delay between groups to avoid rate limiting
+        if (i < imageGroups.length - 1) {
+          await sleep(300);
         }
       }
+    } else {
+      // If no images, just send text message
+      const messageResult = await callTelegramAPI('sendMessage', {
+        chat_id: validatedChatId,
+        text: message,
+        parse_mode: 'HTML'
+      });
+      
+      console.log('Text message response:', messageResult);
     }
 
     return new Response(JSON.stringify({ success: true }), {
@@ -318,4 +231,3 @@ serve(async (req) => {
     });
   }
 });
-

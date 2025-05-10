@@ -73,8 +73,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       return;
     }
 
-    // Updated profile check to allow orders if at least Telegram is provided
-    if (!profile?.telegram) {
+    if (!profile?.opt_id || !profile?.telegram) {
       setShowProfileWarning(true);
       return;
     }
