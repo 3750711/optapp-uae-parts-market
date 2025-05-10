@@ -1,11 +1,10 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Updated with valid bot token and group chat ID
 const BOT_TOKEN = '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s'
 const GROUP_CHAT_ID = '-4623601047' // Added minus sign as it's likely a group chat ID
-const ORDER_GROUP_CHAT_ID = '-2416102623' // New group chat ID for orders
+const ORDER_GROUP_CHAT_ID = '-2416102623' // Order-specific group chat ID
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
@@ -352,8 +351,8 @@ serve(async (req) => {
         (order.description ? `📝 Описание: ${order.description}\n` : '') +
         (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '');
 
-      // Always use the hard-coded chat ID with proper formatting for orders
-      const chatId = '-2416102623'; // Ensure it has the minus sign
+      // Always use the hard-coded ORDER_GROUP_CHAT_ID for orders
+      const chatId = ORDER_GROUP_CHAT_ID; 
       console.log('Sending order message to Telegram:', message);
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
       console.log('Using ORDER_GROUP_CHAT_ID:', chatId);

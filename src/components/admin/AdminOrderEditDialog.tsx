@@ -101,23 +101,50 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       const statusChanged = values.status !== order.status;
       if (statusChanged && onStatusChange) {
         await onStatusChange(order.id, values.status);
+        return null; // Let the onStatusChange handle it
+      } else {
+        // Standard update without the special status change handler
+        const { data, error } = await supabase
+          .from('orders')
+          .update({
+            ...values,
+            price: Number(values.price),
+            quantity: Number(values.place_number),
+            place_number: Number(values.place_number),
+            delivery_price_confirm: values.delivery_price_confirm ? Number(values.delivery_price_confirm) : null,
+          })
+          .eq('id', order.id)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        // If status changed but no onStatusChange handler, send notification manually
+        if (statusChanged) {
+          try {
+            // Get order images
+            const { data: orderImages } = await supabase
+              .from('order_images')
+              .select('url')
+              .eq('order_id', order.id);
+              
+            const images = orderImages?.map(img => img.url) || [];
+            
+            await supabase.functions.invoke('send-telegram-notification', {
+              body: { 
+                order: { ...data, images },
+                action: 'status_change'
+              }
+            });
+            
+            console.log("Status update notification sent successfully");
+          } catch (notifyError) {
+            console.error('Failed to send status update notification:', notifyError);
+          }
+        }
+        
+        return data;
       }
-
-      const { data, error } = await supabase
-        .from('orders')
-        .update({
-          ...values,
-          price: Number(values.price),
-          quantity: Number(values.place_number),
-          place_number: Number(values.place_number),
-          delivery_price_confirm: values.delivery_price_confirm ? Number(values.delivery_price_confirm) : null,
-        })
-        .eq('id', order.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
