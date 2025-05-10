@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -52,6 +51,7 @@ interface ActionLog {
   entity_id: string | null;
   details: any;
   user_id: string;
+  user_email?: string;
 }
 
 const AdminEvents = () => {
@@ -66,9 +66,13 @@ const AdminEvents = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'action-logs', currentPage, sortField, sortOrder, entityFilter, actionFilter],
     queryFn: async () => {
+      // Start building the query
       let query = supabase
         .from('action_logs')
-        .select('*', { count: 'exact' })
+        .select(`
+          *,
+          profiles:user_id (email)
+        `, { count: 'exact' })
         .order(sortField, { ascending: sortOrder === 'asc' });
       
       // Apply entity type filter
@@ -85,9 +89,15 @@ const AdminEvents = () => {
         .range((currentPage - 1) * pageSize, currentPage * pageSize - 1);
       
       if (error) throw error;
+
+      // Process the data to include user email
+      const processedData = data.map((log: any) => ({
+        ...log,
+        user_email: log.profiles?.email,
+      }));
       
       return {
-        logs: data as ActionLog[],
+        logs: processedData as ActionLog[],
         totalCount: count || 0
       };
     },
@@ -110,6 +120,8 @@ const AdminEvents = () => {
         return 'bg-blue-100 text-blue-800';
       case 'delete':
         return 'bg-red-100 text-red-800';
+      case 'login':
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -138,6 +150,8 @@ const AdminEvents = () => {
         return 'Обновление';
       case 'delete':
         return 'Удаление';
+      case 'login':
+        return 'Вход';
       default:
         return actionType;
     }
@@ -174,6 +188,24 @@ const AdminEvents = () => {
             <div><span className="font-medium">Название:</span> {log.details.title}</div>
             <div><span className="font-medium">Цена:</span> {log.details.price} $</div>
             <div><span className="font-medium">Продавец:</span> {log.details.seller_name}</div>
+          </div>
+        );
+      }
+    } else if (log.entity_type === 'user') {
+      if (log.action_type === 'create') {
+        return (
+          <div className="space-y-1">
+            <div><span className="font-medium">Email:</span> {log.details.email}</div>
+            <div><span className="font-medium">Тип:</span> {log.details.user_type || 'Не указан'}</div>
+            <div><span className="font-medium">Создан:</span> {format(new Date(log.details.created_at), 'dd.MM.yyyy HH:mm:ss')}</div>
+          </div>
+        );
+      } else if (log.action_type === 'login') {
+        return (
+          <div className="space-y-1">
+            <div><span className="font-medium">IP адрес:</span> {log.details.ip || 'Не указан'}</div>
+            <div><span className="font-medium">Время входа:</span> {format(new Date(log.details.created_at), 'dd.MM.yyyy HH:mm:ss')}</div>
+            {log.user_email && <div><span className="font-medium">Email:</span> {log.user_email}</div>}
           </div>
         );
       }
@@ -253,6 +285,9 @@ const AdminEvents = () => {
                   <DropdownMenuItem onClick={() => setActionFilter('delete')} className={actionFilter === 'delete' ? 'bg-accent' : ''}>
                     Удаление
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActionFilter('login')} className={actionFilter === 'login' ? 'bg-accent' : ''}>
+                    Вход
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -299,13 +334,25 @@ const AdminEvents = () => {
                               <ExternalLink className="h-3 w-3" />
                             </Link>
                           )}
+                          {log.entity_type === 'user' && log.entity_id && (
+                            <Link to={`/admin/users`} className="text-blue-600 hover:text-blue-800">
+                              <ExternalLink className="h-3 w-3" />
+                            </Link>
+                          )}
                         </div>
                       ) : (
                         'N/A'
                       )}
                     </TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {log.user_id ? log.user_id.substring(0, 8) + '...' : 'N/A'}
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-mono text-xs truncate max-w-[80px]">
+                          {log.user_id ? log.user_id.substring(0, 8) + '...' : 'N/A'}
+                        </span>
+                        {log.user_email && (
+                          <span className="text-xs text-gray-500">{log.user_email}</span>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       {renderDetails(log)}
