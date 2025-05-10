@@ -52,7 +52,6 @@ interface ActionLog {
   entity_id: string | null;
   details: any;
   user_id: string;
-  user_email?: string;
 }
 
 const AdminEvents = () => {
@@ -69,10 +68,7 @@ const AdminEvents = () => {
     queryFn: async () => {
       let query = supabase
         .from('action_logs')
-        .select(`
-          *,
-          profiles!action_logs_user_id_fkey (email)
-        `)
+        .select('*', { count: 'exact' })
         .order(sortField, { ascending: sortOrder === 'asc' });
       
       // Apply entity type filter
@@ -90,14 +86,8 @@ const AdminEvents = () => {
       
       if (error) throw error;
       
-      // Transform data to include user_email
-      const transformedData = data.map((log: any) => ({
-        ...log,
-        user_email: log.profiles?.email
-      }));
-      
       return {
-        logs: transformedData as ActionLog[],
+        logs: data as ActionLog[],
         totalCount: count || 0
       };
     },
@@ -314,11 +304,8 @@ const AdminEvents = () => {
                         'N/A'
                       )}
                     </TableCell>
-                    <TableCell>
-                      <div className="space-y-0.5">
-                        <div className="font-mono text-xs truncate">{log.user_email || 'N/A'}</div>
-                        <div className="text-xs text-muted-foreground truncate">{log.user_id ? log.user_id.substring(0, 8) + '...' : 'N/A'}</div>
-                      </div>
+                    <TableCell className="font-mono text-xs">
+                      {log.user_id ? log.user_id.substring(0, 8) + '...' : 'N/A'}
                     </TableCell>
                     <TableCell>
                       {renderDetails(log)}
