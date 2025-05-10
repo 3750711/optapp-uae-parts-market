@@ -3,7 +3,7 @@ import React from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge as BadgeIcon, Star, Truck, Flame } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star, Truck, Flame, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
@@ -115,11 +115,22 @@ const ProductCard: React.FC<ProductProps> = ({
         </div>
       </div>
       <CardContent className="p-4 pb-0 flex-grow">
+        {/* Updated to show brand and model */}
         <div className="flex flex-row justify-between items-center mb-2">
-          <div className="text-xs text-muted-foreground font-medium flex items-center">
-            <BadgeIcon className="mr-1 text-secondary w-3 h-3" />
-            <span>{brand} · {model}</span>
-          </div>
+          {(brand || model) ? (
+            <div className="text-xs text-muted-foreground font-medium flex items-center">
+              <Tag className="mr-1 text-secondary w-3 h-3" />
+              <span>
+                {brand && brand} 
+                {brand && model && " · "} 
+                {model && model}
+              </span>
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground font-medium opacity-0">
+              -
+            </div>
+          )}
           <div className="text-xs text-muted-foreground flex items-center">
             <MapPin size={12} className="mr-1" />
             <span>{location}</span>

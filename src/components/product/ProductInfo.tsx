@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Share, Package2, Truck } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Share, Package2, Truck, Tag } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -104,7 +104,20 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         </div>
       </div>
       
-      <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
+      <h1 className="text-2xl md:text-3xl font-bold mb-1 text-foreground">{product.title}</h1>
+      
+      {/* Added brand and model display */}
+      {(product.brand || product.model) && (
+        <div className="flex items-center gap-2 mb-3 text-muted-foreground">
+          <Tag className="h-4 w-4" />
+          <span>
+            {product.brand && <span className="font-medium">{product.brand}</span>}
+            {product.brand && product.model && <span className="mx-1">·</span>}
+            {product.model && <span>{product.model}</span>}
+          </span>
+        </div>
+      )}
+      
       <div className="mb-4 flex items-center gap-2">
         <span className="font-bold text-2xl text-primary">
           {product.price} $
