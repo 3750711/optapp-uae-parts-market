@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MapPin, Badge as BadgeIcon, Star, Truck, Flame } from "lucide-react";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface ProductProps {
   id: string;
@@ -52,6 +53,8 @@ const ProductCard: React.FC<ProductProps> = ({
   const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
   const currentPage = searchParams.get("page") || "1";
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
@@ -78,8 +81,31 @@ const ProductCard: React.FC<ProductProps> = ({
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Prevent navigation if clicking on status change dialog or delete dialog or seller link
+    if (e.target instanceof Element) {
+      const targetElement = e.target as Element;
+      
+      // Check if click is on or inside a button, link or dialog
+      const isClickableElement = 
+        targetElement.closest('button') || 
+        targetElement.closest('a') || 
+        targetElement.closest('[role="dialog"]');
+      
+      if (isClickableElement) {
+        return;
+      }
+      
+      // Navigate to product details
+      navigate(`/product/${id}?from_page=${currentPage}`);
+    }
+  };
+
   return (
-    <Card className="group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in">
+    <Card 
+      className={`group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in ${isMobile ? 'cursor-pointer' : ''}`}
+      onClick={isMobile ? handleCardClick : undefined}
+    >
       <div className="h-[240px] overflow-hidden relative rounded-t-xl bg-white flex items-center justify-center">
         <img 
           src={image || "/placeholder.svg"} 
@@ -167,15 +193,17 @@ const ProductCard: React.FC<ProductProps> = ({
               </span>
             )}
           </div>
-          <Link to={`/product/${id}?from_page=${currentPage}`} className="w-auto ml-2">
-            <Button 
-              variant="ghost"
-              size="sm"
-              className="text-primary hover:bg-primary/10"
-            >
-              Подробнее
-            </Button>
-          </Link>
+          {!isMobile && (
+            <Link to={`/product/${id}?from_page=${currentPage}`} className="w-auto ml-2">
+              <Button 
+                variant="ghost"
+                size="sm"
+                className="text-primary hover:bg-primary/10"
+              >
+                Подробнее
+              </Button>
+            </Link>
+          )}
         </div>
         {status === "active" && onStatusChange && (
           <ProductStatusChangeDialog
