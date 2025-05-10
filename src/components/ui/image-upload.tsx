@@ -27,6 +27,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const files = event.target.files;
       if (!files || files.length === 0) return;
 
+      console.log(`Selected ${files.length} files for upload`);
+      
       const newUrls: string[] = [];
       
       for (let i = 0; i < files.length; i++) {
@@ -39,26 +41,52 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         }
         
         const file = files[i];
+        console.log(`Processing file ${i+1}/${files.length}: ${file.name}, type: ${file.type}, size: ${Math.round(file.size/1024)}KB`);
+        
+        // Compress image if it's larger than 1MB
+        let fileToUpload = file;
+        if (file.size > 1024 * 1024 && file.type.startsWith('image/')) {
+          try {
+            fileToUpload = await compressImage(file);
+            console.log(`Compressed image from ${Math.round(file.size/1024)}KB to ${Math.round(fileToUpload.size/1024)}KB`);
+          } catch (compressError) {
+            console.error('Error compressing image:', compressError);
+            // Continue with original file if compression fails
+            fileToUpload = file;
+          }
+        }
+        
+        // Generate unique filename to avoid conflicts
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
+        
+        console.log(`Uploading file to path: ${filePath}`);
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(filePath, file);
+          .upload(filePath, fileToUpload, {
+            contentType: file.type, // Explicitly set content type
+            cacheControl: '3600'
+          });
 
         if (uploadError) {
+          console.error('Supabase upload error:', uploadError);
           throw uploadError;
         }
 
+        console.log('File uploaded successfully, getting public URL');
+        
         const { data: { publicUrl } } = supabase.storage
           .from('order-images')
           .getPublicUrl(filePath);
 
+        console.log('Generated public URL:', publicUrl);
         newUrls.push(publicUrl);
       }
 
       if (newUrls.length > 0) {
+        console.log(`Successfully uploaded ${newUrls.length} images`);
         onUpload(newUrls);
         toast({
           title: "Успешно",
@@ -69,7 +97,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       console.error('Error uploading image:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось загрузить изображение",
+        description: "Не удалось загрузить изображение. Проверьте подключение к интернету и повторите попытку.",
         variant: "destructive",
       });
     } finally {
@@ -77,6 +105,85 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       // Reset the file input after upload
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  // Helper function to compress images
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (!event.target?.result) {
+          reject(new Error('Failed to read file'));
+          return;
+        }
+        
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 1200;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Could not get canvas context'));
+            return;
+          }
+          
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Get compressed image as blob
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                reject(new Error('Failed to create blob'));
+                return;
+              }
+              
+              // Create new file from blob
+              const compressedFile = new File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now()
+              });
+              
+              resolve(compressedFile);
+            },
+            file.type,
+            0.7 // Quality (0.7 = 70% quality)
+          );
+        };
+        
+        img.onerror = () => {
+          reject(new Error('Failed to load image'));
+        };
+        
+        img.src = event.target.result as string;
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
+      };
+      
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleDelete = async (url: string) => {
@@ -141,6 +248,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             className="hidden"
             onChange={uploadImages}
             disabled={isUploading}
+            capture="environment"
           />
           <Button 
             type="button"
