@@ -166,44 +166,51 @@ serve(async (req) => {
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
     if (product.product_images && product.product_images.length > 0) {
-      // Split images into groups of 10 (Telegram's limit)
-      const imageGroups = [];
-      for (let i = 0; i < product.product_images.length; i += 10) {
-        imageGroups.push(product.product_images.slice(i, i + 10));
-      }
+      // Send all images as a media group
+      const mediaGroup = product.product_images.slice(0, 10).map((img: any, index: number) => ({
+        type: 'photo',
+        media: img.url,
+        // Add caption to the first image only
+        ...(index === 0 && {
+          caption: message,
+          parse_mode: 'HTML'
+        })
+      }));
 
-      // Send each group of images
-      for (let i = 0; i < imageGroups.length; i++) {
-        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
-          type: 'photo',
-          media: img.url,
-          // Add caption to the first image of the first group only
-          ...(i === 0 && index === 0 && {
-            caption: message,
-            parse_mode: 'HTML'
-          })
-        }));
-
-        try {
-          const mediaResult = await callTelegramAPI('sendMediaGroup', {
-            chat_id: validatedChatId,
-            media: mediaGroup
-          });
-          
-          console.log('Media group response:', mediaResult);
-        } catch (error) {
-          console.error('Failed to send media group:', error);
-          // If media group fails, try sending just the text message
-          await callTelegramAPI('sendMessage', {
-            chat_id: validatedChatId,
-            text: message,
-            parse_mode: 'HTML'
-          });
-        }
+      try {
+        const mediaResult = await callTelegramAPI('sendMediaGroup', {
+          chat_id: validatedChatId,
+          media: mediaGroup
+        });
         
-        // Add a small delay between groups to avoid rate limiting
-        if (i < imageGroups.length - 1) {
-          await sleep(300);
+        console.log('Media group response:', mediaResult);
+      } catch (error) {
+        console.error('Failed to send media group:', error);
+        // If media group fails, try sending just the text message
+        await callTelegramAPI('sendMessage', {
+          chat_id: validatedChatId,
+          text: message,
+          parse_mode: 'HTML'
+        });
+      }
+      
+      // After sending images, if there are videos, send them as separate messages
+      if (product.product_videos && product.product_videos.length > 0) {
+        // Add a small delay before sending videos to avoid rate limiting
+        await sleep(500);
+        
+        for (const video of product.product_videos) {
+          try {
+            await callTelegramAPI('sendVideo', {
+              chat_id: validatedChatId,
+              video: video.url
+            });
+            
+            // Add a small delay between videos to avoid rate limiting
+            await sleep(300);
+          } catch (error) {
+            console.error('Failed to send video:', error);
+          }
         }
       }
     } else {
@@ -215,6 +222,24 @@ serve(async (req) => {
       });
       
       console.log('Text message response:', messageResult);
+      
+      // If there are videos but no images, send videos after the text message
+      if (product.product_videos && product.product_videos.length > 0) {
+        await sleep(500); // Wait a bit before sending videos
+        
+        for (const video of product.product_videos) {
+          try {
+            await callTelegramAPI('sendVideo', {
+              chat_id: validatedChatId,
+              video: video.url
+            });
+            
+            await sleep(300); // Small delay between videos
+          } catch (error) {
+            console.error('Failed to send video:', error);
+          }
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
