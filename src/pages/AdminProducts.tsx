@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Bell } from "lucide-react";
+import { Edit, Trash2, Eye, Bell, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -216,6 +217,15 @@ const AdminProducts = () => {
               
               <div className="space-y-2">
                 <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
+                {(product.brand || product.model) && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <Tag className="w-3 h-3" />
+                    <span>
+                      {product.brand || 'Не указано'} • {product.model || 'Не указано'}
+                    </span>
+                  </p>
+                )}
+                
                 <p className="text-sm text-muted-foreground">
                   {product.price} $
                 </p>
