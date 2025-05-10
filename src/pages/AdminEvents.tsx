@@ -98,6 +98,8 @@ const AdminEvents = () => {
       
       if (error) throw error;
 
+      console.log("Fetched action logs:", data);
+
       // Process the data to include user email
       const processedData = data.map((log: any) => ({
         ...log,
