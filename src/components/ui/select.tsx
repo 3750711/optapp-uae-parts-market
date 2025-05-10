@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp, Search } from "lucide-react"
@@ -100,7 +101,7 @@ const SelectContent = React.forwardRef<
           className
         )}
         position={position}
-        // Prevent dropdown from closing when clicking or interacting with search input
+        // Use onPointerDownOutside instead of onInteractOutside
         onPointerDownOutside={(e) => {
           if (showSearch && searchInputRef.current?.contains(e.target as Node)) {
             e.preventDefault();
