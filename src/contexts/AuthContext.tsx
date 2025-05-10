@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Установить слушатель состояния авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("Auth state changed:", event);
@@ -63,7 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Используем setTimeout для предотвращения дедлока
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
@@ -73,7 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Проверить текущую сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -99,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
-      throw error;
+      throw error; // Пробрасываем ошибку, чтобы вызывающий код мог обработать
     }
   };
 
@@ -124,3 +121,4 @@ export function useAuth() {
   }
   return context;
 }
+
