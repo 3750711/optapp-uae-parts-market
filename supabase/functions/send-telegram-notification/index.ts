@@ -101,6 +101,20 @@ function formatLotNumber(lotNumber: string | number | null): string {
   return `00${num}`;
 }
 
+// Function to validate image URLs and ensure they don't cause Telegram API issues
+async function validateImageUrl(url: string): Promise<boolean> {
+  if (!url) return false;
+  
+  try {
+    // Check if URL is accessible
+    const imageResponse = await fetch(url, { method: 'HEAD' });
+    return imageResponse.ok;
+  } catch (error) {
+    console.error(`Error validating image URL ${url}:`, error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -165,49 +179,74 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
+    // Check if we have valid product images
+    let hasValidImages = false;
+    let validImagesArray = [];
+    
     if (product.product_images && product.product_images.length > 0) {
-      // Split images into groups of 10 (Telegram's limit)
-      const imageGroups = [];
-      for (let i = 0; i < product.product_images.length; i += 10) {
-        imageGroups.push(product.product_images.slice(i, i + 10));
-      }
+      // Validate all images first
+      const validationPromises = product.product_images.map(img => validateImageUrl(img.url));
+      const validationResults = await Promise.all(validationPromises);
+      
+      // Filter only valid images
+      validImagesArray = product.product_images.filter((img, index) => validationResults[index]);
+      hasValidImages = validImagesArray.length > 0;
+      
+      console.log(`Found ${validImagesArray.length} valid images out of ${product.product_images.length}`);
+    }
 
-      // Send each group of images
-      for (let i = 0; i < imageGroups.length; i++) {
-        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
-          type: 'photo',
-          media: img.url,
-          // Add caption to the first image of the first group only
-          ...(i === 0 && index === 0 && {
-            caption: message,
-            parse_mode: 'HTML'
-          })
-        }));
-
-        try {
-          const mediaResult = await callTelegramAPI('sendMediaGroup', {
-            chat_id: validatedChatId,
-            media: mediaGroup
-          });
-          
-          console.log('Media group response:', mediaResult);
-        } catch (error) {
-          console.error('Failed to send media group:', error);
-          // If media group fails, try sending just the text message
-          await callTelegramAPI('sendMessage', {
-            chat_id: validatedChatId,
-            text: message,
-            parse_mode: 'HTML'
-          });
-        }
+    if (hasValidImages) {
+      try {
+        // First try sending as a media group - more reliable approach
+        // Send only as a single image with caption first
+        const primaryImage = validImagesArray[0];
         
-        // Add a small delay between groups to avoid rate limiting
-        if (i < imageGroups.length - 1) {
-          await sleep(300);
+        const photoResult = await callTelegramAPI('sendPhoto', {
+          chat_id: validatedChatId,
+          photo: primaryImage.url,
+          caption: message,
+          parse_mode: 'HTML'
+        });
+        
+        console.log('Primary image with caption sent successfully');
+        
+        // If we have more images, send them as additional photos
+        if (validImagesArray.length > 1) {
+          // Send remaining images without caption in a separate media group
+          const remainingImages = validImagesArray.slice(1).map(img => ({
+            type: 'photo',
+            media: img.url
+          }));
+          
+          if (remainingImages.length > 0) {
+            // Split into groups of 10 (Telegram's limit)
+            for (let i = 0; i < remainingImages.length; i += 10) {
+              const imageGroup = remainingImages.slice(i, i + 10);
+              
+              await callTelegramAPI('sendMediaGroup', {
+                chat_id: validatedChatId,
+                media: imageGroup
+              });
+              
+              // Small delay between groups
+              if (i + 10 < remainingImages.length) {
+                await sleep(300);
+              }
+            }
+          }
         }
+      } catch (error) {
+        console.error('Failed to send images, falling back to text only:', error);
+        // Fallback to text-only message
+        await callTelegramAPI('sendMessage', {
+          chat_id: validatedChatId,
+          text: message,
+          parse_mode: 'HTML'
+        });
       }
     } else {
       // If no images, just send text message
+      console.log('No valid images available, sending text-only message');
       const messageResult = await callTelegramAPI('sendMessage', {
         chat_id: validatedChatId,
         text: message,
@@ -215,6 +254,32 @@ serve(async (req) => {
       });
       
       console.log('Text message response:', messageResult);
+    }
+    
+    // Check if the product has videos and send them separately
+    if (product.product_videos && product.product_videos.length > 0) {
+      try {
+        // For Telegram, we can send videos one by one
+        for (const video of product.product_videos.slice(0, 3)) { // Limit to first 3 videos
+          try {
+            await callTelegramAPI('sendVideo', {
+              chat_id: validatedChatId,
+              video: video.url,
+              caption: `Видео для лота #${formattedLotNumber}`
+            });
+            
+            // Give a short pause between video sends
+            await sleep(500);
+          } catch (videoError) {
+            console.error('Error sending video:', videoError);
+            // Continue with the next video if one fails
+            continue;
+          }
+        }
+      } catch (videoGroupError) {
+        console.error('Error sending videos:', videoGroupError);
+        // Videos failed, but we already sent the text message, so continue
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
