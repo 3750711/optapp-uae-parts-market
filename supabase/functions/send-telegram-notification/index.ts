@@ -161,44 +161,63 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
-    // Send message with photo (if available)
+    // Send message with photos using sendMediaGroup for multiple photos
     if (product.product_images && product.product_images.length > 0) {
       try {
-        // Send first photo with caption
-        const mainPhoto = product.product_images[0];
-        const photoResponse = await fetch(mainPhoto.url);
+        // Prepare media group with all photos
+        const mediaGroup = [];
+        const photoPromises = [];
         
-        if (!photoResponse.ok) {
-          throw new Error(`Failed to fetch photo: ${photoResponse.status} ${photoResponse.statusText}`);
+        // Fetch all photos first
+        for (let i = 0; i < Math.min(product.product_images.length, 10); i++) {
+          const photo = product.product_images[i];
+          photoPromises.push(fetch(photo.url));
         }
         
-        const photoBlob = await photoResponse.blob();
-        const formData = new FormData();
-        formData.append('chat_id', validatedChatId);
-        formData.append('photo', photoBlob, 'photo.jpg');
-        formData.append('caption', message);
-        formData.append('parse_mode', 'HTML');
+        const photoResponses = await Promise.all(photoPromises);
+        const photoBlobs = await Promise.all(photoResponses.map(r => r.ok ? r.blob() : null));
         
-        await callTelegramAPI('sendPhoto', formData);
-        
-        // Send additional photos (if any) without captions
-        for (let i = 1; i < Math.min(product.product_images.length, 10); i++) {
-          try {
-            const additionalPhoto = product.product_images[i];
-            const photoResp = await fetch(additionalPhoto.url);
+        // First photo with caption
+        if (photoBlobs[0]) {
+          const firstPhotoFormData = new FormData();
+          firstPhotoFormData.append('chat_id', validatedChatId);
+          firstPhotoFormData.append('photo', photoBlobs[0], 'photo0.jpg');
+          firstPhotoFormData.append('caption', message);
+          
+          // Send first photo with caption
+          await callTelegramAPI('sendPhoto', firstPhotoFormData);
+          
+          // Now prepare the rest of photos as media group if there are any
+          if (photoBlobs.length > 1) {
+            const mediaFormData = new FormData();
+            mediaFormData.append('chat_id', validatedChatId);
             
-            if (!photoResp.ok) continue;
+            // Create media array for the rest of photos
+            const mediaInputs = [];
+            for (let i = 1; i < photoBlobs.length; i++) {
+              if (photoBlobs[i]) {
+                mediaFormData.append(`photo${i}`, photoBlobs[i], `photo${i}.jpg`);
+                mediaInputs.push({
+                  type: 'photo',
+                  media: `attach://photo${i}`
+                });
+              }
+            }
             
-            const photoBlb = await photoResp.blob();
-            const photoFormData = new FormData();
-            photoFormData.append('chat_id', validatedChatId);
-            photoFormData.append('photo', photoBlb, `photo${i}.jpg`);
+            mediaFormData.append('media', JSON.stringify(mediaInputs));
             
-            await callTelegramAPI('sendPhoto', photoFormData);
-          } catch (err) {
-            console.error(`Error sending additional photo ${i}:`, err);
-            // Continue with other photos
+            // Send remaining photos as media group if we have any
+            if (mediaInputs.length > 0) {
+              await callTelegramAPI('sendMediaGroup', mediaFormData);
+            }
           }
+        } else {
+          // Fallback to text-only message
+          const textFormData = new FormData();
+          textFormData.append('chat_id', validatedChatId);
+          textFormData.append('text', message);
+          
+          await callTelegramAPI('sendMessage', textFormData);
         }
       } catch (photoError) {
         console.error('Error sending photo message:', photoError);
@@ -207,7 +226,6 @@ serve(async (req) => {
         const textFormData = new FormData();
         textFormData.append('chat_id', validatedChatId);
         textFormData.append('text', message);
-        textFormData.append('parse_mode', 'HTML');
         
         await callTelegramAPI('sendMessage', textFormData);
       }
@@ -216,7 +234,6 @@ serve(async (req) => {
       const textFormData = new FormData();
       textFormData.append('chat_id', validatedChatId);
       textFormData.append('text', message);
-      textFormData.append('parse_mode', 'HTML');
       
       await callTelegramAPI('sendMessage', textFormData);
     }
