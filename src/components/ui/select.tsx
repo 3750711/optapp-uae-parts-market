@@ -1,7 +1,7 @@
 
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
-import { Check, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, ChevronDown, ChevronUp, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -68,8 +68,13 @@ SelectScrollDownButton.displayName =
 
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content> & {
+    searchPlaceholder?: string;
+    onSearchChange?: (value: string) => void;
+    searchValue?: string;
+    showSearch?: boolean;
+  }
+>(({ className, children, position = "popper", searchPlaceholder, onSearchChange, searchValue, showSearch = false, ...props }, ref) => (
   <SelectPrimitive.Portal>
     <SelectPrimitive.Content
       ref={ref}
@@ -83,6 +88,29 @@ const SelectContent = React.forwardRef<
       {...props}
     >
       <SelectScrollUpButton />
+      {showSearch && (
+        <div className="sticky top-0 px-1 pt-1 pb-0">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              placeholder={searchPlaceholder || "Поиск..."}
+              className="w-full px-8 py-2 border rounded-md border-input text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              value={searchValue}
+              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+            />
+            {searchValue && (
+              <button
+                className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+                onClick={() => onSearchChange && onSearchChange("")}
+                type="button"
+              >
+                <span className="sr-only">Очистить</span>
+                <span aria-hidden="true">×</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <SelectPrimitive.Viewport
         className={cn(
           "p-1 bg-white",

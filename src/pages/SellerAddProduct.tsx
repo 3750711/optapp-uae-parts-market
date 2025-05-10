@@ -413,17 +413,6 @@ const SellerAddProduct = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Марка</FormLabel>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-4 w-4 text-gray-400" />
-                              </div>
-                              <Input 
-                                className="pl-10 mb-2" 
-                                placeholder="Поиск марки..." 
-                                value={searchBrandTerm}
-                                onChange={(e) => setSearchBrandTerm(e.target.value)}
-                              />
-                            </div>
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value}
@@ -434,7 +423,13 @@ const SellerAddProduct = () => {
                                   <SelectValue placeholder="Выберите марку" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="max-h-[300px]">
+                              <SelectContent 
+                                className="max-h-[300px]"
+                                showSearch={true}
+                                searchPlaceholder="Поиск марки..."
+                                searchValue={searchBrandTerm}
+                                onSearchChange={setSearchBrandTerm}
+                              >
                                 {filteredBrands.length === 0 ? (
                                   <div className="p-2 text-center text-sm text-gray-500">
                                     Марки не найдены
@@ -457,18 +452,6 @@ const SellerAddProduct = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Модель (необязательно)</FormLabel>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Search className="h-4 w-4 text-gray-400" />
-                              </div>
-                              <Input 
-                                className="pl-10 mb-2" 
-                                placeholder="Поиск модели..." 
-                                value={searchModelTerm}
-                                onChange={(e) => setSearchModelTerm(e.target.value)}
-                                disabled={!watchBrandId}
-                              />
-                            </div>
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value || ""}
@@ -479,7 +462,13 @@ const SellerAddProduct = () => {
                                   <SelectValue placeholder="Выберите модель (необязательно)" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent className="max-h-[300px]">
+                              <SelectContent 
+                                className="max-h-[300px]"
+                                showSearch={true}
+                                searchPlaceholder="Поиск модели..."
+                                searchValue={searchModelTerm}
+                                onSearchChange={setSearchModelTerm}
+                              >
                                 {brandModels.length === 0 && watchBrandId ? (
                                   <SelectItem value="loading" disabled>Загрузка моделей...</SelectItem>
                                 ) : filteredModels.length === 0 ? (

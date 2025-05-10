@@ -1,6 +1,7 @@
+
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
-import { Check, ChevronRight, Circle } from "lucide-react"
+import { Check, ChevronRight, Circle, Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -56,8 +57,13 @@ DropdownMenuSubContent.displayName =
 
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
+    searchPlaceholder?: string;
+    onSearchChange?: (value: string) => void;
+    searchValue?: string;
+    showSearch?: boolean;
+  }
+>(({ className, sideOffset = 4, children, searchPlaceholder, onSearchChange, searchValue, showSearch = false, ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
@@ -67,7 +73,32 @@ const DropdownMenuContent = React.forwardRef<
         className
       )}
       {...props}
-    />
+    >
+      {showSearch && (
+        <div className="sticky top-0 px-1 pt-1 pb-0">
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+            <input
+              placeholder={searchPlaceholder || "Поиск..."}
+              className="w-full px-8 py-2 border rounded-md border-input text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+              value={searchValue}
+              onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+            />
+            {searchValue && (
+              <button
+                className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600"
+                onClick={() => onSearchChange && onSearchChange("")}
+                type="button"
+              >
+                <span className="sr-only">Очистить</span>
+                <span aria-hidden="true">×</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {children}
+    </DropdownMenuPrimitive.Content>
   </DropdownMenuPrimitive.Portal>
 ))
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName
