@@ -2,6 +2,7 @@
 import React, { useEffect } from "react";
 import Header from "./Header";
 import Footer from "./Footer";
+import TopMenu from "./TopMenu";
 import { useLocation } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
@@ -57,6 +58,7 @@ const Layout: React.FC<LayoutProps> = ({
       </Helmet>
       
       <Header />
+      <TopMenu />
       <main className="flex-grow">{children}</main>
       <Footer />
     </div>
