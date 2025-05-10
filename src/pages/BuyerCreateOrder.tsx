@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -405,6 +404,19 @@ const BuyerCreateOrder = () => {
         } else {
           console.log("Product status updated to sold successfully");
         }
+      }
+
+      // Send notification to Telegram
+      try {
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...createdOrder[0], images: productImages },
+            action: 'create'
+          }
+        });
+        console.log("Telegram notification sent for new order");
+      } catch (notifyError) {
+        console.error('Failed to send order notification:', notifyError);
       }
 
       toast({
