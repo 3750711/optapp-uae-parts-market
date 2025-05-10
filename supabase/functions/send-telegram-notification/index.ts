@@ -65,12 +65,17 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
   }
 }
 
-// Added validation function for chat ID
+// Modified validation function for chat ID to ensure proper format
 function validateChatId(chatId: string): string {
-  // Group chat IDs in Telegram should start with a minus sign
-  if (chatId && !chatId.startsWith('-') && !isNaN(Number(chatId))) {
-    return `-${chatId}`;
+  if (!chatId) return '-2416102623'; // Default to orders group chat if empty
+  
+  // If it's a numeric string, ensure it has the minus sign for group chats
+  if (/^-?\d+$/.test(chatId)) {
+    // It's a numeric ID, ensure it has minus sign if it's a group chat
+    return chatId.startsWith('-') ? chatId : `-${chatId}`;
   }
+  
+  // For non-numeric IDs (like @username), return as is
   return chatId;
 }
 
@@ -344,10 +349,11 @@ serve(async (req) => {
         (order.description ? `📝 Описание: ${order.description}\n` : '') +
         (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '');
 
-      const validatedOrderChatId = validateChatId(ORDER_GROUP_CHAT_ID);
+      // Убедимся, что мы используем правильный chat_id для заказа (фиксированный, не из запроса)
+      const chatId = ORDER_GROUP_CHAT_ID; // Всегда используем фиксированный ID для чата заказов
       console.log('Sending order message to Telegram:', message);
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
-      console.log('Using ORDER_GROUP_CHAT_ID:', validatedOrderChatId);
+      console.log('Using ORDER_GROUP_CHAT_ID:', chatId);
 
       // Send order images if available
       if (order.images && order.images.length > 0) {
@@ -364,7 +370,7 @@ serve(async (req) => {
 
         try {
           const mediaResult = await callTelegramAPI('sendMediaGroup', {
-            chat_id: validatedOrderChatId,
+            chat_id: chatId,
             media: mediaGroup
           });
           
@@ -373,7 +379,7 @@ serve(async (req) => {
           console.error('Failed to send order media group:', error);
           // If media group fails, try sending just the text message
           await callTelegramAPI('sendMessage', {
-            chat_id: validatedOrderChatId,
+            chat_id: chatId,
             text: message,
             parse_mode: 'HTML'
           });
@@ -381,7 +387,7 @@ serve(async (req) => {
       } else {
         // If no images, just send text message
         const messageResult = await callTelegramAPI('sendMessage', {
-          chat_id: validatedOrderChatId,
+          chat_id: chatId,
           text: message,
           parse_mode: 'HTML'
         });
