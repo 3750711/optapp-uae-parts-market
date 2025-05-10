@@ -35,7 +35,10 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
   const isSelfOrder = order.seller_id === order.buyer_id;
   const isBuyer = user?.id === order.buyer_id;
   const isSeller = user?.id === order.seller_id;
-  const isAuthorized = !!user && (isBuyer || isSeller || user.id === order.buyer_id || user.id === order.seller_id);
+  
+  // Changed this line to properly check authorization
+  // We consider a user authorized if they are logged in, regardless of their role in this order
+  const isAuthorized = !!user;
 
   const getDeliveryMethodLabel = (method: string) => {
     switch (method) {
@@ -115,7 +118,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         <div>
           <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
           {isAuthorized ? (
-            <p className="text-lg font-medium">{order.seller?.opt_id || 'Не указан'}</p>
+            <p className="text-lg font-medium">{order.seller?.opt_id || order.seller_opt_id || 'Не указан'}</p>
           ) : (
             <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
           )}
@@ -134,7 +137,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline inline-flex items-center gap-1"
               >
-                @{order.telegram_url_order}
+                {order.telegram_url_order}
                 <Link className="h-4 w-4" />
               </a>
             </div>
