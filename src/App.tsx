@@ -1,9 +1,10 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import PublicSellerProfile from "@/pages/PublicSellerProfile";
@@ -107,6 +108,7 @@ const App = () => {
                   <BuyerOrders />
                 </ProtectedRoute>
               } />
+              {/* Admin routes with correct path structure */}
               <Route path="/admin" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminDashboard />
@@ -168,6 +170,7 @@ const App = () => {
               <Route path="/requests" element={<Requests />} />
               <Route path="/requests/create" element={<CreateRequest />} />
               <Route path="/requests/:id" element={<RequestDetail />} />
+              {/* Fallback route для статических файлов и истории браузера */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

@@ -4,10 +4,12 @@ import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag, LayoutDashboard } from "lucide-react";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const NotFound = () => {
   const location = useLocation();
+  const { isAdmin } = useAdminAccess();
 
   useEffect(() => {
     console.error(
@@ -38,6 +40,14 @@ const NotFound = () => {
                 Перейти в каталог
               </Button>
             </Link>
+            {isAdmin && (
+              <Link to="/admin">
+                <Button variant="secondary" className="w-full sm:w-auto">
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  Админ панель
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
