@@ -27,45 +27,20 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       });
       return;
     }
-    
     setDeletingUrl(url);
     try {
-      console.log('Attempting to delete image:', url);
-      
-      // Extract path more reliably
-      const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/');
-      const startIndex = pathParts.findIndex(p => p === 'order-images');
-      
-      if (startIndex === -1) {
-        throw new Error('Could not determine storage path from URL');
-      }
-      
-      const path = pathParts.slice(startIndex + 1).join('/');
-      console.log('Extracted storage path:', path);
-      
+      const path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-images') + 1).join('/');
       const { error: storageErr } = await supabase.storage.from('order-images').remove([path]);
-      if (storageErr) {
-        console.error('Storage error during deletion:', storageErr);
-        throw storageErr;
-      }
-      
+      if (storageErr) throw storageErr;
       const { error: dbErr } = await supabase
         .from('product_images')
         .delete()
         .eq('url', url)
         .eq('product_id', productId);
-        
-      if (dbErr) {
-        console.error('Database error during deletion:', dbErr);
-        throw dbErr;
-      }
-      
-      console.log('Image deleted successfully');
+      if (dbErr) throw dbErr;
       onImagesChange(images.filter(img => img !== url));
       toast({ title: "Фото удалено" });
     } catch (error: any) {
-      console.error('Error deleting image:', error);
       toast({
         title: "Ошибка удаления",
         description: error?.message || "Не удалось удалить фото",
@@ -99,3 +74,4 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     </div>
   );
 };
+
