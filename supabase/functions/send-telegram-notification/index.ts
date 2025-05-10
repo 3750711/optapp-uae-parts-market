@@ -1,10 +1,11 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // Updated with valid bot token and group chat ID
 const BOT_TOKEN = '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s'
-const GROUP_CHAT_ID = '-4623601047' // Added minus sign as it's likely a group chat ID
-const ORDER_GROUP_CHAT_ID = '-2416102623' // Order-specific group chat ID
+const GROUP_CHAT_ID = '-4623601047' // Main group chat ID
+const ORDER_GROUP_CHAT_ID = '-4623601047' // Using the working chat ID for orders too
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 
@@ -66,7 +67,7 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
 
 // Ensure chat IDs are properly formatted (with minus sign for group chats)
 function ensureProperChatId(chatId: string): string {
-  if (!chatId) return '-2416102623'; // Default to orders group chat if empty
+  if (!chatId) return GROUP_CHAT_ID; // Default to main group chat if empty
   
   // If it's a numeric string, ensure it has the minus sign for group chats
   if (/^\d+$/.test(chatId)) {
@@ -131,7 +132,7 @@ function formatLotNumber(lotNumber: string | number | null): string {
   return `00${num}`;
 }
 
-// New function to check if telegram username is in the trusted list
+// Function to check if telegram username is in the trusted list
 function isTrustedSeller(telegramUsername: string | null | undefined): boolean {
   if (!telegramUsername) return false;
   
@@ -351,11 +352,11 @@ serve(async (req) => {
         (order.description ? `📝 Описание: ${order.description}\n` : '') +
         (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '');
 
-      // Always use the hard-coded ORDER_GROUP_CHAT_ID for orders
-      const chatId = ORDER_GROUP_CHAT_ID; 
+      // Use the working GROUP_CHAT_ID for orders
+      const chatId = GROUP_CHAT_ID;
       console.log('Sending order message to Telegram:', message);
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
-      console.log('Using ORDER_GROUP_CHAT_ID:', chatId);
+      console.log('Using GROUP_CHAT_ID:', chatId);
 
       // Send order images if available
       if (order.images && order.images.length > 0) {
@@ -389,10 +390,10 @@ serve(async (req) => {
       } else {
         // If no images, just send text message
         const messageResult = await callTelegramAPI('sendMessage', {
-          chat_id: chatId,
-          text: message,
-          parse_mode: 'HTML'
-        });
+            chat_id: chatId,
+            text: message,
+            parse_mode: 'HTML'
+          });
         
         console.log('Order text message response:', messageResult);
       }
