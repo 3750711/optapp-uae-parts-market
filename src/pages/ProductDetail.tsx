@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import { useAdminAccess } from "@/hooks/useAdminAccess";
 import Layout from "@/components/layout/Layout";
 import { Database } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
+import { Helmet } from "react-helmet-async";
 
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
@@ -111,7 +111,7 @@ const ProductDetail = () => {
 
   const handleContactTelegram = () => {
     if (product?.telegram_url) {
-      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
+      const message = `${productUrl} I'm interested in this product, please can you send more information`;
       const imageUrl = getImageUrl();
       // Include image URL in the message for Telegram
       window.open(`https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}&photo=${encodeURIComponent(imageUrl)}`, '_blank', 'noopener,noreferrer');
@@ -126,7 +126,7 @@ const ProductDetail = () => {
 
   const handleContactWhatsApp = () => {
     if (product?.phone_url) {
-      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
+      const message = `${productUrl} I'm interested in this product, please can you send more information`;
       window.open(`https://wa.me/${product.phone_url}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
     } else {
       toast({
@@ -212,148 +212,171 @@ const ProductDetail = () => {
   const productImage = getImageUrl();
 
   return (
-    <Layout 
-      title={productTitle}
-      description={productDescription}
-      imageUrl={productImage}
-    >
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-4" 
-            onClick={handleBack}
-          >
-            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
-          </Button>
-          {isAdmin && product && (
-            <div className="flex justify-end mb-4">
-              <ProductEditDialog
-                product={product}
-                trigger={
-                  <button
-                    className="px-5 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
-                    onClick={() => setAdminEditOpen(true)}
-                    type="button"
-                  >
-                    Редактировать как администратор
-                  </button>
-                }
-                onSuccess={handleAdminEditSuccess}
-                open={adminEditOpen}
-                setOpen={setAdminEditOpen}
-              />
-            </div>
-          )}
-        </div>
-        {isMobile ? (
-          // Mobile layout
-          <div className="flex flex-col gap-3">
-            <div className="mt-2">
-              <ProductGallery images={images} title={product.title} />
-            </div>
-            <div>
-              <ProductInfo
-                product={product}
-                onProductUpdate={handleProductUpdate}
-              />
-              <ProductSpecifications
-                brand={product.brand || ""}
-                model={product.model || ""}
-                lot_number={product.lot_number || ""}
-              />
-              <SellerInfo
-                sellerProfile={sellerProfile || {}}
-                seller_name={sellerName}
-                seller_id={product.seller_id}
-              >
-                <div className="flex flex-col gap-2">
-                  <ContactButtons
-                    onContactTelegram={handleContactTelegram}
-                    onContactWhatsApp={handleContactWhatsApp}
-                    telegramUrl={product.telegram_url}
-                    deliveryMethod={deliveryMethod}
-                    onDeliveryMethodChange={handleDeliveryMethodChange}
-                    product={{
-                      id: product.id,
-                      title: product.title,
-                      price: productPrice,
-                      brand: product.brand,
-                      model: product.model,
-                      description: product.description,
-                      optid_created: product.optid_created,
-                      seller_id: product.seller_id,
-                      seller_name: sellerName,
-                      lot_number: product.lot_number,
-                      status: product.status,
-                      delivery_price: product.delivery_price
-                    }}
-                  />
-                </div>
-              </SellerInfo>
-            </div>
-            <div className="mt-2">
-              <ProductVideos videos={videos} />
-            </div>
-            <RenderFullSizeImages />
+    <>
+      <Helmet>
+        <title>{productTitle}</title>
+        <meta name="description" content={productDescription} />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={productTitle} />
+        <meta property="og:description" content={productDescription} />
+        <meta property="og:url" content={productUrl} />
+        <meta property="og:image" content={productImage} />
+        <meta property="og:site_name" content="partsbay.ae" />
+        
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={productTitle} />
+        <meta name="twitter:description" content={productDescription} />
+        <meta name="twitter:image" content={productImage} />
+        <meta property="twitter:domain" content="partsbay.ae" />
+        <meta property="twitter:url" content={productUrl} />
+      </Helmet>
+      
+      <Layout 
+        title={productTitle}
+        description={productDescription}
+        imageUrl={productImage}
+      >
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-4" 
+              onClick={handleBack}
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+            </Button>
+            {isAdmin && product && (
+              <div className="flex justify-end mb-4">
+                <ProductEditDialog
+                  product={product}
+                  trigger={
+                    <button
+                      className="px-5 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+                      onClick={() => setAdminEditOpen(true)}
+                      type="button"
+                    >
+                      Редактировать как администратор
+                    </button>
+                  }
+                  onSuccess={handleAdminEditSuccess}
+                  open={adminEditOpen}
+                  setOpen={setAdminEditOpen}
+                />
+              </div>
+            )}
           </div>
-        ) : (
-          // Desktop layout
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
-            <div>
-              <div className="mb-4">
+          {isMobile ? (
+            // Mobile layout
+            <div className="flex flex-col gap-3">
+              <div className="mt-2">
                 <ProductGallery images={images} title={product.title} />
               </div>
-              <div className="mb-8">
+              <div>
+                <ProductInfo
+                  product={product}
+                  onProductUpdate={handleProductUpdate}
+                />
+                <ProductSpecifications
+                  brand={product.brand || ""}
+                  model={product.model || ""}
+                  lot_number={product.lot_number || ""}
+                />
+                <SellerInfo
+                  sellerProfile={sellerProfile || {}}
+                  seller_name={sellerName}
+                  seller_id={product.seller_id}
+                >
+                  <div className="flex flex-col gap-2">
+                    <ContactButtons
+                      onContactTelegram={handleContactTelegram}
+                      onContactWhatsApp={handleContactWhatsApp}
+                      telegramUrl={product.telegram_url}
+                      deliveryMethod={deliveryMethod}
+                      onDeliveryMethodChange={handleDeliveryMethodChange}
+                      product={{
+                        id: product.id,
+                        title: product.title,
+                        price: productPrice,
+                        brand: product.brand,
+                        model: product.model,
+                        description: product.description,
+                        optid_created: product.optid_created,
+                        seller_id: product.seller_id,
+                        seller_name: sellerName,
+                        lot_number: product.lot_number,
+                        status: product.status,
+                        delivery_price: product.delivery_price
+                      }}
+                    />
+                  </div>
+                </SellerInfo>
+              </div>
+              <div className="mt-2">
                 <ProductVideos videos={videos} />
               </div>
               <RenderFullSizeImages />
             </div>
-            <div>
-              <ProductInfo
-                product={product}
-                onProductUpdate={handleProductUpdate}
-              />
-              <ProductSpecifications
-                brand={product.brand || ""}
-                model={product.model || ""}
-                lot_number={product.lot_number || ""}
-              />
-              <SellerInfo
-                sellerProfile={sellerProfile || {}}
-                seller_name={sellerName}
-                seller_id={product.seller_id}
-              >
-                <div className="flex flex-col gap-2">
-                  <ContactButtons
-                    onContactTelegram={handleContactTelegram}
-                    onContactWhatsApp={handleContactWhatsApp}
-                    telegramUrl={product.telegram_url}
-                    deliveryMethod={deliveryMethod}
-                    onDeliveryMethodChange={handleDeliveryMethodChange}
-                    product={{
-                      id: product.id,
-                      title: product.title,
-                      price: productPrice,
-                      brand: product.brand,
-                      model: product.model,
-                      description: product.description,
-                      optid_created: product.optid_created,
-                      seller_id: product.seller_id,
-                      seller_name: sellerName,
-                      lot_number: product.lot_number,
-                      status: product.status,
-                      delivery_price: product.delivery_price
-                    }}
-                  />
+          ) : (
+            // Desktop layout
+            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
+              <div>
+                <div className="mb-4">
+                  <ProductGallery images={images} title={product.title} />
                 </div>
-              </SellerInfo>
+                <div className="mb-8">
+                  <ProductVideos videos={videos} />
+                </div>
+                <RenderFullSizeImages />
+              </div>
+              <div>
+                <ProductInfo
+                  product={product}
+                  onProductUpdate={handleProductUpdate}
+                />
+                <ProductSpecifications
+                  brand={product.brand || ""}
+                  model={product.model || ""}
+                  lot_number={product.lot_number || ""}
+                />
+                <SellerInfo
+                  sellerProfile={sellerProfile || {}}
+                  seller_name={sellerName}
+                  seller_id={product.seller_id}
+                >
+                  <div className="flex flex-col gap-2">
+                    <ContactButtons
+                      onContactTelegram={handleContactTelegram}
+                      onContactWhatsApp={handleContactWhatsApp}
+                      telegramUrl={product.telegram_url}
+                      deliveryMethod={deliveryMethod}
+                      onDeliveryMethodChange={handleDeliveryMethodChange}
+                      product={{
+                        id: product.id,
+                        title: product.title,
+                        price: productPrice,
+                        brand: product.brand,
+                        model: product.model,
+                        description: product.description,
+                        optid_created: product.optid_created,
+                        seller_id: product.seller_id,
+                        seller_name: sellerName,
+                        lot_number: product.lot_number,
+                        status: product.status,
+                        delivery_price: product.delivery_price
+                      }}
+                    />
+                  </div>
+                </SellerInfo>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-    </Layout>
+          )}
+        </div>
+      </Layout>
+    </>
   );
 };
 

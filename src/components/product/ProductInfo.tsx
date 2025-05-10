@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
 import { Product } from "@/types/product";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductInfoProps {
   product: Product;
@@ -19,6 +20,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const isOwner = user?.id === product.seller_id;
   const domainName = "partsbay.ae";
   
@@ -44,10 +46,38 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
     
     const url = encodeURIComponent(productUrl);
     
-    // Include image URL in the Telegram share link if available
-    if (imageUrl) {
-      window.open(`https://t.me/share/url?url=${url}&text=${text}&image=${encodeURIComponent(imageUrl)}`, '_blank');
-    } else {
+    try {
+      // Try to use the navigator.share API if available (mobile devices)
+      if (navigator.share && imageUrl) {
+        navigator.share({
+          title: product.title,
+          text: `Товар: ${product.title} - Цена: ${product.price} $`,
+          url: productUrl
+        }).catch(err => {
+          console.log('Error sharing:', err);
+          // Fallback to Telegram sharing
+          if (imageUrl) {
+            window.open(`https://t.me/share/url?url=${url}&text=${text}&image=${encodeURIComponent(imageUrl)}`, '_blank');
+          } else {
+            window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+          }
+        });
+      } else {
+        // Use Telegram sharing directly
+        if (imageUrl) {
+          window.open(`https://t.me/share/url?url=${url}&text=${text}&image=${encodeURIComponent(imageUrl)}`, '_blank');
+        } else {
+          window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+        }
+      }
+      
+      toast({
+        title: "Ссылка скопирована",
+        description: "Теперь вы можете поделиться товаром",
+      });
+    } catch (err) {
+      console.error('Share error:', err);
+      // Ultimate fallback - just open Telegram
       window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
     }
   };

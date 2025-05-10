@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import PublicSellerProfile from "@/pages/PublicSellerProfile";
+import { HelmetProvider } from "react-helmet-async";
 
 // Import admin pages
 import AdminDashboard from "./pages/AdminDashboard";
@@ -49,123 +50,125 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Catalog />} />
-              <Route path="/catalog" element={<Catalog />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/profile" element={
-                <ProtectedRoute>
-                  <Profile />
-                </ProtectedRoute>
-              } />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/seller/dashboard" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <SellerProfile />
-                </ProtectedRoute>
-              } />
-              <Route path="/seller/add-product" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <SellerAddProduct />
-                </ProtectedRoute>
-              } />
-              <Route path="/seller/create-order" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <SellerCreateOrder />
-                </ProtectedRoute>
-              } />
-              <Route path="/seller/orders" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <SellerOrders />
-                </ProtectedRoute>
-              } />
-              <Route path="/seller/orders/:id" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <OrderDetails />
-                </ProtectedRoute>
-              } />
-              <Route path="/seller/listings" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <SellerListings />
-                </ProtectedRoute>
-              } />
-              <Route path="/buyer/create-order" element={
-                <ProtectedRoute>
-                  <BuyerCreateOrder />
-                </ProtectedRoute>
-              } />
-              <Route path="/orders" element={
-                <ProtectedRoute>
-                  <BuyerOrders />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/users" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminUsers />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/products" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminProducts />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/add-product" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminAddProduct />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/orders" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminOrders />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/orders/:id" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <OrderDetails />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/logistics" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminLogistics />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/stores" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminStores />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin/car-catalog" element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminCarCatalog />
-                </ProtectedRoute>
-              } />
-              <Route path="/seller/:id" element={<PublicSellerProfile />} />
-              <Route path="/stores" element={<Stores />} />
-              <Route path="/stores/:id" element={<StoreDetail />} />
-              <Route path="/stores/create" element={
-                <ProtectedRoute allowedRoles={['seller']}>
-                  <CreateStore />
-                </ProtectedRoute>
-              } />
-              <Route path="/requests" element={<Requests />} />
-              <Route path="/requests/create" element={<CreateRequest />} />
-              <Route path="/requests/:id" element={<RequestDetail />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <HelmetProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Catalog />} />
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/profile" element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                } />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/seller/dashboard" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <SellerProfile />
+                  </ProtectedRoute>
+                } />
+                <Route path="/seller/add-product" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <SellerAddProduct />
+                  </ProtectedRoute>
+                } />
+                <Route path="/seller/create-order" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <SellerCreateOrder />
+                  </ProtectedRoute>
+                } />
+                <Route path="/seller/orders" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <SellerOrders />
+                  </ProtectedRoute>
+                } />
+                <Route path="/seller/orders/:id" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <OrderDetails />
+                  </ProtectedRoute>
+                } />
+                <Route path="/seller/listings" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <SellerListings />
+                  </ProtectedRoute>
+                } />
+                <Route path="/buyer/create-order" element={
+                  <ProtectedRoute>
+                    <BuyerCreateOrder />
+                  </ProtectedRoute>
+                } />
+                <Route path="/orders" element={
+                  <ProtectedRoute>
+                    <BuyerOrders />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/users" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminUsers />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/products" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminProducts />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/add-product" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminAddProduct />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/orders" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminOrders />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/orders/:id" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <OrderDetails />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/logistics" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminLogistics />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/stores" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminStores />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/car-catalog" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminCarCatalog />
+                  </ProtectedRoute>
+                } />
+                <Route path="/seller/:id" element={<PublicSellerProfile />} />
+                <Route path="/stores" element={<Stores />} />
+                <Route path="/stores/:id" element={<StoreDetail />} />
+                <Route path="/stores/create" element={
+                  <ProtectedRoute allowedRoles={['seller']}>
+                    <CreateStore />
+                  </ProtectedRoute>
+                } />
+                <Route path="/requests" element={<Requests />} />
+                <Route path="/requests/create" element={<CreateRequest />} />
+                <Route path="/requests/:id" element={<RequestDetail />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </HelmetProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
