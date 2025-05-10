@@ -49,31 +49,53 @@ const Login = () => {
 
       if (error) throw error;
 
-      // Get user profile to determine user type
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-      }
-
-      // Show success toast
+      // Показываем сообщение об успешном входе
       toast({
         title: "Вход выполнен успешно",
         description: "Добро пожаловать в OPTAPP",
       });
       
-      // Redirect based on user type
-      if (profileData?.user_type === 'seller') {
-        navigate("/seller/dashboard");
-      } else {
-        navigate("/");
-      }
+      // После успешного входа перенаправляем пользователя
+      // Проверяем в URL параметр "from", чтобы перенаправить на нужную страницу
+      const params = new URLSearchParams(window.location.search);
+      const from = params.get("from") || "/";
+
+      // После небольшой задержки перенаправляем на нужную страницу
+      setTimeout(() => {
+        // Получаем профиль пользователя для определения типа пользователя
+        const checkUserType = async () => {
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('user_type')
+              .eq('id', authData.user.id)
+              .single();
+
+            if (profileError) {
+              console.error("Error fetching profile:", profileError);
+              navigate(from); // В случае ошибки перенаправляем на исходную страницу
+              return;
+            }
+
+            // Перенаправляем в зависимости от типа пользователя
+            if (profileData?.user_type === 'seller') {
+              navigate("/seller/dashboard");
+            } else if (profileData?.user_type === 'admin') {
+              navigate("/admin");
+            } else {
+              navigate(from);
+            }
+          } catch (err) {
+            console.error("Error in profile check:", err);
+            navigate(from);
+          }
+        };
+
+        checkUserType();
+      }, 500);
     } catch (error: any) {
-      // Show error toast
+      console.error("Login error:", error);
+      // Показываем сообщение об ошибке
       toast({
         title: "Ошибка входа",
         description: "Неверный email или пароль",

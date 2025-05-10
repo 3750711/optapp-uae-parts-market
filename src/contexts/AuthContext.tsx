@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    // Устанавливаем обработчик событий аутентификации перед проверкой текущей сессии
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         console.log("Auth state changed:", event);
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
+    // Проверяем текущую сессию после установки обработчика
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -86,17 +88,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Принудительно завершаем сессию 
       await supabase.auth.signOut();
       
-      // Сбрасываем все состояния
+      // Сбрасываем состояние
       setUser(null);
       setSession(null);
       setProfile(null);
-      setIsLoading(false);
     } catch (error) {
       console.error('Ошибка при выходе из системы:', error);
-      throw error; // Пробрасываем ошибку, чтобы вызывающий код мог обработать
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -121,4 +123,3 @@ export function useAuth() {
   }
   return context;
 }
-
