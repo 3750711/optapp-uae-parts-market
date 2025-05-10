@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -48,16 +49,18 @@ type Order = Database['public']['Tables']['orders']['Row'] & {
   } | null;
 };
 
-interface AdminOrderEditDialogProps {
+export interface AdminOrderEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: Order | null;
+  onStatusChange?: (orderId: string, newStatus: string) => Promise<void>;
 }
 
 export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   open,
   onOpenChange,
-  order
+  order,
+  onStatusChange
 }) => {
   const queryClient = useQueryClient();
   const form = useForm({
@@ -93,6 +96,12 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   const updateOrderMutation = useMutation({
     mutationFn: async (values: any) => {
       if (!order?.id) return null;
+
+      // If onStatusChange is provided and the status has changed, use it
+      const statusChanged = values.status !== order.status;
+      if (statusChanged && onStatusChange) {
+        await onStatusChange(order.id, values.status);
+      }
 
       const { data, error } = await supabase
         .from('orders')
@@ -306,7 +315,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                 {updateOrderMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Сохранен��е...
+                    Сохранение...
                   </>
                 ) : (
                   'Сохранить'
