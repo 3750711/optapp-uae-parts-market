@@ -71,7 +71,8 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
         {isOwnProfile ? (
           <>
             <Button
-              className="w-full"
+              className="w-full bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-300"
+              variant="outline"
               onClick={handleLogout}
               disabled={isLoading}
             >

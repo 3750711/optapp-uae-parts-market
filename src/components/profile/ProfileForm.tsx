@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -23,6 +22,7 @@ import { UserTypeField } from "./fields/UserTypeField";
 import { OptIdField } from "./fields/OptIdField";
 import { TelegramField } from "./fields/TelegramField";
 import { ProfileTextField } from "./fields/ProfileTextField";
+import { Save } from "lucide-react";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -154,9 +154,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             
             <Button 
               type="submit" 
-              className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+              className="w-full bg-primary hover:bg-primary-hover text-white font-medium text-base py-3 shadow-lg hover:shadow-xl transition-all"
               disabled={isLoading}
             >
+              <Save className="h-5 w-5 mr-2" />
               {isLoading ? "Сохранение..." : "Сохранить изменения"}
             </Button>
           </form>
