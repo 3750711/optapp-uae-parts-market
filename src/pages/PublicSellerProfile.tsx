@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
@@ -6,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
 import { ProductProps } from "@/components/product/ProductCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
@@ -30,8 +33,10 @@ import {
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
   const [carBrands, setCarBrands] = useState<string[]>([]);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
   const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ["seller-profile", id],
@@ -154,6 +159,17 @@ const PublicSellerProfile = () => {
     
     const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
     window.open(telegramUrl, '_blank');
+  };
+
+  const handleShowContactInfo = () => {
+    if (!user) {
+      setShowAuthDialog(true);
+    }
+  };
+
+  const handleGoToLogin = () => {
+    setShowAuthDialog(false);
+    navigate('/login');
   };
 
   if (isProfileLoading || isProductsLoading) {
@@ -297,20 +313,29 @@ const PublicSellerProfile = () => {
                 <AccordionItem value="contact">
                   <AccordionTrigger>Контактная информация</AccordionTrigger>
                   <AccordionContent>
-                    <div className="space-y-2">
-                      {profile?.company_name && (
-                        <div className="flex items-center gap-2">
-                          <Building2 className="h-4 w-4 text-gray-500" />
-                          <span>{profile.company_name}</span>
-                        </div>
-                      )}
-                      {profile?.telegram && (
-                        <div className="flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4 text-gray-500" />
-                          <span>{profile.telegram}</span>
-                        </div>
-                      )}
-                    </div>
+                    {user ? (
+                      <div className="space-y-2">
+                        {profile?.company_name && (
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-gray-500" />
+                            <span>{profile.company_name}</span>
+                          </div>
+                        )}
+                        {profile?.telegram && (
+                          <div className="flex items-center gap-2">
+                            <MessageSquare className="h-4 w-4 text-gray-500" />
+                            <span>{profile.telegram}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
+                        <p className="text-gray-600 mb-3">Для просмотра контактной информации необходимо авторизоваться</p>
+                        <Button onClick={handleShowContactInfo}>
+                          Войти для просмотра контактов
+                        </Button>
+                      </div>
+                    )}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -387,6 +412,26 @@ const PublicSellerProfile = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Authentication Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Требуется авторизация</DialogTitle>
+            <DialogDescription>
+              Для просмотра контактной информации продавца необходимо войти в аккаунт или зарегистрироваться.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-center">
+            <Button onClick={handleGoToLogin} className="w-full sm:w-auto">
+              Войти / Зарегистрироваться
+            </Button>
+            <Button variant="outline" onClick={() => setShowAuthDialog(false)} className="w-full sm:w-auto">
+              Отмена
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

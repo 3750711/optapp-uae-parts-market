@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer?: {
@@ -33,6 +34,8 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
   const { user } = useAuth();
   const isSelfOrder = order.seller_id === order.buyer_id;
   const isBuyer = user?.id === order.buyer_id;
+  const isSeller = user?.id === order.seller_id;
+  const isAuthorized = !!user && (isBuyer || isSeller || user.id === order.buyer_id || user.id === order.seller_id);
 
   const getDeliveryMethodLabel = (method: string) => {
     switch (method) {
@@ -103,11 +106,19 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
       <div className="space-y-4">
         <div>
           <Label className="text-sm text-gray-500">OPT ID покупателя</Label>
-          <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
+          {isAuthorized ? (
+            <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
+          ) : (
+            <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
+          )}
         </div>
         <div>
           <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
-          <p className="text-lg font-medium">{order.seller?.opt_id || 'Не указан'}</p>
+          {isAuthorized ? (
+            <p className="text-lg font-medium">{order.seller?.opt_id || 'Не указан'}</p>
+          ) : (
+            <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
+          )}
         </div>
         <div>
           <Label className="text-sm text-gray-500">Имя отправителя</Label>
@@ -115,7 +126,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         </div>
         <div>
           <Label className="text-sm text-gray-500">Информация о получателе</Label>
-          {order.telegram_url_order ? (
+          {isAuthorized && order.telegram_url_order ? (
             <div className="space-y-2">
               <a 
                 href={`https://t.me/${order.telegram_url_order.replace('@', '')}`}
@@ -127,6 +138,8 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
                 <Link className="h-4 w-4" />
               </a>
             </div>
+          ) : order.telegram_url_order ? (
+            <p className="text-gray-500">Требуется авторизация для просмотра контактов</p>
           ) : (
             <p className="text-gray-500">Контакты не указаны</p>
           )}

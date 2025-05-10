@@ -1,10 +1,13 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star, User, Store } from "lucide-react";
+import { ShieldCheck, CircleDollarSign, Star, User, Store, MessageSquare } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 
 interface SellerInfoProps {
   sellerProfile: SellerProfile;
@@ -20,6 +23,9 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
   children 
 }) => {
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchStoreInfo = async () => {
@@ -38,6 +44,17 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 
     fetchStoreInfo();
   }, [seller_id]);
+
+  const handleShowContactInfo = () => {
+    if (!user) {
+      setShowAuthDialog(true);
+    }
+  };
+
+  const handleGoToLogin = () => {
+    setShowAuthDialog(false);
+    navigate('/login');
+  };
 
   return (
     <div className="border rounded-lg p-4 mb-6">
@@ -63,10 +80,21 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
             )}
           </div>
           
-          {sellerProfile?.opt_id && (
+          {sellerProfile?.opt_id && user ? (
             <div className="text-sm">
               <span className="text-gray-500">OPT ID: </span>
               <span className="font-medium">{sellerProfile.opt_id}</span>
+            </div>
+          ) : sellerProfile?.opt_id && (
+            <div className="text-sm">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-primary"
+                onClick={handleShowContactInfo}
+              >
+                Показать OPT ID
+              </Button>
             </div>
           )}
         </div>
@@ -116,9 +144,18 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
         )}
       </div>
       
-      <div className="grid grid-cols-1 gap-2 mt-4">
-        {children}
-      </div>
+      {user ? (
+        <div className="grid grid-cols-1 gap-2 mt-4">
+          {children}
+        </div>
+      ) : (
+        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center mt-4">
+          <p className="text-gray-600 mb-3">Для связи с продавцом необходимо авторизоваться</p>
+          <Button onClick={handleShowContactInfo}>
+            Войти для связи с продавцом
+          </Button>
+        </div>
+      )}
 
       <div className="space-y-3 text-sm mt-4">
         <div className="flex items-center text-gray-700">
@@ -130,6 +167,26 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
           <span>Гарантия возврата денег в течение 14 дней</span>
         </div>
       </div>
+
+      {/* Authentication Dialog */}
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Требуется авторизация</DialogTitle>
+            <DialogDescription>
+              Для связи с продавцом необходимо войти в аккаунт или зарегистрироваться.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-center">
+            <Button onClick={handleGoToLogin} className="w-full sm:w-auto">
+              Войти / Зарегистрироваться
+            </Button>
+            <Button variant="outline" onClick={() => setShowAuthDialog(false)} className="w-full sm:w-auto">
+              Отмена
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
