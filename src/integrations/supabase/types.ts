@@ -85,6 +85,36 @@ export type Database = {
           },
         ]
       }
+      event_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          details: Json
+          entity_id: string
+          entity_type: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          details: Json
+          entity_id: string
+          entity_type: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          details?: Json
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       logistics_exports: {
         Row: {
           created_at: string
