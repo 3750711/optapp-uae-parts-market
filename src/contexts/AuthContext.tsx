@@ -25,8 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchUserProfile(userId: string) {
     try {
-      // Увеличиваем задержку перед запросом профиля
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log("Attempting to fetch profile for user:", userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -58,76 +57,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Устанавливаем слушатель изменений авторизации
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log("Auth state changed:", event);
-        
-        // Обновляем локальное состояние сессии
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          // Увеличиваем задержку для загрузки профиля для избежания конфликтов с другими запросами
-          setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
-          }, 1500);
-        } else {
-          setProfile(null);
-        }
-      }
-    );
-
-    // Проверяем существующую сессию при загрузке с большей задержкой для избежания конфликтов
-    const checkSession = async () => {
+    const setupAuth = async () => {
       try {
-        // Добавляем небольшую задержку для избежания конфликтов
-        await new Promise(resolve => setTimeout(resolve, 500));
+        setIsLoading(true);
         
-        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error getting session:", error);
-          setIsLoading(false);
-          return;
-        }
+        // First, set up the auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, currentSession) => {
+            console.log("Auth state changed:", event);
+            
+            // Update local session state
+            setSession(currentSession);
+            setUser(currentSession?.user ?? null);
+            
+            // Handle profile fetch after session change
+            if (currentSession?.user) {
+              // Use setTimeout to avoid potential auth deadlocks
+              setTimeout(() => {
+                fetchUserProfile(currentSession.user.id);
+              }, 100);
+            } else {
+              setProfile(null);
+            }
+          }
+        );
+
+        // Then check for existing session
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
-          // Увеличиваем задержку для загрузки профиля
+          // Fetch user profile with delay to avoid potential auth conflicts
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
-          }, 1500);
+          }, 100);
         }
+        
+        return () => subscription.unsubscribe();
       } catch (error) {
-        console.error("Error getting session:", error);
+        console.error("Error setting up auth:", error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    checkSession();
-
-    return () => subscription.unsubscribe();
+    setupAuth();
   }, []);
 
   const signOut = async () => {
     setIsLoading(true);
     
     try {
-      // Добавляем задержку перед выходом для избежания конфликтов
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
       await supabase.auth.signOut();
       
-      // Очищаем все состояния после выхода
+      // Clear all states after logout
       setUser(null);
       setSession(null);
       setProfile(null);
     } catch (error) {
-      console.error('Ошибка при выходе из системы:', error);
+      console.error('Error during sign out:', error);
     } finally {
       setIsLoading(false);
     }

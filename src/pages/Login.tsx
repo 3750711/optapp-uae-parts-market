@@ -42,10 +42,9 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // Добавляем задержку перед авторизацией
-      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log("Attempting to sign in with email:", data.email);
       
-      // Выполняем вход напрямую без дополнительной записи в лог
+      // Perform the login
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
@@ -53,63 +52,43 @@ const Login = () => {
 
       if (error) {
         console.error("Login error:", error);
+        
+        // Handle specific error cases
+        if (error.message.includes("Database error")) {
+          toast({
+            title: "Ошибка входа",
+            description: "Техническая проблема. Попробуйте через несколько секунд.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
-      // Показываем сообщение об успешном входе
+      // Show success message
       toast({
         title: "Вход выполнен успешно",
         description: "Добро пожаловать в OPTAPP",
       });
       
-      // Проверяем в URL параметр "from", чтобы перенаправить на нужную страницу
+      // Check URL for "from" parameter for redirection
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // Увеличиваем задержку для перенаправления для избежания конфликтов
+      // Add a short delay to ensure auth state is properly updated
       setTimeout(() => {
-        // Получаем профиль пользователя для определения типа пользователя
-        const checkUserType = async () => {
-          try {
-            // Увеличиваем таймаут для избежания конфликтов с транзакциями
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('user_type')
-              .eq('id', authData.user.id)
-              .single();
-
-            if (profileError) {
-              console.error("Error fetching profile:", profileError);
-              navigate(from); // В случае ошибки перенаправляем на исходную страницу
-              return;
-            }
-
-            // Перенаправляем в зависимости от типа пользователя
-            if (profileData?.user_type === 'seller') {
-              navigate("/seller/dashboard");
-            } else if (profileData?.user_type === 'admin') {
-              navigate("/admin");
-            } else {
-              navigate(from);
-            }
-          } catch (err) {
-            console.error("Error in profile check:", err);
-            navigate(from);
-          }
-        };
-
-        checkUserType();
-      }, 2000); // Увеличиваем задержку для предотвращения конфликтов
+        console.log("Redirecting to:", from);
+        navigate(from);
+      }, 500);
+      
     } catch (error: any) {
       console.error("Login error:", error);
-      // Показываем сообщение об ошибке
+      
+      // Show error message
       toast({
         title: "Ошибка входа",
-        description: error.message === "Database error granting user" 
-          ? "Ошибка входа. Пожалуйста, попробуйте еще раз через несколько секунд." 
-          : "Неверный email или пароль",
+        description: "Неверный email или пароль",
         variant: "destructive",
       });
     } finally {

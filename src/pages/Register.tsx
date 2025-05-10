@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -81,11 +81,10 @@ const Register = () => {
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    console.log("Form data submitting:", data); // Debug: log submitted data
+    console.log("Form data submitting:", data);
     
     try {
-      // Добавляем задержку перед регистрацией
-      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log("Attempting to register user with email:", data.email);
       
       // Register the user with Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -94,7 +93,7 @@ const Register = () => {
         options: {
           data: {
             full_name: data.fullName || null,
-            user_type: data.userType, // Store user_type in the metadata
+            user_type: data.userType,
             phone: data.phone || null,
             opt_id: data.optId || null,
             telegram: data.telegram || null,
@@ -105,38 +104,7 @@ const Register = () => {
 
       if (authError) throw authError;
       
-      console.log("Auth data returned:", authData); // Debug: log auth response
-
-      // После успешной регистрации используем setTimeout для предотвращения конфликтов
-      if (authData.user) {
-        setTimeout(async () => {
-          try {
-            // Добавляем дополнительную задержку
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .upsert({
-                id: authData.user.id,
-                email: data.email,
-                full_name: data.fullName || null,
-                phone: data.phone || null,
-                opt_id: data.optId || null,
-                telegram: data.telegram || null,
-                user_type: data.userType, // Explicitly set user_type in profiles table
-                location: data.location,
-              }, { 
-                onConflict: 'id' 
-              });
-
-            if (profileError) {
-              console.error("Profile creation error:", profileError);
-            }
-          } catch (err) {
-            console.error("Error in delayed profile creation:", err);
-          }
-        }, 1000);
-      }
+      console.log("Registration successful:", authData);
 
       toast({
         title: "Регистрация прошла успешно",
