@@ -127,7 +127,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               control={form.control} 
               telegram_edit_count={profile.telegram_edit_count || 0}
             />
-            <OptIdField control={form.control} canEditOptId={canEditOptId} />
+            <OptIdField 
+              control={form.control} 
+              canEditOptId={canEditOptId}
+              optIdValue={profile.opt_id} 
+            />
             
             <FormField
               control={form.control}
