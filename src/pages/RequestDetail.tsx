@@ -44,6 +44,12 @@ const RequestDetail: React.FC = () => {
     enabled: !!id
   });
   
+  // Prepare metadata for the Layout component
+  const requestTitle = request ? `${request.title} | Запрос | partsbay.ae` : "Запрос | partsbay.ae";
+  const requestDescription = request 
+    ? `${request.brand || ''} ${request.model || ''} ${request.description || ''}`.trim()
+    : "Запрос запчастей на платформе partsbay.ae";
+  
   if (isLoading || !dataLoaded) {
     return (
       <Layout>
@@ -80,7 +86,10 @@ const RequestDetail: React.FC = () => {
   }
   
   return (
-    <Layout>
+    <Layout
+      title={requestTitle}
+      description={requestDescription}
+    >
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-8">
           {/* Always show the request processing component */}
