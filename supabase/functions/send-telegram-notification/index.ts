@@ -64,6 +64,142 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
   }
 }
 
+// Added function to check if URL is valid
+function isValidURL(url: string): boolean {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Function to download media content and get buffer
+async function downloadMedia(url: string): Promise<ArrayBuffer | null> {
+  try {
+    if (!isValidURL(url)) {
+      console.error(`Invalid URL: ${url}`);
+      return null;
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      console.error(`Failed to download from URL: ${url}, status: ${response.status}`);
+      return null;
+    }
+    
+    return await response.arrayBuffer();
+  } catch (error) {
+    console.error(`Error downloading media from ${url}:`, error);
+    return null;
+  }
+}
+
+// Function to send media using FormData for better reliability
+async function sendMediaUsingFormData(chatId: string, url: string, caption?: string, isVideo = false): Promise<any> {
+  try {
+    const mediaBuffer = await downloadMedia(url);
+    if (!mediaBuffer) {
+      console.error(`Failed to download media from ${url}`);
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    
+    // Extract filename from URL
+    const fileName = url.split('/').pop() || (isVideo ? 'video.mp4' : 'photo.jpg');
+    
+    // Create file blob with appropriate type
+    const fileType = isVideo ? 'video/mp4' : 'image/jpeg';
+    const mediaBlob = new Blob([mediaBuffer], { type: fileType });
+    
+    // Append appropriate file
+    if (isVideo) {
+      formData.append('video', mediaBlob, fileName);
+    } else {
+      formData.append('photo', mediaBlob, fileName);
+    }
+    
+    // Add caption if provided
+    if (caption) {
+      formData.append('caption', caption);
+      formData.append('parse_mode', 'HTML');
+    }
+    
+    console.log(`Sending ${isVideo ? 'video' : 'photo'} using FormData: ${fileName}`);
+    
+    const response = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/${isVideo ? 'sendVideo' : 'sendPhoto'}`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    );
+    
+    const result = await response.json();
+    console.log(`${isVideo ? 'Video' : 'Photo'} upload response:`, JSON.stringify(result));
+    
+    if (!response.ok) {
+      throw new Error(`Telegram API error: ${JSON.stringify(result)}`);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error(`Failed to send media using FormData:`, error);
+    
+    // If it's a video, try sending as a document instead
+    if (isVideo) {
+      console.log('Attempting to send video as document instead');
+      return await sendVideoAsDocument(chatId, url, caption);
+    }
+    
+    return null;
+  }
+}
+
+// Function to send video as document (fallback method)
+async function sendVideoAsDocument(chatId: string, url: string, caption?: string): Promise<any> {
+  try {
+    const mediaBuffer = await downloadMedia(url);
+    if (!mediaBuffer) {
+      console.error(`Failed to download video from ${url}`);
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    
+    const fileName = url.split('/').pop() || 'video.mp4';
+    const mediaBlob = new Blob([mediaBuffer], { type: 'application/octet-stream' });
+    
+    formData.append('document', mediaBlob, fileName);
+    
+    if (caption) {
+      formData.append('caption', caption);
+      formData.append('parse_mode', 'HTML');
+    }
+    
+    console.log(`Sending video as document: ${fileName}`);
+    
+    const response = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
+      {
+        method: 'POST',
+        body: formData
+      }
+    );
+    
+    const result = await response.json();
+    console.log(`Video document upload response:`, JSON.stringify(result));
+    
+    return result;
+  } catch (error) {
+    console.error(`Failed to send video as document:`, error);
+    return null;
+  }
+}
+
 // Added validation function for chat ID
 function validateChatId(chatId: string): string {
   // Group chat IDs in Telegram should start with a minus sign
@@ -165,56 +301,62 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
+    // First, send the text message
+    const messageResult = await callTelegramAPI('sendMessage', {
+      chat_id: validatedChatId,
+      text: message,
+      parse_mode: 'HTML'
+    });
+    
+    console.log('Text message response:', messageResult);
+
+    // Add a small delay before sending media
+    await sleep(500);
+
+    // Send images if available
     if (product.product_images && product.product_images.length > 0) {
-      // Split images into groups of 10 (Telegram's limit)
-      const imageGroups = [];
-      for (let i = 0; i < product.product_images.length; i += 10) {
-        imageGroups.push(product.product_images.slice(i, i + 10));
-      }
-
-      // Send each group of images
-      for (let i = 0; i < imageGroups.length; i++) {
-        const mediaGroup = imageGroups[i].map((img: any, index: number) => ({
-          type: 'photo',
-          media: img.url,
-          // Add caption to the first image of the first group only
-          ...(i === 0 && index === 0 && {
-            caption: message,
-            parse_mode: 'HTML'
-          })
-        }));
-
-        try {
-          const mediaResult = await callTelegramAPI('sendMediaGroup', {
-            chat_id: validatedChatId,
-            media: mediaGroup
-          });
-          
-          console.log('Media group response:', mediaResult);
-        } catch (error) {
-          console.error('Failed to send media group:', error);
-          // If media group fails, try sending just the text message
-          await callTelegramAPI('sendMessage', {
-            chat_id: validatedChatId,
-            text: message,
-            parse_mode: 'HTML'
-          });
-        }
-        
-        // Add a small delay between groups to avoid rate limiting
-        if (i < imageGroups.length - 1) {
-          await sleep(300);
-        }
-      }
-    } else {
-      // If no images, just send text message
-      const messageResult = await callTelegramAPI('sendMessage', {
-        chat_id: validatedChatId,
-        text: message,
-        parse_mode: 'HTML'
-      });
+      console.log(`Product has ${product.product_images.length} images, sending them individually...`);
       
-      console.log('Text message response:', messageResult);
+      // Send images one by one with delay between them to avoid rate limiting
+      for (let i = 0; i < product.product_images.length; i++) {
+        const img = product.product_images[i];
+        const caption = i === 0 ? `Изображения для лота #${formattedLotNumber}` : undefined;
+        
+        console.log(`Sending image ${i + 1}/${product.product_images.length}: ${img.url}`);
+        
+        try {
+          await sendMediaUsingFormData(validatedChatId, img.url, caption, false);
+          // Add a delay between image uploads
+          if (i < product.product_images.length - 1) {
+            await sleep(300);
+          }
+        } catch (error) {
+          console.error(`Error sending image ${i + 1}:`, error);
+        }
+      }
+    }
+
+    // Send videos if available
+    if (product.product_videos && product.product_videos.length > 0) {
+      console.log(`Product has ${product.product_videos.length} videos, sending them...`);
+      
+      // Send videos one by one
+      for (let i = 0; i < product.product_videos.length; i++) {
+        const vid = product.product_videos[i];
+        const caption = i === 0 ? `Видео для лота #${formattedLotNumber}` : undefined;
+        
+        console.log(`Sending video ${i + 1}/${product.product_videos.length}: ${vid.url}`);
+        
+        try {
+          await sendMediaUsingFormData(validatedChatId, vid.url, caption, true);
+          // Add a delay between video uploads
+          if (i < product.product_videos.length - 1) {
+            await sleep(500);
+          }
+        } catch (error) {
+          console.error(`Error sending video ${i + 1}:`, error);
+        }
+      }
     }
 
     return new Response(JSON.stringify({ success: true }), {
