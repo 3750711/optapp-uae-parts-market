@@ -41,6 +41,15 @@ const SaveEventLogsDialog = ({ open, onOpenChange, logs, onSuccess }: SaveEventL
       return;
     }
 
+    if (!logs || logs.length === 0) {
+      toast({ 
+        title: "Ошибка", 
+        description: "Нет записей для сохранения", 
+        variant: "destructive" 
+      });
+      return;
+    }
+
     try {
       setIsSaving(true);
       
@@ -86,7 +95,7 @@ const SaveEventLogsDialog = ({ open, onOpenChange, logs, onSuccess }: SaveEventL
         <DialogHeader>
           <DialogTitle>Сохранить записи журнала</DialogTitle>
           <DialogDescription>
-            Сохраните текущий список записей журнала ({logs.length} записей) для последующего использования
+            Сохраните текущий список записей журнала ({logs?.length || 0} записей) для последующего использования
           </DialogDescription>
         </DialogHeader>
 

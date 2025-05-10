@@ -68,6 +68,7 @@ const AdminEvents = () => {
   const [actionFilter, setActionFilter] = useState<string>('all');
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [filteredLogs, setFilteredLogs] = useState<ActionLog[]>([]);
   const pageSize = 10;
 
   const { data, isLoading, refetch } = useQuery({
@@ -102,6 +103,9 @@ const AdminEvents = () => {
         ...log,
         user_email: log.profiles?.email,
       }));
+      
+      // Update the filtered logs state for saving purposes
+      setFilteredLogs(processedData);
       
       return {
         logs: processedData as ActionLog[],
@@ -165,12 +169,19 @@ const AdminEvents = () => {
   };
   
   const handleLoadSavedLogs = (logs: ActionLog[]) => {
-    toast({
-      title: "Загружено",
-      description: `Загружено ${logs.length} записей из сохраненного набора`,
-    });
-    // In a real implementation, we would populate state with these logs
-    // For now, we'll just show a success message
+    if (Array.isArray(logs) && logs.length > 0) {
+      setFilteredLogs(logs);
+      toast({
+        title: "Загружено",
+        description: `Загружено ${logs.length} записей из сохраненного набора`,
+      });
+    } else {
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить записи из сохраненного набора",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderDetails = (log: ActionLog) => {
@@ -349,8 +360,8 @@ const AdminEvents = () => {
                     Загрузка...
                   </TableCell>
                 </TableRow>
-              ) : data?.logs && data.logs.length > 0 ? (
-                data.logs.map((log) => (
+              ) : filteredLogs && filteredLogs.length > 0 ? (
+                filteredLogs.map((log) => (
                   <TableRow key={log.id}>
                     <TableCell className="whitespace-nowrap">
                       {format(new Date(log.created_at), 'dd.MM.yyyy HH:mm:ss')}
@@ -451,11 +462,11 @@ const AdminEvents = () => {
         </Card>
       </div>
 
-      {/* Dialogs for saving and loading event logs */}
+      {/* Диалоги для сохранения и загрузки журналов событий */}
       <SaveEventLogsDialog 
         open={saveDialogOpen} 
         onOpenChange={setSaveDialogOpen}
-        logs={data?.logs || []} 
+        logs={filteredLogs || []} 
         onSuccess={() => {
           refetch();
           toast({
