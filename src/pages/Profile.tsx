@@ -179,8 +179,8 @@ const Profile = () => {
             )}
             
             <Button 
-              variant="destructive" 
-              className="mt-4 w-full"
+              variant="outline" 
+              className="mt-4 w-full text-gray-500 border-gray-300 hover:bg-gray-100 hover:text-gray-700"
               onClick={handleSignOut}
             >
               <LogOut className="mr-2 h-4 w-4" />

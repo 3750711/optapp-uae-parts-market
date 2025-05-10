@@ -149,7 +149,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
             
             <Button 
               type="submit" 
-              className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold shadow-md transform hover:-translate-y-0.5 transition-all"
               disabled={isLoading}
             >
               {isLoading ? "Сохранение..." : "Сохранить изменения"}

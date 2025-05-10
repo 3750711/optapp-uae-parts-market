@@ -55,9 +55,9 @@ export const DeleteAccountButton: React.FC = () => {
   return (
     <>
       <Button 
-        variant="destructive" 
+        variant="outline" 
         onClick={() => setOpen(true)}
-        className="w-full mt-4"
+        className="w-full mt-4 text-gray-500 border-gray-300 hover:bg-gray-100"
       >
         <Trash2 className="h-4 w-4 mr-2" />
         Удалить аккаунт
