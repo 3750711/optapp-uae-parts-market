@@ -43,7 +43,7 @@ export const OptIdField: React.FC<OptIdFieldProps> = ({ control, canEditOptId, o
           )}
           {isOptIdAlreadySet && canEditOptId && (
             <FormDescription className="text-sm text-muted-foreground mt-1">
-              OPT ID можно указать только один раз
+              Если вам нужно изменить OPT ID свяжитесь с администратором
             </FormDescription>
           )}
         </FormItem>
