@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -255,7 +256,7 @@ const AdminAddProduct = () => {
     if (images.length === 0) {
       toast({
         title: "Ошибка",
-        description: "Добавь��е хотя бы одну фотографию",
+        description: "Добавьте хотя бы одну фотографию",
         variant: "destructive",
       });
       return;
@@ -286,6 +287,7 @@ const AdminAddProduct = () => {
       }
 
       // Using RPC to create the product using admin permissions
+      // Changed product status from 'pending' to 'active' when admin creates it
       const { data: productId, error: productError } = await supabase
         .rpc('admin_create_product', {
           p_title: values.title,
@@ -296,7 +298,7 @@ const AdminAddProduct = () => {
           p_description: values.description || null,
           p_seller_id: values.sellerId,
           p_seller_name: selectedSeller.full_name || "Unknown Seller",
-          p_status: 'pending',
+          p_status: 'active', // Changed from 'pending' to 'active'
           p_place_number: parseInt(values.placeNumber),
           p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
         });
@@ -368,7 +370,7 @@ const AdminAddProduct = () => {
 
       toast({
         title: "Товар добавлен",
-        description: "Товар усп��шно размещен на маркетплейсе",
+        description: "Товар успешно опубликован на маркетплейсе", // Updated message to reflect published status
       });
 
       navigate('/admin/products');
