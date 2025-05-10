@@ -104,12 +104,14 @@ const AdminOrders = () => {
           
         const images = orderImages?.map(img => img.url) || [];
         
-        await supabase.functions.invoke('send-telegram-notification', {
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
           body: { 
             order: { ...updatedOrder, images },
             action: 'status_change'
           }
         });
+        
+        console.log("Status update notification result:", notificationResult);
       } catch (notifyError) {
         console.error('Failed to send status update notification:', notifyError);
       }

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -135,14 +136,21 @@ const OrderDetails = () => {
         return;
       }
       
-      // Send notification about order status change
+      // Send notification about order status change with proper chat ID
       try {
-        await supabase.functions.invoke('send-telegram-notification', {
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
           body: { 
-            order: { ...orderData.order, status: 'seller_confirmed', price: newPrice, images: orderData.images },
+            order: { 
+              ...orderData.order, 
+              status: 'seller_confirmed', 
+              price: newPrice, 
+              images: orderData.images 
+            },
             action: 'status_change'
           }
         });
+        
+        console.log("Notification result:", notificationResult);
       } catch (notifyError) {
         console.error('Failed to send status notification:', notifyError);
       }

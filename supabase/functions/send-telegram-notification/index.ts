@@ -65,14 +65,17 @@ async function callTelegramAPI(endpoint: string, data: any, maxRetries = 3) {
   }
 }
 
-// Modified validation function for chat ID to ensure proper format
-function validateChatId(chatId: string): string {
+// Ensure chat IDs are properly formatted (with minus sign for group chats)
+function ensureProperChatId(chatId: string): string {
   if (!chatId) return '-2416102623'; // Default to orders group chat if empty
   
   // If it's a numeric string, ensure it has the minus sign for group chats
-  if (/^-?\d+$/.test(chatId)) {
-    // It's a numeric ID, ensure it has minus sign if it's a group chat
-    return chatId.startsWith('-') ? chatId : `-${chatId}`;
+  if (/^\d+$/.test(chatId)) {
+    // It's a numeric ID without minus, add it for group chats
+    return `-${chatId}`;
+  } else if (/^-?\d+$/.test(chatId)) {
+    // Already has proper format (with or without minus)
+    return chatId;
   }
   
   // For non-numeric IDs (like @username), return as is
@@ -234,10 +237,10 @@ serve(async (req) => {
         `👤 Telegram продавца: ${telegramContact}\n\n` +
         `📊 Статус: ${statusPrefix}${statusLabel}${statusSuffix}`;
 
-      const validatedChatId = validateChatId(GROUP_CHAT_ID);
+      const validChatId = ensureProperChatId(GROUP_CHAT_ID);
       console.log('Sending message to Telegram:', message);
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
-      console.log('Using GROUP_CHAT_ID:', validatedChatId);
+      console.log('Using GROUP_CHAT_ID:', validChatId);
 
       if (product.product_images && product.product_images.length > 0) {
         // Send all images as a media group
@@ -253,7 +256,7 @@ serve(async (req) => {
 
         try {
           const mediaResult = await callTelegramAPI('sendMediaGroup', {
-            chat_id: validatedChatId,
+            chat_id: validChatId,
             media: mediaGroup
           });
           
@@ -262,7 +265,7 @@ serve(async (req) => {
           console.error('Failed to send media group:', error);
           // If media group fails, try sending just the text message
           await callTelegramAPI('sendMessage', {
-            chat_id: validatedChatId,
+            chat_id: validChatId,
             text: message,
             parse_mode: 'HTML'
           });
@@ -276,7 +279,7 @@ serve(async (req) => {
           for (const video of product.product_videos) {
             try {
               await callTelegramAPI('sendVideo', {
-                chat_id: validatedChatId,
+                chat_id: validChatId,
                 video: video.url
               });
               
@@ -290,7 +293,7 @@ serve(async (req) => {
       } else {
         // If no images, just send text message
         const messageResult = await callTelegramAPI('sendMessage', {
-          chat_id: validatedChatId,
+          chat_id: validChatId,
           text: message,
           parse_mode: 'HTML'
         });
@@ -304,7 +307,7 @@ serve(async (req) => {
           for (const video of product.product_videos) {
             try {
               await callTelegramAPI('sendVideo', {
-                chat_id: validatedChatId,
+                chat_id: validChatId,
                 video: video.url
               });
               
@@ -349,8 +352,8 @@ serve(async (req) => {
         (order.description ? `📝 Описание: ${order.description}\n` : '') +
         (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '');
 
-      // Убедимся, что мы используем правильный chat_id для заказа (фиксированный, не из запроса)
-      const chatId = ORDER_GROUP_CHAT_ID; // Всегда используем фиксированный ID для чата заказов
+      // Always use the hard-coded chat ID with proper formatting for orders
+      const chatId = '-2416102623'; // Ensure it has the minus sign
       console.log('Sending order message to Telegram:', message);
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
       console.log('Using ORDER_GROUP_CHAT_ID:', chatId);
