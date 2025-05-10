@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -13,6 +12,16 @@ import ProfileForm from "@/components/profile/ProfileForm";
 import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { UserType } from "@/components/profile/types";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -29,6 +38,7 @@ type FormData = z.infer<typeof formSchema>;
 const Profile = () => {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -114,6 +124,10 @@ const Profile = () => {
     }
   };
 
+  const handleSignOutClick = () => {
+    setLogoutDialogOpen(true);
+  };
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -182,11 +196,26 @@ const Profile = () => {
               variant="ghost" 
               size="sm"
               className="mt-4 text-gray-400 hover:text-gray-500 text-xs flex items-center opacity-60"
-              onClick={handleSignOut}
+              onClick={handleSignOutClick}
             >
               <LogOut className="mr-1 h-3 w-3" />
               Выйти из аккаунта
             </Button>
+            
+            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Выйти из аккаунта</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Вы уверены, что хотите выйти из аккаунта?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleSignOut}>Выйти</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ProfileType } from "./types";
@@ -15,6 +15,16 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { DeleteAccountButton } from "./DeleteAccountButton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ProfileActionsProps {
   profile: ProfileType;
@@ -25,8 +35,13 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const { isAdmin } = useAdminAccess();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
   const isOwnProfile = user?.id === profile.id;
+  
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
+  };
   
   const handleLogout = async () => {
     try {
@@ -73,7 +88,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
             <Button
               className="w-full bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-300"
               variant="outline"
-              onClick={handleLogout}
+              onClick={handleLogoutClick}
               disabled={isLoading}
             >
               <LogOut className="h-4 w-4 mr-2" /> Выйти из системы
@@ -106,6 +121,21 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
             </Button>
 
             <DeleteAccountButton />
+            
+            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Выйти из системы</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Вы уверены, что хотите выйти из системы?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>Выйти</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         ) : (
           <DropdownMenu>
