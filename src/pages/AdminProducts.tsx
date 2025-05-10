@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -17,6 +17,10 @@ import { Input } from "@/components/ui/input";
 import { useIntersection } from '@/hooks/useIntersection';
 
 const PRODUCTS_PER_PAGE = 20;
+// Keys for storing sort preferences in localStorage
+const SORT_FIELD_KEY = 'admin_products_sort_field';
+const SORT_ORDER_KEY = 'admin_products_sort_order';
+const SEARCH_QUERY_KEY = 'admin_products_search_query';
 
 const AdminProducts = () => {
   const { toast } = useToast();
@@ -31,6 +35,40 @@ const AdminProducts = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   // Using the intersection observer to detect when user scrolls to the bottom
   const isIntersecting = useIntersection(loadMoreRef, '200px');
+  
+  // Load saved sort preferences from localStorage on component mount
+  useEffect(() => {
+    const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
+    const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
+    const savedSearchQuery = localStorage.getItem(SEARCH_QUERY_KEY);
+    
+    if (savedSortField) {
+      setSortField(savedSortField);
+    }
+    
+    if (savedSortOrder) {
+      setSortOrder(savedSortOrder);
+    }
+    
+    if (savedSearchQuery) {
+      setSearchQuery(savedSearchQuery);
+    }
+  }, []);
+  
+  // Save sort preferences to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(SORT_FIELD_KEY, sortField);
+    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+  }, [sortField, sortOrder]);
+  
+  // Save search query to localStorage whenever it changes (with debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      localStorage.setItem(SEARCH_QUERY_KEY, searchQuery);
+    }, 500);
+    
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
   
   const {
     data: productsData,
