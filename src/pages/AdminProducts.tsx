@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -15,6 +15,9 @@ import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useIntersection } from '@/hooks/useIntersection';
+
+const PRODUCTS_PER_PAGE = 20;
 
 const AdminProducts = () => {
   const { toast } = useToast();
@@ -24,10 +27,26 @@ const AdminProducts = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState<number>(1);
   
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder],
-    queryFn: async () => {
+  // Reference for the loading trigger element
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  // Using the intersection observer to detect when user scrolls to the bottom
+  const isIntersecting = useIntersection(loadMoreRef, '200px');
+  
+  const {
+    data: productsData,
+    isLoading,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage
+  } = useQuery({
+    queryKey: ['admin', 'products', sortField, sortOrder, searchQuery],
+    queryFn: async ({ pageParam = 1 }) => {
+      // Calculate the start and end range for pagination
+      const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
+      const to = from + PRODUCTS_PER_PAGE - 1;
+      
       let query = supabase
         .from('products')
         .select(`
@@ -36,30 +55,56 @@ const AdminProducts = () => {
           profiles(full_name, rating, opt_id)
         `);
 
+      // Apply search filter if search query exists
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase().trim();
+        query = query
+          .or(`title.ilike.%${query}%`)
+          .or(`brand.ilike.%${query}%`)
+          .or(`model.ilike.%${query}%`)
+          .or(`lot_number.ilike.%${query}%`)
+          .or(`seller_name.ilike.%${query}%`);
+      }
+
       if (sortField === 'status') {
         query = query.order('status', { ascending: true });
       } else {
         query = query.order(sortField, { ascending: sortOrder === 'asc' });
       }
       
+      // Apply pagination
+      query = query.range(from, to);
+      
       const { data, error } = await query;
       if (error) throw error;
 
+      // Check if we have more pages
+      const hasMore = data.length === PRODUCTS_PER_PAGE;
+
       if (sortField === 'status') {
         const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
-        return (data as Product[]).sort((a, b) => 
-          statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
-        );
+        return {
+          products: (data as Product[]).sort((a, b) => 
+            statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
+          ),
+          nextPage: hasMore ? pageParam + 1 : undefined
+        };
       }
 
-      return data as Product[];
-    }
+      return {
+        products: data as Product[],
+        nextPage: hasMore ? pageParam + 1 : undefined
+      };
+    },
+    getNextPageParam: (lastPage) => lastPage.nextPage,
+    initialPageParam: 1,
   });
 
-  // Filter products based on search query
-  const filteredProducts = products?.filter(product => {
-    if (!searchQuery.trim()) return true;
-    
+  // Flatten the pages of products into a single array
+  const products = productsData?.pages.flatMap(page => page.products) || [];
+
+  // Filter products based on search query (client-side filtering for already loaded products)
+  const filteredProducts = searchQuery ? products.filter(product => {
     const query = searchQuery.toLowerCase().trim();
     return (
       product.title?.toLowerCase().includes(query) ||
@@ -68,7 +113,14 @@ const AdminProducts = () => {
       product.lot_number?.toString().includes(query) ||
       product.seller_name?.toLowerCase().includes(query)
     );
-  });
+  }) : products;
+
+  // Load more products when the user scrolls to the bottom
+  React.useEffect(() => {
+    if (isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handleSortChange = (value: string) => {
     const [field, order] = value.split('-');
@@ -392,6 +444,23 @@ const AdminProducts = () => {
             ))
           )}
         </div>
+        
+        {/* Loading indicator and intersection observer target */}
+        {hasNextPage && (
+          <div 
+            ref={loadMoreRef}
+            className="w-full py-8 flex items-center justify-center"
+          >
+            {isFetchingNextPage ? (
+              <div className="flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-t-blue-500 border-r-transparent border-l-transparent border-b-transparent rounded-full animate-spin"></div>
+                <span className="ml-2">Загрузка...</span>
+              </div>
+            ) : (
+              <div className="h-10"></div> // Empty space to trigger the intersection
+            )}
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
