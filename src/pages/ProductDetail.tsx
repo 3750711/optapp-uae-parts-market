@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -85,7 +86,7 @@ const ProductDetail = () => {
         return product.product_images[0].url;
       }
     }
-    return "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=800&auto=format&fit=crop";
+    return "https://partsbay.ae/og-image.png";
   };
 
   const getProductImages = () => {
@@ -206,7 +207,7 @@ const ProductDetail = () => {
   // Prepare dynamic metadata for the Layout component
   const productTitle = `${product.title} | partsbay.ae`;
   const productDescription = `${product.brand || ''} ${product.model || ''} ${product.description || ''}`.trim();
-  const productImage = images.length > 0 ? images[0] : "https://partsbay.ae/og-image.png";
+  const productImage = getImageUrl();
 
   return (
     <Layout 
