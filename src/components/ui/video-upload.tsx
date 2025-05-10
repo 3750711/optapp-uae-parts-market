@@ -2,7 +2,7 @@
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface VideoUploadProps {
@@ -159,6 +159,14 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       });
     }
   };
+  
+  // Function to trigger file input click
+  const handleChooseVideos = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -176,7 +184,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
           </div>
         ))}
         {videos.length < maxVideos && (
-          <label className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 aspect-video">
+          <div className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 aspect-video" onClick={handleChooseVideos}>
             {uploading
               ? <Loader2 className="animate-spin h-6 w-6" />
               : (<>
@@ -192,13 +200,36 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
               ref={fileInputRef}
               onChange={handleFileChange}
               disabled={uploading}
+              capture="environment"
             />
-          </label>
+          </div>
         )}
       </div>
       <p className="text-xs text-gray-500">
         ДО {maxVideos} роликов, до 100 МБ каждый. Поддержка: mp4, mov, avi. Первое видео будет основным.
       </p>
+      
+      {videos.length < maxVideos && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleChooseVideos}
+          disabled={uploading}
+          className="flex items-center gap-2 mt-2 w-full md:w-auto"
+        >
+          {uploading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Загрузка...
+            </>
+          ) : (
+            <>
+              <Upload className="h-4 w-4" />
+              Выбрать видео
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 };

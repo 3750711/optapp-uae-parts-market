@@ -189,6 +189,16 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             </div>
           </div>
         ))}
+        
+        {images.length < maxImages && (
+          <div 
+            className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
+            onClick={handleChooseImages}
+          >
+            <div className="text-3xl text-gray-300">+</div>
+            <p className="text-sm text-gray-500">Добавить фото</p>
+          </div>
+        )}
       </div>
 
       {images.length < maxImages && (
@@ -208,7 +218,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             type="button"
             variant="outline"
             disabled={isUploading}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 w-full md:w-auto"
             onClick={handleChooseImages}
           >
             {isUploading ? (
