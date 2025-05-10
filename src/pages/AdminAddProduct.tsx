@@ -224,7 +224,7 @@ const AdminAddProduct = () => {
     if (images.length === 0) {
       toast({
         title: "Ошибка",
-        description: "Добавьте хотя бы одну фотографию",
+        description: "Добавь��е хотя бы одну фотографию",
         variant: "destructive",
       });
       return;
