@@ -16,20 +16,6 @@ const corsHeaders = {
 // Helper function to wait
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Helper function to fetch image or video
-async function fetchMediaContent(url: string): Promise<ArrayBuffer> {
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch media: ${response.status} ${response.statusText}`);
-    }
-    return await response.arrayBuffer();
-  } catch (error) {
-    console.error(`Error fetching media from ${url}:`, error);
-    throw error;
-  }
-}
-
 // Helper function to make API calls with retry logic for rate limiting
 async function callTelegramAPI(endpoint: string, formData: FormData, maxRetries = 3) {
   let retries = 0;
@@ -112,81 +98,45 @@ function formatLotNumber(lotNumber: string | number | null): string {
   return `00${num}`;
 }
 
-// Function to prepare and send a media group message
-async function sendMediaGroupMessage(chatId: string, product: any, message: string) {
+// Helper function to send a message with photo
+async function sendMessageWithPhoto(chatId: string, text: string, photoUrl: string) {
   try {
-    // First, send text message
-    const textFormData = new FormData();
-    textFormData.append('chat_id', chatId);
-    textFormData.append('text', message);
-    textFormData.append('parse_mode', 'HTML');
+    console.log(`Sending message with photo to ${chatId}`);
     
-    await callTelegramAPI('sendMessage', textFormData);
+    // Create form data for sendPhoto method
+    const formData = new FormData();
+    formData.append('chat_id', chatId);
+    formData.append('caption', text);
+    formData.append('parse_mode', 'HTML');
     
-    // Collect all media items (photos and videos)
-    const mediaItems = [];
-    
-    // Add photos
-    if (product.product_images && product.product_images.length > 0) {
-      const photos = product.product_images.slice(0, 10); // Telegram allows up to 10 media in a group
-      for (const image of photos) {
-        try {
-          const mediaContent = await fetchMediaContent(image.url);
-          const file = new File([mediaContent], 'photo.jpg', { type: 'image/jpeg' });
-          mediaItems.push({
-            type: 'photo',
-            media: file
-          });
-        } catch (error) {
-          console.error(`Failed to fetch image ${image.url}:`, error);
-          // Continue with other images
-        }
+    // Try to fetch the photo
+    try {
+      const photoResponse = await fetch(photoUrl);
+      if (!photoResponse.ok) {
+        throw new Error(`Failed to fetch photo: ${photoResponse.status} ${photoResponse.statusText}`);
       }
-    }
-    
-    // Add videos
-    if (product.product_videos && product.product_videos.length > 0) {
-      for (const video of product.product_videos) {
-        try {
-          const mediaContent = await fetchMediaContent(video.url);
-          const file = new File([mediaContent], 'video.mp4', { type: 'video/mp4' });
-          mediaItems.push({
-            type: 'video',
-            media: file
-          });
-        } catch (error) {
-          console.error(`Failed to fetch video ${video.url}:`, error);
-          // Continue with other videos
-        }
-      }
-    }
-    
-    // Send media in groups of 10 (Telegram's limit)
-    for (let i = 0; i < mediaItems.length; i += 10) {
-      const mediaGroup = mediaItems.slice(i, i + 10);
       
-      if (mediaGroup.length > 0) {
-        const mediaFormData = new FormData();
-        mediaFormData.append('chat_id', chatId);
-        
-        // Add each media file
-        mediaGroup.forEach((item, index) => {
-          mediaFormData.append(`photo${index}`, item.media);
-        });
-        
-        // Send the media group
-        if (mediaGroup[0].type === 'photo') {
-          await callTelegramAPI('sendMediaGroup', mediaFormData);
-        } else {
-          // For videos
-          await callTelegramAPI('sendVideo', mediaFormData);
-        }
-      }
+      const photoBlob = await photoResponse.blob();
+      formData.append('photo', photoBlob, 'photo.jpg');
+      
+      // Send the photo with caption
+      await callTelegramAPI('sendPhoto', formData);
+      return true;
+      
+    } catch (photoError) {
+      console.error(`Error fetching photo from ${photoUrl}:`, photoError);
+      
+      // If photo fetch fails, fallback to text-only message
+      const textFormData = new FormData();
+      textFormData.append('chat_id', chatId);
+      textFormData.append('text', `${text}\n\n[Image unavailable: ${photoUrl}]`);
+      textFormData.append('parse_mode', 'HTML');
+      
+      await callTelegramAPI('sendMessage', textFormData);
+      return true;
     }
-    
-    return true;
   } catch (error) {
-    console.error('Error sending media group message:', error);
+    console.error('Error sending message with photo:', error);
     throw error;
   }
 }
@@ -254,8 +204,85 @@ serve(async (req) => {
     console.log('Using BOT_TOKEN:', BOT_TOKEN);
     console.log('Using GROUP_CHAT_ID:', validatedChatId);
 
-    // Send media group message with text, photos, and videos
-    await sendMediaGroupMessage(validatedChatId, product, message);
+    // Check if product has images
+    if (product.product_images && product.product_images.length > 0) {
+      // Send first image with the message as caption
+      const mainImage = product.product_images[0];
+      await sendMessageWithPhoto(validatedChatId, message, mainImage.url);
+      
+      // If there are more images, send them without captions
+      if (product.product_images.length > 1) {
+        for (let i = 1; i < Math.min(product.product_images.length, 10); i++) {
+          const image = product.product_images[i];
+          
+          try {
+            const imageFormData = new FormData();
+            imageFormData.append('chat_id', validatedChatId);
+            
+            const photoResponse = await fetch(image.url);
+            if (!photoResponse.ok) continue;
+            
+            const photoBlob = await photoResponse.blob();
+            imageFormData.append('photo', photoBlob, `photo${i}.jpg`);
+            
+            await callTelegramAPI('sendPhoto', imageFormData);
+          } catch (error) {
+            console.error(`Error sending additional image ${i}:`, error);
+            // Continue with other images
+          }
+        }
+      }
+      
+      // Send videos if any
+      if (product.product_videos && product.product_videos.length > 0) {
+        for (const video of product.product_videos) {
+          try {
+            const videoFormData = new FormData();
+            videoFormData.append('chat_id', validatedChatId);
+            
+            const videoResponse = await fetch(video.url);
+            if (!videoResponse.ok) continue;
+            
+            const videoBlob = await videoResponse.blob();
+            videoFormData.append('video', videoBlob, 'video.mp4');
+            
+            await callTelegramAPI('sendVideo', videoFormData);
+          } catch (error) {
+            console.error(`Error sending video:`, error);
+            // Continue with other videos
+          }
+        }
+      }
+    } else {
+      // No images, send text-only message
+      const textFormData = new FormData();
+      textFormData.append('chat_id', validatedChatId);
+      textFormData.append('text', message);
+      textFormData.append('parse_mode', 'HTML');
+      
+      await callTelegramAPI('sendMessage', textFormData);
+      
+      // Send videos if any
+      if (product.product_videos && product.product_videos.length > 0) {
+        for (const video of product.product_videos) {
+          try {
+            const videoFormData = new FormData();
+            videoFormData.append('chat_id', validatedChatId);
+            
+            const videoResponse = await fetch(video.url);
+            if (!videoResponse.ok) continue;
+            
+            const videoBlob = await videoResponse.blob();
+            videoFormData.append('video', videoBlob, 'video.mp4');
+            
+            await callTelegramAPI('sendVideo', videoFormData);
+          } catch (error) {
+            console.error(`Error sending video:`, error);
+            // Continue with other videos
+          }
+        }
+      }
+    }
     
     console.log('Notification sent successfully');
 

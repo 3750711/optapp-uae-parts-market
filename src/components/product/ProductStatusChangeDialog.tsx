@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   AlertDialog,
@@ -31,10 +30,10 @@ const ProductStatusChangeDialog = ({
 
   const sendTelegramNotification = async (productId: string) => {
     try {
-      // First, get a fresh product with all images
+      // First, get a fresh product with all related data
       const { data: freshProduct, error: fetchError } = await supabase
         .from('products')
-        .select(`*, product_images(*)`)
+        .select(`*, product_images(*), product_videos(*)`)
         .eq('id', productId)
         .single();
 
