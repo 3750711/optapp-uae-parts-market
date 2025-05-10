@@ -378,7 +378,8 @@ serve(async (req) => {
         try {
           const mediaResult = await callTelegramAPI('sendMediaGroup', {
             chat_id: chatId,
-            media: mediaGroup
+            media: mediaGroup,
+            disable_web_page_preview: true
           });
           
           console.log('Order media group response:', mediaResult);
@@ -388,7 +389,8 @@ serve(async (req) => {
           await callTelegramAPI('sendMessage', {
             chat_id: chatId,
             text: message,
-            parse_mode: 'HTML'
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
           });
         }
       } else {
@@ -396,7 +398,8 @@ serve(async (req) => {
         const messageResult = await callTelegramAPI('sendMessage', {
             chat_id: chatId,
             text: message,
-            parse_mode: 'HTML'
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
           });
         
         console.log('Order text message response:', messageResult);
