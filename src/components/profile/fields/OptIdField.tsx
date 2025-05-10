@@ -41,7 +41,7 @@ export const OptIdField: React.FC<OptIdFieldProps> = ({
           <FormMessage />
           {!isEditable && initialValue && (
             <p className="text-sm text-yellow-600 mt-1">
-              OPT ID можно указать только один раз
+              Если вам нужно изменить OPT ID пожалуйста свяжитесь с администратором
             </p>
           )}
           {!isEditable && !initialValue && (
