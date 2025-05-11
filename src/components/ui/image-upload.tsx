@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Loader2 } from "lucide-react";
+import { ImagePlus, X, Loader2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { optimizeImage } from "@/utils/imageCompression";
@@ -22,6 +22,12 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if device is mobile
+  const isMobile = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
 
   const uploadImages = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -44,11 +50,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         }
         
         const file = files[i];
-        // Проверка размера файла (не более 5 МБ)
-        if (file.size > 5 * 1024 * 1024) {
+        // Проверка размера файла (не более 25 МБ)
+        if (file.size > 25 * 1024 * 1024) {
           toast({
             title: "Ошибка",
-            description: `Файл ${file.name} слишком большой. Максимальный размер - 5 МБ`,
+            description: `Файл ${file.name} слишком большой. Максимальный размер - 25 МБ`,
             variant: "destructive",
           });
           continue;
@@ -129,8 +135,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     } finally {
       setIsUploading(false);
       setUploadProgress([]);
-      // Reset the file input after upload
+      // Reset the file inputs after upload
       if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
   }, [images, maxImages, onUpload]);
 
@@ -166,12 +173,19 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     }
   }, [onDelete]);
 
-  // Функция для открытия диалога выбора файла
-  const handleChooseImages = useCallback(() => {
-    // Для Android - сначала очищаем input, чтобы сработал onChange даже при выборе тех же файлов
+  // Функция для открытия диалога выбора файла из галереи
+  const handleChooseFromGallery = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
+    }
+  }, []);
+
+  // Функция для открытия камеры
+  const handleOpenCamera = useCallback(() => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+      cameraInputRef.current.click();
     }
   }, []);
 
@@ -210,7 +224,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         {images.length < maxImages && (
           <div 
             className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
-            onClick={handleChooseImages}
+            onClick={handleChooseFromGallery}
           >
             <div className="text-3xl text-gray-300">+</div>
             <p className="text-sm text-gray-500">Добавить фото</p>
@@ -219,10 +233,11 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       </div>
 
       {images.length < maxImages && (
-        <div className="flex items-center">
+        <>
+          {/* Скрытые input'ы для выбора изображений */}
           <input
             type="file"
-            id="images"
+            id="gallery-images"
             ref={fileInputRef}
             multiple
             accept="image/*"
@@ -230,27 +245,55 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             onChange={uploadImages}
             disabled={isUploading}
           />
-          <Button 
-            type="button"
-            variant="outline"
+          <input
+            type="file"
+            id="camera-images"
+            ref={cameraInputRef}
+            multiple
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={uploadImages}
             disabled={isUploading}
-            className="flex items-center gap-2 w-full md:w-auto"
-            onClick={handleChooseImages}
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Загрузка...
-              </>
-            ) : (
-              <>
-                <ImagePlus className="h-4 w-4" />
-                Добавить фото
-              </>
+          />
+          
+          <div className="flex items-center gap-2">
+            <Button 
+              type="button"
+              variant="outline"
+              disabled={isUploading}
+              className="flex items-center gap-2 flex-1"
+              onClick={handleChooseFromGallery}
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                <>
+                  <ImagePlus className="h-4 w-4" />
+                  Галерея
+                </>
+              )}
+            </Button>
+            
+            {isMobile() && (
+              <Button 
+                type="button"
+                variant="outline"
+                disabled={isUploading}
+                className="flex items-center gap-2 flex-1"
+                onClick={handleOpenCamera}
+              >
+                <Camera className="h-4 w-4" />
+                Камера
+              </Button>
             )}
-          </Button>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
 };
+

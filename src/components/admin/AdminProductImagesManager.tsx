@@ -1,8 +1,10 @@
 
 import React, { useState, useCallback } from "react";
-import { X } from "lucide-react";
+import { X, Camera, ImagePlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { preProcessImageForUpload } from "@/utils/imageCompression";
 
 interface AdminProductImagesManagerProps {
   productId: string;
@@ -17,6 +19,13 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
 }) => {
   const { toast } = useToast();
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const isMobile = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
 
   const handleImageDelete = useCallback(async (url: string) => {
     if (images.length <= 1) {
@@ -67,6 +76,116 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     }
   }, [images, productId, onImagesChange, toast]);
 
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    
+    try {
+      const newUrls: string[] = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Check if file is an image
+        if (!file.type.startsWith('image/')) {
+          toast({
+            title: "Ошибка",
+            description: `${file.name} не является изображением`,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Pre-process and optimize image
+        const processedFile = await preProcessImageForUpload(file, 25, 5);
+        
+        // Generate a unique filename
+        const fileExt = processedFile.name.split('.').pop();
+        const fileName = `admin-upload-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+        
+        // Upload to Supabase storage
+        const { data, error } = await supabase.storage
+          .from('product-images')
+          .upload(fileName, processedFile, {
+            cacheControl: '3600',
+            contentType: processedFile.type,
+          });
+          
+        if (error) {
+          console.error("Upload error:", error);
+          toast({
+            title: "Ошибка загрузки",
+            description: error.message,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        // Get the public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+          
+        // Save reference in the database
+        const { error: dbError } = await supabase
+          .from('product_images')
+          .insert({
+            product_id: productId,
+            url: publicUrl,
+            is_primary: images.length === 0 // First image is primary if no images exist
+          });
+          
+        if (dbError) {
+          console.error("Database error:", dbError);
+          toast({
+            title: "Ошибка сохранения",
+            description: dbError.message,
+            variant: "destructive",
+          });
+          continue;
+        }
+        
+        newUrls.push(publicUrl);
+      }
+      
+      if (newUrls.length > 0) {
+        onImagesChange([...images, ...newUrls]);
+        toast({ 
+          title: "Успешно", 
+          description: `Загружено ${newUrls.length} фото` 
+        });
+      }
+    } catch (error: any) {
+      console.error("Error uploading images:", error);
+      toast({
+        title: "Ошибка",
+        description: error?.message || "Не удалось загрузить фото",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+      // Reset input value to allow selecting the same file again
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  }, [images, productId, onImagesChange, toast]);
+
+  const openFileDialog = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  }, []);
+
+  const openCameraDialog = useCallback(() => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+      cameraInputRef.current.click();
+    }
+  }, []);
+
   if (!images.length) return null;
   return (
     <div className="mb-4">
@@ -98,6 +217,60 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           </div>
         ))}
       </div>
+
+      <div className="mt-3 flex gap-2">
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          disabled={isUploading}
+        />
+        
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          ref={cameraInputRef}
+          onChange={handleImageUpload}
+          disabled={isUploading}
+        />
+        
+        <Button
+          type="button"
+          variant="outline" 
+          size="sm"
+          disabled={isUploading}
+          className="flex items-center gap-1 text-xs flex-1"
+          onClick={openFileDialog}
+        >
+          {isUploading ? (
+            <Loader2 className="h-3 w-3 animate-spin" />
+          ) : (
+            <ImagePlus className="h-3 w-3" />
+          )}
+          Галерея
+        </Button>
+        
+        {isMobile() && (
+          <Button
+            type="button"
+            variant="outline" 
+            size="sm"
+            disabled={isUploading}
+            className="flex items-center gap-1 text-xs flex-1"
+            onClick={openCameraDialog}
+          >
+            <Camera className="h-3 w-3" />
+            Камера
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
+

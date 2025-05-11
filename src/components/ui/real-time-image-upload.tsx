@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Loader2, RotateCw } from "lucide-react";
+import { ImagePlus, X, Loader2, RotateCw, Camera } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { 
   isImage, 
@@ -38,11 +38,22 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
   const [uploadQueue, setUploadQueue] = useState<File[]>([]);
   const [fileProgress, setFileProgress] = useState<Map<string, FileUploadProgress>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   
   // Constants - increased maximum size from 10MB to 25MB
   const MAX_FILE_SIZE_MB = 25;
   const TARGET_SIZE_MB = 5;
   const MAX_CONCURRENT_UPLOADS = 3;
+  
+  // Check if device is iOS
+  const isIOS = useCallback(() => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }, []);
+
+  // Check if device is mobile
+  const isMobile = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
 
   const updateFileProgress = (fileId: string, updates: Partial<FileUploadProgress>) => {
     setFileProgress(prev => {
@@ -208,6 +219,9 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
+      if (cameraInputRef.current) {
+        cameraInputRef.current.value = '';
+      }
       
       // After a delay, remove completed uploads from progress tracking
       setTimeout(() => {
@@ -228,10 +242,19 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
     setUploadedImages(uploadedImages.filter(img => img !== url));
   }, [uploadedImages]);
   
+  // Open gallery file dialog
   const openFileDialog = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
+    }
+  }, []);
+
+  // Open camera input dialog specifically for mobile devices
+  const openCameraDialog = useCallback(() => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = '';
+      cameraInputRef.current.click();
     }
   }, []);
 
@@ -324,12 +347,23 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
         )}
       </div>
       
+      {/* File inputs separated for gallery and camera */}
       <input
         ref={fileInputRef}
         type="file"
         multiple
-        capture="environment"
         accept="image/*"
+        className="hidden"
+        onChange={(e) => handleFilesSelected(e.target.files)}
+        disabled={uploading}
+      />
+      
+      <input
+        ref={cameraInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        capture="environment"
         className="hidden"
         onChange={(e) => handleFilesSelected(e.target.files)}
         disabled={uploading}
@@ -339,7 +373,7 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
         <Button 
           type="button" 
           variant="outline" 
-          className="flex items-center gap-2 w-full md:w-auto"
+          className="flex items-center gap-2 flex-1"
           onClick={openFileDialog}
           disabled={uploading || uploadedImages.length >= maxImages}
         >
@@ -351,10 +385,23 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
           ) : (
             <>
               <ImagePlus className="h-4 w-4" />
-              Добавить фото
+              Галерея
             </>
           )}
         </Button>
+        
+        {isMobile() && (
+          <Button 
+            type="button" 
+            variant="outline" 
+            className="flex items-center gap-2 flex-1"
+            onClick={openCameraDialog}
+            disabled={uploading || uploadedImages.length >= maxImages}
+          >
+            <Camera className="h-4 w-4" />
+            Камера
+          </Button>
+        )}
       </div>
       
       <p className="text-xs text-gray-500">
@@ -364,3 +411,4 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
     </div>
   );
 };
+
