@@ -29,15 +29,31 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     }
     setDeletingUrl(url);
     try {
-      const path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-images') + 1).join('/');
-      const { error: storageErr } = await supabase.storage.from('order-images').remove([path]);
+      // Extract path from the URL for storage removal
+      let path;
+      if (url.includes('/order-images/')) {
+        path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-images') + 1).join('/');
+      } else if (url.includes('/product-images/')) {
+        path = url.split('/').slice(url.split('/').findIndex(p => p === 'product-images') + 1).join('/');  
+      } else {
+        // Fallback to original approach
+        path = url.split('/').slice(url.split('/').findIndex(p => p === 'storage') + 2).join('/');
+      }
+      
+      const { error: storageErr } = await supabase.storage
+        .from('order-images')
+        .remove([path]);
+        
       if (storageErr) throw storageErr;
+      
       const { error: dbErr } = await supabase
         .from('product_images')
         .delete()
         .eq('url', url)
         .eq('product_id', productId);
+        
       if (dbErr) throw dbErr;
+      
       onImagesChange(images.filter(img => img !== url));
       toast({ title: "Фото удалено" });
     } catch (error: any) {
@@ -74,6 +90,11 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
             >
               <X size={16}/>
             </button>
+            {idx === 0 && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-1">
+                <p className="text-white text-xs text-center">Главное фото</p>
+              </div>
+            )}
           </div>
         ))}
       </div>

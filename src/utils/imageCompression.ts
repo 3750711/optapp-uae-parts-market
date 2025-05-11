@@ -1,4 +1,3 @@
-
 /**
  * Utility functions for image and video compression
  */
@@ -104,6 +103,85 @@ export const supportsWebP = async (): Promise<boolean> => {
 };
 
 /**
+ * Progressively compresses an image until it meets target size or quality floor
+ * @param file Original image file
+ * @param targetSizeMB Target size in MB (default: 5MB)
+ * @param minQuality Minimum quality to try (0-1)
+ * @param maxWidth Maximum width to resize to
+ * @returns Promise resolving to compressed File
+ */
+export const progressiveCompress = async (
+  file: File,
+  targetSizeMB = 5,
+  minQuality = 0.5,
+  maxWidth = 2048
+): Promise<File> => {
+  // If already below target size, return original
+  if (file.size <= targetSizeMB * 1024 * 1024) {
+    return file;
+  }
+
+  // Start with reasonable quality and dimensions
+  const webpSupported = await supportsWebP();
+  let quality = 0.9;
+  let width = maxWidth;
+  let result = file;
+  let attempts = 0;
+  const maxAttempts = 4;  // Limit to prevent infinite loops
+  
+  while (
+    result.size > targetSizeMB * 1024 * 1024 && 
+    quality >= minQuality &&
+    attempts < maxAttempts
+  ) {
+    // Compress with current settings
+    result = await compressImage(
+      file, 
+      width, 
+      Math.round(width * 0.75), // Assume 4:3 aspect ratio as fallback
+      quality,
+      webpSupported
+    );
+    
+    // If still too large, reduce quality and/or dimensions
+    if (result.size > targetSizeMB * 1024 * 1024) {
+      quality -= 0.1;  // Reduce quality
+      width = Math.round(width * 0.9);  // Reduce dimensions by 10%
+    }
+    
+    attempts++;
+  }
+  
+  return result;
+};
+
+/**
+ * Pre-processes an image before upload to check size and apply compression if needed
+ * @param file Original image file
+ * @param maxSizeMB Maximum acceptable size in MB (prevents uploading files larger than this)
+ * @param targetSizeMB Target size for compression if file exceeds this size
+ * @returns Promise resolving to optimized File ready for upload
+ */
+export const preProcessImageForUpload = async (
+  file: File,
+  maxSizeMB = 25,
+  targetSizeMB = 5
+): Promise<File> => {
+  // Hard reject for files exceeding absolute maximum size
+  if (file.size > maxSizeMB * 1024 * 1024) {
+    throw new Error(`File too large (${(file.size / (1024 * 1024)).toFixed(2)} MB). Maximum size is ${maxSizeMB} MB.`);
+  }
+  
+  // If smaller than target size, return as is
+  if (file.size <= targetSizeMB * 1024 * 1024) {
+    return file;
+  }
+  
+  // Otherwise apply progressive compression
+  return progressiveCompress(file, targetSizeMB);
+};
+
+/**
  * Optimizes an image for web, converting to WebP if supported
  * @param file The image file to optimize
  * @returns Promise resolving to an optimized File object
@@ -193,6 +271,61 @@ export const uploadImageRealtime = async (
     .getPublicUrl(fileName);
     
   return publicUrl;
+};
+
+/**
+ * Batch uploads multiple images to Supabase storage with parallel processing
+ * @param files Array of image files to upload
+ * @param bucket Storage bucket name
+ * @param path Path within storage bucket
+ * @param onProgress Optional callback for overall upload progress
+ * @param onFileProgress Optional callback for individual file progress
+ * @param concurrency Maximum number of simultaneous uploads (default: 3)
+ * @returns Promise resolving to array of uploaded file URLs
+ */
+export const batchUploadImages = async (
+  files: File[],
+  bucket: string,
+  path: string,
+  onProgress?: (progress: number) => void,
+  onFileProgress?: (fileIndex: number, progress: number) => void,
+  concurrency = 3
+): Promise<string[]> => {
+  if (files.length === 0) return [];
+  
+  const urls: string[] = [];
+  let completedFiles = 0;
+  
+  // Process files in batches according to concurrency limit
+  for (let i = 0; i < files.length; i += concurrency) {
+    const batch = files.slice(i, i + concurrency);
+    const batchPromises = batch.map((file, batchIndex) => {
+      const fileIndex = i + batchIndex;
+      
+      return uploadImageRealtime(
+        file,
+        bucket,
+        path,
+        (progress) => {
+          if (onFileProgress) {
+            onFileProgress(fileIndex, progress);
+          }
+        }
+      ).then(url => {
+        completedFiles++;
+        if (onProgress) {
+          onProgress(Math.round((completedFiles / files.length) * 100));
+        }
+        return url;
+      });
+    });
+    
+    // Wait for the current batch to complete before starting the next batch
+    const batchUrls = await Promise.all(batchPromises);
+    urls.push(...batchUrls);
+  }
+  
+  return urls;
 };
 
 // Original functions kept for backward compatibility
