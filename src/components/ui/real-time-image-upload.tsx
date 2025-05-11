@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, RotateCw, Camera } from "lucide-react";
@@ -47,7 +46,7 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
   
   // Check if device is iOS
   const isIOS = useCallback(() => {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
   }, []);
 
   // Check if device is mobile
@@ -411,4 +410,3 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
     </div>
   );
 };
-
