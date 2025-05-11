@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -333,8 +332,8 @@ serve(async (req) => {
       const orderStatus = getOrderStatusLabel(order.status);
       const actionText = action === 'create' ? 'СОЗДАН НОВЫЙ ЗАКАЗ!' : `ИЗМЕНЕН СТАТУС ЗАКАЗА на "${orderStatus}"`;
       const deliveryMethod = order.delivery_method === 'self_pickup' ? 'Самовывоз' : 
-                             order.delivery_method === 'cargo_rf' ? 'Карго РФ' : 
-                             order.delivery_method === 'cargo_kz' ? 'Карго KZ' : 'Не указан';
+                             order.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
+                             order.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 'Не указан';
       
       // Create the order detail page URL
       const orderPageUrl = `https://partsbay.ae/admin/orders/${order.id}`;
