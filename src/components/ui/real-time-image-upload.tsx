@@ -1,11 +1,10 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, RotateCw } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { uploadImageRealtime, isImage } from "@/utils/imageCompression";
 import { cn } from "@/lib/utils";
-import { AdminProductImagesManager } from "@/components/admin/AdminProductImagesManager";
 
 interface RealtimeImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -26,7 +25,7 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
   const [uploadProgress, setUploadProgress] = useState<Map<string, number>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFilesSelected = (files: FileList | null) => {
+  const handleFilesSelected = useCallback((files: FileList | null) => {
     if (!files || files.length === 0) return;
     
     // Check for maximum images limit
@@ -72,7 +71,7 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
     if (!uploading) {
       processUploadQueue([...uploadQueue, ...validFiles]);
     }
-  };
+  }, [uploadedImages.length, maxImages, uploadQueue, uploading]);
   
   const processUploadQueue = async (queue: File[]) => {
     if (queue.length === 0) return;
@@ -129,16 +128,16 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
     }
   };
   
-  const removeImage = (url: string) => {
+  const removeImage = useCallback((url: string) => {
     setUploadedImages(uploadedImages.filter(img => img !== url));
-  };
+  }, [uploadedImages]);
   
-  const openFileDialog = () => {
+  const openFileDialog = useCallback(() => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -149,6 +148,8 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
               src={url} 
               alt={`Product image ${index + 1}`}
               className="h-full w-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
             <button
               type="button"

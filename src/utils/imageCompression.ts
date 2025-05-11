@@ -9,13 +9,15 @@
  * @param maxWidth Maximum width of the compressed image
  * @param maxHeight Maximum height of the compressed image
  * @param quality Quality of the compressed image (0-1)
+ * @param convertToWebP Whether to convert the image to WebP format
  * @returns Promise resolving to a compressed File object
  */
 export const compressImage = async (
   file: File,
   maxWidth = 1024,
   maxHeight = 768,
-  quality = 0.8
+  quality = 0.8,
+  convertToWebP = true
 ): Promise<File> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -54,7 +56,9 @@ export const compressImage = async (
         
         ctx.drawImage(img, 0, 0, width, height);
         
-        // Get compressed image data
+        // Get compressed image data in the requested format
+        const mimeType = convertToWebP ? 'image/webp' : file.type;
+        
         canvas.toBlob(
           (blob) => {
             if (!blob) {
@@ -63,14 +67,14 @@ export const compressImage = async (
             }
             
             // Create new File from blob
-            const compressedFile = new File([blob], file.name, {
-              type: file.type,
+            const compressedFile = new File([blob], file.name.split('.')[0] + (convertToWebP ? '.webp' : ''), {
+              type: mimeType,
               lastModified: Date.now(),
             });
             
             resolve(compressedFile);
           },
-          file.type,
+          mimeType,
           quality
         );
       };
@@ -87,6 +91,50 @@ export const compressImage = async (
 };
 
 /**
+ * Checks if the browser supports WebP format
+ * @returns Promise resolving to a boolean indicating WebP support
+ */
+export const supportsWebP = async (): Promise<boolean> => {
+  if (!window.createImageBitmap) return false;
+  
+  const webpData = 'data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=';
+  const blob = await fetch(webpData).then(r => r.blob());
+  
+  return createImageBitmap(blob).then(() => true, () => false);
+};
+
+/**
+ * Optimizes an image for web, converting to WebP if supported
+ * @param file The image file to optimize
+ * @returns Promise resolving to an optimized File object
+ */
+export const optimizeImage = async (file: File): Promise<File> => {
+  // Check file size, only compress if larger than 100KB
+  if (file.size < 100 * 1024) {
+    return file;
+  }
+  
+  const webpSupported = await supportsWebP();
+  
+  // Determine appropriate dimensions based on file size
+  let maxWidth = 1600;
+  let maxHeight = 1200;
+  let quality = 0.8;
+  
+  if (file.size > 5 * 1024 * 1024) { // > 5MB
+    maxWidth = 1200;
+    maxHeight = 900;
+    quality = 0.7;
+  } else if (file.size > 2 * 1024 * 1024) { // > 2MB
+    maxWidth = 1400;
+    maxHeight = 1050;
+    quality = 0.75;
+  }
+  
+  return compressImage(file, maxWidth, maxHeight, quality, webpSupported);
+};
+
+/**
  * Uploads an image to Supabase storage in real-time
  * @param file The image file to upload
  * @param bucket The storage bucket name
@@ -100,11 +148,11 @@ export const uploadImageRealtime = async (
   path: string,
   onProgress?: (progress: number) => void
 ): Promise<string> => {
-  // First compress the image
-  const compressedFile = await compressImage(file);
+  // First compress and optimize the image
+  const optimizedFile = await optimizeImage(file);
   
   // Create a unique filename
-  const fileExt = file.name.split('.').pop();
+  const fileExt = optimizedFile.name.split('.').pop();
   const fileName = `${path}/${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
   
   // Import supabase client dynamically to avoid circular dependencies
@@ -118,7 +166,7 @@ export const uploadImageRealtime = async (
     onUploadProgress?: (progress: { loadedBytes: number; totalBytes: number }) => void;
   } = {
     cacheControl: '3600',
-    contentType: file.type,
+    contentType: optimizedFile.type,
     upsert: false,
   };
   
@@ -133,7 +181,7 @@ export const uploadImageRealtime = async (
   // Upload the file
   const { data, error } = await supabase.storage
     .from(bucket)
-    .upload(fileName, compressedFile, options);
+    .upload(fileName, optimizedFile, options);
     
   if (error) {
     throw error;
@@ -147,20 +195,11 @@ export const uploadImageRealtime = async (
   return publicUrl;
 };
 
-/**
- * Checks if a file is an image
- * @param file The file to check
- * @returns Boolean indicating if the file is an image
- */
+// Original functions kept for backward compatibility
 export const isImage = (file: File): boolean => {
   return file.type.startsWith('image/');
 };
 
-/**
- * Checks if a file is a video
- * @param file The file to check
- * @returns Boolean indicating if the file is a video
- */
 export const isVideo = (file: File): boolean => {
   return file.type.startsWith('video/');
 };

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import { X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
   const { toast } = useToast();
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
 
-  const handleImageDelete = async (url: string) => {
+  const handleImageDelete = useCallback(async (url: string) => {
     if (images.length <= 1) {
       toast({
         title: "Внимание",
@@ -49,7 +49,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     } finally {
       setDeletingUrl(null);
     }
-  };
+  }, [images, productId, onImagesChange, toast]);
 
   if (!images.length) return null;
   return (
@@ -58,7 +58,13 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       <div className="grid grid-cols-3 gap-2">
         {images.map((img, idx) => (
           <div key={img} className="relative group rounded-md overflow-hidden border aspect-square">
-            <img src={img} alt={`Фото ${idx + 1}`} className="w-full h-full object-cover" />
+            <img 
+              src={img} 
+              alt={`Фото ${idx + 1}`} 
+              className="w-full h-full object-cover" 
+              loading="lazy"
+              decoding="async"
+            />
             <button
               type="button"
               aria-label="Удалить фото"
@@ -74,4 +80,3 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     </div>
   );
 };
-

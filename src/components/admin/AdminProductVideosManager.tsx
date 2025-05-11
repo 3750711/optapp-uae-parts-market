@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +18,7 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
   const { toast } = useToast();
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
 
-  const handleVideoDelete = async (url: string) => {
+  const handleVideoDelete = useCallback(async (url: string) => {
     setDeletingUrl(url);
     try {
       let path = "";
@@ -42,7 +42,7 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
     } finally {
       setDeletingUrl(null);
     }
-  };
+  }, [videos, productId, onVideosChange, toast]);
 
   if (!videos.length) return null;
   return (
@@ -51,7 +51,12 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
       <div className="grid grid-cols-2 gap-2">
         {videos.map((vid, idx) => (
           <div key={vid} className="relative group rounded-md overflow-hidden border aspect-video bg-black">
-            <video src={vid} controls className="w-full h-full object-cover"/>
+            <video 
+              src={vid} 
+              controls 
+              className="w-full h-full object-cover"
+              preload="metadata" // Only load metadata, not the entire video
+            />
             <button
               type="button"
               aria-label="Удалить видео"
@@ -67,4 +72,3 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
     </div>
   );
 };
-

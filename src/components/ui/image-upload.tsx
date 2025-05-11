@@ -1,10 +1,10 @@
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { compressImage } from "@/utils/imageCompression";
+import { optimizeImage } from "@/utils/imageCompression";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -23,7 +23,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   const [uploadProgress, setUploadProgress] = useState<number[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const uploadImages = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadImages = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const files = event.target.files;
       if (!files || files.length === 0) return;
@@ -64,26 +64,30 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           continue;
         }
         
-        // Compress the image
-        let compressedFile = file;
+        // Optimize the image with WebP support
+        let optimizedFile = file;
         try {
-          compressedFile = await compressImage(file, 1024, 768, 0.8);
-          console.log(`Image compressed: ${file.size} -> ${compressedFile.size} bytes`);
+          optimizedFile = await optimizeImage(file);
+          console.log(`Image optimized: ${file.size} -> ${optimizedFile.size} bytes`);
         } catch (error) {
-          console.error("Error compressing image:", error);
-          // Continue with the original file if compression fails
+          console.error("Error optimizing image:", error);
+          // Continue with the original file if optimization fails
         }
         
-        const fileExt = file.name.split('.').pop();
+        const fileExt = optimizedFile.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Загрузка файла с обновлением прогресса
+        // Update progress for current file
+        newUploadProgress[i] = 30; // Show some progress as optimization completed
+        setUploadProgress([...newUploadProgress]);
+
+        // Upload file with progress tracking
         const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(filePath, compressedFile, {
+          .upload(filePath, optimizedFile, {
             cacheControl: '3600',
-            contentType: file.type,
+            contentType: optimizedFile.type,
             upsert: false
           });
 
@@ -128,9 +132,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       // Reset the file input after upload
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
-  };
+  }, [images, maxImages, onUpload]);
 
-  const handleDelete = async (url: string) => {
+  const handleDelete = useCallback(async (url: string) => {
     try {
       // Extract the filename from the URL
       const pathParts = url.split('/');
@@ -160,16 +164,16 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         variant: "destructive",
       });
     }
-  };
+  }, [onDelete]);
 
   // Функция для открытия диалога выбора файла
-  const handleChooseImages = () => {
+  const handleChooseImages = useCallback(() => {
     // Для Android - сначала очищаем input, чтобы сработал onChange даже при выборе тех же файлов
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
       fileInputRef.current.click();
     }
-  };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -180,6 +184,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               src={url}
               alt={`Order image ${index + 1}`}
               className="w-full h-full object-cover rounded-lg"
+              loading="lazy"
+              decoding="async"
             />
             <button
               onClick={() => handleDelete(url)}
