@@ -38,6 +38,7 @@ import {
 import VideoUpload from "@/components/ui/video-upload";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
+import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -67,7 +68,6 @@ const SellerAddProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
-  const [images, setImages] = useState<File[]>([]);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,56 +165,8 @@ const SellerAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      if (images.length + e.target.files.length > 30) {
-        toast({
-          title: "Ошибка",
-          description: "Максимальное количество фотографий - 30",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const filesArray = Array.from(e.target.files);
-      
-      const newImageUrls = filesArray.map((file) => URL.createObjectURL(file));
-      
-      setImages((prevImages) => [...prevImages, ...filesArray]);
-      setImageUrls((prevUrls) => [...prevUrls, ...newImageUrls]);
-    }
-  };
-
-  const removeImage = (index: number) => {
-    URL.revokeObjectURL(imageUrls[index]);
-    setImages((prevImages) => prevImages.filter((_, i) => i !== index));
-    setImageUrls((prevUrls) => prevUrls.filter((_, i) => i !== index));
-  };
-
-  const uploadImages = async (productId: string) => {
-    const uploadPromises = images.map(async (file, index) => {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${productId}/${Date.now()}-${index}.${fileExt}`;
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, file);
-        
-      if (error) {
-        console.error("Error uploading image:", error);
-        throw error;
-      }
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(fileName);
-        
-      return {
-        url: publicUrl,
-        is_primary: index === 0
-      };
-    });
-
-    return await Promise.all(uploadPromises);
+  const handleRealtimeImageUpload = (urls: string[]) => {
+    setImageUrls(prevUrls => [...prevUrls, ...urls]);
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
@@ -227,7 +179,7 @@ const SellerAddProduct = () => {
       return;
     }
 
-    if (images.length === 0) {
+    if (imageUrls.length === 0) {
       toast({
         title: "Ошибка",
         description: "Добавьте хотя бы одну фотографию",
@@ -282,17 +234,16 @@ const SellerAddProduct = () => {
 
       if (productError) throw productError;
 
-      const uploadedImages = await uploadImages(product.id);
-      
+      // Images are already uploaded, we just need to associate them with the product
+      const productImages = imageUrls.map((url, index) => ({
+        product_id: product.id,
+        url: url,
+        is_primary: index === 0
+      }));
+
       const { error: imagesError } = await supabase
         .from('product_images')
-        .insert(
-          uploadedImages.map(img => ({
-            product_id: product.id,
-            url: img.url,
-            is_primary: img.is_primary
-          }))
-        );
+        .insert(productImages);
 
       if (imagesError) throw imagesError;
 
@@ -560,47 +511,12 @@ const SellerAddProduct = () => {
                   
                   <div className="space-y-2">
                     <Label>Фотографии товара</Label>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {imageUrls.map((url, index) => (
-                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                          <img 
-                            src={url} 
-                            alt={`Product ${index+1}`}
-                            className="h-full w-full object-cover"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-70"
-                          >
-                            <X size={16} />
-                          </button>
-                          {index === 0 && (
-                            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 p-1">
-                              <p className="text-white text-xs text-center">Главное фото</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                      
-                      {images.length < 30 && (
-                        <label className="border-2 border-dashed rounded-lg p-4 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 aspect-square">
-                          <div className="text-3xl text-gray-300">+</div>
-                          <p className="text-sm text-gray-500">Добавить фото</p>
-                          <input 
-                            type="file" 
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            multiple
-                            className="hidden"
-                          />
-                        </label>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      Добавьте до 30 фотографий. Первое фото будет главным в объявлении.
-                    </p>
+                    <RealtimeImageUpload
+                      onUploadComplete={handleRealtimeImageUpload}
+                      maxImages={30}
+                      storageBucket="product-images"
+                      storagePath="seller-uploads"
+                    />
                   </div>
                   
                   <div className="space-y-2">
