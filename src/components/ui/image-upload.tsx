@@ -223,7 +223,6 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             className="hidden"
             onChange={uploadImages}
             disabled={isUploading}
-            capture="environment"
           />
           <Button 
             type="button"

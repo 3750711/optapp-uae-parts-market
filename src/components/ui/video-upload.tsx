@@ -230,7 +230,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
               ref={fileInputRef}
               onChange={handleFileChange}
               disabled={uploading}
-              capture="environment"
             />
           </div>
         )}

@@ -195,7 +195,6 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
         className="hidden"
         onChange={(e) => handleFilesSelected(e.target.files)}
         disabled={uploading}
-        capture="environment"
       />
       
       <div className="flex gap-2">
