@@ -105,32 +105,32 @@ export const supportsWebP = async (): Promise<boolean> => {
 /**
  * Progressively compresses an image until it meets target size or quality floor
  * @param file Original image file
- * @param targetSizeMB Target size in MB (default: 5MB)
+ * @param targetSizeKB Target size in KB (default: 500KB)
  * @param minQuality Minimum quality to try (0-1)
  * @param maxWidth Maximum width to resize to
  * @returns Promise resolving to compressed File
  */
 export const progressiveCompress = async (
   file: File,
-  targetSizeMB = 5,
+  targetSizeKB = 500,
   minQuality = 0.5,
-  maxWidth = 2048
+  maxWidth = 1024
 ): Promise<File> => {
   // If already below target size, return original
-  if (file.size <= targetSizeMB * 1024 * 1024) {
+  if (file.size <= targetSizeKB * 1024) {
     return file;
   }
 
   // Start with reasonable quality and dimensions
   const webpSupported = await supportsWebP();
-  let quality = 0.9;
+  let quality = 0.8;
   let width = maxWidth;
   let result = file;
   let attempts = 0;
-  const maxAttempts = 4;  // Limit to prevent infinite loops
+  const maxAttempts = 5;  // Increased max attempts to achieve target size
   
   while (
-    result.size > targetSizeMB * 1024 * 1024 && 
+    result.size > targetSizeKB * 1024 && 
     quality >= minQuality &&
     attempts < maxAttempts
   ) {
@@ -144,9 +144,9 @@ export const progressiveCompress = async (
     );
     
     // If still too large, reduce quality and/or dimensions
-    if (result.size > targetSizeMB * 1024 * 1024) {
+    if (result.size > targetSizeKB * 1024) {
       quality -= 0.1;  // Reduce quality
-      width = Math.round(width * 0.9);  // Reduce dimensions by 10%
+      width = Math.round(width * 0.8);  // More aggressive dimension reduction (20%)
     }
     
     attempts++;
@@ -159,13 +159,13 @@ export const progressiveCompress = async (
  * Pre-processes an image before upload to check size and apply compression if needed
  * @param file Original image file
  * @param maxSizeMB Maximum acceptable size in MB (prevents uploading files larger than this)
- * @param targetSizeMB Target size for compression if file exceeds this size
+ * @param targetSizeKB Target size for compression in KB (defaults to 500KB)
  * @returns Promise resolving to optimized File ready for upload
  */
 export const preProcessImageForUpload = async (
   file: File,
   maxSizeMB = 25,
-  targetSizeMB = 5
+  targetSizeKB = 500
 ): Promise<File> => {
   // Hard reject for files exceeding absolute maximum size
   if (file.size > maxSizeMB * 1024 * 1024) {
@@ -173,12 +173,12 @@ export const preProcessImageForUpload = async (
   }
   
   // If smaller than target size, return as is
-  if (file.size <= targetSizeMB * 1024 * 1024) {
+  if (file.size <= targetSizeKB * 1024) {
     return file;
   }
   
   // Otherwise apply progressive compression
-  return progressiveCompress(file, targetSizeMB);
+  return progressiveCompress(file, targetSizeKB);
 };
 
 /**
@@ -187,7 +187,7 @@ export const preProcessImageForUpload = async (
  * @returns Promise resolving to an optimized File object
  */
 export const optimizeImage = async (file: File): Promise<File> => {
-  // Check file size, only compress if larger than 100KB
+  // Always compress if larger than 100KB
   if (file.size < 100 * 1024) {
     return file;
   }
@@ -195,20 +195,11 @@ export const optimizeImage = async (file: File): Promise<File> => {
   const webpSupported = await supportsWebP();
   
   // Determine appropriate dimensions based on file size
-  let maxWidth = 1600;
-  let maxHeight = 1200;
-  let quality = 0.8;
+  let maxWidth = 1024;
+  let maxHeight = 768;
+  let quality = 0.75;
   
-  if (file.size > 5 * 1024 * 1024) { // > 5MB
-    maxWidth = 1200;
-    maxHeight = 900;
-    quality = 0.7;
-  } else if (file.size > 2 * 1024 * 1024) { // > 2MB
-    maxWidth = 1400;
-    maxHeight = 1050;
-    quality = 0.75;
-  }
-  
+  // Target 500KB for all images
   return compressImage(file, maxWidth, maxHeight, quality, webpSupported);
 };
 

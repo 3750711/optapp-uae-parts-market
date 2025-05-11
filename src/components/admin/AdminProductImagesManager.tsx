@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import { X, Camera, ImagePlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -98,8 +97,8 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           continue;
         }
         
-        // Pre-process and optimize image
-        const processedFile = await preProcessImageForUpload(file, 25, 5);
+        // Pre-process and optimize image to 500KB target
+        const processedFile = await preProcessImageForUpload(file, 25, 500);
         
         // Generate a unique filename
         const fileExt = processedFile.name.split('.').pop();
@@ -273,4 +272,3 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     </div>
   );
 };
-

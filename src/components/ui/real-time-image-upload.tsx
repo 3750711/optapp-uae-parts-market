@@ -39,9 +39,9 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
-  // Constants - increased maximum size from 10MB to 25MB
+  // Constants - increased maximum size from 10MB to 25MB, but target is now 500KB
   const MAX_FILE_SIZE_MB = 25;
-  const TARGET_SIZE_MB = 5;
+  const TARGET_SIZE_KB = 500;
   const MAX_CONCURRENT_UPLOADS = 3;
   
   // Check if device is iOS
@@ -124,7 +124,7 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
           const processedFile = await preProcessImageForUpload(
             fileData.file,
             MAX_FILE_SIZE_MB,
-            TARGET_SIZE_MB
+            TARGET_SIZE_KB
           );
           
           processedFiles.push(processedFile);
@@ -405,7 +405,7 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
       
       <p className="text-xs text-gray-500">
         Загрузка происходит сразу после выбора изображений. Максимум {maxImages} изображений. 
-        Первое изображение будет главным. Поддерживаются файлы до {MAX_FILE_SIZE_MB} МБ.
+        Первое изображение будет главным. Поддерживаются файлы до {MAX_FILE_SIZE_MB} МБ, оптимизируются до {TARGET_SIZE_KB/1024} МБ.
       </p>
     </div>
   );
