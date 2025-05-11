@@ -299,8 +299,9 @@ const SellerCreateOrder = () => {
         }
       }
 
-      // Send notification to Telegram
+      // Send notification to Telegram with explicit 'create' action
       try {
+        console.log("Sending Telegram notification for new order creation");
         await supabase.functions.invoke('send-telegram-notification', {
           body: { 
             order: { ...createdOrder, images },

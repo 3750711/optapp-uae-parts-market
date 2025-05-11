@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -327,10 +328,14 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+      
+      console.log("Processing order notification with action:", action || 'undefined');
 
       const orderNumber = order.order_number || 'Без номера';
       const orderStatus = getOrderStatusLabel(order.status);
-      const actionText = action === 'create' ? 'СОЗДАН НОВЫЙ ЗАКАЗ!' : `ИЗМЕНЕН СТАТУС ЗАКАЗА на "${orderStatus}"`;
+      // Use proper action text based on action parameter (with fallback for missing action)
+      const actionType = action || (order.status === 'created' ? 'create' : 'status_change');
+      const actionText = actionType === 'create' ? 'СОЗДАН НОВЫЙ ЗАКАЗ!' : `ИЗМЕНЕН СТАТУС ЗАКАЗА на "${orderStatus}"`;
       const deliveryMethod = order.delivery_method === 'self_pickup' ? 'Самовывоз' : 
                              order.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
                              order.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 'Не указан';
