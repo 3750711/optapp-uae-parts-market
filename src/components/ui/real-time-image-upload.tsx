@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Loader2, Camera } from "lucide-react";
+import { ImagePlus, X, Loader2, Camera, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { processImageForUpload, uploadProcessedImage, logImageProcessing } from "@/utils/imageProcessingUtils";
@@ -22,6 +22,7 @@ export function RealtimeImageUpload({
 }: RealtimeImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
+  const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -60,6 +61,21 @@ export function RealtimeImageUpload({
     }
   }, []);
 
+  const handleRemoveImage = (fileId: string, imageUrl: string) => {
+    // Remove from progress tracking
+    const newProgress = { ...uploadProgress };
+    delete newProgress[fileId];
+    setUploadProgress(newProgress);
+
+    // Remove from uploaded images
+    const newUploadedImages = { ...uploadedImages };
+    delete newUploadedImages[fileId];
+    setUploadedImages(newUploadedImages);
+    
+    // Notify parent component
+    onUploadComplete(Object.values(newUploadedImages));
+  };
+
   const handleUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const files = event.target.files;
@@ -73,9 +89,10 @@ export function RealtimeImageUpload({
         newUploadProgress[id] = 0;
       });
       
-      setUploadProgress(newUploadProgress);
+      setUploadProgress(prev => ({...prev, ...newUploadProgress}));
       
       const newUrls: string[] = [];
+      const newUploadedImages: Record<string, string> = { ...uploadedImages };
       
       logImageProcessing('RealtimeUploadStart', { fileCount: files.length, bucket: storageBucket });
       
@@ -85,7 +102,7 @@ export function RealtimeImageUpload({
         
         // Update progress
         newUploadProgress[fileId] = 10;
-        setUploadProgress({...newUploadProgress});
+        setUploadProgress(prev => ({...prev, ...newUploadProgress}));
         
         // Check file size (max 25MB)
         if (file.size > 25 * 1024 * 1024) {
@@ -96,7 +113,7 @@ export function RealtimeImageUpload({
           });
           
           newUploadProgress[fileId] = -1; // Mark as error
-          setUploadProgress({...newUploadProgress});
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           continue;
         }
         
@@ -109,20 +126,20 @@ export function RealtimeImageUpload({
           });
           
           newUploadProgress[fileId] = -1; // Mark as error
-          setUploadProgress({...newUploadProgress});
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           continue;
         }
         
         try {
           // Process image (optimize and create preview)
           newUploadProgress[fileId] = 25;
-          setUploadProgress({...newUploadProgress});
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
           const processed = await processImageForUpload(file);
           
           // Update progress
           newUploadProgress[fileId] = 50;
-          setUploadProgress({...newUploadProgress});
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
           // Upload to Supabase storage with unified helper
           const { originalUrl, previewUrl } = await uploadProcessedImage(
@@ -139,10 +156,11 @@ export function RealtimeImageUpload({
           });
           
           newUrls.push(originalUrl);
+          newUploadedImages[fileId] = originalUrl;
           
           // Update progress
           newUploadProgress[fileId] = 100;
-          setUploadProgress({...newUploadProgress});
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
         } catch (error) {
           logImageProcessing('RealtimeUploadError', {
             fileName: file.name,
@@ -150,7 +168,7 @@ export function RealtimeImageUpload({
           });
           
           newUploadProgress[fileId] = -1; // Mark as error
-          setUploadProgress({...newUploadProgress});
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
           toast({
             title: "Error",
@@ -161,7 +179,8 @@ export function RealtimeImageUpload({
       }
 
       if (newUrls.length > 0) {
-        onUploadComplete(newUrls);
+        setUploadedImages(newUploadedImages);
+        onUploadComplete([...Object.values(newUploadedImages)]);
         
         toast({
           title: "Success",
@@ -180,15 +199,35 @@ export function RealtimeImageUpload({
       });
     } finally {
       setIsUploading(false);
-      setUploadProgress({});
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
-  }, [onUploadComplete, storageBucket, storagePath, triggerPreviewGeneration]);
+  }, [onUploadComplete, storageBucket, storagePath, triggerPreviewGeneration, uploadedImages]);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+        {/* Uploaded images */}
+        {Object.entries(uploadedImages).map(([fileId, imageUrl]) => (
+          <div key={fileId} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+            <img 
+              src={imageUrl} 
+              alt="Uploaded" 
+              className="h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                className="h-8 w-8" 
+                onClick={() => handleRemoveImage(fileId, imageUrl)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        
         {/* Upload progress indicators */}
         {Object.entries(uploadProgress).map(([id, progress]) => (
           progress !== 100 && progress !== -1 && (
@@ -202,13 +241,15 @@ export function RealtimeImageUpload({
         ))}
         
         {/* Upload buttons */}
-        <div 
-          className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <ImagePlus className="h-6 w-6 text-gray-400" />
-          <p className="text-xs text-gray-500 mt-1">Upload</p>
-        </div>
+        {Object.keys(uploadedImages).length < maxImages && (
+          <div 
+            className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <ImagePlus className="h-6 w-6 text-gray-400" />
+            <p className="text-xs text-gray-500 mt-1">Upload</p>
+          </div>
+        )}
       </div>
 
       {/* Hidden file inputs */}
@@ -241,7 +282,7 @@ export function RealtimeImageUpload({
           type="button"
           variant="outline"
           size="sm"
-          disabled={isUploading}
+          disabled={isUploading || Object.keys(uploadedImages).length >= maxImages}
           className="flex items-center gap-1"
           onClick={() => fileInputRef.current?.click()}
         >
@@ -263,7 +304,7 @@ export function RealtimeImageUpload({
             type="button"
             variant="outline"
             size="sm"
-            disabled={isUploading}
+            disabled={isUploading || Object.keys(uploadedImages).length >= maxImages}
             className="flex items-center gap-1"
             onClick={() => cameraInputRef.current?.click()}
           >
