@@ -2,9 +2,12 @@
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, Camera, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { processImageForUpload, uploadProcessedImage, logImageProcessing } from "@/utils/imageProcessingUtils";
+import { 
+  validateImageForMarketplace, 
+  uploadImageToStorage, 
+  logImageProcessing 
+} from "@/utils/imageProcessingUtils";
 import { isImage } from "@/utils/imageCompression";
 
 interface RealtimeImageUploadProps {
@@ -29,36 +32,6 @@ export function RealtimeImageUpload({
   // Check if device is mobile
   const isMobile = useCallback(() => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }, []);
-
-  // Ensure preview generation after upload
-  const triggerPreviewGeneration = useCallback(async (productId?: string) => {
-    try {
-      logImageProcessing('TriggerPreview', { 
-        productId: productId || 'unknown'
-      });
-      
-      const { data, error } = await supabase.functions.invoke('generate-preview', {
-        body: { 
-          action: productId ? 'process_product' : 'process_batch',
-          productId,
-          batchSize: 10
-        }
-      });
-      
-      if (error) {
-        logImageProcessing('TriggerPreviewError', { error: error.message });
-        console.error("Error generating previews:", error);
-      } else {
-        logImageProcessing('TriggerPreviewSuccess', { response: data });
-        console.log("Preview generation triggered:", data);
-      }
-    } catch (err) {
-      console.error("Failed to generate previews:", err);
-      logImageProcessing('TriggerPreviewException', { 
-        error: err instanceof Error ? err.message : String(err)
-      });
-    }
   }, []);
 
   const handleRemoveImage = (fileId: string, imageUrl: string) => {
@@ -91,7 +64,6 @@ export function RealtimeImageUpload({
       
       setUploadProgress(prev => ({...prev, ...newUploadProgress}));
       
-      const newUrls: string[] = [];
       const newUploadedImages: Record<string, string> = { ...uploadedImages };
       
       logImageProcessing('RealtimeUploadStart', { fileCount: files.length, bucket: storageBucket });
@@ -104,24 +76,12 @@ export function RealtimeImageUpload({
         newUploadProgress[fileId] = 10;
         setUploadProgress(prev => ({...prev, ...newUploadProgress}));
         
-        // Check file size (max 25MB)
-        if (file.size > 25 * 1024 * 1024) {
+        // Validate file against marketplace standards
+        const validation = validateImageForMarketplace(file);
+        if (!validation.isValid) {
           toast({
             title: "Error",
-            description: `File ${file.name} is too large. Maximum size is 25MB`,
-            variant: "destructive",
-          });
-          
-          newUploadProgress[fileId] = -1; // Mark as error
-          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
-          continue;
-        }
-        
-        // Check file type
-        if (!isImage(file)) {
-          toast({
-            title: "Error",
-            description: `File ${file.name} is not an image`,
+            description: validation.errorMessage,
             variant: "destructive",
           });
           
@@ -131,36 +91,22 @@ export function RealtimeImageUpload({
         }
         
         try {
-          // Process image (optimize and create preview)
+          // Update progress
           newUploadProgress[fileId] = 25;
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
-          const processed = await processImageForUpload(file);
-          
-          // Update progress
-          newUploadProgress[fileId] = 50;
-          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
-          
-          // Upload to Supabase storage with unified helper
-          const { originalUrl, previewUrl } = await uploadProcessedImage(
-            processed,
-            storageBucket,
-            storagePath
-          );
-          
-          // Log success with preview information
-          logImageProcessing('RealtimeUploadSuccess', {
-            originalUrl,
-            hasPreview: !!previewUrl,
-            previewUrl
-          });
-          
-          newUrls.push(originalUrl);
-          newUploadedImages[fileId] = originalUrl;
+          // Upload image with marketplace optimization
+          const imageUrl = await uploadImageToStorage(file, storageBucket, storagePath);
           
           // Update progress
           newUploadProgress[fileId] = 100;
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+          
+          // Store uploaded image URL
+          newUploadedImages[fileId] = imageUrl;
+          
+          // Log success
+          logImageProcessing('RealtimeUploadSuccess', { imageUrl });
         } catch (error) {
           logImageProcessing('RealtimeUploadError', {
             fileName: file.name,
@@ -178,17 +124,15 @@ export function RealtimeImageUpload({
         }
       }
 
-      if (newUrls.length > 0) {
+      const finalUrls = Object.values(newUploadedImages);
+      if (finalUrls.length > 0) {
         setUploadedImages(newUploadedImages);
-        onUploadComplete([...Object.values(newUploadedImages)]);
+        onUploadComplete(finalUrls);
         
         toast({
           title: "Success",
-          description: `Uploaded ${newUrls.length} image${newUrls.length > 1 ? 's' : ''}`,
+          description: `Uploaded ${Object.keys(newUploadedImages).length - Object.keys(uploadedImages).length} image${finalUrls.length > 1 ? 's' : ''}`,
         });
-        
-        // Trigger preview generation as a fallback
-        triggerPreviewGeneration();
       }
     } catch (error) {
       console.error('Error uploading images:', error);
@@ -202,7 +146,7 @@ export function RealtimeImageUpload({
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
-  }, [onUploadComplete, storageBucket, storagePath, triggerPreviewGeneration, uploadedImages]);
+  }, [onUploadComplete, storageBucket, storagePath, uploadedImages]);
 
   return (
     <div className="space-y-4">

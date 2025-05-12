@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { isImage, isVideo } from "@/utils/imageCompression";
-import { processImageForUpload, logImageProcessing } from "@/utils/imageProcessingUtils";
+import { isVideo } from "@/utils/imageCompression";
+import { logImageProcessing, optimizeImageForMarketplace } from "@/utils/imageProcessingUtils";
 
 interface VideoUploadProps {
   videos: string[];
@@ -86,14 +86,13 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         let processedFile = file;
         
         // For images, optimize them
-        if (isImage(file)) {
+        if (file.type.startsWith('image/')) {
           try {
-            const processed = await processImageForUpload(file);
-            processedFile = processed.optimizedFile;
+            processedFile = await optimizeImageForMarketplace(file);
           } catch (error) {
             logImageProcessing('ProcessingError', { 
               fileName: file.name,
-              error: error.message
+              error: error instanceof Error ? error.message : String(error)
             });
             // Continue with the original file if optimization fails
           }
@@ -156,7 +155,9 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         });
       }
     } catch (error) {
-      logImageProcessing('UnexpectedError', { error: error.message });
+      logImageProcessing('UnexpectedError', { 
+        error: error instanceof Error ? error.message : String(error)
+      });
       toast({
         title: "Ошибка загрузки",
         description: "Непредвиденная ошибка при загрузке видео",
@@ -215,7 +216,9 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         description: "Видео было успешно удалено",
       });
     } catch (error) {
-      logImageProcessing('DeleteException', { error: error.message });
+      logImageProcessing('DeleteException', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       toast({
         title: "Ошибка",
         description: "Не удалось удалить видео",
