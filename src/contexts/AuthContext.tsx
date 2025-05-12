@@ -10,7 +10,7 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  isLoading: boolean;
+  isLoading: boolean; // Renamed from 'loading' to 'isLoading' for consistency
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -21,7 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true); // Renamed from 'loading' to 'isLoading'
 
   async function fetchUserProfile(userId: string) {
     try {
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const setupAuth = async () => {
       try {
-        setIsLoading(true);
+        setIsLoading(true); // Updated from setLoading
         
         // First, set up the auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -99,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Error setting up auth:", error);
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Updated from setLoading
       }
     };
     
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signOut = async () => {
-    setIsLoading(true);
+    setIsLoading(true); // Updated from setLoading
     
     try {
       await supabase.auth.signOut();
@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error during sign out:', error);
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Updated from setLoading
     }
   };
 
@@ -128,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, 
       session, 
       profile, 
-      isLoading, 
+      isLoading, // Updated from loading
       signOut,
       refreshProfile 
     }}>

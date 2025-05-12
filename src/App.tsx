@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "./contexts/AuthContext";
@@ -5,7 +6,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
-import ProductDetails from "./pages/ProductDetails";
+import ProductDetail from "./pages/ProductDetail";
 import SellerListings from "./pages/SellerListings";
 import CreateProduct from "./pages/CreateProduct";
 import EditProduct from "./pages/EditProduct";
@@ -21,15 +22,15 @@ import EditRequest from "./pages/EditRequest";
 import AdminImagePreviewGenerator from "./pages/AdminImagePreviewGenerator";
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
 
   // Redirect to catalog if user is logged in
   useEffect(() => {
-    if (!loading && user && (location.pathname === "/login" || location.pathname === "/register")) {
+    if (!isLoading && user && (location.pathname === "/login" || location.pathname === "/register")) {
       window.location.href = "/catalog";
     }
-  }, [user, loading, location]);
+  }, [user, isLoading, location]);
 
   return (
     <Routes>
@@ -37,7 +38,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/catalog" element={<Catalog />} />
-      <Route path="/product/:id" element={<ProductDetails />} />
+      <Route path="/product/:id" element={<ProductDetail />} />
       <Route path="/stores" element={<Stores />} />
       <Route path="/stores/:id" element={<StoreDetails />} />
       <Route path="/requests" element={<RequestList />} />
