@@ -25,7 +25,7 @@ async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): 
     const imageBuffer = await response.arrayBuffer();
     console.log(`Image fetched: ${imageBuffer.byteLength} bytes`);
     
-    // For JPEGs and PNGs, use the deno_image library to resize
+    // Target size approximately 200KB
     try {
       // Attempt to resize the image (this supports various formats)
       const resizedImage = await resize(new Uint8Array(imageBuffer), {

@@ -392,6 +392,7 @@ export type Database = {
           created_at: string
           delivery_price: number | null
           description: string | null
+          has_preview: boolean | null
           id: string
           location: string | null
           lot_number: number
@@ -416,6 +417,7 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
+          has_preview?: boolean | null
           id?: string
           location?: string | null
           lot_number?: number
@@ -440,6 +442,7 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
+          has_preview?: boolean | null
           id?: string
           location?: string | null
           lot_number?: number
@@ -902,6 +905,10 @@ export type Database = {
           model_id: string
           model_name: string
         }[]
+      }
+      update_product_has_preview_flag: {
+        Args: { p_product_id: string }
+        Returns: undefined
       }
     }
     Enums: {

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -14,7 +15,7 @@ export interface ProductProps {
   name: string;
   price: number;
   image: string;
-  preview_image?: string; // Added field for preview image
+  preview_image?: string; // Preview image for catalog display
   location: string;
   seller_opt_id?: string;
   seller_rating?: number;
@@ -30,7 +31,7 @@ export interface ProductProps {
   seller_opt_status?: 'free_user' | 'opt_user';
   onStatusChange?: () => void;
   delivery_price?: number;
-  has_preview?: boolean; // New property to indicate if the product has a preview
+  has_preview?: boolean; // Flag indicating if product has preview images
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -38,7 +39,7 @@ const ProductCard: React.FC<ProductProps> = ({
   name, 
   price, 
   image,
-  preview_image, // Added preview image parameter
+  preview_image, // Use preview image when available
   location,
   rating_seller,
   brand,
