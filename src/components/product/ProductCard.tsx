@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -30,6 +31,7 @@ export interface ProductProps {
   seller_opt_status?: 'free_user' | 'opt_user';
   onStatusChange?: () => void;
   delivery_price?: number;
+  has_preview?: boolean; // New property to indicate if the product has a preview
 }
 
 const ProductCard: React.FC<ProductProps> = ({ 
@@ -49,7 +51,8 @@ const ProductCard: React.FC<ProductProps> = ({
   created_at,
   seller_opt_status,
   onStatusChange,
-  delivery_price
+  delivery_price,
+  has_preview
 }) => {
   const [searchParams] = useSearchParams();
   const { user, profile } = useAuth();
@@ -60,7 +63,6 @@ const ProductCard: React.FC<ProductProps> = ({
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   // Use the preview image if available, otherwise fall back to the original image
-  // Обновленная логика для проверки и использования превью-изображения
   const displayImage = preview_image || image;
 
   // Добавляем логгирование для отслеживания использования превью
@@ -154,6 +156,11 @@ const ProductCard: React.FC<ProductProps> = ({
             <Badge className="bg-red-500 text-white border-none flex items-center gap-1 mt-2">
               <Flame className="h-3 w-3 fill-white" />
               HOT LOT
+            </Badge>
+          )}
+          {has_preview && (
+            <Badge className="bg-green-500 text-white border-none flex items-center gap-1 mt-2">
+              Preview
             </Badge>
           )}
         </div>

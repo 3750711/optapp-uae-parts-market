@@ -1,8 +1,10 @@
+
 export interface ProductProps {
   id: string;
   name: string;
   price: number;
   image: string;
+  preview_image?: string;  // Added for preview image
   location: string;
   seller_opt_id?: string;
   seller_rating?: number;
@@ -18,11 +20,13 @@ export interface ProductProps {
   seller_opt_status?: 'free_user' | 'opt_user';
   onStatusChange?: () => void;
   delivery_price?: number | null;
+  has_preview?: boolean;  // Added to indicate if the product has preview images
 }
 
 export interface ProductImage {
   url: string;
   is_primary?: boolean;
+  preview_url?: string; // Added for storing the preview image URL
 }
 
 export interface ProductVideo {
@@ -68,4 +72,5 @@ export interface Product {
   updated_at?: string;
   place_number?: number | null;
   delivery_price?: number | null;
+  hasPreviewImage?: boolean; // Added to indicate if the product has preview images
 }

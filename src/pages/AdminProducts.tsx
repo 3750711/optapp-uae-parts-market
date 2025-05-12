@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Bell, Tag, Hash, Search } from "lucide-react";
+import { Edit, Trash2, Eye, Bell, Tag, Hash, Search, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -21,6 +22,7 @@ const PRODUCTS_PER_PAGE = 20;
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
 const SEARCH_QUERY_KEY = 'admin_products_search_query';
+const PREVIEW_FILTER_KEY = 'admin_products_preview_filter';
 
 const AdminProducts = () => {
   const { toast } = useToast();
@@ -29,6 +31,7 @@ const AdminProducts = () => {
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [previewFilter, setPreviewFilter] = useState<'all' | 'with_preview' | 'without_preview'>('all');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
   
   // Reference for the loading trigger element
@@ -36,11 +39,12 @@ const AdminProducts = () => {
   // Using the intersection observer to detect when user scrolls to the bottom
   const isIntersecting = useIntersection(loadMoreRef, '200px');
   
-  // Load saved sort preferences from localStorage on component mount
+  // Load saved preferences from localStorage on component mount
   useEffect(() => {
     const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
     const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
     const savedSearchQuery = localStorage.getItem(SEARCH_QUERY_KEY);
+    const savedPreviewFilter = localStorage.getItem(PREVIEW_FILTER_KEY) as 'all' | 'with_preview' | 'without_preview' | null;
     
     if (savedSortField) {
       setSortField(savedSortField);
@@ -52,6 +56,10 @@ const AdminProducts = () => {
     
     if (savedSearchQuery) {
       setSearchQuery(savedSearchQuery);
+    }
+    
+    if (savedPreviewFilter) {
+      setPreviewFilter(savedPreviewFilter);
     }
   }, []);
   
@@ -70,6 +78,11 @@ const AdminProducts = () => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
   
+  // Save preview filter preference to localStorage
+  useEffect(() => {
+    localStorage.setItem(PREVIEW_FILTER_KEY, previewFilter);
+  }, [previewFilter]);
+  
   const {
     data: productsData,
     isLoading,
@@ -77,7 +90,7 @@ const AdminProducts = () => {
     fetchNextPage,
     hasNextPage
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, searchQuery],
+    queryKey: ['admin', 'products', sortField, sortOrder, searchQuery, previewFilter],
     queryFn: async ({ pageParam = 1 }) => {
       // Calculate the start and end range for pagination
       const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
@@ -87,7 +100,7 @@ const AdminProducts = () => {
         .from('products')
         .select(`
           *,
-          product_images(url, is_primary),
+          product_images(url, is_primary, preview_url),
           profiles(full_name, rating, opt_id)
         `);
 
@@ -113,10 +126,29 @@ const AdminProducts = () => {
       // Check if we have more pages
       const hasMore = data.length === PRODUCTS_PER_PAGE;
 
+      // Process products to add preview image information
+      const processedProducts = data.map(product => {
+        const hasPreviewImage = product.product_images && 
+          product.product_images.some((img: any) => img.preview_url);
+        
+        return {
+          ...product,
+          hasPreviewImage
+        };
+      });
+
+      // Filter by preview status if needed
+      let filteredProducts = processedProducts;
+      if (previewFilter === 'with_preview') {
+        filteredProducts = processedProducts.filter(p => p.hasPreviewImage);
+      } else if (previewFilter === 'without_preview') {
+        filteredProducts = processedProducts.filter(p => !p.hasPreviewImage);
+      }
+
       if (sortField === 'status') {
         const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
         return {
-          products: (data as Product[]).sort((a, b) => 
+          products: filteredProducts.sort((a, b) => 
             statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
           ),
           nextPage: hasMore ? pageParam + 1 : undefined
@@ -124,7 +156,7 @@ const AdminProducts = () => {
       }
 
       return {
-        products: data as Product[],
+        products: filteredProducts,
         nextPage: hasMore ? pageParam + 1 : undefined
       };
     },
@@ -286,6 +318,21 @@ const AdminProducts = () => {
                 className="pl-9 w-[250px]"
               />
             </div>
+            
+            <Select
+              value={previewFilter}
+              onValueChange={(value: 'all' | 'with_preview' | 'without_preview') => setPreviewFilter(value)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Фильтр превью" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все товары</SelectItem>
+                <SelectItem value="with_preview">С превью</SelectItem>
+                <SelectItem value="without_preview">Без превью</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select
               value={`${sortField}-${sortOrder}`}
               onValueChange={handleSortChange}
@@ -318,10 +365,15 @@ const AdminProducts = () => {
                 className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
               >
                 <div className="relative aspect-square mb-4">
+                  {/* Use preview_url if available */}
                   <img 
-                    src={product.product_images?.find(img => img.is_primary)?.url || 
-                       product.product_images?.[0]?.url || 
-                       '/placeholder.svg'} 
+                    src={
+                      product.product_images?.find(img => img.is_primary && img.preview_url)?.preview_url || 
+                      product.product_images?.find(img => img.is_primary)?.url || 
+                      product.product_images?.find(img => img.preview_url)?.preview_url || 
+                      product.product_images?.[0]?.url || 
+                      '/placeholder.svg'
+                    } 
                     alt={product.title} 
                     className="object-cover w-full h-full rounded-md"
                   />
@@ -330,6 +382,15 @@ const AdminProducts = () => {
                   >
                     {getStatusLabel(product.status)}
                   </Badge>
+                  
+                  {/* Add preview badge if the product has preview images */}
+                  {product.hasPreviewImage && (
+                    <Badge 
+                      className="absolute top-2 left-2 bg-green-500 text-white"
+                    >
+                      <Image className="w-3 h-3 mr-1" /> Preview
+                    </Badge>
+                  )}
                 </div>
                 
                 <div className="space-y-2">
