@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -125,7 +124,7 @@ const ProductCard: React.FC<ProductProps> = ({
           }`}
           loading="lazy"
           decoding="async"
-          fetchpriority={isHot ? "high" : "auto"}
+          fetchPriority={isHot ? "high" : "auto"}
         />
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -235,5 +234,5 @@ const ProductCard: React.FC<ProductProps> = ({
   );
 };
 
-// Оптимизация: Экспортируем компонент как мемоизированный
+// Экспортируем компонент как мемоизированный
 export default React.memo(ProductCard);

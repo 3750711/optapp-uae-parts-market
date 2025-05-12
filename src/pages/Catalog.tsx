@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { ProductProps } from "@/types/product";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
@@ -150,7 +151,28 @@ const Catalog: React.FC = () => {
     hideSoldProducts
   }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts]);
 
-  // Оптимизация: Используем keepPreviousData для предотвращения мигания UI при загрузке
+  // Define our product type more explicitly for type safety
+  type ProductType = {
+    id: string;
+    title: string;
+    price: number | string;
+    product_images?: { url: string; is_primary?: boolean; preview_url?: string }[];
+    profiles?: { location?: string; opt_id?: string; rating?: number; opt_status?: string; verification_status?: string };
+    condition?: string;
+    location?: string;
+    optid_created?: string | null;
+    rating_seller?: number | null;
+    brand?: string;
+    model?: string;
+    seller_name: string;
+    status: 'pending' | 'active' | 'sold' | 'archived';
+    seller_id: string;
+    created_at: string;
+    delivery_price?: number | null;
+    has_preview?: boolean;
+  };
+
+  // Оптимизация: Используем useInfiniteQuery для подгрузки данных по мере прокрутки
   const {
     data,
     fetchNextPage,
@@ -242,10 +264,10 @@ const Catalog: React.FC = () => {
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    // Оптимизация: Добавляем кэширование и сохранение предыдущих данных
+    // Note: keepPreviousData is not supported in React Query v5 for useInfiniteQuery
+    // Use placeholderData instead for similar functionality
     staleTime: 60 * 1000, // 1 minute
-    refetchOnWindowFocus: false,
-    keepPreviousData: true
+    refetchOnWindowFocus: false
   });
 
   // Subscribe to real-time product insertions for debugging
@@ -329,13 +351,16 @@ const Catalog: React.FC = () => {
   const allProducts = data?.pages.flat() || [];
   
   const mappedProducts = useMemo(() => {
-    return allProducts.map(product => {
+    return allProducts.map((product) => {
+      // Cast product to our known type
+      const typedProduct = product as unknown as ProductType;
+      
       let imageUrl = "/placeholder.svg";
       let previewUrl = null;
       
-      if (product.product_images && product.product_images.length > 0) {
+      if (typedProduct.product_images && typedProduct.product_images.length > 0) {
         // Ищем превью для оптимизированного отображения
-        for (const img of product.product_images) {
+        for (const img of typedProduct.product_images) {
           if (img.preview_url) {
             previewUrl = img.preview_url;
             if (img.is_primary) break; // Если это основное изображение с превью, прерываем поиск
@@ -343,39 +368,39 @@ const Catalog: React.FC = () => {
         }
         
         // Ищем основное изображение
-        const primaryImage = product.product_images.find(img => img.is_primary);
+        const primaryImage = typedProduct.product_images.find(img => img.is_primary);
         if (primaryImage) {
           imageUrl = primaryImage.url;
-        } else if (product.product_images[0]) {
-          imageUrl = product.product_images[0].url;
+        } else if (typedProduct.product_images[0]) {
+          imageUrl = typedProduct.product_images[0].url;
         }
       }
       
-      const sellerLocation = product.profiles?.location || product.location || "Dubai";
+      const sellerLocation = typedProduct.profiles?.location || typedProduct.location || "Dubai";
       
       return {
-        id: product.id,
-        name: product.title,
-        price: Number(product.price),
+        id: typedProduct.id,
+        name: typedProduct.title,
+        price: Number(typedProduct.price),
         image: imageUrl,
         preview_image: previewUrl, // Используем превью для отображения в каталоге
-        condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
+        condition: typedProduct.condition as "Новый" | "Б/У" | "Восстановленный",
         location: sellerLocation,
-        seller_opt_id: product.profiles?.opt_id,
-        seller_rating: product.profiles?.rating,
-        optid_created: product.optid_created,
-        rating_seller: product.rating_seller,
-        brand: product.brand,
-        model: product.model,
-        seller_name: product.seller_name,
-        status: product.status,
-        seller_id: product.seller_id,
-        seller_verification: product.profiles?.verification_status,
-        seller_opt_status: product.profiles?.opt_status,
-        created_at: product.created_at,
-        delivery_price: product.delivery_price,
-        has_preview: product.has_preview
-      };
+        seller_opt_id: typedProduct.profiles?.opt_id,
+        seller_rating: typedProduct.profiles?.rating,
+        optid_created: typedProduct.optid_created,
+        rating_seller: typedProduct.rating_seller,
+        brand: typedProduct.brand || "",
+        model: typedProduct.model || "",
+        seller_name: typedProduct.seller_name,
+        status: typedProduct.status,
+        seller_id: typedProduct.seller_id,
+        seller_verification: typedProduct.profiles?.verification_status,
+        seller_opt_status: typedProduct.profiles?.opt_status,
+        created_at: typedProduct.created_at,
+        delivery_price: typedProduct.delivery_price,
+        has_preview: typedProduct.has_preview
+      } as ProductProps;
     });
   }, [allProducts]);
 
@@ -616,7 +641,7 @@ const Catalog: React.FC = () => {
           {!isLoading && !isError && hasSearched && (debouncedSearchQuery || selectedBrand || selectedModel) && allProducts.length === 0 && (
             <div className="text-center py-12 animate-fade-in">
               <p className="text-lg text-gray-800">Товары не найдены</p>
-              <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
+              <p className="text-gray-500 mt-2">Попр��буйте изменить параметры поиска</p>
               
               {/* Show RequestPartsPromo when no search results are found */}
               <div className="mt-10">
