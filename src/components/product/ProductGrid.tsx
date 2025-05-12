@@ -1,3 +1,4 @@
+
 import React, { memo } from "react";
 import ProductCard, { ProductProps } from "./ProductCard";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -8,7 +9,6 @@ interface ProductGridProps {
   isLoading?: boolean;
 }
 
-// Оптимизация: Используем React.memo для предотвращения лишних перерисовок
 const ProductGrid: React.FC<ProductGridProps> = ({ products, showAllStatuses = false }) => {
   const { isAdmin } = useAdminAccess();
   
@@ -34,7 +34,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, showAllStatuses = f
   );
 };
 
-// Оптимизация: Мемоизируем ProductCard для предотвращения ненужных перерисовок
+// Memoize ProductCard to prevent unnecessary re-renders
 const MemoizedProductCard = memo(ProductCard);
 
-export default ProductGrid;
+export default memo(ProductGrid);

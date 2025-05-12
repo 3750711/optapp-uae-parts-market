@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -61,11 +62,10 @@ const ProductCard: React.FC<ProductProps> = ({
   
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
-  // Оптимизация: Мемоизируем вычисление отображаемого изображения
-  // Use the preview image if available, otherwise fall back to the original image
+  // Optimize: Memoize display image calculation
   const displayImage = useMemo(() => preview_image || image, [preview_image, image]);
 
-  // Оптимизация: Мемоизируем вычисление HotLot статуса
+  // Optimize: Memoize hot lot status calculation
   const isHot = useMemo(() => {
     if (!created_at) return false;
     const createdDate = new Date(created_at);
@@ -74,7 +74,7 @@ const ProductCard: React.FC<ProductProps> = ({
     return diffInMinutes <= 10;
   }, [created_at]);
 
-  // Оптимизация: Мемоизируем статус бейдж
+  // Optimize: Memoize status badge
   const statusBadge = useMemo(() => {
     switch (status) {
       case 'pending':
@@ -234,5 +234,5 @@ const ProductCard: React.FC<ProductProps> = ({
   );
 };
 
-// Экспортируем компонент как мемоизированный
+// Export component as memoized to prevent unnecessary re-renders
 export default React.memo(ProductCard);
