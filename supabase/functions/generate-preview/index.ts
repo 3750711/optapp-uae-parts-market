@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decode, encode } from "https://deno.land/x/pngs@0.1.1/mod.ts";
+import { resize } from "https://deno.land/x/deno_image@0.0.4/mod.ts";
 
 const supabaseUrl = "https://vfiylfljiixqkjfqubyq.supabase.co";
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -10,8 +12,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Helpers to resize images
-async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): Promise<Blob | null> {
+// Helper to fetch and resize images using Deno-compatible libraries
+async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): Promise<Uint8Array | null> {
   try {
     console.log("Fetching image:", imageUrl);
     const response = await fetch(imageUrl);
@@ -20,55 +22,23 @@ async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): 
       return null;
     }
     
-    const imageBlob = await response.blob();
-    console.log(`Image fetched: ${imageBlob.size} bytes`);
+    const imageBuffer = await response.arrayBuffer();
+    console.log(`Image fetched: ${imageBuffer.byteLength} bytes`);
     
-    // Create an image element
-    const img = new Image();
-    const blobUrl = URL.createObjectURL(imageBlob);
-    
-    return new Promise((resolve) => {
-      img.onload = () => {
-        URL.revokeObjectURL(blobUrl);
-        
-        // Calculate new dimensions
-        const aspectRatio = img.width / img.height;
-        const newWidth = Math.min(maxWidth, img.width);
-        const newHeight = Math.round(newWidth / aspectRatio);
-        
-        // Create canvas for resizing
-        const canvas = new OffscreenCanvas(newWidth, newHeight);
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          console.error("Could not get canvas context");
-          resolve(null);
-          return;
-        }
-        
-        // Draw resized image to canvas
-        ctx.drawImage(img, 0, 0, newWidth, newHeight);
-        
-        // Convert to WebP format (better compression)
-        canvas.convertToBlob({ 
-          type: 'image/webp',
-          quality: quality
-        }).then(resizedBlob => {
-          console.log(`Preview generated: ${resizedBlob.size} bytes`);
-          resolve(resizedBlob);
-        }).catch(err => {
-          console.error("Error creating blob:", err);
-          resolve(null);
-        });
-      };
+    // For JPEGs and PNGs, use the deno_image library to resize
+    try {
+      // Attempt to resize the image (this supports various formats)
+      const resizedImage = await resize(new Uint8Array(imageBuffer), {
+        width: maxWidth,
+      });
       
-      img.onerror = () => {
-        URL.revokeObjectURL(blobUrl);
-        console.error("Error loading image");
-        resolve(null);
-      };
-      
-      img.src = blobUrl;
-    });
+      console.log(`Preview generated: ${resizedImage.byteLength} bytes`);
+      return resizedImage;
+    } catch (resizeError) {
+      console.error("Error resizing image:", resizeError);
+      // If resizing fails, return the original image
+      return new Uint8Array(imageBuffer);
+    }
   } catch (error) {
     console.error("Error in fetchAndResize:", error);
     return null;
@@ -86,8 +56,8 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
     }
     
     // Generate preview image
-    const resizedBlob = await fetchAndResize(imageUrl);
-    if (!resizedBlob) return null;
+    const resizedImageData = await fetchAndResize(imageUrl);
+    if (!resizedImageData) return null;
     
     // Create file name for preview
     const urlParts = imageUrl.split('/');
@@ -105,7 +75,7 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from(bucketPath)
-      .upload(previewFileName, resizedBlob, {
+      .upload(previewFileName, resizedImageData, {
         contentType: 'image/webp',
         cacheControl: '3600',
         upsert: true,
