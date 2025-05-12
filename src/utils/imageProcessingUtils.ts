@@ -246,3 +246,228 @@ export function validateImageForMarketplace(file: File): { isValid: boolean; err
   
   return { isValid: true };
 }
+
+/**
+ * Process an image for upload, including optimization and preview generation
+ * @param file The image file to process
+ * @returns Object containing the optimized file and preview file
+ */
+export async function processImageForUpload(file: File): Promise<{ 
+  optimizedFile: File, 
+  previewFile?: File,
+  originalSize: number,
+  optimizedSize: number 
+}> {
+  try {
+    // Optimize the image according to marketplace standards
+    const optimizedFile = await optimizeImageForMarketplace(file);
+    
+    // Return the processed result (without preview since it was removed)
+    return {
+      optimizedFile,
+      originalSize: file.size,
+      optimizedSize: optimizedFile.size
+    };
+  } catch (error) {
+    logImageProcessing('ProcessingError', {
+      fileName: file.name,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    console.error('Error processing image:', error);
+    
+    // Return original file if processing fails
+    return {
+      optimizedFile: file,
+      originalSize: file.size,
+      optimizedSize: file.size
+    };
+  }
+}
+
+/**
+ * Force update product preview URLs in the database
+ * @param productId ID of the product to update
+ * @returns Result of the update operation
+ */
+export async function forceUpdateProductPreviews(productId: string): Promise<{
+  success: boolean,
+  message: string,
+  details?: any
+}> {
+  try {
+    logImageProcessing('ForceUpdateStart', { productId });
+    
+    // Implementation note: Since we've removed preview functionality,
+    // this function now just verifies that all image records exist
+    
+    // Check if product exists
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, title')
+      .eq('id', productId)
+      .single();
+      
+    if (productError || !product) {
+      return {
+        success: false,
+        message: 'Product not found'
+      };
+    }
+    
+    // Get all product images
+    const { data: images, error: imagesError } = await supabase
+      .from('product_images')
+      .select('id, url')
+      .eq('product_id', productId);
+      
+    if (imagesError) {
+      return {
+        success: false,
+        message: 'Error fetching product images'
+      };
+    }
+    
+    // Since preview functionality is removed, we just return success
+    // but don't actually make any changes
+    return {
+      success: true,
+      message: `Product images verified (${images?.length || 0} images)`,
+      details: {
+        imageCount: images?.length || 0
+      }
+    };
+  } catch (error) {
+    logImageProcessing('ForceUpdateError', {
+      productId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
+ * Check and repair preview URLs in the database
+ * @param productId ID of the product to check
+ * @returns Result of the repair operation
+ */
+export async function checkAndRepairPreviewUrls(productId: string): Promise<{
+  success: boolean,
+  message: string,
+  details?: any
+}> {
+  try {
+    logImageProcessing('RepairStart', { productId });
+    
+    // Implementation note: Since we've removed preview functionality,
+    // this function now just logs the request but doesn't make changes
+    
+    // Check if product exists
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, title')
+      .eq('id', productId)
+      .single();
+      
+    if (productError || !product) {
+      return {
+        success: false,
+        message: 'Product not found'
+      };
+    }
+    
+    // Since preview functionality has been removed, we just return success
+    // but don't actually make any changes to preview URLs
+    return {
+      success: true,
+      message: 'No action needed (preview functionality removed)',
+    };
+  } catch (error) {
+    logImageProcessing('RepairError', {
+      productId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
+/**
+ * Verify product preview generation status
+ * @param productId ID of the product to verify
+ * @returns Verification result
+ */
+export async function verifyProductPreviewGeneration(productId: string): Promise<{
+  success: boolean,
+  message?: string,
+  totalImages: number,
+  imagesWithPreview: number,
+  hasPreview: boolean
+}> {
+  try {
+    logImageProcessing('VerifyStart', { productId });
+    
+    // Check if product exists
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, title, has_preview')
+      .eq('id', productId)
+      .single();
+      
+    if (productError || !product) {
+      return {
+        success: false,
+        message: 'Product not found',
+        totalImages: 0,
+        imagesWithPreview: 0,
+        hasPreview: false
+      };
+    }
+    
+    // Get all product images
+    const { data: images, error: imagesError } = await supabase
+      .from('product_images')
+      .select('id, url, preview_url')
+      .eq('product_id', productId);
+      
+    if (imagesError) {
+      return {
+        success: false,
+        message: 'Error fetching product images',
+        totalImages: 0,
+        imagesWithPreview: 0,
+        hasPreview: false
+      };
+    }
+    
+    const totalImages = images?.length || 0;
+    // Since preview functionality has been removed, we consider all images to not have previews
+    const imagesWithPreview = 0;
+    
+    return {
+      success: true,
+      totalImages,
+      imagesWithPreview,
+      hasPreview: product.has_preview || false
+    };
+  } catch (error) {
+    logImageProcessing('VerifyError', {
+      productId,
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      totalImages: 0,
+      imagesWithPreview: 0,
+      hasPreview: false
+    };
+  }
+}

@@ -4,7 +4,7 @@ import { ImagePlus, X, Loader2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { isImage } from "@/utils/imageCompression";
-import { processImageForUpload, logImageProcessing } from "@/utils/imageProcessingUtils";
+import { optimizeImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -110,23 +110,24 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         newUploadProgress[i] = 10; // Show initial progress
         setUploadProgress([...newUploadProgress]);
         
-        const processed = await processImageForUpload(file);
+        // Now use optimizeImageForMarketplace instead of processImageForUpload
+        const optimizedFile = await optimizeImageForMarketplace(file);
         
         // Update progress for current file after processing
         newUploadProgress[i] = 30;
         setUploadProgress([...newUploadProgress]);
         
         // Generate unique filenames
-        const fileExt = processed.optimizedFile.name.split('.').pop();
+        const fileExt = optimizedFile.name.split('.').pop();
         const uniqueId = `${Math.random().toString(36).substring(2, 10)}-${Date.now()}`;
         const fileName = `${uniqueId}.${fileExt}`;
 
         // Upload original file
         const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(fileName, processed.optimizedFile, {
+          .upload(fileName, optimizedFile, {
             cacheControl: '3600',
-            contentType: processed.optimizedFile.type,
+            contentType: optimizedFile.type,
             upsert: false
           });
 
@@ -142,57 +143,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           });
           continue;
         }
-        
-        // Upload preview file if available
-        let previewUrl = null;
-        if (processed.previewFile) {
-          const previewFileName = `${uniqueId}-preview.webp`;
-          
-          const { error: previewError } = await supabase.storage
-            .from('order-images')
-            .upload(previewFileName, processed.previewFile, {
-              cacheControl: '3600',
-              contentType: 'image/webp',
-              upsert: false
-            });
-            
-          if (!previewError) {
-            previewUrl = supabase.storage
-              .from('order-images')
-              .getPublicUrl(previewFileName).data.publicUrl;
-              
-            logImageProcessing('PreviewUploaded', { previewFileName, previewUrl });
-          } else {
-            logImageProcessing('PreviewUploadError', {
-              previewFileName,
-              error: previewError.message
-            });
-          }
-        }
 
         // Get the public URL for the original image
         const { data: { publicUrl } } = supabase.storage
           .from('order-images')
           .getPublicUrl(fileName);
         
-        // If we have a database table for order_images, add the preview_url there
-        try {
-          await supabase
-            .from('order_images')
-            .insert({
-              url: publicUrl,
-              preview_url: previewUrl,
-              is_primary: false // Adjust as needed
-            });
-            
-          logImageProcessing('DatabaseEntry', {
-            url: publicUrl,
-            hasPreview: !!previewUrl
-          });
-        } catch (dbError) {
-          logImageProcessing('DatabaseError', { error: dbError.message });
-          // Continue even if database update fails
-        }
+        // Since preview functionality is removed, we just log the upload
+        logImageProcessing('UploadComplete', {
+          url: publicUrl,
+          size: `${(optimizedFile.size / 1024).toFixed(2)}KB`
+        });
 
         newUrls.push(publicUrl);
         
@@ -207,13 +168,10 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           title: "Успешно",
           description: `Загружено ${newUrls.length} изображений`,
         });
-        
-        // Generate previews for the newly uploaded images
-        await generatePreviews(newUrls);
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      logImageProcessing('UnexpectedError', { error: error.message });
+      logImageProcessing('UnexpectedError', { error: error instanceof Error ? error.message : String(error) });
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить изображение",
