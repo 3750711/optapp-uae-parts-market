@@ -1,5 +1,19 @@
 
 project_id = "vfiylfljiixqkjfqubyq"
 
-[functions.generate-preview]
-verify_jwt = true
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323

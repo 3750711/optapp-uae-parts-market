@@ -1,3 +1,4 @@
+
 /**
  * Utility functions for image and video compression
  */
@@ -105,14 +106,14 @@ export const supportsWebP = async (): Promise<boolean> => {
 /**
  * Progressively compresses an image until it meets target size or quality floor
  * @param file Original image file
- * @param targetSizeKB Target size in KB (default: 500KB)
+ * @param targetSizeKB Target size in KB (default: 1000KB = 1MB)
  * @param minQuality Minimum quality to try (0-1)
  * @param maxWidth Maximum width to resize to
  * @returns Promise resolving to compressed File
  */
 export const progressiveCompress = async (
   file: File,
-  targetSizeKB = 500,
+  targetSizeKB = 1000, // Changed from 500KB to 1000KB (1MB)
   minQuality = 0.5,
   maxWidth = 1024
 ): Promise<File> => {
@@ -159,13 +160,13 @@ export const progressiveCompress = async (
  * Pre-processes an image before upload to check size and apply compression if needed
  * @param file Original image file
  * @param maxSizeMB Maximum acceptable size in MB (prevents uploading files larger than this)
- * @param targetSizeKB Target size for compression in KB (defaults to 500KB)
+ * @param targetSizeKB Target size for compression in KB (defaults to 1000KB = 1MB)
  * @returns Promise resolving to optimized File ready for upload
  */
 export const preProcessImageForUpload = async (
   file: File,
   maxSizeMB = 25,
-  targetSizeKB = 500
+  targetSizeKB = 1000 // Changed from 500KB to 1000KB (1MB)
 ): Promise<File> => {
   // Hard reject for files exceeding absolute maximum size
   if (file.size > maxSizeMB * 1024 * 1024) {
@@ -260,7 +261,7 @@ export const optimizeImage = async (file: File): Promise<File> => {
   let maxHeight = 768;
   let quality = 0.75;
   
-  // Target 500KB for all images
+  // Target 1MB for all images
   return compressImage(file, maxWidth, maxHeight, quality, webpSupported);
 };
 

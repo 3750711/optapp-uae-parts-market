@@ -84,6 +84,7 @@ const ProductDetail = () => {
     return "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=800&auto=format&fit=crop";
   };
 
+  // Get full-size image URLs (we explicitly use original images here, not previews)
   const getProductImages = () => {
     if (product?.product_images && product.product_images.length > 0) {
       return product.product_images.map(img => img.url);
@@ -153,6 +154,7 @@ const ProductDetail = () => {
     }
   };
 
+  // Render full-size images component - using original images, not previews
   const RenderFullSizeImages = () => (
     <div className="mb-8">
       <div className="font-semibold text-base mb-3 text-gray-700">Оригинальные фотографии товара</div>
@@ -195,6 +197,7 @@ const ProductDetail = () => {
     );
   }
 
+  // Original images for detail view
   const images = getProductImages();
   const videos = getProductVideos();
   const sellerProfile = product.profiles;
