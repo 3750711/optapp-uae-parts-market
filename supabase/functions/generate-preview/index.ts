@@ -150,6 +150,12 @@ async function processImageBatch(batchSize = 10) {
   
   // Process each image
   for (const image of images) {
+    // Проверяем и обрабатываем только действительные URL-адреса
+    if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
+      console.warn(`Invalid URL for image ${image.id}: ${image.url}`);
+      continue;
+    }
+
     const previewUrl = await generatePreviewUrl(image.url, image.product_id);
     
     if (previewUrl) {
@@ -266,6 +272,67 @@ serve(async (req) => {
       
       let successCount = 0;
       for (const image of images || []) {
+        // Проверяем URL перед обработкой
+        if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
+          console.warn(`Invalid URL for image ${image.id}: ${image.url}`);
+          continue;
+        }
+
+        const previewUrl = await generatePreviewUrl(image.url, image.product_id);
+        
+        if (previewUrl) {
+          // Update the record
+          const { error: updateError } = await supabase
+            .from('product_images')
+            .update({ preview_url: previewUrl })
+            .eq('id', image.id);
+          
+          if (!updateError) {
+            successCount++;
+          }
+        }
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          processed: images?.length || 0, 
+          successCount 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    else if (action === 'regenerate_previews') {
+      // Эндпоинт для перегенерации превью для всех изображений, включая те, у которых уже есть превью
+      const { limit = 10, productIds } = await req.json();
+      
+      let query = supabase
+        .from('product_images')
+        .select('id, url, product_id');
+      
+      // Если указаны определенные ID продуктов, фильтруем по ним
+      if (productIds && Array.isArray(productIds) && productIds.length > 0) {
+        query = query.in('product_id', productIds);
+      }
+      
+      // Ограничиваем количество записей
+      const { data: images, error } = await query.limit(limit);
+      
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch images', details: error.message }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        );
+      }
+      
+      let successCount = 0;
+      for (const image of images || []) {
+        // Проверяем URL перед обработкой
+        if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
+          console.warn(`Invalid URL for image ${image.id}: ${image.url}`);
+          continue;
+        }
+
         const previewUrl = await generatePreviewUrl(image.url, image.product_id);
         
         if (previewUrl) {

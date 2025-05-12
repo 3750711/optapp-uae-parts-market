@@ -60,7 +60,19 @@ const ProductCard: React.FC<ProductProps> = ({
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
   // Use the preview image if available, otherwise fall back to the original image
+  // Обновленная логика для проверки и использования превью-изображения
   const displayImage = preview_image || image;
+
+  // Добавляем логгирование для отслеживания использования превью
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      if (preview_image) {
+        console.log(`Using preview for ${id}: ${preview_image}`);
+      } else {
+        console.log(`No preview for ${id}, using full image: ${image}`);
+      }
+    }
+  }, [id, preview_image, image]);
 
   const isHotLot = () => {
     if (!created_at) return false;
