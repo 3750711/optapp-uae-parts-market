@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,29 +62,21 @@ const ProductCard: React.FC<ProductProps> = ({
   
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
 
+  // Оптимизация: Мемоизируем вычисление отображаемого изображения
   // Use the preview image if available, otherwise fall back to the original image
-  const displayImage = preview_image || image;
+  const displayImage = useMemo(() => preview_image || image, [preview_image, image]);
 
-  // Добавляем логгирование для отслеживания использования превью
-  React.useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      if (preview_image) {
-        console.log(`Using preview for ${id}: ${preview_image}`);
-      } else {
-        console.log(`No preview for ${id}, using full image: ${image}`);
-      }
-    }
-  }, [id, preview_image, image]);
-
-  const isHotLot = () => {
+  // Оптимизация: Мемоизируем вычисление HotLot статуса
+  const isHot = useMemo(() => {
     if (!created_at) return false;
     const createdDate = new Date(created_at);
     const now = new Date();
     const diffInMinutes = (now.getTime() - createdDate.getTime()) / (1000 * 60);
     return diffInMinutes <= 10;
-  };
+  }, [created_at]);
 
-  const getStatusBadge = () => {
+  // Оптимизация: Мемоизируем статус бейдж
+  const statusBadge = useMemo(() => {
     switch (status) {
       case 'pending':
         return <Badge variant="warning">На проверке</Badge>;
@@ -97,7 +89,7 @@ const ProductCard: React.FC<ProductProps> = ({
       default:
         return null;
     }
-  };
+  }, [status]);
 
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent navigation if clicking on status change dialog or delete dialog or seller link
@@ -133,6 +125,7 @@ const ProductCard: React.FC<ProductProps> = ({
           }`}
           loading="lazy"
           decoding="async"
+          fetchpriority={isHot ? "high" : "auto"}
         />
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -143,7 +136,7 @@ const ProductCard: React.FC<ProductProps> = ({
         )}
         <div className="absolute top-2 right-2 flex flex-col gap-2 z-10">
           <div className="flex gap-2">
-            {getStatusBadge()}
+            {statusBadge}
             {typeof onStatusChange === "function" && status === "pending" && (
               <ProductDeleteDialog
                 productId={id}
@@ -152,7 +145,7 @@ const ProductCard: React.FC<ProductProps> = ({
               />
             )}
           </div>
-          {isHotLot() && (
+          {isHot && (
             <Badge className="bg-red-500 text-white border-none flex items-center gap-1 mt-2">
               <Flame className="h-3 w-3 fill-white" />
               HOT LOT
@@ -242,4 +235,5 @@ const ProductCard: React.FC<ProductProps> = ({
   );
 };
 
-export default ProductCard;
+// Оптимизация: Экспортируем компонент как мемоизированный
+export default React.memo(ProductCard);

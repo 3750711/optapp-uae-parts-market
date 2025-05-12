@@ -14,21 +14,26 @@ export const useIntersection = (
       observerRef.current.disconnect();
     }
 
-    // Create new observer
-    observerRef.current = new IntersectionObserver(
-      ([entry]) => {
-        // Update state when intersection status changes
-        setIsVisible(entry.isIntersecting);
-      },
-      { rootMargin, threshold: 0.1 } // Added threshold to make detection more reliable
-    );
+    // Safely create observer only in browser environment
+    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+      // Create new observer
+      observerRef.current = new IntersectionObserver(
+        ([entry]) => {
+          // Update state when intersection status changes
+          setIsVisible(entry.isIntersecting);
+        },
+        { 
+          rootMargin, 
+          threshold: 0.1 // Added threshold to make detection more reliable
+        }
+      );
 
-    const currentElement = element?.current;
+      const currentElement = element?.current;
 
-    // Start observing if element exists
-    if (currentElement) {
-      observerRef.current.observe(currentElement);
-      console.log("Now observing element for intersection with threshold 0.1");
+      // Start observing if element exists
+      if (currentElement) {
+        observerRef.current.observe(currentElement);
+      }
     }
 
     // Clean up on component unmount

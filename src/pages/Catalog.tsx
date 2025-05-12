@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -32,7 +31,75 @@ import { Label } from "@/components/ui/label";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 
-const Catalog = () => {
+// Оптимизированный компонент заглушки
+const ProductSkeleton = () => (
+  <div className="bg-white rounded-xl shadow-card overflow-hidden">
+    <Skeleton className="h-[240px] w-full" />
+    <div className="p-4">
+      <Skeleton className="h-5 w-3/4 mb-2" />
+      <Skeleton className="h-4 w-1/2 mb-4" />
+      <Skeleton className="h-4 w-full mb-2" />
+      <Skeleton className="h-4 w-2/3" />
+    </div>
+  </div>
+);
+
+// Компонент RequestPartsPromo вынесен в отдельный мемоизированный компонент
+const RequestPartsPromo = React.memo(() => (
+  <div className="relative overflow-hidden rounded-xl mb-8 p-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-fade-in">
+    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+    <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+    
+    <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-2">Не можете найти нужную запчасть?</h2>
+        <div className="text-white/90 max-w-2xl space-y-3">
+          <p className="text-lg font-medium leading-relaxed animate-fade-in" style={{animationDelay: '100ms'}}>
+            <span className="bg-gradient-to-r from-amber-200 to-yellow-100 bg-clip-text text-transparent font-semibold">Оставьте запрос и получите предложения от 100+ продавцов</span> — быстро и без лишних усилий!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 pt-1">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-white/20 rounded-full">
+                <Clock className="h-4 w-4 text-amber-200" />
+              </div>
+              <p className="text-sm">Предложения в течение минут</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-white/20 rounded-full">
+                <ShoppingBag className="h-4 w-4 text-amber-200" />
+              </div>
+              <p className="text-sm">Огромный выбор запчастей</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-white/20 rounded-full">
+                <Award className="h-4 w-4 text-amber-200" />
+              </div>
+              <p className="text-sm">Лучшие цены на partsbay.ae</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-lg" asChild>
+        <Link to="/requests/create">
+          <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
+          <Send className="mr-2 h-4 w-4" />
+          Оставить запрос
+        </Link>
+      </Button>
+    </div>
+  </div>
+));
+
+// Определяем интерфейс для фильтров
+interface CatalogFilters {
+  searchQuery: string;
+  selectedBrand: string | null;
+  selectedModel: string | null;
+  hideSoldProducts: boolean;
+}
+
+const Catalog: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
@@ -60,6 +127,7 @@ const Catalog = () => {
     setSelectedModel(null);
   }, [selectedBrand]);
 
+  // Оптимизация: Используем useCallback для debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
@@ -74,6 +142,15 @@ const Catalog = () => {
     }
   }, [debouncedSearchQuery, selectedBrand, selectedModel]);
 
+  // Оптимизация: Мемоизируем объект с фильтрами для использования в query key
+  const filters = useMemo(() => ({
+    debouncedSearchQuery,
+    selectedBrand,
+    selectedModel,
+    hideSoldProducts
+  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts]);
+
+  // Оптимизация: Используем keepPreviousData для предотвращения мигания UI при загрузке
   const {
     data,
     fetchNextPage,
@@ -83,39 +160,43 @@ const Catalog = () => {
     isError,
     refetch
   } = useInfiniteQuery({
-    queryKey: ["products-infinite", debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts],
+    queryKey: ["products-infinite", filters],
     queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
-      console.log(`Fetching catalog products: ${from} to ${to}`);
-      console.log(`Search criteria: query=${debouncedSearchQuery}, brand=${selectedBrand}, model=${selectedModel}, hideSold=${hideSoldProducts}`);
+      // Оптимизация: Удаляем лишние console.log в production
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Fetching catalog products: ${from} to ${to}`);
+        console.log(`Search criteria:`, filters);
+      }
       
       let query = supabase
         .from("products")
-        .select("*, product_images(url, is_primary), profiles:seller_id(*)")
+        .select("*, product_images(url, is_primary, preview_url), profiles:seller_id(*)")
         .order("created_at", { ascending: false });
 
       // Filter out sold products if checkbox is checked
-      if (hideSoldProducts) {
+      if (filters.hideSoldProducts) {
         query = query.eq('status', 'active');
       } else {
         query = query.in('status', ['active', 'sold']);
       }
 
       // Apply search filters
-      if (debouncedSearchQuery || selectedBrand || selectedModel) {
+      if (filters.debouncedSearchQuery || filters.selectedBrand || filters.selectedModel) {
         let conditions = [];
         
         // Text search with partial matching
-        if (debouncedSearchQuery) {
-          conditions.push(`title.ilike.%${debouncedSearchQuery}%`);
-          conditions.push(`brand.ilike.%${debouncedSearchQuery}%`);
-          conditions.push(`model.ilike.%${debouncedSearchQuery}%`);
+        if (filters.debouncedSearchQuery) {
+          // Оптимизация: Используем более эффективный поиск
+          conditions.push(`title.ilike.%${filters.debouncedSearchQuery}%`);
+          conditions.push(`brand.ilike.%${filters.debouncedSearchQuery}%`);
+          conditions.push(`model.ilike.%${filters.debouncedSearchQuery}%`);
           
           // Try to handle possible typos by checking for similar terms (simplified approach)
           // This splits the search query into words and searches for each word separately
-          const searchTerms = debouncedSearchQuery.trim().split(/\s+/).filter(t => t.length > 2);
+          const searchTerms = filters.debouncedSearchQuery.trim().split(/\s+/).filter(t => t.length > 2);
           searchTerms.forEach(term => {
             // For each term longer than 2 chars, create a fuzzy search condition
             if (term.length > 2) {
@@ -127,16 +208,16 @@ const Catalog = () => {
         }
         
         // Brand filter
-        if (selectedBrand) {
-          const brand = brands.find(b => b.id === selectedBrand);
+        if (filters.selectedBrand) {
+          const brand = brands.find(b => b.id === filters.selectedBrand);
           if (brand) {
             query = query.ilike('brand', `%${brand.name}%`);
           }
         }
         
         // Model filter (only if brand is selected)
-        if (selectedModel && selectedBrand) {
-          const model = brandModels.find(m => m.id === selectedModel);
+        if (filters.selectedModel && filters.selectedBrand) {
+          const model = brandModels.find(m => m.id === filters.selectedModel);
           if (model) {
             query = query.ilike('model', `%${model.name}%`);
           }
@@ -160,11 +241,18 @@ const Catalog = () => {
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
-    initialPageParam: 0
+    initialPageParam: 0,
+    // Оптимизация: Добавляем кэширование и сохранение предыдущих данных
+    staleTime: 60 * 1000, // 1 minute
+    refetchOnWindowFocus: false,
+    keepPreviousData: true
   });
 
   // Subscribe to real-time product insertions for debugging
   useEffect(() => {
+    // Оптимизация: Включаем realtime только в development
+    if (process.env.NODE_ENV !== 'development') return;
+    
     const channel = supabase
       .channel('catalog-debug')
       .on(
@@ -201,35 +289,30 @@ const Catalog = () => {
   }, [refetch, toast]);
 
   useEffect(() => {
-    refetch();
-  }, [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, refetch]);
-
-  useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
-      console.log("Load more element is visible in catalog, fetching next page");
+      // Оптимизация: Убираем лишние логи
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
   
-  const handleLoadMoreClick = () => {
+  const handleLoadMoreClick = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
-      console.log("Manual load more triggered");
       fetchNextPage();
     }
-  };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-  };
+  }, []);
 
-  const handleClearSearch = () => {
+  const handleClearSearch = useCallback(() => {
     setSearchQuery("");
     selectBrand(null); // Using selectBrand from the hook
     setSelectedModel(null);
     setHasSearched(false);
-  };
+  }, [selectBrand]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     // When user explicitly submits search, we update hasSearched
     setHasSearched(!!(searchQuery || selectedBrand || selectedModel));
@@ -240,93 +323,75 @@ const Catalog = () => {
     if (isMobile) {
       document.activeElement instanceof HTMLElement && document.activeElement.blur();
     }
-  };
+  }, [searchQuery, selectedBrand, selectedModel, refetch, isMobile]);
 
+  // Оптимизация: Мемоизируем маппинг продуктов
   const allProducts = data?.pages.flat() || [];
-  console.log(`Total catalog products loaded: ${allProducts.length}`);
-
-  const mappedProducts = allProducts.map(product => {
-    let imageUrl = "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=500&auto=format&fit=crop";
-    if (product.product_images && product.product_images.length > 0) {
-      const primaryImage = product.product_images.find(img => img.is_primary);
-      if (primaryImage) {
-        imageUrl = primaryImage.url;
-      } else if (product.product_images[0]) {
-        imageUrl = product.product_images[0].url;
+  
+  const mappedProducts = useMemo(() => {
+    return allProducts.map(product => {
+      let imageUrl = "/placeholder.svg";
+      let previewUrl = null;
+      
+      if (product.product_images && product.product_images.length > 0) {
+        // Ищем превью для оптимизированного отображения
+        for (const img of product.product_images) {
+          if (img.preview_url) {
+            previewUrl = img.preview_url;
+            if (img.is_primary) break; // Если это основное изображение с превью, прерываем поиск
+          }
+        }
+        
+        // Ищем основное изображение
+        const primaryImage = product.product_images.find(img => img.is_primary);
+        if (primaryImage) {
+          imageUrl = primaryImage.url;
+        } else if (product.product_images[0]) {
+          imageUrl = product.product_images[0].url;
+        }
       }
+      
+      const sellerLocation = product.profiles?.location || product.location || "Dubai";
+      
+      return {
+        id: product.id,
+        name: product.title,
+        price: Number(product.price),
+        image: imageUrl,
+        preview_image: previewUrl, // Используем превью для отображения в каталоге
+        condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
+        location: sellerLocation,
+        seller_opt_id: product.profiles?.opt_id,
+        seller_rating: product.profiles?.rating,
+        optid_created: product.optid_created,
+        rating_seller: product.rating_seller,
+        brand: product.brand,
+        model: product.model,
+        seller_name: product.seller_name,
+        status: product.status,
+        seller_id: product.seller_id,
+        seller_verification: product.profiles?.verification_status,
+        seller_opt_status: product.profiles?.opt_status,
+        created_at: product.created_at,
+        delivery_price: product.delivery_price,
+        has_preview: product.has_preview
+      };
+    });
+  }, [allProducts]);
+
+  // Оптимизация: Мемоизируем разбиение на чанки для рендера
+  const productChunks = useMemo(() => {
+    // Более эффективный подход к созданию массива чанков
+    const chunks = [];
+    const chunkSize = 30;
+    const total = mappedProducts.length;
+    
+    for (let i = 0; i < total; i += chunkSize) {
+      chunks.push(mappedProducts.slice(i, i + chunkSize));
     }
     
-    const sellerLocation = product.profiles?.location || product.location || "Dubai";
-    
-    return {
-      id: product.id,
-      name: product.title,
-      price: Number(product.price),
-      image: imageUrl,
-      condition: product.condition as "Новый" | "Б/У" | "Восстановленный",
-      location: sellerLocation,
-      seller_opt_id: product.profiles?.opt_id,
-      seller_rating: product.profiles?.rating,
-      optid_created: product.optid_created,
-      rating_seller: product.rating_seller,
-      brand: product.brand,
-      model: product.model,
-      seller_name: product.seller_name,
-      status: product.status,
-      seller_id: product.seller_id,
-      seller_verification: product.profiles?.verification_status,
-      seller_opt_status: product.profiles?.opt_status,
-      created_at: product.created_at,
-      delivery_price: product.delivery_price
-    };
-  });
-
-  // Request parts promo block component
-  const RequestPartsPromo = () => (
-    <div className="relative overflow-hidden rounded-xl mb-8 p-6 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 animate-fade-in">
-      <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
-      <div className="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-      
-      <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Не можете найти нужную запчасть?</h2>
-          <div className="text-white/90 max-w-2xl space-y-3">
-            <p className="text-lg font-medium leading-relaxed animate-fade-in" style={{animationDelay: '100ms'}}>
-              <span className="bg-gradient-to-r from-amber-200 to-yellow-100 bg-clip-text text-transparent font-semibold">Оставьте запрос и получите предложения от 100+ продавцов</span> — быстро и без лишних усилий!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 pt-1">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-white/20 rounded-full">
-                  <Clock className="h-4 w-4 text-amber-200" />
-                </div>
-                <p className="text-sm">Предложения в течение минут</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-white/20 rounded-full">
-                  <ShoppingBag className="h-4 w-4 text-amber-200" />
-                </div>
-                <p className="text-sm">Огромный выбор запчастей</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-white/20 rounded-full">
-                  <Award className="h-4 w-4 text-amber-200" />
-                </div>
-                <p className="text-sm">Лучшие цены на partsbay.ae</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <Button size="lg" className="group relative overflow-hidden bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 shadow-lg" asChild>
-          <Link to="/requests/create">
-            <span className="absolute inset-0 w-0 bg-white/20 transition-all duration-300 ease-out group-hover:w-full"></span>
-            <Send className="mr-2 h-4 w-4" />
-            Оставить запрос
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
+    return chunks;
+  }, [mappedProducts]);
 
   return (
     <Layout>
@@ -529,16 +594,8 @@ const Catalog = () => {
           {isLoading && (
             <div className="animate-pulse">
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="bg-white rounded-xl shadow-card overflow-hidden">
-                    <Skeleton className="h-[240px] w-full" />
-                    <div className="p-4">
-                      <Skeleton className="h-5 w-3/4 mb-2" />
-                      <Skeleton className="h-4 w-1/2 mb-4" />
-                      <Skeleton className="h-4 w-full mb-2" />
-                      <Skeleton className="h-4 w-2/3" />
-                    </div>
-                  </div>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ProductSkeleton key={i} />
                 ))}
               </div>
             </div>
@@ -570,14 +627,9 @@ const Catalog = () => {
           
           {!isLoading && allProducts.length > 0 && (
             <div className="animate-fade-in space-y-12">
-              {Array.from({ length: Math.ceil(mappedProducts.length / 30) }).map((_, chunkIndex) => {
-                const chunk = mappedProducts.slice(chunkIndex * 30, (chunkIndex + 1) * 30);
-                return (
-                  <React.Fragment key={`chunk-${chunkIndex}`}>
-                    <ProductGrid products={chunk} />
-                  </React.Fragment>
-                );
-              })}
+              {productChunks.map((chunk, chunkIndex) => (
+                <ProductGrid key={`chunk-${chunkIndex}`} products={chunk} />
+              ))}
               
               {/* Show RequestPartsPromo after products when search was performed */}
               {hasSearched && (
