@@ -1,491 +1,519 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, RefreshCw, CheckCircle, AlertTriangle, Search, RotateCw, Eye } from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
-import { massUpdateProductPreviewFlags, verifyProductPreviewGeneration, generateProductPreviews } from "@/utils/imageProcessingUtils";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { forceUpdateProductPreviews, checkAndRepairPreviewUrls, verifyProductPreviewGeneration, logImageProcessing } from "@/utils/imageProcessingUtils";
 
-interface UpdateStats {
-  processed: number;
-  updated: number;
-  failed: number;
-}
-
-interface ProductPreviewStatus {
-  id: string;
-  hasPreview: boolean;
-  totalImages: number;
-  imagesWithPreview: number;
-  images?: Array<{id: string, url: string, preview_url: string | null}>;
-}
-
-export const ProductPreviewUpdater: React.FC = () => {
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isChecking, setIsChecking] = useState(false);
+export default function ProductPreviewUpdater() {
   const [productId, setProductId] = useState('');
-  const [batchSize, setBatchSize] = useState(50);
-  const [stats, setStats] = useState<UpdateStats | null>(null);
-  const [productStatus, setProductStatus] = useState<ProductPreviewStatus | null>(null);
-  const [generationResult, setGenerationResult] = useState<string | null>(null);
-  const [detailedLogs, setDetailedLogs] = useState<string[]>([]);
-  const [showDetails, setShowDetails] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-  const handleProductCheck = async () => {
-    if (!productId) {
-      toast({
-        title: "Ошибка",
-        description: "Введите ID продукта",
-        variant: "destructive"
-      });
-      return;
-    }
+  // State for system status
+  const [systemStatus, setSystemStatus] = useState<{
+    missingPreviews: number;
+    totalImages: number;
+    checking: boolean;
+  }>({
+    missingPreviews: 0,
+    totalImages: 0,
+    checking: false
+  });
 
-    setIsChecking(true);
-    setProductStatus(null);
-    setGenerationResult(null);
-    setDetailedLogs([]);
-    
+  // Track async tasks
+  const [taskStatus, setTaskStatus] = useState<{
+    repairing: boolean;
+    forcing: boolean;
+    verifying: boolean;
+  }>({
+    repairing: false,
+    forcing: false,
+    verifying: false
+  });
+
+  // When the component mounts, check system status
+  useEffect(() => {
+    checkSystemStatus();
+  }, []);
+
+  // Function to check overall preview status
+  const checkSystemStatus = async () => {
     try {
-      // Add debug log
-      const debugLog = `[${new Date().toISOString()}] Starting product check for ID: ${productId}`;
-      setDetailedLogs(prev => [...prev, debugLog]);
-      
-      const result = await verifyProductPreviewGeneration(productId);
-      
-      if (result.success) {
-        // Fetch additional image data for debugging
-        const { data: imageData, error: imageError } = await supabase
-          .from('product_images')
-          .select('id, url, preview_url')
-          .eq('product_id', productId);
-          
-        if (imageError) {
-          setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Error fetching image data: ${imageError.message}`]);
-        } else {
-          setDetailedLogs(prev => [...prev, 
-            `[${new Date().toISOString()}] Fetched ${imageData?.length || 0} images for product ${productId}`,
-            ...imageData.map(img => `Image: ${img.url} | Preview: ${img.preview_url || 'MISSING'}`)
-          ]);
-        }
-        
-        setProductStatus({
-          id: productId,
-          hasPreview: result.hasPreview,
-          totalImages: result.totalImages,
-          imagesWithPreview: result.imagesWithPreview,
-          images: imageData
-        });
-        
-        toast({
-          title: "Проверка завершена",
-          description: `${result.imagesWithPreview} из ${result.totalImages} изображений имеют превью. Флаг has_preview: ${result.hasPreview ? "установлен" : "не установлен"}`
-        });
-      } else {
-        setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Product check failed`]);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось проверить превью для продукта",
-          variant: "destructive"
-        });
+      setSystemStatus(prev => ({ ...prev, checking: true }));
+
+      const { data: missingData, error: countError } = await supabase
+        .from('product_images')
+        .select('id', { count: 'exact' })
+        .is('preview_url', null);
+
+      const { data: totalData, error: totalError } = await supabase
+        .from('product_images')
+        .select('id', { count: 'exact' });
+
+      setSystemStatus({
+        missingPreviews: missingData?.length || 0,
+        totalImages: totalData?.length || 0,
+        checking: false
+      });
+
+      if (countError || totalError) {
+        console.error("Error checking system status:", countError || totalError);
       }
     } catch (error) {
-      console.error("Error verifying product preview:", error);
-      setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Exception during check: ${error instanceof Error ? error.message : String(error)}`]);
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при проверке превью",
-        variant: "destructive"
-      });
-    } finally {
-      setIsChecking(false);
+      console.error("Failed to check system status:", error);
+      setSystemStatus(prev => ({ ...prev, checking: false }));
     }
   };
 
-  const handleGeneratePreviews = async () => {
-    if (!productId) {
+  // Function to check and update a specific product
+  const checkAndUpdateProduct = async () => {
+    if (!productId.trim()) {
       toast({
-        title: "Ошибка",
-        description: "Введите ID продукта",
+        title: "Error",
+        description: "Please enter a product ID",
         variant: "destructive"
       });
       return;
     }
 
-    setIsProcessing(true);
-    setGenerationResult(null);
-    setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Starting preview generation for product: ${productId}`]);
-    
+    setLoading(true);
+    setResult(null);
+
     try {
-      // Call the Edge Function directly to generate previews
-      const { data, error } = await supabase.functions.invoke('generate-preview', {
-        body: { 
-          action: 'verify_product', 
-          productId
-        }
-      });
-      
-      if (error) {
-        console.error("Error generating previews:", error);
-        setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Edge function error: ${error.message}`]);
+      // First verify the product exists
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('id, title, has_preview')
+        .eq('id', productId.trim())
+        .single();
+
+      if (productError || !product) {
+        setLoading(false);
         toast({
-          title: "Ошибка",
-          description: "Произошла ошибка при генерации превью",
+          title: "Error",
+          description: "Product not found",
           variant: "destructive"
         });
         return;
       }
-      
-      console.log("Preview generation response:", data);
-      setDetailedLogs(prev => [...prev, 
-        `[${new Date().toISOString()}] Edge function response:`,
-        `Success: ${data.success}`,
-        `Message: ${data.message}`,
-        `Total Images: ${data.totalImages || 0}`,
-        `Updated Images: ${data.updatedImages || 0}`
-      ]);
-      
-      if (data.success) {
-        setGenerationResult(`${data.message}. Обработано изображений: ${data.totalImages}, обновлено: ${data.updatedImages}`);
+
+      // Check the product images
+      const { data: imageData, error: imageError } = await supabase
+        .from('product_images')
+        .select('id, url, preview_url')
+        .eq('product_id', productId);
+
+      if (imageError) {
+        throw imageError;
+      }
+
+      // Log the initial state
+      logImageProcessing('Admin:PreviewCheck', {
+        productId,
+        totalImages: imageData?.length || 0,
+        imagesWithPreview: imageData?.filter(img => !!img.preview_url).length || 0,
+        hasPreviewFlag: product.has_preview
+      });
+
+      // Call the Edge Function to generate previews
+      const { data: response, error: fnError } = await supabase.functions.invoke('generate-preview', {
+        body: { 
+          action: 'verify_product', 
+          productId: productId.trim()
+        }
+      });
+
+      if (fnError) {
+        throw fnError;
+      }
+
+      // Get updated state
+      const { data: updatedImageData } = await supabase
+        .from('product_images')
+        .select('id, url, preview_url')
+        .eq('product_id', productId);
+        
+      const { data: updatedProduct } = await supabase
+        .from('products')
+        .select('id, title, has_preview')
+        .eq('id', productId.trim())
+        .single();
+
+      setResult({
+        success: response.success,
+        message: response.message,
+        productTitle: product.title,
+        initialState: {
+          totalImages: imageData?.length || 0,
+          imagesWithPreview: imageData?.filter(img => !!img.preview_url).length || 0,
+          hasPreviewFlag: product.has_preview
+        },
+        currentState: {
+          totalImages: updatedImageData?.length || 0,
+          imagesWithPreview: updatedImageData?.filter(img => !!img.preview_url).length || 0,
+          hasPreviewFlag: updatedProduct?.has_preview
+        },
+        imageDetails: updatedImageData?.map(img => ({
+          id: img.id,
+          url: img.url,
+          hasPreview: !!img.preview_url,
+          previewUrl: img.preview_url
+        })) || []
+      });
+
+      if (response.success) {
         toast({
-          title: "Превью сгенерированы",
-          description: data.message
+          title: "Success",
+          description: response.message,
         });
-        
-        // Verify database updates for previews
-        setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Verifying database updates for previews...`]);
-        const { data: updatedImages, error: dbCheckError } = await supabase
-          .from('product_images')
-          .select('id, url, preview_url')
-          .eq('product_id', productId);
-          
-        if (dbCheckError) {
-          setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Error checking database: ${dbCheckError.message}`]);
-        } else {
-          setDetailedLogs(prev => [...prev, 
-            `[${new Date().toISOString()}] Database check complete. Found ${updatedImages.length} images.`,
-            ...updatedImages.map(img => `Image ID: ${img.id} | Preview URL: ${img.preview_url || 'MISSING'}`)
-          ]);
-        }
-        
-        // Manually update the has_preview flag to ensure it's set correctly
-        const { error: flagError } = await supabase.rpc('update_product_has_preview_flag', {
-          p_product_id: productId
-        });
-        
-        if (flagError) {
-          setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Error updating flag: ${flagError.message}`]);
-        } else {
-          setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Has_preview flag updated successfully`]);
-        }
-        
-        // Automatically re-check the status after generation
-        await handleProductCheck();
       } else {
-        setGenerationResult(`Ошибка: ${data.message}`);
-        setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Edge function reported error: ${data.message}`]);
         toast({
-          title: "Ошибка",
-          description: data.message,
-          variant: "destructive"
+          title: "Warning",
+          description: response.message || "Operation completed with issues",
+          variant: "default",
         });
       }
+
+      // Refresh system status after update
+      checkSystemStatus();
     } catch (error) {
-      console.error("Error generating previews:", error);
-      setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Exception during generation: ${error instanceof Error ? error.message : String(error)}`]);
-      setGenerationResult(`Ошибка: ${error instanceof Error ? error.message : String(error)}`);
+      console.error("Error updating previews:", error);
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при генерации превью",
-        variant: "destructive"
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update previews",
+        variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setLoading(false);
     }
   };
 
-  // New function to explicitly update preview URLs in the database
-  const handleUpdatePreviewDb = async () => {
-    if (!productId || !productStatus?.images) {
+  // Function to repair preview URLs for a product
+  const repairProductPreviews = async () => {
+    if (!productId.trim()) {
       toast({
-        title: "Ошибка",
-        description: "Сначала проверьте превью для продукта",
+        title: "Error",
+        description: "Please enter a product ID",
         variant: "destructive"
       });
       return;
     }
 
-    setIsProcessing(true);
-    setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Starting database update for previews...`]);
-    
+    setTaskStatus(prev => ({ ...prev, repairing: true }));
+
     try {
-      // For each image that has a missing preview but should have one
-      let updatedCount = 0;
+      const result = await checkAndRepairPreviewUrls(productId.trim());
       
-      for (const img of productStatus.images) {
-        if (!img.preview_url) {
-          // Try to construct the preview URL from the original URL
-          const urlParts = img.url.split('.');
-          const extension = urlParts.pop() || '';
-          const basePath = urlParts.join('.');
-          const possiblePreviewUrl = `${basePath}-preview.webp`;
-          
-          setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Trying to update preview for image ${img.id} to ${possiblePreviewUrl}`]);
-          
-          // Update the preview_url in the database
-          const { error } = await supabase
-            .from('product_images')
-            .update({ preview_url: possiblePreviewUrl })
-            .eq('id', img.id);
-            
-          if (error) {
-            setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Error updating image ${img.id}: ${error.message}`]);
-          } else {
-            updatedCount++;
-            setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Successfully updated image ${img.id}`]);
-          }
-        }
-      }
-      
-      // Update the has_preview flag
-      const { error: flagError } = await supabase.rpc('update_product_has_preview_flag', {
-        p_product_id: productId
-      });
-      
-      if (flagError) {
-        setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Error updating flag: ${flagError.message}`]);
+      if (result.success) {
+        toast({
+          title: "Repair Complete",
+          description: result.message,
+        });
       } else {
-        setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Has_preview flag updated successfully`]);
+        toast({
+          title: "Repair Failed",
+          description: result.message,
+          variant: "destructive",
+        });
       }
       
-      toast({
-        title: "База данных обновлена",
-        description: `Обновлено ${updatedCount} записей в базе данных`
-      });
-      
-      // Refresh status
-      await handleProductCheck();
+      // Refresh data
+      checkAndUpdateProduct();
     } catch (error) {
-      console.error("Error updating database:", error);
-      setDetailedLogs(prev => [...prev, `[${new Date().toISOString()}] Exception during DB update: ${error instanceof Error ? error.message : String(error)}`]);
+      console.error("Error repairing previews:", error);
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при обновлении базы данных",
-        variant: "destructive"
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to repair previews",
+        variant: "destructive",
       });
     } finally {
-      setIsProcessing(false);
+      setTaskStatus(prev => ({ ...prev, repairing: false }));
     }
   };
 
-  const handleMassUpdate = async () => {
-    setIsProcessing(true);
-    setStats(null);
-    
-    try {
-      const results = await massUpdateProductPreviewFlags(batchSize);
-      setStats(results);
-      
+  // Function to force update all previews
+  const forceUpdatePreviews = async () => {
+    if (!productId.trim()) {
       toast({
-        title: "Обновление завершено",
-        description: `Обработано ${results.processed} продуктов, обновлено ${results.updated}, ошибок: ${results.failed}`
-      });
-    } catch (error) {
-      console.error("Error in mass update:", error);
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при массовом обновлении",
+        title: "Error",
+        description: "Please enter a product ID",
         variant: "destructive"
       });
+      return;
+    }
+
+    setTaskStatus(prev => ({ ...prev, forcing: true }));
+
+    try {
+      const result = await forceUpdateProductPreviews(productId.trim());
+      
+      if (result.success) {
+        toast({
+          title: "Force Update Complete",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Force Update Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+      
+      setResult(prev => ({
+        ...prev,
+        forceUpdateDetails: result.details
+      }));
+      
+      // Refresh data
+      checkAndUpdateProduct();
+    } catch (error) {
+      console.error("Error forcing preview updates:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to force update previews",
+        variant: "destructive",
+      });
     } finally {
-      setIsProcessing(false);
+      setTaskStatus(prev => ({ ...prev, forcing: false }));
+    }
+  };
+
+  // Function to verify database state
+  const verifyDatabaseState = async () => {
+    if (!productId.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a product ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setTaskStatus(prev => ({ ...prev, verifying: true }));
+
+    try {
+      const result = await verifyProductPreviewGeneration(productId.trim());
+      
+      if (result.success) {
+        toast({
+          title: "Verification Complete",
+          description: `Found ${result.imagesWithPreview} preview(s) out of ${result.totalImages} images`,
+        });
+        
+        // If flag state is wrong, fix it
+        if (result.hasPreview !== (result.imagesWithPreview > 0)) {
+          toast({
+            title: "Flag Mismatch Detected",
+            description: "Fixed has_preview flag in database",
+          });
+        }
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: "Could not verify product preview state",
+          variant: "destructive",
+        });
+      }
+      
+      setResult(prev => ({
+        ...prev,
+        verificationDetails: result
+      }));
+      
+      // Refresh data
+      checkAndUpdateProduct();
+    } catch (error) {
+      console.error("Error verifying database state:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to verify database state",
+        variant: "destructive",
+      });
+    } finally {
+      setTaskStatus(prev => ({ ...prev, verifying: false }));
+    }
+  };
+
+  // Run a batch job for preview generation
+  const runBatchProcess = async () => {
+    try {
+      setLoading(true);
+      
+      // Check how many images need processing
+      const { count: missingCount, error: countError } = await supabase
+        .from('product_images')
+        .select('*', { count: 'exact', head: true })
+        .is('preview_url', null);
+        
+      if (countError) {
+        throw countError;
+      }
+      
+      const batchSize = 20;
+      const { data: response, error: fnError } = await supabase.functions.invoke('generate-preview', {
+        body: { 
+          action: 'process_batch',
+          batchSize 
+        }
+      });
+      
+      if (fnError) {
+        throw fnError;
+      }
+      
+      toast({
+        title: "Batch Process Complete",
+        description: `Processed ${response.processed} images with ${response.success} successes. ${response.remaining} remaining.`,
+      });
+      
+      // Refresh system status
+      checkSystemStatus();
+    } catch (error) {
+      console.error("Error running batch process:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to run batch process",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Card>
+    <Card className="mb-8">
       <CardHeader>
-        <CardTitle>Управление превью для продуктов</CardTitle>
+        <CardTitle>Product Preview Updater</CardTitle>
         <CardDescription>
-          Проверка и обновление флага has_preview для существующих продуктов
+          Check and update product preview images
         </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <div className="font-medium text-sm">Проверка отдельного продукта</div>
-          <div className="flex items-center gap-2 mb-2">
-            <Input
-              placeholder="ID продукта"
-              value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleProductCheck} 
-              disabled={isChecking || !productId}
-              size="sm"
-              variant="outline"
-            >
-              {isChecking ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
-              ) : (
-                <Search className="h-4 w-4 mr-1" />
-              )}
-              Проверить
-            </Button>
-          </div>
-
-          {productStatus && (
-            <div className="p-3 bg-secondary/20 rounded-md">
-              <h4 className="font-semibold mb-2 flex items-center">
-                {productStatus.hasPreview ? (
-                  <CheckCircle className="text-green-500 w-4 h-4 mr-2" />
-                ) : (
-                  <AlertTriangle className="text-amber-500 w-4 h-4 mr-2" />
+        
+        <div className="flex justify-between mt-2 text-sm">
+          <div>
+            <span className="font-medium">System Status: </span>
+            {systemStatus.checking ? (
+              <span className="text-gray-500">Checking...</span>
+            ) : (
+              <span>
+                {systemStatus.missingPreviews} of {systemStatus.totalImages} images missing previews
+                {systemStatus.missingPreviews > 0 && (
+                  <span className="text-yellow-600 ml-1">
+                    ({((systemStatus.missingPreviews / systemStatus.totalImages) * 100).toFixed(1)}%)
+                  </span>
                 )}
-                Статус превью
-              </h4>
-              <div className="space-y-1 text-sm">
-                <div>Всего изображений: <span className="font-medium">{productStatus.totalImages}</span></div>
-                <div>С превью: <span className="font-medium">{productStatus.imagesWithPreview}</span></div>
-                <div>Флаг has_preview: <span className={`font-medium ${productStatus.hasPreview ? 'text-green-600' : 'text-red-600'}`}>
-                  {productStatus.hasPreview ? "Установлен" : "Не установлен"}
-                </span></div>
+              </span>
+            )}
+          </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={runBatchProcess} 
+            disabled={loading || systemStatus.missingPreviews === 0}
+          >
+            {loading ? (
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+            ) : null}
+            Process Batch
+          </Button>
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        <div className="flex gap-2 mb-4">
+          <Input
+            placeholder="Enter Product ID"
+            value={productId}
+            onChange={(e) => setProductId(e.target.value)}
+          />
+          <Button onClick={checkAndUpdateProduct} disabled={loading}>
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            ) : null}
+            Check
+          </Button>
+        </div>
+        
+        {result && (
+          <div className="bg-gray-50 p-4 rounded-md text-sm">
+            <h3 className="font-bold mb-2">Result for: {result.productTitle}</h3>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="border rounded p-3">
+                <h4 className="font-semibold text-gray-700">Initial State</h4>
+                <p>Images with preview: {result.initialState.imagesWithPreview} of {result.initialState.totalImages}</p>
+                <p>Has preview flag: {result.initialState.hasPreviewFlag ? 'Yes' : 'No'}</p>
               </div>
               
-              <div className="flex flex-wrap gap-2 mt-3">
-                {productStatus.imagesWithPreview < productStatus.totalImages && (
-                  <Button
-                    onClick={handleGeneratePreviews}
-                    disabled={isProcessing}
-                    size="sm"
-                    className="flex-1"
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                    ) : (
-                      <RotateCw className="h-4 w-4 mr-1" />
-                    )}
-                    Сгенерировать превью
-                  </Button>
-                )}
-                
-                <Button
-                  onClick={handleUpdatePreviewDb}
-                  disabled={isProcessing || !productStatus}
-                  size="sm"
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Обновить БД
-                </Button>
-                
-                <Button
-                  onClick={() => setShowDetails(!showDetails)}
-                  size="sm"
-                  variant="ghost"
-                >
-                  <Eye className="h-4 w-4 mr-1" />
-                  {showDetails ? "Скрыть детали" : "Показать детали"}
-                </Button>
+              <div className="border rounded p-3">
+                <h4 className="font-semibold text-gray-700">Current State</h4>
+                <p>Images with preview: {result.currentState.imagesWithPreview} of {result.currentState.totalImages}</p>
+                <p>Has preview flag: {result.currentState.hasPreviewFlag ? 'Yes' : 'No'}</p>
               </div>
             </div>
-          )}
-
-          {showDetails && productStatus?.images && (
-            <div className="mt-2 p-3 bg-gray-100 rounded-md overflow-auto max-h-80">
-              <h4 className="font-semibold mb-2">Детали изображений</h4>
-              <div className="space-y-2 text-xs">
-                {productStatus.images.map((img, idx) => (
-                  <div key={img.id} className="border-b pb-2">
-                    <div className="font-medium">Изображение {idx + 1}</div>
-                    <div className="truncate">URL: {img.url}</div>
-                    <div className={img.preview_url ? "text-green-600" : "text-red-600"}>
-                      Preview URL: {img.preview_url || 'Отсутствует'}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            
+            <div className="flex gap-2 mb-4">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={repairProductPreviews}
+                disabled={taskStatus.repairing}
+              >
+                {taskStatus.repairing && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                Repair URLs
+              </Button>
+              
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={forceUpdatePreviews}
+                disabled={taskStatus.forcing}
+              >
+                {taskStatus.forcing && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                Force Update
+              </Button>
+              
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={verifyDatabaseState}
+                disabled={taskStatus.verifying}
+              >
+                {taskStatus.verifying && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+                Verify DB
+              </Button>
             </div>
-          )}
-
-          {generationResult && (
-            <div className={`p-3 rounded-md ${generationResult.includes("Ошибка") ? "bg-red-100" : "bg-green-100"}`}>
-              <p className="text-sm">{generationResult}</p>
-            </div>
-          )}
-          
-          {showDetails && detailedLogs.length > 0 && (
-            <div className="mt-2 p-3 bg-gray-100 rounded-md overflow-auto max-h-80">
-              <h4 className="font-semibold mb-2">Логи операций</h4>
-              <pre className="text-xs whitespace-pre-wrap">
-                {detailedLogs.map((log, idx) => (
-                  <div key={idx} className="pb-1">{log}</div>
-                ))}
-              </pre>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-2 pt-4 border-t">
-          <div className="font-medium text-sm">Массовое обновление флагов превью</div>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              placeholder="Количество продуктов"
-              value={batchSize}
-              onChange={(e) => setBatchSize(parseInt(e.target.value) || 50)}
-              className="w-32"
-              min={1}
-              max={500}
-            />
-            <Button 
-              onClick={handleMassUpdate} 
-              disabled={isProcessing}
-              className="flex-1"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Обработка...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Обновить флаги превью
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {stats && (
-          <div className="mt-4 p-4 bg-secondary/20 rounded-md">
-            <h4 className="font-semibold mb-2 flex items-center">
-              {stats.failed > 0 ? (
-                <AlertTriangle className="text-amber-500 w-4 h-4 mr-2" />
-              ) : (
-                <CheckCircle className="text-green-500 w-4 h-4 mr-2" />
-              )}
-              Результаты обработки
-            </h4>
-            <div className="space-y-1 text-sm">
-              <div>Всего обработано: <span className="font-medium">{stats.processed}</span></div>
-              <div>Успешно обновлено: <span className="font-medium text-green-600">{stats.updated}</span></div>
-              {stats.failed > 0 && (
-                <div>С ошибками: <span className="font-medium text-red-600">{stats.failed}</span></div>
-              )}
+            
+            <div className="overflow-auto max-h-64">
+              <table className="w-full text-xs">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-1 text-left">Image ID</th>
+                    <th className="p-1 text-left">Preview</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {result.imageDetails.map((img: any) => (
+                    <tr key={img.id} className={img.hasPreview ? "" : "bg-red-50"}>
+                      <td className="p-1 font-mono text-xs truncate max-w-[150px]">{img.id}</td>
+                      <td className="p-1">{img.hasPreview ? "✅" : "❌"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
       </CardContent>
-      <CardFooter className="text-xs text-muted-foreground">
-        <p>Система автоматически отслеживает создание превью при загрузке новых изображений продуктов. Этот инструмент помогает восстановить флаги для существующих продуктов.</p>
+      
+      <CardFooter className="text-xs text-gray-500">
+        Ensure all images have properly generated preview URLs and updated database records.
       </CardFooter>
     </Card>
   );
-};
-
-export default ProductPreviewUpdater;
+}

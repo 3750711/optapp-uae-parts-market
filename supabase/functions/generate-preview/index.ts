@@ -147,6 +147,42 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
       .from(bucketPath)
       .getPublicUrl(previewFileName);
     
+    // Important: Update the database with the preview URL
+    try {
+      const previewUrl = publicUrlData.publicUrl;
+      
+      // Find the image in the database
+      const { data: imageData, error: imageError } = await supabase
+        .from('product_images')
+        .select('id')
+        .eq('url', imageUrl)
+        .limit(1);
+        
+      if (imageError) {
+        logOperation("DbLookupError", { error: imageError.message, imageUrl, productId });
+      } else if (imageData && imageData.length > 0) {
+        // Update the preview_url in the database
+        const { error: updateError } = await supabase
+          .from('product_images')
+          .update({ preview_url: previewUrl })
+          .eq('id', imageData[0].id);
+          
+        if (updateError) {
+          logOperation("DbUpdateError", { error: updateError.message, imageId: imageData[0].id, productId });
+        } else {
+          logOperation("DbUpdated", { imageId: imageData[0].id, productId, previewUrl });
+        }
+      } else {
+        logOperation("ImageNotFound", { imageUrl, productId });
+      }
+    } catch (dbError) {
+      logOperation("DbException", { 
+        error: dbError instanceof Error ? dbError.message : String(dbError),
+        imageUrl,
+        productId
+      });
+    }
+    
     logOperation("PreviewGenerated", { 
       previewUrl: publicUrlData.publicUrl, 
       originalUrl: imageUrl,
@@ -214,18 +250,45 @@ async function processImageBatch(batchSize = 10) {
           
           // Update the has_preview flag in the product table
           try {
-            const { error: rpcError } = await supabase
-              .rpc('update_product_has_preview_flag', { 
-                p_product_id: image.product_id 
+            // First, check if there are any images with previews for this product
+            const { data: productImages } = await supabase
+              .from('product_images')
+              .select('preview_url')
+              .eq('product_id', image.product_id);
+              
+            const hasAnyPreviews = productImages?.some(img => !!img.preview_url) || false;
+            
+            // Update product directly
+            const { error: updateProductError } = await supabase
+              .from('products')
+              .update({ has_preview: hasAnyPreviews })
+              .eq('id', image.product_id);
+              
+            if (updateProductError) {
+              logOperation("DirectFlagUpdateError", {
+                error: updateProductError.message,
+                productId: image.product_id
               });
               
-            if (rpcError) {
-              logOperation("FlagUpdateError", { 
-                error: rpcError.message, 
-                productId: image.product_id 
-              });
+              // Fallback to RPC function
+              const { error: rpcError } = await supabase
+                .rpc('update_product_has_preview_flag', { 
+                  p_product_id: image.product_id 
+                });
+                
+              if (rpcError) {
+                logOperation("FlagUpdateError", { 
+                  error: rpcError.message, 
+                  productId: image.product_id 
+                });
+              } else {
+                logOperation("FlagUpdatedViaRpc", { productId: image.product_id });
+              }
             } else {
-              logOperation("FlagUpdated", { productId: image.product_id });
+              logOperation("FlagUpdated", { 
+                productId: image.product_id,
+                hasPreview: hasAnyPreviews
+              });
             }
           } catch (rpcError) {
             logOperation("FlagUpdateException", { 
@@ -336,20 +399,44 @@ async function verifyAndFixProductPreviews(productId: string): Promise<{
       }
     }
     
-    // Update the has_preview flag
+    // Update the product's has_preview flag
+    let flagUpdateSuccess = false;
     try {
-      const { error: rpcError } = await supabase
-        .rpc('update_product_has_preview_flag', { 
-          p_product_id: productId 
+      // Direct update based on current state
+      const hasAnyPreviews = (images.filter(img => !!img.preview_url).length + updatedCount) > 0;
+      
+      const { error: directUpdateError } = await supabase
+        .from('products')
+        .update({ has_preview: hasAnyPreviews })
+        .eq('id', productId);
+        
+      if (directUpdateError) {
+        logOperation("VerifyDirectUpdateError", {
+          error: directUpdateError.message,
+          productId
         });
         
-      if (rpcError) {
-        logOperation("VerifyFlagUpdateError", { 
-          error: rpcError.message, 
-          productId 
-        });
+        // Try RPC function as fallback
+        const { error: rpcError } = await supabase
+          .rpc('update_product_has_preview_flag', { 
+            p_product_id: productId 
+          });
+          
+        if (rpcError) {
+          logOperation("VerifyFlagUpdateError", { 
+            error: rpcError.message, 
+            productId 
+          });
+        } else {
+          flagUpdateSuccess = true;
+          logOperation("VerifyFlagUpdatedViaRpc", { productId });
+        }
       } else {
-        logOperation("VerifyFlagUpdated", { productId });
+        flagUpdateSuccess = true;
+        logOperation("VerifyFlagUpdated", { 
+          productId,
+          hasPreview: hasAnyPreviews
+        });
       }
     } catch (rpcError) {
       logOperation("VerifyFlagUpdateException", { 
@@ -358,10 +445,24 @@ async function verifyAndFixProductPreviews(productId: string): Promise<{
       });
     }
     
+    // Final verification of database state
+    const { data: verifyImages } = await supabase
+      .from('product_images')
+      .select('preview_url')
+      .eq('product_id', productId);
+      
+    const { data: product } = await supabase
+      .from('products')
+      .select('has_preview')
+      .eq('id', productId)
+      .single();
+      
     logOperation("VerifyComplete", { 
       productId, 
       totalImages: images.length,
-      updatedImages: updatedCount
+      updatedImages: updatedCount,
+      finalPreviewCount: verifyImages?.filter(img => !!img.preview_url).length || 0,
+      hasPreviewFlag: product?.has_preview
     });
     
     return {
@@ -386,6 +487,7 @@ async function verifyAndFixProductPreviews(productId: string): Promise<{
   }
 }
 
+// Main handler
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -493,15 +595,33 @@ serve(async (req) => {
         
         // Update the has_preview flag in the product table
         try {
-          await supabase
-            .rpc('update_product_has_preview_flag', { 
-              p_product_id: image.product_id 
-            });
+          // Direct update for better reliability
+          const { data: product, error: productError } = await supabase
+            .from('products')
+            .update({ has_preview: true })
+            .eq('id', image.product_id)
+            .select('id')
+            .single();
             
-          logOperation("SingleImageFlagUpdated", { 
-            productId: image.product_id,
-            imageId: image.id
-          });
+          if (!productError) {
+            logOperation("SingleImageFlagUpdated", { 
+              productId: image.product_id,
+              imageId: image.id,
+              directUpdate: true
+            });
+          } else {
+            // Fallback to RPC
+            await supabase
+              .rpc('update_product_has_preview_flag', { 
+                p_product_id: image.product_id 
+              });
+              
+            logOperation("SingleImageFlagUpdated", { 
+              productId: image.product_id,
+              imageId: image.id,
+              directUpdate: false
+            });
+          }
         } catch (rpcError) {
           logOperation("SingleImageFlagUpdateError", { 
             error: rpcError instanceof Error ? rpcError.message : String(rpcError),
@@ -531,19 +651,19 @@ serve(async (req) => {
       );
     }
     else if (action === 'regenerate_previews') {
-      // Эндпоинт для перегенерации превью для всех изображений, включая те, у которых уже есть превью
+      // Endpoint for regenerating previews for all images, including those that already have previews
       const actualLimit = limit || 10;
       
       let query = supabase
         .from('product_images')
         .select('id, url, product_id');
       
-      // Если указаны определенные ID продуктов, фильтруем по ним
+      // Filter by specific product IDs if provided
       if (productIds && Array.isArray(productIds) && productIds.length > 0) {
         query = query.in('product_id', productIds);
       }
       
-      // Ограничиваем количество записей
+      // Limit the number of records
       const { data: images, error } = await query.limit(actualLimit);
       
       if (error) {
@@ -564,7 +684,7 @@ serve(async (req) => {
       const processedProductIds = new Set();
       
       for (const image of images || []) {
-        // Проверяем URL перед обработкой
+        // Check URL before processing
         if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
           logOperation("RegenerateInvalidUrl", { 
             imageId: image.id, 
@@ -604,12 +724,23 @@ serve(async (req) => {
       // Update the has_preview flag for all processed products
       for (const pid of processedProductIds) {
         try {
-          await supabase
-            .rpc('update_product_has_preview_flag', { 
-              p_product_id: pid 
-            });
+          // Direct update for reliability
+          const { error: directUpdateError } = await supabase
+            .from('products')
+            .update({ has_preview: true })
+            .eq('id', pid);
             
-          logOperation("RegenerateFlagUpdated", { productId: pid });
+          if (directUpdateError) {
+            // Fallback to RPC
+            await supabase
+              .rpc('update_product_has_preview_flag', { 
+                p_product_id: pid 
+              });
+              
+            logOperation("RegenerateFlagUpdatedViaRpc", { productId: pid });
+          } else {
+            logOperation("RegenerateFlagUpdated", { productId: pid });
+          }
         } catch (rpcError) {
           logOperation("RegenerateFlagError", { 
             error: rpcError instanceof Error ? rpcError.message : String(rpcError),
@@ -629,7 +760,7 @@ serve(async (req) => {
       );
     }
     else if (action === 'verify_product' && productId) {
-      // New action to verify if a product has valid previews
+      // Verify if a product has valid previews
       const result = await verifyAndFixProductPreviews(productId);
       
       return new Response(
