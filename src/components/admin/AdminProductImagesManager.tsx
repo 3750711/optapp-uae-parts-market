@@ -148,7 +148,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         // Pre-process and optimize image to 500KB target
         const processedFile = await preProcessImageForUpload(file, 25, 500);
         
-        // Create preview image (up to 200KB)
+        // Create preview image (up to 200KB) - for catalog display
         const previewFile = await createPreviewImage(file);
         
         // Generate a unique filename with timestamp and random string
@@ -158,49 +158,55 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         const previewFileName = `${uniqueId}-preview.${previewFile.name.split('.').pop()}`;
         
         // Upload original image to Supabase storage
-        const { data, error } = await supabase.storage
+        const { data: originalData, error: originalError } = await supabase.storage
           .from('product-images')
           .upload(fileName, processedFile, {
             cacheControl: '3600',
             contentType: processedFile.type,
           });
           
-        if (error) {
-          console.error("Upload error:", error);
+        if (originalError) {
+          console.error("Original upload error:", originalError);
           toast({
             title: "Ошибка загрузки",
-            description: error.message,
+            description: originalError.message,
             variant: "destructive",
           });
           continue;
         }
-        
+
+        // Get public URL for original image
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(fileName);
+          
         // Upload preview image to Supabase storage
-        const { error: previewError } = await supabase.storage
+        const { data: previewData, error: previewError } = await supabase.storage
           .from('product-images')
           .upload(previewFileName, previewFile, {
             cacheControl: '3600',
             contentType: previewFile.type,
           });
           
-        if (previewError) {
+        // Get public URL for preview image
+        let previewUrl = null;
+        if (!previewError) {
+          const { data: { publicUrl: previewPublicUrl } } = supabase.storage
+            .from('product-images')
+            .getPublicUrl(previewFileName);
+          previewUrl = previewPublicUrl;
+        } else {
           console.warn("Preview upload error:", previewError);
-          // Continue with the original image even if preview upload fails
         }
         
-        // Get the public URL of the original image
-        const { data: { publicUrl } } = supabase.storage
-          .from('product-images')
-          .getPublicUrl(fileName);
-          
-        // Save reference in the database
+        // Save reference in the database with both URLs
         const { error: dbError } = await supabase
           .from('product_images')
           .insert({
             product_id: productId,
             url: publicUrl,
             is_primary: images.length === 0, // First image is primary if no images exist
-            preview_url: previewError ? null : supabase.storage.from('product-images').getPublicUrl(previewFileName).data.publicUrl
+            preview_url: previewUrl
           });
           
         if (dbError) {
