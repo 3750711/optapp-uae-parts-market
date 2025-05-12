@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -15,6 +14,7 @@ export interface ProductProps {
   name: string;
   price: number;
   image: string;
+  preview_image?: string; // Added field for preview image
   location: string;
   seller_opt_id?: string;
   seller_rating?: number;
@@ -36,7 +36,8 @@ const ProductCard: React.FC<ProductProps> = ({
   id, 
   name, 
   price, 
-  image, 
+  image,
+  preview_image, // Added preview image parameter
   location,
   rating_seller,
   brand,
@@ -57,6 +58,9 @@ const ProductCard: React.FC<ProductProps> = ({
   const isMobile = useIsMobile();
   
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
+
+  // Use the preview image if available, otherwise fall back to the original image
+  const displayImage = preview_image || image;
 
   const isHotLot = () => {
     if (!created_at) return false;
@@ -108,11 +112,13 @@ const ProductCard: React.FC<ProductProps> = ({
     >
       <div className="h-[240px] overflow-hidden relative rounded-t-xl bg-white flex items-center justify-center">
         <img 
-          src={image || "/placeholder.svg"} 
+          src={displayImage || "/placeholder.svg"} 
           alt={name} 
           className={`max-h-full max-w-full object-contain group-hover:scale-105 transition-all duration-500 bg-white ${
             status === 'sold' ? 'opacity-50' : ''
           }`}
+          loading="lazy"
+          decoding="async"
         />
         {status === 'sold' && (
           <div className="absolute inset-0 flex items-center justify-center">

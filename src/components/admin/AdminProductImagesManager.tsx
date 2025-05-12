@@ -1,9 +1,10 @@
+
 import React, { useState, useCallback } from "react";
 import { X, Camera, ImagePlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { preProcessImageForUpload } from "@/utils/imageCompression";
+import { preProcessImageForUpload, createPreviewImage } from "@/utils/imageCompression";
 
 interface AdminProductImagesManagerProps {
   productId: string;
@@ -26,6 +27,41 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }, []);
 
+  // Helper to extract storage path from URL
+  const extractStoragePath = (url: string): string | null => {
+    try {
+      if (url.includes('/order-images/')) {
+        return 'order-images/' + url.split('/').slice(url.split('/').findIndex(p => p === 'order-images') + 1).join('/');
+      } else if (url.includes('/product-images/')) {
+        return 'product-images/' + url.split('/').slice(url.split('/').findIndex(p => p === 'product-images') + 1).join('/');  
+      } else {
+        // Fallback to original approach
+        return url.split('/').slice(url.split('/').findIndex(p => p === 'storage') + 2).join('/');
+      }
+    } catch (error) {
+      console.error("Failed to extract path from URL:", url, error);
+      return null;
+    }
+  };
+
+  // Helper to extract bucket from URL
+  const extractBucket = (url: string): string => {
+    if (url.includes('/order-images/')) {
+      return 'order-images';
+    } else if (url.includes('/product-images/')) {
+      return 'product-images';
+    }
+    return 'product-images'; // Default bucket
+  };
+
+  // Helper to create preview URL from original URL
+  const getPreviewUrl = (originalUrl: string): string => {
+    const urlParts = originalUrl.split('.');
+    const extension = urlParts.pop() || '';
+    const basePath = urlParts.join('.');
+    return `${basePath}-preview.${extension}`;
+  };
+  
   const handleImageDelete = useCallback(async (url: string) => {
     if (images.length <= 1) {
       toast({
@@ -35,25 +71,37 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       });
       return;
     }
+    
     setDeletingUrl(url);
     try {
       // Extract path from the URL for storage removal
-      let path;
-      if (url.includes('/order-images/')) {
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-images') + 1).join('/');
-      } else if (url.includes('/product-images/')) {
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'product-images') + 1).join('/');  
-      } else {
-        // Fallback to original approach
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'storage') + 2).join('/');
-      }
+      const path = extractStoragePath(url);
+      const bucket = extractBucket(url);
       
+      if (!path) throw new Error("Could not determine file path");
+
+      // Also try to delete the preview image if it exists
+      const previewUrl = getPreviewUrl(url);
+      const previewPath = extractStoragePath(previewUrl);
+      
+      // Delete original image
       const { error: storageErr } = await supabase.storage
-        .from('order-images')
+        .from(bucket)
         .remove([path]);
         
       if (storageErr) throw storageErr;
+
+      // Try to delete preview image if it exists
+      if (previewPath) {
+        try {
+          await supabase.storage.from(bucket).remove([previewPath]);
+        } catch (previewErr) {
+          // We don't throw here, as the preview might not exist
+          console.warn("Could not delete preview image, it might not exist:", previewErr);
+        }
+      }
       
+      // Delete database reference
       const { error: dbErr } = await supabase
         .from('product_images')
         .delete()
@@ -100,11 +148,16 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         // Pre-process and optimize image to 500KB target
         const processedFile = await preProcessImageForUpload(file, 25, 500);
         
-        // Generate a unique filename
-        const fileExt = processedFile.name.split('.').pop();
-        const fileName = `admin-upload-${Date.now()}-${Math.random().toString(36).substring(2, 10)}.${fileExt}`;
+        // Create preview image (up to 200KB)
+        const previewFile = await createPreviewImage(file);
         
-        // Upload to Supabase storage
+        // Generate a unique filename with timestamp and random string
+        const fileExt = processedFile.name.split('.').pop();
+        const uniqueId = `admin-upload-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
+        const fileName = `${uniqueId}.${fileExt}`;
+        const previewFileName = `${uniqueId}-preview.${previewFile.name.split('.').pop()}`;
+        
+        // Upload original image to Supabase storage
         const { data, error } = await supabase.storage
           .from('product-images')
           .upload(fileName, processedFile, {
@@ -122,7 +175,20 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           continue;
         }
         
-        // Get the public URL
+        // Upload preview image to Supabase storage
+        const { error: previewError } = await supabase.storage
+          .from('product-images')
+          .upload(previewFileName, previewFile, {
+            cacheControl: '3600',
+            contentType: previewFile.type,
+          });
+          
+        if (previewError) {
+          console.warn("Preview upload error:", previewError);
+          // Continue with the original image even if preview upload fails
+        }
+        
+        // Get the public URL of the original image
         const { data: { publicUrl } } = supabase.storage
           .from('product-images')
           .getPublicUrl(fileName);
@@ -133,7 +199,8 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           .insert({
             product_id: productId,
             url: publicUrl,
-            is_primary: images.length === 0 // First image is primary if no images exist
+            is_primary: images.length === 0, // First image is primary if no images exist
+            preview_url: previewError ? null : supabase.storage.from('product-images').getPublicUrl(previewFileName).data.publicUrl
           });
           
         if (dbError) {

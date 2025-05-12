@@ -182,6 +182,67 @@ export const preProcessImageForUpload = async (
 };
 
 /**
+ * Creates a low-resolution preview image optimized for catalog listings
+ * @param file The original image file
+ * @param maxWidth Maximum width for the preview image (default: 400px)
+ * @param targetSizeKB Target size in KB for the preview image (default: 200KB)
+ * @returns Promise resolving to a preview image File object
+ */
+export const createPreviewImage = async (
+  file: File,
+  maxWidth = 400,
+  targetSizeKB = 200
+): Promise<File> => {
+  // Hard reject for files exceeding absolute maximum size
+  if (file.size > 25 * 1024 * 1024) {
+    throw new Error(`File too large (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
+  }
+  
+  // If smaller than target size, still process it to ensure consistent dimensions
+  const webpSupported = await supportsWebP();
+  
+  // Start with reasonable quality
+  let quality = 0.7; // Lower initial quality for previews
+  let width = maxWidth;
+  let result = file;
+  let attempts = 0;
+  const maxAttempts = 4;
+  
+  while (
+    result.size > targetSizeKB * 1024 && 
+    quality >= 0.4 && // Allow more aggressive compression for previews
+    attempts < maxAttempts
+  ) {
+    // Compress with current settings
+    result = await compressImage(
+      file, 
+      width, 
+      Math.round(width * 0.75), // Assume 4:3 aspect ratio as fallback
+      quality,
+      webpSupported
+    );
+    
+    // If still too large, reduce quality and dimensions
+    if (result.size > targetSizeKB * 1024) {
+      quality -= 0.15;  // More aggressive quality reduction for previews
+      width = Math.round(width * 0.85);  // More aggressive dimension reduction
+    }
+    
+    attempts++;
+  }
+  
+  // Add -preview suffix to filename
+  const fileNameParts = result.name.split('.');
+  const fileExt = fileNameParts.pop();
+  const fileName = fileNameParts.join('.') + '-preview.' + (webpSupported ? 'webp' : fileExt);
+  
+  return new File([await result.arrayBuffer()], fileName, {
+    type: result.type,
+    lastModified: Date.now()
+  });
+};
+
+/**
  * Optimizes an image for web, converting to WebP if supported
  * @param file The image file to optimize
  * @returns Promise resolving to an optimized File object
@@ -265,6 +326,100 @@ export const uploadImageRealtime = async (
 };
 
 /**
+ * Uploads both original and preview image to storage
+ * @param file The original image file
+ * @param bucket Storage bucket name
+ * @param path Path within storage bucket
+ * @param onProgress Optional callback for upload progress
+ * @returns Promise resolving to an object containing URLs for both original and preview images
+ */
+export const uploadImageWithPreview = async (
+  file: File,
+  bucket: string,
+  path: string,
+  onProgress?: (progress: number) => void
+): Promise<{ originalUrl: string; previewUrl: string }> => {
+  try {
+    // First optimize the original image
+    const optimizedFile = await optimizeImage(file);
+    
+    // Create a preview image
+    const previewFile = await createPreviewImage(file);
+    
+    // Generate unique filenames
+    const fileExt = optimizedFile.name.split('.').pop();
+    const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    const originalFileName = `${path}/${uniqueId}.${fileExt}`;
+    const previewFileName = `${path}/${uniqueId}-preview.${previewFile.name.split('.').pop()}`;
+    
+    // Import supabase client dynamically to avoid circular dependencies
+    const { supabase } = await import('@/integrations/supabase/client');
+    
+    // Create upload options
+    const options = {
+      cacheControl: '3600',
+      upsert: false,
+    };
+    
+    // Add progress callback if provided for original image (50% of progress)
+    const uploadOptions = onProgress 
+      ? {
+          ...options,
+          onUploadProgress: ({ loadedBytes, totalBytes }: { loadedBytes: number; totalBytes: number }) => {
+            const progressPercentage = Math.round((loadedBytes / totalBytes) * 100 * 0.5);
+            onProgress(progressPercentage);
+          }
+        }
+      : options;
+    
+    // Upload the original file
+    const { data: originalData, error: originalError } = await supabase.storage
+      .from(bucket)
+      .upload(originalFileName, optimizedFile, {
+        ...uploadOptions,
+        contentType: optimizedFile.type,
+      });
+      
+    if (originalError) throw originalError;
+    
+    // Add progress callback for preview image (remaining 50% of progress)
+    const previewUploadOptions = onProgress 
+      ? {
+          ...options,
+          onUploadProgress: ({ loadedBytes, totalBytes }: { loadedBytes: number; totalBytes: number }) => {
+            const progressPercentage = 50 + Math.round((loadedBytes / totalBytes) * 100 * 0.5);
+            onProgress(progressPercentage);
+          }
+        }
+      : options;
+    
+    // Upload the preview file
+    const { data: previewData, error: previewError } = await supabase.storage
+      .from(bucket)
+      .upload(previewFileName, previewFile, {
+        ...previewUploadOptions,
+        contentType: previewFile.type,
+      });
+      
+    if (previewError) throw previewError;
+    
+    // Get public URLs
+    const { data: { publicUrl: originalUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(originalFileName);
+      
+    const { data: { publicUrl: previewUrl } } = supabase.storage
+      .from(bucket)
+      .getPublicUrl(previewFileName);
+      
+    return { originalUrl, previewUrl };
+  } catch (error) {
+    console.error("Error uploading images:", error);
+    throw error;
+  }
+};
+
+/**
  * Batch uploads multiple images to Supabase storage with parallel processing
  * @param files Array of image files to upload
  * @param bucket Storage bucket name
@@ -308,6 +463,61 @@ export const batchUploadImages = async (
           onProgress(Math.round((completedFiles / files.length) * 100));
         }
         return url;
+      });
+    });
+    
+    // Wait for the current batch to complete before starting the next batch
+    const batchUrls = await Promise.all(batchPromises);
+    urls.push(...batchUrls);
+  }
+  
+  return urls;
+};
+
+/**
+ * Batch uploads multiple images to Supabase storage with previews
+ * @param files Array of image files to upload
+ * @param bucket Storage bucket name
+ * @param path Path within storage bucket
+ * @param onProgress Optional callback for overall upload progress
+ * @param onFileProgress Optional callback for individual file progress
+ * @param concurrency Maximum number of simultaneous uploads (default: 3)
+ * @returns Promise resolving to array of objects containing original and preview URLs
+ */
+export const batchUploadImagesWithPreviews = async (
+  files: File[],
+  bucket: string,
+  path: string,
+  onProgress?: (progress: number) => void,
+  onFileProgress?: (fileIndex: number, progress: number) => void,
+  concurrency = 3
+): Promise<Array<{ originalUrl: string; previewUrl: string }>> => {
+  if (files.length === 0) return [];
+  
+  const urls: Array<{ originalUrl: string; previewUrl: string }> = [];
+  let completedFiles = 0;
+  
+  // Process files in batches according to concurrency limit
+  for (let i = 0; i < files.length; i += concurrency) {
+    const batch = files.slice(i, i + concurrency);
+    const batchPromises = batch.map((file, batchIndex) => {
+      const fileIndex = i + batchIndex;
+      
+      return uploadImageWithPreview(
+        file,
+        bucket,
+        path,
+        (progress) => {
+          if (onFileProgress) {
+            onFileProgress(fileIndex, progress);
+          }
+        }
+      ).then(result => {
+        completedFiles++;
+        if (onProgress) {
+          onProgress(Math.round((completedFiles / files.length) * 100));
+        }
+        return result;
       });
     });
     

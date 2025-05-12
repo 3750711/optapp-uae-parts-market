@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { optimizeImage } from "@/utils/imageCompression";
+import { optimizeImage, createPreviewImage } from "@/utils/imageCompression";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -79,19 +79,31 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           console.error("Error optimizing image:", error);
           // Continue with the original file if optimization fails
         }
-        
-        const fileExt = optimizedFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${fileName}`;
 
+        // Create preview image (up to 200KB)
+        let previewFile;
+        try {
+          previewFile = await createPreviewImage(file);
+          console.log(`Preview image created: ${previewFile.size} bytes`);
+        } catch (error) {
+          console.error("Error creating preview image:", error);
+          // Continue even if preview creation fails
+        }
+        
         // Update progress for current file
         newUploadProgress[i] = 30; // Show some progress as optimization completed
         setUploadProgress([...newUploadProgress]);
+        
+        // Generate unique filenames
+        const fileExt = optimizedFile.name.split('.').pop();
+        const uniqueId = `${Math.random().toString(36).substring(2, 10)}-${Date.now()}`;
+        const fileName = `${uniqueId}.${fileExt}`;
+        const previewFileName = previewFile ? `${uniqueId}-preview.${previewFile.name.split('.').pop()}` : null;
 
-        // Upload file with progress tracking
+        // Upload original file
         const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(filePath, optimizedFile, {
+          .upload(fileName, optimizedFile, {
             cacheControl: '3600',
             contentType: optimizedFile.type,
             upsert: false
@@ -107,13 +119,48 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           continue;
         }
 
+        // Upload preview file if available
+        let previewUrl = null;
+        if (previewFile && previewFileName) {
+          const { error: previewError, data: previewData } = await supabase.storage
+            .from('order-images')
+            .upload(previewFileName, previewFile, {
+              cacheControl: '3600',
+              contentType: previewFile.type,
+              upsert: false
+            });
+            
+          if (!previewError) {
+            previewUrl = supabase.storage
+              .from('order-images')
+              .getPublicUrl(previewFileName).data.publicUrl;
+          } else {
+            console.warn("Preview upload error:", previewError);
+          }
+        }
+
+        // Get the public URL for the original image
         const { data: { publicUrl } } = supabase.storage
           .from('order-images')
-          .getPublicUrl(filePath);
+          .getPublicUrl(fileName);
+        
+        // If we have a database table for order_images, add the preview_url there
+        try {
+          await supabase
+            .from('order_images')
+            .insert({
+              url: publicUrl,
+              preview_url: previewUrl,
+              is_primary: false // Adjust as needed
+            });
+        } catch (dbError) {
+          console.warn("Could not save preview URL to database:", dbError);
+          // Continue even if database update fails
+        }
 
         newUrls.push(publicUrl);
         
-        // Обновляем прогресс для текущего файла
+        // Update progress for current file
         newUploadProgress[i] = 100;
         setUploadProgress([...newUploadProgress]);
       }
@@ -148,6 +195,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const fileName = pathParts[pathParts.length - 1];
       
       if (fileName) {
+        // Try to delete original image from storage
         const { error } = await supabase.storage
           .from('order-images')
           .remove([fileName]);
@@ -155,6 +203,21 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
         if (error) {
           console.error("Error removing file from storage:", error);
           // Continue with deletion even if storage removal fails
+        }
+        
+        // Try to delete preview image if it exists
+        try {
+          // Extract base name and construct preview filename
+          const baseName = fileName.substring(0, fileName.lastIndexOf('.'));
+          const extension = fileName.substring(fileName.lastIndexOf('.'));
+          const previewFileName = `${baseName}-preview${extension}`;
+          
+          await supabase.storage
+            .from('order-images')
+            .remove([previewFileName]);
+        } catch (previewError) {
+          console.warn("Could not delete preview image:", previewError);
+          // Continue even if preview deletion fails
         }
       }
       
@@ -296,4 +359,3 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     </div>
   );
 };
-
