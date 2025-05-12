@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { compressImage, isImage, isVideo } from "@/utils/imageCompression";
+import { isImage, isVideo, optimizeImage } from "@/utils/imageCompression";
 
 interface VideoUploadProps {
   videos: string[];
@@ -74,18 +74,17 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         // Process file based on type
         let processedFile = file;
         
-        // For images, compress them
+        // For images, optimize them
         if (isImage(file)) {
           try {
-            processedFile = await compressImage(file, 1024, 768, 0.8);
-            console.log(`Image compressed: ${file.size} -> ${processedFile.size}`);
+            processedFile = await optimizeImage(file);
+            console.log(`Image optimized: ${file.size} -> ${processedFile.size}`);
           } catch (error) {
-            console.error("Error compressing image:", error);
-            // Continue with the original file if compression fails
+            console.error("Error optimizing image:", error);
+            // Continue with the original file if optimization fails
           }
         }
-        // For video files, we'll add proper handling later
-        // Currently, we keep the original file
+        // For video files, keep the original file
         
         const ext = file.name.split('.').pop();
         const fileName = `${storagePrefix}${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;

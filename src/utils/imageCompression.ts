@@ -1,3 +1,4 @@
+
 import imageCompression from 'browser-image-compression';
 
 /**
@@ -7,6 +8,49 @@ import imageCompression from 'browser-image-compression';
  */
 export function isImage(file: File): boolean {
   return file.type.startsWith('image/');
+}
+
+/**
+ * Checks if a file is a video based on its MIME type.
+ * @param file The file to check.
+ * @returns True if the file is a video, false otherwise.
+ */
+export function isVideo(file: File): boolean {
+  return file.type.startsWith('video/');
+}
+
+/**
+ * Compresses an image to the specified dimensions and quality.
+ * @param file The original image file.
+ * @param maxWidth Maximum width of the compressed image.
+ * @param maxHeight Maximum height of the compressed image.
+ * @param quality Compression quality (0-1).
+ * @returns A promise that resolves with the compressed file.
+ */
+export async function compressImage(
+  file: File,
+  maxWidth: number = 1024,
+  maxHeight: number = 768,
+  quality: number = 0.8
+): Promise<File> {
+  try {
+    const options = {
+      maxSizeMB: 1, // Maximum size in MB
+      maxWidthOrHeight: Math.max(maxWidth, maxHeight),
+      useWebWorker: true,
+      fileType: file.type,
+      quality: quality,
+    };
+
+    const compressedBlob = await imageCompression(file, options);
+    return new File([compressedBlob], file.name, {
+      type: file.type,
+      lastModified: Date.now(),
+    });
+  } catch (error) {
+    console.error('Error compressing image:', error);
+    throw error;
+  }
 }
 
 /**
@@ -187,15 +231,9 @@ export async function batchUploadImages(
   onFileProgress: (fileIndex: number, progress: number) => void,
   maxConcurrentUploads: number = 3
 ): Promise<string[]> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Supabase URL and key must be defined in environment variables.");
-  }
-
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Use Supabase from integrations
+  const { supabase } = await import('@/integrations/supabase/client');
+  
   const uploadedUrls: string[] = [];
   const totalFiles = files.length;
   let completedFiles = 0;
