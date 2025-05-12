@@ -161,6 +161,86 @@ export async function uploadProcessedImage(
           previewUrl,
           originalUrl
         });
+        
+        // CRITICAL FIX: Make sure we update the database with the preview URL
+        try {
+          // This is a critical step - try to find any product or order images with this URL
+          // and update their preview_url field
+          const { data: productImages, error: productError } = await supabase
+            .from('product_images')
+            .select('id')
+            .eq('url', originalUrl);
+            
+          if (!productError && productImages.length > 0) {
+            // We found a product image with this URL, update its preview_url field
+            const { error: updateError } = await supabase
+              .from('product_images')
+              .update({ preview_url: previewUrl })
+              .eq('url', originalUrl);
+              
+            if (updateError) {
+              logImageProcessing('PreviewDbUpdateError', { 
+                error: updateError.message,
+                imageId: productImages[0].id,
+                originalUrl,
+                previewUrl
+              });
+            } else {
+              logImageProcessing('PreviewDbUpdated', { 
+                imageId: productImages[0].id,
+                originalUrl,
+                previewUrl
+              });
+              
+              // Get the product ID to update the has_preview flag
+              const { data: productData } = await supabase
+                .from('product_images')
+                .select('product_id')
+                .eq('id', productImages[0].id)
+                .single();
+                
+              if (productData?.product_id) {
+                // Update the product's has_preview flag
+                await updateProductHasPreviewFlag(productData.product_id);
+              }
+            }
+          } else {
+            // Check if it's an order image instead
+            const { data: orderImages, error: orderError } = await supabase
+              .from('order_images')
+              .select('id')
+              .eq('url', originalUrl);
+              
+            if (!orderError && orderImages.length > 0) {
+              // We found an order image with this URL, update its preview_url field if it exists
+              const { error: updateError } = await supabase
+                .from('order_images')
+                .update({ preview_url: previewUrl })
+                .eq('url', originalUrl);
+                
+              if (updateError) {
+                logImageProcessing('OrderPreviewDbUpdateError', { 
+                  error: updateError.message,
+                  imageId: orderImages[0].id,
+                  originalUrl,
+                  previewUrl
+                });
+              } else {
+                logImageProcessing('OrderPreviewDbUpdated', { 
+                  imageId: orderImages[0].id,
+                  originalUrl,
+                  previewUrl
+                });
+              }
+            }
+          }
+        } catch (dbError) {
+          logImageProcessing('PreviewDbUpdateException', { 
+            error: dbError instanceof Error ? dbError.message : String(dbError),
+            originalUrl,
+            previewUrl
+          });
+        }
       } else {
         logImageProcessing('PreviewUploadError', { 
           error: previewError.message,
@@ -429,6 +509,94 @@ export async function generateProductPreviews(productId: string): Promise<{
     return {
       success: false,
       message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
+}
+
+// Add manual preview URL check and repair function
+export async function checkAndRepairPreviewUrls(productId: string): Promise<{
+  success: boolean;
+  message: string;
+  repaired: number;
+}> {
+  try {
+    logImageProcessing('RepairStart', { productId });
+    
+    // Get all images for the product
+    const { data: images, error: imagesError } = await supabase
+      .from('product_images')
+      .select('id, url, preview_url')
+      .eq('product_id', productId);
+      
+    if (imagesError) {
+      logImageProcessing('RepairError', { 
+        productId, 
+        error: imagesError.message
+      });
+      throw imagesError;
+    }
+    
+    if (!images || images.length === 0) {
+      return {
+        success: false,
+        message: "Не найдены изображения для продукта",
+        repaired: 0
+      };
+    }
+    
+    let repairedCount = 0;
+    
+    // Try to repair each image without preview
+    for (const image of images) {
+      if (!image.preview_url && image.url) {
+        // Extract the filename from the URL
+        const urlParts = image.url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+        
+        // Try to construct a preview URL based on the original URL
+        const baseUrl = image.url.substring(0, image.url.lastIndexOf('/') + 1);
+        const possiblePreviewUrl = `${baseUrl}${fileNameWithoutExt}-preview.webp`;
+        
+        // Update the database with the potential preview URL
+        const { error: updateError } = await supabase
+          .from('product_images')
+          .update({ preview_url: possiblePreviewUrl })
+          .eq('id', image.id);
+          
+        if (!updateError) {
+          repairedCount++;
+          logImageProcessing('PreviewRepaired', {
+            imageId: image.id,
+            originalUrl: image.url,
+            newPreviewUrl: possiblePreviewUrl
+          });
+        } else {
+          logImageProcessing('RepairUpdateError', {
+            imageId: image.id,
+            error: updateError.message
+          });
+        }
+      }
+    }
+    
+    // Update the product has_preview flag
+    await updateProductHasPreviewFlag(productId);
+    
+    return {
+      success: true,
+      message: `Восстановлено ${repairedCount} из ${images.length} изображений`,
+      repaired: repairedCount
+    };
+  } catch (error) {
+    logImageProcessing('RepairFailed', { 
+      productId, 
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return {
+      success: false,
+      message: `Ошибка: ${error instanceof Error ? error.message : String(error)}`,
+      repaired: 0
     };
   }
 }

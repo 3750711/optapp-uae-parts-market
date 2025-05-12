@@ -4,8 +4,7 @@ import { X, Camera, ImagePlus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { preProcessImageForUpload, createPreviewImage } from "@/utils/imageCompression";
-import { logImageProcessing } from "@/utils/imageProcessingUtils";
+import { processImageForUpload, logImageProcessing, updateProductHasPreviewFlag } from "@/utils/imageProcessingUtils";
 
 interface AdminProductImagesManagerProps {
   productId: string;
@@ -61,7 +60,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     const urlParts = originalUrl.split('.');
     const extension = urlParts.pop() || '';
     const basePath = urlParts.join('.');
-    return `${basePath}-preview.${extension}`;
+    return `${basePath}-preview.webp`;
   };
   
   // Function to generate previews for uploaded images
@@ -113,13 +112,36 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           successCount: data.successCount || 0,
           processed: data.processed || 0
         });
-        toast({
-          title: "Успешно",
-          description: `Превью созданы для ${data.successCount || 0} из ${data.processed || 0} изображений`,
-        });
+        
+        // Check if previews were actually created in the database
+        const { data: imagesData, error: imagesError } = await supabase
+          .from('product_images')
+          .select('id, url, preview_url')
+          .eq('product_id', productId);
+          
+        if (imagesError) {
+          logImageProcessing('PreviewDbCheckError', {
+            productId,
+            error: imagesError.message
+          });
+        } else {
+          const withPreview = imagesData?.filter(img => !!img.preview_url)?.length || 0;
+          const total = imagesData?.length || 0;
+          
+          logImageProcessing('PreviewDbCheck', {
+            productId,
+            totalImages: total,
+            imagesWithPreview: withPreview
+          });
+          
+          toast({
+            title: "Успешно",
+            description: `Превью созданы для ${withPreview} из ${total} изображений`,
+          });
+        }
         
         // Update the has_preview flag in the database
-        await updateProductHasPreviewFlag();
+        await updateProductHasPreviewFlag(productId);
       }
     } catch (err) {
       console.error("Failed to generate previews:", err);
@@ -138,7 +160,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
   };
   
   // Function to update the has_preview flag
-  const updateProductHasPreviewFlag = async () => {
+  const updateProductHasPreviewFlagLocal = async () => {
     try {
       const { error } = await supabase.rpc('update_product_has_preview_flag', { 
         p_product_id: productId 
@@ -213,6 +235,10 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       if (dbErr) throw dbErr;
       
       onImagesChange(images.filter(img => img !== url));
+      
+      // Update has_preview flag after deletion
+      await updateProductHasPreviewFlagLocal();
+      
       toast({ title: "Фото удалено" });
     } catch (error: any) {
       toast({
@@ -233,6 +259,10 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     
     try {
       const newUrls: string[] = [];
+      logImageProcessing('AdminUploadStart', { 
+        fileCount: files.length,
+        productId
+      });
       
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -259,24 +289,20 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           productId
         });
         
-        // Pre-process and optimize image to 500KB target
-        const processedFile = await preProcessImageForUpload(file, 25, 500);
-        
-        // Create preview image (up to 200KB) - for catalog display
-        const previewFile = await createPreviewImage(file);
+        // Use the unified image processing utility
+        const processed = await processImageForUpload(file);
         
         // Generate a unique filename with timestamp and random string
-        const fileExt = processedFile.name.split('.').pop();
+        const fileExt = processed.optimizedFile.name.split('.').pop();
         const uniqueId = `admin-upload-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`;
         const fileName = `${uniqueId}.${fileExt}`;
-        const previewFileName = `${uniqueId}-preview.${previewFile.name.split('.').pop()}`;
         
         // Upload original image to Supabase storage
         const { data: originalData, error: originalError } = await supabase.storage
           .from('product-images')
-          .upload(fileName, processedFile, {
+          .upload(fileName, processed.optimizedFile, {
             cacheControl: '3600',
-            contentType: processedFile.type,
+            contentType: processed.optimizedFile.type,
           });
           
         if (originalError) {
@@ -299,36 +325,43 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           .from('product-images')
           .getPublicUrl(fileName);
           
-        // Upload preview image to Supabase storage
-        const { data: previewData, error: previewError } = await supabase.storage
-          .from('product-images')
-          .upload(previewFileName, previewFile, {
-            cacheControl: '3600',
-            contentType: previewFile.type,
-          });
-          
-        // Get public URL for preview image
+        // Variable to store preview URL
         let previewUrl = null;
-        if (!previewError) {
-          const { data: { publicUrl: previewPublicUrl } } = supabase.storage
-            .from('product-images')
-            .getPublicUrl(previewFileName);
-          previewUrl = previewPublicUrl;
+        
+        // Upload preview image if available
+        if (processed.previewFile) {
+          const previewFileName = `${uniqueId}-preview.webp`;
           
-          logImageProcessing('PreviewCreated', { 
-            originalUrl: publicUrl,
-            previewUrl,
-            originalSize: processedFile.size,
-            previewSize: previewFile.size,
-            productId
-          });
-        } else {
-          console.warn("Preview upload error:", previewError);
-          logImageProcessing('PreviewUploadError', { 
-            filename: previewFileName, 
-            error: previewError.message,
-            productId
-          });
+          const { data: previewData, error: previewError } = await supabase.storage
+            .from('product-images')
+            .upload(previewFileName, processed.previewFile, {
+              cacheControl: '3600',
+              contentType: 'image/webp',
+            });
+            
+          // Get public URL for preview image if upload was successful
+          if (!previewError) {
+            const { data: { publicUrl: previewPublicUrl } } = supabase.storage
+              .from('product-images')
+              .getPublicUrl(previewFileName);
+              
+            previewUrl = previewPublicUrl;
+            
+            logImageProcessing('PreviewCreated', { 
+              originalUrl: publicUrl,
+              previewUrl,
+              originalSize: processed.optimizedFile.size,
+              previewSize: processed.previewFile.size,
+              productId
+            });
+          } else {
+            console.warn("Preview upload error:", previewError);
+            logImageProcessing('PreviewUploadError', { 
+              filename: previewFileName, 
+              error: previewError.message,
+              productId
+            });
+          }
         }
         
         // Save reference in the database with both URLs
@@ -338,7 +371,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
             product_id: productId,
             url: publicUrl,
             is_primary: images.length === 0, // First image is primary if no images exist
-            preview_url: previewUrl
+            preview_url: previewUrl // This may be null if preview upload failed
           });
           
         if (dbError) {
@@ -362,7 +395,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         onImagesChange([...images, ...newUrls]);
         
         // Always explicitly update the has_preview flag after uploads
-        await updateProductHasPreviewFlag();
+        await updateProductHasPreviewFlagLocal();
         
         // After all images are uploaded and inserted into the database, 
         // call the Edge Function directly to ensure preview generation
@@ -390,6 +423,37 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
             logImageProcessing('EdgeFunctionSuccess', { 
               productId
             });
+            
+            // Double-check the database was updated properly
+            setTimeout(async () => {
+              try {
+                const { data: checkImages } = await supabase
+                  .from('product_images')
+                  .select('id, url, preview_url')
+                  .eq('product_id', productId);
+                  
+                const imagesWithPreview = checkImages?.filter(img => !!img.preview_url).length || 0;
+                const totalImages = checkImages?.length || 0;
+                
+                logImageProcessing('DatabaseCheckAfterUpload', {
+                  productId,
+                  totalImages,
+                  imagesWithPreview,
+                  allHavePreview: imagesWithPreview === totalImages
+                });
+                
+                // If any images are missing previews, try to run the update function again
+                if (imagesWithPreview < totalImages) {
+                  logImageProcessing('RetryingPreviewGeneration', { productId });
+                  await generatePreviews();
+                }
+              } catch (checkError) {
+                logImageProcessing('DatabaseCheckError', {
+                  productId,
+                  error: checkError instanceof Error ? checkError.message : String(checkError)
+                });
+              }
+            }, 3000); // Wait 3 seconds to check database
           }
         } catch (functionError) {
           console.error("Exception calling generate-preview function:", functionError);
