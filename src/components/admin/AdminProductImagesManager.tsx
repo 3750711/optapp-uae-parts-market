@@ -62,6 +62,38 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
     return `${basePath}-preview.${extension}`;
   };
   
+  // Function to generate previews for uploaded images
+  const generatePreviews = async () => {
+    try {
+      console.log(`Generating previews for product ${productId}`);
+      
+      // Call the Edge Function to generate previews
+      const { data, error } = await supabase.functions.invoke('generate-preview', {
+        body: { 
+          action: 'process_product',
+          productId
+        }
+      });
+      
+      if (error) {
+        console.error("Error generating previews:", error);
+        toast({
+          title: "Предупреждение",
+          description: "Не удалось создать превью изображений",
+          variant: "default",
+        });
+      } else {
+        console.log("Preview generation response:", data);
+        toast({
+          title: "Успешно",
+          description: `Превью созданы для ${data.successCount || 0} из ${data.processed || 0} изображений`,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to generate previews:", err);
+    }
+  };
+  
   const handleImageDelete = useCallback(async (url: string) => {
     if (images.length <= 1) {
       toast({
@@ -224,6 +256,21 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       
       if (newUrls.length > 0) {
         onImagesChange([...images, ...newUrls]);
+        
+        // After all images are uploaded and inserted into the database, 
+        // update the product's has_preview flag
+        try {
+          const { error: updateError } = await supabase.functions.invoke('generate-preview', {
+            body: { action: 'process_product', productId }
+          });
+          
+          if (updateError) {
+            console.error("Error updating has_preview flag:", updateError);
+          }
+        } catch (error) {
+          console.error("Failed to update has_preview flag:", error);
+        }
+        
         toast({ 
           title: "Успешно", 
           description: `Загружено ${newUrls.length} фото` 
@@ -290,7 +337,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         ))}
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-2 flex-wrap">
         <input
           type="file"
           multiple
@@ -341,6 +388,16 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
             Камера
           </Button>
         )}
+        
+        <Button
+          type="button"
+          variant="outline" 
+          size="sm"
+          onClick={generatePreviews}
+          className="flex items-center gap-1 text-xs"
+        >
+          Создать превью
+        </Button>
       </div>
     </div>
   );

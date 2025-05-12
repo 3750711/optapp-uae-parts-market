@@ -29,6 +29,31 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }, []);
 
+  // Function to generate previews for uploaded images
+  const generatePreviews = async (imageUrls: string[] = []) => {
+    try {
+      console.log("Generating previews for images:", imageUrls);
+      
+      if (imageUrls.length === 0) return;
+      
+      // Call the Edge Function to generate previews
+      const { data, error } = await supabase.functions.invoke('generate-preview', {
+        body: { 
+          action: 'regenerate_previews',
+          limit: imageUrls.length
+        }
+      });
+      
+      if (error) {
+        console.error("Error generating previews:", error);
+      } else {
+        console.log("Preview generation response:", data);
+      }
+    } catch (err) {
+      console.error("Failed to generate previews:", err);
+    }
+  };
+
   const uploadImages = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const files = event.target.files;
@@ -171,6 +196,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           title: "Успешно",
           description: `Загружено ${newUrls.length} изображений`,
         });
+        
+        // Generate previews for the newly uploaded images
+        await generatePreviews(newUrls);
       }
     } catch (error) {
       console.error('Error uploading image:', error);

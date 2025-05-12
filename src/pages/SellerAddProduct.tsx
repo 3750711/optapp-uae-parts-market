@@ -260,6 +260,24 @@ const SellerAddProduct = () => {
         if (videosError) throw videosError;
       }
 
+      // Generate previews for the product images
+      try {
+        const { data: previewData, error: previewError } = await supabase.functions.invoke(
+          'generate-preview', 
+          {
+            body: { action: 'process_product', productId: product.id }
+          }
+        );
+        
+        if (previewError) {
+          console.error("Error generating previews:", previewError);
+        } else {
+          console.log("Preview generation response:", previewData);
+        }
+      } catch (previewGenError) {
+        console.error("Failed to trigger preview generation:", previewGenError);
+      }
+
       // Fetch the complete product with images for Telegram notification
       const { data: productDetails } = await supabase
         .from('products')

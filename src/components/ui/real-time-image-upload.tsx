@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, RotateCw, Camera } from "lucide-react";
@@ -10,6 +11,7 @@ import {
 } from "@/utils/imageCompression";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/integrations/supabase/client";
 
 interface RealtimeImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -63,6 +65,42 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
       }
       return newMap;
     });
+  };
+
+  // New function to generate previews for uploaded images
+  const generatePreviews = async (productId: string | null = null, imageUrls: string[] = []) => {
+    try {
+      console.log("Generating previews for images:", imageUrls);
+      
+      if (imageUrls.length === 0) return;
+      
+      // Call the Edge Function to generate previews
+      const { data, error } = await supabase.functions.invoke('generate-preview', {
+        body: { 
+          action: productId ? 'process_product' : 'regenerate_previews',
+          productId,
+          productIds: productId ? [productId] : undefined,
+          limit: imageUrls.length
+        }
+      });
+      
+      if (error) {
+        console.error("Error generating previews:", error);
+        toast({
+          title: "Предупреждение",
+          description: "Не удалось создать превью для некоторых изображений",
+          variant: "default",
+        });
+      } else {
+        console.log("Preview generation response:", data);
+        toast({
+          title: "Успешно",
+          description: `Созданы превью для ${data.successCount || 0} изображений`,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to generate previews:", err);
+    }
   };
 
   const handleFilesSelected = useCallback(async (files: FileList | null) => {
@@ -202,6 +240,9 @@ export const RealtimeImageUpload: React.FC<RealtimeImageUploadProps> = ({
         });
         
         setFileProgress(completeUpdates);
+        
+        // Generate previews for newly uploaded images
+        await generatePreviews(null, uploadedUrls);
       }
     } catch (error) {
       console.error("Error uploading files:", error);

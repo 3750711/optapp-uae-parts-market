@@ -140,6 +140,16 @@ async function processImageBatch(batchSize = 10) {
       } else {
         successCount++;
         console.log(`Updated image ${image.id} with preview URL`);
+        
+        // Update the has_preview flag in the product table
+        try {
+          await supabase
+            .rpc('update_product_has_preview_flag', { 
+              p_product_id: image.product_id 
+            });
+        } catch (rpcError) {
+          console.warn(`Failed to update has_preview flag for product ${image.product_id}:`, rpcError);
+        }
       }
     }
   }
@@ -162,7 +172,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Parse request
-    const { action, batchSize = 10, imageId, productId } = await req.json();
+    const { action, batchSize = 10, imageId, productId, productIds, limit } = await req.json();
     
     if (action === 'process_batch') {
       // Process a batch of images
@@ -214,6 +224,16 @@ serve(async (req) => {
           );
         }
         
+        // Update the has_preview flag in the product table
+        try {
+          await supabase
+            .rpc('update_product_has_preview_flag', { 
+              p_product_id: image.product_id 
+            });
+        } catch (rpcError) {
+          console.warn(`Failed to update has_preview flag for product ${image.product_id}:`, rpcError);
+        }
+        
         return new Response(
           JSON.stringify({ success: true, previewUrl }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -263,6 +283,18 @@ serve(async (req) => {
         }
       }
       
+      // Update the has_preview flag in the product table if at least one preview was created
+      if (successCount > 0) {
+        try {
+          await supabase
+            .rpc('update_product_has_preview_flag', { 
+              p_product_id: productId 
+            });
+        } catch (rpcError) {
+          console.warn(`Failed to update has_preview flag for product ${productId}:`, rpcError);
+        }
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -274,7 +306,7 @@ serve(async (req) => {
     }
     else if (action === 'regenerate_previews') {
       // Эндпоинт для перегенерации превью для всех изображений, включая те, у которых уже есть превью
-      const { limit = 10, productIds } = await req.json();
+      const actualLimit = limit || 10;
       
       let query = supabase
         .from('product_images')
@@ -286,7 +318,7 @@ serve(async (req) => {
       }
       
       // Ограничиваем количество записей
-      const { data: images, error } = await query.limit(limit);
+      const { data: images, error } = await query.limit(actualLimit);
       
       if (error) {
         return new Response(
@@ -295,7 +327,10 @@ serve(async (req) => {
         );
       }
       
+      console.log(`Processing ${images?.length || 0} images for regeneration`);
       let successCount = 0;
+      const processedProductIds = new Set();
+      
       for (const image of images || []) {
         // Проверяем URL перед обработкой
         if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
@@ -314,7 +349,20 @@ serve(async (req) => {
           
           if (!updateError) {
             successCount++;
+            processedProductIds.add(image.product_id);
           }
+        }
+      }
+      
+      // Update the has_preview flag for all processed products
+      for (const productId of processedProductIds) {
+        try {
+          await supabase
+            .rpc('update_product_has_preview_flag', { 
+              p_product_id: productId 
+            });
+        } catch (rpcError) {
+          console.warn(`Failed to update has_preview flag for product ${productId}:`, rpcError);
         }
       }
       
@@ -322,7 +370,8 @@ serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           processed: images?.length || 0, 
-          successCount 
+          successCount,
+          productsUpdated: processedProductIds.size
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
