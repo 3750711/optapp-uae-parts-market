@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode, encode } from "https://deno.land/x/pngs@0.1.1/mod.ts";
@@ -12,18 +11,25 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+/**
+ * Logs detailed information for the preview generation process
+ */
+function logOperation(stage: string, details: Record<string, any>) {
+  console.log(`[Preview:${stage}]`, JSON.stringify(details));
+}
+
 // Helper to fetch and resize images using Deno-compatible libraries
 async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): Promise<Uint8Array | null> {
   try {
-    console.log("Fetching image:", imageUrl);
+    logOperation("Fetch", { imageUrl });
     const response = await fetch(imageUrl);
     if (!response.ok) {
-      console.error(`Failed to fetch image: ${response.status}`);
+      logOperation("FetchError", { status: response.status, imageUrl });
       return null;
     }
     
     const imageBuffer = await response.arrayBuffer();
-    console.log(`Image fetched: ${imageBuffer.byteLength} bytes`);
+    logOperation("Downloaded", { bytes: imageBuffer.byteLength, imageUrl });
     
     // Target size approximately 200KB
     try {
@@ -32,32 +38,48 @@ async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): 
         width: maxWidth,
       });
       
-      console.log(`Preview generated: ${resizedImage.byteLength} bytes`);
+      logOperation("Resized", { originalBytes: imageBuffer.byteLength, resizedBytes: resizedImage.byteLength, imageUrl });
       return resizedImage;
     } catch (resizeError) {
-      console.error("Error resizing image:", resizeError);
+      logOperation("ResizeError", { error: resizeError.message, imageUrl });
       // If resizing fails, return the original image
       return new Uint8Array(imageBuffer);
     }
   } catch (error) {
-    console.error("Error in fetchAndResize:", error);
+    logOperation("FetchAndResizeError", { error: error.message, imageUrl });
     return null;
   }
 }
 
 async function generatePreviewUrl(imageUrl: string, productId: string): Promise<string | null> {
   try {
-    if (!imageUrl) return null;
+    if (!imageUrl) {
+      logOperation("InvalidUrl", { productId });
+      return null;
+    }
     
     // Skip if already a preview
     if (imageUrl.includes('-preview.')) {
-      console.log("Already a preview image:", imageUrl);
+      logOperation("AlreadyPreview", { imageUrl, productId });
       return imageUrl;
     }
     
     // Generate preview image
+    const startTime = performance.now();
     const resizedImageData = await fetchAndResize(imageUrl);
-    if (!resizedImageData) return null;
+    const processingTime = performance.now() - startTime;
+    
+    if (!resizedImageData) {
+      logOperation("NoResizedData", { imageUrl, productId });
+      return null;
+    }
+    
+    logOperation("ProcessingComplete", { 
+      imageUrl, 
+      productId, 
+      timeMs: processingTime.toFixed(0),
+      bytes: resizedImageData.byteLength
+    });
     
     // Create file name for preview
     const urlParts = imageUrl.split('/');
@@ -72,6 +94,7 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Upload preview to storage
+    const uploadStartTime = performance.now();
     const { data: uploadData, error: uploadError } = await supabase
       .storage
       .from(bucketPath)
@@ -82,9 +105,12 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
       });
     
     if (uploadError) {
-      console.error("Error uploading preview:", uploadError);
+      logOperation("UploadError", { error: uploadError.message, previewFileName, productId });
       return null;
     }
+    
+    const uploadTime = performance.now() - uploadStartTime;
+    logOperation("Upload", { timeMs: uploadTime.toFixed(0), previewFileName, productId });
     
     // Get public URL
     const { data: publicUrlData } = supabase
@@ -92,10 +118,10 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
       .from(bucketPath)
       .getPublicUrl(previewFileName);
     
-    console.log("Preview URL generated:", publicUrlData.publicUrl);
+    logOperation("PreviewGenerated", { previewUrl: publicUrlData.publicUrl, productId });
     return publicUrlData.publicUrl;
   } catch (error) {
-    console.error("Error generating preview:", error);
+    logOperation("GeneratePreviewError", { error: error.message, imageUrl, productId });
     return null;
   }
 }
@@ -111,18 +137,19 @@ async function processImageBatch(batchSize = 10) {
     .limit(batchSize);
   
   if (error) {
-    console.error("Error fetching images:", error);
+    logOperation("FetchError", { error: error.message, batchSize });
     return { processed: 0, success: 0 };
   }
   
-  console.log(`Processing ${images.length} images`);
+  logOperation("BatchStart", { count: images.length, batchSize });
   let successCount = 0;
+  const processedProductIds = new Set();
   
   // Process each image
   for (const image of images) {
     // Проверяем и обрабатываем только действительные URL-адреса
     if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
-      console.warn(`Invalid URL for image ${image.id}: ${image.url}`);
+      logOperation("InvalidImageUrl", { imageId: image.id, url: image.url });
       continue;
     }
 
@@ -136,10 +163,11 @@ async function processImageBatch(batchSize = 10) {
         .eq('id', image.id);
       
       if (updateError) {
-        console.error(`Error updating image ${image.id}:`, updateError);
+        logOperation("UpdateError", { error: updateError.message, imageId: image.id });
       } else {
         successCount++;
-        console.log(`Updated image ${image.id} with preview URL`);
+        processedProductIds.add(image.product_id);
+        logOperation("ImageUpdated", { imageId: image.id, productId: image.product_id });
         
         // Update the has_preview flag in the product table
         try {
@@ -147,12 +175,22 @@ async function processImageBatch(batchSize = 10) {
             .rpc('update_product_has_preview_flag', { 
               p_product_id: image.product_id 
             });
+          logOperation("FlagUpdated", { productId: image.product_id });
         } catch (rpcError) {
-          console.warn(`Failed to update has_preview flag for product ${image.product_id}:`, rpcError);
+          logOperation("FlagUpdateError", { 
+            error: rpcError.message, 
+            productId: image.product_id 
+          });
         }
       }
     }
   }
+  
+  logOperation("BatchComplete", { 
+    processed: images.length, 
+    success: successCount,
+    uniqueProducts: processedProductIds.size
+  });
   
   return {
     processed: images.length,
@@ -383,7 +421,7 @@ serve(async (req) => {
       );
     }
   } catch (error) {
-    console.error("Error:", error);
+    logOperation("UnhandledError", { error: error.message });
     return new Response(
       JSON.stringify({ error: 'Internal server error', details: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

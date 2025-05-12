@@ -1,9 +1,11 @@
+
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Loader2, Upload } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { isImage, isVideo, optimizeImage } from "@/utils/imageCompression";
+import { isImage, isVideo } from "@/utils/imageCompression";
+import { processImageForUpload, logImageProcessing } from "@/utils/imageProcessingUtils";
 
 interface VideoUploadProps {
   videos: string[];
@@ -57,6 +59,11 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         return;
       }
       
+      logImageProcessing('VideoUploadStart', { 
+        fileCount: files.length,
+        userId: user.id
+      });
+      
       let completedFiles = 0;
       
       for (const file of files) {
@@ -68,6 +75,10 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             description: `Файл слишком большой. Максимальный размер 100МБ`,
             variant: "destructive"
           });
+          logImageProcessing('FileSizeError', { 
+            fileName: file.name, 
+            fileSize: `${fileSizeMB.toFixed(2)}MB`
+          });
           continue;
         }
 
@@ -77,19 +88,34 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         // For images, optimize them
         if (isImage(file)) {
           try {
-            processedFile = await optimizeImage(file);
-            console.log(`Image optimized: ${file.size} -> ${processedFile.size}`);
+            const processed = await processImageForUpload(file);
+            processedFile = processed.optimizedFile;
           } catch (error) {
-            console.error("Error optimizing image:", error);
+            logImageProcessing('ProcessingError', { 
+              fileName: file.name,
+              error: error.message
+            });
             // Continue with the original file if optimization fails
           }
+        } else if (isVideo(file)) {
+          // Log video file information
+          logImageProcessing('VideoFile', { 
+            fileName: file.name,
+            fileSize: `${fileSizeMB.toFixed(2)}MB`,
+            fileType: file.type
+          });
         }
-        // For video files, keep the original file
         
+        // Generate unique filename
         const ext = file.name.split('.').pop();
         const fileName = `${storagePrefix}${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
         
-        console.log(`Uploading to bucket: ${storageBucket}, file: ${fileName}`);
+        logImageProcessing('Uploading', { 
+          bucket: storageBucket, 
+          fileName,
+          fileSize: `${(processedFile.size / 1024 / 1024).toFixed(2)}MB`
+        });
+        
         const { data, error } = await supabase.storage
           .from(storageBucket)
           .upload(fileName, processedFile, {
@@ -98,14 +124,17 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
           });
           
         if (error) {
-          console.error("Upload error:", error);
+          logImageProcessing('UploadError', {
+            fileName: file.name,
+            error: error.message
+          });
           toast({
             title: "Ошибка загрузки",
             description: error.message,
             variant: "destructive"
           });
         } else {
-          console.log("Upload successful:", data);
+          logImageProcessing('UploadSuccess', { fileName });
           const { data: { publicUrl } } = supabase.storage
             .from(storageBucket)
             .getPublicUrl(fileName);
@@ -114,14 +143,20 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         
         // Update progress
         completedFiles++;
-        setUploadProgress(Math.round((completedFiles / files.length) * 100));
+        const progressValue = Math.round((completedFiles / files.length) * 100);
+        setUploadProgress(progressValue);
+        logImageProcessing('UploadProgress', { progress: `${progressValue}%` });
       }
+      
       if (uploadedUrls.length > 0) {
         onUpload(uploadedUrls);
-        toast({ title: "Видео загружено" });
+        toast({ 
+          title: "Видео загружено",
+          description: `Успешно загружено: ${uploadedUrls.length} из ${files.length}` 
+        });
       }
     } catch (error) {
-      console.error("Unexpected error during upload:", error);
+      logImageProcessing('UnexpectedError', { error: error.message });
       toast({
         title: "Ошибка загрузки",
         description: "Непредвиденная ошибка при загрузке видео",
@@ -136,6 +171,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
 
   const handleDelete = async (url: string) => {
     try {
+      logImageProcessing('DeleteStart', { url });
       // Extract file path from URL
       const fileUrl = new URL(url);
       const pathParts = fileUrl.pathname.split('/');
@@ -144,7 +180,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       const filePath = bucketIndex >= 0 ? pathParts.slice(bucketIndex + 1).join('/') : '';
       
       if (!filePath) {
-        console.error("Could not extract file path from URL:", url);
+        logImageProcessing('DeletePathError', { url });
         toast({
           title: "Ошибка",
           description: "Не удалось определить путь к файлу",
@@ -153,14 +189,17 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         return;
       }
       
-      console.log("Attempting to delete file:", filePath, "from bucket:", storageBucket);
+      logImageProcessing('DeleteFile', { 
+        bucket: storageBucket,
+        filePath
+      });
       
       const { error } = await supabase.storage
         .from(storageBucket)
         .remove([filePath]);
         
       if (error) {
-        console.error("Error deleting file:", error);
+        logImageProcessing('DeleteError', { error: error.message });
         toast({
           title: "Ошибка",
           description: "Не удалось удалить видео",
@@ -170,12 +209,13 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       }
       
       onDelete(url);
+      logImageProcessing('DeleteSuccess', { url });
       toast({
         title: "Видео удалено",
         description: "Видео было успешно удалено",
       });
     } catch (error) {
-      console.error("Error in handleDelete:", error);
+      logImageProcessing('DeleteException', { error: error.message });
       toast({
         title: "Ошибка",
         description: "Не удалось удалить видео",

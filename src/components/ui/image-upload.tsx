@@ -1,10 +1,10 @@
-
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { optimizeImage, createPreviewImage } from "@/utils/imageCompression";
+import { isImage } from "@/utils/imageCompression";
+import { processImageForUpload, logImageProcessing } from "@/utils/imageProcessingUtils";
 
 interface ImageUploadProps {
   onUpload: (urls: string[]) => void;
@@ -65,6 +65,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       
       const newUrls: string[] = [];
       
+      logImageProcessing('BatchUploadStart', { fileCount: files.length });
+      
       for (let i = 0; i < files.length; i++) {
         if (images.length + newUrls.length >= maxImages) {
           toast({
@@ -82,60 +84,57 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             description: `Файл ${file.name} слишком большой. Максимальный размер - 25 МБ`,
             variant: "destructive",
           });
+          logImageProcessing('FileSizeError', {
+            fileName: file.name,
+            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
+            maxSize: '25 MB'
+          });
           continue;
         }
         
         // Проверка типа файла
-        if (!file.type.startsWith('image/')) {
+        if (!isImage(file)) {
           toast({
             title: "Ошибка",
             description: `Файл ${file.name} не является изображением`,
             variant: "destructive",
           });
+          logImageProcessing('FileTypeError', {
+            fileName: file.name,
+            fileType: file.type
+          });
           continue;
         }
         
-        // Optimize the image with WebP support
-        let optimizedFile = file;
-        try {
-          optimizedFile = await optimizeImage(file);
-          console.log(`Image optimized: ${file.size} -> ${optimizedFile.size} bytes`);
-        } catch (error) {
-          console.error("Error optimizing image:", error);
-          // Continue with the original file if optimization fails
-        }
-
-        // Create preview image (up to 200KB)
-        let previewFile;
-        try {
-          previewFile = await createPreviewImage(file);
-          console.log(`Preview image created: ${previewFile.size} bytes`);
-        } catch (error) {
-          console.error("Error creating preview image:", error);
-          // Continue even if preview creation fails
-        }
+        // Process the image using unified utility
+        newUploadProgress[i] = 10; // Show initial progress
+        setUploadProgress([...newUploadProgress]);
         
-        // Update progress for current file
-        newUploadProgress[i] = 30; // Show some progress as optimization completed
+        const processed = await processImageForUpload(file);
+        
+        // Update progress for current file after processing
+        newUploadProgress[i] = 30;
         setUploadProgress([...newUploadProgress]);
         
         // Generate unique filenames
-        const fileExt = optimizedFile.name.split('.').pop();
+        const fileExt = processed.optimizedFile.name.split('.').pop();
         const uniqueId = `${Math.random().toString(36).substring(2, 10)}-${Date.now()}`;
         const fileName = `${uniqueId}.${fileExt}`;
-        const previewFileName = previewFile ? `${uniqueId}-preview.${previewFile.name.split('.').pop()}` : null;
 
         // Upload original file
         const { error: uploadError, data } = await supabase.storage
           .from('order-images')
-          .upload(fileName, optimizedFile, {
+          .upload(fileName, processed.optimizedFile, {
             cacheControl: '3600',
-            contentType: optimizedFile.type,
+            contentType: processed.optimizedFile.type,
             upsert: false
           });
 
         if (uploadError) {
-          console.error("Upload error:", uploadError);
+          logImageProcessing('UploadError', {
+            fileName,
+            error: uploadError.message
+          });
           toast({
             title: "Ошибка",
             description: `Не удалось загрузить ${file.name}: ${uploadError.message}`,
@@ -143,15 +142,17 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           });
           continue;
         }
-
+        
         // Upload preview file if available
         let previewUrl = null;
-        if (previewFile && previewFileName) {
-          const { error: previewError, data: previewData } = await supabase.storage
+        if (processed.previewFile) {
+          const previewFileName = `${uniqueId}-preview.webp`;
+          
+          const { error: previewError } = await supabase.storage
             .from('order-images')
-            .upload(previewFileName, previewFile, {
+            .upload(previewFileName, processed.previewFile, {
               cacheControl: '3600',
-              contentType: previewFile.type,
+              contentType: 'image/webp',
               upsert: false
             });
             
@@ -159,8 +160,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
             previewUrl = supabase.storage
               .from('order-images')
               .getPublicUrl(previewFileName).data.publicUrl;
+              
+            logImageProcessing('PreviewUploaded', { previewFileName, previewUrl });
           } else {
-            console.warn("Preview upload error:", previewError);
+            logImageProcessing('PreviewUploadError', {
+              previewFileName,
+              error: previewError.message
+            });
           }
         }
 
@@ -178,8 +184,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
               preview_url: previewUrl,
               is_primary: false // Adjust as needed
             });
+            
+          logImageProcessing('DatabaseEntry', {
+            url: publicUrl,
+            hasPreview: !!previewUrl
+          });
         } catch (dbError) {
-          console.warn("Could not save preview URL to database:", dbError);
+          logImageProcessing('DatabaseError', { error: dbError.message });
           // Continue even if database update fails
         }
 
@@ -202,6 +213,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       }
     } catch (error) {
       console.error('Error uploading image:', error);
+      logImageProcessing('UnexpectedError', { error: error.message });
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить изображение",
@@ -214,7 +226,7 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
-  }, [images, maxImages, onUpload]);
+  }, [images, maxImages, onUpload, setUploadProgress]);
 
   const handleDelete = useCallback(async (url: string) => {
     try {

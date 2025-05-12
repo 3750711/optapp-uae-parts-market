@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { Loader2, Image, CheckCircle, AlertCircle, RefreshCw } from 'lucide-reac
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from '@/components/ui/input';
+import ProductPreviewUpdater from '@/components/admin/ProductPreviewUpdater';
 
 const AdminImageOptimizer: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -192,6 +192,7 @@ const AdminImageOptimizer: React.FC = () => {
           <TabsList className="mb-6">
             <TabsTrigger value="generate">Создать превью</TabsTrigger>
             <TabsTrigger value="regenerate">Перегенерировать превью</TabsTrigger>
+            <TabsTrigger value="update-flags">Обновить флаги</TabsTrigger>
           </TabsList>
           
           <TabsContent value="generate" className="space-y-6">
@@ -205,7 +206,7 @@ const AdminImageOptimizer: React.FC = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex justify-between items-center">
-                    <span>Всего изображений:</span>
+                    <span>Всего изображе��ий:</span>
                     <Badge variant="outline" className="text-lg">
                       {stats.total}
                     </Badge>
@@ -272,7 +273,7 @@ const AdminImageOptimizer: React.FC = () => {
                     <div className="flex gap-2">
                       <Input
                         id="product-id"
-                        placeholder="Введите ID продукта для обработки только его изображений"
+                        placeholder="Введи��е ID продукта для обработки только его изображений"
                         value={productId}
                         onChange={(e) => setProductId(e.target.value)}
                         disabled={isProcessing}
@@ -389,6 +390,78 @@ const AdminImageOptimizer: React.FC = () => {
                 </Button>
               </CardFooter>
             </Card>
+          </TabsContent>
+          
+          <TabsContent value="update-flags">
+            <div className="grid grid-cols-1 gap-6">
+              <ProductPreviewUpdater />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Диагностика превью изображений</CardTitle>
+                  <CardDescription>
+                    Проверка правильной настройки и работы системы превью
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <CheckCircle className="text-green-500 mr-2 h-5 w-5 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="font-medium">Проверка RPC-функции</p>
+                        <p className="text-sm text-muted-foreground">Система проверит наличие и доступность функции update_product_has_preview_flag</p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={async () => {
+                        try {
+                          // Test call to RPC function with a UUID that probably doesn't exist
+                          const { error } = await supabase.rpc('update_product_has_preview_flag', {
+                            p_product_id: '00000000-0000-0000-0000-000000000000'
+                          });
+                          
+                          if (error && error.message.includes('function') && error.message.includes('does not exist')) {
+                            toast({
+                              title: "Ошибка",
+                              description: "RPC-функция update_product_has_preview_flag не найдена в базе данных",
+                              variant: "destructive"
+                            });
+                          } else {
+                            // If we get here, function exists (even if it returned an error for other reasons)
+                            toast({
+                              title: "Успех",
+                              description: "RPC-функция update_product_has_preview_flag настроена правильно",
+                            });
+                          }
+                        } catch (error) {
+                          console.error("Error checking RPC function:", error);
+                          toast({
+                            title: "Ошибка",
+                            description: "Не удалось проверить RPC-функцию",
+                            variant: "destructive"
+                          });
+                        }
+                      }}
+                      variant="outline"
+                    >
+                      Проверить RPC-функцию
+                    </Button>
+                  </div>
+                  
+                  <div className="bg-amber-50 border border-amber-200 p-4 rounded-md mt-4">
+                    <div className="flex items-start space-x-2">
+                      <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-semibold text-amber-800">Важная информация</h4>
+                        <p className="text-sm text-amber-700">
+                          Если RPC-функция не найдена, обратитесь к разработчику для добавления функции update_product_has_preview_flag в базу данных.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
         
