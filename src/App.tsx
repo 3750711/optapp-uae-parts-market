@@ -8,18 +8,22 @@ import Profile from "./pages/Profile";
 import Catalog from "./pages/Catalog";
 import ProductDetail from "./pages/ProductDetail";
 import SellerListings from "./pages/SellerListings";
-import CreateProduct from "./pages/CreateProduct";
-import EditProduct from "./pages/EditProduct";
-import AdminPanel from "./pages/AdminPanel";
+import {
+  LazySellerAddProduct as CreateProduct,
+  LazyAdminDashboard as AdminPanel,
+  LazyAdminStores as StoreDetails,
+  LazyAdminStores as EditStore,
+  LazyAdminEvents as RequestList,
+  LazyAdminEvents as RequestDetails,
+  LazyAdminEvents as EditRequest,
+} from "./utils/lazyRoutes";
 import Stores from "./pages/Stores";
-import StoreDetails from "./pages/StoreDetails";
 import CreateStore from "./pages/CreateStore";
-import EditStore from "./pages/EditStore";
-import RequestList from "./pages/RequestList";
-import RequestDetails from "./pages/RequestDetails";
 import CreateRequest from "./pages/CreateRequest";
-import EditRequest from "./pages/EditRequest";
 import AdminImagePreviewGenerator from "./pages/AdminImagePreviewGenerator";
+
+// Create a stub for edit product that redirects to product detail
+const EditProduct = () => <Navigate to="/product" replace />;
 
 function App() {
   const { user, isLoading } = useAuth();
