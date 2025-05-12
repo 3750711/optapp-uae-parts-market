@@ -326,7 +326,6 @@ export type Database = {
           created_at: string
           id: string
           is_primary: boolean | null
-          preview_url: string | null
           product_id: string
           url: string
         }
@@ -334,7 +333,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean | null
-          preview_url?: string | null
           product_id: string
           url: string
         }
@@ -342,7 +340,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean | null
-          preview_url?: string | null
           product_id?: string
           url?: string
         }

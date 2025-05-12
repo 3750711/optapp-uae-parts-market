@@ -39,4 +39,3 @@ export const LazyAdminStores = lazyLoad(() => import('../pages/AdminStores'));
 export const LazyAdminCarCatalog = lazyLoad(() => import('../pages/AdminCarCatalog'));
 export const LazyAdminAddProduct = lazyLoad(() => import('../pages/AdminAddProduct'));
 export const LazyAdminLogistics = lazyLoad(() => import('../pages/AdminLogistics'));
-export const LazyAdminImagePreviewGenerator = lazyLoad(() => import('../pages/AdminImagePreviewGenerator'));
