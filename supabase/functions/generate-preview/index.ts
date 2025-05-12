@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode, encode } from "https://deno.land/x/pngs@0.1.1/mod.ts";
@@ -21,10 +22,15 @@ function logOperation(stage: string, details: Record<string, any>) {
 // Helper to fetch and resize images using Deno-compatible libraries
 async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): Promise<Uint8Array | null> {
   try {
-    logOperation("Fetch", { imageUrl });
+    logOperation("FetchStart", { imageUrl });
     const response = await fetch(imageUrl);
+    
     if (!response.ok) {
-      logOperation("FetchError", { status: response.status, imageUrl });
+      logOperation("FetchError", { 
+        status: response.status, 
+        statusText: response.statusText,
+        imageUrl 
+      });
       return null;
     }
     
@@ -38,23 +44,41 @@ async function fetchAndResize(imageUrl: string, maxWidth = 400, quality = 0.7): 
         width: maxWidth,
       });
       
-      logOperation("Resized", { originalBytes: imageBuffer.byteLength, resizedBytes: resizedImage.byteLength, imageUrl });
+      logOperation("Resized", { 
+        originalBytes: imageBuffer.byteLength, 
+        resizedBytes: resizedImage.byteLength, 
+        imageUrl,
+        ratio: (resizedImage.byteLength / imageBuffer.byteLength).toFixed(2)
+      });
       return resizedImage;
     } catch (resizeError) {
-      logOperation("ResizeError", { error: resizeError.message, imageUrl });
+      logOperation("ResizeError", { 
+        error: resizeError instanceof Error ? resizeError.message : String(resizeError),
+        imageUrl,
+        byteLength: imageBuffer.byteLength
+      });
       // If resizing fails, return the original image
       return new Uint8Array(imageBuffer);
     }
   } catch (error) {
-    logOperation("FetchAndResizeError", { error: error.message, imageUrl });
+    logOperation("FetchAndResizeError", { 
+      error: error instanceof Error ? error.message : String(error),
+      imageUrl 
+    });
     return null;
   }
 }
 
 async function generatePreviewUrl(imageUrl: string, productId: string): Promise<string | null> {
   try {
-    if (!imageUrl) {
-      logOperation("InvalidUrl", { productId });
+    const startTime = performance.now();
+    
+    if (!imageUrl || typeof imageUrl !== 'string' || !imageUrl.startsWith('http')) {
+      logOperation("InvalidUrl", { 
+        productId, 
+        url: imageUrl || "undefined",
+        type: typeof imageUrl
+      });
       return null;
     }
     
@@ -65,15 +89,15 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
     }
     
     // Generate preview image
-    const startTime = performance.now();
+    logOperation("ProcessingStarted", { imageUrl, productId });
     const resizedImageData = await fetchAndResize(imageUrl);
-    const processingTime = performance.now() - startTime;
     
     if (!resizedImageData) {
       logOperation("NoResizedData", { imageUrl, productId });
       return null;
     }
     
+    const processingTime = performance.now() - startTime;
     logOperation("ProcessingComplete", { 
       imageUrl, 
       productId, 
@@ -105,7 +129,12 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
       });
     
     if (uploadError) {
-      logOperation("UploadError", { error: uploadError.message, previewFileName, productId });
+      logOperation("UploadError", { 
+        error: uploadError.message, 
+        previewFileName, 
+        productId,
+        bucket: bucketPath
+      });
       return null;
     }
     
@@ -118,10 +147,19 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
       .from(bucketPath)
       .getPublicUrl(previewFileName);
     
-    logOperation("PreviewGenerated", { previewUrl: publicUrlData.publicUrl, productId });
+    logOperation("PreviewGenerated", { 
+      previewUrl: publicUrlData.publicUrl, 
+      originalUrl: imageUrl,
+      productId
+    });
+    
     return publicUrlData.publicUrl;
   } catch (error) {
-    logOperation("GeneratePreviewError", { error: error.message, imageUrl, productId });
+    logOperation("GeneratePreviewError", { 
+      error: error instanceof Error ? error.message : String(error),
+      imageUrl, 
+      productId 
+    });
     return null;
   }
 }
@@ -129,74 +167,223 @@ async function generatePreviewUrl(imageUrl: string, productId: string): Promise<
 async function processImageBatch(batchSize = 10) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
-  // Get images without preview URL
-  const { data: images, error } = await supabase
-    .from('product_images')
-    .select('id, url, product_id, preview_url')
-    .is('preview_url', null)
-    .limit(batchSize);
-  
-  if (error) {
-    logOperation("FetchError", { error: error.message, batchSize });
-    return { processed: 0, success: 0 };
-  }
-  
-  logOperation("BatchStart", { count: images.length, batchSize });
-  let successCount = 0;
-  const processedProductIds = new Set();
-  
-  // Process each image
-  for (const image of images) {
-    // Проверяем и обрабатываем только действительные URL-адреса
-    if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
-      logOperation("InvalidImageUrl", { imageId: image.id, url: image.url });
-      continue;
-    }
-
-    const previewUrl = await generatePreviewUrl(image.url, image.product_id);
+  try {
+    // Get images without preview URL
+    const { data: images, error } = await supabase
+      .from('product_images')
+      .select('id, url, product_id, preview_url')
+      .is('preview_url', null)
+      .limit(batchSize);
     
-    if (previewUrl) {
-      // Update the record with preview URL
-      const { error: updateError } = await supabase
-        .from('product_images')
-        .update({ preview_url: previewUrl })
-        .eq('id', image.id);
+    if (error) {
+      logOperation("FetchError", { error: error.message, batchSize });
+      return { processed: 0, success: 0 };
+    }
+    
+    logOperation("BatchStart", { count: images?.length || 0, batchSize });
+    let successCount = 0;
+    const processedProductIds = new Set();
+    
+    // Process each image
+    for (const image of images || []) {
+      // Проверяем и обрабатываем только действительные URL-адреса
+      if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
+        logOperation("InvalidImageUrl", { imageId: image.id, url: image.url });
+        continue;
+      }
+
+      const previewUrl = await generatePreviewUrl(image.url, image.product_id);
       
-      if (updateError) {
-        logOperation("UpdateError", { error: updateError.message, imageId: image.id });
-      } else {
-        successCount++;
-        processedProductIds.add(image.product_id);
-        logOperation("ImageUpdated", { imageId: image.id, productId: image.product_id });
+      if (previewUrl) {
+        // Update the record with preview URL
+        const { error: updateError } = await supabase
+          .from('product_images')
+          .update({ preview_url: previewUrl })
+          .eq('id', image.id);
         
-        // Update the has_preview flag in the product table
-        try {
-          await supabase
-            .rpc('update_product_has_preview_flag', { 
-              p_product_id: image.product_id 
-            });
-          logOperation("FlagUpdated", { productId: image.product_id });
-        } catch (rpcError) {
-          logOperation("FlagUpdateError", { 
-            error: rpcError.message, 
-            productId: image.product_id 
+        if (updateError) {
+          logOperation("UpdateError", { error: updateError.message, imageId: image.id });
+        } else {
+          successCount++;
+          processedProductIds.add(image.product_id);
+          logOperation("ImageUpdated", { 
+            imageId: image.id, 
+            productId: image.product_id,
+            previewUrl
           });
+          
+          // Update the has_preview flag in the product table
+          try {
+            const { error: rpcError } = await supabase
+              .rpc('update_product_has_preview_flag', { 
+                p_product_id: image.product_id 
+              });
+              
+            if (rpcError) {
+              logOperation("FlagUpdateError", { 
+                error: rpcError.message, 
+                productId: image.product_id 
+              });
+            } else {
+              logOperation("FlagUpdated", { productId: image.product_id });
+            }
+          } catch (rpcError) {
+            logOperation("FlagUpdateException", { 
+              error: rpcError instanceof Error ? rpcError.message : String(rpcError), 
+              productId: image.product_id 
+            });
+          }
         }
       }
     }
+    
+    logOperation("BatchComplete", { 
+      processed: images?.length || 0, 
+      success: successCount,
+      uniqueProducts: processedProductIds.size
+    });
+    
+    return {
+      processed: images?.length || 0,
+      success: successCount,
+      remaining: 0, // Will be calculated in the handler
+    };
+  } catch (error) {
+    logOperation("BatchProcessException", { 
+      error: error instanceof Error ? error.message : String(error),
+      batchSize
+    });
+    return {
+      processed: 0,
+      success: 0,
+      remaining: 0
+    };
   }
-  
-  logOperation("BatchComplete", { 
-    processed: images.length, 
-    success: successCount,
-    uniqueProducts: processedProductIds.size
-  });
-  
-  return {
-    processed: images.length,
-    success: successCount,
-    remaining: 0, // Will be calculated in the handler
-  };
+}
+
+async function verifyAndFixProductPreviews(productId: string): Promise<{
+  success: boolean;
+  totalImages: number;
+  updatedImages: number;
+  message: string;
+}> {
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Get all images for this product
+    const { data: images, error } = await supabase
+      .from('product_images')
+      .select('id, url, preview_url')
+      .eq('product_id', productId);
+      
+    if (error) {
+      logOperation("VerifyFetchError", { 
+        error: error.message, 
+        productId 
+      });
+      return {
+        success: false,
+        totalImages: 0,
+        updatedImages: 0,
+        message: `Failed to fetch images: ${error.message}`
+      };
+    }
+    
+    if (!images || images.length === 0) {
+      logOperation("VerifyNoImages", { productId });
+      return {
+        success: false,
+        totalImages: 0,
+        updatedImages: 0,
+        message: "No images found for this product"
+      };
+    }
+    
+    logOperation("VerifyStart", { 
+      productId, 
+      imageCount: images.length,
+      imagesWithPreview: images.filter(img => !!img.preview_url).length
+    });
+    
+    // Process any images without previews
+    let updatedCount = 0;
+    for (const image of images) {
+      if (!image.preview_url && image.url) {
+        const previewUrl = await generatePreviewUrl(image.url, productId);
+        
+        if (previewUrl) {
+          // Update the record with preview URL
+          const { error: updateError } = await supabase
+            .from('product_images')
+            .update({ preview_url: previewUrl })
+            .eq('id', image.id);
+            
+          if (!updateError) {
+            updatedCount++;
+            logOperation("VerifyImageUpdated", { 
+              imageId: image.id, 
+              productId,
+              previewUrl
+            });
+          } else {
+            logOperation("VerifyUpdateError", { 
+              error: updateError.message, 
+              imageId: image.id, 
+              productId 
+            });
+          }
+        }
+      }
+    }
+    
+    // Update the has_preview flag
+    try {
+      const { error: rpcError } = await supabase
+        .rpc('update_product_has_preview_flag', { 
+          p_product_id: productId 
+        });
+        
+      if (rpcError) {
+        logOperation("VerifyFlagUpdateError", { 
+          error: rpcError.message, 
+          productId 
+        });
+      } else {
+        logOperation("VerifyFlagUpdated", { productId });
+      }
+    } catch (rpcError) {
+      logOperation("VerifyFlagUpdateException", { 
+        error: rpcError instanceof Error ? rpcError.message : String(rpcError), 
+        productId 
+      });
+    }
+    
+    logOperation("VerifyComplete", { 
+      productId, 
+      totalImages: images.length,
+      updatedImages: updatedCount
+    });
+    
+    return {
+      success: true,
+      totalImages: images.length,
+      updatedImages: updatedCount,
+      message: updatedCount > 0 
+        ? `Generated previews for ${updatedCount} of ${images.length} images` 
+        : "All images already have previews"
+    };
+  } catch (error) {
+    logOperation("VerifyException", { 
+      error: error instanceof Error ? error.message : String(error),
+      productId 
+    });
+    return {
+      success: false,
+      totalImages: 0,
+      updatedImages: 0,
+      message: `Error during verification: ${error instanceof Error ? error.message : String(error)}`
+    };
+  }
 }
 
 serve(async (req) => {
@@ -210,7 +397,42 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Parse request
-    const { action, batchSize = 10, imageId, productId, productIds, limit } = await req.json();
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch (parseError) {
+      logOperation("InvalidRequest", { 
+        error: parseError instanceof Error ? parseError.message : String(parseError),
+        method: req.method,
+        url: req.url
+      });
+      
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON in request body' }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
+    
+    const { 
+      action, 
+      batchSize = 10, 
+      imageId, 
+      productId, 
+      productIds, 
+      limit 
+    } = requestBody;
+    
+    logOperation("RequestReceived", { 
+      action, 
+      productId, 
+      imageId,
+      batchSize: batchSize || 10,
+      productIdsCount: productIds?.length,
+      limit
+    });
     
     if (action === 'process_batch') {
       // Process a batch of images
@@ -240,6 +462,7 @@ serve(async (req) => {
         .single();
       
       if (error || !image) {
+        logOperation("SingleImageNotFound", { imageId });
         return new Response(
           JSON.stringify({ error: 'Image not found' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
@@ -256,6 +479,12 @@ serve(async (req) => {
           .eq('id', image.id);
         
         if (updateError) {
+          logOperation("SingleImageUpdateError", { 
+            error: updateError.message,
+            imageId: image.id,
+            productId: image.product_id
+          });
+          
           return new Response(
             JSON.stringify({ error: 'Failed to update image record' }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -268,8 +497,17 @@ serve(async (req) => {
             .rpc('update_product_has_preview_flag', { 
               p_product_id: image.product_id 
             });
+            
+          logOperation("SingleImageFlagUpdated", { 
+            productId: image.product_id,
+            imageId: image.id
+          });
         } catch (rpcError) {
-          console.warn(`Failed to update has_preview flag for product ${image.product_id}:`, rpcError);
+          logOperation("SingleImageFlagUpdateError", { 
+            error: rpcError instanceof Error ? rpcError.message : String(rpcError),
+            productId: image.product_id,
+            imageId: image.id
+          });
         }
         
         return new Response(
@@ -285,60 +523,10 @@ serve(async (req) => {
     }
     else if (action === 'process_product' && productId) {
       // Process all images for a specific product
-      const { data: images, error } = await supabase
-        .from('product_images')
-        .select('id, url, product_id')
-        .eq('product_id', productId)
-        .is('preview_url', null);
-      
-      if (error) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch product images' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-      
-      let successCount = 0;
-      for (const image of images || []) {
-        // Проверяем URL перед обработкой
-        if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
-          console.warn(`Invalid URL for image ${image.id}: ${image.url}`);
-          continue;
-        }
-
-        const previewUrl = await generatePreviewUrl(image.url, image.product_id);
-        
-        if (previewUrl) {
-          // Update the record
-          const { error: updateError } = await supabase
-            .from('product_images')
-            .update({ preview_url: previewUrl })
-            .eq('id', image.id);
-          
-          if (!updateError) {
-            successCount++;
-          }
-        }
-      }
-      
-      // Update the has_preview flag in the product table if at least one preview was created
-      if (successCount > 0) {
-        try {
-          await supabase
-            .rpc('update_product_has_preview_flag', { 
-              p_product_id: productId 
-            });
-        } catch (rpcError) {
-          console.warn(`Failed to update has_preview flag for product ${productId}:`, rpcError);
-        }
-      }
+      const verifyResult = await verifyAndFixProductPreviews(productId);
       
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          processed: images?.length || 0, 
-          successCount 
-        }),
+        JSON.stringify(verifyResult),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -359,6 +547,12 @@ serve(async (req) => {
       const { data: images, error } = await query.limit(actualLimit);
       
       if (error) {
+        logOperation("RegenerateFetchError", { 
+          error: error.message,
+          limit: actualLimit,
+          productIdsCount: productIds?.length
+        });
+        
         return new Response(
           JSON.stringify({ error: 'Failed to fetch images', details: error.message }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
@@ -372,7 +566,11 @@ serve(async (req) => {
       for (const image of images || []) {
         // Проверяем URL перед обработкой
         if (!image.url || typeof image.url !== 'string' || !image.url.startsWith('http')) {
-          console.warn(`Invalid URL for image ${image.id}: ${image.url}`);
+          logOperation("RegenerateInvalidUrl", { 
+            imageId: image.id, 
+            url: image.url,
+            productId: image.product_id
+          });
           continue;
         }
 
@@ -388,19 +586,35 @@ serve(async (req) => {
           if (!updateError) {
             successCount++;
             processedProductIds.add(image.product_id);
+            logOperation("RegenerateSuccess", { 
+              imageId: image.id,
+              productId: image.product_id,
+              previewUrl
+            });
+          } else {
+            logOperation("RegenerateUpdateError", { 
+              error: updateError.message,
+              imageId: image.id,
+              productId: image.product_id
+            });
           }
         }
       }
       
       // Update the has_preview flag for all processed products
-      for (const productId of processedProductIds) {
+      for (const pid of processedProductIds) {
         try {
           await supabase
             .rpc('update_product_has_preview_flag', { 
-              p_product_id: productId 
+              p_product_id: pid 
             });
+            
+          logOperation("RegenerateFlagUpdated", { productId: pid });
         } catch (rpcError) {
-          console.warn(`Failed to update has_preview flag for product ${productId}:`, rpcError);
+          logOperation("RegenerateFlagError", { 
+            error: rpcError instanceof Error ? rpcError.message : String(rpcError),
+            productId: pid
+          });
         }
       }
       
@@ -414,16 +628,33 @@ serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    else {
+    else if (action === 'verify_product' && productId) {
+      // New action to verify if a product has valid previews
+      const result = await verifyAndFixProductPreviews(productId);
+      
       return new Response(
-        JSON.stringify({ error: 'Invalid action' }),
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    else {
+      logOperation("InvalidAction", { action, productId, imageId });
+      return new Response(
+        JSON.stringify({ error: 'Invalid action or missing required parameters' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
   } catch (error) {
-    logOperation("UnhandledError", { error: error.message });
+    logOperation("UnhandledError", { 
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        details: error instanceof Error ? error.message : String(error) 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

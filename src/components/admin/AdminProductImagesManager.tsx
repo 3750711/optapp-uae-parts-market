@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { preProcessImageForUpload, createPreviewImage } from "@/utils/imageCompression";
+import { logImageProcessing } from "@/utils/imageProcessingUtils";
 
 interface AdminProductImagesManagerProps {
   productId: string;
@@ -20,6 +21,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
   const { toast } = useToast();
   const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isGeneratingPreviews, setIsGeneratingPreviews] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   
@@ -64,7 +66,24 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
   
   // Function to generate previews for uploaded images
   const generatePreviews = async () => {
+    if (!productId) {
+      console.error("Cannot generate previews: Missing product ID");
+      toast({
+        title: "Ошибка",
+        description: "ID продукта не указан",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
+      setIsGeneratingPreviews(true);
+      logImageProcessing('PreviewGeneration', { 
+        productId, 
+        action: 'manual_trigger', 
+        timestamp: new Date().toISOString() 
+      });
+      
       console.log(`Generating previews for product ${productId}`);
       
       // Call the Edge Function to generate previews
@@ -77,6 +96,10 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       
       if (error) {
         console.error("Error generating previews:", error);
+        logImageProcessing('PreviewGenerationError', { 
+          productId, 
+          error: error.message
+        });
         toast({
           title: "Предупреждение",
           description: "Не удалось создать превью изображений",
@@ -84,13 +107,60 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         });
       } else {
         console.log("Preview generation response:", data);
+        logImageProcessing('PreviewGenerationSuccess', { 
+          productId, 
+          response: data,
+          successCount: data.successCount || 0,
+          processed: data.processed || 0
+        });
         toast({
           title: "Успешно",
           description: `Превью созданы для ${data.successCount || 0} из ${data.processed || 0} изображений`,
         });
+        
+        // Update the has_preview flag in the database
+        await updateProductHasPreviewFlag();
       }
     } catch (err) {
       console.error("Failed to generate previews:", err);
+      logImageProcessing('PreviewGenerationException', { 
+        productId, 
+        error: err instanceof Error ? err.message : String(err)
+      });
+      toast({
+        title: "Ошибка",
+        description: "Произошла ошибка при создании превью",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingPreviews(false);
+    }
+  };
+  
+  // Function to update the has_preview flag
+  const updateProductHasPreviewFlag = async () => {
+    try {
+      const { error } = await supabase.rpc('update_product_has_preview_flag', { 
+        p_product_id: productId 
+      });
+      
+      if (error) {
+        console.error("Error updating product has_preview flag:", error);
+        logImageProcessing('FlagUpdateError', { 
+          productId, 
+          error: error.message 
+        });
+      } else {
+        logImageProcessing('FlagUpdateSuccess', { 
+          productId 
+        });
+      }
+    } catch (err) {
+      console.error("Exception updating has_preview flag:", err);
+      logImageProcessing('FlagUpdateException', { 
+        productId, 
+        error: err instanceof Error ? err.message : String(err)
+      });
     }
   };
   
@@ -169,6 +239,11 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         
         // Check if file is an image
         if (!file.type.startsWith('image/')) {
+          logImageProcessing('InvalidFileType', { 
+            filename: file.name, 
+            type: file.type,
+            productId
+          });
           toast({
             title: "Ошибка",
             description: `${file.name} не является изображением`,
@@ -176,6 +251,13 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           });
           continue;
         }
+        
+        logImageProcessing('ProcessingUpload', { 
+          filename: file.name, 
+          size: file.size,
+          type: file.type,
+          productId
+        });
         
         // Pre-process and optimize image to 500KB target
         const processedFile = await preProcessImageForUpload(file, 25, 500);
@@ -199,6 +281,11 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           
         if (originalError) {
           console.error("Original upload error:", originalError);
+          logImageProcessing('UploadError', { 
+            filename: fileName, 
+            error: originalError.message,
+            productId
+          });
           toast({
             title: "Ошибка загрузки",
             description: originalError.message,
@@ -227,8 +314,21 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
             .from('product-images')
             .getPublicUrl(previewFileName);
           previewUrl = previewPublicUrl;
+          
+          logImageProcessing('PreviewCreated', { 
+            originalUrl: publicUrl,
+            previewUrl,
+            originalSize: processedFile.size,
+            previewSize: previewFile.size,
+            productId
+          });
         } else {
           console.warn("Preview upload error:", previewError);
+          logImageProcessing('PreviewUploadError', { 
+            filename: previewFileName, 
+            error: previewError.message,
+            productId
+          });
         }
         
         // Save reference in the database with both URLs
@@ -243,6 +343,10 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           
         if (dbError) {
           console.error("Database error:", dbError);
+          logImageProcessing('DatabaseError', { 
+            productId,
+            error: dbError.message
+          });
           toast({
             title: "Ошибка сохранения",
             description: dbError.message,
@@ -257,18 +361,42 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       if (newUrls.length > 0) {
         onImagesChange([...images, ...newUrls]);
         
+        // Always explicitly update the has_preview flag after uploads
+        await updateProductHasPreviewFlag();
+        
         // After all images are uploaded and inserted into the database, 
-        // update the product's has_preview flag
+        // call the Edge Function directly to ensure preview generation
         try {
-          const { error: updateError } = await supabase.functions.invoke('generate-preview', {
-            body: { action: 'process_product', productId }
+          logImageProcessing('TriggeringEdgeFunction', { 
+            productId, 
+            action: 'auto_after_upload',
+            newImageCount: newUrls.length
           });
           
-          if (updateError) {
-            console.error("Error updating has_preview flag:", updateError);
+          const { error: functionError } = await supabase.functions.invoke('generate-preview', {
+            body: { 
+              action: 'process_product', 
+              productId 
+            }
+          });
+          
+          if (functionError) {
+            console.error("Error calling generate-preview function:", functionError);
+            logImageProcessing('EdgeFunctionError', { 
+              productId, 
+              error: functionError.message
+            });
+          } else {
+            logImageProcessing('EdgeFunctionSuccess', { 
+              productId
+            });
           }
-        } catch (error) {
-          console.error("Failed to update has_preview flag:", error);
+        } catch (functionError) {
+          console.error("Exception calling generate-preview function:", functionError);
+          logImageProcessing('EdgeFunctionException', { 
+            productId, 
+            error: functionError instanceof Error ? functionError.message : String(functionError)
+          });
         }
         
         toast({ 
@@ -278,6 +406,10 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       }
     } catch (error: any) {
       console.error("Error uploading images:", error);
+      logImageProcessing('UploadException', { 
+        productId,
+        error: error?.message || "Unknown error"
+      });
       toast({
         title: "Ошибка",
         description: error?.message || "Не удалось загрузить фото",
@@ -394,8 +526,12 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           variant="outline" 
           size="sm"
           onClick={generatePreviews}
+          disabled={isGeneratingPreviews}
           className="flex items-center gap-1 text-xs"
         >
+          {isGeneratingPreviews ? (
+            <Loader2 className="h-3 w-3 animate-spin mr-1" />
+          ) : null}
           Создать превью
         </Button>
       </div>

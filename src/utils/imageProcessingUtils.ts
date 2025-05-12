@@ -18,7 +18,12 @@ export interface ProcessedImage {
  * Logs detailed image processing information
  */
 export function logImageProcessing(stage: string, details: Record<string, any>) {
-  console.log(`[ImageProcessing:${stage}]`, details);
+  const timestamp = new Date().toISOString();
+  const logDetails = {
+    timestamp,
+    ...details
+  };
+  console.log(`[ImageProcessing:${stage}]`, logDetails);
 }
 
 /**
@@ -54,17 +59,25 @@ export async function processImageForUpload(file: File): Promise<ProcessedImage>
         format: 'WebP'
       });
     } catch (previewError) {
-      logImageProcessing('PreviewError', { error: previewError.message });
+      logImageProcessing('PreviewError', { 
+        error: previewError instanceof Error ? previewError.message : String(previewError),
+        fileName: file.name
+      });
     }
   } catch (error) {
-    logImageProcessing('Error', { error: error.message });
+    logImageProcessing('Error', { 
+      error: error instanceof Error ? error.message : String(error),
+      fileName: file.name
+    });
     // Continue with original file if optimization fails
   }
   
   const processingTime = performance.now() - startTime;
   logImageProcessing('Complete', { 
     processingTimeMs: processingTime.toFixed(0),
-    success: !!optimizedFile
+    success: !!optimizedFile,
+    hasPreview: !!previewFile,
+    fileName: file.name
   });
   
   return {
@@ -92,7 +105,8 @@ export async function uploadProcessedImage(
   logImageProcessing('Upload', { 
     bucket: storageBucket, 
     path: storagePath,
-    hasPreview: !!processedImage.previewFile
+    hasPreview: !!processedImage.previewFile,
+    fileName: processedImage.originalFile.name
   });
   
   try {
@@ -110,7 +124,11 @@ export async function uploadProcessedImage(
       });
       
     if (originalError) {
-      logImageProcessing('UploadError', { error: originalError.message });
+      logImageProcessing('UploadError', { 
+        error: originalError.message,
+        fileName,
+        bucket: storageBucket
+      });
       throw originalError;
     }
     
@@ -138,15 +156,32 @@ export async function uploadProcessedImage(
           .getPublicUrl(previewFileName);
           
         previewUrl = previewPublicUrl;
-        logImageProcessing('PreviewUploaded', { previewUrl });
+        logImageProcessing('PreviewUploaded', { 
+          previewFileName,
+          previewUrl,
+          originalUrl
+        });
       } else {
-        logImageProcessing('PreviewUploadError', { error: previewError.message });
+        logImageProcessing('PreviewUploadError', { 
+          error: previewError.message,
+          previewFileName,
+          bucket: storageBucket
+        });
       }
     }
     
+    logImageProcessing('UploadComplete', { 
+      originalUrl, 
+      hasPreview: !!previewUrl
+    });
+    
     return { originalUrl, previewUrl };
   } catch (error) {
-    logImageProcessing('UploadFailed', { error: error.message });
+    logImageProcessing('UploadFailed', { 
+      error: error instanceof Error ? error.message : String(error),
+      fileName: processedImage.originalFile.name,
+      bucket: storageBucket
+    });
     throw error;
   }
 }
@@ -163,38 +198,75 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
   imagesWithPreview: number;
 }> {
   try {
+    logImageProcessing('VerifyStart', { productId });
+    
     // Get all images for the product
     const { data: images, error: imagesError } = await supabase
       .from('product_images')
       .select('id, url, preview_url')
       .eq('product_id', productId);
       
-    if (imagesError) throw imagesError;
+    if (imagesError) {
+      logImageProcessing('VerifyError', { 
+        productId, 
+        error: imagesError.message
+      });
+      throw imagesError;
+    }
+    
+    // Get product has_preview flag
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('id, has_preview')
+      .eq('id', productId)
+      .single();
+      
+    if (productError) {
+      logImageProcessing('VerifyProductError', { 
+        productId, 
+        error: productError.message
+      });
+    }
     
     const totalImages = images?.length || 0;
     const imagesWithPreview = images?.filter(img => !!img.preview_url).length || 0;
-    const hasPreview = imagesWithPreview > 0;
+    const hasPreview = product?.has_preview || false;
+    const shouldHavePreview = imagesWithPreview > 0;
+    
+    // Log the discrepancy if any
+    if (hasPreview !== shouldHavePreview) {
+      logImageProcessing('VerifyDiscrepancy', { 
+        productId,
+        hasPreviewFlag: hasPreview,
+        shouldHavePreview,
+        totalImages,
+        imagesWithPreview
+      });
+    }
     
     // Ensure the has_preview flag is set correctly in the database
-    if (hasPreview) {
+    if (hasPreview !== shouldHavePreview) {
       await updateProductHasPreviewFlag(productId);
     }
     
-    logImageProcessing('PreviewVerification', { 
+    logImageProcessing('VerifyComplete', { 
       productId,
       totalImages,
       imagesWithPreview,
-      hasPreview
+      hasPreview: shouldHavePreview
     });
     
     return {
       success: true,
-      hasPreview,
+      hasPreview: shouldHavePreview,
       totalImages,
       imagesWithPreview
     };
   } catch (error) {
-    logImageProcessing('VerificationError', { error: error.message });
+    logImageProcessing('VerifyFailed', { 
+      productId, 
+      error: error instanceof Error ? error.message : String(error)
+    });
     return {
       success: false,
       hasPreview: false,
@@ -210,6 +282,8 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
  */
 export async function updateProductHasPreviewFlag(productId: string): Promise<boolean> {
   try {
+    logImageProcessing('UpdateFlag', { productId });
+    
     const { data, error } = await supabase.rpc('update_product_has_preview_flag', { 
       p_product_id: productId 
     });
@@ -227,7 +301,7 @@ export async function updateProductHasPreviewFlag(productId: string): Promise<bo
   } catch (error) {
     logImageProcessing('UpdateFlagException', { 
       productId, 
-      error: error.message 
+      error: error instanceof Error ? error.message : String(error)
     });
     return false;
   }
@@ -252,7 +326,13 @@ export async function massUpdateProductPreviewFlags(limit: number = 50): Promise
       .select('id')
       .limit(limit);
       
-    if (productsError) throw productsError;
+    if (productsError) {
+      logImageProcessing('MassUpdateProductsError', { 
+        error: productsError.message,
+        limit
+      });
+      throw productsError;
+    }
     
     let updated = 0;
     let failed = 0;
@@ -269,7 +349,7 @@ export async function massUpdateProductPreviewFlags(limit: number = 50): Promise
       } catch (error) {
         logImageProcessing('MassUpdateProductError', { 
           productId: product.id, 
-          error: error.message 
+          error: error instanceof Error ? error.message : String(error)
         });
         failed++;
       }
@@ -284,11 +364,71 @@ export async function massUpdateProductPreviewFlags(limit: number = 50): Promise
     logImageProcessing('MassUpdateComplete', results);
     return results;
   } catch (error) {
-    logImageProcessing('MassUpdateFailed', { error: error.message });
+    logImageProcessing('MassUpdateFailed', { 
+      error: error instanceof Error ? error.message : String(error)
+    });
     return {
       processed: 0,
       updated: 0,
       failed: 1
+    };
+  }
+}
+
+/**
+ * Manually trigger preview generation for a product by calling the Edge Function
+ * @param productId The product ID to generate previews for
+ */
+export async function generateProductPreviews(productId: string): Promise<{
+  success: boolean;
+  message: string;
+  updatedImages?: number;
+  totalImages?: number;
+}> {
+  try {
+    logImageProcessing('GenerateStart', { productId });
+    
+    const { data, error } = await supabase.functions.invoke('generate-preview', {
+      body: { action: 'verify_product', productId }
+    });
+    
+    if (error) {
+      logImageProcessing('GenerateError', { 
+        productId, 
+        error: error.message 
+      });
+      return {
+        success: false,
+        message: `Ошибка вызова функции: ${error.message}`
+      };
+    }
+    
+    logImageProcessing('GenerateComplete', { 
+      productId, 
+      response: data
+    });
+    
+    if (data.success) {
+      return {
+        success: true,
+        message: data.message,
+        updatedImages: data.updatedImages,
+        totalImages: data.totalImages
+      };
+    } else {
+      return {
+        success: false,
+        message: data.message
+      };
+    }
+  } catch (error) {
+    logImageProcessing('GenerateException', { 
+      productId, 
+      error: error instanceof Error ? error.message : String(error)
+    });
+    return {
+      success: false,
+      message: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
     };
   }
 }
