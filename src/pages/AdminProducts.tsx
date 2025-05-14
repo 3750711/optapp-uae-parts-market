@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -193,29 +192,34 @@ const AdminProducts = () => {
     try {
       console.log('Создание поискового запроса для термина:', term);
 
-      // Fix: Separate each search condition and apply them individually
-      // instead of using a single complex OR condition
+      // Проверка, является ли строка поиска числом (для лот-номера и цены)
+      const isNumeric = !isNaN(Number(term));
       
-      // Search in text fields
-      query = query
-        .or(`title.ilike.%${term}%`)
-        .or(`brand.ilike.%${term}%`)
-        .or(`model.ilike.%${term}%`)
-        .or(`description.ilike.%${term}%`)
-        .or(`seller_name.ilike.%${term}%`)
-        .or(`optid_created.ilike.%${term}%`);
-
-      // Special handling for lot_number field
-      const numbersOnly = /^\d+$/.test(term);
-      if (numbersOnly) {
-        // If the search term contains only numbers, search by exact lot_number
-        console.log('Поисковый запрос содержит только цифры, используем точное соответствие для lot_number');
-        query = query.or(`lot_number.eq.${term}`);
+      // Создаем запрос для поиска по текстовым полям
+      query = query.or(
+        `title.ilike.%${term}%,` +
+        `brand.ilike.%${term}%,` +
+        `model.ilike.%${term}%,` +
+        `description.ilike.%${term}%,` +
+        `seller_name.ilike.%${term}%,` +
+        `optid_created.ilike.%${term}%`
+      );
+      
+      // Если поисковый запрос похож на число, ищем по lot_number и price
+      if (isNumeric) {
+        const numValue = Number(term);
+        
+        // Поиск по лот-номеру (точное совпадение или частичное текстовое)
+        query = query.or(`lot_number.eq.${numValue}`);
+        
+        // Поиск по цене (точное совпадение)
+        query = query.or(`price.eq.${numValue}`);
+        
+        console.log('Добавлен поиск по числовым значениям: lot_number и price');
       } else {
-        // For text searches in lot_number, convert to text first
-        console.log('Поиск по lot_number как текст');
-        // We use the proper syntax for text casting in Postgres via Supabase
-        query = query.or(`lot_number::text.ilike.%${term}%`);
+        // Для текстовой строки делаем более общий поиск по lot_number, преобразуя его в текст
+        query = query.or(`cast(lot_number as text).ilike.%${term}%`);
+        console.log('Добавлен поиск по текстовому представлению lot_number');
       }
       
       return query;

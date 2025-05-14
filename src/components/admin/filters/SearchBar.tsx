@@ -31,7 +31,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
     <div className="relative flex items-center w-full md:w-auto">
       <Input
         type="search"
-        placeholder="Поиск товаров..."
+        placeholder="Поиск по названию, лот-номеру, цене..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={handleKeyDown}
