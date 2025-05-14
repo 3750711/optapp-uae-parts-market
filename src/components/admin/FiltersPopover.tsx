@@ -41,8 +41,14 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
   applyFilters,
   disabled = false // Default to false if not provided
 }) => {
-  // Check if any filters are active
-  const hasActiveFilters = filters.priceRange || filters.dateRange || filters.status;
+  // Since FiltersState is now empty, we need a different way to determine if filters are active
+  const hasActiveFilters = Boolean(
+    priceRange?.[0] !== 0 || 
+    priceRange?.[1] !== maxPrice || 
+    dateRange?.from || 
+    dateRange?.to || 
+    statusFilter
+  );
 
   return (
     <Popover>
