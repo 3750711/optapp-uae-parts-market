@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -65,6 +64,9 @@ const ProductCard: React.FC<ProductProps> = ({
   // Optimize: Memoize display image calculation
   const displayImage = useMemo(() => preview_image || image, [preview_image, image]);
 
+  // Determine if this product is using a preview image
+  const isUsingPreviewImage = useMemo(() => Boolean(preview_image), [preview_image]);
+
   // Optimize: Memoize hot lot status calculation
   const isHot = useMemo(() => {
     if (!created_at) return false;
@@ -119,7 +121,9 @@ const ProductCard: React.FC<ProductProps> = ({
         <img 
           src={displayImage || "/placeholder.svg"} 
           alt={name} 
-          className={`max-h-full max-w-full object-contain group-hover:scale-105 transition-all duration-500 bg-white ${
+          className={`max-h-full max-w-full object-contain ${
+            !isUsingPreviewImage ? 'group-hover:scale-105 transition-all duration-500' : ''
+          } bg-white ${
             status === 'sold' ? 'opacity-50' : ''
           }`}
           loading="lazy"

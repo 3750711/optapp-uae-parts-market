@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,9 +99,19 @@ const AdminProducts = () => {
           const hasPreviewImage = product.product_images && 
             product.product_images.some((img: any) => img.preview_url);
           
+          // Find preview URL if available
+          let previewUrl = null;
+          if (hasPreviewImage && product.product_images) {
+            const previewImage = product.product_images.find((img: any) => img.preview_url);
+            if (previewImage) {
+              previewUrl = previewImage.preview_url;
+            }
+          }
+          
           return {
             ...product,
-            hasPreviewImage
+            hasPreviewImage,
+            previewUrl
           };
         });
 
@@ -310,17 +319,16 @@ const AdminProducts = () => {
                   className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
                 >
                   <div className="relative aspect-square mb-4">
-                    {/* Use preview_url if available */}
+                    {/* Use preview_url if available without hover effect */}
                     <img 
                       src={
-                        product.product_images?.find(img => img.is_primary && img.preview_url)?.preview_url || 
+                        product.previewUrl || 
                         product.product_images?.find(img => img.is_primary)?.url || 
-                        product.product_images?.find(img => img.preview_url)?.preview_url || 
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg'
                       } 
                       alt={product.title} 
-                      className="object-cover w-full h-full rounded-md"
+                      className={`object-cover w-full h-full rounded-md ${!product.previewUrl ? 'hover:scale-105 transition-all duration-300' : ''}`}
                       loading="lazy"
                     />
                     <Badge 

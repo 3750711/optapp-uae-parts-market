@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -16,11 +17,17 @@ interface ProductGalleryProps {
   images: string[];
   title: string;
   compressed?: boolean;
+  isPreview?: boolean; // New prop to check if this is a preview image
 }
 
 const SWIPE_THRESHOLD = 50; // минимальное расстояние в пикселях для активации свайпа
 
-const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title, compressed = true }) => {
+const ProductGallery: React.FC<ProductGalleryProps> = ({ 
+  images, 
+  title, 
+  compressed = true,
+  isPreview = false // Default to false
+}) => {
   const [activeImage, setActiveImage] = useState<string>(images[0] || "");
   const [isOpen, setIsOpen] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string>("");
@@ -92,7 +99,9 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title, compress
         <img 
           src={activeImage} 
           alt={title}
-          className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'} transition-transform duration-200 hover:scale-105`}
+          className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'} ${
+            !isPreview ? 'transition-transform duration-200 hover:scale-105' : ''
+          }`}
         />
       </AspectRatio>
     </div>
@@ -133,7 +142,9 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({ images, title, compress
                 <img 
                   src={image} 
                   alt={`${title} ${index + 1}`}
-                  className={`w-full h-auto ${compressed ? 'object-contain' : 'object-cover'} max-h-[50vh]`}
+                  className={`w-full h-auto ${compressed ? 'object-contain' : 'object-cover'} max-h-[50vh] ${
+                    !isPreview ? 'hover:scale-105 transition-transform duration-200' : ''
+                  }`}
                 />
               </div>
             </CarouselItem>
