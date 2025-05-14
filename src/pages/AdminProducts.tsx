@@ -8,8 +8,7 @@ import { useIntersection } from '@/hooks/useIntersection';
 import RefactoredProductSearchFilters from '@/components/admin/RefactoredProductSearchFilters';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
-import { useProductFilters, FiltersState } from '@/hooks/useProductFilters';
-import { DateRange } from '@/components/admin/filters/DateRangeFilter';
+import { useProductFilters } from '@/hooks/useProductFilters';
 
 const PRODUCTS_PER_PAGE = 20;
 
@@ -27,22 +26,13 @@ const AdminProducts = () => {
   // Using the intersection observer to detect when user scrolls to the bottom
   const isIntersecting = useIntersection(loadMoreRef, '200px');
   
-  // Use our custom hook for filters
+  // Use our custom hook for filters - simplified version without filters
   const {
-    filters,
     sortField,
     sortOrder,
-    priceRange,
-    dateRange,
-    statusFilter,
-    maxPrice,
     setSortField,
     setSortOrder,
-    setPriceRange,
-    setDateRange,
-    setStatusFilter,
-    resetAllFilters,
-    applyFilters
+    resetAllFilters
   } = useProductFilters([], 
     // onApplyFilters callback
     () => {
@@ -160,7 +150,7 @@ const AdminProducts = () => {
     }
   };
 
-  // Query products with filters
+  // Query products with filters - removed filter logic
   const {
     data: productsData,
     isLoading,
@@ -171,12 +161,11 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, filters],
+    queryKey: ['admin', 'products', sortField, sortOrder],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         console.log('Выполнение запроса с параметрами:', { 
           sortField, sortOrder,
-          filters: JSON.stringify(filters),
           pageParam
         });
         
@@ -191,32 +180,6 @@ const AdminProducts = () => {
             product_images(url, is_primary),
             profiles(full_name, rating, opt_id)
           `);
-        
-        // Apply price filter
-        if (filters.priceRange) {
-          console.log('Применение фильтра по цене:', filters.priceRange);
-          query = query.gte('price', filters.priceRange[0]).lte('price', filters.priceRange[1]);
-        }
-        
-        // Apply status filter
-        if (filters.status) {
-          console.log('Применение фильтра по статусу:', filters.status);
-          query = query.eq('status', filters.status);
-        }
-        
-        // Apply date filter
-        if (filters.dateRange && filters.dateRange.from) {
-          console.log('Применение фильтра по дате от:', filters.dateRange.from.toISOString());
-          query = query.gte('created_at', filters.dateRange.from.toISOString());
-          
-          if (filters.dateRange.to) {
-            // Add 1 day to the end date to include the full day
-            const endDate = new Date(filters.dateRange.to);
-            endDate.setDate(endDate.getDate() + 1);
-            console.log('Применение фильтра по дату до:', endDate.toISOString());
-            query = query.lt('created_at', endDate.toISOString());
-          }
-        }
 
         // Применяем сортировку
         if (sortField === 'status') {
@@ -294,24 +257,15 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        {/* Фильтры и сортировка */}
+        {/* Фильтры и сортировка - removed filters */}
         <RefactoredProductSearchFilters
           sortField={sortField}
           sortOrder={sortOrder}
-          filters={filters}
-          priceRange={priceRange}
-          dateRange={dateRange}
-          statusFilter={statusFilter}
-          maxPrice={maxPrice}
           products={products}
           selectedProducts={selectedProducts}
           isDeleting={isDeleting}
           setSortField={setSortField}
           setSortOrder={setSortOrder}
-          setPriceRange={setPriceRange}
-          setDateRange={setDateRange}
-          setStatusFilter={setStatusFilter}
-          onApplyFilters={applyFilters}
           onDeleteSelected={handleDeleteSelected}
           onToggleAllSelected={handleToggleAllSelected}
           resetAllFilters={resetAllFilters}

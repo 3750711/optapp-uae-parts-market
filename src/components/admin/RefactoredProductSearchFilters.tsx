@@ -6,23 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import * as XLSX from 'xlsx';
 
 // Import our components
-import FiltersPopover from './FiltersPopover';
-import ActiveFiltersDisplay from './filters/ActiveFiltersDisplay';
 import SelectedProductsActions from './filters/SelectedProductsActions';
-import { FiltersState } from '@/hooks/useProductFilters';
-import { DateRange } from './filters/DateRangeFilter';
 
 interface RefactoredProductSearchFiltersProps {
-  // Filter states
+  // Sort states
   sortField: 'created_at' | 'price' | 'title' | 'status';
   sortOrder: 'asc' | 'desc';
-  filters: FiltersState;
-  
-  // Component states for filter UI
-  priceRange: [number, number];
-  dateRange: DateRange;
-  statusFilter: string | null;
-  maxPrice: number;
   
   // Selected products state
   products: any[];
@@ -32,27 +21,16 @@ interface RefactoredProductSearchFiltersProps {
   // Event handlers
   setSortField: (field: 'created_at' | 'price' | 'title' | 'status') => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
-  setPriceRange: (range: [number, number]) => void;
-  setDateRange: (range: DateRange) => void;
-  setStatusFilter: (status: string | null) => void;
   
-  onApplyFilters: () => void;
   onDeleteSelected: () => void;
   onToggleAllSelected: (selected: boolean) => void;
   resetAllFilters: () => void;
 }
 
 const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersProps> = ({
-  // Filter states
+  // Sort states
   sortField,
   sortOrder,
-  filters,
-  
-  // Component states for filter UI
-  priceRange,
-  dateRange,
-  statusFilter,
-  maxPrice,
   
   // Selected products state
   products,
@@ -62,11 +40,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   // Event handlers
   setSortField,
   setSortOrder,
-  setPriceRange,
-  setDateRange,
-  setStatusFilter,
   
-  onApplyFilters,
   onDeleteSelected,
   onToggleAllSelected,
   resetAllFilters
@@ -123,20 +97,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             </SelectContent>
           </Select>
           
-          {/* Filters Popover */}
-          <FiltersPopover 
-            filters={filters}
-            priceRange={priceRange}
-            setPriceRange={setPriceRange}
-            maxPrice={maxPrice}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            resetAllFilters={resetAllFilters}
-            applyFilters={onApplyFilters}
-          />
-          
           {/* Export Button */}
           <Button
             variant="outline"
@@ -150,12 +110,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           </Button>
         </div>
       </div>
-
-      {/* Active Filters Display */}
-      <ActiveFiltersDisplay 
-        filters={filters} 
-        onResetAll={resetAllFilters} 
-      />
       
       {/* Selected Products Actions */}
       <SelectedProductsActions 
