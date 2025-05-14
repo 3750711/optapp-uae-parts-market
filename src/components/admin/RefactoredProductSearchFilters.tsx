@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback, memo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -19,6 +19,7 @@ interface RefactoredProductSearchFiltersProps {
   resetAllFilters: () => void;
 }
 
+// Используем memo для предотвращения лишних перерисовок
 const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersProps> = ({
   // Sort states
   sortField,
@@ -32,8 +33,10 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   setSortOrder,
   resetAllFilters
 }) => {
-  // Export products to Excel
-  const exportToExcel = () => {
+  // Export products to Excel - мемоизируем функцию
+  const exportToExcel = useCallback(() => {
+    if (products.length === 0) return;
+    
     const exportData = products.map(product => ({
       'ID товара': product.id,
       'Название': product.title,
@@ -53,7 +56,14 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Products");
     XLSX.writeFile(wb, `product_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
-  };
+  }, [products]);
+
+  // Мемоизируем функцию обработки изменения сортировки
+  const handleSortChange = useCallback((value: string) => {
+    const [field, order] = value.split('-');
+    setSortField(field as 'created_at' | 'price' | 'title' | 'status');
+    setSortOrder(order as 'asc' | 'desc');
+  }, [setSortField, setSortOrder]);
 
   return (
     <div className="space-y-4">
@@ -64,11 +74,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           {/* Sort Dropdown */}
           <Select
             value={`${sortField}-${sortOrder}`}
-            onValueChange={(value) => {
-              const [field, order] = value.split('-');
-              setSortField(field as 'created_at' | 'price' | 'title' | 'status');
-              setSortOrder(order as 'asc' | 'desc');
-            }}
+            onValueChange={handleSortChange}
           >
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Сортировка" />
@@ -101,4 +107,5 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   );
 };
 
-export default RefactoredProductSearchFilters;
+// Используем React.memo для предотвращения ненужных перерисовок
+export default memo(RefactoredProductSearchFilters);

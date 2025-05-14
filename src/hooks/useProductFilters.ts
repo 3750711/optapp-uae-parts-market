@@ -1,6 +1,5 @@
-
-import { useState, useEffect } from 'react';
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect, useCallback } from 'react';
+import { useToast } from "@/components/ui/use-toast";
 
 export interface FiltersState {
   // Empty interface since we removed filters
@@ -24,43 +23,53 @@ export const useProductFilters = (
 ): ProductFiltersReturn => {
   const { toast } = useToast();
   
-  // Basic filter state
-  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-
-  // Load saved preferences from localStorage on component mount
-  useEffect(() => {
+  // Чтение из localStorage только при инициализации
+  const getInitialSortField = (): 'created_at' | 'price' | 'title' | 'status' => {
     try {
-      const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
-      const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
-      
-      if (savedSortField) {
-        setSortField(savedSortField);
-      }
-      
-      if (savedSortOrder) {
-        setSortOrder(savedSortOrder);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке настроек сортировки:', error);
+      const saved = localStorage.getItem(SORT_FIELD_KEY);
+      return saved ? saved as 'created_at' | 'price' | 'title' | 'status' : 'status';
+    } catch {
+      return 'status';
     }
-  }, []);
+  };
   
-  // Save sort preferences to localStorage whenever they change
-  useEffect(() => {
+  const getInitialSortOrder = (): 'asc' | 'desc' => {
     try {
-      localStorage.setItem(SORT_FIELD_KEY, sortField);
-      localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+      const saved = localStorage.getItem(SORT_ORDER_KEY);
+      return saved ? saved as 'asc' | 'desc' : 'asc';
+    } catch {
+      return 'asc';
+    }
+  };
+  
+  // Basic filter state с начальными значениями из localStorage
+  const [sortField, setSortFieldState] = useState<'created_at' | 'price' | 'title' | 'status'>(getInitialSortField);
+  const [sortOrder, setSortOrderState] = useState<'asc' | 'desc'>(getInitialSortOrder);
+
+  // Мемоизированные функции установки сортировки
+  const setSortField = useCallback((field: 'created_at' | 'price' | 'title' | 'status') => {
+    setSortFieldState(field);
+    try {
+      localStorage.setItem(SORT_FIELD_KEY, field);
     } catch (error) {
       console.error('Ошибка при сохранении настроек сортировки:', error);
     }
-  }, [sortField, sortOrder]);
+  }, []);
+  
+  const setSortOrder = useCallback((order: 'asc' | 'desc') => {
+    setSortOrderState(order);
+    try {
+      localStorage.setItem(SORT_ORDER_KEY, order);
+    } catch (error) {
+      console.error('Ошибка при сохранении настроек сортировки:', error);
+    }
+  }, []);
 
   // Reset all filters - simplified
-  const resetAllFilters = () => {
+  const resetAllFilters = useCallback(() => {
     // No filters to reset, but keeping the function for API compatibility
     onApplyFilters();
-  };
+  }, [onApplyFilters]);
 
   return {
     sortField,

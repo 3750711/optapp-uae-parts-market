@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -32,13 +32,13 @@ const AdminProducts = () => {
     resetAllFilters
   } = useProductFilters([], 
     // onApplyFilters callback
-    () => {
+    useCallback(() => {
       refetch();
-    }
+    }, []) // refetch будет определена позже через useInfiniteQuery
   );
   
-  // Удаление товара
-  const handleDeleteProduct = async (productId: string) => {
+  // Удаление товара - оптимизировано с useCallback
+  const handleDeleteProduct = useCallback(async (productId: string) => {
     if (isDeleting) return; // Предотвращаем множественные запросы
     
     try {
@@ -73,9 +73,89 @@ const AdminProducts = () => {
       setIsDeleting(false);
       setDeleteProductId(null);
     }
-  };
+  }, [isDeleting, queryClient, toast]);
 
-  // Query products with filters - removed filter logic
+  // Ключ запроса с зависимостями сортировки
+  const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder], [sortField, sortOrder]);
+
+  // Формирование функции запроса с оптимизациями
+  const queryFn = useCallback(async ({ pageParam = 1 }) => {
+    try {
+      console.log('Выполнение запроса с параметрами:', { 
+        sortField, sortOrder,
+        pageParam
+      });
+      
+      // Calculate the start and end range for pagination
+      const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
+      const to = from + PRODUCTS_PER_PAGE - 1;
+      
+      let query = supabase
+        .from('products')
+        .select(`
+          *,
+          product_images(url, is_primary),
+          profiles(full_name, rating, opt_id)
+        `);
+
+      // Применяем сортировку
+      if (sortField === 'status') {
+        console.log('Сортировка по статусу');
+        // Если сортировка по статусу, сначала сортируем по статусу, затем по дате для удобства
+        query = query.order('status', { ascending: true }).order('created_at', { ascending: false });
+      } else {
+        console.log(`Сортировка по ${sortField}, порядок: ${sortOrder}`);
+        query = query.order(sortField, { ascending: sortOrder === 'asc' });
+      }
+      
+      // Apply pagination
+      console.log(`Применение пагинации: от ${from} до ${to}`);
+      query = query.range(from, to);
+      
+      console.log('Выполнение запроса...');
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('Ошибка запроса:', error);
+        throw new Error(`Ошибка Supabase: ${error.message}`);
+      }
+
+      console.log(`Получено ${data?.length || 0} товаров`);
+
+      // Check if we have more pages
+      const hasMore = data && data.length === PRODUCTS_PER_PAGE;
+
+      if (sortField === 'status') {
+        const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
+        return {
+          products: data ? data.sort((a, b) => 
+            statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
+          ) : [],
+          nextPage: hasMore ? pageParam + 1 : undefined
+        };
+      }
+
+      return {
+        products: data || [],
+        nextPage: hasMore ? pageParam + 1 : undefined
+      };
+    } catch (error) {
+      console.error('Критическая ошибка при получении товаров:', error);
+      // Показываем более подробную информацию об ошибке
+      let errorMessage = 'Неизвестная ошибка';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        console.error('Стек ошибки:', error.stack);
+      } else {
+        console.error('Неизвестный тип ошибки:', error);
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }, [sortField, sortOrder]);
+
+  // Query products with filters
   const {
     data: productsData,
     isLoading,
@@ -86,90 +166,24 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder],
-    queryFn: async ({ pageParam = 1 }) => {
-      try {
-        console.log('Выполнение запроса с параметрами:', { 
-          sortField, sortOrder,
-          pageParam
-        });
-        
-        // Calculate the start and end range for pagination
-        const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
-        const to = from + PRODUCTS_PER_PAGE - 1;
-        
-        let query = supabase
-          .from('products')
-          .select(`
-            *,
-            product_images(url, is_primary),
-            profiles(full_name, rating, opt_id)
-          `);
-
-        // Применяем сортировку
-        if (sortField === 'status') {
-          console.log('Сортировка по статусу');
-          // Если сортировка по статусу, сначала сортируем по статусу, затем по дате для удобства
-          query = query.order('status', { ascending: true }).order('created_at', { ascending: false });
-        } else {
-          console.log(`Сортировка по ${sortField}, порядок: ${sortOrder}`);
-          query = query.order(sortField, { ascending: sortOrder === 'asc' });
-        }
-        
-        // Apply pagination
-        console.log(`Применение пагинации: от ${from} до ${to}`);
-        query = query.range(from, to);
-        
-        console.log('Выполнение запроса...');
-        const { data, error } = await query;
-        
-        if (error) {
-          console.error('Ошибка запроса:', error);
-          throw new Error(`Ошибка Supabase: ${error.message}`);
-        }
-
-        console.log(`Получено ${data?.length || 0} товаров`);
-
-        // Check if we have more pages
-        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
-
-        if (sortField === 'status') {
-          const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
-          return {
-            products: data ? data.sort((a, b) => 
-              statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
-            ) : [],
-            nextPage: hasMore ? pageParam + 1 : undefined
-          };
-        }
-
-        return {
-          products: data || [],
-          nextPage: hasMore ? pageParam + 1 : undefined
-        };
-      } catch (error) {
-        console.error('Критическая ошибка при получении товаров:', error);
-        // Показываем более подробную информацию об ошибке
-        let errorMessage = 'Неизвестная ошибка';
-        
-        if (error instanceof Error) {
-          errorMessage = error.message;
-          console.error('Стек ошибки:', error.stack);
-        } else {
-          console.error('Неизвестный тип ошибки:', error);
-        }
-        
-        throw new Error(errorMessage);
-      }
-    },
+    queryKey,
+    queryFn,
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
     staleTime: 30000, // Данные считаются свежими в течение 30 секунд
     refetchOnWindowFocus: false, // Не обновлять при фокусе окна
   });
 
-  // Flatten the pages of products into a single array
-  const products = productsData?.pages?.flatMap(page => page.products) || [];
+  // Flatten the pages of products into a single array - мемоизация для предотвращения повторных вычислений
+  const products = useMemo(() => 
+    productsData?.pages?.flatMap(page => page.products) || [], 
+    [productsData?.pages]
+  );
+
+  // Обработчик обновления статуса продукта
+  const handleStatusChange = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+  }, [queryClient]);
 
   // Load more products when the user scrolls to the bottom
   useEffect(() => {
@@ -182,7 +196,7 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        {/* Фильтры и сортировка - removed filters and selection */}
+        {/* Фильтры и сортировка */}
         <RefactoredProductSearchFilters
           sortField={sortField}
           sortOrder={sortOrder}
@@ -202,9 +216,7 @@ const AdminProducts = () => {
           onDelete={handleDeleteProduct}
           isDeleting={isDeleting}
           deleteProductId={deleteProductId}
-          onStatusChange={() => {
-            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-          }}
+          onStatusChange={handleStatusChange}
         />
         
         {/* Loading indicator and intersection observer target */}
