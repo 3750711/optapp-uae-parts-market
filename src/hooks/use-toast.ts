@@ -243,9 +243,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  return (
-    <ToastContext.Provider
-      value={{
+  return React.createElement(
+    ToastContext.Provider,
+    {
+      value: {
         toasts: state.toasts,
         addToast,
         updateToast,
@@ -253,10 +254,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         dismissToastGroup,
         removeToast,
         removeToastGroup,
-      }}
-    >
-      {children}
-    </ToastContext.Provider>
+      }
+    },
+    children
   );
 }
 
