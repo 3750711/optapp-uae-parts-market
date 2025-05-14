@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from "react";
 import { X, Camera, ImagePlus, Loader2, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -48,7 +47,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           toast({
             title: "Предупреждение",
             description: permissions.message,
-            variant: "warning",
+            variant: "default", // Changed from "warning" to "default"
           });
         }
         
@@ -169,7 +168,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
         toast({
           title: "Предупреждение",
           description: "Не удалось удалить файл из хранилища, но запись будет удалена из базы данных",
-          variant: "warning",
+          variant: "default", // Changed from "warning" to "default"
         });
       }
       

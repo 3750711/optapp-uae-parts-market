@@ -252,8 +252,8 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
       fileType: fileType,
       initialQuality: quality,
       alwaysKeepResolution: false,
-      // Для проблемных браузеров/устройств отключаем экзотические функции
-      exifOrientation: !deviceCapabilities.isLimitedBrowser
+      // Changed from boolean to number as required by the Options type
+      exifOrientation: deviceCapabilities.isLimitedBrowser ? 1 : 2
     };
     
     // Применение сжатия с отслеживанием времени и обработкой ошибок
@@ -283,6 +283,8 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
         options.useWebWorker = false;
         options.maxWidthOrHeight = Math.min(options.maxWidthOrHeight, 1000);
         options.maxSizeMB = Math.min(options.maxSizeMB, 0.5);
+        // Fixed exifOrientation to be a number
+        options.exifOrientation = 2;
         
         logImageProcessing('RetryCompression', { 
           fileName: file.name, 

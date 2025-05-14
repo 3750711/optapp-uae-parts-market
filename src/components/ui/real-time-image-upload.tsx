@@ -52,7 +52,7 @@ export function RealtimeImageUpload({
           toast({
             title: "Предупреждение",
             description: permissions.message,
-            variant: "warning",
+            variant: "default", // Changed from "warning" to "default"
           });
         }
         
@@ -238,7 +238,7 @@ export function RealtimeImageUpload({
           toast({
             title: "Предупреждение",
             description: `Достигнуто максимальное количество изображений (${maxImages})`,
-            variant: "warning",
+            variant: "default", // Changed from "warning" to "default"
           });
           break;
         }
