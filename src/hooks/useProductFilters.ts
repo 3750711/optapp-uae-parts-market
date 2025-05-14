@@ -11,24 +11,18 @@ export interface FiltersState {
 
 export interface ProductFiltersReturn {
   filters: FiltersState;
-  searchTerm: string;
-  activeSearchTerm: string;
   sortField: 'created_at' | 'price' | 'title' | 'status';
   sortOrder: 'asc' | 'desc';
   priceRange: [number, number];
   dateRange: DateRange;
   statusFilter: string | null;
   maxPrice: number;
-  setSearchTerm: (term: string) => void;
-  setActiveSearchTerm: (term: string) => void;
   setSortField: (field: 'created_at' | 'price' | 'title' | 'status') => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
   setPriceRange: (range: [number, number]) => void;
   setDateRange: (range: DateRange) => void;
   setStatusFilter: (status: string | null) => void;
   setMaxPrice: (price: number) => void;
-  handleSearch: () => void;
-  handleClearSearch: () => void;
   resetAllFilters: () => void;
   applyFilters: () => void;
   updateFilters: () => void;
@@ -38,23 +32,13 @@ export interface ProductFiltersReturn {
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
 
-// Улучшенная функция для очистки поискового запроса от специальных символов
-const sanitizeSearchTerm = (term: string): string => {
-  // Заменяем потенциально опасные символы на пробелы
-  return term.replace(/['";\\%]/g, ' ').trim();
-};
-
 export const useProductFilters = (
   products: any[] = [],
-  onSearch: () => void,
-  onClearSearch: () => void,
   onApplyFilters: () => void
 ): ProductFiltersReturn => {
   const { toast } = useToast();
   
   // Basic filter state
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState<string>('');
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   
@@ -125,74 +109,6 @@ export const useProductFilters = (
     updateFilters();
   }, [priceRange, dateRange, statusFilter, maxPrice]);
 
-  // Search handler
-  const handleSearch = () => {
-    console.log('handleSearch вызван с термином:', searchTerm);
-    
-    // Очистка и валидация поискового запроса
-    const searchTermTrimmed = searchTerm.trim();
-    
-    if (!searchTermTrimmed) {
-      if (activeSearchTerm) {
-        setActiveSearchTerm('');
-        toast({
-          title: "Поиск сброшен",
-          description: "Отображены все товары",
-          duration: 3000
-        });
-        onClearSearch();
-      }
-      return;
-    }
-    
-    // Sanitize the search term
-    const validatedSearchTerm = sanitizeSearchTerm(searchTermTrimmed);
-    
-    if (validatedSearchTerm !== searchTermTrimmed) {
-      toast({
-        title: "Внимание",
-        description: "Некоторые специальные символы были заменены в поисковом запросе",
-        duration: 3000
-      });
-    }
-    
-    // Only trigger search if the search term has actually changed
-    if (activeSearchTerm !== validatedSearchTerm) {
-      console.log('Устанавливаем новый активный поисковый термин:', validatedSearchTerm);
-      setActiveSearchTerm(validatedSearchTerm);
-      
-      // Показываем уведомление о начале поиска
-      toast({
-        title: "Поиск",
-        description: `Поиск по запросу: ${validatedSearchTerm}`,
-        duration: 3000
-      });
-      
-      onSearch();
-    } else {
-      console.log('Поисковый термин не изменился, но запрос будет выполнен снова');
-      // Execute search again even if the term hasn't changed
-      onSearch();
-    }
-  };
-
-  // Clear search handler
-  const handleClearSearch = () => {
-    if (activeSearchTerm !== '') {
-      console.log('Сброс поискового запроса');
-      setSearchTerm('');
-      setActiveSearchTerm('');
-      
-      toast({
-        title: "Поиск сброшен",
-        description: "Отображены все товары",
-        duration: 3000
-      });
-      
-      onClearSearch();
-    }
-  };
-
   // Reset all filters
   const resetAllFilters = () => {
     console.log('Сброс всех фильтров');
@@ -237,24 +153,18 @@ export const useProductFilters = (
 
   return {
     filters,
-    searchTerm,
-    activeSearchTerm,
     sortField,
     sortOrder,
     priceRange,
     dateRange,
     statusFilter,
     maxPrice,
-    setSearchTerm,
-    setActiveSearchTerm,
     setSortField,
     setSortOrder,
     setPriceRange,
     setDateRange,
     setStatusFilter,
     setMaxPrice,
-    handleSearch,
-    handleClearSearch,
     resetAllFilters,
     applyFilters,
     updateFilters

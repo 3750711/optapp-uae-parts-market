@@ -1,15 +1,12 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "lucide-react"; 
+import { Download } from "lucide-react"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
-// Import our new components
-import SearchBar from './filters/SearchBar';
+// Import our components
 import FiltersPopover from './FiltersPopover';
-import ActiveSearchDisplay from './filters/ActiveSearchDisplay';
 import ActiveFiltersDisplay from './filters/ActiveFiltersDisplay';
 import SelectedProductsActions from './filters/SelectedProductsActions';
 import { FiltersState } from '@/hooks/useProductFilters';
@@ -17,8 +14,6 @@ import { DateRange } from './filters/DateRangeFilter';
 
 interface RefactoredProductSearchFiltersProps {
   // Filter states
-  searchTerm: string;
-  activeSearchTerm: string;
   sortField: 'created_at' | 'price' | 'title' | 'status';
   sortOrder: 'asc' | 'desc';
   filters: FiltersState;
@@ -33,19 +28,14 @@ interface RefactoredProductSearchFiltersProps {
   products: any[];
   selectedProducts: string[];
   isDeleting: boolean;
-  isSearching?: boolean;
-  searchError?: string | null;
   
   // Event handlers
-  setSearchTerm: (term: string) => void;
   setSortField: (field: 'created_at' | 'price' | 'title' | 'status') => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
   setPriceRange: (range: [number, number]) => void;
   setDateRange: (range: DateRange) => void;
   setStatusFilter: (status: string | null) => void;
   
-  onSearch: () => void;
-  onClearSearch: () => void;
   onApplyFilters: () => void;
   onDeleteSelected: () => void;
   onToggleAllSelected: (selected: boolean) => void;
@@ -54,8 +44,6 @@ interface RefactoredProductSearchFiltersProps {
 
 const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersProps> = ({
   // Filter states
-  searchTerm,
-  activeSearchTerm,
   sortField,
   sortOrder,
   filters,
@@ -70,19 +58,14 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   products,
   selectedProducts,
   isDeleting,
-  isSearching = false,
-  searchError,
   
   // Event handlers
-  setSearchTerm,
   setSortField,
   setSortOrder,
   setPriceRange,
   setDateRange,
   setStatusFilter,
   
-  onSearch,
-  onClearSearch,
   onApplyFilters,
   onDeleteSelected,
   onToggleAllSelected,
@@ -117,15 +100,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
         <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
         
         <div className="flex flex-col sm:flex-row w-full md:w-auto items-center gap-2">
-          {/* Search Bar */}
-          <SearchBar 
-            searchTerm={searchTerm} 
-            setSearchTerm={setSearchTerm} 
-            onSearch={onSearch}
-            isSearching={isSearching}
-            disabled={isSearching}
-          />
-          
           {/* Sort Dropdown */}
           <Select
             value={`${sortField}-${sortOrder}`}
@@ -134,7 +108,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
               setSortField(field as 'created_at' | 'price' | 'title' | 'status');
               setSortOrder(order as 'asc' | 'desc');
             }}
-            disabled={isSearching}
           >
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Сортировка" />
@@ -162,7 +135,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             setStatusFilter={setStatusFilter}
             resetAllFilters={resetAllFilters}
             applyFilters={onApplyFilters}
-            disabled={isSearching}
           />
           
           {/* Export Button */}
@@ -171,36 +143,13 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             size="icon"
             className="h-10 w-10 sm:h-10 sm:w-auto sm:px-4 gap-2"
             onClick={exportToExcel}
-            disabled={isSearching || products.length === 0}
+            disabled={products.length === 0}
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Экспорт</span>
           </Button>
         </div>
       </div>
-
-      {/* Индикатор поиска */}
-      {isSearching && (
-        <div className="flex items-center justify-center py-2 text-blue-600">
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          <span className="text-sm">Поиск товаров...</span>
-        </div>
-      )}
-
-      {/* Ошибка поиска */}
-      {searchError && !isSearching && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertDescription>
-            Ошибка поиска: {searchError}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Active Search Term Display */}
-      <ActiveSearchDisplay 
-        activeSearchTerm={activeSearchTerm} 
-        onClearSearch={onClearSearch} 
-      />
 
       {/* Active Filters Display */}
       <ActiveFiltersDisplay 

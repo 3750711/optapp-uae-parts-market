@@ -18,8 +18,6 @@ const AdminProducts = () => {
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   
   // Состояние для выбранных товаров
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -32,50 +30,26 @@ const AdminProducts = () => {
   // Use our custom hook for filters
   const {
     filters,
-    searchTerm,
-    activeSearchTerm,
     sortField,
     sortOrder,
     priceRange,
     dateRange,
     statusFilter,
     maxPrice,
-    setSearchTerm,
-    setActiveSearchTerm,
     setSortField,
     setSortOrder,
     setPriceRange,
     setDateRange,
     setStatusFilter,
-    handleSearch: originalHandleSearch,
-    handleClearSearch,
     resetAllFilters,
     applyFilters
   } = useProductFilters([], 
-    // onSearch callback
-    () => {
-      setIsSearching(true);
-      refetch().finally(() => {
-        setIsSearching(false);
-      });
-    },
-    // onClearSearch callback
-    () => {
-      setSelectedProducts([]);
-      setSearchError(null);
-      refetch();
-    },
     // onApplyFilters callback
     () => {
       setSelectedProducts([]);
       refetch();
     }
   );
-
-  const handleSearch = () => {
-    setSearchError(null);
-    originalHandleSearch();
-  };
   
   // Удаление товара
   const handleDeleteProduct = async (productId: string) => {
@@ -186,51 +160,6 @@ const AdminProducts = () => {
     }
   };
 
-  // Вспомогательная функция для создания запроса поиска
-  const buildSearchQuery = (query: any, term: string) => {
-    if (!term || term.trim() === '') return query;
-    
-    try {
-      console.log('Создание поискового запроса для термина:', term);
-
-      // Проверка, является ли строка поиска числом (для лот-номера и цены)
-      const isNumeric = !isNaN(Number(term));
-      
-      // Создаем запрос для поиска по текстовым полям
-      query = query
-        .or(`title.ilike.%${term}%`)
-        .or(`brand.ilike.%${term}%`)
-        .or(`model.ilike.%${term}%`)
-        .or(`description.ilike.%${term}%`)
-        .or(`seller_name.ilike.%${term}%`)
-        .or(`optid_created.ilike.%${term}%`);
-      
-      // Если поисковый запрос похож на число, ищем по lot_number и price
-      if (isNumeric) {
-        const numValue = Number(term);
-        
-        // Поиск по лот-номеру (точное совпадение)
-        query = query.or(`lot_number.eq.${numValue}`);
-        
-        // Поиск по цене (точное совпадение)
-        query = query.or(`price.eq.${numValue}`);
-        
-        console.log('Добавлен поиск по числовым значениям: lot_number и price');
-      } else {
-        // Исправляем синтаксис поиска по текстовому представлению lot_number
-        // Используем конкатенацию для преобразования lot_number в текст
-        query = query.or(`lot_number::text.ilike.%${term}%`);
-        console.log('Добавлен поиск по текстовому представлению lot_number');
-      }
-      
-      return query;
-    } catch (error) {
-      console.error('Ошибка при создании поискового запроса:', error);
-      setSearchError('Ошибка в синтаксисе поискового запроса');
-      return query;
-    }
-  };
-
   // Query products with filters
   const {
     data: productsData,
@@ -242,11 +171,11 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, activeSearchTerm, filters],
+    queryKey: ['admin', 'products', sortField, sortOrder, filters],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         console.log('Выполнение запроса с параметрами:', { 
-          sortField, sortOrder, activeSearchTerm, 
+          sortField, sortOrder,
           filters: JSON.stringify(filters),
           pageParam
         });
@@ -262,12 +191,6 @@ const AdminProducts = () => {
             product_images(url, is_primary),
             profiles(full_name, rating, opt_id)
           `);
-
-        // Apply search if there's an active search term
-        if (activeSearchTerm) {
-          console.log('Применение поискового запроса:', activeSearchTerm);
-          query = buildSearchQuery(query, activeSearchTerm);
-        }
         
         // Apply price filter
         if (filters.priceRange) {
@@ -348,7 +271,6 @@ const AdminProducts = () => {
           console.error('Неизвестный тип ошибки:', error);
         }
         
-        setSearchError(errorMessage);
         throw new Error(errorMessage);
       }
     },
@@ -372,10 +294,8 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        {/* Фильтры, поиск и сортировка */}
+        {/* Фильтры и сортировка */}
         <RefactoredProductSearchFilters
-          searchTerm={searchTerm}
-          activeSearchTerm={activeSearchTerm}
           sortField={sortField}
           sortOrder={sortOrder}
           filters={filters}
@@ -386,16 +306,11 @@ const AdminProducts = () => {
           products={products}
           selectedProducts={selectedProducts}
           isDeleting={isDeleting}
-          isSearching={isSearching}
-          searchError={searchError}
-          setSearchTerm={setSearchTerm}
           setSortField={setSortField}
           setSortOrder={setSortOrder}
           setPriceRange={setPriceRange}
           setDateRange={setDateRange}
           setStatusFilter={setStatusFilter}
-          onSearch={handleSearch}
-          onClearSearch={handleClearSearch}
           onApplyFilters={applyFilters}
           onDeleteSelected={handleDeleteSelected}
           onToggleAllSelected={handleToggleAllSelected}
@@ -405,10 +320,9 @@ const AdminProducts = () => {
         {/* Сетка товаров */}
         <ProductsGrid 
           products={products}
-          isLoading={isLoading || isSearching}
+          isLoading={isLoading}
           isError={isError}
           error={error}
-          searchError={searchError}
           refetch={refetch}
           onDelete={handleDeleteProduct}
           isDeleting={isDeleting}
