@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -196,7 +197,6 @@ const AdminProducts = () => {
       const isNumeric = !isNaN(Number(term));
       
       // Создаем запрос для поиска по текстовым полям
-      // Исправление: используем отдельные .or() вызовы для каждого условия поиска
       query = query
         .or(`title.ilike.%${term}%`)
         .or(`brand.ilike.%${term}%`)
@@ -217,8 +217,9 @@ const AdminProducts = () => {
         
         console.log('Добавлен поиск по числовым значениям: lot_number и price');
       } else {
-        // Для текстовой строки делаем более общий поиск по lot_number, преобразуя его в текст
-        query = query.or(`cast(lot_number as text).ilike.%${term}%`);
+        // Исправляем ошибку синтаксиса для поиска по текстовому представлению lot_number
+        // Вместо cast используем ::text оператор PostgreSQL, который более надежен
+        query = query.or(`lot_number::text.ilike.%${term}%`);
         console.log('Добавлен поиск по текстовому представлению lot_number');
       }
       
