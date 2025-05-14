@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Loader2 } from "lucide-react";
+import { Search, Loader2, X } from "lucide-react";
 
 interface SearchBarProps {
   searchTerm: string;
@@ -22,9 +22,14 @@ const SearchBar: React.FC<SearchBarProps> = ({
   // Handle Enter key press
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Предотвращаем стандартное поведение формы
+      e.preventDefault(); // Prevent default form submission behavior
       onSearch();
     }
+  };
+
+  // Clear search input
+  const handleClearSearch = () => {
+    setSearchTerm('');
   };
 
   return (
@@ -35,9 +40,21 @@ const SearchBar: React.FC<SearchBarProps> = ({
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={handleKeyDown}
-        className="w-full md:w-[300px] pr-10"
+        className="w-full md:w-[300px] pr-16" // Increased right padding for both buttons
         disabled={disabled}
       />
+      {searchTerm && (
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute right-10 top-0 h-10"
+          onClick={handleClearSearch}
+          type="button"
+          disabled={disabled}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      )}
       <Button 
         variant="ghost" 
         size="icon" 

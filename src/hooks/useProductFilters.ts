@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { DateRange } from '@/components/admin/filters/DateRangeFilter';
 import { useToast } from "@/components/ui/use-toast";
@@ -155,6 +156,7 @@ export const useProductFilters = (
       });
     }
     
+    // Only trigger search if the search term has actually changed
     if (activeSearchTerm !== validatedSearchTerm) {
       console.log('Устанавливаем новый активный поисковый термин:', validatedSearchTerm);
       setActiveSearchTerm(validatedSearchTerm);
@@ -168,7 +170,9 @@ export const useProductFilters = (
       
       onSearch();
     } else {
-      console.log('Поисковый термин не изменился, запрос не будет выполнен');
+      console.log('Поисковый термин не изменился, но запрос будет выполнен снова');
+      // Execute search again even if the term hasn't changed
+      onSearch();
     }
   };
 
