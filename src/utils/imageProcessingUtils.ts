@@ -1,51 +1,92 @@
-
 import imageCompression from 'browser-image-compression';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
 /**
- * Logs information about image processing operations
- * @param action The action being performed
- * @param details Additional details about the action
+ * Логирование информации о процессе обработки изображений
+ * @param action Выполняемое действие
+ * @param details Дополнительная информация
  */
 export function logImageProcessing(action: string, details: Record<string, any> = {}) {
   console.log(`[Image:${action}]`, details);
 }
 
 /**
- * Optimizes an image for upload according to marketplace standards
- * - Creates standardized images with consistent quality and size
- * - Applies proper compression for web display
- * - Formats according to best practices for e-commerce
- * 
- * @param file The original image file
- * @returns The processed image file
+ * Определяет характеристики устройства для настройки оптимальных параметров сжатия
+ * @returns Объект с информацией о возможностях устройства
+ */
+export function getDeviceCapabilities() {
+  const userAgent = navigator.userAgent.toLowerCase();
+  const memory = (navigator as any).deviceMemory || 4; // Значение по умолчанию 4GB
+  
+  // Проверка типа устройства
+  const isLowEndDevice = memory <= 2;
+  const isOlderIOS = /iphone|ipad|ipod/.test(userAgent) && 
+    !(/iPhone OS 1[3-9]|iPhone OS 2[0-9]/.test(userAgent));
+  const isOlderAndroid = /android/.test(userAgent) && !/chrome\/[6-9][0-9]/.test(userAgent);
+  
+  // Проверка на проблемы с WebWorker
+  const hasWebWorkerIssues = isOlderIOS || /instagram|facebook|snapchat/.test(userAgent);
+  
+  // Проверка на Safari (известные проблемы с WebWorker)
+  const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
+  
+  logImageProcessing('DeviceCapabilities', {
+    memory,
+    isLowEndDevice,
+    isOlderIOS,
+    isOlderAndroid,
+    hasWebWorkerIssues,
+    isSafari,
+    userAgent
+  });
+  
+  return {
+    memory,
+    isLowEndDevice,
+    isOlderIOS,
+    isOlderAndroid,
+    hasWebWorkerIssues,
+    isSafari
+  };
+}
+
+/**
+ * Оптимизирует изображение для загрузки с учетом возможностей устройства
+ * @param file Исходный файл изображения
+ * @returns Обработанный файл изображения
  */
 export async function optimizeImageForMarketplace(file: File): Promise<File> {
   try {
+    const deviceCapabilities = getDeviceCapabilities();
+    
     logImageProcessing('OptimizationStart', { 
       fileName: file.name,
       originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
-      type: file.type
+      type: file.type,
+      deviceCapabilities
     });
     
-    // Standard marketplace image requirements:
-    // - Max dimensions: 2000px (high enough for zoom features while limiting excessive size)
-    // - Target size: Under 800KB (good balance between quality and performance)
-    // - Format: Maintain original (typically JPEG/PNG) for maximum compatibility
+    // Настройки в зависимости от возможностей устройства
+    const maxWidth = deviceCapabilities.isLowEndDevice ? 1200 : 2000;
+    const quality = deviceCapabilities.isLowEndDevice ? 0.6 : 0.8;
+    const maxSizeMB = deviceCapabilities.isLowEndDevice ? 0.5 : 0.8;
+    
     const options = {
-      maxSizeMB: 0.8,                 // Target max 800KB for standard marketplace images
-      maxWidthOrHeight: 2000,         // Standard size limit for marketplace product images
-      useWebWorker: true,             // Use WebWorker for better performance
-      fileType: file.type,            // Maintain original format
-      initialQuality: 0.8,            // Start with 80% quality (good balance)
-      alwaysKeepResolution: false     // Allow resizing for consistency
+      maxSizeMB: maxSizeMB,
+      maxWidthOrHeight: maxWidth,
+      useWebWorker: !deviceCapabilities.hasWebWorkerIssues,
+      fileType: file.type,
+      initialQuality: quality,
+      alwaysKeepResolution: false
     };
     
-    // Apply compression
+    // Применение сжатия с отслеживанием времени
+    const startTime = Date.now();
     const compressedBlob = await imageCompression(file, options);
+    const processingTime = Date.now() - startTime;
     
-    // Create a new File object with the compressed data
+    // Создание нового File объекта со сжатыми данными
     const optimizedFile = new File([compressedBlob], file.name, {
       type: file.type,
       lastModified: Date.now()
@@ -55,27 +96,40 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
       fileName: file.name,
       originalSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`,
       optimizedSize: `${(optimizedFile.size / 1024 / 1024).toFixed(2)}MB`,
-      compressionRatio: `${Math.round((1 - (optimizedFile.size / file.size)) * 100)}%`
+      compressionRatio: `${Math.round((1 - (optimizedFile.size / file.size)) * 100)}%`,
+      processingTime: `${processingTime}ms`,
+      deviceSettings: {
+        maxWidth, 
+        quality, 
+        maxSizeMB, 
+        useWebWorker: !deviceCapabilities.hasWebWorkerIssues
+      }
     });
     
     return optimizedFile;
   } catch (error) {
     logImageProcessing('OptimizationError', {
       fileName: file.name,
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     });
-    console.error('Error optimizing image:', error);
-    // Return original file if optimization fails
+    console.error('Ошибка оптимизации изображения:', error);
+    
+    // Если возникла ошибка оптимизации, попробуем использовать оригинальный файл,
+    // но ограничим его размер (для очень больших изображений)
+    if (file.size > 5 * 1024 * 1024) { // Более 5 МБ
+      throw new Error(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} МБ). На этом устройстве максимальный размер - 5 МБ`);
+    }
     return file;
   }
 }
 
 /**
- * Uploads an image to Supabase storage with proper optimization
- * @param file The image file to upload
- * @param storageBucket The Supabase storage bucket
- * @param storagePath The path within the storage bucket
- * @returns The URL of the uploaded image
+ * Загружает изображение в х��анилище Supabase с учетом ограничений устройства
+ * @param file Файл изображения для загрузки
+ * @param storageBucket Имя bucket в хранилище Supabase
+ * @param storagePath Путь внутри bucket
+ * @returns URL загруженного изображения
  */
 export async function uploadImageToStorage(
   file: File,
@@ -83,10 +137,13 @@ export async function uploadImageToStorage(
   storagePath: string = ""
 ): Promise<string> {
   try {
-    // First optimize the image according to marketplace standards
+    // Исправление имени bucket - используем "Product Images" вместо "product-images"
+    const correctBucketName = "Product Images";
+    
+    // Сначала оптимизируем изображение с учетом возможностей устройства
     const optimizedFile = await optimizeImageForMarketplace(file);
     
-    // Generate a unique filename to avoid collisions
+    // Генерируем уникальное имя файла для избежания коллизий
     const fileExt = optimizedFile.name.split('.').pop() || 'jpg';
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 10);
@@ -94,13 +151,13 @@ export async function uploadImageToStorage(
     
     logImageProcessing('UploadStart', { 
       fileName, 
-      bucket: storageBucket,
+      bucket: correctBucketName,
       fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`
     });
     
-    // Upload to Supabase storage
+    // Загружаем в Supabase storage с исправленным именем bucket
     const { data, error } = await supabase.storage
-      .from(storageBucket)
+      .from(correctBucketName)
       .upload(fileName, optimizedFile, {
         cacheControl: '3600',
         contentType: optimizedFile.type,
@@ -110,14 +167,16 @@ export async function uploadImageToStorage(
     if (error) {
       logImageProcessing('UploadError', { 
         fileName, 
-        error: error.message 
+        error: error.message,
+        code: error.code,
+        details: error.details
       });
       throw error;
     }
     
-    // Get the public URL for the uploaded image
+    // Получаем публичный URL для загруженного изображения
     const { data: { publicUrl } } = supabase.storage
-      .from(storageBucket)
+      .from(correctBucketName)
       .getPublicUrl(fileName);
       
     logImageProcessing('UploadSuccess', {
@@ -129,118 +188,57 @@ export async function uploadImageToStorage(
     return publicUrl;
   } catch (error) {
     logImageProcessing('UploadException', {
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
     });
     throw error;
   }
 }
 
 /**
- * Process and upload multiple images with concurrent operation control
- * @param files Array of files to upload
- * @param storageBucket The storage bucket name
- * @param storagePath The path within the bucket
- * @param onProgress Callback for progress updates
- * @param concurrentUploads Maximum number of concurrent uploads
- * @returns Array of public URLs for the uploaded images
- */
-export async function uploadMultipleImages(
-  files: File[],
-  storageBucket: string,
-  storagePath: string = "",
-  onProgress?: (overall: number, fileIndex: number, progress: number) => void,
-  concurrentUploads: number = 3
-): Promise<string[]> {
-  const uploadedUrls: string[] = [];
-  let completed = 0;
-  const total = files.length;
-  
-  // Process files in batches to limit concurrent operations
-  for (let i = 0; i < total; i += concurrentUploads) {
-    const batch = files.slice(i, i + concurrentUploads);
-    const batchPromises = batch.map((file, batchIndex) => {
-      const fileIndex = i + batchIndex;
-      
-      return new Promise<string>(async (resolve, reject) => {
-        try {
-          // Upload with progress simulation
-          const uploadProgressInterval = setInterval(() => {
-            if (onProgress) {
-              const progress = Math.min(Math.round(Math.random() * 50 + 30), 90);
-              onProgress(Math.round((completed / total) * 100), fileIndex, progress);
-            }
-          }, 300);
-          
-          // Perform the actual upload
-          const url = await uploadImageToStorage(file, storageBucket, storagePath);
-          
-          // Clean up interval and report completion
-          clearInterval(uploadProgressInterval);
-          completed++;
-          
-          if (onProgress) {
-            onProgress(Math.round((completed / total) * 100), fileIndex, 100);
-          }
-          
-          resolve(url);
-        } catch (error) {
-          completed++;
-          reject(error);
-        }
-      });
-    });
-    
-    // Wait for the current batch to complete
-    const results = await Promise.allSettled(batchPromises);
-    
-    // Process results
-    results.forEach(result => {
-      if (result.status === 'fulfilled') {
-        uploadedUrls.push(result.value);
-      } else {
-        console.error('Error uploading file:', result.reason);
-      }
-    });
-  }
-  
-  return uploadedUrls;
-}
-
-/**
- * Check if file exceeds size limit
- * @param file The file to check
- * @param maxSizeMB Maximum size in MB
- * @returns Boolean indicating if file is too large
+ * Проверяет, превышает ли файл лимит размера
+ * @param file Файл для проверки
+ * @param maxSizeMB Максимальный размер в МБ
+ * @returns Boolean, указывающий, слишком ли файл большой
  */
 export function isFileTooLarge(file: File, maxSizeMB: number = 25): boolean {
   return file.size > maxSizeMB * 1024 * 1024;
 }
 
 /**
- * Validates an image file for marketplace standards
- * @param file The file to validate
- * @returns Object containing validation result and any error message
+ * Проверяет изображение на соответствие требованиям маркетплейса
+ * с учетом возможностей устройства
+ * @param file Файл для проверки
+ * @returns Объект с результатом валидации и сообщением об ошибке
  */
 export function validateImageForMarketplace(file: File): { isValid: boolean; errorMessage?: string } {
-  // Check if it's an image
+  // Проверяем, является ли файл изображением
   if (!file.type.startsWith('image/')) {
-    return { isValid: false, errorMessage: `${file.name} is not an image file` };
-  }
-  
-  // Check file size (25MB is a common generous upper limit before compression)
-  if (isFileTooLarge(file, 25)) {
     return { 
       isValid: false, 
-      errorMessage: `${file.name} exceeds maximum size of 25MB` 
+      errorMessage: `${file.name} не является изображением` 
     };
   }
   
-  // Check supported formats (common marketplace formats)
+  const deviceCapabilities = getDeviceCapabilities();
+  
+  // Устанавливаем ограничение размера в зависимости от устройства
+  const maxSizeMB = deviceCapabilities.isLowEndDevice ? 10 : 25;
+  
+  // Проверяем размер файла
+  if (isFileTooLarge(file, maxSizeMB)) {
+    return { 
+      isValid: false, 
+      errorMessage: `${file.name} превышает максимальный размер ${maxSizeMB} МБ для вашего устройства` 
+    };
+  }
+  
+  // Проверяем поддерживаемые форматы
   const supportedTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (!supportedTypes.includes(file.type)) {
     return {
       isValid: false,
-      errorMessage: `${file.name} format is not supported. Please use JPEG, PNG, or WebP.`
+      errorMessage: `${file.name} имеет неподдерживаемый формат. Используйте JPEG, PNG или WebP.`
     };
   }
   
@@ -248,9 +246,9 @@ export function validateImageForMarketplace(file: File): { isValid: boolean; err
 }
 
 /**
- * Process an image for upload, including optimization and preview generation
- * @param file The image file to process
- * @returns Object containing the optimized file and preview file
+ * Обрабатывает изображение для загрузки, включая оптимизацию и генерацию превью
+ * @param file Файл изображения для обработки
+ * @returns Объект с оптимизированным файлом и превью (если есть)
  */
 export async function processImageForUpload(file: File): Promise<{ 
   optimizedFile: File, 
@@ -259,10 +257,10 @@ export async function processImageForUpload(file: File): Promise<{
   optimizedSize: number 
 }> {
   try {
-    // Optimize the image according to marketplace standards
+    // Оптимизируем изображение с учетом возможностей устройства
     const optimizedFile = await optimizeImageForMarketplace(file);
     
-    // Return the processed result (without preview since it was removed)
+    // Возвращаем обработанный файл (без превью, так как оно было удалено)
     return {
       optimizedFile,
       originalSize: file.size,
@@ -273,9 +271,9 @@ export async function processImageForUpload(file: File): Promise<{
       fileName: file.name,
       error: error instanceof Error ? error.message : String(error)
     });
-    console.error('Error processing image:', error);
+    console.error('Ошибка обработки изображения:', error);
     
-    // Return original file if processing fails
+    // Если обработка не удалась, возвращаем оригинальный файл
     return {
       optimizedFile: file,
       originalSize: file.size,
@@ -285,9 +283,9 @@ export async function processImageForUpload(file: File): Promise<{
 }
 
 /**
- * Force update product preview URLs in the database
- * @param productId ID of the product to update
- * @returns Result of the update operation
+ * Обновляет URL-адреса превью продуктов в базе данных
+ * @param productId ID продукта для обновления
+ * @returns Результат операции обновления
  */
 export async function forceUpdateProductPreviews(productId: string): Promise<{
   success: boolean,
@@ -297,10 +295,7 @@ export async function forceUpdateProductPreviews(productId: string): Promise<{
   try {
     logImageProcessing('ForceUpdateStart', { productId });
     
-    // Implementation note: Since we've removed preview functionality,
-    // this function now just verifies that all image records exist
-    
-    // Check if product exists
+    // Проверка наличия продукта
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('id, title')
@@ -310,11 +305,11 @@ export async function forceUpdateProductPreviews(productId: string): Promise<{
     if (productError || !product) {
       return {
         success: false,
-        message: 'Product not found'
+        message: 'Продукт не найден'
       };
     }
     
-    // Get all product images
+    // Получаем все изображения продукта
     const { data: images, error: imagesError } = await supabase
       .from('product_images')
       .select('id, url')
@@ -323,17 +318,18 @@ export async function forceUpdateProductPreviews(productId: string): Promise<{
     if (imagesError) {
       return {
         success: false,
-        message: 'Error fetching product images'
+        message: 'Ошибка получения изображений продукта'
       };
     }
     
-    // Since preview functionality is removed, we just return success
-    // but don't actually make any changes
+    // Синтетический код для проверки наличия изображений
+    const imageCount = images?.length || 0;
+    
     return {
       success: true,
-      message: `Product images verified (${images?.length || 0} images)`,
+      message: `Продукт проверен (${imageCount} изображений)`,
       details: {
-        imageCount: images?.length || 0
+        imageCount
       }
     };
   } catch (error) {
@@ -344,15 +340,15 @@ export async function forceUpdateProductPreviews(productId: string): Promise<{
     
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка'
     };
   }
 }
 
 /**
- * Check and repair preview URLs in the database
- * @param productId ID of the product to check
- * @returns Result of the repair operation
+ * Проверяет и восстанавливает URL-адреса превью в базе данных
+ * @param productId ID продукта для проверки
+ * @returns Результат операции восстановления
  */
 export async function checkAndRepairPreviewUrls(productId: string): Promise<{
   success: boolean,
@@ -362,10 +358,7 @@ export async function checkAndRepairPreviewUrls(productId: string): Promise<{
   try {
     logImageProcessing('RepairStart', { productId });
     
-    // Implementation note: Since we've removed preview functionality,
-    // this function now just logs the request but doesn't make changes
-    
-    // Check if product exists
+    // Проверка наличия продукта
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('id, title')
@@ -375,15 +368,19 @@ export async function checkAndRepairPreviewUrls(productId: string): Promise<{
     if (productError || !product) {
       return {
         success: false,
-        message: 'Product not found'
+        message: 'Продукт не найден'
       };
     }
     
-    // Since preview functionality has been removed, we just return success
-    // but don't actually make any changes to preview URLs
+    // Синтетический код для проверки наличия изображений
+    const imageCount = 0;
+    
     return {
       success: true,
-      message: 'No action needed (preview functionality removed)',
+      message: 'Нет необходимости восстановления (превью функционал удален)',
+      details: {
+        imageCount
+      }
     };
   } catch (error) {
     logImageProcessing('RepairError', {
@@ -393,15 +390,15 @@ export async function checkAndRepairPreviewUrls(productId: string): Promise<{
     
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка'
     };
   }
 }
 
 /**
- * Verify product preview generation status
- * @param productId ID of the product to verify
- * @returns Verification result
+ * Проверяет статус генерации превью продуктов
+ * @param productId ID продукта для проверки
+ * @returns Результат проверки
  */
 export async function verifyProductPreviewGeneration(productId: string): Promise<{
   success: boolean,
@@ -413,7 +410,7 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
   try {
     logImageProcessing('VerifyStart', { productId });
     
-    // Check if product exists
+    // Проверка наличия продукта
     const { data: product, error: productError } = await supabase
       .from('products')
       .select('id, title, has_preview')
@@ -423,14 +420,14 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
     if (productError || !product) {
       return {
         success: false,
-        message: 'Product not found',
+        message: 'Продукт не найден',
         totalImages: 0,
         imagesWithPreview: 0,
         hasPreview: false
       };
     }
     
-    // Get all product images
+    // Получаем все изображения продукта
     const { data: images, error: imagesError } = await supabase
       .from('product_images')
       .select('id, url, preview_url')
@@ -439,7 +436,7 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
     if (imagesError) {
       return {
         success: false,
-        message: 'Error fetching product images',
+        message: 'Ошибка получения изображений продукта',
         totalImages: 0,
         imagesWithPreview: 0,
         hasPreview: false
@@ -447,7 +444,7 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
     }
     
     const totalImages = images?.length || 0;
-    // Since preview functionality has been removed, we consider all images to not have previews
+    // Синтетический код для проверки наличия превью
     const imagesWithPreview = 0;
     
     return {
@@ -464,10 +461,81 @@ export async function verifyProductPreviewGeneration(productId: string): Promise
     
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      message: error instanceof Error ? error.message : 'Неизвестная ошибка',
       totalImages: 0,
       imagesWithPreview: 0,
       hasPreview: false
     };
   }
+}
+
+/**
+ * Загружает изображения в Supabase с учетом ограничений устройства
+ * @param files Массив файлов для загрузки
+ * @param storageBucket Имя bucket в хранилище Supabase
+ * @param storagePath Путь внутри bucket
+ * @param onProgress Функция обратного вызова для отслеживания прогресса
+ * @param concurrentUploads Максимальное количество одновременных загрузок
+ * @returns Массив URL загруженных изображений
+ */
+export async function uploadMultipleImages(
+  files: File[],
+  storageBucket: string,
+  storagePath: string = "",
+  onProgress?: (overall: number, fileIndex: number, progress: number) => void,
+  concurrentUploads: number = 3
+): Promise<string[]> {
+  const uploadedUrls: string[] = [];
+  let completed = 0;
+  const total = files.length;
+  
+  // Обработка файлов в пакетах для ограничения одновременных операций
+  for (let i = 0; i < total; i += concurrentUploads) {
+    const batch = files.slice(i, i + concurrentUploads);
+    const batchPromises = batch.map((file, batchIndex) => {
+      const fileIndex = i + batchIndex;
+      
+      return new Promise<string>(async (resolve, reject) => {
+        try {
+          // Симуляция прогресса загрузки
+          const uploadProgressInterval = setInterval(() => {
+            if (onProgress) {
+              const progress = Math.min(Math.round(Math.random() * 50 + 30), 90);
+              onProgress(Math.round((completed / total) * 100), fileIndex, progress);
+            }
+          }, 300);
+          
+          // Выполнение загрузки
+          const url = await uploadImageToStorage(file, storageBucket, storagePath);
+          
+          // Очистка интервала и отслеживание завершения загрузки
+          clearInterval(uploadProgressInterval);
+          completed++;
+          
+          if (onProgress) {
+            onProgress(Math.round((completed / total) * 100), fileIndex, 100);
+          }
+          
+          resolve(url);
+        } catch (error) {
+          completed++;
+          reject(error);
+        }
+      });
+    });
+    
+    // Ожидание завершения загрузки текущего пакета
+    const results = await Promise.allSettled(batchPromises);
+    
+    // Обработка результатов
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        uploadedUrls.push(result.value);
+      } else {
+        console.error('Ошибка загрузки файла:', result.reason);
+      }
+    });
+  }
+  
+  return uploadedUrls;
 }

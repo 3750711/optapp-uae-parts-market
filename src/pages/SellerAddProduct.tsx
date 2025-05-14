@@ -191,10 +191,10 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
-      // Get brand and model names for the database
+      // Получаем имена бренда и модели для базы данных
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       
-      // Model is now optional, handle it accordingly
+      // Модель опциональна, обрабатываем соответственно
       let modelName = null;
       if (values.modelId) {
         const selectedModel = brandModels.find(model => model.id === values.modelId);
@@ -211,8 +211,19 @@ const SellerAddProduct = () => {
         return;
       }
 
-      // Set the seller name, ensuring it's never null
+      // Устанавливаем имя продавца, убеждаясь, что оно никогда не будет null
       const sellerName = profile.full_name || user.email || "Unknown Seller";
+
+      // Логируем данные для отладки на мобильных устройствах
+      console.log("Preparing to insert product:", {
+        title: values.title,
+        price: parseFloat(values.price),
+        brand: selectedBrand.name,
+        model: modelName,
+        seller: sellerName,
+        imageCount: imageUrls.length,
+        videoCount: videoUrls.length
+      });
 
       const { data: product, error: productError } = await supabase
         .from('products')
@@ -221,7 +232,7 @@ const SellerAddProduct = () => {
           price: parseFloat(values.price),
           condition: "Новый",
           brand: selectedBrand.name,
-          model: modelName, // This can be null now
+          model: modelName, // Может быть null
           description: values.description || null,
           seller_id: user.id,
           seller_name: sellerName,
@@ -232,22 +243,37 @@ const SellerAddProduct = () => {
         .select('id')
         .single();
 
-      if (productError) throw productError;
+      if (productError) {
+        console.error("Error creating product:", productError);
+        throw new Error(`Ошибка создания товара: ${productError.message || 'Неизвестная ошибка'}`);
+      }
+      
+      console.log("Product created successfully:", product.id);
 
-      // Images are already uploaded, we just need to associate them with the product
+      // Изображения уже загружены, нужно только связать их с продуктом
+      // Используем исправленные URL, которые должны работать с bucket "Product Images"
       const productImages = imageUrls.map((url, index) => ({
         product_id: product.id,
         url: url,
         is_primary: index === 0
       }));
+      
+      console.log("Associating images with product:", productImages.length);
 
       const { error: imagesError } = await supabase
         .from('product_images')
         .insert(productImages);
 
-      if (imagesError) throw imagesError;
+      if (imagesError) {
+        console.error("Error associating images:", imagesError);
+        throw new Error(`Ошибка сохранения изображений: ${imagesError.message || 'Неизвестная ошибка'}`);
+      }
+      
+      console.log("Images associated successfully");
 
       if (videoUrls.length > 0) {
+        console.log("Associating videos with product:", videoUrls.length);
+        
         const { error: videosError } = await supabase
           .from('product_videos')
           .insert(
@@ -257,11 +283,18 @@ const SellerAddProduct = () => {
             }))
           );
 
-        if (videosError) throw videosError;
+        if (videosError) {
+          console.error("Error associating videos:", videosError);
+          throw new Error(`Ошибка сохранения видео: ${videosError.message || 'Неизвестная ошибка'}`);
+        }
+        
+        console.log("Videos associated successfully");
       }
 
-      // Generate previews for the product images
+      // Генерируем превью для изображений продукта
       try {
+        console.log("Triggering preview generation for product:", product.id);
+        
         const { data: previewData, error: previewError } = await supabase.functions.invoke(
           'generate-preview', 
           {
@@ -276,9 +309,10 @@ const SellerAddProduct = () => {
         }
       } catch (previewGenError) {
         console.error("Failed to trigger preview generation:", previewGenError);
+        // Не выбрасываем ошибку, так как это некритичная операция
       }
 
-      // Fetch the complete product with images for Telegram notification
+      // Получаем полный продукт с изображениями для уведомления в Telegram
       const { data: productDetails } = await supabase
         .from('products')
         .select(`
@@ -289,9 +323,11 @@ const SellerAddProduct = () => {
         .eq('id', product.id)
         .single();
 
-      // Send Telegram notification for new product
+      // Отправляем уведомление в Telegram о новом товаре
       if (productDetails) {
         try {
+          console.log("Sending Telegram notification for product:", product.id);
+          
           const { error: notificationError } = await supabase.functions.invoke(
             'send-telegram-notification', 
             {
@@ -304,6 +340,7 @@ const SellerAddProduct = () => {
           }
         } catch (telegramError) {
           console.error("Failed to send Telegram notification:", telegramError);
+          // Не выбрасываем ошибку, так как это некритичная операция
         }
       }
 
@@ -317,7 +354,9 @@ const SellerAddProduct = () => {
       console.error("Error adding product:", error);
       toast({
         title: "Ошибка",
-        description: "Не удалось добавить товар. Попробуйте позже.",
+        description: error instanceof Error 
+          ? error.message 
+          : "Не удалось добавить товар. Попробуйте позже.",
         variant: "destructive",
       });
     } finally {
@@ -374,26 +413,9 @@ const SellerAddProduct = () => {
                             <FormLabel>Цена ($)</FormLabel>
                             <FormControl>
                               <Input 
-                                type="number" 
-                                placeholder="0.00" 
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="deliveryPrice"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Стоимость доставки ($)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                placeholder="0.00" 
+                                type="number"
+                                step="0.01"
+                                inputMode="decimal"
                                 {...field}
                               />
                             </FormControl>
@@ -413,35 +435,33 @@ const SellerAddProduct = () => {
                         name="brandId"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Марка</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              value={field.value}
-                              disabled={isLoadingCarData}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
+                            <FormLabel>Марка автомобиля</FormLabel>
+                            <div className="relative">
+                              <Input 
+                                type="text" 
+                                placeholder="Поиск бренда..."
+                                value={searchBrandTerm}
+                                onChange={(e) => setSearchBrandTerm(e.target.value)}
+                                className="mb-1"
+                              />
+                              <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                            </div>
+                            <FormControl>
+                              <Select
+                                disabled={isLoadingCarData}
+                                value={field.value}
+                                onValueChange={field.onChange}
+                              >
+                                <SelectTrigger id="brand">
                                   <SelectValue placeholder="Выберите марку" />
                                 </SelectTrigger>
-                              </FormControl>
-                              <SelectContent 
-                                className="max-h-[300px]"
-                                showSearch={true}
-                                searchPlaceholder="Поиск марки..."
-                                searchValue={searchBrandTerm}
-                                onSearchChange={setSearchBrandTerm}
-                              >
-                                {filteredBrands.length === 0 ? (
-                                  <div className="p-2 text-center text-sm text-gray-500">
-                                    Марки не найдены
-                                  </div>
-                                ) : (
-                                  filteredBrands.map((brand) => (
+                                <SelectContent className="max-h-[300px]">
+                                  {filteredBrands.map((brand) => (
                                     <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -453,36 +473,32 @@ const SellerAddProduct = () => {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Модель (необязательно)</FormLabel>
-                            <Select 
-                              onValueChange={field.onChange} 
-                              value={field.value || ""}
-                              disabled={!watchBrandId || isLoadingCarData || brandModels.length === 0}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Выберите модель (необязательно)" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent 
-                                className="max-h-[300px]"
-                                showSearch={true}
-                                searchPlaceholder="Поиск модели..."
-                                searchValue={searchModelTerm}
-                                onSearchChange={setSearchModelTerm}
+                            <div className="relative">
+                              <Input 
+                                type="text" 
+                                placeholder="Поиск модели..."
+                                value={searchModelTerm}
+                                onChange={(e) => setSearchModelTerm(e.target.value)}
+                                className="mb-1"
+                              />
+                              <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                            </div>
+                            <FormControl>
+                              <Select
+                                disabled={!watchBrandId || isLoadingCarData}
+                                value={field.value}
+                                onValueChange={field.onChange}
                               >
-                                {brandModels.length === 0 && watchBrandId ? (
-                                  <SelectItem value="loading" disabled>Загрузка моделей...</SelectItem>
-                                ) : filteredModels.length === 0 ? (
-                                  <div className="p-2 text-center text-sm text-gray-500">
-                                    Модели не найдены
-                                  </div>
-                                ) : (
-                                  filteredModels.map((model) => (
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите модель" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                  {filteredModels.map((model) => (
                                     <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                                  ))
-                                )}
-                              </SelectContent>
-                            </Select>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -500,7 +516,7 @@ const SellerAddProduct = () => {
                           <Input 
                             type="number"
                             min="1"
-                            placeholder="Укажите количество мест"
+                            placeholder="Количество мест"
                             {...field}
                           />
                         </FormControl>
@@ -514,11 +530,11 @@ const SellerAddProduct = () => {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Описание (необязательно)</FormLabel>
+                        <FormLabel>Описание товара (необязательно)</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необязательно)" 
-                            rows={6}
+                            placeholder="Описание товара"
+                            className="min-h-[100px]"
                             {...field}
                           />
                         </FormControl>
@@ -531,47 +547,38 @@ const SellerAddProduct = () => {
                     <Label>Фотографии товара</Label>
                     <RealtimeImageUpload
                       onUploadComplete={handleRealtimeImageUpload}
-                      maxImages={30}
-                      storageBucket="product-images"
-                      storagePath="seller-uploads"
+                      maxImages={10}
+                      storageBucket="Product Images" // Исправленное имя bucket
+                      storagePath={`products/${user?.id || 'unknown'}`}
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Видео товара</Label>
-                    <VideoUpload 
+                    <Label>Видео товара (опционально)</Label>
+                    <VideoUpload
                       videos={videoUrls}
-                      onUpload={(urls) => setVideoUrls((prev) => [...prev, ...urls])}
-                      onDelete={(url) => setVideoUrls((prev) => prev.filter(u => u !== url))}
-                      maxVideos={2}
-                      storageBucket="product-videos"
-                      storagePrefix=""
+                      onUpload={setVideoUrls}
+                      onDelete={(url) => setVideoUrls(videoUrls.filter((v) => v !== url))}
+                      maxVideos={3}
+                      storageBucket="Product Images" // Исправленное имя bucket
+                      storagePrefix={`products-video/${user?.id || 'unknown'}/`}
                     />
                   </div>
                 </CardContent>
                 
-                <CardFooter className="flex justify-end space-x-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white"
-                    onClick={() => navigate('/seller/dashboard')}
+                <CardFooter>
+                  <Button
+                    type="submit"
                     disabled={isSubmitting}
-                  >
-                    Отмена
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                    disabled={isSubmitting}
+                    className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
                   >
                     {isSubmitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Публикация...
+                        Сохранение...
                       </>
                     ) : (
-                      'Опубликовать товар'
+                      "Разместить товар"
                     )}
                   </Button>
                 </CardFooter>

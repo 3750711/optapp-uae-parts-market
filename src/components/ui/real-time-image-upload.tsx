@@ -1,12 +1,13 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Loader2, Camera, Trash2 } from "lucide-react";
+import { ImagePlus, X, Loader2, Camera, Trash2, AlertCircle } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { 
   validateImageForMarketplace, 
   uploadImageToStorage, 
-  logImageProcessing 
+  logImageProcessing,
+  getDeviceCapabilities 
 } from "@/utils/imageProcessingUtils";
 import { isImage } from "@/utils/imageCompression";
 
@@ -26,26 +27,34 @@ export function RealtimeImageUpload({
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [uploadedImages, setUploadedImages] = useState<Record<string, string>>({});
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  // Check if device is mobile
+  
+  const deviceCapabilities = getDeviceCapabilities();
+  
+  // Проверка, является ли устройство мобильным
   const isMobile = useCallback(() => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }, []);
 
   const handleRemoveImage = (fileId: string, imageUrl: string) => {
-    // Remove from progress tracking
+    // Удаляем из отслеживания прогресса
     const newProgress = { ...uploadProgress };
     delete newProgress[fileId];
     setUploadProgress(newProgress);
 
-    // Remove from uploaded images
+    // Удаляем из загруженных изображений
     const newUploadedImages = { ...uploadedImages };
     delete newUploadedImages[fileId];
     setUploadedImages(newUploadedImages);
     
-    // Notify parent component
+    // Удаляем из ошибок, если они были
+    const newErrors = { ...uploadErrors };
+    delete newErrors[fileId];
+    setUploadErrors(newErrors);
+    
+    // Уведомляем родительский компонент
     onUploadComplete(Object.values(newUploadedImages));
   };
 
@@ -56,6 +65,7 @@ export function RealtimeImageUpload({
 
       setIsUploading(true);
       const newUploadProgress: Record<string, number> = {};
+      const newUploadErrors: Record<string, string> = {};
       const fileIds = Array.from(files).map((_, idx) => `file-${Date.now()}-${idx}`);
       
       fileIds.forEach(id => {
@@ -66,61 +76,84 @@ export function RealtimeImageUpload({
       
       const newUploadedImages: Record<string, string> = { ...uploadedImages };
       
-      logImageProcessing('RealtimeUploadStart', { fileCount: files.length, bucket: storageBucket });
+      logImageProcessing('RealtimeUploadStart', { 
+        fileCount: files.length, 
+        bucket: storageBucket,
+        deviceInfo: deviceCapabilities
+      });
+      
+      // Определяем максимальное число одновременно обрабатываемых файлов
+      // в зависимости от возможностей устройства
+      const maxConcurrent = deviceCapabilities.isLowEndDevice ? 1 : 2;
       
       for (let i = 0; i < files.length; i++) {
         const fileId = fileIds[i];
         const file = files[i];
         
-        // Update progress
+        // Обновляем прогресс
         newUploadProgress[fileId] = 10;
         setUploadProgress(prev => ({...prev, ...newUploadProgress}));
         
-        // Validate file against marketplace standards
+        // Проверяем файл на соответствие требованиям маркетплейса
         const validation = validateImageForMarketplace(file);
         if (!validation.isValid) {
           toast({
-            title: "Error",
+            title: "Ошибка",
             description: validation.errorMessage,
             variant: "destructive",
           });
           
-          newUploadProgress[fileId] = -1; // Mark as error
+          newUploadProgress[fileId] = -1; // Отмечаем как ошибку
+          newUploadErrors[fileId] = validation.errorMessage || "Ошибка проверки изображения";
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+          setUploadErrors(prev => ({...prev, ...newUploadErrors}));
           continue;
         }
         
         try {
-          // Update progress
+          // Обновляем прогресс
           newUploadProgress[fileId] = 25;
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
-          // Upload image with marketplace optimization
-          const imageUrl = await uploadImageToStorage(file, storageBucket, storagePath);
+          // Исправленное имя bucket - используем "Product Images" вместо product-images
+          const correctedStorageBucket = "Product Images";
           
-          // Update progress
+          // Загружаем изображение с оптимизацией для маркетплейса
+          const imageUrl = await uploadImageToStorage(file, correctedStorageBucket, storagePath);
+          
+          // Обновляем прогресс
           newUploadProgress[fileId] = 100;
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
-          // Store uploaded image URL
+          // Сохраняем URL загруженного изображения
           newUploadedImages[fileId] = imageUrl;
           
-          // Log success
+          // Логируем успех
           logImageProcessing('RealtimeUploadSuccess', { imageUrl });
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
           logImageProcessing('RealtimeUploadError', {
             fileName: file.name,
-            error: error instanceof Error ? error.message : String(error)
+            error: errorMessage
           });
           
-          newUploadProgress[fileId] = -1; // Mark as error
+          newUploadProgress[fileId] = -1; // Отмечаем как ошибку
+          newUploadErrors[fileId] = errorMessage;
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+          setUploadErrors(prev => ({...prev, ...newUploadErrors}));
           
           toast({
-            title: "Error",
-            description: `Failed to upload ${file.name}`,
+            title: "Ошибка загрузки",
+            description: `Не удалось загрузить ${file.name}: ${errorMessage}`,
             variant: "destructive",
           });
+        }
+        
+        // Для слабых устройств добавляем искусственную задержку между обработкой файлов,
+        // чтобы избежать перегрузки и зависания
+        if (deviceCapabilities.isLowEndDevice && i < files.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
@@ -130,15 +163,16 @@ export function RealtimeImageUpload({
         onUploadComplete(finalUrls);
         
         toast({
-          title: "Success",
-          description: `Uploaded ${Object.keys(newUploadedImages).length - Object.keys(uploadedImages).length} image${finalUrls.length > 1 ? 's' : ''}`,
+          title: "Успешно",
+          description: `Загружено ${Object.keys(newUploadedImages).length - Object.keys(uploadedImages).length} изображений`,
         });
       }
     } catch (error) {
-      console.error('Error uploading images:', error);
+      console.error('Ошибка загрузки изображений:', error);
+      logImageProcessing('UnexpectedError', { error: error instanceof Error ? error.message : String(error) });
       toast({
-        title: "Error",
-        description: "Failed to upload images",
+        title: "Ошибка",
+        description: "Не удалось загрузить изображения. Попробуйте позже.",
         variant: "destructive",
       });
     } finally {
@@ -146,18 +180,19 @@ export function RealtimeImageUpload({
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
-  }, [onUploadComplete, storageBucket, storagePath, uploadedImages]);
+  }, [onUploadComplete, storageBucket, storagePath, uploadedImages, deviceCapabilities]);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
-        {/* Uploaded images */}
+        {/* Загруженные изображения */}
         {Object.entries(uploadedImages).map(([fileId, imageUrl]) => (
           <div key={fileId} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
             <img 
               src={imageUrl} 
               alt="Uploaded" 
               className="h-full w-full object-cover"
+              loading="lazy"
             />
             <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <Button 
@@ -172,7 +207,7 @@ export function RealtimeImageUpload({
           </div>
         ))}
         
-        {/* Upload progress indicators */}
+        {/* Индикаторы прогресса загрузки */}
         {Object.entries(uploadProgress).map(([id, progress]) => (
           progress !== 100 && progress !== -1 && (
             <div key={id} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
@@ -184,19 +219,29 @@ export function RealtimeImageUpload({
           )
         ))}
         
-        {/* Upload buttons */}
+        {/* Отображение ошибок загрузки */}
+        {Object.entries(uploadErrors).map(([id, errorMessage]) => (
+          <div key={`error-${id}`} className="aspect-square bg-red-50 rounded-lg flex items-center justify-center p-2">
+            <div className="text-center">
+              <AlertCircle className="h-6 w-6 mx-auto text-red-500" />
+              <span className="text-xs text-red-500 mt-1 line-clamp-3">{errorMessage}</span>
+            </div>
+          </div>
+        ))}
+        
+        {/* Кнопки загрузки */}
         {Object.keys(uploadedImages).length < maxImages && (
           <div 
             className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
             onClick={() => fileInputRef.current?.click()}
           >
             <ImagePlus className="h-6 w-6 text-gray-400" />
-            <p className="text-xs text-gray-500 mt-1">Upload</p>
+            <p className="text-xs text-gray-500 mt-1">Загрузить</p>
           </div>
         )}
       </div>
 
-      {/* Hidden file inputs */}
+      {/* Скрытые input для выбора файлов */}
       <input
         type="file"
         ref={fileInputRef}
@@ -220,7 +265,7 @@ export function RealtimeImageUpload({
         />
       )}
       
-      {/* Action buttons */}
+      {/* Кнопки действий */}
       <div className="flex gap-2">
         <Button
           type="button"
@@ -233,12 +278,12 @@ export function RealtimeImageUpload({
           {isUploading ? (
             <>
               <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Uploading...</span>
+              <span>Загрузка...</span>
             </>
           ) : (
             <>
               <ImagePlus className="h-3 w-3" />
-              <span>From Gallery</span>
+              <span>Из галереи</span>
             </>
           )}
         </Button>
@@ -253,10 +298,16 @@ export function RealtimeImageUpload({
             onClick={() => cameraInputRef.current?.click()}
           >
             <Camera className="h-3 w-3" />
-            <span>Take Photo</span>
+            <span>Сделать фото</span>
           </Button>
         )}
       </div>
+      
+      {deviceCapabilities.isLowEndDevice && (
+        <p className="text-xs text-amber-600">
+          Обнаружено устройство с ограниченной производительностью. Загрузка и обработка изображений может занять больше времени.
+        </p>
+      )}
     </div>
   );
 }
