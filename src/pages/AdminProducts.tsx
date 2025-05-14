@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useIntersection } from '@/hooks/useIntersection';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PRODUCTS_PER_PAGE = 20;
 // Keys for storing sort preferences in localStorage
@@ -92,7 +93,9 @@ const AdminProducts = () => {
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
-    refetch
+    refetch,
+    isError,
+    error
   } = useInfiniteQuery({
     queryKey: ['admin', 'products', sortField, sortOrder, debouncedSearchQuery, previewFilter],
     queryFn: async ({ pageParam = 1 }) => {
@@ -113,7 +116,12 @@ const AdminProducts = () => {
         if (debouncedSearchQuery) {
           const searchTermLower = debouncedSearchQuery.toLowerCase().trim();
           query = query
-            .or(`title.ilike.%${searchTermLower}%,brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%,lot_number.ilike.%${searchTermLower}%,seller_name.ilike.%${searchTermLower}%`);
+            .or(`title.ilike.%${searchTermLower}%,brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%,seller_name.ilike.%${searchTermLower}%`);
+            
+          // Handle lot_number search separately as it's an integer
+          if (!isNaN(Number(searchTermLower))) {
+            query = query.or(`lot_number.eq.${Number(searchTermLower)}`);
+          }
         }
 
         if (sortField === 'status') {
@@ -166,15 +174,7 @@ const AdminProducts = () => {
         };
       } catch (error) {
         console.error('Error fetching products:', error);
-        toast({
-          title: "Ошибка загрузки",
-          description: "Не удалось загрузить товары. Попробуйте обновить страницу.",
-          variant: "destructive"
-        });
-        return {
-          products: [],
-          nextPage: undefined
-        };
+        throw error;
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -353,17 +353,26 @@ const AdminProducts = () => {
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, index) => (
-              <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm p-4 animate-pulse">
-                <div className="aspect-square bg-gray-200 mb-4 rounded-md"></div>
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-2/3 mb-4"></div>
+              <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm p-4">
+                <Skeleton className="aspect-square w-full mb-4" />
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/2 mb-2" />
+                <Skeleton className="h-3 w-2/3 mb-4" />
                 <div className="flex justify-between">
-                  <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-                  <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+                  <Skeleton className="h-8 w-1/3" />
+                  <Skeleton className="h-8 w-1/4" />
                 </div>
               </div>
             ))}
+          </div>
+        ) : isError ? (
+          <div className="p-6 text-center">
+            <p className="text-red-600 mb-4">
+              Произошла ошибка при загрузке товаров: {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              Попробовать снова
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -392,6 +401,7 @@ const AdminProducts = () => {
                       } 
                       alt={product.title} 
                       className="object-cover w-full h-full rounded-md"
+                      loading="lazy"
                     />
                     <Badge 
                       className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
