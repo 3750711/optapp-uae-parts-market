@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Bell, Tag, Hash } from "lucide-react";
+import { Edit, Trash2, Eye, Bell, Tag, Hash, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -16,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useIntersection } from '@/hooks/useIntersection';
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 
 const PRODUCTS_PER_PAGE = 20;
 // Keys for storing sort preferences in localStorage
@@ -29,6 +29,10 @@ const AdminProducts = () => {
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
+  
+  // Search functionality
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState<string>('');
   
   // Reference for the loading trigger element
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -55,6 +59,20 @@ const AdminProducts = () => {
     localStorage.setItem(SORT_ORDER_KEY, sortOrder);
   }, [sortField, sortOrder]);
   
+  // Handle search button click
+  const handleSearch = () => {
+    setActiveSearchTerm(searchTerm);
+    // Reset pagination by refetching the first page
+    refetch();
+  };
+  
+  // Handle search input keydown event (search on Enter key)
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+  
   const {
     data: productsData,
     isLoading,
@@ -65,7 +83,7 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder],
+    queryKey: ['admin', 'products', sortField, sortOrder, activeSearchTerm],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         // Calculate the start and end range for pagination
@@ -79,6 +97,19 @@ const AdminProducts = () => {
             product_images(url, is_primary),
             profiles(full_name, rating, opt_id)
           `);
+
+        // Apply search if there's an active search term
+        if (activeSearchTerm) {
+          query = query.or(
+            `title.ilike.%${activeSearchTerm}%,` +
+            `brand.ilike.%${activeSearchTerm}%,` +
+            `model.ilike.%${activeSearchTerm}%,` +
+            `description.ilike.%${activeSearchTerm}%,` +
+            `seller_name.ilike.%${activeSearchTerm}%,` +
+            `lot_number::text.ilike.%${activeSearchTerm}%,` +
+            `optid_created.ilike.%${activeSearchTerm}%`
+          );
+        }
 
         if (sortField === 'status') {
           query = query.order('status', { ascending: true });
@@ -246,14 +277,36 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
-          <div className="flex items-center space-x-2">
+          
+          <div className="flex flex-col sm:flex-row w-full md:w-auto items-center gap-2">
+            {/* Search input and button */}
+            <div className="relative flex items-center w-full md:w-auto">
+              <Input
+                type="search"
+                placeholder="Поиск товаров..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                className="w-full md:w-[300px] pr-10"
+              />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="absolute right-0 top-0 h-10"
+                onClick={handleSearch}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {/* Sort dropdown */}
             <Select
               value={`${sortField}-${sortOrder}`}
               onValueChange={handleSortChange}
             >
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Сортировка" />
               </SelectTrigger>
               <SelectContent>
@@ -268,6 +321,27 @@ const AdminProducts = () => {
             </Select>
           </div>
         </div>
+
+        {/* Search terms indicator */}
+        {activeSearchTerm && (
+          <div className="flex items-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              Поиск по запросу: <span className="font-medium text-foreground">{activeSearchTerm}</span>
+            </p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="ml-2 h-6" 
+              onClick={() => {
+                setSearchTerm('');
+                setActiveSearchTerm('');
+                refetch();
+              }}
+            >
+              Сбросить
+            </Button>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
