@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,12 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import * as XLSX from 'xlsx';
 
+// Define DateRange type to match the library's type
+interface DateRange {
+  from: Date | null;
+  to?: Date | null; // Make 'to' optional to match the library's type
+}
+
 interface ProductSearchFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -41,7 +46,7 @@ interface ProductSearchFiltersProps {
   // Дополнительные фильтры
   filters: {
     priceRange: [number, number] | null;
-    dateRange: { from: Date | null; to: Date | null } | null;
+    dateRange: DateRange | null;
     status: string | null;
   };
   setFilters: (filters: any) => void;
@@ -68,10 +73,8 @@ const ProductSearchFilters: React.FC<ProductSearchFiltersProps> = ({
   setFilters,
   onApplyFilters
 }) => {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | null;
-    to: Date | null;
-  }>({ from: null, to: null });
+  // Update the type to match our DateRange interface
+  const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [maxPrice, setMaxPrice] = useState<number>(1000);

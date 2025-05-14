@@ -15,9 +15,15 @@ const PRODUCTS_PER_PAGE = 20;
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
 
+// Define DateRange interface to ensure consistency
+interface DateRange {
+  from: Date | null;
+  to?: Date | null; // Make 'to' optional to match the library's type
+}
+
 interface FiltersState {
   priceRange: [number, number] | null;
-  dateRange: { from: Date | null; to: Date | null } | null;
+  dateRange: DateRange | null;
   status: string | null;
 }
 
