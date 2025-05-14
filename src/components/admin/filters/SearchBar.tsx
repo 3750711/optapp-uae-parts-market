@@ -14,6 +14,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, setSearchTerm, onSear
   // Handle Enter key press
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault(); // Предотвращаем стандартное поведение формы
       onSearch();
     }
   };
@@ -33,6 +34,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, setSearchTerm, onSear
         size="icon" 
         className="absolute right-0 top-0 h-10"
         onClick={onSearch}
+        type="button"
       >
         <Search className="h-4 w-4" />
       </Button>

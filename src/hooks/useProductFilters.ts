@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { DateRange } from '@/components/admin/filters/DateRangeFilter';
+import { useToast } from "@/components/ui/use-toast";
 
 export interface FiltersState {
   priceRange: [number, number] | null;
@@ -43,6 +44,8 @@ export const useProductFilters = (
   onClearSearch: () => void,
   onApplyFilters: () => void
 ): ProductFiltersReturn => {
+  const { toast } = useToast();
+  
   // Basic filter state
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeSearchTerm, setActiveSearchTerm] = useState<string>('');
@@ -112,6 +115,14 @@ export const useProductFilters = (
   const handleSearch = () => {
     if (activeSearchTerm !== searchTerm) {
       setActiveSearchTerm(searchTerm);
+      
+      // Показываем уведомление о начале поиска
+      toast({
+        title: "Поиск",
+        description: searchTerm ? `Поиск по запросу: ${searchTerm}` : "Отображены все товары",
+        duration: 3000
+      });
+      
       onSearch();
     }
   };
@@ -121,6 +132,13 @@ export const useProductFilters = (
     if (activeSearchTerm !== '') {
       setSearchTerm('');
       setActiveSearchTerm('');
+      
+      toast({
+        title: "Поиск сброшен",
+        description: "Отображены все товары",
+        duration: 3000
+      });
+      
       onClearSearch();
     }
   };
@@ -135,12 +153,33 @@ export const useProductFilters = (
       dateRange: null,
       status: null
     });
+    
+    toast({
+      title: "Фильтры сброшены",
+      description: "Все фильтры были сброшены",
+      duration: 3000
+    });
+    
     onApplyFilters();
   };
 
   // Apply filters handler
   const applyFilters = () => {
     updateFilters();
+    
+    const filtersApplied = [];
+    if (filters.priceRange) filtersApplied.push("цена");
+    if (filters.dateRange) filtersApplied.push("дата");
+    if (filters.status) filtersApplied.push("статус");
+    
+    if (filtersApplied.length > 0) {
+      toast({
+        title: "Фильтры применены",
+        description: `Применены фильтры: ${filtersApplied.join(", ")}`,
+        duration: 3000
+      });
+    }
+    
     onApplyFilters();
   };
 
