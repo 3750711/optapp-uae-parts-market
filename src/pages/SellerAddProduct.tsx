@@ -222,7 +222,8 @@ const SellerAddProduct = () => {
         model: modelName,
         seller: sellerName,
         imageCount: imageUrls.length,
-        videoCount: videoUrls.length
+        videoCount: videoUrls.length,
+        deliveryPrice: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0
       });
 
       const { data: product, error: productError } = await supabase
@@ -416,6 +417,26 @@ const SellerAddProduct = () => {
                                 type="number"
                                 step="0.01"
                                 inputMode="decimal"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="deliveryPrice"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Стоимость доставки ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                step="0.01"
+                                inputMode="decimal"
+                                placeholder="0.00"
                                 {...field}
                               />
                             </FormControl>
