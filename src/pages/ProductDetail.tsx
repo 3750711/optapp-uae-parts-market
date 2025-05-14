@@ -2,56 +2,59 @@
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Product } from "@/types/product";
-import ProductGallery from "@/components/product/ProductGallery";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "@/hooks/use-toast";
 import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
-import SellerInfo from "@/components/product/SellerInfo";
-import ContactButtons from "@/components/product/ContactButtons";
+import ProductGallery from "@/components/product/ProductGallery";
 import ProductVideos from "@/components/product/ProductVideos";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { ProductEditDialog } from "@/components/admin/ProductEditDialog";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
+import ContactButtons from "@/components/product/ContactButtons";
+import SellerInfo from "@/components/product/SellerInfo";
+import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
-import { Database } from "@/integrations/supabase/types";
-import { useAuth } from "@/contexts/AuthContext";
-
-type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ProductDetail = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const isMobile = useIsMobile();
-  const { isAdmin, canViewProductStatus } = useAdminAccess();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const [adminEditOpen, setAdminEditOpen] = useState(false);
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("cargo_rf");
+  const { isAdmin } = useAdminAccess();
   const [searchParams] = useSearchParams();
-  const fromPage = searchParams.get("from_page");
-
+  const fromSeller = searchParams.get("from") === "seller";
+  
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  
   const { data: product, isLoading, error } = useQuery({
-    queryKey: ["product", id],
+    queryKey: ['product', id],
     queryFn: async () => {
+      if (!id) throw new Error('No product ID provided');
+      
       const { data, error } = await supabase
-        .from("products")
+        .from('products')
         .select(`
           *,
-          product_images(url, is_primary),
-          profiles!products_seller_id_fkey(full_name, rating, phone, opt_id, telegram, opt_status),
-          product_videos(url)
+          product_images(*),
+          product_videos(*)
         `)
-        .eq("id", id)
+        .eq('id', id)
         .single();
       
       if (error) {
-        console.error("Error fetching product:", error);
-        throw new Error("Failed to fetch product");
+        console.error('Error fetching product:', error);
+        navigate('/404');
+        return null;
+      }
+      
+      if (!data) {
+        console.error('No product found with ID:', id);
+        navigate('/404');
+        return null;
       }
       
       // Check if current user is the product creator/seller
@@ -59,13 +62,14 @@ const ProductDetail = () => {
       console.log("Is creator check:", isCreator, user?.id, data.seller_id);
       
       // Check product visibility based on status and user role/ownership
+      // Allow creator to view their own products regardless of status
       if (data.status === 'pending' && !isCreator && !isAdmin) {
         console.log("Access denied: User is not product creator or admin for pending product");
         navigate('/404');
         return null;
       }
       
-      // For archived products, check permissions
+      // Similar check for archived products
       if (data.status === 'archived' && !isCreator && !isAdmin) {
         console.log("Access denied: User is not product creator or admin for archived product");
         navigate('/404');
@@ -77,295 +81,203 @@ const ProductDetail = () => {
     },
     enabled: !!id,
   });
-
-  const getImageUrl = () => {
-    if (product?.product_images && product.product_images.length > 0) {
-      const primaryImage = product.product_images.find(img => img.is_primary);
-      if (primaryImage) {
-        return primaryImage.url;
-      } else if (product.product_images[0]) {
-        return product.product_images[0].url;
+  
+  // Query for seller profile
+  const { data: sellerProfile } = useQuery({
+    queryKey: ['sellerProfile', product?.seller_id],
+    queryFn: async () => {
+      if (!product?.seller_id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', product.seller_id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching seller profile:', error);
+        return null;
       }
-    }
-    return "https://images.unsplash.com/photo-1562687877-3c98ca2834c9?q=80&w=800&auto=format&fit=crop";
-  };
-
-  // Get full-size image URLs (we explicitly use original images here, not previews)
-  const getProductImages = () => {
-    if (product?.product_images && product.product_images.length > 0) {
-      return product.product_images.map(img => img.url);
-    }
-    return [getImageUrl()];
-  };
-
-  const getProductVideos = () => {
-    if (product?.product_videos && Array.isArray(product.product_videos) && product.product_videos.length > 0) {
-      return product.product_videos.map((video: { url: string }) => video.url);
-    }
-    if (product?.videos && Array.isArray(product.videos) && product.videos.length > 0) {
-      return product.videos;
-    }
-    if (product?.video_url && typeof product.video_url === "string") {
-      return [product.video_url];
-    }
-    return [];
-  };
-
-  const handleContactTelegram = () => {
-    if (product?.telegram_url) {
-      const productUrl = product?.product_url || `https://partsbay.ae/product/${id}`;
-      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
-      window.open(`https://t.me/${product.telegram_url}?text=${message}`, '_blank', 'noopener,noreferrer');
-    } else {
-      toast({
-        title: "Ошибка",
-        description: "Telegram продавца недоступен",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleContactWhatsApp = () => {
-    if (product?.phone_url) {
-      const productUrl = product?.product_url || `https://partsbay.ae/product/${id}`;
-      const message = `${productUrl} I'm interested in this product, please can you send pore information`;
-      window.open(`https://wa.me/${product.phone_url}?text=${message}`, '_blank', 'noopener,noreferrer');
-    } else {
-      toast({
-        title: "Ошибка",
-        description: "Номер телефона продавца недоступен",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleProductUpdate = () => {
-    queryClient.invalidateQueries({ queryKey: ["product", id] });
-  };
-
-  const handleAdminEditSuccess = () => {
-    setAdminEditOpen(false);
-    handleProductUpdate();
-  };
-
-  const handleDeliveryMethodChange = (method: DeliveryMethod) => {
-    setDeliveryMethod(method);
-  };
-
+      
+      return data;
+    },
+    enabled: !!product?.seller_id,
+  });
+  
+  // Back button handler
   const handleBack = () => {
-    if (fromPage) {
-      navigate(`/catalog?page=${fromPage}`);
+    if (fromSeller) {
+      navigate('/seller/listings');
     } else {
       navigate(-1);
     }
   };
-
-  // Render full-size images component - using original images, not previews
-  const RenderFullSizeImages = () => (
-    <div className="mb-8">
-      <div className="font-semibold text-base mb-3 text-gray-700">Оригинальные фотографии товара</div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {images.map((img, idx) => (
-          <div
-            key={img + idx}
-            className="w-full overflow-hidden rounded-md border bg-gray-50 flex items-center justify-center"
-          >
-            <img
-              src={img}
-              alt={`Фото товара ${idx + 1}`}
-              className="w-full h-auto object-contain max-h-[400px]"
-              loading="lazy"
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-
+  
+  // Loading state
   if (isLoading) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg">Загрузка данных о товаре...</p>
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <div className="flex items-center mb-6">
+            <Button variant="ghost" onClick={handleBack} className="mr-2">
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Назад
+            </Button>
+            <Skeleton className="h-8 w-64" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <Skeleton className="w-full aspect-square rounded-lg" />
+              <div className="mt-4 grid grid-cols-4 gap-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="aspect-square rounded-md" />
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-6 w-1/4" />
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+              
+              <div className="py-4">
+                <Skeleton className="h-10 w-full max-w-xs mb-2" />
+                <Skeleton className="h-10 w-full max-w-xs" />
+              </div>
+              
+              <div className="border rounded-lg p-4">
+                <Skeleton className="h-6 w-1/3 mb-3" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            </div>
+          </div>
         </div>
       </Layout>
     );
   }
-
-  if (error || !product) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-8 text-center">
-          <p className="text-lg text-red-500">Ошибка при загрузке данных о товаре</p>
-          <p className="text-gray-500 mt-2">Товар не найден или произошла ошибка при загрузке</p>
-        </div>
-      </Layout>
-    );
+  
+  if (error) {
+    console.error('Query error:', error);
+    navigate('/404');
+    return null;
   }
-
-  // Original images for detail view
-  const images = getProductImages();
-  const videos = getProductVideos();
-  const sellerProfile = product.profiles;
-  const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
+  
+  if (!product) return null;
+  
+  // Set the first image as selected if none is selected
+  if (product.product_images?.length && !selectedImage) {
+    const primaryImage = product.product_images.find(img => img.is_primary)?.url 
+      || product.product_images[0]?.url;
+      
+    if (primaryImage) {
+      setSelectedImage(primaryImage);
+    }
+  }
+  
+  const handleImageClick = (url: string) => {
+    setSelectedImage(url);
+  };
+  
+  const productImages = product.product_images || [];
+  const productVideos = product.product_videos || [];
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
+  
   // Check if current user is the product creator/seller
   const isOwner = user?.id === product.seller_id;
   console.log("Is owner check on render:", isOwner, user?.id, product.seller_id);
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-4" 
-            onClick={handleBack}
-          >
-            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
-          </Button>
-          {isAdmin && product && (
-            <div className="flex justify-end mb-4">
-              <ProductEditDialog
-                product={product}
-                trigger={
-                  <button
-                    className="px-5 py-2 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
-                    onClick={() => setAdminEditOpen(true)}
-                    type="button"
-                  >
-                    Редактировать как администратор
-                  </button>
-                }
-                onSuccess={handleAdminEditSuccess}
-                open={adminEditOpen}
-                setOpen={setAdminEditOpen}
-              />
-            </div>
-          )}
-          {isOwner && !isAdmin && product.status === 'pending' && (
-            <div className="ml-auto">
-              <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 rounded-full">
-                Ваше объявление на проверке
-              </span>
-            </div>
-          )}
-          {isOwner && !isAdmin && product.status === 'archived' && (
-            <div className="ml-auto">
-              <span className="bg-gray-100 text-gray-800 text-xs font-medium px-3 py-1 rounded-full">
-                Это ваше архивное объявление
-              </span>
-            </div>
-          )}
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center">
+            <Button variant="ghost" onClick={handleBack} className="mr-2">
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              Назад
+            </Button>
+            <h1 className="text-xl md:text-2xl font-bold truncate">{product.title}</h1>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            {product.lot_number && (
+              <Badge variant="outline" className="text-xs">
+                Лот: {product.lot_number}
+              </Badge>
+            )}
+            
+            {product.status === 'pending' && (
+              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                На проверке
+              </Badge>
+            )}
+            
+            {product.status === 'archived' && (
+              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
+                В архиве
+              </Badge>
+            )}
+          </div>
         </div>
-        {isMobile ? (
-          // Mobile layout
-          <div className="flex flex-col gap-3">
-            <div className="mt-2">
-              <ProductGallery images={images} title={product.title} compressed={true} />
-            </div>
-            <div>
-              <ProductInfo
-                product={product}
-                onProductUpdate={handleProductUpdate}
-              />
-              <ProductSpecifications
-                brand={product.brand || ""}
-                model={product.model || ""}
-                lot_number={product.lot_number || ""}
-              />
-              <SellerInfo
-                sellerProfile={sellerProfile || {}}
-                seller_name={sellerName}
-                seller_id={product.seller_id}
-              >
-                <div className="flex flex-col gap-2">
-                  <ContactButtons
-                    onContactTelegram={handleContactTelegram}
-                    onContactWhatsApp={handleContactWhatsApp}
-                    telegramUrl={product.telegram_url}
-                    deliveryMethod={deliveryMethod}
-                    onDeliveryMethodChange={handleDeliveryMethodChange}
-                    product={{
-                      id: product.id,
-                      title: product.title,
-                      price: productPrice,
-                      brand: product.brand,
-                      model: product.model,
-                      description: product.description,
-                      optid_created: product.optid_created,
-                      seller_id: product.seller_id,
-                      seller_name: sellerName,
-                      lot_number: product.lot_number,
-                      status: product.status,
-                      delivery_price: product.delivery_price
-                    }}
-                  />
-                </div>
-              </SellerInfo>
-            </div>
-            <div className="mt-2">
-              <ProductVideos videos={videos} />
-            </div>
-            <RenderFullSizeImages />
-          </div>
-        ) : (
-          // Desktop layout
-          <div className="flex flex-col lg:grid lg:grid-cols-2 gap-8">
-            <div>
-              <div className="mb-4">
-                <ProductGallery images={images} title={product.title} compressed={true} />
-              </div>
-              <div className="mb-8">
-                <ProductVideos videos={videos} />
-              </div>
-            </div>
-            <div>
-              <ProductInfo
-                product={product}
-                onProductUpdate={handleProductUpdate}
-              />
-              <ProductSpecifications
-                brand={product.brand || ""}
-                model={product.model || ""}
-                lot_number={product.lot_number || ""}
-              />
-              <SellerInfo
-                sellerProfile={sellerProfile || {}}
-                seller_name={sellerName}
-                seller_id={product.seller_id}
-              >
-                <div className="flex flex-col gap-2">
-                  <ContactButtons
-                    onContactTelegram={handleContactTelegram}
-                    onContactWhatsApp={handleContactWhatsApp}
-                    telegramUrl={product.telegram_url}
-                    deliveryMethod={deliveryMethod}
-                    onDeliveryMethodChange={handleDeliveryMethodChange}
-                    product={{
-                      id: product.id,
-                      title: product.title,
-                      price: productPrice,
-                      brand: product.brand,
-                      model: product.model,
-                      description: product.description,
-                      optid_created: product.optid_created,
-                      seller_id: product.seller_id,
-                      seller_name: sellerName,
-                      lot_number: product.lot_number,
-                      status: product.status,
-                      delivery_price: product.delivery_price
-                    }}
-                  />
-                </div>
-              </SellerInfo>
-            </div>
-            <div className="col-span-2">
-              <RenderFullSizeImages />
-            </div>
-          </div>
+        
+        {/* Status warning for product creators/admins */}
+        {product.status === 'pending' && (isOwner || isAdmin) && (
+          <Alert className="mb-6 bg-yellow-50 border-yellow-200">
+            <AlertTitle>Объявление на проверке</AlertTitle>
+            <AlertDescription>
+              Это объявление ожидает проверки модераторами. {isOwner ? 'Только вы и администраторы можете его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
+            </AlertDescription>
+          </Alert>
         )}
+        
+        {product.status === 'archived' && (isOwner || isAdmin) && (
+          <Alert className="mb-6 bg-gray-50 border-gray-200">
+            <AlertTitle>Объявление в архиве</AlertTitle>
+            <AlertDescription>
+              Это объявление находится в архиве. {isOwner ? 'Только вы и администраторы можете его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div>
+            <ProductGallery 
+              images={productImages} 
+              selectedImage={selectedImage} 
+              onImageClick={handleImageClick}
+            />
+            
+            {productVideos && productVideos.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-2">Видео</h3>
+                <ProductVideos videos={productVideos} />
+              </div>
+            )}
+          </div>
+          
+          <div className="space-y-6">
+            <ProductInfo product={product} />
+            
+            <ContactButtons 
+              telegramUrl={product.telegram_url} 
+              phoneUrl={product.phone_url}
+              productTitle={product.title}
+              sellerName={sellerName}
+              isOwner={isOwner}
+            />
+            
+            <SellerInfo sellerId={product.seller_id} sellerName={sellerName} sellerRating={product.rating_seller} />
+            
+            {product.description && (
+              <ProductSpecifications description={product.description} />
+            )}
+          </div>
+        </div>
       </div>
     </Layout>
   );
