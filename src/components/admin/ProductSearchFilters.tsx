@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import * as XLSX from 'xlsx';
 // Define DateRange type to match the library's type
 interface DateRange {
   from: Date | null;
-  to?: Date | null; // Make 'to' optional to match the library's type
+  to?: Date | null; // 'to' is optional to match the library's type
 }
 
 interface ProductSearchFiltersProps {
@@ -73,22 +74,33 @@ const ProductSearchFilters: React.FC<ProductSearchFiltersProps> = ({
   setFilters,
   onApplyFilters
 }) => {
-  // Update the type to match our DateRange interface
   const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
-
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
   const [maxPrice, setMaxPrice] = useState<number>(1000);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  // Загрузка диапазона цен из товаров для настройки слайдера
+  // Загрузка диапазона цен из товаров для настройки слайдера и начальные значения фильтров
   useEffect(() => {
     if (products.length > 0) {
-      const prices = products.map(p => p.price).filter(Boolean);
-      const max = Math.max(...prices, 1000);
-      setMaxPrice(max);
-      setPriceRange([0, max]);
+      const prices = products.map(p => parseFloat(p.price)).filter(Boolean);
+      if (prices.length > 0) {
+        const max = Math.max(...prices, 1000);
+        setMaxPrice(max);
+        setPriceRange([0, max]);
+      }
     }
-  }, [products]);
+    
+    // Инициализация фильтров из состояния
+    if (filters.priceRange) {
+      setPriceRange(filters.priceRange);
+    }
+    if (filters.dateRange) {
+      setDateRange(filters.dateRange);
+    }
+    if (filters.status) {
+      setStatusFilter(filters.status);
+    }
+  }, [products, filters]);
 
   // Обработчик изменения фильтров
   useEffect(() => {
@@ -97,7 +109,7 @@ const ProductSearchFilters: React.FC<ProductSearchFiltersProps> = ({
       dateRange: dateRange.from || dateRange.to ? dateRange : null,
       status: statusFilter
     });
-  }, [priceRange, dateRange, statusFilter, maxPrice]);
+  }, [priceRange, dateRange, statusFilter, maxPrice, setFilters]);
 
   // Обработчик нажатия на Enter в поле поиска
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

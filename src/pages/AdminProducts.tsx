@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { Product } from '@/types/product';
 import { useIntersection } from '@/hooks/useIntersection';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,17 +76,23 @@ const AdminProducts = () => {
   
   // Функция поиска
   const handleSearch = () => {
-    setActiveSearchTerm(searchTerm);
-    setSelectedProducts([]);
-    refetch();
+    // Убедимся что есть фактическое изменение в поисковом запросе прежде чем перезагружать данные
+    if (activeSearchTerm !== searchTerm) {
+      setActiveSearchTerm(searchTerm);
+      setSelectedProducts([]);
+      // Используем refetch вместо invalidateQueries для более контролируемого обновления
+      refetch();
+    }
   };
   
   // Сброс поиска
   const handleClearSearch = () => {
-    setSearchTerm('');
-    setActiveSearchTerm('');
-    setSelectedProducts([]);
-    refetch();
+    if (activeSearchTerm !== '') {
+      setSearchTerm('');
+      setActiveSearchTerm('');
+      setSelectedProducts([]);
+      refetch();
+    }
   };
   
   // Применить фильтры
@@ -97,8 +103,11 @@ const AdminProducts = () => {
   
   // Удаление товара
   const handleDeleteProduct = async (productId: string) => {
+    if (isDeleting) return; // Предотвращаем множественные запросы
+    
     try {
       setIsDeleting(true);
+      setDeleteProductId(productId);
       
       const { error } = await supabase
         .from('products')
@@ -137,7 +146,7 @@ const AdminProducts = () => {
   
   // Удаление нескольких выбранных товаров
   const handleDeleteSelected = async () => {
-    if (selectedProducts.length === 0) return;
+    if (selectedProducts.length === 0 || isDeleting) return;
     
     try {
       setIsDeleting(true);
@@ -262,8 +271,10 @@ const AdminProducts = () => {
           }
         }
 
+        // Применяем сортировку
         if (sortField === 'status') {
-          query = query.order('status', { ascending: true });
+          // Если сортировка по статусу, сначала сортируем по статусу, затем по дате для удобства
+          query = query.order('status', { ascending: true }).order('created_at', { ascending: false });
         } else {
           query = query.order(sortField, { ascending: sortOrder === 'asc' });
         }
@@ -271,24 +282,36 @@ const AdminProducts = () => {
         // Apply pagination
         query = query.range(from, to);
         
+        console.log('Executing query with params:', { 
+          sortField, sortOrder, activeSearchTerm, 
+          filters: JSON.stringify(filters),
+          pageParam
+        });
+        
         const { data, error } = await query;
-        if (error) throw error;
+        
+        if (error) {
+          console.error('Query error:', error);
+          throw error;
+        }
+
+        console.log(`Fetched ${data?.length || 0} products`);
 
         // Check if we have more pages
-        const hasMore = data.length === PRODUCTS_PER_PAGE;
+        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
 
         if (sortField === 'status') {
           const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
           return {
-            products: data.sort((a, b) => 
+            products: data ? data.sort((a, b) => 
               statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
-            ),
+            ) : [],
             nextPage: hasMore ? pageParam + 1 : undefined
           };
         }
 
         return {
-          products: data,
+          products: data || [],
           nextPage: hasMore ? pageParam + 1 : undefined
         };
       } catch (error) {
@@ -298,14 +321,17 @@ const AdminProducts = () => {
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
+    staleTime: 30000, // Данные считаются свежими в течение 30 секунд
+    refetchOnWindowFocus: false, // Не обновлять при фокусе окна
   });
 
   // Flatten the pages of products into a single array
   const products = productsData?.pages?.flatMap(page => page.products) || [];
 
   // Load more products when the user scrolls to the bottom
-  React.useEffect(() => {
+  useEffect(() => {
     if (isIntersecting && hasNextPage && !isFetchingNextPage) {
+      console.log('Loading more products...');
       fetchNextPage();
     }
   }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
