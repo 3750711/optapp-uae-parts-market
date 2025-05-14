@@ -125,7 +125,7 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
 }
 
 /**
- * Загружает изображение в х��анилище Supabase с учетом ограничений устройства
+ * Загружает изображение в хранилище Supabase с учетом ограничений устройства
  * @param file Файл изображения для загрузки
  * @param storageBucket Имя bucket в хранилище Supabase
  * @param storagePath Путь внутри bucket
@@ -137,8 +137,17 @@ export async function uploadImageToStorage(
   storagePath: string = ""
 ): Promise<string> {
   try {
-    // Исправление имени bucket - используем "Product Images" вместо "product-images"
-    const correctBucketName = "Product Images";
+    // Используем hardcoded имя корректного бакета
+    const correctBucketName = "product-images";
+    
+    // Логируем информацию о загрузке для диагностики
+    logImageProcessing('UploadAttempt', { 
+      storageBucket,
+      correctBucketName,
+      fileName: file.name,
+      fileSize: `${(file.size / 1024).toFixed(2)}KB`,
+      fileType: file.type
+    });
     
     // Сначала оптимизируем изображение с учетом возможностей устройства
     const optimizedFile = await optimizeImageForMarketplace(file);
@@ -155,7 +164,7 @@ export async function uploadImageToStorage(
       fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`
     });
     
-    // Загружаем в Supabase storage с исправленным именем bucket
+    // Пробуем загрузить в Supabase storage
     const { data, error } = await supabase.storage
       .from(correctBucketName)
       .upload(fileName, optimizedFile, {
@@ -165,16 +174,73 @@ export async function uploadImageToStorage(
       });
       
     if (error) {
-      logImageProcessing('UploadError', { 
-        fileName, 
+      // Если с первым bucket произошла ошибка, пробуем альтернативный вариант "Product Images"
+      logImageProcessing('FirstUploadError', { 
+        bucket: correctBucketName,
         error: error.message,
-        code: error.code,
-        details: error.details
+        details: error.details,
+        tryingAlternative: true
       });
-      throw error;
+      
+      // Пробуем альтернативный bucket
+      const alternativeBucket = "Product Images";
+      const { data: altData, error: altError } = await supabase.storage
+        .from(alternativeBucket)
+        .upload(fileName, optimizedFile, {
+          cacheControl: '3600',
+          contentType: optimizedFile.type,
+          upsert: false
+        });
+        
+      if (altError) {
+        // Если и альтернативный вариант не сработал, логируем ошибки и выбрасываем исключение
+        logImageProcessing('AlternativeUploadError', { 
+          bucket: alternativeBucket,
+          error: altError.message,
+          code: altError.code,
+          details: altError.details
+        });
+        
+        // Проверяем и логируем доступные buckets в хранилище
+        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+        
+        if (bucketsError) {
+          logImageProcessing('BucketsListError', { error: bucketsError.message });
+        } else {
+          logImageProcessing('AvailableBuckets', { 
+            buckets: buckets.map(b => b.name) 
+          });
+        }
+        
+        // Добавляем более подробное сообщение об ошибке
+        let errorMessage = `Не удалось загрузить изображение: ${altError.message}`;
+        if (altError.code === '23505') {
+          errorMessage = 'Файл с таким именем уже существует. Попробуйте еще раз.';
+        } else if (altError.code === '42501') {
+          errorMessage = 'У вас нет прав на загрузку файлов. Пожалуйста, войдите в систему.';
+        } else if (altError.message.includes('bucket')) {
+          errorMessage = `Хранилище '${alternativeBucket}' не найдено.`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      // Получаем публичный URL для загруженного изображения
+      const { data: { publicUrl } } = supabase.storage
+        .from(alternativeBucket)
+        .getPublicUrl(fileName);
+        
+      logImageProcessing('AlternativeUploadSuccess', {
+        fileName,
+        bucket: alternativeBucket,
+        publicUrl,
+        fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`
+      });
+      
+      return publicUrl;
     }
     
-    // Получаем публичный URL для загруженного изображения
+    // Если первоначальная загрузка прошла успешно, получаем URL
     const { data: { publicUrl } } = supabase.storage
       .from(correctBucketName)
       .getPublicUrl(fileName);
@@ -182,7 +248,8 @@ export async function uploadImageToStorage(
     logImageProcessing('UploadSuccess', {
       fileName,
       publicUrl,
-      fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`
+      fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`,
+      bucket: correctBucketName
     });
     
     return publicUrl;

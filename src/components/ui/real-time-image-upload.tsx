@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, Camera, Trash2, AlertCircle } from "lucide-react";
@@ -76,9 +75,13 @@ export function RealtimeImageUpload({
       
       const newUploadedImages: Record<string, string> = { ...uploadedImages };
       
+      // Используем константу с корректным именем бакета для всех операций
+      const correctBucketName = "product-images";
+      
       logImageProcessing('RealtimeUploadStart', { 
         fileCount: files.length, 
-        bucket: storageBucket,
+        bucket: correctBucketName,
+        specifiedBucket: storageBucket,
         deviceInfo: deviceCapabilities
       });
       
@@ -115,11 +118,8 @@ export function RealtimeImageUpload({
           newUploadProgress[fileId] = 25;
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           
-          // Исправленное имя bucket - используем "Product Images" вместо product-images
-          const correctedStorageBucket = "Product Images";
-          
-          // Загружаем изображение с оптимизацией для маркетплейса
-          const imageUrl = await uploadImageToStorage(file, correctedStorageBucket, storagePath);
+          // Загружаем изображение с правильным именем бакета
+          const imageUrl = await uploadImageToStorage(file, correctBucketName, storagePath);
           
           // Обновляем прогресс
           newUploadProgress[fileId] = 100;
