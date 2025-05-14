@@ -1,3 +1,4 @@
+
 import imageCompression from 'browser-image-compression';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -25,20 +26,46 @@ export function getDeviceCapabilities() {
     !(/iPhone OS 1[3-9]|iPhone OS 2[0-9]/.test(userAgent));
   const isOlderAndroid = /android/.test(userAgent) && !/chrome\/[6-9][0-9]/.test(userAgent);
   
+  // Расширенное определение слабых устройств
+  const isMobileDevice = /mobile|android|iphone|ipad|ipod/.test(userAgent);
+  const isBudgetDevice = isLowEndDevice || isOlderIOS || isOlderAndroid;
+  
   // Проверка на проблемы с WebWorker
   const hasWebWorkerIssues = isOlderIOS || /instagram|facebook|snapchat/.test(userAgent);
   
   // Проверка на Safari (известные проблемы с WebWorker)
   const isSafari = /safari/.test(userAgent) && !/chrome/.test(userAgent);
   
+  // Проверка на мобильный Chrome с ограничениями
+  const isMobileChromeWithLimits = /chrome/.test(userAgent) && /mobile/.test(userAgent) && 
+                                   (/android 7|android 8|android 9/.test(userAgent));
+  
+  // Проверка на мобильный браузер UC или Opera Mini с ограниченными возможностями
+  const isLimitedBrowser = /ucbrowser|opera mini|miui browser/.test(userAgent);
+  
+  // Определение нестабильных сетевых условий (аппроксимация)
+  const hasWeakConnection = (navigator as any).connection && 
+                           ((navigator as any).connection.effectiveType === '2g' || 
+                           (navigator as any).connection.effectiveType === 'slow-2g');
+  
   logImageProcessing('DeviceCapabilities', {
     memory,
     isLowEndDevice,
     isOlderIOS,
     isOlderAndroid,
+    isMobileDevice,
+    isBudgetDevice,
     hasWebWorkerIssues,
     isSafari,
-    userAgent
+    isMobileChromeWithLimits,
+    isLimitedBrowser,
+    hasWeakConnection,
+    userAgent,
+    connectionInfo: (navigator as any).connection ? {
+      effectiveType: (navigator as any).connection.effectiveType,
+      downlink: (navigator as any).connection.downlink,
+      rtt: (navigator as any).connection.rtt
+    } : 'not available'
   });
   
   return {
@@ -46,9 +73,131 @@ export function getDeviceCapabilities() {
     isLowEndDevice,
     isOlderIOS,
     isOlderAndroid,
+    isMobileDevice,
+    isBudgetDevice,
     hasWebWorkerIssues,
-    isSafari
+    isSafari,
+    isMobileChromeWithLimits,
+    isLimitedBrowser,
+    hasWeakConnection
   };
+}
+
+/**
+ * Запрос доступных хранилищ (buckets) в Supabase
+ * @returns Массив имен доступных хранилищ
+ */
+export async function getAvailableBuckets(): Promise<string[]> {
+  try {
+    const { data, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      logImageProcessing('BucketsListError', { error: error.message });
+      return ["Product Images", "product-images"]; // Резервный список известных имен хранилищ
+    }
+    
+    if (!data || data.length === 0) {
+      logImageProcessing('NoBuckets', { message: 'Список хранилищ пуст' });
+      return ["Product Images", "product-images"];
+    }
+    
+    logImageProcessing('AvailableBuckets', { 
+      buckets: data.map(b => b.name) 
+    });
+    
+    return data.map(b => b.name);
+  } catch (error) {
+    logImageProcessing('BucketsListException', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+    return ["Product Images", "product-images"];
+  }
+}
+
+// Кэшированный список хранилищ для быстрого доступа
+let cachedBuckets: string[] | null = null;
+
+/**
+ * Получает основное имя хранилища для загрузки изображений
+ * @returns Имя хранилища
+ */
+export async function getPrimaryStorageBucket(): Promise<string> {
+  try {
+    // Используем кэш, если доступен
+    if (cachedBuckets) {
+      return cachedBuckets.includes("Product Images") 
+        ? "Product Images" 
+        : (cachedBuckets[0] || "product-images");
+    }
+    
+    // Запрашиваем список хранилищ
+    const buckets = await getAvailableBuckets();
+    cachedBuckets = buckets; // Сохраняем в кэш
+    
+    // Ищем предпочтительное хранилище
+    if (buckets.includes("Product Images")) {
+      return "Product Images";
+    } else if (buckets.includes("product-images")) {
+      return "product-images";
+    } else {
+      // Если не нашли ни одного из предпочтительных, берем первое доступное
+      return buckets[0] || "Product Images";
+    }
+  } catch (error) {
+    logImageProcessing('GetPrimaryBucketError', { 
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    // Возвращаем предпочтительное имя в случае ошибки
+    return "Product Images";
+  }
+}
+
+/**
+ * Проверяет права пользователя на загрузку изображений
+ * @returns Объект с результатом проверки и сообщением об ошибке
+ */
+export async function checkUserUploadPermission(): Promise<{
+  canUpload: boolean;
+  message?: string;
+}> {
+  try {
+    // Проверяем, аутентифицирован ли пользователь
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return {
+        canUpload: false,
+        message: "Требуется авторизация для загрузки изображений"
+      };
+    }
+    
+    // Проверяем наличие доступных хранилищ
+    const buckets = await getAvailableBuckets();
+    
+    if (!buckets || buckets.length === 0) {
+      return {
+        canUpload: false,
+        message: "Нет доступных хранилищ для загрузки изображений"
+      };
+    }
+    
+    // Проверка прав доступа к основному хранилищу
+    const bucketName = await getPrimaryStorageBucket();
+    
+    return {
+      canUpload: true
+    };
+  } catch (error) {
+    logImageProcessing('PermissionCheckError', {
+      error: error instanceof Error ? error.message : String(error)
+    });
+    
+    return {
+      canUpload: true, // По умолчанию разрешаем, чтобы не блокировать пользователей из-за ошибки проверки
+      message: "Не удалось проверить права доступа"
+    };
+  }
 }
 
 /**
@@ -67,28 +216,107 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
       deviceCapabilities
     });
     
-    // Настройки в зависимости от возможностей устройства
-    const maxWidth = deviceCapabilities.isLowEndDevice ? 1200 : 2000;
-    const quality = deviceCapabilities.isLowEndDevice ? 0.6 : 0.8;
-    const maxSizeMB = deviceCapabilities.isLowEndDevice ? 0.5 : 0.8;
+    // Тонкая настройка в зависимости от возможностей устройства
+    let maxWidth = 2000;
+    let quality = 0.8;
+    let maxSizeMB = 1.0;
+    
+    if (deviceCapabilities.isLowEndDevice || deviceCapabilities.isBudgetDevice) {
+      // Для слабых устройств значительно снижаем требования
+      maxWidth = 1000;
+      quality = 0.6;
+      maxSizeMB = 0.5;
+    } else if (deviceCapabilities.isMobileDevice) {
+      // Для обычных мобильных устройств средние настройки
+      maxWidth = 1500;
+      quality = 0.7;
+      maxSizeMB = 0.75;
+    } else if (deviceCapabilities.hasWeakConnection) {
+      // При плохом соединении приоритет на уменьшение размера
+      maxWidth = 1200;
+      quality = 0.65;
+      maxSizeMB = 0.6;
+    }
+    
+    // Дополнительные проверки для WebP поддержки
+    let fileType = file.type;
+    if (deviceCapabilities.isOlderIOS || deviceCapabilities.isOlderAndroid) {
+      // Для старых устройств используем JPEG вместо WebP
+      fileType = "image/jpeg";
+    }
     
     const options = {
       maxSizeMB: maxSizeMB,
       maxWidthOrHeight: maxWidth,
       useWebWorker: !deviceCapabilities.hasWebWorkerIssues,
-      fileType: file.type,
+      fileType: fileType,
       initialQuality: quality,
-      alwaysKeepResolution: false
+      alwaysKeepResolution: false,
+      // Для проблемных браузеров/устройств отключаем экзотические функции
+      exifOrientation: !deviceCapabilities.isLimitedBrowser
     };
     
-    // Применение сжатия с отслеживанием времени
+    // Применение сжатия с отслеживанием времени и обработкой ошибок
     const startTime = Date.now();
-    const compressedBlob = await imageCompression(file, options);
+    let compressedBlob;
+    
+    try {
+      // Настраиваем таймаут для долгих операций на слабых устройствах
+      const compressionPromise = imageCompression(file, options);
+      const timeoutPromise = new Promise((_, reject) => {
+        // Для слабых устройств более щедрый таймаут
+        const timeout = deviceCapabilities.isLowEndDevice ? 30000 : 15000;
+        setTimeout(() => reject(new Error("Превышено время сжатия изображения")), timeout);
+      });
+      
+      // Используем Promise.race для ограничения времени выполнения
+      compressedBlob = await Promise.race([compressionPromise, timeoutPromise]);
+    } catch (compressionError) {
+      logImageProcessing('CompressionError', {
+        error: compressionError instanceof Error ? compressionError.message : String(compressionError),
+        fileName: file.name
+      });
+      
+      // В случае ошибки сжатия, пробуем альтернативные параметры
+      if (!deviceCapabilities.isLowEndDevice) {
+        // Если это не слабое устройство, попробуем с более щадящими настройками
+        options.useWebWorker = false;
+        options.maxWidthOrHeight = Math.min(options.maxWidthOrHeight, 1000);
+        options.maxSizeMB = Math.min(options.maxSizeMB, 0.5);
+        
+        logImageProcessing('RetryCompression', { 
+          fileName: file.name, 
+          newOptions: options 
+        });
+        
+        try {
+          compressedBlob = await imageCompression(file, options);
+        } catch (secondError) {
+          // Если даже второй подход не сработал, возвращаем оригинал с проверкой размера
+          logImageProcessing('SecondCompressionError', { 
+            error: secondError instanceof Error ? secondError.message : String(secondError)
+          });
+          
+          // Проверяем, не слишком ли большой оригинальный файл
+          if (file.size > 5 * 1024 * 1024) {
+            throw new Error(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} МБ). Максимальный размер - 5 МБ`);
+          }
+          return file;
+        }
+      } else {
+        // Для слабых устройств сразу проверяем размер и возвращаем оригинал если он не слишком большой
+        if (file.size > 3 * 1024 * 1024) {
+          throw new Error(`Файл слишком большой для вашего устройства (${(file.size / 1024 / 1024).toFixed(1)} МБ). Максимальный размер - 3 МБ`);
+        }
+        return file;
+      }
+    }
+    
     const processingTime = Date.now() - startTime;
     
     // Создание нового File объекта со сжатыми данными
     const optimizedFile = new File([compressedBlob], file.name, {
-      type: file.type,
+      type: compressedBlob.type || file.type,
       lastModified: Date.now()
     });
     
@@ -102,7 +330,7 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
         maxWidth, 
         quality, 
         maxSizeMB, 
-        useWebWorker: !deviceCapabilities.hasWebWorkerIssues
+        useWebWorker: options.useWebWorker
       }
     });
     
@@ -113,37 +341,51 @@ export async function optimizeImageForMarketplace(file: File): Promise<File> {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
-    console.error('Ошибка оптимизации изображения:', error);
     
-    // Если возникла ошибка оптимизации, попробуем использовать оригинальный файл,
-    // но ограничим его размер (для очень больших изображений)
-    if (file.size > 5 * 1024 * 1024) { // Более 5 МБ
-      throw new Error(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} МБ). На этом устройстве максимальный размер - 5 МБ`);
+    // Если возникла ошибка оптимизации, возвращаем оригинал с проверкой размера
+    // в зависимости от типа устройства
+    const deviceCapabilities = getDeviceCapabilities();
+    const maxAllowedSize = deviceCapabilities.isLowEndDevice ? 
+                           3 * 1024 * 1024 : // 3 МБ для слабых устройств
+                           5 * 1024 * 1024;  // 5 МБ для обычных устройств
+                         
+    if (file.size > maxAllowedSize) {
+      throw new Error(`Файл слишком большой (${(file.size / 1024 / 1024).toFixed(1)} МБ). На этом устройстве максимальный размер - ${maxAllowedSize / 1024 / 1024} МБ`);
     }
+    
     return file;
   }
 }
 
 /**
  * Загружает изображение в хранилище Supabase с учетом ограничений устройства
+ * и автоматическими повторными попытками при сбое
  * @param file Файл изображения для загрузки
- * @param storageBucket Имя bucket в хранилище Supabase
+ * @param storageBucket Имя bucket в хранилище Supabase (опционально)
  * @param storagePath Путь внутри bucket
+ * @param maxRetries Максимальное количество повторных попыток загрузки при ошибках
  * @returns URL загруженного изображения
  */
 export async function uploadImageToStorage(
   file: File,
-  storageBucket: string,
-  storagePath: string = ""
+  storageBucket?: string,
+  storagePath: string = "",
+  maxRetries: number = 3
 ): Promise<string> {
   try {
-    // Используем hardcoded имя корректного бакета
-    const correctBucketName = "product-images";
+    // Проверяем права пользователя
+    const permissionCheck = await checkUserUploadPermission();
+    if (!permissionCheck.canUpload) {
+      throw new Error(permissionCheck.message || "Нет прав на загрузку изображений");
+    }
+    
+    // Получаем основное хранилище (если не указано другое)
+    const bucket = storageBucket || await getPrimaryStorageBucket();
     
     // Логируем информацию о загрузке для диагностики
     logImageProcessing('UploadAttempt', { 
-      storageBucket,
-      correctBucketName,
+      originalBucket: storageBucket,
+      selectedBucket: bucket,
       fileName: file.name,
       fileSize: `${(file.size / 1024).toFixed(2)}KB`,
       fileType: file.type
@@ -160,99 +402,81 @@ export async function uploadImageToStorage(
     
     logImageProcessing('UploadStart', { 
       fileName, 
-      bucket: correctBucketName,
+      bucket,
       fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`
     });
     
-    // Пробуем загрузить в Supabase storage
-    const { data, error } = await supabase.storage
-      .from(correctBucketName)
-      .upload(fileName, optimizedFile, {
-        cacheControl: '3600',
-        contentType: optimizedFile.type,
-        upsert: false
-      });
-      
-    if (error) {
-      // Если с первым bucket произошла ошибка, пробуем альтернативный вариант "Product Images"
-      logImageProcessing('FirstUploadError', { 
-        bucket: correctBucketName,
-        error: error.message,
-        details: error.details,
-        tryingAlternative: true
-      });
-      
-      // Пробуем альтернативный bucket
-      const alternativeBucket = "Product Images";
-      const { data: altData, error: altError } = await supabase.storage
-        .from(alternativeBucket)
-        .upload(fileName, optimizedFile, {
-          cacheControl: '3600',
-          contentType: optimizedFile.type,
-          upsert: false
-        });
-        
-      if (altError) {
-        // Если и альтернативный вариант не сработал, логируем ошибки и выбрасываем исключение
-        logImageProcessing('AlternativeUploadError', { 
-          bucket: alternativeBucket,
-          error: altError.message,
-          code: altError.code,
-          details: altError.details
-        });
-        
-        // Проверяем и логируем доступные buckets в хранилище
-        const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-        
-        if (bucketsError) {
-          logImageProcessing('BucketsListError', { error: bucketsError.message });
-        } else {
-          logImageProcessing('AvailableBuckets', { 
-            buckets: buckets.map(b => b.name) 
+    // Функция для попытки загрузки с указанным bucket
+    const tryUpload = async (bucketName: string, retriesLeft: number): Promise<string> => {
+      try {
+        // Пробуем загрузить в Supabase storage
+        const { data, error } = await supabase.storage
+          .from(bucketName)
+          .upload(fileName, optimizedFile, {
+            cacheControl: '3600',
+            contentType: optimizedFile.type,
+            upsert: false
           });
+          
+        if (error) {
+          logImageProcessing('UploadError', { 
+            bucket: bucketName,
+            error: error.message,
+            details: error.details,
+            code: error.code,
+            retriesLeft
+          });
+          
+          if (retriesLeft > 0) {
+            // Искусственная задержка перед повторной попыткой
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return await tryUpload(bucketName, retriesLeft - 1);
+          }
+          
+          // Если попытки закончились, попробуем альтернативный bucket
+          if (bucketName === "Product Images") {
+            logImageProcessing('TryingAlternativeBucket', { alternativeBucket: "product-images" });
+            return await tryUpload("product-images", maxRetries);
+          } else if (bucketName === "product-images") {
+            logImageProcessing('TryingAlternativeBucket', { alternativeBucket: "Product Images" });
+            return await tryUpload("Product Images", maxRetries);
+          }
+          
+          // Если все варианты испробованы, выбрасываем ошибку
+          throw error;
         }
         
-        // Добавляем более подробное сообщение об ошибке
-        let errorMessage = `Не удалось загрузить изображение: ${altError.message}`;
-        if (altError.code === '23505') {
-          errorMessage = 'Файл с таким именем уже существует. Попробуйте еще раз.';
-        } else if (altError.code === '42501') {
-          errorMessage = 'У вас нет прав на загрузку файлов. Пожалуйста, войдите в систему.';
-        } else if (altError.message.includes('bucket')) {
-          errorMessage = `Хранилище '${alternativeBucket}' не найдено.`;
-        }
+        // Получаем публичный URL для загруженного изображения
+        const { data: { publicUrl } } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(fileName);
+          
+        logImageProcessing('UploadSuccess', {
+          fileName,
+          publicUrl,
+          fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`,
+          bucket: bucketName
+        });
         
-        throw new Error(errorMessage);
+        return publicUrl;
+      } catch (error) {
+        if (retriesLeft > 0) {
+          logImageProcessing('RetryingUpload', {
+            bucket: bucketName,
+            error: error instanceof Error ? error.message : String(error),
+            retriesLeft
+          });
+          
+          // Искусственная задержка перед повторной попыткой
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return await tryUpload(bucketName, retriesLeft - 1);
+        }
+        throw error;
       }
-      
-      // Получаем публичный URL для загруженного изображения
-      const { data: { publicUrl } } = supabase.storage
-        .from(alternativeBucket)
-        .getPublicUrl(fileName);
-        
-      logImageProcessing('AlternativeUploadSuccess', {
-        fileName,
-        bucket: alternativeBucket,
-        publicUrl,
-        fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`
-      });
-      
-      return publicUrl;
-    }
+    };
     
-    // Если первоначальная загрузка прошла успешно, получаем URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(correctBucketName)
-      .getPublicUrl(fileName);
-      
-    logImageProcessing('UploadSuccess', {
-      fileName,
-      publicUrl,
-      fileSize: `${(optimizedFile.size / 1024).toFixed(2)}KB`,
-      bucket: correctBucketName
-    });
-    
-    return publicUrl;
+    // Начинаем процесс загрузки с указанным количеством повторных попыток
+    return await tryUpload(bucket, maxRetries);
   } catch (error) {
     logImageProcessing('UploadException', {
       error: error instanceof Error ? error.message : String(error),
@@ -290,7 +514,8 @@ export function validateImageForMarketplace(file: File): { isValid: boolean; err
   const deviceCapabilities = getDeviceCapabilities();
   
   // Устанавливаем ограничение размера в зависимости от устройства
-  const maxSizeMB = deviceCapabilities.isLowEndDevice ? 10 : 25;
+  const maxSizeMB = deviceCapabilities.isLowEndDevice ? 8 : 
+                   (deviceCapabilities.isMobileDevice ? 15 : 25);
   
   // Проверяем размер файла
   if (isFileTooLarge(file, maxSizeMB)) {
