@@ -10,6 +10,7 @@ import { ProductProps } from "@/components/product/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIntersection } from "@/hooks/useIntersection";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 
 const SellerListingsContent = () => {
   const { user } = useAuth();
@@ -33,12 +34,19 @@ const SellerListingsContent = () => {
       console.log(`Fetching seller products: ${from} to ${to}`);
       const { data, error } = await supabase
         .from('products')
-        .select('*, product_images(url, is_primary)')
+        .select('*, product_images(url, is_primary, preview_url)')
         .eq('seller_id', user?.id)
         .order('created_at', { ascending: false })
         .range(from, to);
 
-      if (error) throw error;
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Ошибка загрузки товаров",
+          description: error.message,
+        });
+        throw error;
+      }
       return data as Product[];
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -78,11 +86,15 @@ const SellerListingsContent = () => {
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg';
     
+    const previewImage = product.product_images?.find(img => img.is_primary)?.preview_url || 
+                         product.product_images?.find(img => img.preview_url)?.preview_url;
+    
     return {
       id: product.id,
       name: product.title,
       price: Number(product.price),
       image: primaryImage,
+      preview_image: previewImage,
       location: product.location || '',
       brand: product.brand || '',
       model: product.model || '',
@@ -92,7 +104,9 @@ const SellerListingsContent = () => {
       optid_created: product.optid_created,
       seller_id: product.seller_id,
       onStatusChange: handleStatusChange,
-      delivery_price: product.delivery_price
+      delivery_price: product.delivery_price,
+      has_preview: product.hasPreviewImage || false,
+      created_at: product.created_at
     };
   });
 
@@ -134,7 +148,7 @@ const SellerListingsContent = () => {
       </div>
       {mappedProducts.length > 0 ? (
         <>
-          <ProductGrid products={mappedProducts} />
+          <ProductGrid products={mappedProducts} showAllStatuses={true} />
           
           {/* Load more with both scroll trigger and button */}
           {(hasNextPage || isFetchingNextPage) && (
