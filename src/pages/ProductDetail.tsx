@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -55,10 +56,11 @@ const ProductDetail = () => {
       
       // Check if current user is the product creator/seller
       const isCreator = user?.id === data.seller_id;
+      console.log("Is creator check:", isCreator, user?.id, data.seller_id);
       
       // Check product visibility based on status and user role/ownership
       if (data.status === 'pending' && !isCreator && !isAdmin) {
-        console.log("Access denied: User is not product creator or admin");
+        console.log("Access denied: User is not product creator or admin for pending product");
         navigate('/404');
         return null;
       }
@@ -71,7 +73,6 @@ const ProductDetail = () => {
       }
       
       console.log("Fetched product details:", data);
-      console.log("Product ID from API:", data.id);
       return data as Product;
     },
     enabled: !!id,
@@ -210,6 +211,7 @@ const ProductDetail = () => {
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
   // Check if current user is the product creator/seller
   const isOwner = user?.id === product.seller_id;
+  console.log("Is owner check on render:", isOwner, user?.id, product.seller_id);
 
   return (
     <Layout>
