@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -116,7 +115,6 @@ const ProductDetail = () => {
   // Product update handler
   const handleProductUpdate = () => {
     // Refresh product data
-    // This will be passed to ProductInfo component
     console.log("Product updated, refreshing data");
   };
   
@@ -268,6 +266,7 @@ const ProductDetail = () => {
           <div>
             <ProductGallery 
               images={imageUrls} 
+              title={product.title}
               selectedImage={selectedImage} 
               onImageClick={handleImageClick}
             />

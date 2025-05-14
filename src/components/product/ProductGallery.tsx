@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -15,20 +14,27 @@ import {
 
 interface ProductGalleryProps {
   images: string[];
-  title: string;
+  title?: string;  // Made optional since it's not always provided
   compressed?: boolean;
-  isPreview?: boolean; // New prop to check if this is a preview image
+  isPreview?: boolean;
+  selectedImage?: string; // Add support for external control of the active image
+  onImageClick?: (url: string) => void; // Add support for external image click handler
 }
 
 const SWIPE_THRESHOLD = 50; // минимальное расстояние в пикселях для активации свайпа
 
 const ProductGallery: React.FC<ProductGalleryProps> = ({ 
   images, 
-  title, 
+  title = "", // Default to empty string if not provided
   compressed = true,
-  isPreview = false // Default to false
+  isPreview = false,
+  selectedImage,
+  onImageClick
 }) => {
-  const [activeImage, setActiveImage] = useState<string>(images[0] || "");
+  // Use selectedImage prop if provided, otherwise manage internally
+  const [internalActiveImage, setInternalActiveImage] = useState<string>(images[0] || "");
+  const activeImage = selectedImage || internalActiveImage;
+  
   const [isOpen, setIsOpen] = useState(false);
   const [fullScreenImage, setFullScreenImage] = useState<string>("");
   const isMobile = useIsMobile();
@@ -39,12 +45,24 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
 
   const handleImageClick = (image: string) => {
     if (isPreview) return; // Don't open dialog for preview images
+    
+    // Use external handler if provided
+    if (onImageClick) {
+      onImageClick(image);
+    } else {
+      setInternalActiveImage(image);
+    }
+    
     setFullScreenImage(image);
     setIsOpen(true);
   };
 
   const handleThumbnailClick = (image: string) => {
-    setActiveImage(image);
+    if (onImageClick) {
+      onImageClick(image);
+    } else {
+      setInternalActiveImage(image);
+    }
   };
 
   const handleNextImage = () => {
