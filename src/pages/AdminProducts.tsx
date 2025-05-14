@@ -207,7 +207,7 @@ const AdminProducts = () => {
             `model.ilike.%${activeSearchTerm}%,` +
             `description.ilike.%${activeSearchTerm}%,` +
             `seller_name.ilike.%${activeSearchTerm}%,` +
-            `lot_number::text.ilike.%${activeSearchTerm}%,` +
+            `cast(lot_number as text).ilike.%${activeSearchTerm}%,` +
             `optid_created.ilike.%${activeSearchTerm}%`
           );
         }
