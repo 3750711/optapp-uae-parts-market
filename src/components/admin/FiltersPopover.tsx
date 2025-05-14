@@ -25,6 +25,7 @@ interface FiltersPopoverProps {
   setStatusFilter: (status: string | null) => void;
   resetAllFilters: () => void;
   applyFilters: () => void;
+  disabled?: boolean; // Add the disabled prop
 }
 
 const FiltersPopover: React.FC<FiltersPopoverProps> = ({
@@ -37,7 +38,8 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
   statusFilter,
   setStatusFilter,
   resetAllFilters,
-  applyFilters
+  applyFilters,
+  disabled = false // Default to false if not provided
 }) => {
   // Check if any filters are active
   const hasActiveFilters = filters.priceRange || filters.dateRange || filters.status;
@@ -49,6 +51,7 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
           variant="outline" 
           size="icon"
           className="h-10 w-10 sm:h-10 sm:w-auto sm:px-4 gap-2"
+          disabled={disabled}
         >
           <Filter className="h-4 w-4" />
           <span className="hidden sm:inline">Фильтры</span>

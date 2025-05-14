@@ -38,6 +38,12 @@ export interface ProductFiltersReturn {
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
 
+// Sanitize search term to avoid SQL injection and issues with special characters
+const sanitizeSearchTerm = (term: string): string => {
+  // Remove characters that could cause problems with SQL queries
+  return term.replace(/['";\\%]/g, '');
+};
+
 export const useProductFilters = (
   products: any[] = [],
   onSearch: () => void,
@@ -123,9 +129,24 @@ export const useProductFilters = (
   const handleSearch = () => {
     console.log('handleSearch вызван с термином:', searchTerm);
     
-    // Проверим, нет ли специальных символов, которые могут вызывать проблемы в SQL
+    // Очистка и валидация поискового запроса
     const searchTermTrimmed = searchTerm.trim();
-    const validatedSearchTerm = searchTermTrimmed.replace(/['";\\]/g, '');
+    
+    if (!searchTermTrimmed) {
+      if (activeSearchTerm) {
+        setActiveSearchTerm('');
+        toast({
+          title: "Поиск сброшен",
+          description: "Отображены все товары",
+          duration: 3000
+        });
+        onClearSearch();
+      }
+      return;
+    }
+    
+    // Sanitize the search term
+    const validatedSearchTerm = sanitizeSearchTerm(searchTermTrimmed);
     
     if (validatedSearchTerm !== searchTermTrimmed) {
       toast({
@@ -142,7 +163,7 @@ export const useProductFilters = (
       // Показываем уведомление о начале поиска
       toast({
         title: "Поиск",
-        description: validatedSearchTerm ? `Поиск по запросу: ${validatedSearchTerm}` : "Отображены все товары",
+        description: `Поиск по запросу: ${validatedSearchTerm}`,
         duration: 3000
       });
       

@@ -193,28 +193,32 @@ const AdminProducts = () => {
     try {
       console.log('Создание поискового запроса для термина:', term);
 
-      // Улучшенный запрос для lot_number
-      let lotNumberQuery = '';
-      const numbersOnly = /^\d+$/.test(term);
+      // Fix: Separate each search condition and apply them individually
+      // instead of using a single complex OR condition
       
+      // Search in text fields
+      query = query
+        .or(`title.ilike.%${term}%`)
+        .or(`brand.ilike.%${term}%`)
+        .or(`model.ilike.%${term}%`)
+        .or(`description.ilike.%${term}%`)
+        .or(`seller_name.ilike.%${term}%`)
+        .or(`optid_created.ilike.%${term}%`);
+
+      // Special handling for lot_number field
+      const numbersOnly = /^\d+$/.test(term);
       if (numbersOnly) {
+        // If the search term contains only numbers, search by exact lot_number
         console.log('Поисковый запрос содержит только цифры, используем точное соответствие для lot_number');
-        lotNumberQuery = `lot_number = ${term}`;
+        query = query.or(`lot_number.eq.${term}`);
       } else {
+        // For text searches in lot_number, convert to text first
         console.log('Поиск по lot_number как текст');
-        lotNumberQuery = `cast(lot_number as text) ilike '%${term}%'`;
+        // We use the proper syntax for text casting in Postgres via Supabase
+        query = query.or(`lot_number::text.ilike.%${term}%`);
       }
       
-      // Разделяем запрос на отдельные простые условия вместо одного сложного
-      return query.or(
-        `title.ilike.%${term}%,` +
-        `brand.ilike.%${term}%,` +
-        `model.ilike.%${term}%,` +
-        `description.ilike.%${term}%,` +
-        `seller_name.ilike.%${term}%,` +
-        `${lotNumberQuery},` +
-        `optid_created.ilike.%${term}%`
-      );
+      return query;
     } catch (error) {
       console.error('Ошибка при создании поискового запроса:', error);
       setSearchError('Ошибка в синтаксисе поискового запроса');
