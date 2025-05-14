@@ -319,7 +319,6 @@ const AdminProducts = () => {
                   className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
                 >
                   <div className="relative aspect-square mb-4">
-                    {/* Use preview_url if available without hover effect */}
                     <img 
                       src={
                         product.previewUrl || 
@@ -328,7 +327,7 @@ const AdminProducts = () => {
                         '/placeholder.svg'
                       } 
                       alt={product.title} 
-                      className={`object-cover w-full h-full rounded-md ${!product.previewUrl ? 'hover:scale-105 transition-all duration-300' : ''}`}
+                      className="object-cover w-full h-full rounded-md"
                       loading="lazy"
                     />
                     <Badge 

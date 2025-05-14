@@ -122,8 +122,6 @@ const ProductCard: React.FC<ProductProps> = ({
           src={displayImage || "/placeholder.svg"} 
           alt={name} 
           className={`max-h-full max-w-full object-contain ${
-            !isUsingPreviewImage ? 'group-hover:scale-105 transition-all duration-500' : ''
-          } bg-white ${
             status === 'sold' ? 'opacity-50' : ''
           }`}
           loading="lazy"

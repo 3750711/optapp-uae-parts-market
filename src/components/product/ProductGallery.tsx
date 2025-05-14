@@ -99,9 +99,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         <img 
           src={activeImage} 
           alt={title}
-          className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'} ${
-            !isPreview ? 'transition-transform duration-200 hover:scale-105' : ''
-          }`}
+          className="w-full h-full object-contain"
         />
       </AspectRatio>
     </div>
@@ -142,9 +140,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <img 
                   src={image} 
                   alt={`${title} ${index + 1}`}
-                  className={`w-full h-auto ${compressed ? 'object-contain' : 'object-cover'} max-h-[50vh] ${
-                    !isPreview ? 'hover:scale-105 transition-transform duration-200' : ''
-                  }`}
+                  className="w-full h-auto object-contain max-h-[50vh]"
                 />
               </div>
             </CarouselItem>
