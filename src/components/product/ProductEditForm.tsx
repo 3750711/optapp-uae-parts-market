@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -255,7 +254,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
             images={images}
             onUpload={handleImageUpload}
             onDelete={handleImageDelete}
-            maxImages={10}
+            maxImages={25}
           />
         </div>
         <div>
@@ -338,7 +337,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           disabled={!isCreator}
         />
 
-        <label htmlFor="description" className="text-xs sm:text-sm font-medium">Описание товара</label>
+        <label htmlFor="description" className="text-xs sm:text-sm font-medium">Оп��сание товара</label>
         <Textarea
           id="description"
           value={formData.description}

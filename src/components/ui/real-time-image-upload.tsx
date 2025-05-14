@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ImagePlus, X, Loader2, Camera, Trash2, AlertCircle, RefreshCcw } from "lucide-react";
@@ -193,7 +192,7 @@ export function RealtimeImageUpload({
     // Проверяем права пользователя
     if (!userPermissions.canUpload) {
       toast({
-        title: "Нет доступа",
+        title: "Нет дос��упа",
         description: userPermissions.message || "У вас нет прав для загрузки изображений",
         variant: "destructive",
       });
@@ -356,7 +355,7 @@ export function RealtimeImageUpload({
         </div>
       )}
       
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
         {/* Загруженные изображения */}
         {Object.entries(uploadedImages).map(([fileId, imageUrl]) => (
           <div key={fileId} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
@@ -498,6 +497,12 @@ export function RealtimeImageUpload({
       {primaryBucket !== storageBucket && storageBucket && (
         <p className="text-xs text-gray-500">
           Используется хранилище: {storageBucket}
+        </p>
+      )}
+      
+      {maxImages > 10 && (
+        <p className="text-xs text-gray-500">
+          Вы можете загрузить до {maxImages} изображений
         </p>
       )}
     </div>

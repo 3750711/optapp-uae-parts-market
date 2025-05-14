@@ -568,7 +568,7 @@ const SellerAddProduct = () => {
                     <Label>Фотографии товара</Label>
                     <RealtimeImageUpload
                       onUploadComplete={handleRealtimeImageUpload}
-                      maxImages={10}
+                      maxImages={25}
                       storageBucket="Product Images" // Исправленное имя bucket
                       storagePath={`products/${user?.id || 'unknown'}`}
                     />
