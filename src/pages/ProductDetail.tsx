@@ -113,6 +113,13 @@ const ProductDetail = () => {
     }
   };
   
+  // Product update handler
+  const handleProductUpdate = () => {
+    // Refresh product data
+    // This will be passed to ProductInfo component
+    console.log("Product updated, refreshing data");
+  };
+  
   // Loading state
   if (isLoading) {
     return (
@@ -184,13 +191,26 @@ const ProductDetail = () => {
     setSelectedImage(url);
   };
   
-  const productImages = product.product_images || [];
-  const productVideos = product.product_videos || [];
+  // Extract URLs from product_images for the ProductGallery component
+  const imageUrls = product.product_images 
+    ? product.product_images.map(img => img.url) 
+    : [];
+  
+  // Extract URLs from product_videos for the ProductVideos component
+  const videoUrls = product.product_videos 
+    ? product.product_videos.map(video => video.url) 
+    : [];
+  
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
   
   // Check if current user is the product creator/seller
   const isOwner = user?.id === product.seller_id;
   console.log("Is owner check on render:", isOwner, user?.id, product.seller_id);
+  
+  // Prepare values for ProductSpecifications component
+  const brand = product.brand || "Не указано";
+  const model = product.model || "Не указано";
+  const lot_number = product.lot_number || 0;
 
   return (
     <Layout>
@@ -247,34 +267,69 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div>
             <ProductGallery 
-              images={productImages} 
+              images={imageUrls} 
               selectedImage={selectedImage} 
               onImageClick={handleImageClick}
             />
             
-            {productVideos && productVideos.length > 0 && (
+            {videoUrls.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-lg font-medium mb-2">Видео</h3>
-                <ProductVideos videos={productVideos} />
+                <ProductVideos videos={videoUrls} />
               </div>
             )}
           </div>
           
           <div className="space-y-6">
-            <ProductInfo product={product} />
-            
-            <ContactButtons 
-              telegramUrl={product.telegram_url} 
-              phoneUrl={product.phone_url}
-              productTitle={product.title}
-              sellerName={sellerName}
-              isOwner={isOwner}
+            <ProductInfo 
+              product={product} 
+              onProductUpdate={handleProductUpdate}
             />
             
-            <SellerInfo sellerId={product.seller_id} sellerName={sellerName} sellerRating={product.rating_seller} />
+            <ContactButtons 
+              onContactTelegram={() => window.open(`https://t.me/${product.telegram_url}`, '_blank')}
+              onContactWhatsApp={() => window.open(`https://wa.me/${product.phone_url}`, '_blank')}
+              telegramUrl={product.telegram_url}
+              product={{
+                id: product.id,
+                title: product.title,
+                price: Number(product.price),
+                brand: product.brand || "",
+                model: product.model || "",
+                description: product.description,
+                optid_created: product.optid_created,
+                seller_id: product.seller_id,
+                seller_name: product.seller_name,
+                lot_number: product.lot_number,
+                status: product.status,
+                delivery_price: product.delivery_price || 0,
+              }}
+              deliveryMethod="self_pickup"
+              onDeliveryMethodChange={() => {}}
+            />
             
-            {product.description && (
-              <ProductSpecifications description={product.description} />
+            <SellerInfo 
+              sellerProfile={{
+                id: product.seller_id,
+                full_name: sellerName,
+                rating: sellerProfile?.rating,
+                opt_id: sellerProfile?.opt_id,
+                opt_status: sellerProfile?.opt_status,
+                description_user: sellerProfile?.description_user,
+                telegram: sellerProfile?.telegram,
+                phone: sellerProfile?.phone,
+                location: sellerProfile?.location,
+              }}
+              seller_name={sellerName}
+              seller_id={product.seller_id}
+            />
+            
+            {product.description && brand && model && lot_number && (
+              <ProductSpecifications 
+                brand={brand}
+                model={model}
+                lot_number={lot_number}
+              />
             )}
           </div>
         </div>
