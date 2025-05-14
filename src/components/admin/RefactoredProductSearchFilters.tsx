@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react"; 
+import { Download, Loader2 } from "lucide-react"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Import our new components
 import SearchBar from './filters/SearchBar';
@@ -32,6 +33,8 @@ interface RefactoredProductSearchFiltersProps {
   products: any[];
   selectedProducts: string[];
   isDeleting: boolean;
+  isSearching?: boolean;
+  searchError?: string | null;
   
   // Event handlers
   setSearchTerm: (term: string) => void;
@@ -67,6 +70,8 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   products,
   selectedProducts,
   isDeleting,
+  isSearching = false,
+  searchError,
   
   // Event handlers
   setSearchTerm,
@@ -116,7 +121,9 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           <SearchBar 
             searchTerm={searchTerm} 
             setSearchTerm={setSearchTerm} 
-            onSearch={onSearch} 
+            onSearch={onSearch}
+            isSearching={isSearching}
+            disabled={isSearching}
           />
           
           {/* Sort Dropdown */}
@@ -127,6 +134,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
               setSortField(field as 'created_at' | 'price' | 'title' | 'status');
               setSortOrder(order as 'asc' | 'desc');
             }}
+            disabled={isSearching}
           >
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Сортировка" />
@@ -154,6 +162,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             setStatusFilter={setStatusFilter}
             resetAllFilters={resetAllFilters}
             applyFilters={onApplyFilters}
+            disabled={isSearching}
           />
           
           {/* Export Button */}
@@ -162,12 +171,30 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             size="icon"
             className="h-10 w-10 sm:h-10 sm:w-auto sm:px-4 gap-2"
             onClick={exportToExcel}
+            disabled={isSearching || products.length === 0}
           >
             <Download className="h-4 w-4" />
             <span className="hidden sm:inline">Экспорт</span>
           </Button>
         </div>
       </div>
+
+      {/* Индикатор поиска */}
+      {isSearching && (
+        <div className="flex items-center justify-center py-2 text-blue-600">
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <span className="text-sm">Поиск товаров...</span>
+        </div>
+      )}
+
+      {/* Ошибка поиска */}
+      {searchError && !isSearching && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>
+            Ошибка поиска: {searchError}
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Active Search Term Display */}
       <ActiveSearchDisplay 

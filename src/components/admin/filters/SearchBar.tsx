@@ -2,15 +2,23 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 
 interface SearchBarProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   onSearch: () => void;
+  isSearching?: boolean;
+  disabled?: boolean;
 }
 
-const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, setSearchTerm, onSearch }) => {
+const SearchBar: React.FC<SearchBarProps> = ({ 
+  searchTerm, 
+  setSearchTerm, 
+  onSearch, 
+  isSearching = false,
+  disabled = false
+}) => {
   // Handle Enter key press
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -28,6 +36,7 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, setSearchTerm, onSear
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={handleKeyDown}
         className="w-full md:w-[300px] pr-10"
+        disabled={disabled}
       />
       <Button 
         variant="ghost" 
@@ -35,8 +44,13 @@ const SearchBar: React.FC<SearchBarProps> = ({ searchTerm, setSearchTerm, onSear
         className="absolute right-0 top-0 h-10"
         onClick={onSearch}
         type="button"
+        disabled={disabled}
       >
-        <Search className="h-4 w-4" />
+        {isSearching ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Search className="h-4 w-4" />
+        )}
       </Button>
     </div>
   );

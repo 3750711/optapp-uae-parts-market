@@ -3,12 +3,15 @@ import React from 'react';
 import { Product } from '@/types/product';
 import AdminProductCard from '@/components/admin/AdminProductCard';
 import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProductsGridProps {
   products: Product[];
   isLoading: boolean;
   isError: boolean;
   error: unknown;
+  searchError?: string | null;
   refetch: () => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
@@ -23,6 +26,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
   isLoading,
   isError,
   error,
+  searchError,
   refetch,
   onDelete,
   isDeleting,
@@ -50,18 +54,22 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     );
   }
 
-  if (isError) {
+  if (isError || searchError) {
     return (
-      <div className="p-6 text-center">
+      <div className="p-6 bg-red-50 border border-red-200 rounded-lg text-center">
+        <div className="flex items-center justify-center mb-2 text-red-600">
+          <AlertCircle className="h-6 w-6 mr-2" />
+          <h3 className="text-lg font-semibold">Ошибка при загрузке товаров</h3>
+        </div>
         <p className="text-red-600 mb-4">
-          Произошла ошибка при загрузке товаров: {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+          {searchError || (error instanceof Error ? error.message : 'Неизвестная ошибка')}
         </p>
-        <button 
+        <Button 
           onClick={() => refetch()}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
         >
-          Попробовать снова
-        </button>
+          <RefreshCw className="h-4 w-4 mr-2" /> Попробовать снова
+        </Button>
       </div>
     );
   }

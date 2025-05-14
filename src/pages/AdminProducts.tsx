@@ -18,6 +18,8 @@ const AdminProducts = () => {
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   
   // Состояние для выбранных товаров
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -45,16 +47,22 @@ const AdminProducts = () => {
     setPriceRange,
     setDateRange,
     setStatusFilter,
-    handleSearch,
+    handleSearch: originalHandleSearch,
     handleClearSearch,
     resetAllFilters,
     applyFilters
   } = useProductFilters([], 
     // onSearch callback
-    () => refetch(),
+    () => {
+      setIsSearching(true);
+      refetch().finally(() => {
+        setIsSearching(false);
+      });
+    },
     // onClearSearch callback
     () => {
       setSelectedProducts([]);
+      setSearchError(null);
       refetch();
     },
     // onApplyFilters callback
@@ -63,6 +71,11 @@ const AdminProducts = () => {
       refetch();
     }
   );
+
+  const handleSearch = () => {
+    setSearchError(null);
+    originalHandleSearch();
+  };
   
   // Удаление товара
   const handleDeleteProduct = async (productId: string) => {
@@ -173,6 +186,42 @@ const AdminProducts = () => {
     }
   };
 
+  // Вспомогательная функция для создания запроса поиска
+  const buildSearchQuery = (query: any, term: string) => {
+    if (!term || term.trim() === '') return query;
+    
+    try {
+      console.log('Создание поискового запроса для термина:', term);
+
+      // Улучшенный запрос для lot_number
+      let lotNumberQuery = '';
+      const numbersOnly = /^\d+$/.test(term);
+      
+      if (numbersOnly) {
+        console.log('Поисковый запрос содержит только цифры, используем точное соответствие для lot_number');
+        lotNumberQuery = `lot_number = ${term}`;
+      } else {
+        console.log('Поиск по lot_number как текст');
+        lotNumberQuery = `cast(lot_number as text) ilike '%${term}%'`;
+      }
+      
+      // Разделяем запрос на отдельные простые условия вместо одного сложного
+      return query.or(
+        `title.ilike.%${term}%,` +
+        `brand.ilike.%${term}%,` +
+        `model.ilike.%${term}%,` +
+        `description.ilike.%${term}%,` +
+        `seller_name.ilike.%${term}%,` +
+        `${lotNumberQuery},` +
+        `optid_created.ilike.%${term}%`
+      );
+    } catch (error) {
+      console.error('Ошибка при создании поискового запроса:', error);
+      setSearchError('Ошибка в синтаксисе поискового запроса');
+      return query;
+    }
+  };
+
   // Query products with filters
   const {
     data: productsData,
@@ -187,6 +236,12 @@ const AdminProducts = () => {
     queryKey: ['admin', 'products', sortField, sortOrder, activeSearchTerm, filters],
     queryFn: async ({ pageParam = 1 }) => {
       try {
+        console.log('Выполнение запроса с параметрами:', { 
+          sortField, sortOrder, activeSearchTerm, 
+          filters: JSON.stringify(filters),
+          pageParam
+        });
+        
         // Calculate the start and end range for pagination
         const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
         const to = from + PRODUCTS_PER_PAGE - 1;
@@ -201,64 +256,59 @@ const AdminProducts = () => {
 
         // Apply search if there's an active search term
         if (activeSearchTerm) {
-          query = query.or(
-            `title.ilike.%${activeSearchTerm}%,` +
-            `brand.ilike.%${activeSearchTerm}%,` +
-            `model.ilike.%${activeSearchTerm}%,` +
-            `description.ilike.%${activeSearchTerm}%,` +
-            `seller_name.ilike.%${activeSearchTerm}%,` +
-            `cast(lot_number as text).ilike.%${activeSearchTerm}%,` +
-            `optid_created.ilike.%${activeSearchTerm}%`
-          );
+          console.log('Применение поискового запроса:', activeSearchTerm);
+          query = buildSearchQuery(query, activeSearchTerm);
         }
         
         // Apply price filter
         if (filters.priceRange) {
+          console.log('Применение фильтра по цене:', filters.priceRange);
           query = query.gte('price', filters.priceRange[0]).lte('price', filters.priceRange[1]);
         }
         
         // Apply status filter
         if (filters.status) {
+          console.log('Применение фильтра по статусу:', filters.status);
           query = query.eq('status', filters.status);
         }
         
         // Apply date filter
         if (filters.dateRange && filters.dateRange.from) {
+          console.log('Применение фильтра по дате от:', filters.dateRange.from.toISOString());
           query = query.gte('created_at', filters.dateRange.from.toISOString());
           
           if (filters.dateRange.to) {
             // Add 1 day to the end date to include the full day
             const endDate = new Date(filters.dateRange.to);
             endDate.setDate(endDate.getDate() + 1);
+            console.log('Применение фильтра по дату до:', endDate.toISOString());
             query = query.lt('created_at', endDate.toISOString());
           }
         }
 
         // Применяем сортировку
         if (sortField === 'status') {
+          console.log('Сортировка по статусу');
           // Если сортировка по статусу, сначала сортируем по статусу, затем по дате для удобства
           query = query.order('status', { ascending: true }).order('created_at', { ascending: false });
         } else {
+          console.log(`Сортировка по ${sortField}, порядок: ${sortOrder}`);
           query = query.order(sortField, { ascending: sortOrder === 'asc' });
         }
         
         // Apply pagination
+        console.log(`Применение пагинации: от ${from} до ${to}`);
         query = query.range(from, to);
         
-        console.log('Executing query with params:', { 
-          sortField, sortOrder, activeSearchTerm, 
-          filters: JSON.stringify(filters),
-          pageParam
-        });
-        
+        console.log('Выполнение запроса...');
         const { data, error } = await query;
         
         if (error) {
-          console.error('Query error:', error);
-          throw error;
+          console.error('Ошибка запроса:', error);
+          throw new Error(`Ошибка Supabase: ${error.message}`);
         }
 
-        console.log(`Fetched ${data?.length || 0} products`);
+        console.log(`Получено ${data?.length || 0} товаров`);
 
         // Check if we have more pages
         const hasMore = data && data.length === PRODUCTS_PER_PAGE;
@@ -278,8 +328,19 @@ const AdminProducts = () => {
           nextPage: hasMore ? pageParam + 1 : undefined
         };
       } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
+        console.error('Критическая ошибка при получении товаров:', error);
+        // Показываем более подробную информацию об ошибке
+        let errorMessage = 'Неизвестная ошибка';
+        
+        if (error instanceof Error) {
+          errorMessage = error.message;
+          console.error('Стек ошибки:', error.stack);
+        } else {
+          console.error('Неизвестный тип ошибки:', error);
+        }
+        
+        setSearchError(errorMessage);
+        throw new Error(errorMessage);
       }
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
@@ -294,7 +355,7 @@ const AdminProducts = () => {
   // Load more products when the user scrolls to the bottom
   useEffect(() => {
     if (isIntersecting && hasNextPage && !isFetchingNextPage) {
-      console.log('Loading more products...');
+      console.log('Загрузка дополнительных товаров...');
       fetchNextPage();
     }
   }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
@@ -316,6 +377,8 @@ const AdminProducts = () => {
           products={products}
           selectedProducts={selectedProducts}
           isDeleting={isDeleting}
+          isSearching={isSearching}
+          searchError={searchError}
           setSearchTerm={setSearchTerm}
           setSortField={setSortField}
           setSortOrder={setSortOrder}
@@ -333,9 +396,10 @@ const AdminProducts = () => {
         {/* Сетка товаров */}
         <ProductsGrid 
           products={products}
-          isLoading={isLoading}
+          isLoading={isLoading || isSearching}
           isError={isError}
           error={error}
+          searchError={searchError}
           refetch={refetch}
           onDelete={handleDeleteProduct}
           isDeleting={isDeleting}

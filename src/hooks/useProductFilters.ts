@@ -67,22 +67,30 @@ export const useProductFilters = (
 
   // Load saved preferences from localStorage on component mount
   useEffect(() => {
-    const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
-    const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
-    
-    if (savedSortField) {
-      setSortField(savedSortField);
-    }
-    
-    if (savedSortOrder) {
-      setSortOrder(savedSortOrder);
+    try {
+      const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
+      const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
+      
+      if (savedSortField) {
+        setSortField(savedSortField);
+      }
+      
+      if (savedSortOrder) {
+        setSortOrder(savedSortOrder);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке настроек сортировки:', error);
     }
   }, []);
   
   // Save sort preferences to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem(SORT_FIELD_KEY, sortField);
-    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+    try {
+      localStorage.setItem(SORT_FIELD_KEY, sortField);
+      localStorage.setItem(SORT_ORDER_KEY, sortOrder);
+    } catch (error) {
+      console.error('Ошибка при сохранении настроек сортировки:', error);
+    }
   }, [sortField, sortOrder]);
 
   // Calculate max price from products for the price slider
@@ -113,23 +121,41 @@ export const useProductFilters = (
 
   // Search handler
   const handleSearch = () => {
-    if (activeSearchTerm !== searchTerm) {
-      setActiveSearchTerm(searchTerm);
+    console.log('handleSearch вызван с термином:', searchTerm);
+    
+    // Проверим, нет ли специальных символов, которые могут вызывать проблемы в SQL
+    const searchTermTrimmed = searchTerm.trim();
+    const validatedSearchTerm = searchTermTrimmed.replace(/['";\\]/g, '');
+    
+    if (validatedSearchTerm !== searchTermTrimmed) {
+      toast({
+        title: "Внимание",
+        description: "Некоторые специальные символы были удалены из поискового запроса",
+        duration: 3000
+      });
+    }
+    
+    if (activeSearchTerm !== validatedSearchTerm) {
+      console.log('Устанавливаем новый активный поисковый термин:', validatedSearchTerm);
+      setActiveSearchTerm(validatedSearchTerm);
       
       // Показываем уведомление о начале поиска
       toast({
         title: "Поиск",
-        description: searchTerm ? `Поиск по запросу: ${searchTerm}` : "Отображены все товары",
+        description: validatedSearchTerm ? `Поиск по запросу: ${validatedSearchTerm}` : "Отображены все товары",
         duration: 3000
       });
       
       onSearch();
+    } else {
+      console.log('Поисковый термин не изменился, запрос не будет выполнен');
     }
   };
 
   // Clear search handler
   const handleClearSearch = () => {
     if (activeSearchTerm !== '') {
+      console.log('Сброс поискового запроса');
       setSearchTerm('');
       setActiveSearchTerm('');
       
@@ -145,6 +171,7 @@ export const useProductFilters = (
 
   // Reset all filters
   const resetAllFilters = () => {
+    console.log('Сброс всех фильтров');
     setPriceRange([0, maxPrice]);
     setDateRange({ from: null, to: null });
     setStatusFilter(null);
@@ -165,6 +192,7 @@ export const useProductFilters = (
 
   // Apply filters handler
   const applyFilters = () => {
+    console.log('Применение фильтров');
     updateFilters();
     
     const filtersApplied = [];
