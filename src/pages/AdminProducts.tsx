@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -100,15 +101,13 @@ const AdminProducts = () => {
 
         // Apply search if there's an active search term
         if (activeSearchTerm) {
-          query = query.or(
-            `title.ilike.%${activeSearchTerm}%,` +
-            `brand.ilike.%${activeSearchTerm}%,` +
-            `model.ilike.%${activeSearchTerm}%,` +
-            `description.ilike.%${activeSearchTerm}%,` +
-            `seller_name.ilike.%${activeSearchTerm}%,` +
-            `lot_number::text.ilike.%${activeSearchTerm}%,` +
-            `optid_created.ilike.%${activeSearchTerm}%`
-          );
+          query = query.or(`title.ilike.%${activeSearchTerm}%,` +
+                           `brand.ilike.%${activeSearchTerm}%,` +
+                           `model.ilike.%${activeSearchTerm}%,` +
+                           `description.ilike.%${activeSearchTerm}%,` +
+                           `seller_name.ilike.%${activeSearchTerm}%,` +
+                           `optid_created.ilike.%${activeSearchTerm}%`)
+                    .or(`lot_number.eq.${parseInt(activeSearchTerm) || 0}`);
         }
 
         if (sortField === 'status') {
@@ -126,7 +125,7 @@ const AdminProducts = () => {
         // Check if we have more pages
         const hasMore = data.length === PRODUCTS_PER_PAGE;
 
-        // Process products - removed preview image specific logic
+        // Process products
         const processedProducts = data.map(product => {
           return {
             ...product
