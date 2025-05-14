@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Eye, Bell, Tag, Hash, Search } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
@@ -101,13 +100,21 @@ const AdminProducts = () => {
 
         // Apply search if there's an active search term
         if (activeSearchTerm) {
+          // Проверяем, является ли строка поиска числом для поиска по lot_number
+          const isNumeric = !isNaN(Number(activeSearchTerm)) && !isNaN(parseFloat(activeSearchTerm));
+          
+          // Создаем базовый поиск по строковым полям
           query = query.or(`title.ilike.%${activeSearchTerm}%,` +
                            `brand.ilike.%${activeSearchTerm}%,` +
                            `model.ilike.%${activeSearchTerm}%,` +
                            `description.ilike.%${activeSearchTerm}%,` +
                            `seller_name.ilike.%${activeSearchTerm}%,` +
-                           `optid_created.ilike.%${activeSearchTerm}%`)
-                    .or(`lot_number.eq.${parseInt(activeSearchTerm) || 0}`);
+                           `optid_created.ilike.%${activeSearchTerm}%`);
+          
+          // Если это число, добавляем отдельное условие для lot_number
+          if (isNumeric) {
+            query = query.or(`lot_number.eq.${parseInt(activeSearchTerm)}`);
+          }
         }
 
         if (sortField === 'status') {
