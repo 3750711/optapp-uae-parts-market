@@ -1,10 +1,9 @@
-
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Bell, Tag, Hash, Search, Image } from "lucide-react";
+import { Edit, Trash2, Eye, Bell, Tag, Hash, Image } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -14,7 +13,6 @@ import { Product } from '@/types/product';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { useIntersection } from '@/hooks/useIntersection';
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -22,7 +20,6 @@ const PRODUCTS_PER_PAGE = 20;
 // Keys for storing sort preferences in localStorage
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
-const SEARCH_QUERY_KEY = 'admin_products_search_query';
 const PREVIEW_FILTER_KEY = 'admin_products_preview_filter';
 
 const AdminProducts = () => {
@@ -31,8 +28,6 @@ const AdminProducts = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [previewFilter, setPreviewFilter] = useState<'all' | 'with_preview' | 'without_preview'>('all');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
   
@@ -45,7 +40,6 @@ const AdminProducts = () => {
   useEffect(() => {
     const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
     const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
-    const savedSearchQuery = localStorage.getItem(SEARCH_QUERY_KEY);
     const savedPreviewFilter = localStorage.getItem(PREVIEW_FILTER_KEY) as 'all' | 'with_preview' | 'without_preview' | null;
     
     if (savedSortField) {
@@ -54,11 +48,6 @@ const AdminProducts = () => {
     
     if (savedSortOrder) {
       setSortOrder(savedSortOrder);
-    }
-    
-    if (savedSearchQuery) {
-      setSearchQuery(savedSearchQuery);
-      setDebouncedSearchQuery(savedSearchQuery);
     }
     
     if (savedPreviewFilter) {
@@ -71,16 +60,6 @@ const AdminProducts = () => {
     localStorage.setItem(SORT_FIELD_KEY, sortField);
     localStorage.setItem(SORT_ORDER_KEY, sortOrder);
   }, [sortField, sortOrder]);
-  
-  // Debounce the search query to prevent excessive database queries
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      localStorage.setItem(SEARCH_QUERY_KEY, searchQuery);
-    }, 500);
-    
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
   
   // Save preview filter preference to localStorage
   useEffect(() => {
@@ -97,7 +76,7 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, debouncedSearchQuery, previewFilter],
+    queryKey: ['admin', 'products', sortField, sortOrder, previewFilter],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         // Calculate the start and end range for pagination
@@ -111,30 +90,6 @@ const AdminProducts = () => {
             product_images(url, is_primary, preview_url),
             profiles(full_name, rating, opt_id)
           `);
-
-        // Apply comprehensive search filter if search query exists
-        if (debouncedSearchQuery) {
-          const searchTermLower = debouncedSearchQuery.toLowerCase().trim();
-          
-          // Create a complex OR condition for text fields
-          let orConditions = [
-            `title.ilike.%${searchTermLower}%`,
-            `brand.ilike.%${searchTermLower}%`,
-            `model.ilike.%${searchTermLower}%`,
-            `seller_name.ilike.%${searchTermLower}%`,
-            `description.ilike.%${searchTermLower}%`,
-            `condition.ilike.%${searchTermLower}%`,
-            `location.ilike.%${searchTermLower}%`
-          ];
-          
-          // Handle lot_number search separately as it's an integer
-          if (!isNaN(Number(searchTermLower))) {
-            query = query.or(`lot_number.eq.${Number(searchTermLower)}`);
-          }
-          
-          // Join all text field conditions
-          query = query.or(orConditions.join(','));
-        }
 
         if (sortField === 'status') {
           query = query.order('status', { ascending: true });
@@ -317,17 +272,6 @@ const AdminProducts = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
           <div className="flex items-center space-x-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Поиск по названию, лоту..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-[250px]"
-              />
-            </div>
-            
             <Select
               value={previewFilter}
               onValueChange={(value: 'all' | 'with_preview' | 'without_preview') => setPreviewFilter(value)}
@@ -390,10 +334,7 @@ const AdminProducts = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {products?.length === 0 ? (
               <div className="col-span-full py-8 text-center text-gray-500">
-                {debouncedSearchQuery 
-                  ? `По запросу "${debouncedSearchQuery}" товары не найдены`
-                  : "Товары не найдены"
-                }
+                Товары не найдены
               </div>
             ) : (
               products?.map((product) => (
