@@ -112,16 +112,28 @@ const AdminProducts = () => {
             profiles(full_name, rating, opt_id)
           `);
 
-        // Apply search filter if search query exists
+        // Apply comprehensive search filter if search query exists
         if (debouncedSearchQuery) {
           const searchTermLower = debouncedSearchQuery.toLowerCase().trim();
-          query = query
-            .or(`title.ilike.%${searchTermLower}%,brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%,seller_name.ilike.%${searchTermLower}%`);
-            
+          
+          // Create a complex OR condition for text fields
+          let orConditions = [
+            `title.ilike.%${searchTermLower}%`,
+            `brand.ilike.%${searchTermLower}%`,
+            `model.ilike.%${searchTermLower}%`,
+            `seller_name.ilike.%${searchTermLower}%`,
+            `description.ilike.%${searchTermLower}%`,
+            `condition.ilike.%${searchTermLower}%`,
+            `location.ilike.%${searchTermLower}%`
+          ];
+          
           // Handle lot_number search separately as it's an integer
           if (!isNaN(Number(searchTermLower))) {
             query = query.or(`lot_number.eq.${Number(searchTermLower)}`);
           }
+          
+          // Join all text field conditions
+          query = query.or(orConditions.join(','));
         }
 
         if (sortField === 'status') {
@@ -309,7 +321,7 @@ const AdminProducts = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
               <Input
                 type="text"
-                placeholder="Поиск товаров..."
+                placeholder="Поиск по названию, лоту..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9 w-[250px]"
