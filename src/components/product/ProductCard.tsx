@@ -114,7 +114,7 @@ const ProductCard: React.FC<ProductProps> = ({
 
   return (
     <Card 
-      className={`group rounded-xl border-none shadow-card transition-all duration-300 hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in ${isMobile ? 'cursor-pointer' : ''}`}
+      className="group rounded-xl border-none shadow-card hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in"
       onClick={isMobile ? handleCardClick : undefined}
     >
       <div className="h-[240px] overflow-hidden relative rounded-t-xl bg-white flex items-center justify-center">

@@ -336,7 +336,6 @@ const AdminProducts = () => {
                       {getStatusLabel(product.status)}
                     </Badge>
                     
-                    {/* Add preview badge if the product has preview images */}
                     {product.hasPreviewImage && (
                       <Badge 
                         className="absolute top-2 left-2 bg-green-500 text-white"

@@ -38,6 +38,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const touchEndX = useRef<number | null>(null);
 
   const handleImageClick = (image: string) => {
+    if (isPreview) return; // Don't open dialog for preview images
     setFullScreenImage(image);
     setIsOpen(true);
   };
@@ -93,7 +94,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const renderMainImage = () => (
     <div 
       className="mb-4 overflow-hidden rounded-lg cursor-pointer"
-      onClick={() => handleImageClick(activeImage)}
+      onClick={() => isPreview ? null : handleImageClick(activeImage)}
     >
       <AspectRatio ratio={16 / 9}>
         <img 
@@ -119,7 +120,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
           <img 
             src={image} 
             alt={`${title} ${index + 1}`} 
-            className={`w-full h-full ${compressed ? 'object-contain' : 'object-cover'}`}
+            className="w-full h-full object-contain"
           />
         </div>
       ))}
@@ -135,7 +136,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             <CarouselItem key={index} className="basis-full">
               <div 
                 className="overflow-hidden rounded-lg cursor-pointer h-full flex items-center justify-center"
-                onClick={() => handleImageClick(image)}
+                onClick={() => isPreview ? null : handleImageClick(image)}
               >
                 <img 
                   src={image} 
