@@ -16,8 +16,6 @@ interface ProductsGridProps {
   onDelete: (id: string) => void;
   isDeleting: boolean;
   deleteProductId: string | null;
-  selectedProducts: string[];
-  onSelectToggle: (productId: string) => void;
   onStatusChange: () => void;
 }
 
@@ -31,8 +29,6 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
   onDelete,
   isDeleting,
   deleteProductId,
-  selectedProducts,
-  onSelectToggle,
   onStatusChange,
 }) => {
   if (isLoading) {
@@ -91,8 +87,6 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
           onDelete={onDelete}
           isDeleting={isDeleting && deleteProductId === product.id}
           onStatusChange={onStatusChange}
-          isSelected={selectedProducts.includes(product.id)}
-          onSelectToggle={onSelectToggle}
         />
       ))}
     </div>

@@ -18,9 +18,6 @@ const AdminProducts = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
-  // Состояние для выбранных товаров
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  
   // Reference for the loading trigger element
   const loadMoreRef = useRef<HTMLDivElement>(null);
   // Using the intersection observer to detect when user scrolls to the bottom
@@ -36,7 +33,6 @@ const AdminProducts = () => {
   } = useProductFilters([], 
     // onApplyFilters callback
     () => {
-      setSelectedProducts([]);
       refetch();
     }
   );
@@ -63,11 +59,6 @@ const AdminProducts = () => {
           group: "product-delete" // Группировка похожих уведомлений
         });
         
-        // Удаляем из списка выбранных, если товар был выбран
-        if (selectedProducts.includes(productId)) {
-          setSelectedProducts(prev => prev.filter(id => id !== productId));
-        }
-        
         queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       }
     } catch (error) {
@@ -81,72 +72,6 @@ const AdminProducts = () => {
     } finally {
       setIsDeleting(false);
       setDeleteProductId(null);
-    }
-  };
-  
-  // Удаление нескольких выбранных товаров
-  const handleDeleteSelected = async () => {
-    if (selectedProducts.length === 0 || isDeleting) return;
-    
-    try {
-      setIsDeleting(true);
-      
-      const promises = selectedProducts.map(productId => 
-        supabase.from('products').delete().eq('id', productId)
-      );
-      
-      const results = await Promise.all(promises);
-      const errors = results.filter(result => result.error).map(result => result.error);
-      
-      if (errors.length > 0) {
-        console.error('Errors deleting products:', errors);
-        toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: `Не удалось удалить ${errors.length} товаров`,
-          group: "bulk-delete-error" // Группировка ошибок массового удаления
-        });
-      } else {
-        toast({
-          title: "Успех",
-          description: `Удалено товаров: ${selectedProducts.length}`,
-          group: "bulk-delete" // Группировка уведомлений о массовом удалении
-        });
-        setSelectedProducts([]);
-      }
-      
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось выполнить массовое удаление: " + (error instanceof Error ? error.message : String(error)),
-        group: "bulk-delete-error"
-      });
-      console.error('Error bulk deleting products:', error);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-  
-  // Выбор/отмена выбора товара
-  const handleToggleProductSelect = (productId: string) => {
-    setSelectedProducts(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
-      } else {
-        return [...prev, productId];
-      }
-    });
-  };
-  
-  // Выбор/отмена выбора всех товаров
-  const handleToggleAllSelected = (selected: boolean) => {
-    if (selected) {
-      const allProductIds = products.map(product => product.id);
-      setSelectedProducts(allProductIds);
-    } else {
-      setSelectedProducts([]);
     }
   };
 
@@ -257,17 +182,13 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        {/* Фильтры и сортировка - removed filters */}
+        {/* Фильтры и сортировка - removed filters and selection */}
         <RefactoredProductSearchFilters
           sortField={sortField}
           sortOrder={sortOrder}
           products={products}
-          selectedProducts={selectedProducts}
-          isDeleting={isDeleting}
           setSortField={setSortField}
           setSortOrder={setSortOrder}
-          onDeleteSelected={handleDeleteSelected}
-          onToggleAllSelected={handleToggleAllSelected}
           resetAllFilters={resetAllFilters}
         />
 
@@ -281,8 +202,6 @@ const AdminProducts = () => {
           onDelete={handleDeleteProduct}
           isDeleting={isDeleting}
           deleteProductId={deleteProductId}
-          selectedProducts={selectedProducts}
-          onSelectToggle={handleToggleProductSelect}
           onStatusChange={() => {
             queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
           }}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -17,17 +16,13 @@ interface AdminProductCardProps {
   onDelete: (id: string) => void;
   isDeleting: boolean;
   onStatusChange?: () => void;
-  isSelected?: boolean;
-  onSelectToggle?: (productId: string) => void;
 }
 
 const AdminProductCard: React.FC<AdminProductCardProps> = ({
   product,
   onDelete,
   isDeleting,
-  onStatusChange,
-  isSelected,
-  onSelectToggle
+  onStatusChange
 }) => {
   const queryClient = useQueryClient();
   const { sendNotification, isNotificationSending } = useAdminProductNotifications();
@@ -64,17 +59,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     <div 
       className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 relative`}
     >
-      {onSelectToggle && (
-        <div className="absolute top-2 left-2 z-10">
-          <input
-            type="checkbox"
-            checked={isSelected}
-            onChange={() => onSelectToggle(product.id)}
-            className="h-4 w-4 rounded border-gray-300 cursor-pointer"
-          />
-        </div>
-      )}
-      
       <div className="relative aspect-square mb-4">
         <img 
           src={

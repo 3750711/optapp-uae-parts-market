@@ -5,25 +5,17 @@ import { Download } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import * as XLSX from 'xlsx';
 
-// Import our components
-import SelectedProductsActions from './filters/SelectedProductsActions';
-
 interface RefactoredProductSearchFiltersProps {
   // Sort states
   sortField: 'created_at' | 'price' | 'title' | 'status';
   sortOrder: 'asc' | 'desc';
   
-  // Selected products state
+  // Data
   products: any[];
-  selectedProducts: string[];
-  isDeleting: boolean;
   
   // Event handlers
   setSortField: (field: 'created_at' | 'price' | 'title' | 'status') => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
-  
-  onDeleteSelected: () => void;
-  onToggleAllSelected: (selected: boolean) => void;
   resetAllFilters: () => void;
 }
 
@@ -32,17 +24,12 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   sortField,
   sortOrder,
   
-  // Selected products state
+  // Data
   products,
-  selectedProducts,
-  isDeleting,
   
   // Event handlers
   setSortField,
   setSortOrder,
-  
-  onDeleteSelected,
-  onToggleAllSelected,
   resetAllFilters
 }) => {
   // Export products to Excel
@@ -110,14 +97,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           </Button>
         </div>
       </div>
-      
-      {/* Selected Products Actions */}
-      <SelectedProductsActions 
-        selectedProducts={selectedProducts}
-        onDeleteSelected={onDeleteSelected}
-        isDeleting={isDeleting}
-        onToggleAllSelected={onToggleAllSelected}
-      />
     </div>
   );
 };
