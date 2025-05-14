@@ -1,26 +1,25 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Bell, Tag, Hash, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
-import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
-import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
-import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useIntersection } from '@/hooks/useIntersection';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
+import AdminProductCard from '@/components/admin/AdminProductCard';
+import ProductSearchFilters from '@/components/admin/ProductSearchFilters';
 
 const PRODUCTS_PER_PAGE = 20;
 // Keys for storing sort preferences in localStorage
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
+
+interface FiltersState {
+  priceRange: [number, number] | null;
+  dateRange: { from: Date | null; to: Date | null } | null;
+  status: string | null;
+}
 
 const AdminProducts = () => {
   const { toast } = useToast();
@@ -28,11 +27,21 @@ const AdminProducts = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
+  const [isDeleting, setIsDeleting] = useState(false);
   
-  // Search functionality
+  // Состояние для поиска
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeSearchTerm, setActiveSearchTerm] = useState<string>('');
+  
+  // Состояние для фильтров
+  const [filters, setFilters] = useState<FiltersState>({
+    priceRange: null,
+    dateRange: null,
+    status: null
+  });
+  
+  // Состояние для выбранных товаров
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   
   // Reference for the loading trigger element
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -59,20 +68,134 @@ const AdminProducts = () => {
     localStorage.setItem(SORT_ORDER_KEY, sortOrder);
   }, [sortField, sortOrder]);
   
-  // Handle search button click
+  // Функция поиска
   const handleSearch = () => {
     setActiveSearchTerm(searchTerm);
-    // Reset pagination by refetching the first page
+    setSelectedProducts([]);
     refetch();
   };
   
-  // Handle search input keydown event (search on Enter key)
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  // Сброс поиска
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+    setSelectedProducts([]);
+    refetch();
+  };
+  
+  // Применить фильтры
+  const handleApplyFilters = () => {
+    setSelectedProducts([]);
+    refetch();
+  };
+  
+  // Удаление товара
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (error) {
+        throw new Error(error.message);
+      } else {
+        toast({
+          title: "Успех",
+          description: "Товар успешно удален",
+          group: "product-delete" // Группировка похожих уведомлений
+        });
+        
+        // Удаляем из списка выбранных, если товар был выбран
+        if (selectedProducts.includes(productId)) {
+          setSelectedProducts(prev => prev.filter(id => id !== productId));
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось удалить товар: " + (error instanceof Error ? error.message : String(error)),
+        group: "product-delete-error" // Группировка ошибок удаления
+      });
+      console.error('Error deleting product:', error);
+    } finally {
+      setIsDeleting(false);
+      setDeleteProductId(null);
     }
   };
   
+  // Удаление нескольких выбранных товаров
+  const handleDeleteSelected = async () => {
+    if (selectedProducts.length === 0) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const promises = selectedProducts.map(productId => 
+        supabase.from('products').delete().eq('id', productId)
+      );
+      
+      const results = await Promise.all(promises);
+      const errors = results.filter(result => result.error).map(result => result.error);
+      
+      if (errors.length > 0) {
+        console.error('Errors deleting products:', errors);
+        toast({
+          variant: "destructive",
+          title: "Ошибка",
+          description: `Не удалось удалить ${errors.length} товаров`,
+          group: "bulk-delete-error" // Группировка ошибок массового удаления
+        });
+      } else {
+        toast({
+          title: "Успех",
+          description: `Удалено товаров: ${selectedProducts.length}`,
+          group: "bulk-delete" // Группировка уведомлений о массовом удалении
+        });
+        setSelectedProducts([]);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось выполнить массовое удаление: " + (error instanceof Error ? error.message : String(error)),
+        group: "bulk-delete-error"
+      });
+      console.error('Error bulk deleting products:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+  
+  // Выбор/отмена выбора товара
+  const handleToggleProductSelect = (productId: string) => {
+    setSelectedProducts(prev => {
+      if (prev.includes(productId)) {
+        return prev.filter(id => id !== productId);
+      } else {
+        return [...prev, productId];
+      }
+    });
+  };
+  
+  // Выбор/отмена выбора всех товаров
+  const handleToggleAllSelected = (selected: boolean) => {
+    if (selected) {
+      const allProductIds = products.map(product => product.id);
+      setSelectedProducts(allProductIds);
+    } else {
+      setSelectedProducts([]);
+    }
+  };
+
+  // Query products with filters
   const {
     data: productsData,
     isLoading,
@@ -83,7 +206,7 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, activeSearchTerm],
+    queryKey: ['admin', 'products', sortField, sortOrder, activeSearchTerm, filters],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         // Calculate the start and end range for pagination
@@ -110,6 +233,28 @@ const AdminProducts = () => {
             `optid_created.ilike.%${activeSearchTerm}%`
           );
         }
+        
+        // Apply price filter
+        if (filters.priceRange) {
+          query = query.gte('price', filters.priceRange[0]).lte('price', filters.priceRange[1]);
+        }
+        
+        // Apply status filter
+        if (filters.status) {
+          query = query.eq('status', filters.status);
+        }
+        
+        // Apply date filter
+        if (filters.dateRange && filters.dateRange.from) {
+          query = query.gte('created_at', filters.dateRange.from.toISOString());
+          
+          if (filters.dateRange.to) {
+            // Add 1 day to the end date to include the full day
+            const endDate = new Date(filters.dateRange.to);
+            endDate.setDate(endDate.getDate() + 1);
+            query = query.lt('created_at', endDate.toISOString());
+          }
+        }
 
         if (sortField === 'status') {
           query = query.order('status', { ascending: true });
@@ -126,17 +271,10 @@ const AdminProducts = () => {
         // Check if we have more pages
         const hasMore = data.length === PRODUCTS_PER_PAGE;
 
-        // Process products - removed preview image specific logic
-        const processedProducts = data.map(product => {
-          return {
-            ...product
-          };
-        });
-
         if (sortField === 'status') {
           const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
           return {
-            products: processedProducts.sort((a, b) => 
+            products: data.sort((a, b) => 
               statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
             ),
             nextPage: hasMore ? pageParam + 1 : undefined
@@ -144,7 +282,7 @@ const AdminProducts = () => {
         }
 
         return {
-          products: processedProducts,
+          products: data,
           nextPage: hasMore ? pageParam + 1 : undefined
         };
       } catch (error) {
@@ -166,182 +304,30 @@ const AdminProducts = () => {
     }
   }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  const handleSortChange = (value: string) => {
-    const [field, order] = value.split('-');
-    setSortField(field as 'created_at' | 'price' | 'title' | 'status');
-    setSortOrder(order as 'asc' | 'desc');
-  };
-
-  const handleDeleteProduct = async () => {
-    if (!deleteProductId) return;
-
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', deleteProductId);
-
-    if (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить товар",
-        variant: "destructive"
-      });
-    } else {
-      toast({
-        title: "Успех",
-        description: "Товар успешно удален"
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-    }
-    
-    setDeleteProductId(null);
-  };
-
-  const handleSendNotification = async (product: Product) => {
-    try {
-      setIsNotificationSending({...isNotificationSending, [product.id]: true});
-      
-      // First, get a fresh product with all images
-      const { data: freshProduct, error: fetchError } = await supabase
-        .from('products')
-        .select(`*, product_images(*)`)
-        .eq('id', product.id)
-        .single();
-
-      if (fetchError || !freshProduct) {
-        throw new Error(fetchError?.message || 'Failed to fetch product details');
-      }
-      
-      // Now call the edge function with the complete product data
-      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { product: freshProduct }
-      });
-      
-      if (error) {
-        console.error('Error calling function:', error);
-        throw new Error(error.message);
-      }
-      
-      if (data && data.success) {
-        toast({
-          title: "Успех",
-          description: "Уведомление отправлено в Telegram",
-        });
-      } else {
-        toast({
-          title: "Внимание",
-          description: (data && data.message) || "Уведомление не было отправлено",
-          variant: "destructive", 
-        });
-      }
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)),
-        variant: "destructive",
-      });
-    } finally {
-      setIsNotificationSending({...isNotificationSending, [product.id]: false});
-    }
-  };
-
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'active': return 'bg-green-100 text-green-800';
-      case 'sold': return 'bg-blue-100 text-blue-800';
-      case 'archived': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Ожидает проверки';
-      case 'active': return 'Опубликован';
-      case 'sold': return 'Продан';
-      case 'archived': return 'Архив';
-      default: return status;
-    }
-  };
-
-  const getProductCardBackground = (status: string) => {
-    switch (status) {
-      case 'pending': return 'bg-[#FEF7CD]';
-      case 'active': return 'bg-[#F2FCE2]';
-      default: return 'bg-white';
-    }
-  };
-
   return (
     <AdminLayout>
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
-          
-          <div className="flex flex-col sm:flex-row w-full md:w-auto items-center gap-2">
-            {/* Search input and button */}
-            <div className="relative flex items-center w-full md:w-auto">
-              <Input
-                type="search"
-                placeholder="Поиск товаров..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                className="w-full md:w-[300px] pr-10"
-              />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="absolute right-0 top-0 h-10"
-                onClick={handleSearch}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            {/* Sort dropdown */}
-            <Select
-              value={`${sortField}-${sortOrder}`}
-              onValueChange={handleSortChange}
-            >
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Сортировка" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="status-asc">Сначала ожидает проверки</SelectItem>
-                <SelectItem value="created_at-desc">Сначала новые</SelectItem>
-                <SelectItem value="created_at-asc">Сначала старые</SelectItem>
-                <SelectItem value="price-desc">Цена по убыванию</SelectItem>
-                <SelectItem value="price-asc">Цена по возрастанию</SelectItem>
-                <SelectItem value="title-asc">По названию А-Я</SelectItem>
-                <SelectItem value="title-desc">По названию Я-А</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Search terms indicator */}
-        {activeSearchTerm && (
-          <div className="flex items-center mb-4">
-            <p className="text-sm text-muted-foreground">
-              Поиск по запросу: <span className="font-medium text-foreground">{activeSearchTerm}</span>
-            </p>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="ml-2 h-6" 
-              onClick={() => {
-                setSearchTerm('');
-                setActiveSearchTerm('');
-                refetch();
-              }}
-            >
-              Сбросить
-            </Button>
-          </div>
-        )}
+        {/* Поиск, сортировка и фильтры */}
+        <ProductSearchFilters
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          activeSearchTerm={activeSearchTerm}
+          setActiveSearchTerm={setActiveSearchTerm}
+          sortField={sortField}
+          sortOrder={sortOrder}
+          setSortField={setSortField}
+          setSortOrder={setSortOrder}
+          onSearch={handleSearch}
+          onClearSearch={handleClearSearch}
+          products={products}
+          selectedProducts={selectedProducts}
+          onDeleteSelected={handleDeleteSelected}
+          isDeleting={isDeleting}
+          onToggleAllSelected={handleToggleAllSelected}
+          filters={filters}
+          setFilters={setFilters}
+          onApplyFilters={handleApplyFilters}
+        />
 
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -363,9 +349,12 @@ const AdminProducts = () => {
             <p className="text-red-600 mb-4">
               Произошла ошибка при загрузке товаров: {error instanceof Error ? error.message : 'Неизвестная ошибка'}
             </p>
-            <Button onClick={() => refetch()} variant="outline">
+            <button 
+              onClick={() => refetch()}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            >
               Попробовать снова
-            </Button>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -375,169 +364,17 @@ const AdminProducts = () => {
               </div>
             ) : (
               products?.map((product) => (
-                <div 
-                  key={product.id} 
-                  className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
-                >
-                  <div className="relative aspect-square mb-4">
-                    <img 
-                      src={
-                        product.product_images?.find(img => img.is_primary)?.url || 
-                        product.product_images?.[0]?.url || 
-                        '/placeholder.svg'
-                      } 
-                      alt={product.title} 
-                      className="object-contain w-full h-full rounded-md"
-                      loading="lazy"
-                    />
-                    <Badge 
-                      className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
-                    >
-                      {getStatusLabel(product.status)}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
-                    
-                    <div className="flex items-center gap-1 mt-1">
-                      <Hash className="w-3 h-3 text-muted-foreground" />
-                      <p className="text-xs text-muted-foreground">
-                        Лот: {product.lot_number || 'Не указан'}
-                      </p>
-                    </div>
-                    
-                    {(product.brand || product.model) && (
-                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                        <Tag className="w-3 h-3" />
-                        <span>
-                          {product.brand || 'Не указано'} • {product.model || 'Не указано'}
-                        </span>
-                      </p>
-                    )}
-                    
-                    <p className="text-sm text-muted-foreground">
-                      {product.price} $
-                    </p>
-                    
-                    {product.delivery_price !== null && product.delivery_price !== undefined && (
-                      <p className="text-xs text-muted-foreground">
-                        Доставка: {product.delivery_price} $
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span className="truncate">{product.seller_name}</span>
-                      {product.optid_created && (
-                        <Badge variant="outline" className="text-xs">
-                          {product.optid_created}
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-1">
-                        <ProductEditDialog
-                          product={product}
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                          }
-                          onSuccess={() => {
-                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                          }}
-                        />
-                        
-                        {product.status === 'pending' && (
-                          <>
-                            <ProductPublishDialog
-                              product={product}
-                              trigger={
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8"
-                                >
-                                  Опубликовать
-                                </Button>
-                              }
-                              onSuccess={() => {
-                                queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                              }}
-                            />
-                          </>
-                        )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-blue-600"
-                          onClick={() => handleSendNotification(product)}
-                          disabled={isNotificationSending[product.id]}
-                          title="Отправить уведомление в Telegram"
-                        >
-                          <Bell className={`h-4 w-4 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
-                        </Button>
-                        
-                        <ProductStatusDialog
-                          product={product}
-                          trigger={
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          }
-                          onSuccess={() => {
-                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                          }}
-                        />
-                        <AlertDialog open={deleteProductId === product.id} onOpenChange={(open) => !open && setDeleteProductId(null)}>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-red-600"
-                              onClick={() => setDeleteProductId(product.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Удаление товара</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Отмена</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700">
-                                Удалить
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                      <Link to={`/product/${product.id}`}>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 text-xs"
-                        >
-                          Просмотр
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+                <AdminProductCard
+                  key={product.id}
+                  product={product}
+                  onDelete={handleDeleteProduct}
+                  isDeleting={isDeleting && deleteProductId === product.id}
+                  onStatusChange={() => {
+                    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                  }}
+                  isSelected={selectedProducts.includes(product.id)}
+                  onSelectToggle={handleToggleProductSelect}
+                />
               ))
             )}
           </div>

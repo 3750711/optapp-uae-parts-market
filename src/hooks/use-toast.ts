@@ -1,12 +1,14 @@
+
 import * as React from "react"
+import { v4 as uuidv4 } from 'uuid';
 
 import type {
   ToastActionElement,
   ToastProps,
 } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_LIMIT = 5
+const TOAST_REMOVE_DELAY = 5000 // Изменено с 1000000 на 5000 (5 секунд)
 
 type ToasterToast = ToastProps & {
   id: string
@@ -137,11 +139,44 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+interface Toast extends Omit<ToasterToast, "id"> {
+  id?: string
+  // Для группировки похожих уведомлений
+  group?: string
+}
 
 function toast({ ...props }: Toast) {
-  const id = genId()
+  const id = props.id || uuidv4()
+  const group = props.group
 
+  // Если задана группа, проверяем наличие похожих уведомлений
+  if (group) {
+    const existingToast = memoryState.toasts.find(t => {
+      const toastGroup = (t as unknown as Toast).group
+      return toastGroup === group
+    })
+    
+    if (existingToast) {
+      // Обновляем существующее уведомление вместо создания нового
+      dispatch({
+        type: "UPDATE_TOAST",
+        toast: { 
+          ...props, 
+          id: existingToast.id,
+          description: props.description || existingToast.description
+        },
+      })
+      
+      return {
+        id: existingToast.id,
+        dismiss: () => dispatch({ type: "DISMISS_TOAST", toastId: existingToast.id }),
+        update: (newProps: ToasterToast) => 
+          dispatch({ type: "UPDATE_TOAST", toast: { ...newProps, id: existingToast.id }}),
+      }
+    }
+  }
+
+  // Создаем новое уведомление
   const update = (props: ToasterToast) =>
     dispatch({
       type: "UPDATE_TOAST",
@@ -162,7 +197,7 @@ function toast({ ...props }: Toast) {
   })
 
   return {
-    id: id,
+    id,
     dismiss,
     update,
   }
