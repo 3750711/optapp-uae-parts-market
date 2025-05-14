@@ -4,47 +4,20 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { useToast } from "@/components/ui/use-toast";
-import { Product } from '@/types/product';
 import { useIntersection } from '@/hooks/useIntersection';
-import { Skeleton } from "@/components/ui/skeleton";
-import AdminProductCard from '@/components/admin/AdminProductCard';
-import ProductSearchFilters from '@/components/admin/ProductSearchFilters';
+import RefactoredProductSearchFilters from '@/components/admin/RefactoredProductSearchFilters';
+import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
+import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
+import { useProductFilters, FiltersState } from '@/hooks/useProductFilters';
+import { DateRange } from '@/components/admin/filters/DateRangeFilter';
 
 const PRODUCTS_PER_PAGE = 20;
-// Keys for storing sort preferences in localStorage
-const SORT_FIELD_KEY = 'admin_products_sort_field';
-const SORT_ORDER_KEY = 'admin_products_sort_order';
-
-// Define DateRange interface to ensure consistency
-interface DateRange {
-  from: Date | null;
-  to?: Date | null; // Make 'to' optional to match the library's type
-}
-
-interface FiltersState {
-  priceRange: [number, number] | null;
-  dateRange: DateRange | null;
-  status: string | null;
-}
 
 const AdminProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Состояние для поиска
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState<string>('');
-  
-  // Состояние для фильтров
-  const [filters, setFilters] = useState<FiltersState>({
-    priceRange: null,
-    dateRange: null,
-    status: null
-  });
   
   // Состояние для выбранных товаров
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -54,52 +27,42 @@ const AdminProducts = () => {
   // Using the intersection observer to detect when user scrolls to the bottom
   const isIntersecting = useIntersection(loadMoreRef, '200px');
   
-  // Load saved preferences from localStorage on component mount
-  useEffect(() => {
-    const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
-    const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
-    
-    if (savedSortField) {
-      setSortField(savedSortField);
-    }
-    
-    if (savedSortOrder) {
-      setSortOrder(savedSortOrder);
-    }
-  }, []);
-  
-  // Save sort preferences to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(SORT_FIELD_KEY, sortField);
-    localStorage.setItem(SORT_ORDER_KEY, sortOrder);
-  }, [sortField, sortOrder]);
-  
-  // Функция поиска
-  const handleSearch = () => {
-    // Убедимся что есть фактическое изменение в поисковом запросе прежде чем перезагружать данные
-    if (activeSearchTerm !== searchTerm) {
-      setActiveSearchTerm(searchTerm);
+  // Use our custom hook for filters
+  const {
+    filters,
+    searchTerm,
+    activeSearchTerm,
+    sortField,
+    sortOrder,
+    priceRange,
+    dateRange,
+    statusFilter,
+    maxPrice,
+    setSearchTerm,
+    setActiveSearchTerm,
+    setSortField,
+    setSortOrder,
+    setPriceRange,
+    setDateRange,
+    setStatusFilter,
+    handleSearch,
+    handleClearSearch,
+    resetAllFilters,
+    applyFilters
+  } = useProductFilters([], 
+    // onSearch callback
+    () => refetch(),
+    // onClearSearch callback
+    () => {
       setSelectedProducts([]);
-      // Используем refetch вместо invalidateQueries для более контролируемого обновления
       refetch();
-    }
-  };
-  
-  // Сброс поиска
-  const handleClearSearch = () => {
-    if (activeSearchTerm !== '') {
-      setSearchTerm('');
-      setActiveSearchTerm('');
+    },
+    // onApplyFilters callback
+    () => {
       setSelectedProducts([]);
       refetch();
     }
-  };
-  
-  // Применить фильтры
-  const handleApplyFilters = () => {
-    setSelectedProducts([]);
-    refetch();
-  };
+  );
   
   // Удаление товара
   const handleDeleteProduct = async (productId: string) => {
@@ -339,95 +302,57 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-4">
-        {/* Поиск, сортировка и фильтры */}
-        <ProductSearchFilters
+        {/* Фильтры, поиск и сортировка */}
+        <RefactoredProductSearchFilters
           searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
           activeSearchTerm={activeSearchTerm}
-          setActiveSearchTerm={setActiveSearchTerm}
           sortField={sortField}
           sortOrder={sortOrder}
-          setSortField={setSortField}
-          setSortOrder={setSortOrder}
-          onSearch={handleSearch}
-          onClearSearch={handleClearSearch}
+          filters={filters}
+          priceRange={priceRange}
+          dateRange={dateRange}
+          statusFilter={statusFilter}
+          maxPrice={maxPrice}
           products={products}
           selectedProducts={selectedProducts}
-          onDeleteSelected={handleDeleteSelected}
           isDeleting={isDeleting}
+          setSearchTerm={setSearchTerm}
+          setSortField={setSortField}
+          setSortOrder={setSortOrder}
+          setPriceRange={setPriceRange}
+          setDateRange={setDateRange}
+          setStatusFilter={setStatusFilter}
+          onSearch={handleSearch}
+          onClearSearch={handleClearSearch}
+          onApplyFilters={applyFilters}
+          onDeleteSelected={handleDeleteSelected}
           onToggleAllSelected={handleToggleAllSelected}
-          filters={filters}
-          setFilters={setFilters}
-          onApplyFilters={handleApplyFilters}
+          resetAllFilters={resetAllFilters}
         />
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm p-4">
-                <Skeleton className="aspect-square w-full mb-4" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-3 w-1/2 mb-2" />
-                <Skeleton className="h-3 w-2/3 mb-4" />
-                <div className="flex justify-between">
-                  <Skeleton className="h-8 w-1/3" />
-                  <Skeleton className="h-8 w-1/4" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : isError ? (
-          <div className="p-6 text-center">
-            <p className="text-red-600 mb-4">
-              Произошла ошибка при загрузке товаров: {error instanceof Error ? error.message : 'Неизвестная ошибка'}
-            </p>
-            <button 
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-            >
-              Попробовать снова
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {products?.length === 0 ? (
-              <div className="col-span-full py-8 text-center text-gray-500">
-                Товары не найдены
-              </div>
-            ) : (
-              products?.map((product) => (
-                <AdminProductCard
-                  key={product.id}
-                  product={product}
-                  onDelete={handleDeleteProduct}
-                  isDeleting={isDeleting && deleteProductId === product.id}
-                  onStatusChange={() => {
-                    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                  }}
-                  isSelected={selectedProducts.includes(product.id)}
-                  onSelectToggle={handleToggleProductSelect}
-                />
-              ))
-            )}
-          </div>
-        )}
+        {/* Сетка товаров */}
+        <ProductsGrid 
+          products={products}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          refetch={refetch}
+          onDelete={handleDeleteProduct}
+          isDeleting={isDeleting}
+          deleteProductId={deleteProductId}
+          selectedProducts={selectedProducts}
+          onSelectToggle={handleToggleProductSelect}
+          onStatusChange={() => {
+            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+          }}
+        />
         
         {/* Loading indicator and intersection observer target */}
-        {hasNextPage && (
-          <div 
-            ref={loadMoreRef}
-            className="w-full py-8 flex items-center justify-center"
-          >
-            {isFetchingNextPage ? (
-              <div className="flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-t-blue-500 border-r-transparent border-l-transparent border-b-transparent rounded-full animate-spin"></div>
-                <span className="ml-2">Загрузка...</span>
-              </div>
-            ) : (
-              <div className="h-10"></div> // Empty space to trigger the intersection
-            )}
-          </div>
-        )}
+        <LoadMoreTrigger 
+          hasNextPage={hasNextPage} 
+          isFetchingNextPage={isFetchingNextPage} 
+          innerRef={loadMoreRef} 
+        />
       </div>
     </AdminLayout>
   );
