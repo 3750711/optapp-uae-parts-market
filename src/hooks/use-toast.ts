@@ -1,9 +1,8 @@
-
 import * as React from "react";
 import { Dispatch, SetStateAction } from 'react';
 
 const TOAST_LIMIT = 20;
-const TOAST_REMOVE_DELAY = 1000000;
+const TOAST_REMOVE_DELAY = 2000;
 
 export type ToastActionElement = React.ReactElement<{
   altText: string;
