@@ -18,9 +18,12 @@ export type ToasterToast = {
   action?: ToastActionElement;
   variant?: "default" | "destructive" | "success";
   open?: boolean;
+  duration?: number;
 };
 
-export type Toast = Omit<ToasterToast, "id">;
+export type Toast = Omit<ToasterToast, "id"> & {
+  id?: string;
+};
 
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
@@ -269,6 +272,7 @@ export function useToast() {
   }
 
   return {
+    toasts: context.toasts,
     toast: (props: Toast) => {
       context.addToast(props);
     },
@@ -291,7 +295,9 @@ export const toast = (props: Toast) => {
       },
     });
     
-    addToRemoveQueue(id);
+    // Use custom duration if provided or default
+    const duration = props.duration !== undefined ? props.duration : TOAST_REMOVE_DELAY;
+    addToRemoveQueue(id, duration);
   }
 };
 

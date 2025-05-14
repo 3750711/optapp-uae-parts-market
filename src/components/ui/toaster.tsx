@@ -14,17 +14,9 @@ import { useToast } from "@/hooks/use-toast"
 export function Toaster() {
   const { toasts } = useToast()
   
-  // We need to manually manage state here since the imported useToast hook
-  // doesn't export the whole state, just the methods to manipulate it
-  const [localToasts, setLocalToasts] = useState([])
-  
-  useEffect(() => {
-    setLocalToasts(toasts || [])
-  }, [toasts])
-
   return (
     <ToastProvider>
-      {localToasts.map(function ({ id, title, description, action, ...props }) {
+      {toasts.map(function ({ id, title, description, action, ...props }) {
         return (
           <Toast key={id} {...props}>
             <div className="grid gap-1">
