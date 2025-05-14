@@ -196,20 +196,20 @@ const AdminProducts = () => {
       const isNumeric = !isNaN(Number(term));
       
       // Создаем запрос для поиска по текстовым полям
-      query = query.or(
-        `title.ilike.%${term}%,` +
-        `brand.ilike.%${term}%,` +
-        `model.ilike.%${term}%,` +
-        `description.ilike.%${term}%,` +
-        `seller_name.ilike.%${term}%,` +
-        `optid_created.ilike.%${term}%`
-      );
+      // Исправление: используем отдельные .or() вызовы для каждого условия поиска
+      query = query
+        .or(`title.ilike.%${term}%`)
+        .or(`brand.ilike.%${term}%`)
+        .or(`model.ilike.%${term}%`)
+        .or(`description.ilike.%${term}%`)
+        .or(`seller_name.ilike.%${term}%`)
+        .or(`optid_created.ilike.%${term}%`);
       
       // Если поисковый запрос похож на число, ищем по lot_number и price
       if (isNumeric) {
         const numValue = Number(term);
         
-        // Поиск по лот-номеру (точное совпадение или частичное текстовое)
+        // Поиск по лот-номеру (точное совпадение)
         query = query.or(`lot_number.eq.${numValue}`);
         
         // Поиск по цене (точное совпадение)

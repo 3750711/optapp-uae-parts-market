@@ -37,10 +37,10 @@ export interface ProductFiltersReturn {
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
 
-// Sanitize search term to avoid SQL injection and issues with special characters
+// Улучшенная функция для очистки поискового запроса от специальных символов
 const sanitizeSearchTerm = (term: string): string => {
-  // Remove characters that could cause problems with SQL queries
-  return term.replace(/['";\\%]/g, '');
+  // Заменяем потенциально опасные символы на пробелы
+  return term.replace(/['";\\%]/g, ' ').trim();
 };
 
 export const useProductFilters = (
@@ -150,7 +150,7 @@ export const useProductFilters = (
     if (validatedSearchTerm !== searchTermTrimmed) {
       toast({
         title: "Внимание",
-        description: "Некоторые специальные символы были удалены из поискового запроса",
+        description: "Некоторые специальные символы были заменены в поисковом запросе",
         duration: 3000
       });
     }
