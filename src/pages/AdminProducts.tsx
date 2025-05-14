@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +21,6 @@ const PRODUCTS_PER_PAGE = 20;
 // Keys for storing sort preferences in localStorage
 const SORT_FIELD_KEY = 'admin_products_sort_field';
 const SORT_ORDER_KEY = 'admin_products_sort_order';
-const PREVIEW_FILTER_KEY = 'admin_products_preview_filter';
 
 const AdminProducts = () => {
   const { toast } = useToast();
@@ -28,7 +28,6 @@ const AdminProducts = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [previewFilter, setPreviewFilter] = useState<'all' | 'with_preview' | 'without_preview'>('all');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
   
   // Reference for the loading trigger element
@@ -40,7 +39,6 @@ const AdminProducts = () => {
   useEffect(() => {
     const savedSortField = localStorage.getItem(SORT_FIELD_KEY) as 'created_at' | 'price' | 'title' | 'status' | null;
     const savedSortOrder = localStorage.getItem(SORT_ORDER_KEY) as 'asc' | 'desc' | null;
-    const savedPreviewFilter = localStorage.getItem(PREVIEW_FILTER_KEY) as 'all' | 'with_preview' | 'without_preview' | null;
     
     if (savedSortField) {
       setSortField(savedSortField);
@@ -49,10 +47,6 @@ const AdminProducts = () => {
     if (savedSortOrder) {
       setSortOrder(savedSortOrder);
     }
-    
-    if (savedPreviewFilter) {
-      setPreviewFilter(savedPreviewFilter);
-    }
   }, []);
   
   // Save sort preferences to localStorage whenever they change
@@ -60,11 +54,6 @@ const AdminProducts = () => {
     localStorage.setItem(SORT_FIELD_KEY, sortField);
     localStorage.setItem(SORT_ORDER_KEY, sortOrder);
   }, [sortField, sortOrder]);
-  
-  // Save preview filter preference to localStorage
-  useEffect(() => {
-    localStorage.setItem(PREVIEW_FILTER_KEY, previewFilter);
-  }, [previewFilter]);
   
   const {
     data: productsData,
@@ -76,7 +65,7 @@ const AdminProducts = () => {
     isError,
     error
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, previewFilter],
+    queryKey: ['admin', 'products', sortField, sortOrder],
     queryFn: async ({ pageParam = 1 }) => {
       try {
         // Calculate the start and end range for pagination
@@ -117,18 +106,10 @@ const AdminProducts = () => {
           };
         });
 
-        // Filter by preview status if needed
-        let filteredProducts = processedProducts;
-        if (previewFilter === 'with_preview') {
-          filteredProducts = processedProducts.filter(p => p.hasPreviewImage);
-        } else if (previewFilter === 'without_preview') {
-          filteredProducts = processedProducts.filter(p => !p.hasPreviewImage);
-        }
-
         if (sortField === 'status') {
           const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
           return {
-            products: filteredProducts.sort((a, b) => 
+            products: processedProducts.sort((a, b) => 
               statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
             ),
             nextPage: hasMore ? pageParam + 1 : undefined
@@ -136,7 +117,7 @@ const AdminProducts = () => {
         }
 
         return {
-          products: filteredProducts,
+          products: processedProducts,
           nextPage: hasMore ? pageParam + 1 : undefined
         };
       } catch (error) {
@@ -272,20 +253,6 @@ const AdminProducts = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
           <div className="flex items-center space-x-2">
-            <Select
-              value={previewFilter}
-              onValueChange={(value: 'all' | 'with_preview' | 'without_preview') => setPreviewFilter(value)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Фильтр превью" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все товары</SelectItem>
-                <SelectItem value="with_preview">С превью</SelectItem>
-                <SelectItem value="without_preview">Без превью</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select
               value={`${sortField}-${sortOrder}`}
               onValueChange={handleSortChange}
