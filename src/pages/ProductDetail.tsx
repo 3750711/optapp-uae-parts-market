@@ -53,14 +53,19 @@ const ProductDetail = () => {
         throw new Error("Failed to fetch product");
       }
       
-      // Check product visibility based on status and user role
-      if (data.status === 'pending' && data.seller_id !== user?.id && !isAdmin) {
+      // Check if current user is the product creator/seller
+      const isCreator = user?.id === data.seller_id;
+      
+      // Check product visibility based on status and user role/ownership
+      if (data.status === 'pending' && !isCreator && !isAdmin) {
+        console.log("Access denied: User is not product creator or admin");
         navigate('/404');
         return null;
       }
       
       // For archived products, check permissions
-      if (data.status === 'archived' && data.seller_id !== user?.id && !isAdmin) {
+      if (data.status === 'archived' && !isCreator && !isAdmin) {
+        console.log("Access denied: User is not product creator or admin for archived product");
         navigate('/404');
         return null;
       }
@@ -203,6 +208,8 @@ const ProductDetail = () => {
   const sellerProfile = product.profiles;
   const productPrice = typeof product.price === 'string' ? parseFloat(product.price) : product.price;
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
+  // Check if current user is the product creator/seller
+  const isOwner = user?.id === product.seller_id;
 
   return (
     <Layout>
@@ -233,6 +240,20 @@ const ProductDetail = () => {
                 open={adminEditOpen}
                 setOpen={setAdminEditOpen}
               />
+            </div>
+          )}
+          {isOwner && !isAdmin && product.status === 'pending' && (
+            <div className="ml-auto">
+              <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-3 py-1 rounded-full">
+                Ваше объявление на проверке
+              </span>
+            </div>
+          )}
+          {isOwner && !isAdmin && product.status === 'archived' && (
+            <div className="ml-auto">
+              <span className="bg-gray-100 text-gray-800 text-xs font-medium px-3 py-1 rounded-full">
+                Это ваше архивное объявление
+              </span>
             </div>
           )}
         </div>
