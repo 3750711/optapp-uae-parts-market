@@ -31,6 +31,7 @@ const AdminProducts = () => {
   const [sortField, setSortField] = useState<'created_at' | 'price' | 'title' | 'status'>('status');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
   const [previewFilter, setPreviewFilter] = useState<'all' | 'with_preview' | 'without_preview'>('all');
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
   
@@ -56,6 +57,7 @@ const AdminProducts = () => {
     
     if (savedSearchQuery) {
       setSearchQuery(savedSearchQuery);
+      setDebouncedSearchQuery(savedSearchQuery);
     }
     
     if (savedPreviewFilter) {
@@ -69,9 +71,10 @@ const AdminProducts = () => {
     localStorage.setItem(SORT_ORDER_KEY, sortOrder);
   }, [sortField, sortOrder]);
   
-  // Save search query to localStorage whenever it changes (with debounce)
+  // Debounce the search query to prevent excessive database queries
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
       localStorage.setItem(SEARCH_QUERY_KEY, searchQuery);
     }, 500);
     
@@ -88,77 +91,91 @@ const AdminProducts = () => {
     isLoading,
     isFetchingNextPage,
     fetchNextPage,
-    hasNextPage
+    hasNextPage,
+    refetch
   } = useInfiniteQuery({
-    queryKey: ['admin', 'products', sortField, sortOrder, searchQuery, previewFilter],
+    queryKey: ['admin', 'products', sortField, sortOrder, debouncedSearchQuery, previewFilter],
     queryFn: async ({ pageParam = 1 }) => {
-      // Calculate the start and end range for pagination
-      const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
-      const to = from + PRODUCTS_PER_PAGE - 1;
-      
-      let query = supabase
-        .from('products')
-        .select(`
-          *,
-          product_images(url, is_primary, preview_url),
-          profiles(full_name, rating, opt_id)
-        `);
-
-      // Apply search filter if search query exists
-      if (searchQuery) {
-        const searchTermLower = searchQuery.toLowerCase().trim();
-        query = query
-          .or(`title.ilike.%${searchTermLower}%,brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%,lot_number.ilike.%${searchTermLower}%,seller_name.ilike.%${searchTermLower}%`);
-      }
-
-      if (sortField === 'status') {
-        query = query.order('status', { ascending: true });
-      } else {
-        query = query.order(sortField, { ascending: sortOrder === 'asc' });
-      }
-      
-      // Apply pagination
-      query = query.range(from, to);
-      
-      const { data, error } = await query;
-      if (error) throw error;
-
-      // Check if we have more pages
-      const hasMore = data.length === PRODUCTS_PER_PAGE;
-
-      // Process products to add preview image information
-      const processedProducts = data.map(product => {
-        const hasPreviewImage = product.product_images && 
-          product.product_images.some((img: any) => img.preview_url);
+      try {
+        // Calculate the start and end range for pagination
+        const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
+        const to = from + PRODUCTS_PER_PAGE - 1;
         
-        return {
-          ...product,
-          hasPreviewImage
-        };
-      });
+        let query = supabase
+          .from('products')
+          .select(`
+            *,
+            product_images(url, is_primary, preview_url),
+            profiles(full_name, rating, opt_id)
+          `);
 
-      // Filter by preview status if needed
-      let filteredProducts = processedProducts;
-      if (previewFilter === 'with_preview') {
-        filteredProducts = processedProducts.filter(p => p.hasPreviewImage);
-      } else if (previewFilter === 'without_preview') {
-        filteredProducts = processedProducts.filter(p => !p.hasPreviewImage);
-      }
+        // Apply search filter if search query exists
+        if (debouncedSearchQuery) {
+          const searchTermLower = debouncedSearchQuery.toLowerCase().trim();
+          query = query
+            .or(`title.ilike.%${searchTermLower}%,brand.ilike.%${searchTermLower}%,model.ilike.%${searchTermLower}%,lot_number.ilike.%${searchTermLower}%,seller_name.ilike.%${searchTermLower}%`);
+        }
 
-      if (sortField === 'status') {
-        const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
+        if (sortField === 'status') {
+          query = query.order('status', { ascending: true });
+        } else {
+          query = query.order(sortField, { ascending: sortOrder === 'asc' });
+        }
+        
+        // Apply pagination
+        query = query.range(from, to);
+        
+        const { data, error } = await query;
+        if (error) throw error;
+
+        // Check if we have more pages
+        const hasMore = data.length === PRODUCTS_PER_PAGE;
+
+        // Process products to add preview image information
+        const processedProducts = data.map(product => {
+          const hasPreviewImage = product.product_images && 
+            product.product_images.some((img: any) => img.preview_url);
+          
+          return {
+            ...product,
+            hasPreviewImage
+          };
+        });
+
+        // Filter by preview status if needed
+        let filteredProducts = processedProducts;
+        if (previewFilter === 'with_preview') {
+          filteredProducts = processedProducts.filter(p => p.hasPreviewImage);
+        } else if (previewFilter === 'without_preview') {
+          filteredProducts = processedProducts.filter(p => !p.hasPreviewImage);
+        }
+
+        if (sortField === 'status') {
+          const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
+          return {
+            products: filteredProducts.sort((a, b) => 
+              statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
+            ),
+            nextPage: hasMore ? pageParam + 1 : undefined
+          };
+        }
+
         return {
-          products: filteredProducts.sort((a, b) => 
-            statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
-          ),
+          products: filteredProducts,
           nextPage: hasMore ? pageParam + 1 : undefined
         };
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить товары. Попробуйте обновить страницу.",
+          variant: "destructive"
+        });
+        return {
+          products: [],
+          nextPage: undefined
+        };
       }
-
-      return {
-        products: filteredProducts,
-        nextPage: hasMore ? pageParam + 1 : undefined
-      };
     },
     getNextPageParam: (lastPage) => lastPage.nextPage,
     initialPageParam: 1,
@@ -166,18 +183,6 @@ const AdminProducts = () => {
 
   // Flatten the pages of products into a single array
   const products = productsData?.pages?.flatMap(page => page.products) || [];
-
-  // Filter products based on search query (client-side filtering for already loaded products)
-  const filteredProducts = searchQuery ? products.filter(product => {
-    const query = searchQuery.toLowerCase().trim();
-    return (
-      product.title?.toLowerCase().includes(query) ||
-      product.brand?.toLowerCase().includes(query) ||
-      product.model?.toLowerCase().includes(query) ||
-      product.lot_number?.toString().includes(query) ||
-      product.seller_name?.toLowerCase().includes(query)
-    );
-  }) : products;
 
   // Load more products when the user scrolls to the bottom
   React.useEffect(() => {
@@ -294,14 +299,6 @@ const AdminProducts = () => {
     }
   };
 
-  if (isLoading) {
-    return <AdminLayout>
-      <div className="flex items-center justify-center h-screen">
-        <p>Загрузка...</p>
-      </div>
-    </AdminLayout>;
-  }
-
   return (
     <AdminLayout>
       <div className="space-y-4">
@@ -353,190 +350,210 @@ const AdminProducts = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProducts?.length === 0 ? (
-            <div className="col-span-full py-8 text-center text-gray-500">
-              Товары не найдены
-            </div>
-          ) : (
-            filteredProducts?.map((product) => (
-              <div 
-                key={product.id} 
-                className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
-              >
-                <div className="relative aspect-square mb-4">
-                  {/* Use preview_url if available */}
-                  <img 
-                    src={
-                      product.product_images?.find(img => img.is_primary && img.preview_url)?.preview_url || 
-                      product.product_images?.find(img => img.is_primary)?.url || 
-                      product.product_images?.find(img => img.preview_url)?.preview_url || 
-                      product.product_images?.[0]?.url || 
-                      '/placeholder.svg'
-                    } 
-                    alt={product.title} 
-                    className="object-cover w-full h-full rounded-md"
-                  />
-                  <Badge 
-                    className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
-                  >
-                    {getStatusLabel(product.status)}
-                  </Badge>
-                  
-                  {/* Add preview badge if the product has preview images */}
-                  {product.hasPreviewImage && (
-                    <Badge 
-                      className="absolute top-2 left-2 bg-green-500 text-white"
-                    >
-                      <Image className="w-3 h-3 mr-1" /> Preview
-                    </Badge>
-                  )}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, index) => (
+              <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm p-4 animate-pulse">
+                <div className="aspect-square bg-gray-200 mb-4 rounded-md"></div>
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-2/3 mb-4"></div>
+                <div className="flex justify-between">
+                  <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/4"></div>
                 </div>
-                
-                <div className="space-y-2">
-                  <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
-                  
-                  <div className="flex items-center gap-1 mt-1">
-                    <Hash className="w-3 h-3 text-muted-foreground" />
-                    <p className="text-xs text-muted-foreground">
-                      Лот: {product.lot_number || 'Не указан'}
-                    </p>
-                  </div>
-                  
-                  {(product.brand || product.model) && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                      <Tag className="w-3 h-3" />
-                      <span>
-                        {product.brand || 'Не указано'} • {product.model || 'Не указано'}
-                      </span>
-                    </p>
-                  )}
-                  
-                  <p className="text-sm text-muted-foreground">
-                    {product.price} $
-                  </p>
-                  
-                  {product.delivery_price !== null && product.delivery_price !== undefined && (
-                    <p className="text-xs text-muted-foreground">
-                      Доставка: {product.delivery_price} $
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span className="truncate">{product.seller_name}</span>
-                    {product.optid_created && (
-                      <Badge variant="outline" className="text-xs">
-                        {product.optid_created}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {products?.length === 0 ? (
+              <div className="col-span-full py-8 text-center text-gray-500">
+                {debouncedSearchQuery 
+                  ? `По запросу "${debouncedSearchQuery}" товары не найдены`
+                  : "Товары не найдены"
+                }
+              </div>
+            ) : (
+              products?.map((product) => (
+                <div 
+                  key={product.id} 
+                  className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4`}
+                >
+                  <div className="relative aspect-square mb-4">
+                    {/* Use preview_url if available */}
+                    <img 
+                      src={
+                        product.product_images?.find(img => img.is_primary && img.preview_url)?.preview_url || 
+                        product.product_images?.find(img => img.is_primary)?.url || 
+                        product.product_images?.find(img => img.preview_url)?.preview_url || 
+                        product.product_images?.[0]?.url || 
+                        '/placeholder.svg'
+                      } 
+                      alt={product.title} 
+                      className="object-cover w-full h-full rounded-md"
+                    />
+                    <Badge 
+                      className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
+                    >
+                      {getStatusLabel(product.status)}
+                    </Badge>
+                    
+                    {/* Add preview badge if the product has preview images */}
+                    {product.hasPreviewImage && (
+                      <Badge 
+                        className="absolute top-2 left-2 bg-green-500 text-white"
+                      >
+                        <Image className="w-3 h-3 mr-1" /> Preview
                       </Badge>
                     )}
                   </div>
-
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex items-center gap-1">
-                      <ProductEditDialog
-                        product={product}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        }
-                        onSuccess={() => {
-                          queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                        }}
-                      />
-                      
-                      {product.status === 'pending' && (
-                        <>
-                          <ProductPublishDialog
-                            product={product}
-                            trigger={
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8"
-                              >
-                                Опубликовать
-                              </Button>
-                            }
-                            onSuccess={() => {
-                              queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                            }}
-                          />
-                        </>
-                      )}
-                      
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-blue-600"
-                        onClick={() => handleSendNotification(product)}
-                        disabled={isNotificationSending[product.id]}
-                        title="Отправить уведомление в Telegram"
-                      >
-                        <Bell className={`h-4 w-4 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
-                      </Button>
-                      
-                      <ProductStatusDialog
-                        product={product}
-                        trigger={
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        }
-                        onSuccess={() => {
-                          queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                        }}
-                      />
-                      <AlertDialog open={deleteProductId === product.id} onOpenChange={(open) => !open && setDeleteProductId(null)}>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-600"
-                            onClick={() => setDeleteProductId(product.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Удаление товара</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Отмена</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700">
-                              Удалить
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                  
+                  <div className="space-y-2">
+                    <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
+                    
+                    <div className="flex items-center gap-1 mt-1">
+                      <Hash className="w-3 h-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">
+                        Лот: {product.lot_number || 'Не указан'}
+                      </p>
                     </div>
-                    <Link to={`/product/${product.id}`}>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 text-xs"
-                      >
-                        Просмотр
-                      </Button>
-                    </Link>
+                    
+                    {(product.brand || product.model) && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                        <Tag className="w-3 h-3" />
+                        <span>
+                          {product.brand || 'Не указано'} • {product.model || 'Не указано'}
+                        </span>
+                      </p>
+                    )}
+                    
+                    <p className="text-sm text-muted-foreground">
+                      {product.price} $
+                    </p>
+                    
+                    {product.delivery_price !== null && product.delivery_price !== undefined && (
+                      <p className="text-xs text-muted-foreground">
+                        Доставка: {product.delivery_price} $
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span className="truncate">{product.seller_name}</span>
+                      {product.optid_created && (
+                        <Badge variant="outline" className="text-xs">
+                          {product.optid_created}
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="flex items-center gap-1">
+                        <ProductEditDialog
+                          product={product}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          }
+                          onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                          }}
+                        />
+                        
+                        {product.status === 'pending' && (
+                          <>
+                            <ProductPublishDialog
+                              product={product}
+                              trigger={
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-8"
+                                >
+                                  Опубликовать
+                                </Button>
+                              }
+                              onSuccess={() => {
+                                queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                              }}
+                            />
+                          </>
+                        )}
+                        
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-blue-600"
+                          onClick={() => handleSendNotification(product)}
+                          disabled={isNotificationSending[product.id]}
+                          title="Отправить уведомление в Telegram"
+                        >
+                          <Bell className={`h-4 w-4 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
+                        </Button>
+                        
+                        <ProductStatusDialog
+                          product={product}
+                          trigger={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          }
+                          onSuccess={() => {
+                            queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+                          }}
+                        />
+                        <AlertDialog open={deleteProductId === product.id} onOpenChange={(open) => !open && setDeleteProductId(null)}>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-red-600"
+                              onClick={() => setDeleteProductId(product.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Удаление товара</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Отмена</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDeleteProduct} className="bg-red-600 hover:bg-red-700">
+                                Удалить
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                      <Link to={`/product/${product.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-xs"
+                        >
+                          Просмотр
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
         
         {/* Loading indicator and intersection observer target */}
         {hasNextPage && (
