@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Eye, Bell, Tag, Hash, Image } from "lucide-react";
+import { Edit, Trash2, Eye, Bell, Tag, Hash } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
@@ -75,7 +76,7 @@ const AdminProducts = () => {
           .from('products')
           .select(`
             *,
-            product_images(url, is_primary, preview_url),
+            product_images(url, is_primary),
             profiles(full_name, rating, opt_id)
           `);
 
@@ -94,24 +95,10 @@ const AdminProducts = () => {
         // Check if we have more pages
         const hasMore = data.length === PRODUCTS_PER_PAGE;
 
-        // Process products to add preview image information
+        // Process products - removed preview image specific logic
         const processedProducts = data.map(product => {
-          const hasPreviewImage = product.product_images && 
-            product.product_images.some((img: any) => img.preview_url);
-          
-          // Find preview URL if available
-          let previewUrl = null;
-          if (hasPreviewImage && product.product_images) {
-            const previewImage = product.product_images.find((img: any) => img.preview_url);
-            if (previewImage) {
-              previewUrl = previewImage.preview_url;
-            }
-          }
-          
           return {
-            ...product,
-            hasPreviewImage,
-            previewUrl
+            ...product
           };
         });
 
@@ -321,13 +308,12 @@ const AdminProducts = () => {
                   <div className="relative aspect-square mb-4">
                     <img 
                       src={
-                        product.previewUrl || 
                         product.product_images?.find(img => img.is_primary)?.url || 
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg'
                       } 
                       alt={product.title} 
-                      className="object-cover w-full h-full rounded-md"
+                      className="object-contain w-full h-full rounded-md"
                       loading="lazy"
                     />
                     <Badge 
@@ -335,14 +321,6 @@ const AdminProducts = () => {
                     >
                       {getStatusLabel(product.status)}
                     </Badge>
-                    
-                    {product.hasPreviewImage && (
-                      <Badge 
-                        className="absolute top-2 left-2 bg-green-500 text-white"
-                      >
-                        <Image className="w-3 h-3 mr-1" /> Preview
-                      </Badge>
-                    )}
                   </div>
                   
                   <div className="space-y-2">
