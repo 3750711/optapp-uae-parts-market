@@ -9,6 +9,7 @@ import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 export interface ProductProps {
   id: string;
@@ -93,6 +94,13 @@ const ProductCard: React.FC<ProductProps> = ({
     }
   }, [status]);
 
+  // Format product title with brand and model
+  const formattedTitle = useMemo(() => {
+    if (!brand && !model) return name;
+    const brandModel = [brand, model].filter(Boolean).join(' • ');
+    return `${brandModel} - ${name}`;
+  }, [brand, model, name]);
+
   const handleCardClick = (e: React.MouseEvent) => {
     // Prevent navigation if clicking on status change dialog or delete dialog or seller link
     if (e.target instanceof Element) {
@@ -118,24 +126,26 @@ const ProductCard: React.FC<ProductProps> = ({
       className="group rounded-xl border-none shadow-card hover:shadow-elevation hover:-translate-y-1 bg-white flex flex-col h-full animate-scale-in"
       onClick={isMobile ? handleCardClick : undefined}
     >
-      <div className="h-[200px] overflow-hidden relative rounded-t-xl bg-white flex items-center justify-center p-2">
-        <img 
-          src={displayImage || "/placeholder.svg"} 
-          alt={name} 
-          className={`max-h-full max-w-full object-contain ${
-            status === 'sold' ? 'opacity-50' : ''
-          }`}
-          loading="lazy"
-          decoding="async"
-          fetchPriority={isHot ? "high" : "auto"}
-        />
-        {status === 'sold' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-destructive/90 text-destructive-foreground font-bold text-3xl py-3 px-6 rotate-[-35deg] w-[150%] text-center shadow-xl">
-              SOLD OUT
+      <div className="overflow-hidden relative rounded-t-xl">
+        <AspectRatio ratio={1/1} className="bg-white flex items-center justify-center p-2">
+          <img 
+            src={displayImage || "/placeholder.svg"} 
+            alt={name} 
+            className={`max-h-full max-w-full object-contain ${
+              status === 'sold' ? 'opacity-50' : ''
+            }`}
+            loading="lazy"
+            decoding="async"
+            fetchPriority={isHot ? "high" : "auto"}
+          />
+          {status === 'sold' && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-destructive/90 text-destructive-foreground font-bold text-3xl py-3 px-6 rotate-[-35deg] w-[150%] text-center shadow-xl">
+                SOLD OUT
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </AspectRatio>
         <div className="absolute top-2 right-2 flex flex-col gap-1 z-10">
           {statusBadge}
           {typeof onStatusChange === "function" && status === "pending" && (
@@ -161,37 +171,31 @@ const ProductCard: React.FC<ProductProps> = ({
       
       <CardContent className="p-3 pb-0 flex-grow">
         <div className="flex flex-row justify-between items-center mb-1">
-          <div className="text-xs text-muted-foreground font-medium flex items-center">
-            <BadgeIcon className="mr-1 text-secondary w-3 h-3" />
-            <span className="truncate max-w-[120px]">{brand} · {model}</span>
-          </div>
           <div className="text-xs text-muted-foreground flex items-center">
             <MapPin size={12} className="mr-1" />
             <span className="truncate max-w-[80px]">{location}</span>
-          </div>
-        </div>
-        
-        <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2 mb-1">{name}</h3>
-        
-        <div className="flex items-center justify-between gap-1 mb-1">
-          <div className="flex items-center gap-1">
-            <Link 
-              to={`/seller/${seller_id}`} 
-              className="font-medium truncate max-w-[80px] hover:text-primary hover:underline transition-colors text-xs"
-            >
-              {seller_name}
-            </Link>
-            {seller_opt_status === 'opt_user' && (
-              <span className="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded-md text-[10px] font-medium">
-                OPT
-              </span>
-            )}
           </div>
           
           {rating_seller !== undefined && (
             <span className="flex items-center gap-0.5 bg-yellow-50 px-1.5 py-0.5 rounded-full">
               <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
               <span className="text-xs font-medium text-yellow-700">{rating_seller?.toFixed(1)}</span>
+            </span>
+          )}
+        </div>
+        
+        <h3 className="font-semibold text-sm text-foreground leading-tight line-clamp-2 mb-1">{formattedTitle}</h3>
+        
+        <div className="flex items-center gap-1 mb-1">
+          <Link 
+            to={`/seller/${seller_id}`} 
+            className="font-medium truncate max-w-[80px] hover:text-primary hover:underline transition-colors text-xs"
+          >
+            {seller_name}
+          </Link>
+          {seller_opt_status === 'opt_user' && (
+            <span className="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded-md text-[10px] font-medium">
+              OPT
             </span>
           )}
         </div>

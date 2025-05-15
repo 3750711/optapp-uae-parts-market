@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminProductNotifications } from '@/hooks/useAdminProductNotifications';
+import { AspectRatio } from '@/components/ui/aspect-ratio';
 
 interface AdminProductCardProps {
   product: Product;
@@ -56,21 +57,28 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     }
   };
 
+  // Format brand and model for display
+  const brandModelText = [product.brand, product.model]
+    .filter(Boolean)
+    .join(' • ');
+
   return (
     <div 
       className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
     >
-      <div className="relative aspect-square p-2">
-        <img 
-          src={
-            product.product_images?.find(img => img.is_primary)?.url || 
-            product.product_images?.[0]?.url || 
-            '/placeholder.svg'
-          } 
-          alt={product.title} 
-          className="object-contain w-full h-full rounded-md"
-          loading="lazy"
-        />
+      <div className="relative p-2">
+        <AspectRatio ratio={1/1} className="bg-white rounded-md overflow-hidden">
+          <img 
+            src={
+              product.product_images?.find(img => img.is_primary)?.url || 
+              product.product_images?.[0]?.url || 
+              '/placeholder.svg'
+            } 
+            alt={product.title} 
+            className="object-contain w-full h-full"
+            loading="lazy"
+          />
+        </AspectRatio>
         <Badge 
           className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
         >
@@ -79,7 +87,15 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
       </div>
       
       <div className="p-3 flex-grow flex flex-col">
-        <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.title}</h3>
+        <div className="mb-1">
+          <h3 className="font-medium text-sm line-clamp-1">{product.title}</h3>
+          
+          {brandModelText && (
+            <p className="text-xs text-muted-foreground truncate">
+              {brandModelText}
+            </p>
+          )}
+        </div>
         
         <div className="flex items-center gap-1 mb-1">
           <Hash className="w-3 h-3 text-muted-foreground" />
@@ -88,20 +104,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
           </p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
-          {(product.brand || product.model) && (
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Tag className="w-3 h-3" />
-              <span className="truncate max-w-[120px]">
-                {product.brand || 'Не указано'} • {product.model || 'Не указано'}
-              </span>
-            </p>
-          )}
-          
-          <p className="text-sm font-semibold">
-            {product.price} $
-          </p>
-        </div>
+        <p className="text-sm font-semibold mb-1">
+          {product.price} $
+        </p>
         
         {product.delivery_price !== null && product.delivery_price !== undefined && (
           <p className="text-xs text-muted-foreground mb-1">

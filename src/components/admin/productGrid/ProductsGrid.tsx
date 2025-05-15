@@ -5,6 +5,7 @@ import AdminProductCard from '@/components/admin/AdminProductCard';
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductsGridProps {
   products: Product[];
@@ -33,10 +34,14 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {Array.from({ length: 10 }).map((_, index) => (
           <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm">
-            <Skeleton className="aspect-square w-full" />
+            <div className="p-2">
+              <AspectRatio ratio={1/1}>
+                <Skeleton className="w-full h-full" />
+              </AspectRatio>
+            </div>
             <div className="p-3">
               <Skeleton className="h-4 w-3/4 mb-2" />
               <Skeleton className="h-3 w-1/2 mb-2" />
@@ -82,7 +87,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
       {products?.map((product) => (
         <AdminProductCard
           key={product.id}
