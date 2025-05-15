@@ -18,6 +18,7 @@ import Layout from "@/components/layout/Layout";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Database } from "@/integrations/supabase/types";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,12 @@ const ProductDetail = () => {
   const fromSeller = searchParams.get("from") === "seller";
   
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState<Database["public"]["Enums"]["delivery_method"]>("cargo_rf");
+  
+  const handleDeliveryMethodChange = (method: Database["public"]["Enums"]["delivery_method"]) => {
+    console.log("Updating delivery method in ProductDetail:", method);
+    setDeliveryMethod(method);
+  };
   
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -248,7 +255,7 @@ const ProductDetail = () => {
           <Alert className="mb-6 bg-yellow-50 border-yellow-200">
             <AlertTitle>Объявление на проверке</AlertTitle>
             <AlertDescription>
-              Это объявление ожидает проверки модераторами. {isOwner ? 'Только вы и администраторы можете его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
+              Это объявление ожидает проверки модераторами. {isOwner ? 'Только вы и администраторы могут его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
             </AlertDescription>
           </Alert>
         )}
@@ -303,8 +310,8 @@ const ProductDetail = () => {
                 status: product.status,
                 delivery_price: product.delivery_price || 0,
               }}
-              deliveryMethod="self_pickup"
-              onDeliveryMethodChange={() => {}}
+              deliveryMethod={deliveryMethod}
+              onDeliveryMethodChange={handleDeliveryMethodChange}
             />
             
             <SellerInfo 

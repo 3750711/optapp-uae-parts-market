@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
@@ -61,10 +60,11 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   const [contactConsent, setContactConsent] = useState(false);
   const [textOrder, setTextOrder] = useState<string>("");
 
-  // Set default delivery method to 'cargo_rf' on component mount
+  // Устанавливаем значение по умолчанию при первом рендере
   useEffect(() => {
-    // Set default delivery method if not already set
+    console.log("OrderConfirmationDialog - Current delivery method:", deliveryMethod);
     if (!deliveryMethod) {
+      console.log("Setting default delivery method to cargo_rf");
       onDeliveryMethodChange('cargo_rf');
     }
   }, [deliveryMethod, onDeliveryMethodChange]);
