@@ -45,7 +45,7 @@ export function BrandModelSelector({
 
   // Determine the display text for the selector
   const displayValue = selectedModel 
-    ? `${selectedModel.parentName} ${selectedModel.name}`
+    ? `${selectedModel.parentName || ""} ${selectedModel.name}`
     : selectedBrand 
       ? selectedBrand.name
       : "Выберите марку/модель";
@@ -193,8 +193,8 @@ export function BrandModelSelector({
     setOpen(false);
   };
 
-  // Filter options based on search term
-  const filteredOptions = searchTerm
+  // Filter options based on search term - ensure we're handling arrays properly
+  const filteredOptions = searchTerm && options
     ? options.filter(option => {
         const searchLower = searchTerm.toLowerCase();
         
@@ -207,7 +207,7 @@ export function BrandModelSelector({
         return option.name.toLowerCase().includes(searchLower) || 
                (option.parentName && option.parentName.toLowerCase().includes(searchLower));
       })
-    : options;
+    : options || [];
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -232,7 +232,7 @@ export function BrandModelSelector({
           />
           
           {/* Recently Used Section */}
-          {recentlyUsed.length > 0 && searchTerm.length === 0 && (
+          {recentlyUsed && recentlyUsed.length > 0 && searchTerm.length === 0 && (
             <>
               <CommandGroup heading="Недавно использованные">
                 {recentlyUsed.map(option => (
@@ -244,7 +244,7 @@ export function BrandModelSelector({
                   >
                     <span className="flex-1 truncate">
                       {option.type === "model" ? 
-                        `${option.parentName} ${option.name}` : 
+                        `${option.parentName || ""} ${option.name}` : 
                         option.name}
                     </span>
                     {((option.type === "brand" && option.id === selectedBrandId) ||
@@ -259,7 +259,7 @@ export function BrandModelSelector({
           )}
           
           {/* All Brands Section */}
-          {filteredOptions.length > 0 ? (
+          {filteredOptions && filteredOptions.length > 0 ? (
             <CommandGroup heading={searchTerm ? "Результаты поиска" : "Все марки и модели"}>
               {filteredOptions.slice(0, 100).map(option => (
                 <CommandItem
@@ -275,7 +275,7 @@ export function BrandModelSelector({
                     )}
                   >
                     {option.type === "model" ? 
-                      `${option.parentName} ${option.name}` : 
+                      `${option.parentName || ""} ${option.name}` : 
                       option.name}
                   </span>
                   {((option.type === "brand" && option.id === selectedBrandId) ||
