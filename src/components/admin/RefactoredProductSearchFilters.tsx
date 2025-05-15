@@ -66,6 +66,8 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
     <div className="bg-white rounded-lg shadow p-3">
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-[1fr,auto] items-start">
         <SearchBar 
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
           onSearch={onSearch}
           onClear={onClearSearch}
           activeSearchTerm={activeSearchTerm}

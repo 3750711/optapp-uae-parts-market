@@ -2,14 +2,14 @@
 import React from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 interface SearchBarProps {
-  searchTerm: string; // Changed from 'value' to match what's used in RefactoredProductSearchFilters
-  setSearchTerm: (value: string) => void; // Changed from 'onChange' to match component usage
+  searchTerm: string;
+  setSearchTerm: (value: string) => void;
   onSearch: () => void;
-  onClear?: () => void; // Added this prop to match usage
-  activeSearchTerm?: string; // Added this prop to match usage
+  onClear?: () => void;
+  activeSearchTerm?: string;
   placeholder?: string;
 }
 
@@ -18,6 +18,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   setSearchTerm, 
   onSearch,
   onClear,
+  activeSearchTerm,
   placeholder = "Поиск..."
 }) => {
   // Handle key press - if Enter is pressed, trigger search
@@ -26,6 +27,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
       onSearch();
     }
   };
+
+  // Determine if there is an active search to show clear button
+  const hasActiveSearch = activeSearchTerm && activeSearchTerm.trim() !== '';
 
   return (
     <div className="relative flex items-center w-full">
@@ -37,14 +41,28 @@ const SearchBar: React.FC<SearchBarProps> = ({
         onKeyDown={handleKeyDown}
         className="w-full pr-10"
       />
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="absolute right-0 top-0 h-10"
-        onClick={onSearch}
-      >
-        <Search className="h-4 w-4" />
-      </Button>
+      <div className="absolute right-0 top-0 h-10 flex">
+        {hasActiveSearch && onClear && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-10"
+            onClick={onClear}
+            title="Очистить поиск"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="h-10"
+          onClick={onSearch}
+          title="Поиск"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 };
