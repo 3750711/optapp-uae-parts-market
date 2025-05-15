@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -331,6 +330,28 @@ serve(async (req) => {
       
       console.log("Processing order notification with action:", action || 'undefined');
 
+      // Fetch order images from the database if not already included
+      let orderImages = order.images || [];
+      
+      if (orderImages.length === 0 && order.id) {
+        try {
+          // Try to fetch images from order_images table
+          const { data: orderImageData, error: imageError } = await supabase
+            .from('order_images')
+            .select('url')
+            .eq('order_id', order.id);
+
+          if (!imageError && orderImageData && orderImageData.length > 0) {
+            orderImages = orderImageData.map(img => img.url);
+            console.log(`Found ${orderImages.length} images for order ${order.id}`);
+          } else {
+            console.log(`No images found in order_images table for order ${order.id}`);
+          }
+        } catch (error) {
+          console.error('Error fetching order images:', error);
+        }
+      }
+
       const orderNumber = order.order_number || 'Без номера';
       const orderStatus = getOrderStatusLabel(order.status);
       // Use proper action text based on action parameter (with fallback for missing action)
@@ -367,11 +388,12 @@ serve(async (req) => {
       console.log('Sending order message to Telegram:', message);
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
       console.log('Using ORDER_GROUP_CHAT_ID:', chatId);
+      console.log('Images to send:', orderImages.length > 0 ? orderImages : 'No images');
 
-      // Send order images if available
-      if (order.images && order.images.length > 0) {
+      // Send order with images if available, otherwise just text
+      if (orderImages && orderImages.length > 0) {
         // Send all images as a media group
-        const mediaGroup = order.images.slice(0, 10).map((imgUrl: string, index: number) => ({
+        const mediaGroup = orderImages.slice(0, 10).map((imgUrl: string, index: number) => ({
           type: 'photo',
           media: imgUrl,
           // Add caption to the first image only
