@@ -136,8 +136,9 @@ const OrderDetails = () => {
         return;
       }
       
-      // Send notification about order status change with proper chat ID
+      // Send notification about order status change with images
       try {
+        // Include order images in the notification
         const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
           body: { 
             order: { 
@@ -150,7 +151,7 @@ const OrderDetails = () => {
           }
         });
         
-        console.log("Notification result:", notificationResult);
+        console.log("Status update notification result:", notificationResult);
       } catch (notifyError) {
         console.error('Failed to send status notification:', notifyError);
       }
