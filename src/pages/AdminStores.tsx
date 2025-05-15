@@ -12,6 +12,11 @@ import {
   Dialog, DialogContent, DialogDescription, 
   DialogHeader, DialogTitle, DialogFooter 
 } from '@/components/ui/dialog';
+import { 
+  AlertDialog, AlertDialogAction, AlertDialogCancel, 
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
+  AlertDialogHeader, AlertDialogTitle 
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +25,7 @@ import {
   SelectTrigger, SelectValue 
 } from '@/components/ui/select';
 import { 
-  Pencil, Shield, ShieldCheck, ShieldAlert, Store, Car, Check
+  Pencil, Shield, ShieldCheck, ShieldAlert, Store, Car, Check, Trash2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { StoreTag } from '@/types/store';
@@ -65,6 +70,8 @@ const AdminStores = () => {
   const [selectedCarBrands, setSelectedCarBrands] = useState<string[]>([]);
   const [selectedCarModels, setSelectedCarModels] = useState<{[brandId: string]: string[]}>({});
   const [selectedBrandForModels, setSelectedBrandForModels] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [storeToDelete, setStoreToDelete] = useState<StoreWithDetails | null>(null);
   
   const { 
     brands: allCarBrands,
@@ -214,6 +221,63 @@ const AdminStores = () => {
     }
   });
 
+  // Delete store mutation
+  const deleteStoreMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      // First delete all store car brands associations
+      const { error: brandsError } = await supabase
+        .from('store_car_brands')
+        .delete()
+        .eq('store_id', storeId);
+      
+      if (brandsError) throw brandsError;
+      
+      // Delete all store car models associations
+      const { error: modelsError } = await supabase
+        .from('store_car_models')
+        .delete()
+        .eq('store_id', storeId);
+      
+      if (modelsError) throw modelsError;
+      
+      // Delete all store reviews
+      const { error: reviewsError } = await supabase
+        .from('store_reviews')
+        .delete()
+        .eq('store_id', storeId);
+      
+      if (reviewsError) throw reviewsError;
+      
+      // Delete all store images
+      const { error: imagesError } = await supabase
+        .from('store_images')
+        .delete()
+        .eq('store_id', storeId);
+      
+      if (imagesError) throw imagesError;
+      
+      // Finally delete the store
+      const { error } = await supabase
+        .from('stores')
+        .delete()
+        .eq('id', storeId);
+      
+      if (error) throw error;
+      
+      return storeId;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
+      toast.success('Магазин удален');
+      setIsDeleteDialogOpen(false);
+      setStoreToDelete(null);
+    },
+    onError: (error) => {
+      console.error('Error deleting store:', error);
+      toast.error('Ошибка при удалении магазина');
+    }
+  });
+
   const handleEditStore = async (store: StoreWithDetails) => {
     setSelectedStore(store);
     setEditedStore({
@@ -243,6 +307,17 @@ const AdminStores = () => {
     setSelectedCarModels(modelsByBrand);
     
     setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteStore = (store: StoreWithDetails) => {
+    setStoreToDelete(store);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteStore = () => {
+    if (storeToDelete) {
+      deleteStoreMutation.mutate(storeToDelete.id);
+    }
   };
 
   const handleCloseEditDialog = () => {
@@ -397,13 +472,23 @@ const AdminStores = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditStore(store)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditStore(store)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteStore(store)}
+                              className="text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -650,6 +735,27 @@ const AdminStores = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Store Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Удалить магазин
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Вы уверены, что хотите удалить магазин "{storeToDelete?.name}"? Это действие нельзя отменить.
+                Также будут удалены все связанные с магазином данные: изображения, отзывы и связи с марками и моделями автомобилей.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmDeleteStore} className="bg-destructive hover:bg-destructive/90">
+                Удалить
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </AdminLayout>
   );
