@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -25,7 +25,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ProfileType } from '@/components/profile/types';
-import { usePaginatedData } from '@/hooks/usePaginatedData';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Sorting types
 type SortField = 'full_name' | 'email' | 'user_type' | 'verification_status' | 'opt_status' | 'created_at' | 'rating';
@@ -37,7 +44,6 @@ const AdminUsers = () => {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [page, setPage] = useState(1);
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -54,7 +60,7 @@ const AdminUsers = () => {
     }
   });
 
-  const { data: allUsers, isLoading } = useQuery({
+  const { data: users, isLoading } = useQuery({
     queryKey: ['admin', 'users', statusFilter, sortField, sortDirection, searchTerm],
     queryFn: async () => {
       let query = supabase
@@ -76,12 +82,6 @@ const AdminUsers = () => {
       return data as ProfileType[];
     }
   });
-
-  // Setup pagination
-  const { paginatedData: users, totalPages } = usePaginatedData<ProfileType>(
-    allUsers || [], 
-    { pageSize: 20, currentPage: page }
-  );
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -174,12 +174,6 @@ const AdminUsers = () => {
     }
   };
 
-  const loadMore = () => {
-    if (page < totalPages) {
-      setPage(prev => prev + 1);
-    }
-  };
-
   // Render sort direction indicator
   const renderSortIcon = (field: SortField) => {
     if (sortField === field) {
@@ -235,73 +229,73 @@ const AdminUsers = () => {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse mb-4">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('full_name')}
                     >
                       <div className="flex items-center">
                         Имя пользователя {renderSortIcon('full_name')}
                       </div>
-                    </th>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('email')}
                     >
                       <div className="flex items-center">
                         Email {renderSortIcon('email')}
                       </div>
-                    </th>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('user_type')}
                     >
                       <div className="flex items-center">
                         Тип {renderSortIcon('user_type')}
                       </div>
-                    </th>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('verification_status')}
                     >
                       <div className="flex items-center">
                         Статус {renderSortIcon('verification_status')}
                       </div>
-                    </th>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('opt_status')}
                     >
                       <div className="flex items-center">
                         OPT Статус {renderSortIcon('opt_status')}
                       </div>
-                    </th>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('rating')}
                     >
                       <div className="flex items-center">
                         Рейтинг {renderSortIcon('rating')}
                       </div>
-                    </th>
-                    <th 
-                      className="p-2 text-left cursor-pointer"
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('created_at')}
                     >
                       <div className="flex items-center">
                         Дата регистрации {renderSortIcon('created_at')}
                       </div>
-                    </th>
-                    <th className="p-2 text-left">Действия</th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                    <TableHead>Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {users?.map((user) => (
-                    <tr 
+                    <TableRow 
                       key={user.id}
-                      className={`border-b ${
+                      className={`${
                         user.verification_status === 'pending'
                           ? 'bg-orange-50'
                           : user.verification_status === 'verified'
@@ -311,9 +305,9 @@ const AdminUsers = () => {
                           : ''
                       }`}
                     >
-                      <td className="p-2">{user.full_name || 'Без имени'}</td>
-                      <td className="p-2">{user.email}</td>
-                      <td className="p-2">
+                      <TableCell>{user.full_name || 'Без имени'}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
                         <Badge className={`${
                           user.user_type === 'admin' 
                             ? 'bg-purple-100 text-purple-800'
@@ -323,8 +317,8 @@ const AdminUsers = () => {
                         }`}>
                           {user.user_type}
                         </Badge>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <Badge className={`${
                           user.verification_status === 'verified'
                             ? 'bg-green-100 text-green-800'
@@ -334,8 +328,8 @@ const AdminUsers = () => {
                         }`}>
                           {user.verification_status}
                         </Badge>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         {user.opt_status && (
                           <Badge className={`${
                             user.opt_status === 'opt_user'
@@ -345,10 +339,10 @@ const AdminUsers = () => {
                             {user.opt_status === 'opt_user' ? 'OPT' : 'Free User'}
                           </Badge>
                         )}
-                      </td>
-                      <td className="p-2">{user.rating !== null ? user.rating.toFixed(1) : 'N/A'}</td>
-                      <td className="p-2">{new Date(user.created_at).toLocaleDateString()}</td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>{user.rating !== null ? user.rating.toFixed(1) : 'N/A'}</TableCell>
+                      <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-1">
                           <Button
                             variant="ghost"
@@ -454,26 +448,14 @@ const AdminUsers = () => {
                             }}
                           />
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               
-              {page < totalPages && (
-                <div className="flex justify-center mt-4">
-                  <Button 
-                    variant="outline" 
-                    onClick={loadMore}
-                    className="w-40"
-                  >
-                    Загрузить еще
-                  </Button>
-                </div>
-              )}
-              
-              <div className="text-center text-sm text-gray-500 mt-2">
-                Показано {users?.length || 0} из {allUsers?.length || 0} пользователей
+              <div className="text-center text-sm text-gray-500 mt-4">
+                Показано {users?.length || 0} пользователей
               </div>
             </div>
           </CardContent>
