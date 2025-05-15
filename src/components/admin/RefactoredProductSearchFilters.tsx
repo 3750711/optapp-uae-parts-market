@@ -79,7 +79,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="status-asc">Статус (По проверке)</SelectItem>
-              <SelectItem value="status-desc">Статус (По публикации)</SelectItem>
+              <SelectItem value="status-desc">Статус (По архивации)</SelectItem>
               <SelectItem value="price-asc">Цена (по возрастанию)</SelectItem>
               <SelectItem value="price-desc">Цена (по убыванию)</SelectItem>
             </SelectContent>

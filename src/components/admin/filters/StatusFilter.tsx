@@ -27,8 +27,8 @@ const StatusFilter: React.FC<StatusFilterProps> = ({ statusFilter, onChange }) =
         <SelectContent>
           <SelectItem value="">Все статусы</SelectItem>
           <SelectItem value="pending">Ожидает проверки</SelectItem>
-          <SelectItem value="active">Опубликован</SelectItem>
           <SelectItem value="sold">Продан</SelectItem>
+          <SelectItem value="active">Опубликован</SelectItem>
           <SelectItem value="archived">Архив</SelectItem>
         </SelectContent>
       </Select>

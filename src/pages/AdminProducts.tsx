@@ -141,8 +141,9 @@ const AdminProducts = () => {
         console.log('Applying special status sorting, order:', sortOrder);
         
         // Define status order based on sortOrder
+        // Modified to change the status order when ascending: pending first, then sold, then active
         const statusOrder = sortOrder === 'asc' ? 
-          { pending: 0, active: 1, sold: 2, archived: 3 } : 
+          { pending: 0, sold: 1, active: 2, archived: 3 } : 
           { archived: 0, sold: 1, active: 2, pending: 3 };
         
         // For status, we need to get all data and sort it manually since we need custom ordering
