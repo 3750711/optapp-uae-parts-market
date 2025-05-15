@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,8 +12,7 @@ import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
-import SearchBar from '@/components/admin/filters/SearchBar';
-import ActiveSearchDisplay from '@/components/admin/filters/ActiveSearchDisplay';
+import OrderSearchFilters from '@/components/admin/filters/OrderSearchFilters';
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -194,20 +192,13 @@ const AdminOrders = () => {
               </Select>
             </div>
             
-            <div className="w-full">
-              <SearchBar
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onSearch={handleSearch}
-                onClear={clearSearch}
-                activeSearchTerm={activeSearchTerm}
-                placeholder="Поиск по номеру, названию, бренду..."
-              />
-              <ActiveSearchDisplay 
-                searchTerm={activeSearchTerm} 
-                onClear={clearSearch} 
-              />
-            </div>
+            <OrderSearchFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              activeSearchTerm={activeSearchTerm}
+              onSearch={handleSearch}
+              onClearSearch={clearSearch}
+            />
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
