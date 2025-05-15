@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -7,6 +8,9 @@ const GROUP_CHAT_ID = '-4623601047' // Main group chat ID for products
 const ORDER_GROUP_CHAT_ID = '-4749346030' // Updated order-specific group chat ID
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+
+// Initialize Supabase client at the beginning of the function so it's available for all code blocks
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -85,7 +89,7 @@ function ensureProperChatId(chatId: string): string {
 function getStatusLabel(status: string): string {
   switch (status) {
     case 'pending':
-      return 'Ожи��ает проверки';
+      return 'Ожидает проверки';
     case 'active':
       return 'Опубликован';
     case 'sold':
@@ -175,9 +179,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      // Create Supabase client
-      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
       // Auto-approve products from trusted sellers by setting status to 'active'
       if (product.status === 'pending' && isTrustedSeller(product.telegram_url)) {
@@ -333,23 +334,35 @@ serve(async (req) => {
       // Fetch order images from the database if not already included
       let orderImages = order.images || [];
       
+      // Улучшенная обработка изображений заказа
       if (orderImages.length === 0 && order.id) {
         try {
+          console.log(`Fetching images for order ${order.id} from database...`);
+          
           // Try to fetch images from order_images table
           const { data: orderImageData, error: imageError } = await supabase
             .from('order_images')
             .select('url')
             .eq('order_id', order.id);
 
-          if (!imageError && orderImageData && orderImageData.length > 0) {
+          if (imageError) {
+            console.error(`Error fetching order images from database:`, imageError);
+            throw imageError;
+          }
+
+          if (orderImageData && orderImageData.length > 0) {
             orderImages = orderImageData.map(img => img.url);
-            console.log(`Found ${orderImages.length} images for order ${order.id}`);
+            console.log(`Found ${orderImages.length} images for order ${order.id}:`, orderImages);
           } else {
             console.log(`No images found in order_images table for order ${order.id}`);
           }
         } catch (error) {
-          console.error('Error fetching order images:', error);
+          console.error('Error in order image processing:', error);
+          // Не останавливаем выполнение функции при проблемах с изображениями
+          console.log('Continuing with notification without images');
         }
+      } else {
+        console.log(`Using ${orderImages.length} images provided in request payload`);
       }
 
       const orderNumber = order.order_number || 'Без номера';
@@ -392,18 +405,22 @@ serve(async (req) => {
 
       // Send order with images if available, otherwise just text
       if (orderImages && orderImages.length > 0) {
-        // Send all images as a media group
-        const mediaGroup = orderImages.slice(0, 10).map((imgUrl: string, index: number) => ({
-          type: 'photo',
-          media: imgUrl,
-          // Add caption to the first image only
-          ...(index === 0 && {
-            caption: message,
-            parse_mode: 'HTML'
-          })
-        }));
-
         try {
+          console.log(`Preparing to send ${orderImages.length} images as media group`);
+          
+          // Send all images as a media group
+          const mediaGroup = orderImages.slice(0, 10).map((imgUrl: string, index: number) => ({
+            type: 'photo',
+            media: imgUrl,
+            // Add caption to the first image only
+            ...(index === 0 && {
+              caption: message,
+              parse_mode: 'HTML'
+            })
+          }));
+
+          console.log(`Media group prepared with ${mediaGroup.length} items`);
+
           const mediaResult = await callTelegramAPI('sendMediaGroup', {
             chat_id: chatId,
             media: mediaGroup,
@@ -414,23 +431,35 @@ serve(async (req) => {
         } catch (error) {
           console.error('Failed to send order media group:', error);
           // If media group fails, try sending just the text message
-          await callTelegramAPI('sendMessage', {
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-          });
+          console.log('Falling back to text-only message');
+          try {
+            await callTelegramAPI('sendMessage', {
+              chat_id: chatId,
+              text: message,
+              parse_mode: 'HTML',
+              disable_web_page_preview: true
+            });
+          } catch (textError) {
+            console.error('Failed to send fallback text message:', textError);
+            throw textError; // Re-throw to handle in outer catch
+          }
         }
       } else {
         // If no images, just send text message
-        const messageResult = await callTelegramAPI('sendMessage', {
+        try {
+          console.log('Sending text-only message (no images available)');
+          const messageResult = await callTelegramAPI('sendMessage', {
             chat_id: chatId,
             text: message,
             parse_mode: 'HTML',
             disable_web_page_preview: true
           });
-        
-        console.log('Order text message response:', messageResult);
+          
+          console.log('Order text message response:', messageResult);
+        } catch (textError) {
+          console.error('Failed to send text message:', textError);
+          throw textError;
+        }
       }
     } else {
       return new Response(JSON.stringify({ error: 'Invalid request data. Expected product or order object.' }), { 
