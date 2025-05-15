@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,17 +14,21 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import OrderSearchFilters from '@/components/admin/filters/OrderSearchFilters';
+import { usePaginatedData } from "@/hooks/usePaginatedData";
+import LoadMoreTrigger from "@/components/admin/productGrid/LoadMoreTrigger";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
 const AdminOrders = () => {
   const navigate = useNavigate();
-  const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
-  const [showEditDialog, setShowEditDialog] = React.useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
-  const [statusFilter, setStatusFilter] = React.useState<StatusFilterType>('all');
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [activeSearchTerm, setActiveSearchTerm] = React.useState('');
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
 
   const { data: orders, isLoading } = useQuery({
     queryKey: ['admin-orders', statusFilter, activeSearchTerm],
@@ -82,13 +87,27 @@ const AdminOrders = () => {
     }
   });
 
+  // Use the pagination hook
+  const { paginatedData: paginatedOrders, totalPages } = usePaginatedData(
+    orders || [],
+    { pageSize, currentPage }
+  );
+
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
+    }
+  };
+
   const handleSearch = () => {
     setActiveSearchTerm(searchTerm.trim());
+    setCurrentPage(1); // Reset to first page on new search
   };
 
   const clearSearch = () => {
     setSearchTerm('');
     setActiveSearchTerm('');
+    setCurrentPage(1); // Reset to first page when clearing search
   };
 
   const handleViewDetails = (orderId: string) => {
@@ -174,7 +193,10 @@ const AdminOrders = () => {
               <CardTitle>Управление заказами</CardTitle>
               <Select
                 value={statusFilter}
-                onValueChange={(value: StatusFilterType) => setStatusFilter(value)}
+                onValueChange={(value: StatusFilterType) => {
+                  setStatusFilter(value);
+                  setCurrentPage(1); // Reset to first page on filter change
+                }}
               >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Фильтр по статусу" />
@@ -202,8 +224,8 @@ const AdminOrders = () => {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orders?.length ? (
-                orders.map((order) => (
+              {paginatedOrders?.length ? (
+                paginatedOrders.map((order) => (
                   <div key={order.id} className="relative group">
                     <AdminOrderCard
                       order={order}
@@ -227,6 +249,18 @@ const AdminOrders = () => {
                 </div>
               )}
             </div>
+            
+            {/* Load More Button */}
+            {orders && orders.length > 0 && currentPage < totalPages && (
+              <div className="flex justify-center mt-8">
+                <LoadMoreTrigger
+                  hasNextPage={currentPage < totalPages}
+                  isFetchingNextPage={false}
+                  innerRef={React.createRef()}
+                  onLoadMore={handleLoadMore}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
