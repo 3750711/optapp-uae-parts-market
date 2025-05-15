@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -38,7 +38,6 @@ import VideoUpload from "@/components/ui/video-upload";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
-import { BrandModelSelector } from "@/components/product/BrandModelSelector";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -74,6 +73,8 @@ const AdminAddProduct = () => {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sellers, setSellers] = useState<{ id: string; full_name: string }[]>([]);
+  const [searchBrandTerm, setSearchBrandTerm] = useState("");
+  const [searchModelTerm, setSearchModelTerm] = useState("");
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
   
   // Use our custom hook for car brands and models
@@ -84,6 +85,7 @@ const AdminAddProduct = () => {
     findBrandIdByName,
     findModelIdByName, 
     isLoading: isLoadingCarData,
+    validateModelBrand 
   } = useCarBrandsAndModels();
 
   // Initialize our title parser
@@ -106,12 +108,22 @@ const AdminAddProduct = () => {
       description: "",
       deliveryPrice: "0",
     },
-    mode: "onChange",
+    mode: "onChange", // Enable validation on change
   });
 
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
+
+  // Filter brands based on search term
+  const filteredBrands = brands.filter(brand => 
+    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+  );
+
+  // Filter models based on search term
+  const filteredModels = brandModels.filter(model => 
+    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+  );
 
   // Filter sellers based on search term
   const filteredSellers = sellers.filter(seller => 
@@ -162,12 +174,30 @@ const AdminAddProduct = () => {
     fetchSellers();
   }, [toast]);
 
-  // When brand changes, update models list
+  // When brand changes, reset model selection and update models list
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
+      
+      // Only reset model if the brand has changed and we have a selected model
+      if (watchModelId) {
+        const modelBelongsToBrand = validateModelBrand(watchModelId, watchBrandId);
+        if (!modelBelongsToBrand) {
+          form.setValue("modelId", "");
+        }
+      }
     }
-  }, [watchBrandId, selectBrand]);
+  }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
+
+  // Validate model when brandModels change (to handle async loading)
+  useEffect(() => {
+    if (watchModelId && brandModels.length > 0) {
+      const modelExists = brandModels.some(model => model.id === watchModelId);
+      if (!modelExists) {
+        form.setValue("modelId", "");
+      }
+    }
+  }, [brandModels, watchModelId, form]);
 
   const handleRealtimeImageUpload = (urls: string[]) => {
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
@@ -329,14 +359,14 @@ const AdminAddProduct = () => {
           
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
-              <Card className="shadow-md rounded-lg overflow-hidden">
-                <CardHeader className="bg-gray-50 border-b border-gray-100">
-                  <CardTitle className="text-xl">Информация о товаре</CardTitle>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Информация о товаре</CardTitle>
                   <CardDescription>
                     Заполните все поля для размещения товара на маркетплейсе
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
+                <CardContent className="space-y-6">
                   <FormField
                     control={form.control}
                     name="sellerId"
@@ -348,7 +378,7 @@ const AdminAddProduct = () => {
                           value={field.value}
                         >
                           <FormControl>
-                            <SelectTrigger className="h-10">
+                            <SelectTrigger>
                               <SelectValue placeholder="Выберите продавца" />
                             </SelectTrigger>
                           </FormControl>
@@ -387,7 +417,6 @@ const AdminAddProduct = () => {
                           <FormControl>
                             <Input 
                               placeholder="Например: Передний бампер BMW X5 F15"
-                              className="h-10"
                               {...field}
                             />
                           </FormControl>
@@ -407,7 +436,6 @@ const AdminAddProduct = () => {
                               <Input 
                                 type="number" 
                                 placeholder="0.00" 
-                                className="h-10"
                                 {...field}
                               />
                             </FormControl>
@@ -426,7 +454,6 @@ const AdminAddProduct = () => {
                               <Input 
                                 type="number" 
                                 placeholder="0.00" 
-                                className="h-10"
                                 {...field}
                               />
                             </FormControl>
@@ -440,38 +467,85 @@ const AdminAddProduct = () => {
                   <div className="space-y-4">
                     <h3 className="font-medium">Информация об автомобиле</h3>
                     
-                    {/* New Brand/Model Selector */}
-                    <div>
-                      <Label>Марка и модель автомобиля</Label>
-                      <div className="mt-1.5">
-                        <FormField
-                          control={form.control}
-                          name="brandId"
-                          render={({ field }) => (
-                            <FormItem className="space-y-1">
-                              <BrandModelSelector
-                                selectedBrandId={field.value}
-                                selectedModelId={form.getValues("modelId")}
-                                onBrandChange={(brandId) => {
-                                  field.onChange(brandId);
-                                  // Clear model if brand changes
-                                  if (brandId !== field.value) {
-                                    form.setValue("modelId", undefined);
-                                  }
-                                }}
-                                onModelChange={(modelId) => {
-                                  form.setValue("modelId", modelId);
-                                }}
-                              />
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="brandId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Марка</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value}
+                              disabled={isLoadingCarData}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите марку" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent 
+                                className="max-h-[300px]"
+                                showSearch={true}
+                                searchPlaceholder="Поиск марки..."
+                                searchValue={searchBrandTerm}
+                                onSearchChange={setSearchBrandTerm}
+                              >
+                                {filteredBrands.length === 0 ? (
+                                  <div className="p-2 text-center text-sm text-gray-500">
+                                    Марки не найдены
+                                  </div>
+                                ) : (
+                                  filteredBrands.map((brand) => (
+                                    <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <FormField
                         control={form.control}
                         name="modelId"
-                        render={() => <></>} // Hidden field, managed by the BrandModelSelector
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Модель (необязательно)</FormLabel>
+                            <Select 
+                              onValueChange={field.onChange} 
+                              value={field.value || ""}
+                              disabled={!watchBrandId || isLoadingCarData || brandModels.length === 0}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Выберите модель (необязательно)" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent 
+                                className="max-h-[300px]"
+                                showSearch={true}
+                                searchPlaceholder="Поиск модели..."
+                                searchValue={searchModelTerm}
+                                onSearchChange={setSearchModelTerm}
+                              >
+                                {brandModels.length === 0 && watchBrandId ? (
+                                  <SelectItem value="loading" disabled>Загрузка моделей...</SelectItem>
+                                ) : filteredModels.length === 0 ? (
+                                  <div className="p-2 text-center text-sm text-gray-500">
+                                    Модели не найдены
+                                  </div>
+                                ) : (
+                                  filteredModels.map((model) => (
+                                    <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                                  ))
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
                   </div>
@@ -487,7 +561,6 @@ const AdminAddProduct = () => {
                             type="number"
                             min="1"
                             placeholder="Укажите количество мест"
-                            className="h-10"
                             {...field}
                           />
                         </FormControl>
@@ -537,7 +610,7 @@ const AdminAddProduct = () => {
                   </div>
                 </CardContent>
                 
-                <CardFooter className="flex justify-end space-x-4 p-6 bg-gray-50 border-t border-gray-100">
+                <CardFooter className="flex justify-end space-x-4">
                   <Button 
                     type="button" 
                     variant="outline" 

@@ -2,7 +2,7 @@
 import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,9 +15,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
 import VideoUpload from "@/components/ui/video-upload";
-import { BrandModelSelector } from "./BrandModelSelector";
 
 export const productSchema = z.object({
   title: z.string().min(3, {
@@ -73,12 +79,22 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   imageUrls,
   videoUrls,
   userId,
+  brands,
+  brandModels,
+  isLoadingCarData,
+  watchBrandId,
+  searchBrandTerm,
+  setSearchBrandTerm,
+  searchModelTerm,
+  setSearchModelTerm,
+  filteredBrands,
+  filteredModels,
   handleRealtimeImageUpload,
   setVideoUrls
 }) => {
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
         <div className="space-y-6">
           <div className="space-y-4">
             <FormField
@@ -91,7 +107,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                     <Input 
                       placeholder="Например: Передний бампер BMW X5 F15"
                       {...field}
-                      className="h-10"
                     />
                   </FormControl>
                   <FormMessage />
@@ -112,7 +127,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                         step="0.01"
                         inputMode="decimal"
                         {...field}
-                        className="h-10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -133,7 +147,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                         inputMode="decimal"
                         placeholder="0.00"
                         {...field}
-                        className="h-10"
                       />
                     </FormControl>
                     <FormMessage />
@@ -146,38 +159,79 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           <div className="space-y-4">
             <h3 className="font-medium">Информация об автомобиле</h3>
             
-            {/* New Brand/Model Selector */}
-            <div>
-              <Label>Марка и модель автомобиля</Label>
-              <div className="mt-1.5">
-                <FormField
-                  control={form.control}
-                  name="brandId"
-                  render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <BrandModelSelector
-                        selectedBrandId={field.value}
-                        selectedModelId={form.getValues("modelId")}
-                        onBrandChange={(brandId) => {
-                          field.onChange(brandId);
-                          // Clear model if brand changes
-                          if (brandId !== field.value) {
-                            form.setValue("modelId", undefined);
-                          }
-                        }}
-                        onModelChange={(modelId) => {
-                          form.setValue("modelId", modelId);
-                        }}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="brandId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Марка автомобиля</FormLabel>
+                    <div className="relative">
+                      <Input 
+                        type="text" 
+                        placeholder="Поиск бренда..."
+                        value={searchBrandTerm}
+                        onChange={(e) => setSearchBrandTerm(e.target.value)}
+                        className="mb-1"
                       />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+                      <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                    </div>
+                    <FormControl>
+                      <Select
+                        disabled={isLoadingCarData}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger id="brand">
+                          <SelectValue placeholder="Выберите марку" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {filteredBrands.map((brand) => (
+                            <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <FormField
                 control={form.control}
                 name="modelId"
-                render={() => <></>} // Hidden field, managed by the BrandModelSelector
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Модель (необязательно)</FormLabel>
+                    <div className="relative">
+                      <Input 
+                        type="text" 
+                        placeholder="Поиск модели..."
+                        value={searchModelTerm}
+                        onChange={(e) => setSearchModelTerm(e.target.value)}
+                        className="mb-1"
+                      />
+                      <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                    </div>
+                    <FormControl>
+                      <Select
+                        disabled={!watchBrandId || isLoadingCarData}
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите модель" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                          {filteredModels.map((model) => (
+                            <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
           </div>
@@ -194,7 +248,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                     min="1"
                     placeholder="Количество мест"
                     {...field}
-                    className="h-10"
                   />
                 </FormControl>
                 <FormMessage />
@@ -247,7 +300,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 h-12 text-base"
+            className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
           >
             {isSubmitting ? (
               <>

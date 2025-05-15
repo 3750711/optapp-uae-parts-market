@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +11,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -24,8 +26,10 @@ const SellerAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [searchBrandTerm, setSearchBrandTerm] = useState("");
+  const [searchModelTerm, setSearchModelTerm] = useState("");
   
-  // Use our custom hook for car brands and models - we'll still need this for title parsing
+  // Use our custom hook for car brands and models
   const { 
     brands, 
     brandModels, 
@@ -43,17 +47,12 @@ const SellerAddProduct = () => {
     findModelIdByName
   );
 
-  // These state variables are kept for compatibility with the form props
-  // but they're no longer actively used for filtering
-  const [searchBrandTerm, setSearchBrandTerm] = useState("");
-  const [searchModelTerm, setSearchModelTerm] = useState("");
-  
-  // Filter brands based on search term - keeping for compatibility
+  // Filter brands based on search term
   const filteredBrands = brands.filter(brand => 
     brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
   );
 
-  // Filter models based on search term - keeping for compatibility
+  // Filter models based on search term
   const filteredModels = brandModels.filter(model => 
     model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
   );
@@ -96,12 +95,30 @@ const SellerAddProduct = () => {
     }
   }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
-  // When brand changes, update models list
+  // When brand changes, reset model selection and update models list
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
+      
+      // Only reset model if the brand has changed and we have a selected model
+      if (watchModelId) {
+        const modelBelongsToBrand = brandModels.some(model => model.id === watchModelId && model.brand_id === watchBrandId);
+        if (!modelBelongsToBrand) {
+          form.setValue("modelId", "");
+        }
+      }
     }
-  }, [watchBrandId, selectBrand]);
+  }, [watchBrandId, selectBrand, form, brandModels, watchModelId]);
+
+  // Validate model when brandModels change (to handle async loading)
+  useEffect(() => {
+    if (watchModelId && brandModels.length > 0) {
+      const modelExists = brandModels.some(model => model.id === watchModelId);
+      if (!modelExists) {
+        form.setValue("modelId", "");
+      }
+    }
+  }, [brandModels, watchModelId, form]);
 
   const handleRealtimeImageUpload = (urls: string[]) => {
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
@@ -316,14 +333,14 @@ const SellerAddProduct = () => {
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
           
-          <Card className="shadow-md rounded-lg overflow-hidden">
-            <CardHeader className="bg-gray-50 border-b border-gray-100">
-              <CardTitle className="text-xl">Информация о товаре</CardTitle>
+          <Card>
+            <CardHeader>
+              <CardTitle>Информация о товаре</CardTitle>
               <CardDescription>
                 Заполните все поля для размещения вашего товара на маркетплейсе
               </CardDescription>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent>
               <AddProductForm
                 form={form}
                 onSubmit={onSubmit}

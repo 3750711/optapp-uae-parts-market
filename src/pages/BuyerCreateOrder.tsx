@@ -13,11 +13,21 @@ import { VideoUpload } from "@/components/ui/video-upload";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { BrandModelSelector } from "@/components/product/BrandModelSelector";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
+
+interface CarBrand {
+  id: string;
+  name: string;
+}
+
+interface CarModel {
+  id: string;
+  name: string;
+  brand_id: string;
+}
 
 const BuyerCreateOrder = () => {
   const { user, profile } = useAuth();
@@ -40,8 +50,68 @@ const BuyerCreateOrder = () => {
   const [orderVideos, setOrderVideos] = useState<string[]>([]);
   
   // Car brands and models state
+  const [brands, setBrands] = useState<CarBrand[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [brandModels, setBrandModels] = useState<CarModel[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+  const [loadingModels, setLoadingModels] = useState(false);
+
+  // Fetch car brands when component mounts
+  useEffect(() => {
+    const fetchBrands = async () => {
+      setLoadingBrands(true);
+      try {
+        const { data, error } = await supabase
+          .from('car_brands')
+          .select('*')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching car brands:', error);
+        } else {
+          setBrands(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching car brands:', err);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+
+    fetchBrands();
+  }, []);
+
+  // Fetch models when brand is selected
+  useEffect(() => {
+    const fetchModels = async () => {
+      if (!selectedBrandId) {
+        setBrandModels([]);
+        return;
+      }
+      
+      setLoadingModels(true);
+      try {
+        const { data, error } = await supabase
+          .from('car_models')
+          .select('*')
+          .eq('brand_id', selectedBrandId)
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching car models:', error);
+        } else {
+          setBrandModels(data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching car models:', err);
+      } finally {
+        setLoadingModels(false);
+      }
+    };
+
+    fetchModels();
+  }, [selectedBrandId]);
 
   async function fetchUserProfile(userId: string) {
     try {
@@ -368,29 +438,19 @@ const BuyerCreateOrder = () => {
     }
   };
 
-  // Handle brand and model selection
-  const handleBrandChange = (brandId: string) => {
-    setSelectedBrandId(brandId);
-    setSelectedModelId(null); // Reset model when brand changes
-  };
-
-  const handleModelChange = (modelId: string | undefined) => {
-    setSelectedModelId(modelId || null);
-  };
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
-          <Card className="shadow-md rounded-lg overflow-hidden">
-            <CardHeader className="bg-gray-50 border-b border-gray-100">
+          <Card>
+            <CardHeader>
               <CardTitle>Информация о заказе</CardTitle>
               <CardDescription>
                 Заполните необходимые поля для создания нового заказа
               </CardDescription>
             </CardHeader>
             <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-6 p-6">
+              <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="title">Наименование *</Label>
@@ -400,7 +460,6 @@ const BuyerCreateOrder = () => {
                       onChange={(e) => handleInputChange('title', e.target.value)}
                       required 
                       placeholder="Введите наименование"
-                      className="h-10"
                     />
                   </div>
                   <div className="space-y-2">
@@ -412,19 +471,45 @@ const BuyerCreateOrder = () => {
                       onChange={(e) => handleInputChange('quantity', e.target.value)}
                       required 
                       min="1"
-                      className="h-10"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Марка и модель автомобиля</Label>
-                  <BrandModelSelector 
-                    selectedBrandId={selectedBrandId || ""}
-                    selectedModelId={selectedModelId || undefined}
-                    onBrandChange={handleBrandChange}
-                    onModelChange={handleModelChange}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="brand">Марка</Label>
+                    <Select
+                      value={selectedBrandId || ""}
+                      onValueChange={setSelectedBrandId}
+                      disabled={loadingBrands}
+                    >
+                      <SelectTrigger id="brand">
+                        <SelectValue placeholder="Выберите марку" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brands.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="model">Модель</Label>
+                    <Select
+                      value={selectedModelId || ""}
+                      onValueChange={setSelectedModelId}
+                      disabled={!selectedBrandId || loadingModels}
+                    >
+                      <SelectTrigger id="model">
+                        <SelectValue placeholder="Выберите модель" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brandModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -439,7 +524,6 @@ const BuyerCreateOrder = () => {
                       placeholder="0.00"
                       min="0"
                       step="0.01"
-                      className="h-10"
                     />
                   </div>
                   <div className="space-y-2">
@@ -452,7 +536,6 @@ const BuyerCreateOrder = () => {
                       placeholder="0.00"
                       min="0"
                       step="0.01"
-                      className="h-10"
                     />
                   </div>
                 </div>
@@ -463,7 +546,7 @@ const BuyerCreateOrder = () => {
                     <Input 
                       value={formData.sellerOptId}
                       readOnly 
-                      className="bg-gray-100 h-10"
+                      className="bg-gray-100"
                     />
                   </div>
                 </div>
@@ -473,7 +556,7 @@ const BuyerCreateOrder = () => {
                   <Input 
                     value={profile?.opt_id || ''} 
                     readOnly 
-                    className="bg-gray-100 h-10"
+                    className="bg-gray-100"
                   />
                 </div>
 
@@ -482,7 +565,7 @@ const BuyerCreateOrder = () => {
                   <Input 
                     value={profile?.telegram || ''} 
                     readOnly 
-                    className="bg-gray-100 h-10"
+                    className="bg-gray-100"
                   />
                 </div>
 
@@ -521,7 +604,7 @@ const BuyerCreateOrder = () => {
                     value="self_pickup"
                     onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
                   >
-                    <SelectTrigger className="h-10">
+                    <SelectTrigger>
                       <SelectValue placeholder="Выберите способ доставки" />
                     </SelectTrigger>
                     <SelectContent>
@@ -541,7 +624,6 @@ const BuyerCreateOrder = () => {
                     value={formData.place_number}
                     onChange={(e) => handleInputChange('place_number', e.target.value)}
                     placeholder="Укажите количество мест"
-                    className="h-10"
                   />
                 </div>
 
@@ -556,7 +638,7 @@ const BuyerCreateOrder = () => {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-end space-x-4 p-6 bg-gray-50 border-t border-gray-100">
+              <CardFooter className="flex justify-end space-x-4">
                 <Button 
                   variant="outline" 
                   type="button"
