@@ -17,3 +17,6 @@ enabled = true
 [studio]
 enabled = true
 port = 54323
+
+[functions.send-telegram-notification]
+verify_jwt = false

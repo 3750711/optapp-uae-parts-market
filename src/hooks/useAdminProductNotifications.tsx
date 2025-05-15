@@ -23,6 +23,8 @@ export const useAdminProductNotifications = () => {
         throw new Error(fetchError?.message || 'Failed to fetch product details');
       }
       
+      console.log("Вызов edge-функции send-telegram-notification для товара", product.id);
+      
       // Вызываем edge функцию для отправки уведомления
       const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
         body: { product: freshProduct }
@@ -32,6 +34,8 @@ export const useAdminProductNotifications = () => {
         console.error('Error calling function:', error);
         throw new Error(error.message);
       }
+      
+      console.log("Результат вызова edge-функции:", data);
       
       if (data && data.success) {
         toast({
