@@ -36,7 +36,6 @@ export const LazyAdminOrders = lazyLoad(() => import('../pages/AdminOrders'));
 export const LazyAdminUsers = lazyLoad(() => import('../pages/AdminUsers'));
 export const LazyAdminEvents = lazyLoad(() => import('../pages/AdminEvents'));
 export const LazyAdminStores = lazyLoad(() => import('../pages/AdminStores'));
-export const LazyAdminCarCatalog = lazyLoad(() => import('../pages/AdminCarCatalog'));
 export const LazyAdminAddProduct = lazyLoad(() => import('../pages/AdminAddProduct'));
 export const LazyAdminLogistics = lazyLoad(() => import('../pages/AdminLogistics'));
 export const LazyAdminImageOptimizer = lazyLoad(() => import('../pages/AdminImageOptimizer'));
