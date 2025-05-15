@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -57,9 +58,9 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 
   return (
     <div 
-      className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 relative`}
+      className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
     >
-      <div className="relative aspect-square mb-4">
+      <div className="relative aspect-square p-2">
         <img 
           src={
             product.product_images?.find(img => img.is_primary)?.url || 
@@ -77,91 +78,71 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
         </Badge>
       </div>
       
-      <div className="space-y-2">
-        <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
+      <div className="p-3 flex-grow flex flex-col">
+        <h3 className="font-medium text-sm line-clamp-2 mb-1">{product.title}</h3>
         
-        <div className="flex items-center gap-1 mt-1">
+        <div className="flex items-center gap-1 mb-1">
           <Hash className="w-3 h-3 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             Лот: {product.lot_number || 'Не указан'}
           </p>
         </div>
         
-        {(product.brand || product.model) && (
-          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-            <Tag className="w-3 h-3" />
-            <span>
-              {product.brand || 'Не указано'} • {product.model || 'Не указано'}
-            </span>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
+          {(product.brand || product.model) && (
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Tag className="w-3 h-3" />
+              <span className="truncate max-w-[120px]">
+                {product.brand || 'Не указано'} • {product.model || 'Не указано'}
+              </span>
+            </p>
+          )}
+          
+          <p className="text-sm font-semibold">
+            {product.price} $
           </p>
-        )}
-        
-        <p className="text-sm text-muted-foreground">
-          {product.price} $
-        </p>
+        </div>
         
         {product.delivery_price !== null && product.delivery_price !== undefined && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-muted-foreground mb-1">
             Доставка: {product.delivery_price} $
           </p>
         )}
         
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="truncate">{product.seller_name}</span>
+        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-auto">
+          <span className="truncate max-w-[100px]">{product.seller_name}</span>
           {product.optid_created && (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-[10px] py-0 px-1 h-4">
               {product.optid_created}
             </Badge>
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center justify-between gap-1 mt-2 border-t pt-2">
+          <div className="flex items-center flex-wrap gap-1">
             <ProductEditDialog
               product={product}
               trigger={
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                 >
-                  <Edit className="h-4 w-4" />
+                  <Edit className="h-3.5 w-3.5" />
                 </Button>
               }
-              onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-              }}
+              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
             />
-            
-            {product.status === 'pending' && (
-              <>
-                <ProductPublishDialog
-                  product={product}
-                  trigger={
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                    >
-                      Опубликовать
-                    </Button>
-                  }
-                  onSuccess={() => {
-                    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-                  }}
-                />
-              </>
-            )}
             
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 text-blue-600"
+              className="h-7 w-7 text-blue-600"
               onClick={() => sendNotification(product)}
               disabled={isNotificationSending[product.id]}
               title="Отправить уведомление в Telegram"
             >
-              <Bell className={`h-4 w-4 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
+              <Bell className={`h-3.5 w-3.5 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
             </Button>
             
             <ProductStatusDialog
@@ -170,14 +151,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7"
                 >
-                  <Eye className="h-4 w-4" />
+                  <Eye className="h-3.5 w-3.5" />
                 </Button>
               }
-              onSuccess={() => {
-                queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-              }}
+              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
             />
             
             <AlertDialog>
@@ -185,10 +164,10 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-red-600"
+                  className="h-7 w-7 text-red-600"
                   disabled={isDeleting}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -210,12 +189,29 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
+            
+            {product.status === 'pending' && (
+              <ProductPublishDialog
+                product={product}
+                trigger={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs ml-1"
+                  >
+                    Опубликовать
+                  </Button>
+                }
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
+              />
+            )}
           </div>
+          
           <Link to={`/product/${product.id}`}>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 text-xs"
+              className="h-7 text-xs"
             >
               Просмотр
             </Button>

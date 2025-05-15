@@ -33,16 +33,18 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm p-4">
-            <Skeleton className="aspect-square w-full mb-4" />
-            <Skeleton className="h-4 w-3/4 mb-2" />
-            <Skeleton className="h-3 w-1/2 mb-2" />
-            <Skeleton className="h-3 w-2/3 mb-4" />
-            <div className="flex justify-between">
-              <Skeleton className="h-8 w-1/3" />
-              <Skeleton className="h-8 w-1/4" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {Array.from({ length: 10 }).map((_, index) => (
+          <div key={`skeleton-${index}`} className="rounded-lg bg-white shadow-sm">
+            <Skeleton className="aspect-square w-full" />
+            <div className="p-3">
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-3 w-1/2 mb-2" />
+              <Skeleton className="h-3 w-2/3 mb-2" />
+              <div className="flex justify-between pt-2">
+                <Skeleton className="h-7 w-1/3" />
+                <Skeleton className="h-7 w-1/4" />
+              </div>
             </div>
           </div>
         ))}
@@ -62,7 +64,8 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
         </p>
         <Button 
           onClick={() => refetch()}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          className="px-4 py-2"
+          variant="default"
         >
           <RefreshCw className="h-4 w-4 mr-2" /> Попробовать снова
         </Button>
@@ -79,7 +82,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
       {products?.map((product) => (
         <AdminProductCard
           key={product.id}
