@@ -141,10 +141,12 @@ const AdminProducts = () => {
         console.log('Applying special status sorting, order:', sortOrder);
         
         // Define status order based on sortOrder
-        // Modified to change the status order when ascending: pending first, then sold, then active
+        // ИСПРАВЛЕНО: корректный порядок статусов - pending, active, sold, archived
         const statusOrder = sortOrder === 'asc' ? 
-          { pending: 0, sold: 1, active: 2, archived: 3 } : 
+          { pending: 0, active: 1, sold: 2, archived: 3 } : 
           { archived: 0, sold: 1, active: 2, pending: 3 };
+        
+        console.log('Status order mapping:', statusOrder);
         
         // For status, we need to get all data and sort it manually since we need custom ordering
         const { data, error } = await query.order('created_at', { ascending: false });
@@ -154,12 +156,24 @@ const AdminProducts = () => {
           throw new Error(error.message);
         }
         
+        // Логирование перед сортировкой
+        if (data && data.length > 0) {
+          console.log('First few products before sorting:');
+          data.slice(0, 3).forEach((p, i) => console.log(`${i+1}. id=${p.id}, status=${p.status}`));
+        }
+        
         // Sort all data by status using our custom order
         const sortedData = data ? [...data].sort((a, b) => {
           const aValue = statusOrder[a.status as keyof typeof statusOrder] || 999;
           const bValue = statusOrder[b.status as keyof typeof statusOrder] || 999;
           return aValue - bValue;
         }) : [];
+        
+        // Логирование после сортировки
+        if (sortedData.length > 0) {
+          console.log('First few products AFTER sorting:');
+          sortedData.slice(0, 3).forEach((p, i) => console.log(`${i+1}. id=${p.id}, status=${p.status}`));
+        }
         
         console.log(`Sorted by status - Status of first item: ${sortedData[0]?.status}`);
         

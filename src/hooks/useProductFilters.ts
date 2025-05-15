@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 
 // Define the FiltersState interface that was missing
@@ -48,19 +47,20 @@ export const useProductFilters = (
   
   const [filterState, setFilterState] = useState<ProductFiltersProps>(getInitialState);
   
-  // Force setting initial default values on first load
+  // УДАЛЁН код, который сбрасывал настройки сортировки при каждой загрузке компонента
+  // Оставляем только логирование текущего состояния
   useEffect(() => {
-    // Force clear localStorage on initial mount and set our defaults
-    localStorage.setItem('admin_products_sort_field', defaultSortField);
-    localStorage.setItem('admin_products_sort_order', defaultSortOrder);
+    // Логируем текущее состояние при инициализации
+    console.log('useProductFilters initialized with:', {
+      sortField: filterState.sortField,
+      sortOrder: filterState.sortOrder,
+      fromLocalStorage: {
+        field: localStorage.getItem('admin_products_sort_field'),
+        order: localStorage.getItem('admin_products_sort_order')
+      }
+    });
     
-    setFilterState(prev => ({
-      ...prev,
-      sortField: defaultSortField,
-      sortOrder: defaultSortOrder
-    }));
-    
-    // This is intentionally only run on initial mount
+    // Это специально запускается только при монтировании
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

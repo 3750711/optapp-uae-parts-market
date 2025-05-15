@@ -88,8 +88,8 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
                   <SelectValue placeholder="Сортировка" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="status-asc">Статус (По проверке)</SelectItem>
-                  <SelectItem value="status-desc">Статус (По архивации)</SelectItem>
+                  <SelectItem value="status-asc">Статус (На проверке в начале)</SelectItem>
+                  <SelectItem value="status-desc">Статус (Архивные в начале)</SelectItem>
                   <SelectItem value="price-asc">Цена (по возрастанию)</SelectItem>
                   <SelectItem value="price-desc">Цена (по убыванию)</SelectItem>
                 </SelectContent>
@@ -114,7 +114,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
                   className="w-full justify-start"
                   onClick={() => handleSortChange("status-asc")}
                 >
-                  Статус (По проверке)
+                  Статус (На проверке в начале)
                 </Button>
                 <Button
                   variant={sortValue === "status-desc" ? "default" : "outline"}
@@ -122,7 +122,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
                   className="w-full justify-start"
                   onClick={() => handleSortChange("status-desc")}
                 >
-                  Статус (По архивации)
+                  Статус (Архивные в начале)
                 </Button>
                 <Button
                   variant={sortValue === "price-asc" ? "default" : "outline"}
