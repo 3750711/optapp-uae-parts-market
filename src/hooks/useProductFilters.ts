@@ -47,8 +47,6 @@ export const useProductFilters = (
   
   const [filterState, setFilterState] = useState<ProductFiltersProps>(getInitialState);
   
-  // УДАЛЁН код, который сбрасывал настройки сортировки при каждой загрузке компонента
-  // Оставляем только логирование текущего состояния
   useEffect(() => {
     // Логируем текущее состояние при инициализации
     console.log('useProductFilters initialized with:', {

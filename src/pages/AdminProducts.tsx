@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -141,7 +140,7 @@ const AdminProducts = () => {
         console.log('Applying special status sorting, order:', sortOrder);
         
         // Define status order based on sortOrder
-        // ИСПРАВЛЕНО: корректный порядок статусов - pending, active, sold, archived
+        // ИСПРАВЛЕНО: корректный порядок статусов для sortOrder === 'asc': pending, active, sold, archived
         const statusOrder = sortOrder === 'asc' ? 
           { pending: 0, active: 1, sold: 2, archived: 3 } : 
           { archived: 0, sold: 1, active: 2, pending: 3 };
