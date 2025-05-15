@@ -19,12 +19,13 @@ const AdminDashboard = () => {
     }
   });
 
-  const { data: productCount, isLoading: isLoadingProducts } = useQuery({
-    queryKey: ['admin', 'product-count'],
+  const { data: pendingProductCount, isLoading: isLoadingPendingProducts } = useQuery({
+    queryKey: ['admin', 'pending-product-count'],
     queryFn: async () => {
       const { count } = await supabase
         .from('products')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending');
       return count;
     }
   });
@@ -95,17 +96,17 @@ const AdminDashboard = () => {
           </Link>
 
           <Link to="/admin/products">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className={`hover:shadow-lg transition-shadow cursor-pointer ${(pendingProductCount || 0) > 0 ? 'bg-[#FEF7CD]' : ''}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Товары</CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {isLoadingProducts ? '...' : productCount || 0}
+                  {isLoadingPendingProducts ? '...' : pendingProductCount || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Всего товаров в каталоге
+                  Товары ожидающие проверки
                 </p>
               </CardContent>
             </Card>
