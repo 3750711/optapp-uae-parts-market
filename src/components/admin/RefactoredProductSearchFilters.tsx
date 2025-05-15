@@ -4,8 +4,6 @@ import { Product } from '@/types/product';
 import SearchBar from '@/components/admin/filters/SearchBar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface RefactoredProductSearchFiltersProps {
   products: Product[];
@@ -36,7 +34,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
 }) => {
   // Calculate the current sort value from the individual sort field and order
   const [sortValue, setSortValue] = useState(`${sortField}-${sortOrder}`);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   // Update the sort value whenever the sort field or order changes
   useEffect(() => {
@@ -74,75 +71,20 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
         />
         
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Collapsible 
-            className="w-full"
-            open={isExpanded} 
-            onOpenChange={setIsExpanded}
+          <Select 
+            value={sortValue} 
+            onValueChange={handleSortChange}
           >
-            <div className="flex items-center gap-2 w-full">
-              <Select 
-                value={sortValue} 
-                onValueChange={handleSortChange}
-              >
-                <SelectTrigger className="w-full sm:w-[200px] h-10">
-                  <SelectValue placeholder="Сортировка" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="status-asc">Статус (На проверке в начале)</SelectItem>
-                  <SelectItem value="status-desc">Статус (Архивные в начале)</SelectItem>
-                  <SelectItem value="price-asc">Цена (по возрастанию)</SelectItem>
-                  <SelectItem value="price-desc">Цена (по убыванию)</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="h-10 w-10 flex-shrink-0"
-                >
-                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-            
-            <CollapsibleContent className="mt-2 space-y-2 border-t pt-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={sortValue === "status-asc" ? "default" : "outline"}
-                  size="sm" 
-                  className="w-full justify-start"
-                  onClick={() => handleSortChange("status-asc")}
-                >
-                  Статус (На проверке в начале)
-                </Button>
-                <Button
-                  variant={sortValue === "status-desc" ? "default" : "outline"}
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleSortChange("status-desc")}
-                >
-                  Статус (Архивные в начале)
-                </Button>
-                <Button
-                  variant={sortValue === "price-asc" ? "default" : "outline"}
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleSortChange("price-asc")}
-                >
-                  Цена (по возрастанию)
-                </Button>
-                <Button
-                  variant={sortValue === "price-desc" ? "default" : "outline"}
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => handleSortChange("price-desc")}
-                >
-                  Цена (по убыванию)
-                </Button>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+            <SelectTrigger className="w-full sm:w-[200px] h-10">
+              <SelectValue placeholder="Сортировка" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="status-asc">Статус (На проверке в начале)</SelectItem>
+              <SelectItem value="status-desc">Статус (Архивные в начале)</SelectItem>
+              <SelectItem value="price-asc">Цена (по возрастанию)</SelectItem>
+              <SelectItem value="price-desc">Цена (по убыванию)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>
