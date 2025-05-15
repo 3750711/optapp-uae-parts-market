@@ -259,9 +259,9 @@ export function BrandModelSelector({
           )}
           
           {/* All Brands Section */}
-          {filteredOptions.length > 0 ? (
-            <CommandGroup heading={searchTerm ? "Результаты поиска" : "Все марки и модели"}>
-              {filteredOptions.slice(0, 100).map(option => (
+          <CommandGroup heading={searchTerm ? "Результаты поиска" : "Все марки и модели"}>
+            {filteredOptions.length > 0 ? (
+              filteredOptions.slice(0, 100).map(option => (
                 <CommandItem
                   key={option.id}
                   value={option.id}
@@ -283,13 +283,13 @@ export function BrandModelSelector({
                     <Check className="ml-2 h-4 w-4 text-green-500" />
                   )}
                 </CommandItem>
-              ))}
-            </CommandGroup>
-          ) : (
-            <CommandEmpty>
-              {loading ? "Загрузка..." : "Ничего не найдено"}
-            </CommandEmpty>
-          )}
+              ))
+            ) : (
+              <CommandEmpty>
+                {loading ? "Загрузка..." : "Ничего не найдено"}
+              </CommandEmpty>
+            )}
+          </CommandGroup>
         </Command>
       </PopoverContent>
     </Popover>
