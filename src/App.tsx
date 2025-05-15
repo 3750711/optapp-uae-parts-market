@@ -18,8 +18,9 @@ import AdminAddProduct from "./pages/AdminAddProduct";
 import AdminOrders from "./pages/AdminOrders";
 import AdminStores from "./pages/AdminStores";
 import AdminEvents from "./pages/AdminEvents";
-import AdminImageOptimizer from "./pages/AdminImageOptimizer"; // New import
-import AdminCarCatalog from "./pages/AdminCarCatalog"; // New import
+import AdminImageOptimizer from "./pages/AdminImageOptimizer"; 
+import AdminCarCatalog from "./pages/AdminCarCatalog";
+import AdminFreeOrder from "./pages/AdminFreeOrder"; // New import
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -128,6 +129,11 @@ const App = () => {
               <Route path="/admin/add-product" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminAddProduct />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/free-order" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminFreeOrder />
                 </ProtectedRoute>
               } />
               <Route path="/admin/orders" element={

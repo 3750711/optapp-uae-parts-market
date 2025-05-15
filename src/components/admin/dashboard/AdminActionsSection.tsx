@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -32,11 +32,19 @@ const AdminActionsSection: React.FC = () => {
       link: "/admin/add-product",
       bgColor: "bg-optapp-yellow",
       textColor: "text-optapp-dark"
+    },
+    {
+      title: "Создать свободный заказ",
+      subtitle: "Создать заказ без привязки к объявлению",
+      icon: FileText,
+      link: "/admin/free-order",
+      bgColor: "bg-green-500",
+      textColor: "text-white"
     }
   ];
 
   return (
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
       {actions.map((action, index) => (
         <ActionCard
           key={index}
