@@ -1,23 +1,27 @@
 
 import React from 'react';
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 interface LoadMoreTriggerProps {
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
   innerRef: React.RefObject<HTMLDivElement>;
+  onLoadMore: () => void;
 }
 
 const LoadMoreTrigger: React.FC<LoadMoreTriggerProps> = ({ 
   hasNextPage, 
   isFetchingNextPage, 
-  innerRef 
+  innerRef,
+  onLoadMore
 }) => {
   if (!hasNextPage) return null;
 
   return (
     <div 
       ref={innerRef}
-      className="w-full py-8 flex items-center justify-center"
+      className="w-full py-8 flex items-center justify-center flex-col gap-4"
     >
       {isFetchingNextPage ? (
         <div className="flex items-center justify-center">
@@ -25,7 +29,16 @@ const LoadMoreTrigger: React.FC<LoadMoreTriggerProps> = ({
           <span className="ml-2">Загрузка...</span>
         </div>
       ) : (
-        <div className="h-10"></div> // Empty space to trigger the intersection
+        <>
+          <div className="h-10"></div> {/* Empty space to trigger the intersection */}
+          <Button 
+            onClick={onLoadMore}
+            className="px-6 py-2"
+            variant="secondary"
+          >
+            <Download className="h-4 w-4 mr-2" /> Загрузить еще
+          </Button>
+        </>
       )}
     </div>
   );

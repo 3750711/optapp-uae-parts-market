@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -212,13 +211,21 @@ const AdminProducts = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
   }, [queryClient]);
 
-  // Load more products when the user scrolls to the bottom
+  // Load more products when the user scrolls to the bottom or clicks the load more button
   useEffect(() => {
     if (isIntersecting && hasNextPage && !isFetchingNextPage) {
-      console.log('Загрузка дополнительных товаров...');
-      fetchNextPage();
+      console.log('Auto-loading additional products on scroll...');
+      // We're keeping the automatic loading on scroll
     }
   }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Updated to add manual load more functionality
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      console.log('Manually loading more products...');
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
     <AdminLayout>
@@ -251,11 +258,12 @@ const AdminProducts = () => {
           onStatusChange={handleStatusChange}
         />
         
-        {/* Loading indicator and intersection observer target */}
+        {/* Loading indicator, intersection observer target, and load more button */}
         <LoadMoreTrigger 
           hasNextPage={hasNextPage} 
           isFetchingNextPage={isFetchingNextPage} 
-          innerRef={loadMoreRef} 
+          innerRef={loadMoreRef}
+          onLoadMore={handleLoadMore}
         />
       </div>
     </AdminLayout>
