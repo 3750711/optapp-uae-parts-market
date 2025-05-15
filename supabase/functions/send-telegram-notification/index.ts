@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -86,7 +85,7 @@ function ensureProperChatId(chatId: string): string {
 function getStatusLabel(status: string): string {
   switch (status) {
     case 'pending':
-      return 'Ожидает проверки';
+      return 'Ожи��ает проверки';
     case 'active':
       return 'Опубликован';
     case 'sold':
@@ -319,7 +318,7 @@ serve(async (req) => {
         }
       }
     } else if (requestData.order) {
-      // Handle order notifications
+      // Handle order notifications with new template format
       const { order, action } = requestData;
       
       if (!order) {
@@ -343,21 +342,22 @@ serve(async (req) => {
       // Create the order detail page URL
       const orderPageUrl = `https://partsbay.ae/admin/orders/${order.id}`;
       
+      // Используем новый формат сообщения согласно шаблону
       const message = `🔔 ${actionText}\n\n` +
         `🛍 Заказ № ${orderNumber}\n` +
+        `📊 Статус: ${orderStatus}\n` +
+        `👤 Получатель OPT_ID: ${order.buyer_opt_id || 'Не указан'}\n\n` +
+        `_____________\n\n` +
         `📦 Товар: ${order.title}\n` +
         `🏷 Бренд: ${order.brand || 'Не указан'}\n` +
         `📝 Модель: ${order.model || 'Не указана'}\n` +
-        `💰 Цена: ${order.price} $\n` +
         `📦 Количество мест для отправки: ${order.place_number || 1}\n` +
-        `🚚 Доставка: ${deliveryMethod}\n` +
-        `💸 Цена доставки: ${order.delivery_price_confirm || 0} $\n` +
-        `👨‍💼 Продавец: ${order.order_seller_name || 'Не указан'}\n` +
+        `🚚 Доставка: ${deliveryMethod}\n\n` +
+        `💰 Цена: ${order.price} $\n` +
+        `💸 Цена доставки: ${order.delivery_price_confirm || 0} $\n\n` +
         `🆔 OPT_ID продавца: ${order.seller_opt_id || 'Не указан'}\n` +
-        `👤 Получатель OPT_ID: ${order.buyer_opt_id || 'Не указан'}\n` +
-        `📊 Статус: ${orderStatus}\n` +
-        (order.description ? `📝 Описание: ${order.description}\n` : '') +
-        (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '') +
+        `👨‍💼 Продавец: ${order.order_seller_name || 'Не указан'}\n` +
+        (order.text_order ? `\n📋 Комментарий: ${order.text_order}\n` : '') +
         `\n🔗 <a href="${orderPageUrl}">Страница заказа</a>`;
 
       // Use the updated order-specific group chat ID for orders
