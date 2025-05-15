@@ -1,48 +1,28 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useState, useEffect } from 'react';
 
-export const useIntersection = (
-  element: React.RefObject<HTMLElement>,
-  rootMargin: string = "0px"
-): boolean => {
-  const [isVisible, setIsVisible] = useState(false);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+export function useIntersection(
+  elementRef: React.RefObject<Element>,
+  rootMargin: string = '0px'
+): boolean {
+  const [isIntersecting, setIsIntersecting] = useState<boolean>(false);
 
   useEffect(() => {
-    // Clean up previous observer if it exists
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
+    const element = elementRef.current;
 
-    // Safely create observer only in browser environment
-    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
-      // Create new observer
-      observerRef.current = new IntersectionObserver(
-        ([entry]) => {
-          // Update state when intersection status changes
-          setIsVisible(entry.isIntersecting);
-        },
-        { 
-          rootMargin, 
-          threshold: 0.1 // Added threshold to make detection more reliable
-        }
-      );
+    if (!element) return;
 
-      const currentElement = element?.current;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsIntersecting(entry.isIntersecting);
+      },
+      { rootMargin }
+    );
 
-      // Start observing if element exists
-      if (currentElement) {
-        observerRef.current.observe(currentElement);
-      }
-    }
+    observer.observe(element);
 
-    // Clean up on component unmount
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [element, rootMargin]);
+    return () => observer.disconnect();
+  }, [elementRef, rootMargin]);
 
-  return isVisible;
-};
+  return isIntersecting;
+}
