@@ -46,6 +46,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
               <Skeleton className="h-4 w-3/4 mb-2" />
               <Skeleton className="h-3 w-1/2 mb-2" />
               <Skeleton className="h-3 w-2/3 mb-2" />
+              <Skeleton className="h-3 w-3/4 mb-2" /> {/* Added for creation date */}
               <div className="flex justify-between pt-2">
                 <Skeleton className="h-7 w-1/3" />
                 <Skeleton className="h-7 w-1/4" />

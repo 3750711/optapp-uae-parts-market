@@ -3,13 +3,14 @@ import React, { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Badge as BadgeIcon, Star, Truck, Flame } from "lucide-react";
+import { MapPin, Badge as BadgeIcon, Star, Truck, Flame, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "./ProductStatusChangeDialog";
 import ProductDeleteDialog from "./ProductDeleteDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { format } from "date-fns";
 
 export interface ProductProps {
   id: string;
@@ -68,6 +69,12 @@ const ProductCard: React.FC<ProductProps> = ({
 
   // Determine if this product is using a preview image
   const isUsingPreviewImage = useMemo(() => Boolean(preview_image), [preview_image]);
+
+  // Format creation date
+  const formattedCreationDate = useMemo(() => {
+    if (!created_at) return null;
+    return format(new Date(created_at), 'dd.MM.yyyy');
+  }, [created_at]);
 
   // Optimize: Memoize hot lot status calculation
   const isHot = useMemo(() => {
@@ -199,6 +206,13 @@ const ProductCard: React.FC<ProductProps> = ({
             </span>
           )}
         </div>
+
+        {formattedCreationDate && (
+          <div className="flex items-center gap-1 mb-1 text-xs text-muted-foreground">
+            <Calendar className="w-3 h-3" />
+            <span>{formattedCreationDate}</span>
+          </div>
+        )}
         
         {canViewDeliveryPrice && delivery_price !== null && delivery_price !== undefined && delivery_price > 0 && (
           <div className="flex items-center gap-1 mb-1 text-xs text-muted-foreground">

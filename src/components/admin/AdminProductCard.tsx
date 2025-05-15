@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, Bell, Tag, Hash } from "lucide-react";
+import { Edit, Trash2, Eye, Bell, Tag, Hash, Calendar } from "lucide-react";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
@@ -12,6 +12,7 @@ import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAdminProductNotifications } from '@/hooks/useAdminProductNotifications';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
+import { format } from 'date-fns';
 
 interface AdminProductCardProps {
   product: Product;
@@ -57,6 +58,11 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     }
   };
 
+  // Format creation date
+  const formattedCreationDate = product.created_at 
+    ? format(new Date(product.created_at), 'dd.MM.yyyy HH:mm')
+    : 'Н/Д';
+
   // Format brand and model for display
   const brandModelText = [product.brand, product.model]
     .filter(Boolean)
@@ -101,6 +107,13 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
           <Hash className="w-3 h-3 text-muted-foreground" />
           <p className="text-xs text-muted-foreground">
             Лот: {product.lot_number || 'Не указан'}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-1 mb-1">
+          <Calendar className="w-3 h-3 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            Создан: {formattedCreationDate}
           </p>
         </div>
         
