@@ -3,7 +3,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useIntersection } from '@/hooks/useIntersection';
 import RefactoredProductSearchFilters from '@/components/admin/RefactoredProductSearchFilters';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
@@ -13,6 +13,14 @@ import { useProductFilters } from '@/hooks/useProductFilters';
 const PRODUCTS_PER_PAGE = 20;
 
 const AdminProducts = () => {
+  // Clear localStorage on page load to ensure fresh state
+  useEffect(() => {
+    console.log('AdminProducts mounted - checking localStorage state');
+    // We might want to clear it entirely for testing
+    // localStorage.removeItem('admin_products_sort_field');
+    // localStorage.removeItem('admin_products_sort_order');
+  }, []);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
@@ -29,6 +37,7 @@ const AdminProducts = () => {
   
   // Функция для выполнения рефетча данных, будет передана в useProductFilters
   const refetchProducts = useCallback(() => {
+    console.log('Refetching products with latest sort settings');
     queryClient.resetQueries({ queryKey: ['admin', 'products'] });
   }, [queryClient]);
   
@@ -40,6 +49,11 @@ const AdminProducts = () => {
     setSortOrder,
     resetAllFilters
   } = useProductFilters([], refetchProducts);
+  
+  // Log the current sort settings whenever they change
+  useEffect(() => {
+    console.log('Current sort settings:', { sortField, sortOrder });
+  }, [sortField, sortOrder]);
   
   // Удаление товара - оптимизировано с useCallback
   const handleDeleteProduct = useCallback(async (productId: string) => {
@@ -102,7 +116,7 @@ const AdminProducts = () => {
   // Формирование функции запроса с правильной сортировкой
   const queryFn = useCallback(async ({ pageParam = 1 }) => {
     try {
-      console.log('Выполнение запроса с параметрами:', { 
+      console.log('Executing query with parameters:', { 
         sortField, sortOrder,
         searchTerm: activeSearchTerm,
         pageParam
@@ -125,26 +139,34 @@ const AdminProducts = () => {
         query = query.or(`title.ilike.%${activeSearchTerm}%,description.ilike.%${activeSearchTerm}%,brand.ilike.%${activeSearchTerm}%,model.ilike.%${activeSearchTerm}%,optid_created.ilike.%${activeSearchTerm}%,lot_number.eq.${!isNaN(parseInt(activeSearchTerm)) ? parseInt(activeSearchTerm) : 0}`);
       }
 
-      // Исправленная логика сортировки
+      // Improved sorting logic with better debugging
       if (sortField === 'status') {
+        console.log('Applying special status sorting, order:', sortOrder);
         // Специальная сортировка по статусу
         const statusOrder = sortOrder === 'asc' ? 
           { pending: 0, active: 1, sold: 2, archived: 3 } : 
           { archived: 0, sold: 1, active: 2, pending: 3 };
           
-        // Получаем данные без сортировки в запросе
+        // Get data without server-side sorting for status
         query = query.order('created_at', { ascending: false });
         
         const { data, error } = await query.range(from, to);
         
-        if (error) throw new Error(error.message);
+        if (error) {
+          console.error('Error fetching products:', error);
+          throw new Error(error.message);
+        }
         
-        // Сортируем полученные данные вручную по статусу
+        console.log(`Before sorting - Status of first item: ${data?.[0]?.status}, count: ${data?.length}`);
+        
+        // Sort fetched data manually by status
         const sortedData = data ? [...data].sort((a, b) => {
           const aValue = statusOrder[a.status as keyof typeof statusOrder] || 999;
           const bValue = statusOrder[b.status as keyof typeof statusOrder] || 999;
           return aValue - bValue;
         }) : [];
+        
+        console.log(`After sorting - Status of first item: ${sortedData[0]?.status}, count: ${sortedData.length}`);
         
         const hasMore = data && data.length === PRODUCTS_PER_PAGE;
         return {
@@ -152,12 +174,18 @@ const AdminProducts = () => {
           nextPage: hasMore ? pageParam + 1 : undefined
         };
       } else {
-        // Стандартная сортировка по другим полям
+        // Standard sorting for other fields
+        console.log(`Applying regular sorting by ${sortField}, order: ${sortOrder}`);
         query = query.order(sortField, { ascending: sortOrder === 'asc' });
         
         const { data, error } = await query.range(from, to);
         
-        if (error) throw new Error(error.message);
+        if (error) {
+          console.error('Error fetching products:', error);
+          throw new Error(error.message);
+        }
+
+        console.log(`Regular sorting result - first item field value: ${data?.[0]?.[sortField]}, count: ${data?.length}`);
         
         const hasMore = data && data.length === PRODUCTS_PER_PAGE;
         return {
@@ -166,14 +194,14 @@ const AdminProducts = () => {
         };
       }
     } catch (error) {
-      console.error('Критическая ошибка при получении товаров:', error);
-      let errorMessage = 'Неизвестная ошибка';
+      console.error('Critical error fetching products:', error);
+      let errorMessage = 'Unknown error';
       
       if (error instanceof Error) {
         errorMessage = error.message;
-        console.error('Стек ошибки:', error.stack);
+        console.error('Error stack:', error.stack);
       } else {
-        console.error('Неизвестный тип ошибки:', error);
+        console.error('Unknown error type:', error);
       }
       
       throw new Error(errorMessage);
@@ -204,6 +232,13 @@ const AdminProducts = () => {
     productsData?.pages?.flatMap(page => page.products) || [], 
     [productsData?.pages]
   );
+
+  // Log product count and first product status whenever products change
+  useEffect(() => {
+    if (products.length > 0) {
+      console.log(`Products loaded: ${products.length}, first product status: ${products[0]?.status}`);
+    }
+  }, [products]);
 
   // Обработчик обновления статуса продукта
   const handleStatusChange = useCallback(() => {

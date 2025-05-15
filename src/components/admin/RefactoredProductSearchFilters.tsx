@@ -73,8 +73,16 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
     XLSX.writeFile(wb, `product_export_${new Date().toISOString().slice(0, 10)}.xlsx`);
   }, [products]);
 
+  // Логирование текущего состояния сортировки при рендеринге
+  console.log('Current sort state in filters component:', { 
+    sortField, 
+    sortOrder, 
+    sortValue: `${sortField}-${sortOrder}`
+  });
+
   // Мемоизируем функцию обработки изменения сортировки
   const handleSortChange = useCallback((value: string) => {
+    console.log('Sort changed to:', value);
     const [field, order] = value.split('-');
     setSortField(field as 'created_at' | 'price' | 'title' | 'status');
     setSortOrder(order as 'asc' | 'desc');
@@ -94,11 +102,10 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             placeholder="Поиск товаров..."
           />
           
-          {/* Sort Dropdown - set default selection to status-asc */}
+          {/* Sort Dropdown - removed conflicting defaultValue */}
           <Select
             value={`${sortField}-${sortOrder}`}
             onValueChange={handleSortChange}
-            defaultValue="status-asc"
           >
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Сортировка" />

@@ -24,56 +24,99 @@ export const useProductFilters = (
 ): ProductFiltersReturn => {
   const { toast } = useToast();
   
-  // Чтение из localStorage только при инициализации - default to status now
+  // Force "status-asc" default for pending first sorting
   const getInitialSortField = (): 'created_at' | 'price' | 'title' | 'status' => {
     try {
-      const saved = localStorage.getItem(SORT_FIELD_KEY);
-      return saved ? saved as 'created_at' | 'price' | 'title' | 'status' : 'status';
+      // Clear stale values on first load to ensure default behavior
+      const savedField = localStorage.getItem(SORT_FIELD_KEY);
+      
+      if (!savedField) {
+        // If no saved value, set default and save it
+        localStorage.setItem(SORT_FIELD_KEY, 'status');
+        return 'status';
+      }
+      
+      return savedField as 'created_at' | 'price' | 'title' | 'status';
     } catch {
+      // On error, ensure we still use the default
       return 'status';
     }
   };
   
-  // Default to asc for "pending first" sorting
   const getInitialSortOrder = (): 'asc' | 'desc' => {
     try {
-      const saved = localStorage.getItem(SORT_ORDER_KEY);
-      return saved ? saved as 'asc' | 'desc' : 'asc';
+      // Clear stale values on first load
+      const savedOrder = localStorage.getItem(SORT_ORDER_KEY);
+      
+      if (!savedOrder) {
+        // If no saved value, set default and save it
+        localStorage.setItem(SORT_ORDER_KEY, 'asc');
+        return 'asc';
+      }
+      
+      return savedOrder as 'asc' | 'desc';
     } catch {
+      // On error, ensure we still use the default
       return 'asc';
     }
   };
   
-  // Basic filter state с начальными значениями из localStorage
+  // Setup initial state with values from localStorage or defaults
   const [sortField, setSortFieldState] = useState<'created_at' | 'price' | 'title' | 'status'>(getInitialSortField);
   const [sortOrder, setSortOrderState] = useState<'asc' | 'desc'>(getInitialSortOrder);
 
-  // Мемоизированные функции установки сортировки с вызовом onApplyFilters
+  // Log the initial sort parameters for debugging
+  useEffect(() => {
+    console.log('Initial sort parameters:', { 
+      sortField, 
+      sortOrder,
+      fromLocalStorage: {
+        field: localStorage.getItem(SORT_FIELD_KEY),
+        order: localStorage.getItem(SORT_ORDER_KEY)
+      }
+    });
+  }, []);
+
+  // Memoized functions for setting sort with onApplyFilters callback
   const setSortField = useCallback((field: 'created_at' | 'price' | 'title' | 'status') => {
+    console.log('Setting sort field:', field);
     setSortFieldState(field);
     try {
       localStorage.setItem(SORT_FIELD_KEY, field);
-      // Вызываем функцию обновления данных при изменении сортировки
+      // Call the function to update data when sorting changes
       onApplyFilters();
     } catch (error) {
-      console.error('Ошибка при сохранении настроек сортировки:', error);
+      console.error('Error saving sort settings:', error);
     }
   }, [onApplyFilters]);
   
   const setSortOrder = useCallback((order: 'asc' | 'desc') => {
+    console.log('Setting sort order:', order);
     setSortOrderState(order);
     try {
       localStorage.setItem(SORT_ORDER_KEY, order);
-      // Вызываем функцию обновления данных при изменении сортировки
+      // Call the function to update data when sorting changes
       onApplyFilters();
     } catch (error) {
-      console.error('Ошибка при сохранении настроек сортировки:', error);
+      console.error('Error saving sort settings:', error);
     }
   }, [onApplyFilters]);
 
   // Reset all filters - simplified
   const resetAllFilters = useCallback(() => {
-    // No filters to reset, but keeping the function for API compatibility
+    console.log('Resetting filters to defaults: status-asc');
+    // Set to default values
+    setSortFieldState('status');
+    setSortOrderState('asc');
+    
+    try {
+      // Update localStorage
+      localStorage.setItem(SORT_FIELD_KEY, 'status');
+      localStorage.setItem(SORT_ORDER_KEY, 'asc');
+    } catch (error) {
+      console.error('Error resetting sort settings:', error);
+    }
+    
     onApplyFilters();
   }, [onApplyFilters]);
 
