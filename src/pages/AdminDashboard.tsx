@@ -50,17 +50,6 @@ const AdminDashboard = () => {
     }
   });
 
-  const { data: processingOrderCount, isLoading: isLoadingProcessingOrders } = useQuery({
-    queryKey: ['admin', 'processing-order-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .in('status', ['created', 'seller_confirmed', 'admin_confirmed']);
-      return count;
-    }
-  });
-
   const { data: pendingUsersCount, isLoading: isLoadingPendingUsers } = useQuery({
     queryKey: ['admin', 'pending-users-count'],
     queryFn: async () => {
@@ -139,23 +128,6 @@ const AdminDashboard = () => {
             </Card>
           </Link>
 
-          <Link to="/admin/orders">
-            <Card className={`hover:shadow-lg transition-shadow cursor-pointer ${(processingOrderCount || 0) > 0 ? 'bg-[#FEF7CD]' : ''}`}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Заказы в обработке</CardTitle>
-                <Clipboard className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {isLoadingProcessingOrders ? '...' : processingOrderCount || 0}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Заказы в процессе обработки
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-
           <Link to="/admin/logistics">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -164,7 +136,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {(processingOrderCount || 0)}
+                  {pendingOrderCount || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Управление доставками
