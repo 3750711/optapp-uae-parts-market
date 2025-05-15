@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 
@@ -46,24 +47,28 @@ export const useProductFilters = (
   const [sortField, setSortFieldState] = useState<'created_at' | 'price' | 'title' | 'status'>(getInitialSortField);
   const [sortOrder, setSortOrderState] = useState<'asc' | 'desc'>(getInitialSortOrder);
 
-  // Мемоизированные функции установки сортировки
+  // Мемоизированные функции установки сортировки с вызовом onApplyFilters
   const setSortField = useCallback((field: 'created_at' | 'price' | 'title' | 'status') => {
     setSortFieldState(field);
     try {
       localStorage.setItem(SORT_FIELD_KEY, field);
+      // Вызываем функцию обновления данных при изменении сортировки
+      onApplyFilters();
     } catch (error) {
       console.error('Ошибка при сохранении настроек сортировки:', error);
     }
-  }, []);
+  }, [onApplyFilters]);
   
   const setSortOrder = useCallback((order: 'asc' | 'desc') => {
     setSortOrderState(order);
     try {
       localStorage.setItem(SORT_ORDER_KEY, order);
+      // Вызываем функцию обновления данных при изменении сортировки
+      onApplyFilters();
     } catch (error) {
       console.error('Ошибка при сохранении настроек сортировки:', error);
     }
-  }, []);
+  }, [onApplyFilters]);
 
   // Reset all filters - simplified
   const resetAllFilters = useCallback(() => {

@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,6 +27,11 @@ const AdminProducts = () => {
   // Using the intersection observer to detect when user scrolls to the bottom
   const isIntersecting = useIntersection(loadMoreRef, '200px');
   
+  // Функция для выполнения рефетча данных, будет передана в useProductFilters
+  const refetchProducts = useCallback(() => {
+    queryClient.resetQueries({ queryKey: ['admin', 'products'] });
+  }, [queryClient]);
+  
   // Use our custom hook for filters - simplified version without filters
   const {
     sortField,
@@ -33,12 +39,7 @@ const AdminProducts = () => {
     setSortField,
     setSortOrder,
     resetAllFilters
-  } = useProductFilters([], 
-    // onApplyFilters callback
-    useCallback(() => {
-      refetch();
-    }, []) // refetch будет определена позже через useInfiniteQuery
-  );
+  } = useProductFilters([], refetchProducts);
   
   // Удаление товара - оптимизировано с useCallback
   const handleDeleteProduct = useCallback(async (productId: string) => {
@@ -98,7 +99,7 @@ const AdminProducts = () => {
   const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder, activeSearchTerm], 
     [sortField, sortOrder, activeSearchTerm]);
 
-  // Формирование функции запроса с оптимизациями
+  // Формирование функции запроса с правильной сортировкой
   const queryFn = useCallback(async ({ pageParam = 1 }) => {
     try {
       console.log('Выполнение запроса с параметрами:', { 
@@ -124,50 +125,48 @@ const AdminProducts = () => {
         query = query.or(`title.ilike.%${activeSearchTerm}%,description.ilike.%${activeSearchTerm}%,brand.ilike.%${activeSearchTerm}%,model.ilike.%${activeSearchTerm}%,optid_created.ilike.%${activeSearchTerm}%,lot_number.eq.${!isNaN(parseInt(activeSearchTerm)) ? parseInt(activeSearchTerm) : 0}`);
       }
 
-      // Применяем сортировку
+      // Исправленная логика сортировки
       if (sortField === 'status') {
-        console.log('Сортировка по статусу');
-        // Если сортировка по статусу, сначала сортируем по статусу, затем по дате для удобства
-        query = query.order('status', { ascending: true }).order('created_at', { ascending: false });
-      } else {
-        console.log(`Сортировка по ${sortField}, порядок: ${sortOrder}`);
-        query = query.order(sortField, { ascending: sortOrder === 'asc' });
-      }
-      
-      // Apply pagination
-      console.log(`Применение пагинации: от ${from} до ${to}`);
-      query = query.range(from, to);
-      
-      console.log('Выполнение запроса...');
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Ошибка запроса:', error);
-        throw new Error(`Ошибка Supabase: ${error.message}`);
-      }
-
-      console.log(`Получено ${data?.length || 0} товаров`);
-
-      // Check if we have more pages
-      const hasMore = data && data.length === PRODUCTS_PER_PAGE;
-
-      if (sortField === 'status') {
-        const statusOrder = { pending: 0, active: 1, sold: 2, archived: 3 };
+        // Специальная сортировка по статусу
+        const statusOrder = sortOrder === 'asc' ? 
+          { pending: 0, active: 1, sold: 2, archived: 3 } : 
+          { archived: 0, sold: 1, active: 2, pending: 3 };
+          
+        // Получаем данные без сортировки в запросе
+        query = query.order('created_at', { ascending: false });
+        
+        const { data, error } = await query.range(from, to);
+        
+        if (error) throw new Error(error.message);
+        
+        // Сортируем полученные данные вручную по статусу
+        const sortedData = data ? [...data].sort((a, b) => {
+          const aValue = statusOrder[a.status as keyof typeof statusOrder] || 999;
+          const bValue = statusOrder[b.status as keyof typeof statusOrder] || 999;
+          return aValue - bValue;
+        }) : [];
+        
+        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
         return {
-          products: data ? data.sort((a, b) => 
-            statusOrder[a.status as keyof typeof statusOrder] - statusOrder[b.status as keyof typeof statusOrder]
-          ) : [],
+          products: sortedData,
+          nextPage: hasMore ? pageParam + 1 : undefined
+        };
+      } else {
+        // Стандартная сортировка по другим полям
+        query = query.order(sortField, { ascending: sortOrder === 'asc' });
+        
+        const { data, error } = await query.range(from, to);
+        
+        if (error) throw new Error(error.message);
+        
+        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
+        return {
+          products: data || [],
           nextPage: hasMore ? pageParam + 1 : undefined
         };
       }
-
-      return {
-        products: data || [],
-        nextPage: hasMore ? pageParam + 1 : undefined
-      };
     } catch (error) {
       console.error('Критическая ошибка при получении товаров:', error);
-      // Показываем более подробную информацию об ошибке
       let errorMessage = 'Неизвестная ошибка';
       
       if (error instanceof Error) {
@@ -214,8 +213,7 @@ const AdminProducts = () => {
   // Load more products when the user scrolls to the bottom or clicks the load more button
   useEffect(() => {
     if (isIntersecting && hasNextPage && !isFetchingNextPage) {
-      console.log('Auto-loading additional products on scroll...');
-      // We're keeping the automatic loading on scroll
+      fetchNextPage();
     }
   }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
