@@ -13,6 +13,8 @@ import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
+import SearchBar from '@/components/admin/filters/SearchBar';
+import ActiveSearchDisplay from '@/components/admin/filters/ActiveSearchDisplay';
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -22,9 +24,11 @@ const AdminOrders = () => {
   const [showEditDialog, setShowEditDialog] = React.useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState<StatusFilterType>('all');
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = React.useState('');
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ['admin-orders', statusFilter],
+    queryKey: ['admin-orders', statusFilter, activeSearchTerm],
     queryFn: async () => {
       let query = supabase
         .from('orders')
@@ -52,6 +56,19 @@ const AdminOrders = () => {
         query = query.eq('status', statusFilter);
       }
 
+      // Apply search filter if there's an active search term
+      if (activeSearchTerm) {
+        query = query.or(
+          `order_number.ilike.%${activeSearchTerm}%,` +
+          `title.ilike.%${activeSearchTerm}%,` +
+          `brand.ilike.%${activeSearchTerm}%,` +
+          `model.ilike.%${activeSearchTerm}%,` +
+          `buyer_opt_id.ilike.%${activeSearchTerm}%,` +
+          `seller_opt_id.ilike.%${activeSearchTerm}%,` +
+          `text_order.ilike.%${activeSearchTerm}%`
+        );
+      }
+
       const { data, error } = await query;
 
       if (error) {
@@ -66,6 +83,15 @@ const AdminOrders = () => {
       return data;
     }
   });
+
+  const handleSearch = () => {
+    setActiveSearchTerm(searchTerm.trim());
+  };
+
+  const clearSearch = () => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+  };
 
   const handleViewDetails = (orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
@@ -145,47 +171,70 @@ const AdminOrders = () => {
     <AdminLayout>
       <div className="container mx-auto py-8">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Управление заказами</CardTitle>
-            <Select
-              value={statusFilter}
-              onValueChange={(value: StatusFilterType) => setStatusFilter(value)}
-            >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Фильтр по статусу" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все статусы</SelectItem>
-                <SelectItem value="created">Создан</SelectItem>
-                <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
-                <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
-                <SelectItem value="processed">Зарегистрирован</SelectItem>
-                <SelectItem value="shipped">Отправлен</SelectItem>
-                <SelectItem value="delivered">Доставлен</SelectItem>
-                <SelectItem value="cancelled">Отменен</SelectItem>
-              </SelectContent>
-            </Select>
+          <CardHeader className="flex flex-col space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <CardTitle>Управление заказами</CardTitle>
+              <Select
+                value={statusFilter}
+                onValueChange={(value: StatusFilterType) => setStatusFilter(value)}
+              >
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Фильтр по статусу" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Все статусы</SelectItem>
+                  <SelectItem value="created">Создан</SelectItem>
+                  <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
+                  <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
+                  <SelectItem value="processed">Зарегистрирован</SelectItem>
+                  <SelectItem value="shipped">Отправлен</SelectItem>
+                  <SelectItem value="delivered">Доставлен</SelectItem>
+                  <SelectItem value="cancelled">Отменен</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="w-full">
+              <SearchBar
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                onSearch={handleSearch}
+                onClear={clearSearch}
+                activeSearchTerm={activeSearchTerm}
+                placeholder="Поиск по номеру, названию, бренду..."
+              />
+              <ActiveSearchDisplay 
+                searchTerm={activeSearchTerm} 
+                onClear={clearSearch} 
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orders?.map((order) => (
-                <div key={order.id} className="relative group">
-                  <AdminOrderCard
-                    order={order}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    onClick={() => handleViewDetails(order.id)}
-                    title="Посмотреть детали заказа"
-                  >
-                    <Eye className="h-4 w-4" />
-                  </Button>
+              {orders?.length ? (
+                orders.map((order) => (
+                  <div key={order.id} className="relative group">
+                    <AdminOrderCard
+                      order={order}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      onClick={() => handleViewDetails(order.id)}
+                      title="Посмотреть детали заказа"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-10 text-muted-foreground">
+                  {activeSearchTerm ? "Нет заказов, соответствующих поисковому запросу" : "Нет заказов с выбранным статусом"}
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
