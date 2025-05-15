@@ -94,10 +94,11 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             placeholder="Поиск товаров..."
           />
           
-          {/* Sort Dropdown */}
+          {/* Sort Dropdown - set default selection to status-asc */}
           <Select
             value={`${sortField}-${sortOrder}`}
             onValueChange={handleSortChange}
+            defaultValue="status-asc"
           >
             <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Сортировка" />

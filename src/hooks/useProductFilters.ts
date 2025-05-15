@@ -24,7 +24,7 @@ export const useProductFilters = (
 ): ProductFiltersReturn => {
   const { toast } = useToast();
   
-  // Чтение из localStorage только при инициализации
+  // Чтение из localStorage только при инициализации - default to status now
   const getInitialSortField = (): 'created_at' | 'price' | 'title' | 'status' => {
     try {
       const saved = localStorage.getItem(SORT_FIELD_KEY);
@@ -34,6 +34,7 @@ export const useProductFilters = (
     }
   };
   
+  // Default to asc for "pending first" sorting
   const getInitialSortOrder = (): 'asc' | 'desc' => {
     try {
       const saved = localStorage.getItem(SORT_ORDER_KEY);
