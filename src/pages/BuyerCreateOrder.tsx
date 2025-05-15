@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { BrandModelSelector } from "@/components/product/BrandModelSelector";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -26,13 +24,6 @@ const BuyerCreateOrder = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const productId = searchParams.get('productId');
-  
-  // Use our car brands and models hook
-  const { 
-    brands, 
-    brandModels,
-    selectBrand,
-  } = useCarBrandsAndModels();
   
   const [formData, setFormData] = useState({
     title: "",
@@ -380,7 +371,6 @@ const BuyerCreateOrder = () => {
   // Handle brand and model selection
   const handleBrandChange = (brandId: string) => {
     setSelectedBrandId(brandId);
-    selectBrand(brandId); // Make sure models list is updated when brand changes
     setSelectedModelId(null); // Reset model when brand changes
   };
 

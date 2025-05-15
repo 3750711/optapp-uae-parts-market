@@ -331,16 +331,16 @@ const SellerAddProduct = () => {
                 imageUrls={imageUrls}
                 videoUrls={videoUrls}
                 userId={user?.id}
-                brands={brands || []}
-                brandModels={brandModels || []}
+                brands={brands}
+                brandModels={brandModels}
                 isLoadingCarData={isLoadingCarData}
                 watchBrandId={watchBrandId}
                 searchBrandTerm={searchBrandTerm}
                 setSearchBrandTerm={setSearchBrandTerm}
                 searchModelTerm={searchModelTerm}
                 setSearchModelTerm={setSearchModelTerm}
-                filteredBrands={filteredBrands || []}
-                filteredModels={filteredModels || []}
+                filteredBrands={filteredBrands}
+                filteredModels={filteredModels}
                 handleRealtimeImageUpload={handleRealtimeImageUpload}
                 setVideoUrls={setVideoUrls}
               />
