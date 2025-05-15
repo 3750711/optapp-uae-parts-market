@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon } from "lucide-react";
 import {
@@ -60,6 +60,14 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 }) => {
   const [contactConsent, setContactConsent] = useState(false);
   const [textOrder, setTextOrder] = useState<string>("");
+
+  // Set default delivery method to 'cargo_rf' on component mount
+  useEffect(() => {
+    // Set default delivery method if not already set
+    if (!deliveryMethod || deliveryMethod !== 'cargo_rf') {
+      onDeliveryMethodChange('cargo_rf');
+    }
+  }, [deliveryMethod, onDeliveryMethodChange]);
 
   const handleConfirm = () => {
     if (deliveryMethod === 'self_pickup' && !contactConsent) {
@@ -141,7 +149,6 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <div className="space-y-1.5">
               <h3 className="font-semibold text-sm mb-1">Способ доставки</h3>
               <Select 
-                defaultValue="cargo_rf"
                 value={deliveryMethod || 'cargo_rf'}
                 onValueChange={(value) => {
                   onDeliveryMethodChange(value as DeliveryMethod);

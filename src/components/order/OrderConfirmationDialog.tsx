@@ -51,8 +51,16 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   product,
   profile,
   deliveryMethod,
+  onDeliveryMethodChange,
 }) => {
   const [textOrder, setTextOrder] = useState<string>("");
+  
+  // Set default delivery method to 'cargo_rf' if not defined
+  React.useEffect(() => {
+    if (!deliveryMethod) {
+      onDeliveryMethodChange('cargo_rf');
+    }
+  }, [deliveryMethod, onDeliveryMethodChange]);
 
   const handleConfirm = () => {
     console.log("Submitting text_order:", textOrder);
