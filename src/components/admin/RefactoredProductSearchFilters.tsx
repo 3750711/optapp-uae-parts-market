@@ -3,12 +3,18 @@ import React, { useCallback, memo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react"; 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import SearchBar from './filters/SearchBar';
 import * as XLSX from 'xlsx';
 
 interface RefactoredProductSearchFiltersProps {
   // Sort states
   sortField: 'created_at' | 'price' | 'title' | 'status';
   sortOrder: 'asc' | 'desc';
+  
+  // Search states
+  searchTerm: string;
+  setSearchTerm: (term: string) => void;
+  activeSearchTerm: string;
   
   // Data
   products: any[];
@@ -17,6 +23,8 @@ interface RefactoredProductSearchFiltersProps {
   setSortField: (field: 'created_at' | 'price' | 'title' | 'status') => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
   resetAllFilters: () => void;
+  onSearch: () => void;
+  onClearSearch: () => void;
 }
 
 // Используем memo для предотвращения лишних перерисовок
@@ -25,13 +33,20 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   sortField,
   sortOrder,
   
+  // Search states
+  searchTerm,
+  setSearchTerm,
+  activeSearchTerm,
+  
   // Data
   products,
   
   // Event handlers
   setSortField,
   setSortOrder,
-  resetAllFilters
+  resetAllFilters,
+  onSearch,
+  onClearSearch
 }) => {
   // Export products to Excel - мемоизируем функцию
   const exportToExcel = useCallback(() => {
@@ -71,6 +86,14 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
         <h1 className="text-2xl font-bold tracking-tight">Товары</h1>
         
         <div className="flex flex-col sm:flex-row w-full md:w-auto items-center gap-2">
+          {/* Search Bar */}
+          <SearchBar 
+            value={searchTerm}
+            onChange={setSearchTerm}
+            onSearch={onSearch}
+            placeholder="Поиск товаров..."
+          />
+          
           {/* Sort Dropdown */}
           <Select
             value={`${sortField}-${sortOrder}`}
@@ -103,6 +126,23 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           </Button>
         </div>
       </div>
+
+      {/* Active Search Term Display */}
+      {activeSearchTerm && (
+        <div className="flex items-center mb-4">
+          <p className="text-sm text-muted-foreground">
+            Поиск по запросу: <span className="font-medium text-foreground">{activeSearchTerm}</span>
+          </p>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="ml-2 h-6" 
+            onClick={onClearSearch}
+          >
+            Сбросить
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

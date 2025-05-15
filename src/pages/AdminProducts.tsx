@@ -18,6 +18,10 @@ const AdminProducts = () => {
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+  
   // Reference for the loading trigger element
   const loadMoreRef = useRef<HTMLDivElement>(null);
   // Using the intersection observer to detect when user scrolls to the bottom
@@ -75,14 +79,32 @@ const AdminProducts = () => {
     }
   }, [isDeleting, queryClient, toast]);
 
-  // Ключ запроса с зависимостями сортировки
-  const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder], [sortField, sortOrder]);
+  // Handle search
+  const handleSearch = useCallback(() => {
+    if (searchTerm.trim()) {
+      setActiveSearchTerm(searchTerm.trim());
+      // Reset pagination when searching
+      queryClient.resetQueries({ queryKey: ['admin', 'products'] });
+    }
+  }, [searchTerm, queryClient]);
+
+  // Clear search
+  const handleClearSearch = useCallback(() => {
+    setSearchTerm('');
+    setActiveSearchTerm('');
+    queryClient.resetQueries({ queryKey: ['admin', 'products'] });
+  }, [queryClient]);
+
+  // Ключ запроса с зависимостями сортировки и поиска
+  const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder, activeSearchTerm], 
+    [sortField, sortOrder, activeSearchTerm]);
 
   // Формирование функции запроса с оптимизациями
   const queryFn = useCallback(async ({ pageParam = 1 }) => {
     try {
       console.log('Выполнение запроса с параметрами:', { 
         sortField, sortOrder,
+        searchTerm: activeSearchTerm,
         pageParam
       });
       
@@ -97,6 +119,11 @@ const AdminProducts = () => {
           product_images(url, is_primary),
           profiles(full_name, rating, opt_id)
         `);
+
+      // Apply search if active
+      if (activeSearchTerm) {
+        query = query.or(`title.ilike.%${activeSearchTerm}%,description.ilike.%${activeSearchTerm}%,brand.ilike.%${activeSearchTerm}%,model.ilike.%${activeSearchTerm}%,optid_created.ilike.%${activeSearchTerm}%,lot_number.eq.${!isNaN(parseInt(activeSearchTerm)) ? parseInt(activeSearchTerm) : 0}`);
+      }
 
       // Применяем сортировку
       if (sortField === 'status') {
@@ -153,7 +180,7 @@ const AdminProducts = () => {
       
       throw new Error(errorMessage);
     }
-  }, [sortField, sortOrder]);
+  }, [sortField, sortOrder, activeSearchTerm]);
 
   // Query products with filters
   const {
@@ -200,10 +227,15 @@ const AdminProducts = () => {
         <RefactoredProductSearchFilters
           sortField={sortField}
           sortOrder={sortOrder}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          activeSearchTerm={activeSearchTerm}
           products={products}
           setSortField={setSortField}
           setSortOrder={setSortOrder}
           resetAllFilters={resetAllFilters}
+          onSearch={handleSearch}
+          onClearSearch={handleClearSearch}
         />
 
         {/* Сетка товаров */}
