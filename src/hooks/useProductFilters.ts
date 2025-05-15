@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 
 // Define the FiltersState interface that was missing
@@ -32,9 +33,14 @@ export const useProductFilters = (
     const savedSortField = localStorage.getItem('admin_products_sort_field');
     const savedSortOrder = localStorage.getItem('admin_products_sort_order');
     
+    // Only allow valid sort fields (status and price)
+    const validSortField = savedSortField === 'status' || savedSortField === 'price' 
+      ? savedSortField 
+      : defaultSortField;
+    
     // Always use these defaults if nothing is saved
     return {
-      sortField: savedSortField || defaultSortField,
+      sortField: validSortField,
       sortOrder: (savedSortOrder as 'asc' | 'desc') || defaultSortOrder,
       filters: [...initialFilters]
     };
@@ -87,6 +93,12 @@ export const useProductFilters = (
   }, [onFiltersChange]);
 
   const setSortField = useCallback((field: string) => {
+    // Only allow status or price as sort fields
+    if (field !== 'status' && field !== 'price') {
+      console.warn('Invalid sort field:', field, 'Only status and price are allowed');
+      return;
+    }
+
     console.log('Setting sort field:', field);
     setFilterState(prev => {
       if (onFiltersChange) onFiltersChange();

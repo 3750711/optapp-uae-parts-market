@@ -16,9 +16,6 @@ const AdminProducts = () => {
   // Clear localStorage on page load to ensure fresh state
   useEffect(() => {
     console.log('AdminProducts mounted - checking localStorage state');
-    // We might want to clear it entirely for testing
-    // localStorage.removeItem('admin_products_sort_field');
-    // localStorage.removeItem('admin_products_sort_order');
   }, []);
 
   const { toast } = useToast();
@@ -113,7 +110,7 @@ const AdminProducts = () => {
   const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder, activeSearchTerm], 
     [sortField, sortOrder, activeSearchTerm]);
 
-  // Формирование функции запроса с правильной сортировкой
+  // Формирование функции запроса с правильной сортировкой - обновлена для работы только с status и price
   const queryFn = useCallback(async ({ pageParam = 1 }) => {
     try {
       console.log('Executing query with parameters:', { 
@@ -139,15 +136,69 @@ const AdminProducts = () => {
         query = query.or(`title.ilike.%${activeSearchTerm}%,description.ilike.%${activeSearchTerm}%,brand.ilike.%${activeSearchTerm}%,model.ilike.%${activeSearchTerm}%,optid_created.ilike.%${activeSearchTerm}%,lot_number.eq.${!isNaN(parseInt(activeSearchTerm)) ? parseInt(activeSearchTerm) : 0}`);
       }
 
-      // Improved sorting logic with better debugging
+      // Updated sorting logic - only for status and price
       if (sortField === 'status') {
         console.log('Applying special status sorting, order:', sortOrder);
-        // Специальная сортировка по статусу
+        
+        // Define status order based on sortOrder
         const statusOrder = sortOrder === 'asc' ? 
           { pending: 0, active: 1, sold: 2, archived: 3 } : 
           { archived: 0, sold: 1, active: 2, pending: 3 };
-          
-        // Get data without server-side sorting for status
+        
+        // For status, we need to get all data and sort it manually since we need custom ordering
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching products:', error);
+          throw new Error(error.message);
+        }
+        
+        // Sort all data by status using our custom order
+        const sortedData = data ? [...data].sort((a, b) => {
+          const aValue = statusOrder[a.status as keyof typeof statusOrder] || 999;
+          const bValue = statusOrder[b.status as keyof typeof statusOrder] || 999;
+          return aValue - bValue;
+        }) : [];
+        
+        console.log(`Sorted by status - Status of first item: ${sortedData[0]?.status}`);
+        
+        // Take only the slice we need for pagination
+        const paginatedData = sortedData.slice(from, to + 1);
+        const hasMore = from + PRODUCTS_PER_PAGE < sortedData.length;
+        
+        return {
+          products: paginatedData,
+          nextPage: hasMore ? pageParam + 1 : undefined
+        };
+      } 
+      else if (sortField === 'price') {
+        // For price, we can use server-side sorting which is more efficient
+        console.log(`Applying price sorting, order: ${sortOrder}`);
+        
+        // Add the sort order to the query
+        query = query.order(sortField, { ascending: sortOrder === 'asc' });
+        
+        // Get the paginated data
+        const { data, error } = await query.range(from, to);
+        
+        if (error) {
+          console.error('Error fetching products:', error);
+          throw new Error(error.message);
+        }
+        
+        console.log(`Sorted by price - First item price: ${data?.[0]?.price}`);
+        
+        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
+        return {
+          products: data || [],
+          nextPage: hasMore ? pageParam + 1 : undefined
+        };
+      }
+      else {
+        // Fallback to default sorting
+        console.log(`Using default sorting by created_at, desc`);
+        
+        // Default sort by created_at desc
         query = query.order('created_at', { ascending: false });
         
         const { data, error } = await query.range(from, to);
@@ -156,36 +207,6 @@ const AdminProducts = () => {
           console.error('Error fetching products:', error);
           throw new Error(error.message);
         }
-        
-        console.log(`Before sorting - Status of first item: ${data?.[0]?.status}, count: ${data?.length}`);
-        
-        // Sort fetched data manually by status
-        const sortedData = data ? [...data].sort((a, b) => {
-          const aValue = statusOrder[a.status as keyof typeof statusOrder] || 999;
-          const bValue = statusOrder[b.status as keyof typeof statusOrder] || 999;
-          return aValue - bValue;
-        }) : [];
-        
-        console.log(`After sorting - Status of first item: ${sortedData[0]?.status}, count: ${sortedData.length}`);
-        
-        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
-        return {
-          products: sortedData,
-          nextPage: hasMore ? pageParam + 1 : undefined
-        };
-      } else {
-        // Standard sorting for other fields
-        console.log(`Applying regular sorting by ${sortField}, order: ${sortOrder}`);
-        query = query.order(sortField, { ascending: sortOrder === 'asc' });
-        
-        const { data, error } = await query.range(from, to);
-        
-        if (error) {
-          console.error('Error fetching products:', error);
-          throw new Error(error.message);
-        }
-
-        console.log(`Regular sorting result - first item field value: ${data?.[0]?.[sortField]}, count: ${data?.length}`);
         
         const hasMore = data && data.length === PRODUCTS_PER_PAGE;
         return {
