@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus } from 'lucide-react';
+import { Store, Activity, Plus, Car } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -16,6 +16,14 @@ const AdminActionsSection: React.FC = () => {
       subtitle: "Просмотр журнала системных событий",
       icon: Activity,
       link: "/admin/events",
+    },
+    {
+      title: "Марки и модели",
+      subtitle: "Управление каталогом автомобилей",
+      icon: Car,
+      link: "/admin/car-catalog",
+      bgColor: "bg-optapp-yellow",
+      textColor: "text-optapp-dark"
     },
     {
       title: "Добавить объявление",

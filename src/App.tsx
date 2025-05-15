@@ -19,6 +19,7 @@ import AdminOrders from "./pages/AdminOrders";
 import AdminStores from "./pages/AdminStores";
 import AdminEvents from "./pages/AdminEvents";
 import AdminImageOptimizer from "./pages/AdminImageOptimizer"; // New import
+import AdminCarCatalog from "./pages/AdminCarCatalog"; // New import
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -157,6 +158,11 @@ const App = () => {
               <Route path="/admin/image-optimizer" element={
                 <ProtectedRoute allowedRoles={['admin']}>
                   <AdminImageOptimizer />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/car-catalog" element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminCarCatalog />
                 </ProtectedRoute>
               } />
               <Route path="/seller/:id" element={<PublicSellerProfile />} />

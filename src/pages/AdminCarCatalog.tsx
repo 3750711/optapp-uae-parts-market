@@ -1,11 +1,11 @@
-import React, { useState, useCallback, useEffect } from "react";
+
+import React, { useState, useCallback } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Pencil, X, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Pencil, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -77,7 +77,6 @@ const AdminCarCatalog = () => {
   const [selectedModelForEdit, setSelectedModelForEdit] = useState<string | null>(null);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
-  const [isSeedingData, setIsSeedingData] = useState(false);
   
   const { 
     brands, 
@@ -259,40 +258,6 @@ const AdminCarCatalog = () => {
     },
   });
 
-  // Mutation for batch adding Suzuki models
-  const addSuzukiModelsMutation = useMutation({
-    mutationFn: async (data: { brandId: string, models: string[] }) => {
-      const modelObjects = data.models.map(modelName => ({
-        name: modelName,
-        brand_id: data.brandId
-      }));
-      
-      const { data: result, error } = await supabase
-        .from('car_models')
-        .insert(modelObjects)
-        .select();
-      
-      if (error) throw error;
-      return result;
-    },
-    onSuccess: (data, variables) => {
-      toast({
-        title: "Модели Suzuki добавлены",
-        description: `Успешно добавлено ${data.length} моделей Suzuki в базу данных.`,
-      });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', variables.brandId] });
-      setIsSeedingData(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Ошибка",
-        description: `Не удалось добавить модели Suzuki: ${error.message}`,
-        variant: "destructive",
-      });
-      setIsSeedingData(false);
-    },
-  });
-
   // Handler for submitting the brand form
   const onBrandSubmit = useCallback((data: BrandFormValues) => {
     if (selectedBrandForEdit) {
@@ -323,68 +288,6 @@ const AdminCarCatalog = () => {
     setAddModelDialogOpen(true);
   }, []);
 
-  // Function to seed Suzuki models
-  const seedSuzukiModels = useCallback(async () => {
-    setIsSeedingData(true);
-    
-    // First check if Suzuki brand exists
-    let suzukiBrandId = brands.find(b => b.name.toLowerCase() === 'suzuki')?.id;
-    
-    if (!suzukiBrandId) {
-      try {
-        // Create Suzuki brand if it doesn't exist
-        const { data: newBrand, error } = await supabase
-          .from('car_brands')
-          .insert([{ name: 'Suzuki' }])
-          .select()
-          .single();
-        
-        if (error) throw error;
-        suzukiBrandId = newBrand.id;
-        
-        // Force refresh brands
-        queryClient.invalidateQueries({ queryKey: ['admin', 'car-brands'] });
-      } catch (error) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось создать марку Suzuki",
-          variant: "destructive",
-        });
-        setIsSeedingData(false);
-        return;
-      }
-    }
-    
-    // Suzuki models from different markets
-    const suzukiModels = [
-      // JDM (Japanese Domestic Market)
-      'Jimny', 'Swift', 'Hustler', 'Spacia', 'Solio', 'Alto', 'Lapin', 'Wagon R', 'Ignis', 'Escudo',
-      'Landy', 'Every', 'Carry', 'Xbee', 'Baleno', 'Kizashi', 'SX4', 'S-Cross',
-      
-      // European Market
-      'Vitara', 'S-Presso', 'Across', 'Swace', 'Celerio', 'Splash',
-      
-      // Indian Market
-      'Dzire', 'Ciaz', 'Ertiga', 'XL6', 'Eeco', 'Fronx', 'Grand Vitara', 'Brezza',
-      
-      // North American Market (Historical)
-      'Equator', 'Grand Vitara XL-7', 'Sidekick', 'Samurai', 'Esteem', 'Forenza', 'Reno', 'Aerio',
-      
-      // Global/Special Models
-      'Cappuccino', 'Hayabusa', 'Intruder', 'Katana', 'GSX-R', 'Boulevard', 'V-Strom', 'Burgman',
-      'Samurai'
-    ];
-    
-    // Add all models
-    if (suzukiBrandId) {
-      addSuzukiModelsMutation.mutate({
-        brandId: suzukiBrandId,
-        models: suzukiModels
-      });
-    }
-    
-  }, [brands, queryClient, addSuzukiModelsMutation, toast]);
-
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
@@ -394,25 +297,6 @@ const AdminCarCatalog = () => {
             <p className="text-gray-500">Управление марками и моделями автомобилей</p>
           </div>
           <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
-            <Button 
-              variant="outline" 
-              onClick={seedSuzukiModels} 
-              disabled={isSeedingData}
-              className="bg-green-50 border-green-500 text-green-600 hover:bg-green-100"
-            >
-              {isSeedingData ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Загрузка моделей Suzuki...
-                </>
-              ) : (
-                <>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Добавить модели Suzuki
-                </>
-              )}
-            </Button>
-            
             <Dialog open={addBrandDialogOpen} onOpenChange={setAddBrandDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
