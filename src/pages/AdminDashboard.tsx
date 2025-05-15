@@ -50,6 +50,17 @@ const AdminDashboard = () => {
     }
   });
 
+  const { data: nonProcessedOrderCount, isLoading: isLoadingNonProcessedOrders } = useQuery({
+    queryKey: ['admin', 'non-processed-order-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .neq('status', 'processed');
+      return count;
+    }
+  });
+
   const { data: pendingUsersCount, isLoading: isLoadingPendingUsers } = useQuery({
     queryKey: ['admin', 'pending-users-count'],
     queryFn: async () => {
@@ -115,7 +126,7 @@ const AdminDashboard = () => {
           </Link>
 
           <Link to="/admin/orders">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className={`hover:shadow-lg transition-shadow cursor-pointer ${(nonProcessedOrderCount || 0) > 0 ? 'bg-[#FEF7CD]' : ''}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Заказы</CardTitle>
                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
@@ -126,6 +137,9 @@ const AdminDashboard = () => {
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Всего оформленных заказов
+                  {(nonProcessedOrderCount || 0) > 0 && (
+                    <span className="ml-1 text-amber-600">({nonProcessedOrderCount} не зарегистрировано)</span>
+                  )}
                 </p>
               </CardContent>
             </Card>
