@@ -1,5 +1,10 @@
-
 import { useState, useEffect, useCallback } from 'react';
+
+// Define the FiltersState interface that was missing
+export interface FiltersState {
+  // Keep it empty for now as it seems this is how it's being used
+  // Can be extended later if needed
+}
 
 interface ProductFiltersProps {
   sortField: string;

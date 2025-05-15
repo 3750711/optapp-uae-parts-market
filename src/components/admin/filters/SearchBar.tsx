@@ -5,16 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
 
 interface SearchBarProps {
-  value: string;
-  onChange: (value: string) => void;
+  searchTerm: string; // Changed from 'value' to match what's used in RefactoredProductSearchFilters
+  setSearchTerm: (value: string) => void; // Changed from 'onChange' to match component usage
   onSearch: () => void;
+  onClear?: () => void; // Added this prop to match usage
+  activeSearchTerm?: string; // Added this prop to match usage
   placeholder?: string;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
-  value, 
-  onChange, 
+  searchTerm, 
+  setSearchTerm, 
   onSearch,
+  onClear,
   placeholder = "Поиск..."
 }) => {
   // Handle key press - if Enter is pressed, trigger search
@@ -29,8 +32,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
       <Input
         type="search"
         placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={handleKeyDown}
         className="w-full pr-10"
       />
