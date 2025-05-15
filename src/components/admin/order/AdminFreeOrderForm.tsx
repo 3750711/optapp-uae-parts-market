@@ -203,26 +203,36 @@ export const AdminFreeOrderForm = () => {
 
       console.log("Creating order with payload:", orderPayload);
 
+      // Use RPC function call to bypass RLS for admin operations
       const { data: createdOrderData, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderPayload)
-        .select();
+        .rpc('admin_create_order', orderPayload);
 
       if (orderError) {
         console.error("Error creating order:", orderError);
         throw orderError;
       }
 
-      const createdOrder = createdOrderData?.[0];
-      console.log("Created order:", createdOrder);
+      console.log("Created order:", createdOrderData);
 
-      if (!createdOrder) {
+      if (!createdOrderData) {
         throw new Error("Order was created but no data was returned");
+      }
+
+      // Fetch the newly created order
+      const { data: orderData, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', createdOrderData)
+        .single();
+        
+      if (fetchError) {
+        console.error("Error fetching created order:", fetchError);
+        throw fetchError;
       }
 
       if (images.length > 0) {
         const imageInserts = images.map((url, index) => ({
-          order_id: createdOrder.id,
+          order_id: createdOrderData,
           url,
           is_primary: index === 0
         }));
@@ -241,10 +251,10 @@ export const AdminFreeOrderForm = () => {
         }
       }
 
-      if (videos.length > 0 && createdOrder?.id) {
-        console.log("Saving video references to database, order ID:", createdOrder.id);
+      if (videos.length > 0 && createdOrderData) {
+        console.log("Saving video references to database, order ID:", createdOrderData);
         const videoRecords = videos.map(url => ({
-          order_id: createdOrder.id,
+          order_id: createdOrderData,
           url
         }));
         
@@ -267,7 +277,7 @@ export const AdminFreeOrderForm = () => {
         console.log("Sending Telegram notification for new order creation");
         await supabase.functions.invoke('send-telegram-notification', {
           body: { 
-            order: { ...createdOrder, images },
+            order: { ...orderData, images },
             action: 'create'
           }
         });
@@ -276,7 +286,7 @@ export const AdminFreeOrderForm = () => {
         console.error('Failed to send order notification:', notifyError);
       }
 
-      setCreatedOrder(createdOrder);
+      setCreatedOrder(orderData);
       toast({
         title: "Заказ создан",
         description: "Заказ был успешно создан",
