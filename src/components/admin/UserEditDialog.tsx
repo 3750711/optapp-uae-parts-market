@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -30,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { ProfileType } from '@/components/profile/types';
+import { Loader2 } from 'lucide-react';
 
 const formSchema = z.object({
   full_name: z.string().min(2, "Минимум 2 символа").optional(),
@@ -55,6 +57,7 @@ interface UserEditDialogProps {
 export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps) => {
   const { toast } = useToast();
   const [open, setOpen] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -70,24 +73,44 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
   });
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    const { error } = await supabase
-      .from('profiles')
-      .update(values)
-      .eq('id', user.id);
+    try {
+      setIsSubmitting(true);
+      
+      // Clean up values to prevent empty strings being saved as nulls
+      const cleanedValues = Object.entries(values).reduce((acc, [key, value]) => {
+        acc[key] = value === "" ? null : value;
+        return acc;
+      }, {} as Record<string, any>);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update(cleanedValues)
+        .eq('id', user.id);
 
-    if (error) {
+      if (error) {
+        console.error("Error updating user:", error);
+        toast({
+          title: "Ошибка",
+          description: `Не удалось обновить данные пользователя: ${error.message}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Успех",
+          description: "Данные пользователя обновлены",
+        });
+        setOpen(false);
+        if (onSuccess) onSuccess();
+      }
+    } catch (err) {
+      console.error("Exception updating user:", err);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить данные пользователя",
+        description: "Произошла непредвиденная ошибка при обновлении пользователя",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Успех",
-        description: "Данные пользователя обновлены",
-      });
-      setOpen(false);
-      if (onSuccess) onSuccess();
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -99,6 +122,9 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Редактировать пользователя</DialogTitle>
+          <DialogDescription>
+            Внесите изменения в профиль пользователя и нажмите Сохранить
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -109,7 +135,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
                 <FormItem>
                   <FormLabel>Имя и фамилия</FormLabel>
                   <FormControl>
-                    <Input placeholder="Введите имя" {...field} />
+                    <Input placeholder="Введите имя" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -123,7 +149,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
                 <FormItem>
                   <FormLabel>Название компании</FormLabel>
                   <FormControl>
-                    <Input placeholder="Введите название компании" {...field} />
+                    <Input placeholder="Введите название компании" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -137,7 +163,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
                 <FormItem>
                   <FormLabel>Телефон</FormLabel>
                   <FormControl>
-                    <Input placeholder="+971 XX XXX XXXX" {...field} />
+                    <Input placeholder="+971 XX XXX XXXX" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -151,7 +177,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
                 <FormItem>
                   <FormLabel>Telegram</FormLabel>
                   <FormControl>
-                    <Input placeholder="@username" {...field} />
+                    <Input placeholder="@username" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -165,7 +191,7 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
                 <FormItem>
                   <FormLabel>OPT ID</FormLabel>
                   <FormControl>
-                    <Input placeholder="Введите OPT ID" {...field} />
+                    <Input placeholder="Введите OPT ID" {...field} value={field.value || ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -218,8 +244,19 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
               )}
             />
 
-            <Button type="submit" className="w-full">
-              Сохранить изменения
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                  Сохранение...
+                </>
+              ) : (
+                "Сохранить изменения"
+              )}
             </Button>
           </form>
         </Form>
