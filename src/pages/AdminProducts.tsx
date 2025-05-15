@@ -139,10 +139,9 @@ const AdminProducts = () => {
       if (sortField === 'status') {
         console.log('Applying special status sorting, order:', sortOrder);
         
-        // Define status order based on sortOrder
-        // ИСПРАВЛЕНО: корректный порядок статусов для sortOrder === 'asc': pending, active, sold, archived
+        // Define status order based on sortOrder - FIXED with new values
         const statusOrder = sortOrder === 'asc' ? 
-          { pending: 0, active: 1, sold: 2, archived: 3 } : 
+          { pending: 1, active: 2, sold: 3, archived: 4 } : 
           { archived: 0, sold: 1, active: 2, pending: 3 };
         
         console.log('Status order mapping:', statusOrder);
