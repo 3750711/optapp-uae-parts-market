@@ -26,6 +26,8 @@ import { Product } from '@/types/product';
 import { supabase } from '@/integrations/supabase/client';
 import { AdminProductImagesManager } from "./AdminProductImagesManager";
 import { AdminProductVideosManager } from "./AdminProductVideosManager";
+import { BrandModelSelector } from "@/components/product/BrandModelSelector";
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Название должно содержать не менее 2 символов" }),
@@ -37,8 +39,8 @@ const formSchema = z.object({
     { message: "Цена должна быть положительным числом" }
   ),
   description: z.string().optional(),
-  brand: z.string().min(1, { message: "Введите бренд" }),
-  model: z.string().optional(), // Make model optional
+  brandId: z.string().min(1, { message: "Выберите марку" }),
+  modelId: z.string().optional(), // Make model optional
   place_number: z.number().min(1, { message: "Минимальное количество мест - 1" }),
   delivery_price: z.string().refine(
     (val) => {
@@ -68,7 +70,9 @@ export const ProductEditDialog = ({
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
-
+  const [brandId, setBrandId] = React.useState<string>("");
+  const [modelId, setModelId] = React.useState<string | undefined>(undefined);
+  
   const [images, setImages] = React.useState<string[]>(
     Array.isArray(product.product_images)
       ? product.product_images.map((img: any) => img.url)
@@ -79,6 +83,40 @@ export const ProductEditDialog = ({
       ? product.product_videos.map((vid: any) => vid.url)
       : []
   );
+
+  // Fetch brand and model IDs on component mount
+  React.useEffect(() => {
+    const fetchBrandAndModel = async () => {
+      if (!product.brand) return;
+      
+      // Get the brand ID
+      const { data: brandData } = await supabase
+        .from('car_brands')
+        .select('id')
+        .eq('name', product.brand)
+        .maybeSingle();
+      
+      if (brandData?.id) {
+        setBrandId(brandData.id);
+        
+        // If there's a model, get the model ID
+        if (product.model) {
+          const { data: modelData } = await supabase
+            .from('car_models')
+            .select('id')
+            .eq('brand_id', brandData.id)
+            .eq('name', product.model)
+            .maybeSingle();
+          
+          if (modelData?.id) {
+            setModelId(modelData.id);
+          }
+        }
+      }
+    };
+    
+    fetchBrandAndModel();
+  }, [product]);
 
   React.useEffect(() => {
     setImages(Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []);
@@ -91,16 +129,52 @@ export const ProductEditDialog = ({
       title: product.title || "",
       price: product.price?.toString() || "",
       description: product.description || "",
-      brand: product.brand || "",
-      model: product.model || "",  // Allow empty model
+      brandId: brandId || "",
+      modelId: modelId || "",
       place_number: product.place_number || 1,
       delivery_price: product.delivery_price?.toString() || "0",
     },
+    mode: "onChange"
   });
+  
+  // Update form values when brandId or modelId changes
+  React.useEffect(() => {
+    form.setValue("brandId", brandId);
+    form.setValue("modelId", modelId);
+  }, [brandId, modelId, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Allow for empty model value
-    const modelValue = values.model === "" ? null : values.model;
+    // Get the brand and model names for database
+    let brandName = product.brand;
+    let modelName = product.model;
+    
+    // If brand ID has changed, get the new brand name
+    if (values.brandId !== brandId) {
+      const { data: brandData } = await supabase
+        .from('car_brands')
+        .select('name')
+        .eq('id', values.brandId)
+        .maybeSingle();
+      
+      if (brandData?.name) {
+        brandName = brandData.name;
+      }
+    }
+    
+    // If model ID has changed, get the new model name
+    if (values.modelId !== modelId) {
+      if (values.modelId) {
+        const { data: modelData } = await supabase
+          .from('car_models')
+          .select('name')
+          .eq('id', values.modelId)
+          .maybeSingle();
+        
+        modelName = modelData?.name || null;
+      } else {
+        modelName = null;
+      }
+    }
     
     const { error } = await supabase
       .from('products')
@@ -108,8 +182,8 @@ export const ProductEditDialog = ({
         title: values.title,
         price: parseFloat(values.price),
         description: values.description,
-        brand: values.brand,
-        model: modelValue, // This can now be null
+        brand: brandName,
+        model: modelName, // This can now be null
         place_number: values.place_number,
         delivery_price: parseFloat(values.delivery_price),
       })
@@ -146,7 +220,7 @@ export const ProductEditDialog = ({
         </DialogHeader>
 
         <div className="flex flex-col gap-3 flex-1 overflow-y-auto">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <AdminProductImagesManager
               productId={product.id}
               images={images}
@@ -173,6 +247,7 @@ export const ProductEditDialog = ({
                   </FormItem>
                 )}
               />
+              
               <div className="grid grid-cols-2 gap-2">
                 <FormField
                   control={form.control}
@@ -188,34 +263,40 @@ export const ProductEditDialog = ({
                   )}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <FormField
-                  control={form.control}
-                  name="brand"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs mb-0.5">Бренд</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Бренд" className="h-8 text-sm" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="model"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-xs mb-0.5">Модель</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Модель" className="h-8 text-sm" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              
+              <Label className="text-xs">Марка и модель</Label>
+              <FormField
+                control={form.control}
+                name="brandId"
+                render={({ field }) => (
+                  <FormItem className="space-y-1 mt-0.5">
+                    <BrandModelSelector
+                      selectedBrandId={field.value}
+                      selectedModelId={form.getValues("modelId")}
+                      onBrandChange={(brandId) => {
+                        field.onChange(brandId);
+                        setBrandId(brandId);
+                        // Clear model if brand changes
+                        if (brandId !== field.value) {
+                          form.setValue("modelId", undefined);
+                          setModelId(undefined);
+                        }
+                      }}
+                      onModelChange={(modelId) => {
+                        form.setValue("modelId", modelId);
+                        setModelId(modelId);
+                      }}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="modelId"
+                render={() => <></>} // Hidden field, managed by the BrandModelSelector
+              />
+              
               <FormField
                 control={form.control}
                 name="place_number"
