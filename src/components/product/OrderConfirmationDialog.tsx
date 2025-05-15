@@ -64,7 +64,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   // Set default delivery method to 'cargo_rf' on component mount
   useEffect(() => {
     // Set default delivery method if not already set
-    if (!deliveryMethod || deliveryMethod !== 'cargo_rf') {
+    if (!deliveryMethod) {
       onDeliveryMethodChange('cargo_rf');
     }
   }, [deliveryMethod, onDeliveryMethodChange]);
@@ -151,6 +151,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               <Select 
                 value={deliveryMethod || 'cargo_rf'}
                 onValueChange={(value) => {
+                  console.log("Changing delivery method to:", value);
                   onDeliveryMethodChange(value as DeliveryMethod);
                 }}
               >

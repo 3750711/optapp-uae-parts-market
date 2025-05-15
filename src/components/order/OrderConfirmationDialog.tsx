@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -120,6 +121,38 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
             <div>
               <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
+              
+              <Select 
+                value={deliveryMethod || 'cargo_rf'}
+                onValueChange={(value) => {
+                  console.log("Changing delivery method to:", value);
+                  onDeliveryMethodChange(value as Database["public"]["Enums"]["delivery_method"]);
+                }}
+              >
+                <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow">
+                  <SelectValue placeholder="Выберите способ доставки" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-md">
+                  <SelectItem 
+                    value="cargo_rf" 
+                    className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                  >
+                    Доставка Cargo РФ
+                  </SelectItem>
+                  <SelectItem 
+                    value="cargo_kz" 
+                    className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                  >
+                    Доставка Cargo KZ
+                  </SelectItem>
+                  <SelectItem 
+                    value="self_pickup" 
+                    className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
+                  >
+                    Самовывоз
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               
               {showDeliveryPrice && product.delivery_price !== undefined && (
                 <div className="mt-2 mb-2 p-2 bg-gray-50 rounded-md border border-gray-200">
