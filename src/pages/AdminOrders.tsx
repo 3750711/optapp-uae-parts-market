@@ -19,9 +19,28 @@ import LoadMoreTrigger from "@/components/admin/productGrid/LoadMoreTrigger";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
+// Определяем тип для заказа, чтобы избежать ошибок TypeScript
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  buyer: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  seller: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+    opt_status: string | null;
+  } | null;
+};
+
 const AdminOrders = () => {
   const navigate = useNavigate();
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
@@ -59,17 +78,34 @@ const AdminOrders = () => {
         query = query.eq('status', statusFilter);
       }
 
-      // Apply search filter if there's an active search term
+      // Применяем поиск, если есть активный поисковый запрос
       if (activeSearchTerm) {
-        query = query.or(
-          `order_number.ilike.%${activeSearchTerm}%,` +
-          `title.ilike.%${activeSearchTerm}%,` +
-          `brand.ilike.%${activeSearchTerm}%,` +
-          `model.ilike.%${activeSearchTerm}%,` +
-          `buyer_opt_id.ilike.%${activeSearchTerm}%,` +
-          `seller_opt_id.ilike.%${activeSearchTerm}%,` +
-          `text_order.ilike.%${activeSearchTerm}%`
-        );
+        const isNumeric = !isNaN(Number(activeSearchTerm));
+        
+        // Создаем фильтры поиска
+        if (isNumeric) {
+          // Если это число, ищем точное соответствие по order_number
+          // и также по текстовым полям для подстрок
+          query = query.or(
+            `order_number.eq.${Number(activeSearchTerm)},` +
+            `title.ilike.%${activeSearchTerm}%,` +
+            `brand.ilike.%${activeSearchTerm}%,` +
+            `model.ilike.%${activeSearchTerm}%,` +
+            `buyer_opt_id.ilike.%${activeSearchTerm}%,` +
+            `seller_opt_id.ilike.%${activeSearchTerm}%,` +
+            `text_order.ilike.%${activeSearchTerm}%`
+          );
+        } else {
+          // Если это не число, ищем только в текстовых полях
+          query = query.or(
+            `title.ilike.%${activeSearchTerm}%,` +
+            `brand.ilike.%${activeSearchTerm}%,` +
+            `model.ilike.%${activeSearchTerm}%,` +
+            `buyer_opt_id.ilike.%${activeSearchTerm}%,` +
+            `seller_opt_id.ilike.%${activeSearchTerm}%,` +
+            `text_order.ilike.%${activeSearchTerm}%`
+          );
+        }
       }
 
       const { data, error } = await query;
@@ -80,14 +116,15 @@ const AdminOrders = () => {
           description: "Не удалось загрузить заказы",
           variant: "destructive",
         });
+        console.error("Ошибка загрузки заказов:", error);
         throw error;
       }
 
-      return data;
+      return data as Order[];
     }
   });
 
-  // Use the pagination hook
+  // Используем хук для пагинации
   const { paginatedData: paginatedOrders, totalPages } = usePaginatedData(
     orders || [],
     { pageSize, currentPage }
@@ -101,25 +138,25 @@ const AdminOrders = () => {
 
   const handleSearch = () => {
     setActiveSearchTerm(searchTerm.trim());
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1); // Сбрасываем на первую страницу при новом поиске
   };
 
   const clearSearch = () => {
     setSearchTerm('');
     setActiveSearchTerm('');
-    setCurrentPage(1); // Reset to first page when clearing search
+    setCurrentPage(1); // Сбрасываем на первую страницу при очистке поиска
   };
 
   const handleViewDetails = (orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
   };
 
-  const handleEdit = (order: any) => {
+  const handleEdit = (order: Order) => {
     setSelectedOrder(order);
     setShowEditDialog(true);
   };
 
-  const handleDelete = (order: any) => {
+  const handleDelete = (order: Order) => {
     setSelectedOrder(order);
     setShowDeleteDialog(true);
   };
@@ -195,7 +232,7 @@ const AdminOrders = () => {
                 value={statusFilter}
                 onValueChange={(value: StatusFilterType) => {
                   setStatusFilter(value);
-                  setCurrentPage(1); // Reset to first page on filter change
+                  setCurrentPage(1); // Сбрасываем на первую страницу при изменении фильтра
                 }}
               >
                 <SelectTrigger className="w-[200px]">
@@ -250,7 +287,7 @@ const AdminOrders = () => {
               )}
             </div>
             
-            {/* Load More Button */}
+            {/* Кнопка "Загрузить еще" */}
             {orders && orders.length > 0 && currentPage < totalPages && (
               <div className="flex justify-center mt-8">
                 <LoadMoreTrigger
