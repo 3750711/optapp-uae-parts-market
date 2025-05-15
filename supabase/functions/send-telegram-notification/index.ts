@@ -343,7 +343,7 @@ serve(async (req) => {
       // Create the order detail page URL
       const orderPageUrl = `https://partsbay.ae/admin/orders/${order.id}`;
       
-      // Новый формат сообщения согласно предоставленному шаблону
+      // Обновленный формат сообщения согласно новым требованиям
       const message = `Заказ № ${orderNumber}\n` +
         `Статус: ${orderStatus}\n` +
         `${order.telegram_url_order ? `Telegram отправителя: @${order.telegram_url_order}\n` : ''}\n` +
@@ -353,14 +353,14 @@ serve(async (req) => {
         `Модель: ${order.model || 'Не указана'}\n` +
         `Количество мест для отправки: ${order.place_number || 1}\n` +
         `Доставка: ${deliveryMethod}\n` +
-        `🔗 <a href="${orderPageUrl}">Страница заказа</a>\n\n` +
-        `🟰🟰🟰🟰🟰🟰\n` +
+        `🔗 <a href="${orderPageUrl}">Страница заказа</a>\n` +
+        (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '') + 
+        `\n🟰🟰🟰🟰🟰🟰\n` +
         `Цена: ${order.price} $\n` +
         `Цена доставки: ${order.delivery_price_confirm || 0} $\n\n` +
         `===\n` +
-        `OPT_ID продавца: ${order.seller_opt_id || 'Не указан'}\n` +
-        `Получатель OPT_ID: ${order.buyer_opt_id || 'Не указан'}\n` +
-        (order.text_order ? `\n📋 Комментарий: ${order.text_order}\n` : '');
+        `${order.seller_opt_id || 'Не указан'}\n` +
+        `${order.buyer_opt_id || 'Не указан'}`;
 
       // Use the updated order-specific group chat ID for orders
       const chatId = ORDER_GROUP_CHAT_ID;
