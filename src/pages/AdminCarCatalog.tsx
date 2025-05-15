@@ -27,6 +27,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -41,7 +51,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Pencil, AlertCircle } from "lucide-react";
+import { Loader2, Plus, Pencil, AlertCircle, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -77,6 +87,8 @@ const AdminCarCatalog = () => {
   const [selectedModelForEdit, setSelectedModelForEdit] = useState<string | null>(null);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
+  const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   
   const { 
     brands, 
@@ -196,6 +208,54 @@ const AdminCarCatalog = () => {
     },
   });
 
+  // Mutation for deleting a brand and its models
+  const deleteBrandMutation = useMutation({
+    mutationFn: async (brandId: string) => {
+      // First delete all models associated with this brand
+      const { error: modelsError } = await supabase
+        .from('car_models')
+        .delete()
+        .eq('brand_id', brandId);
+
+      if (modelsError) throw modelsError;
+
+      // Then delete the brand itself
+      const { error: brandError } = await supabase
+        .from('car_brands')
+        .delete()
+        .eq('id', brandId);
+
+      if (brandError) throw brandError;
+
+      return brandId;
+    },
+    onSuccess: (brandId) => {
+      toast({
+        title: "Марка удалена",
+        description: "Марка автомобиля и все связанные модели успешно удалены.",
+      });
+      
+      // Clear selection if the deleted brand was selected
+      if (selectedBrand === brandId) {
+        selectBrand("");
+      }
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'car-brands'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models'] });
+      setIsDeleteAlertOpen(false);
+      setBrandToDelete(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка",
+        description: `Не удалось удалить марку: ${error.message}`,
+        variant: "destructive",
+      });
+      setIsDeleteAlertOpen(false);
+    },
+  });
+
   // Mutation for adding a model
   const addModelMutation = useMutation({
     mutationFn: async (data: ModelFormValues) => {
@@ -287,6 +347,19 @@ const AdminCarCatalog = () => {
     setSelectedModelForEdit(modelId);
     setAddModelDialogOpen(true);
   }, []);
+
+  // Handler for opening the delete brand dialog
+  const handleOpenDeleteBrand = useCallback((brandId: string) => {
+    setBrandToDelete(brandId);
+    setIsDeleteAlertOpen(true);
+  }, []);
+
+  // Handler for confirming brand deletion
+  const handleConfirmDeleteBrand = useCallback(() => {
+    if (brandToDelete) {
+      deleteBrandMutation.mutate(brandToDelete);
+    }
+  }, [brandToDelete, deleteBrandMutation]);
 
   return (
     <AdminLayout>
@@ -443,6 +516,32 @@ const AdminCarCatalog = () => {
           </div>
         </div>
 
+        {/* Alert Dialog for brand deletion */}
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Вы собираетесь удалить марку автомобиля. 
+                Это действие также удалит ВСЕ модели, связанные с этой маркой. 
+                Это действие не может быть отменено.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setBrandToDelete(null)}>Отмена</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleConfirmDeleteBrand}
+                className="bg-red-500 hover:bg-red-600 text-white"
+              >
+                {deleteBrandMutation.isPending && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                Удалить
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         <div className="grid md:grid-cols-2 gap-6">
           {/* Brands card */}
           <Card>
@@ -464,7 +563,7 @@ const AdminCarCatalog = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Название</TableHead>
-                      <TableHead className="w-24 text-right">Действия</TableHead>
+                      <TableHead className="w-32 text-right">Действия</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -491,13 +590,23 @@ const AdminCarCatalog = () => {
                         <TableRow key={brand.id}>
                           <TableCell className="font-medium">{brand.name}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditBrand(brand.id)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditBrand(brand.id)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-100"
+                                onClick={() => handleOpenDeleteBrand(brand.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
