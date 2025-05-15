@@ -82,6 +82,8 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
         return acc;
       }, {} as Record<string, any>);
       
+      // For admin editing, we need to bypass the telegram_edit_count check
+      // This will be handled by the RLS policy, so no need to modify it here
       const { error } = await supabase
         .from('profiles')
         .update(cleanedValues)

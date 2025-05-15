@@ -9,6 +9,7 @@ import {
   FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 interface TelegramFieldProps {
   control: any;
@@ -27,7 +28,11 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
   placeholder = "@username",
   initialValue = ""
 }) => {
-  const isEditable = initialValue === "" && telegram_edit_count === 0;
+  const { isAdmin } = useAdminAccess();
+  
+  // Regular users can only edit if they've never set a Telegram or haven't used their one edit
+  // Admins can edit at any time
+  const isEditable = isAdmin || (initialValue === "" && telegram_edit_count === 0);
   
   return (
     <FormField
@@ -46,17 +51,21 @@ export const TelegramField: React.FC<TelegramFieldProps> = ({
           </FormControl>
           {description ? (
             <FormDescription>{description}</FormDescription>
-          ) : !isEditable && initialValue ? (
+          ) : !isEditable && !isAdmin && initialValue ? (
             <FormDescription className="text-yellow-600">
               Если вам нужно изменить telegram пожалуйста свяжитесь с администратором
             </FormDescription>
-          ) : initialValue === "" ? (
+          ) : initialValue === "" && !isAdmin ? (
             <FormDescription>
               У вас есть одна попытка указать Telegram ID
             </FormDescription>
-          ) : (
+          ) : !isAdmin ? (
             <FormDescription>
               Если вам нужно изменить telegram пожалуйста свяжитесь с администратором
+            </FormDescription>
+          ) : (
+            <FormDescription className="text-green-600">
+              Как администратор, вы можете изменять Telegram ID пользователей
             </FormDescription>
           )}
           <FormMessage />
