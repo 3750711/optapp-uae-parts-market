@@ -19,6 +19,16 @@ const AdminDashboard = () => {
     }
   });
 
+  const { data: totalProductCount, isLoading: isLoadingTotalProducts } = useQuery({
+    queryKey: ['admin', 'total-product-count'],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true });
+      return count;
+    }
+  });
+
   const { data: pendingProductCount, isLoading: isLoadingPendingProducts } = useQuery({
     queryKey: ['admin', 'pending-product-count'],
     queryFn: async () => {
@@ -36,17 +46,6 @@ const AdminDashboard = () => {
       const { count } = await supabase
         .from('orders')
         .select('*', { count: 'exact', head: true });
-      return count;
-    }
-  });
-
-  const { data: pendingOrderCount, isLoading: isLoadingPendingOrders } = useQuery({
-    queryKey: ['admin', 'pending-order-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'created');
       return count;
     }
   });
@@ -103,10 +102,13 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {isLoadingPendingProducts ? '...' : pendingProductCount || 0}
+                  {isLoadingTotalProducts ? '...' : totalProductCount || 0}
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Товары ожидающие проверки
+                  Всего товаров в каталоге
+                  {(pendingProductCount || 0) > 0 && (
+                    <span className="ml-1 text-amber-600">({pendingProductCount} ожидает проверки)</span>
+                  )}
                 </p>
               </CardContent>
             </Card>
@@ -137,7 +139,7 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {pendingOrderCount || 0}
+                  -
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
                   Управление доставками
