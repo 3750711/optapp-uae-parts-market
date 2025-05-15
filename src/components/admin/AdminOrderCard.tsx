@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +58,32 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
       });
 
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      
+      // Получаем изображения заказа для отправки уведомления
+      try {
+        console.log('Отправка уведомления об изменении статуса заказа:', order.id);
+        
+        // Получаем изображения заказа
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', order.id);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        // Вызов edge-функции для отправки уведомления со статусом 'status_change'
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, status: 'admin_confirmed', images },
+            action: 'status_change'
+          }
+        });
+        
+        console.log('Результат отправки уведомления об изменении статуса:', notificationResult);
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления об изменении статуса заказа:', notifyError);
+        // Продолжаем выполнение даже при ошибке отправки уведомления
+      }
     } catch (error) {
       toast({
         title: "Ошибка",
@@ -81,6 +108,31 @@ export const AdminOrderCard: React.FC<AdminOrderCardProps> = ({ order, onEdit, o
       });
 
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      
+      // Отправка уведомления об изменении статуса заказа
+      try {
+        console.log('Отправка уведомления о регистрации заказа:', order.id);
+        
+        // Получаем изображения заказа
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', order.id);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        // Вызов edge-функции для отправки уведомления
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, status: 'processed', images },
+            action: 'status_change'
+          }
+        });
+        
+        console.log('Результат отправки уведомления о регистрации заказа:', notificationResult);
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления о регистрации заказа:', notifyError);
+      }
     } catch (error) {
       toast({
         title: "Ошибка",

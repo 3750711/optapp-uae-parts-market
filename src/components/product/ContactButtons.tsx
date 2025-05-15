@@ -219,6 +219,23 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         console.log('Product status updated to sold successfully');
       }
 
+      // Добавляем вызов edge-функции для отправки уведомления о новом заказе
+      try {
+        console.log('Отправка уведомления о новом заказе в Telegram:', order.id);
+        
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, images: productImages },
+            action: 'create'
+          }
+        });
+        
+        console.log('Результат отправки уведомления о заказе:', notificationResult);
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления о новом заказе:', notifyError);
+        // Продолжаем выполнение даже при ошибке отправки уведомления
+      }
+
       if (deliveryMethod === 'self_pickup') {
         setOrderNumber(order.order_number);
         setShowSuccessDialog(true);
