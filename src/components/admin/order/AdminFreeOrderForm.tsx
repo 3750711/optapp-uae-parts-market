@@ -230,34 +230,17 @@ export const AdminFreeOrderForm = () => {
         throw fetchError;
       }
 
-      if (images.length > 0) {
-        const imageInserts = images.map((url, index) => ({
-          order_id: createdOrderData,
-          url,
-          is_primary: index === 0
-        }));
-
-        const { error: imagesError } = await supabase
-          .from('order_images')
-          .insert(imageInserts);
-
-        if (imagesError) {
-          console.error("Error saving image references:", imagesError);
-          toast({
-            title: "Предупреждение",
-            description: "Заказ создан, но возникла проблема с сохранением изображений",
-            variant: "destructive"
-          });
-        }
-      }
-
       if (videos.length > 0 && createdOrderData) {
         console.log("Saving video references to database, order ID:", createdOrderData);
+        // Для видео по-прежнему используем прямую вставку
+        // Но в будущем можно модифицировать RPC функцию для видео
         const videoRecords = videos.map(url => ({
           order_id: createdOrderData,
           url
         }));
         
+        // Прямая вставка может работать если у админа есть права,
+        // в противном случае будет ошибка RLS
         const { error: videosError } = await supabase
           .from('order_videos')
           .insert(videoRecords);
