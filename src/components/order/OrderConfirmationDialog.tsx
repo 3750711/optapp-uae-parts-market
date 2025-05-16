@@ -16,7 +16,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useTranslation } from "react-i18next";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -56,7 +55,6 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   onDeliveryMethodChange,
 }) => {
   const [textOrder, setTextOrder] = useState<string>("");
-  const { t } = useTranslation('order');
   
   // Set default value to cargo_rf on first render if not set
   useEffect(() => {
@@ -79,42 +77,42 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md max-w-[95vw] p-4 sm:p-6">
         <DialogHeader className="space-y-1 pb-2">
-          <DialogTitle>{t('confirmation.title')}</DialogTitle>
+          <DialogTitle>Подтверждение заказа</DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
-            {t('confirmation.checkInfo')}
+            Проверьте информацию перед подтверждением
           </DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[60vh] overflow-y-auto pr-4">
           <div className="space-y-3 sm:space-y-4 text-sm">
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">{t('confirmation.productInfo')}</h3>
+              <h3 className="font-semibold text-sm mb-1.5">Информация о товаре</h3>
               <div className="space-y-1 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.name')}</span>
+                  <span className="text-gray-500">Наименование:</span>
                   <span className="font-medium text-right max-w-[60%] break-words">{product.title}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.brand')}</span>
+                  <span className="text-gray-500">Бренд:</span>
                   <span className="font-medium">{product.brand}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.model')}</span>
+                  <span className="text-gray-500">Модель:</span>
                   <span className="font-medium">{product.model}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.price')}</span>
+                  <span className="text-gray-500">Цена:</span>
                   <span className="font-medium">{product.price} $</span>
                 </div>
                 {product.lot_number !== undefined && product.lot_number !== null && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500">{t('confirmation.lotNumber')}</span>
+                    <span className="text-gray-500">Номер лота:</span>
                     <span className="font-medium">{product.lot_number}</span>
                   </div>
                 )}
                 {product.id && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500">{t('confirmation.productId')}</span>
+                    <span className="text-gray-500">ID товара:</span>
                     <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
                   </div>
                 )}
@@ -124,7 +122,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <Separator />
 
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">{t('confirmation.deliveryMethod')}</h3>
+              <h3 className="font-semibold text-sm mb-1.5">Способ доставки</h3>
               
               <Select 
                 value={deliveryMethod || 'cargo_rf'}
@@ -134,26 +132,26 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 }}
               >
                 <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow">
-                  <SelectValue placeholder={t('confirmation.selectDelivery')} />
+                  <SelectValue placeholder="Выберите способ доставки" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-md">
                   <SelectItem 
                     value="cargo_rf" 
                     className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                   >
-                    {t('confirmation.cargoRF')}
+                    Доставка Cargo РФ
                   </SelectItem>
                   <SelectItem 
                     value="cargo_kz" 
                     className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                   >
-                    {t('confirmation.cargoKZ')}
+                    Доставка Cargo KZ
                   </SelectItem>
                   <SelectItem 
                     value="self_pickup" 
                     className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                   >
-                    {t('confirmation.selfPickup')}
+                    Самовывоз
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -161,7 +159,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
               {showDeliveryPrice && product.delivery_price !== undefined && (
                 <div className="mt-2 mb-2 p-2 bg-gray-50 rounded-md border border-gray-200">
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">{t('confirmation.deliveryPrice')}</span>
+                    <span className="text-gray-600">Стоимость доставки:</span>
                     <span className="font-medium text-gray-900">{product.delivery_price} $</span>
                   </div>
                 </div>
@@ -171,15 +169,15 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <Separator />
 
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">{t('confirmation.sellerInfo')}</h3>
+              <h3 className="font-semibold text-sm mb-1.5">Информация о продавце</h3>
               <div className="space-y-1 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.seller')}</span>
-                  <span className="font-medium">{product.seller_name || t('confirmation.notSpecified')}</span>
+                  <span className="text-gray-500">Продавец:</span>
+                  <span className="font-medium">{product.seller_name || 'Не указан'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.optId')}</span>
-                  <span className="font-medium">{product.optid_created || t('confirmation.notSpecified')}</span>
+                  <span className="text-gray-500">OPT ID:</span>
+                  <span className="font-medium">{product.optid_created || 'Не указан'}</span>
                 </div>
               </div>
             </div>
@@ -187,15 +185,15 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <Separator />
 
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">{t('confirmation.buyerInfo')}</h3>
+              <h3 className="font-semibold text-sm mb-1.5">Информация о покупателе</h3>
               <div className="space-y-1 text-xs sm:text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.yourOptId')}</span>
-                  <span className="font-medium">{profile?.opt_id || t('confirmation.notSpecified')}</span>
+                  <span className="text-gray-500">Ваш OPT ID:</span>
+                  <span className="font-medium">{profile?.opt_id || 'Не указан'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">{t('confirmation.yourTelegram')}</span>
-                  <span className="font-medium">{profile?.telegram || t('confirmation.notSpecified')}</span>
+                  <span className="text-gray-500">Ваш Telegram:</span>
+                  <span className="font-medium">{profile?.telegram || 'Не указан'}</span>
                 </div>
               </div>
             </div>
@@ -203,9 +201,9 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <Separator />
 
             <div>
-              <h3 className="font-semibold text-sm mb-1.5">{t('confirmation.additionalInfo')}</h3>
+              <h3 className="font-semibold text-sm mb-1.5">Дополнительная информация</h3>
               <Textarea
-                placeholder={t('confirmation.additionalInfoPlaceholder')}
+                placeholder="Укажите дополнительную информацию по заказу (необязательно)"
                 className="resize-none text-sm"
                 rows={3}
                 value={textOrder}
@@ -220,7 +218,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <div className="flex items-start space-x-2">
               <InfoIcon className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
               <AlertDescription className="text-yellow-900 text-xs sm:text-sm">
-                {t('confirmation.warning')} {t('confirmation.moreFAQ')} <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">{t('confirmation.faq')}</a>.
+                Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+                Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
               </AlertDescription>
             </div>
           </Alert>
@@ -233,7 +232,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             disabled={isSubmitting}
             className="text-xs sm:text-sm h-8 sm:h-9"
           >
-            {t('confirmation.cancel')}
+            Отмена
           </Button>
           <Button
             onClick={handleConfirm}
@@ -243,10 +242,10 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
-                {t('confirmation.processing')}
+                Обработка...
               </>
             ) : (
-              t('confirmation.confirm')
+              "Подтвердить заказ"
             )}
           </Button>
         </DialogFooter>

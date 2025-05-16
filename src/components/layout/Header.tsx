@@ -17,8 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/components/ui/use-toast";
-import { useTranslation } from "react-i18next";
-import LanguageSelector from "@/components/language/LanguageSelector";
 import {
   Sheet,
   SheetContent,
@@ -31,12 +29,11 @@ const Header = () => {
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   const getUserTypeLabel = (type: string | undefined) => {
-    if (type === 'seller') return t('userTypes.seller');
-    if (type === 'buyer') return t('userTypes.buyer');
-    if (type === 'admin') return t('userTypes.admin');
+    if (type === 'seller') return 'Продавец';
+    if (type === 'buyer') return 'Покупатель';
+    if (type === 'admin') return 'Администратор';
     return '';
   };
 
@@ -65,40 +62,40 @@ const Header = () => {
         className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
-        {t('main')}
+        Главная
       </Link>
       <Link 
         to="/catalog" 
         className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
-        {t('catalog')}
+        Каталог
       </Link>
       <Link 
         to="/stores" 
         className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
-        {t('stores')}
+        Магазины
       </Link>
       <Link 
         to="/requests" 
         className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
-        {t('requests')}
+        Запросы
       </Link>
       <Link 
         to="/about" 
         className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors"
         onClick={onClick}
       >
-        {t('about')}
+        О нас
       </Link>      
       {profile?.user_type === 'seller' && (
         <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
           <Button variant="secondary" size="sm" className="animate-float">
-            {t('sellerPanel')}
+            Панель продавца
           </Button>
         </Link>
       )}
@@ -136,8 +133,6 @@ const Header = () => {
         )}
 
         <div className="flex items-center space-x-3">
-          <LanguageSelector />
-          
           {user ? (
             <div className="flex items-center space-x-2">
               {profile?.user_type && !isMobile && (
@@ -177,7 +172,7 @@ const Header = () => {
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/admin" className="flex w-full items-center">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>{t('adminPanel')}</span>
+                        <span>Панель администратора</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -185,7 +180,7 @@ const Header = () => {
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/profile" className="flex w-full items-center">
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>{t('profile')}</span>
+                      <span>Мой профиль</span>
                     </Link>
                   </DropdownMenuItem>
                   
@@ -194,19 +189,19 @@ const Header = () => {
                       <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/dashboard" className="flex w-full items-center">
                           <User className="mr-2 h-4 w-4" />
-                          <span>{t('sellerDashboard')}</span>
+                          <span>Личный кабинет</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/add-product" className="flex w-full items-center">
                           <Plus className="mr-2 h-4 w-4" />
-                          <span>{t('addProduct')}</span>
+                          <span>Добавить товар</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                         <Link to="/seller/create-order" className="flex w-full items-center">
                           <Package className="mr-2 h-4 w-4" />
-                          <span>{t('createOrder')}</span>
+                          <span>Создать заказ</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -216,7 +211,7 @@ const Header = () => {
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/requests" className="flex w-full items-center">
                       <MessageSquare className="mr-2 h-4 w-4" />
-                      <span>{t('requests')}</span>
+                      <span>Запросы</span>
                     </Link>
                   </DropdownMenuItem>
                   
@@ -224,14 +219,14 @@ const Header = () => {
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to={ordersLink} className="flex w-full items-center">
                         <Package className="mr-2 h-4 w-4" />
-                        <span>{t('myOrders')}</span>
+                        <span>Мои заказы</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/catalog" className="flex w-full items-center">
                       <ShoppingCart className="mr-2 h-4 w-4" />
-                      <span>{t('catalog')}</span>
+                      <span>Каталог</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -240,7 +235,7 @@ const Header = () => {
                     className="hover:bg-destructive/10 hover:text-destructive cursor-pointer"
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    <span>{t('logout')}</span>
+                    <span>Выйти</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -252,10 +247,10 @@ const Header = () => {
                 variant="ghost"
                 className="text-foreground hover:text-primary"
               >
-                <Link to="/login">{t('login')}</Link>
+                <Link to="/login">Вход</Link>
               </Button>
               <Button asChild variant="default">
-                <Link to="/register">{t('register')}</Link>
+                <Link to="/register">Регистрация</Link>
               </Button>
             </div>
           )}

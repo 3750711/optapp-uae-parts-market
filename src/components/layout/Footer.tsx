@@ -1,12 +1,7 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 
 const Footer = () => {
-  const { t } = useTranslation();
-  const currentYear = new Date().getFullYear();
-
   return (
     <footer className="bg-white border-t border-gray-100 mt-auto">
       <div className="container mx-auto px-6 py-10">
@@ -17,16 +12,16 @@ const Footer = () => {
               <span className="text-secondary">.ae</span>
             </h3>
             <p className="text-foreground/80 leading-relaxed">
-              {t('footer.marketplace')}
+              Торговая площадка автозапчастей в ОАЭ напрямую от поставщиков и магазинов.
             </p>
             <p className="text-foreground/70 text-sm mt-4 italic">
-              {t('footer.disclaimer')}
+              Информация на портале PartsBay носит исключительно ознакомительный характер, все продавцы являются самостоятельными компаниями или физическими лицами, за действия которых наш портал ответственности не несет.
             </p>
           </div>
         </div>
 
         <div className="mt-12 pt-6 border-t border-gray-100 text-center text-foreground/70">
-          <p>&copy; {currentYear} <span className="text-primary font-medium">PartsBay</span>. {t('footer.rights')}</p>
+          <p>&copy; {new Date().getFullYear()} <span className="text-primary font-medium">PartsBay</span>. Все права защищены.</p>
         </div>
       </div>
     </footer>

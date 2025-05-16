@@ -2,43 +2,40 @@
 import React from 'react';
 import { Store, Activity, Plus, Car, FileText } from 'lucide-react';
 import ActionCard from './ActionCard';
-import { useTranslation } from 'react-i18next';
 
 const AdminActionsSection: React.FC = () => {
-  const { t } = useTranslation('admin');
-
   const actions = [
     {
-      title: t('admin:dashboard.addProduct'),
-      subtitle: t('admin:dashboard.addProductSubtitle'),
+      title: "Добавить объявление",
+      subtitle: "Создать новое объявление",
       icon: Plus,
       link: "/admin/add-product",
-      bgColor: "bg-primary", 
-      textColor: "text-primary-foreground" 
+      bgColor: "bg-primary", // Changed from bg-optapp-yellow to primary color
+      textColor: "text-primary-foreground" // Changed to make text stand out better
     },
     {
-      title: t('admin:dashboard.stores'),
-      subtitle: t('admin:dashboard.storesSubtitle'),
+      title: "Магазины",
+      subtitle: "Управление магазинами",
       icon: Store,
       link: "/admin/stores",
     },
     {
-      title: t('admin:dashboard.events'),
-      subtitle: t('admin:dashboard.eventsSubtitle'),
+      title: "Журнал событий",
+      subtitle: "Просмотр журнала системных событий",
       icon: Activity,
       link: "/admin/events",
     },
     {
-      title: t('admin:dashboard.carCatalog'),
-      subtitle: t('admin:dashboard.carCatalogSubtitle'),
+      title: "Марки и модели",
+      subtitle: "Управление каталогом автомобилей",
       icon: Car,
       link: "/admin/car-catalog",
       bgColor: "bg-optapp-yellow",
       textColor: "text-optapp-dark"
     },
     {
-      title: t('admin:dashboard.freeOrder'),
-      subtitle: t('admin:dashboard.freeOrderSubtitle'),
+      title: "Создать свободный заказ",
+      subtitle: "Создать заказ без привязки к объявлению",
       icon: FileText,
       link: "/admin/free-order",
       bgColor: "bg-green-500",
