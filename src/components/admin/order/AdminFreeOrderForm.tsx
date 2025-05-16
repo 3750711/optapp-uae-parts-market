@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,13 +7,13 @@ import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { ImageUpload } from "@/components/ui/image-upload";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
+import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -305,11 +304,7 @@ export const AdminFreeOrderForm = () => {
   };
 
   const handleImageUpload = (urls: string[]) => {
-    setImages(prev => [...prev, ...urls]);
-  };
-
-  const handleImageDelete = (urlToDelete: string) => {
-    setImages(prev => prev.filter(url => url !== urlToDelete));
+    setImages(urls);
   };
 
   const handleOrderUpdate = (updatedOrder: any) => {
@@ -512,11 +507,11 @@ export const AdminFreeOrderForm = () => {
 
               <div className="space-y-2">
                 <Label>Фотографии заказа</Label>
-                <ImageUpload
-                  images={images}
-                  onUpload={handleImageUpload}
-                  onDelete={handleImageDelete}
+                <RealtimeImageUpload
+                  onUploadComplete={handleImageUpload}
                   maxImages={5}
+                  storageBucket="order-images"
+                  storagePath=""
                 />
               </div>
 
