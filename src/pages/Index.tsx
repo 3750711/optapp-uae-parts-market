@@ -43,8 +43,8 @@ const Index = () => {
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts(productsPerPage);
-  return <Layout>
-      <div className="bg-background">
+  return <Layout className="bg-gray-50 rounded-sm">
+      <div className="bg-blue-500">
         {/* Hero section - keeping this from the original page */}
         <section className="bg-gradient-to-br from-primary/5 to-secondary/5 relative overflow-hidden">
           <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center rounded-full bg-white/[0.31]">
