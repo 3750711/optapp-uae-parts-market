@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -143,10 +142,10 @@ const ProductCard: React.FC<ProductProps> = ({
             }`}
             loading="lazy"
             decoding="async"
-            // Устраняем проблему с fetchPriority, заменяем на правильный атрибут
-            // fetchPriority={isHot ? "high" : "auto"}
-            // В React значение приоритета загрузки указывается через loading
-            importance={isHot ? "high" : "auto"}
+            // Исправляем проблему с атрибутом importance
+            // Атрибут importance не поддерживается в типах React для <img>
+            // Используем priority вместо importance для изображений
+            {...(isHot ? { fetchPriority: "high" as const } : {})}
           />
           {status === 'sold' && (
             <div className="absolute inset-0 flex items-center justify-center">
