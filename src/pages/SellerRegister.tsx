@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -23,10 +22,14 @@ const SellerRegister: React.FC = () => {
                 Расширьте свой бизнес и привлеките новых клиентов, став частью ведущего B2B-маркетплейса автозапчастей в ОАЭ.
               </p>
               <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-4 animate-fade-in [animation-delay:600ms]">
-                <Button size="lg" className="group shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px]" asChild>
-                  <a href="#register-form">
-                    Начать сейчас
-                    <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <Button 
+                  size="lg" 
+                  className="group shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] font-semibold text-base rounded-xl ring-offset-2 ring-primary/30 focus:ring-4" 
+                  asChild
+                >
+                  <a href="#register-form" className="flex items-center gap-2">
+                    <span>Начать сейчас</span>
+                    <ArrowRight className="ml-1 h-5 w-5 transition-transform group-hover:translate-x-1" />
                   </a>
                 </Button>
               </div>
@@ -137,7 +140,7 @@ const SellerRegister: React.FC = () => {
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-card p-8">
               <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">Зарегистрироваться как продавец</h2>
-              <p className="text-center text-gray-600 mb-8">Заполните форму ниже и начните продавать ваши автозапчасти на маркетплейсе partsbay.ae</p>
+              <p className="text-center text-gray-600 mb-8">Заполните форму ниже и начните продавать свои автозапчасти на маркетплейсе partsbay.ae</p>
               
               <form className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -261,7 +264,7 @@ const SellerRegister: React.FC = () => {
               {/* FAQ Item 2 */}
               <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300">
                 <h3 className="text-lg font-semibold mb-2">Как я буду получать заказы?</h3>
-                <p className="text-gray-600">Вы будете получать уведомления о новых заказах через платформу. Также покупатели смогут связаться с вами напрямую через указанные контакты.</p>
+                <p className="text-gray-600">Вы будете получать уведомления о новых заказах через платформу. Также покупатели смогут связываться с вами напрямую через указанные контакты.</p>
               </div>
               
               {/* FAQ Item 3 */}
@@ -287,12 +290,12 @@ const SellerRegister: React.FC = () => {
             <Button 
               variant="outline" 
               size="lg"
-              className="border-white text-white hover:bg-white hover:text-primary"
+              className="border-white text-white hover:bg-white hover:text-primary font-semibold text-base py-3 px-8 rounded-xl ring-offset-2 ring-white/30 focus:ring-4"
               asChild
             >
-              <a href="#register-form">
-                Начать сейчас
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <a href="#register-form" className="flex items-center gap-2">
+                <span>Начать сейчас</span>
+                <ArrowRight className="ml-1 h-5 w-5" />
               </a>
             </Button>
           </div>
