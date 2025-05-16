@@ -56,9 +56,7 @@ const Index = () => {
                   <span className="text-secondary">partsbay.ae</span>
                 </span>
               </h1>
-              <p className="text-base md:text-xl text-foreground/80 mb-8 md:mb-10 max-w-lg">
-                PartsBay - платформа, объединяющая продавцов и покупателей автозапчастей в ОАЭ.
-              </p>
+              <p className="text-base md:text-xl text-foreground/80 mb-8 md:mb-10 max-w-lg">PartsBay - платформа, объединяющая продавцов и покупателей автозапчастей в ОАЭ. Провереные продавцы с рейтингом и отзывами. Партнерства с транспортными компаниями в РФ и Казахстане.</p>
               <div className="flex justify-center md:justify-start">
                 <Button size="lg" className="group shadow-elevation-hover" asChild>
                   
