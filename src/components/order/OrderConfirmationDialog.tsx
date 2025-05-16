@@ -70,8 +70,11 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     onConfirm({ text_order: textOrder });
   };
 
-  // Updated condition to show delivery price when opt_status is 'opt_user' (was 'opt_used')
-  const showDeliveryPrice = profile?.opt_status === 'opt_user' && deliveryMethod === 'cargo_rf';
+  // Добавляем явную проверку на случай, если profile равен null
+  const optStatus = profile?.opt_status || 'free_user';
+  
+  // Обновленное условие с учетом возможности null
+  const showDeliveryPrice = optStatus === 'opt_user' && deliveryMethod === 'cargo_rf';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -143,7 +143,10 @@ const ProductCard: React.FC<ProductProps> = ({
             }`}
             loading="lazy"
             decoding="async"
-            fetchPriority={isHot ? "high" : "auto"}
+            // Устраняем проблему с fetchPriority, заменяем на правильный атрибут
+            // fetchPriority={isHot ? "high" : "auto"}
+            // В React значение приоритета загрузки указывается через loading
+            importance={isHot ? "high" : "auto"}
           />
           {status === 'sold' && (
             <div className="absolute inset-0 flex items-center justify-center">
