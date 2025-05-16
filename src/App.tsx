@@ -7,6 +7,20 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import PublicSellerProfile from "@/pages/PublicSellerProfile";
+import { 
+  LazyCatalog,
+  LazyProductDetail,
+  LazyAdminDashboard,
+  LazyAdminProducts,
+  LazyAdminOrders,
+  LazyAdminUsers,
+  LazyAdminEvents,
+  LazyAdminStores,
+  LazyAdminCarCatalog,
+  LazyAdminLogistics,
+  LazyAdminAddProduct,
+  LazyAdminImageOptimizer
+} from "@/utils/lazyRoutes";
 
 // Import admin pages
 import AdminDashboard from "./pages/AdminDashboard";
@@ -19,7 +33,7 @@ import AdminStores from "./pages/AdminStores";
 import AdminEvents from "./pages/AdminEvents";
 import AdminImageOptimizer from "./pages/AdminImageOptimizer"; 
 import AdminCarCatalog from "./pages/AdminCarCatalog";
-import AdminFreeOrder from "./pages/AdminFreeOrder"; // New import
+import AdminFreeOrder from "./pages/AdminFreeOrder";
 
 // Pages
 import Catalog from "./pages/Catalog";
@@ -54,9 +68,9 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Catalog />} />
-            <Route path="/catalog" element={<Catalog />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/catalog" element={<LazyCatalog />} />
+            <Route path="/product/:id" element={<LazyProductDetail />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/profile" element={
@@ -109,22 +123,22 @@ const App = () => {
             {/* Admin routes with correct path structure */}
             <Route path="/admin" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
+                <LazyAdminDashboard />
               </ProtectedRoute>
             } />
             <Route path="/admin/users" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminUsers />
+                <LazyAdminUsers />
               </ProtectedRoute>
             } />
             <Route path="/admin/products" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminProducts />
+                <LazyAdminProducts />
               </ProtectedRoute>
             } />
             <Route path="/admin/add-product" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminAddProduct />
+                <LazyAdminAddProduct />
               </ProtectedRoute>
             } />
             <Route path="/admin/free-order" element={
@@ -134,7 +148,7 @@ const App = () => {
             } />
             <Route path="/admin/orders" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminOrders />
+                <LazyAdminOrders />
               </ProtectedRoute>
             } />
             <Route path="/admin/orders/:id" element={
@@ -144,27 +158,27 @@ const App = () => {
             } />
             <Route path="/admin/logistics" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminLogistics />
+                <LazyAdminLogistics />
               </ProtectedRoute>
             } />
             <Route path="/admin/stores" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminStores />
+                <LazyAdminStores />
               </ProtectedRoute>
             } />
             <Route path="/admin/events" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminEvents />
+                <LazyAdminEvents />
               </ProtectedRoute>
             } />
             <Route path="/admin/image-optimizer" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminImageOptimizer />
+                <LazyAdminImageOptimizer />
               </ProtectedRoute>
             } />
             <Route path="/admin/car-catalog" element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminCarCatalog />
+                <LazyAdminCarCatalog />
               </ProtectedRoute>
             } />
             <Route path="/seller/:id" element={<PublicSellerProfile />} />
@@ -178,7 +192,7 @@ const App = () => {
             <Route path="/requests" element={<Requests />} />
             <Route path="/requests/create" element={<CreateRequest />} />
             <Route path="/requests/:id" element={<RequestDetail />} />
-            {/* Fallback route для статических файлов и истории браузера */}
+            {/* Fallback route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

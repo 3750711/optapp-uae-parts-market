@@ -1,72 +1,16 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+
+import React, { useState } from "react";
 import Layout from "@/components/layout/Layout";
-import ProductGrid from "@/components/product/ProductGrid";
-import { Search, X, Filter } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Database } from "@/integrations/supabase/types";
-import { useIntersection } from "@/hooks/useIntersection";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useToast } from "@/components/ui/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
-import { ProductProps } from "@/components/product/ProductCard";
-import RequestPartsPromo from "@/components/catalog/RequestPartsPromo";
-import ProductSkeleton from "@/components/catalog/ProductSkeleton";
-
-type Product = Database["public"]["Tables"]["products"]["Row"];
-
-// Define our product type more explicitly for type safety
-type ProductType = {
-  id: string;
-  title: string;
-  price: number | string;
-  product_images?: { url: string; is_primary?: boolean; preview_url?: string }[];
-  profiles?: { location?: string; opt_id?: string; rating?: number; opt_status?: string; verification_status?: string };
-  condition?: string;
-  location?: string;
-  optid_created?: string | null;
-  rating_seller?: number | null;
-  brand?: string;
-  model?: string;
-  seller_name: string;
-  status: 'pending' | 'active' | 'sold' | 'archived';
-  seller_id: string;
-  created_at: string;
-  delivery_price?: number | null;
-  has_preview?: boolean;
-};
-
-// Catalog filters interface
-interface CatalogFilters {
-  searchQuery: string;
-  selectedBrand: string | null;
-  selectedModel: string | null;
-  hideSoldProducts: boolean;
-}
+import SearchBar from "@/components/catalog/SearchBar";
+import FiltersPanel from "@/components/catalog/FiltersPanel";
+import ProductsSection from "@/components/catalog/ProductsSection";
+import useCatalogProducts from "@/hooks/useCatalogProducts";
 
 const Catalog: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-  const [hasSearched, setHasSearched] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const productsPerPage = 8;
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
-  const isMobile = useIsMobile();
-  const { toast } = useToast();
-
+  
   // Car brands and models
   const {
     brands,
@@ -75,521 +19,76 @@ const Catalog: React.FC = () => {
     selectBrand,
     isLoading: isLoadingBrands
   } = useCarBrandsAndModels();
-  
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
 
-  // Reset model when brand changes
-  useEffect(() => {
-    setSelectedModel(null);
-  }, [selectedBrand]);
-
-  // Debounce search query for better performance
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Track if user has searched
-  useEffect(() => {
-    if (debouncedSearchQuery || selectedBrand || selectedModel) {
-      setHasSearched(true);
-    }
-  }, [debouncedSearchQuery, selectedBrand, selectedModel]);
-
-  // Memoize filters to use in query key
-  const filters = useMemo(() => ({
-    debouncedSearchQuery,
-    selectedBrand,
-    selectedModel,
-    hideSoldProducts
-  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts]);
-
-  // Use React Query for data fetching with infinite scroll
+  // Products data and filter logic
   const {
-    data,
+    searchQuery,
+    setSearchQuery,
+    debouncedSearchQuery,
+    hasSearched,
+    selectedModel,
+    setSelectedModel,
+    hideSoldProducts,
+    setHideSoldProducts,
+    allProducts,
+    productChunks,
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
     isError,
-    refetch
-  } = useInfiniteQuery({
-    queryKey: ["products-infinite", filters],
-    queryFn: async ({ pageParam = 0 }) => {
-      const from = pageParam * productsPerPage;
-      const to = from + productsPerPage - 1;
-      
-      let query = supabase
-        .from("products")
-        .select("*, product_images(url, is_primary, preview_url), profiles:seller_id(*)")
-        .order("created_at", { ascending: false });
-
-      // Filter out sold products if checkbox is checked
-      if (filters.hideSoldProducts) {
-        query = query.eq('status', 'active');
-      } else {
-        query = query.in('status', ['active', 'sold']);
-      }
-
-      // Apply search filters
-      if (filters.debouncedSearchQuery || filters.selectedBrand || filters.selectedModel) {
-        let conditions = [];
-        
-        // Text search with partial matching
-        if (filters.debouncedSearchQuery) {
-          // Use more efficient search
-          conditions.push(`title.ilike.%${filters.debouncedSearchQuery}%`);
-          conditions.push(`brand.ilike.%${filters.debouncedSearchQuery}%`);
-          conditions.push(`model.ilike.%${filters.debouncedSearchQuery}%`);
-          
-          // Handle possible typos by checking for similar terms
-          const searchTerms = filters.debouncedSearchQuery.trim().split(/\s+/).filter(t => t.length > 2);
-          searchTerms.forEach(term => {
-            if (term.length > 2) {
-              conditions.push(`title.ilike.%${term.substring(0, term.length-1)}%`);
-              conditions.push(`brand.ilike.%${term.substring(0, term.length-1)}%`);
-              conditions.push(`model.ilike.%${term.substring(0, term.length-1)}%`);
-            }
-          });
-        }
-        
-        // Brand filter
-        if (filters.selectedBrand) {
-          const brand = brands.find(b => b.id === filters.selectedBrand);
-          if (brand) {
-            query = query.ilike('brand', `%${brand.name}%`);
-          }
-        }
-        
-        // Model filter (only if brand is selected)
-        if (filters.selectedModel && filters.selectedBrand) {
-          const model = brandModels.find(m => m.id === filters.selectedModel);
-          if (model) {
-            query = query.ilike('model', `%${model.name}%`);
-          }
-        }
-        
-        // Apply text search conditions with OR logic
-        if (conditions.length > 0) {
-          query = query.or(conditions.join(','));
-        }
-      }
-
-      const { data, error } = await query.range(from, to);
-      
-      if (error) {
-        console.error("Error fetching products:", error);
-        throw new Error("Failed to fetch products");
-      }
-      
-      return data || [];
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.length === productsPerPage ? allPages.length : undefined;
-    },
-    initialPageParam: 0,
-    staleTime: 60 * 1000, // 1 minute
-    refetchOnWindowFocus: false
-  });
-
-  // Subscribe to real-time product insertions for debugging in development
-  useEffect(() => {
-    if (process.env.NODE_ENV !== 'development') return;
-    
-    const channel = supabase
-      .channel('catalog-debug')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'products',
-        },
-        (payload) => {
-          const newProduct = payload.new as any;
-          toast({
-            title: "Новый товар добавлен",
-            description: `Добавлен товар: ${newProduct.title}`,
-          });
-          
-          refetch();
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [refetch, toast]);
-
-  // Load more products when user scrolls to bottom
-  useEffect(() => {
-    if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
-  
-  const handleLoadMoreClick = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  }, []);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery("");
-    selectBrand(null);
-    setSelectedModel(null);
-    setHasSearched(false);
-  }, [selectBrand]);
-
-  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    // When user explicitly submits search, we update hasSearched
-    setHasSearched(!!(searchQuery || selectedBrand || selectedModel));
-    // Force refetch
-    refetch();
-    
-    // Close mobile keyboard if applicable
-    if (isMobile) {
-      document.activeElement instanceof HTMLElement && document.activeElement.blur();
-    }
-  }, [searchQuery, selectedBrand, selectedModel, refetch, isMobile]);
-
-  // Map products to the correct format with optimized memo
-  const allProducts = data?.pages.flat() || [];
-  
-  const mappedProducts = useMemo(() => {
-    return allProducts.map((product) => {
-      // Cast product to our known type
-      const typedProduct = product as unknown as ProductType;
-      
-      let imageUrl = "/placeholder.svg";
-      let previewUrl = null;
-      
-      if (typedProduct.product_images && typedProduct.product_images.length > 0) {
-        // Find preview for optimized display
-        for (const img of typedProduct.product_images) {
-          if (img.preview_url) {
-            previewUrl = img.preview_url;
-            if (img.is_primary) break; // Stop if this is the primary image with preview
-          }
-        }
-        
-        // Find primary image
-        const primaryImage = typedProduct.product_images.find(img => img.is_primary);
-        if (primaryImage) {
-          imageUrl = primaryImage.url;
-        } else if (typedProduct.product_images[0]) {
-          imageUrl = typedProduct.product_images[0].url;
-        }
-      }
-      
-      const sellerLocation = typedProduct.profiles?.location || typedProduct.location || "Dubai";
-      
-      return {
-        id: typedProduct.id,
-        name: typedProduct.title,
-        price: Number(typedProduct.price),
-        image: imageUrl,
-        preview_image: previewUrl, // Use preview for catalog display
-        condition: typedProduct.condition as "Новый" | "Б/У" | "Восстановленный",
-        location: sellerLocation,
-        seller_opt_id: typedProduct.profiles?.opt_id,
-        seller_rating: typedProduct.profiles?.rating,
-        optid_created: typedProduct.optid_created,
-        rating_seller: typedProduct.rating_seller,
-        brand: typedProduct.brand || "",
-        model: typedProduct.model || "",
-        seller_name: typedProduct.seller_name,
-        status: typedProduct.status,
-        seller_id: typedProduct.seller_id,
-        seller_verification: typedProduct.profiles?.verification_status,
-        seller_opt_status: typedProduct.profiles?.opt_status,
-        created_at: typedProduct.created_at,
-        delivery_price: typedProduct.delivery_price,
-        has_preview: typedProduct.has_preview
-      } as ProductProps;
-    });
-  }, [allProducts]);
-
-  // Split products into chunks for better rendering performance
-  const productChunks = useMemo(() => {
-    const chunks = [];
-    const chunkSize = 30;
-    const total = mappedProducts.length;
-    
-    for (let i = 0; i < total; i += chunkSize) {
-      chunks.push(mappedProducts.slice(i, i + chunkSize));
-    }
-    
-    return chunks;
-  }, [mappedProducts]);
+    refetch,
+    handleClearSearch,
+    handleSearchSubmit,
+    isActiveFilters
+  } = useCatalogProducts(productsPerPage);
 
   return (
     <Layout>
       <div className="bg-lightGray min-h-screen py-0">
         <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-          {/* Search form */}
+          {/* Search and filters section */}
           <div className="mb-6 flex flex-col gap-4">
-            <form onSubmit={handleSearchSubmit} className="w-full flex flex-col gap-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                {/* Text search input */}
-                <div className="relative flex-1">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10">
-                    <Search className="h-5 w-5"/>
-                  </span>
-                  <Input 
-                    type="text"
-                    placeholder="Поиск по названию, бренду, модели..." 
-                    className="pl-10 pr-10 py-2 md:py-3 shadow-sm text-base"
-                    value={searchQuery}
-                    onChange={handleSearchInputChange}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSearchSubmit(e);
-                        if (isMobile) {
-                          (e.target as HTMLElement).blur();
-                        }
-                      }
-                    }}
-                  />
-                  {searchQuery && (
-                    <button 
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      onClick={() => setSearchQuery("")}
-                      aria-label="Clear search"
-                      type="button"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-                
-                {/* Mobile filters toggle */}
-                <div className="block sm:hidden">
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    className="w-full flex items-center justify-center gap-2"
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    <Filter className="h-4 w-4" />
-                    Фильтры
-                  </Button>
-                </div>
-                
-                {/* Desktop filters always visible */}
-                <div className="hidden sm:flex gap-3">
-                  {/* Brand select */}
-                  <Select
-                    value={selectedBrand || ""}
-                    onValueChange={(value) => selectBrand(value || null)}
-                  >
-                    <SelectTrigger className="w-[180px] bg-white">
-                      <SelectValue placeholder="Марка" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-brands">Все марки</SelectItem>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand.id} value={brand.id}>
-                          {brand.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Model select */}
-                  <Select
-                    value={selectedModel || ""}
-                    onValueChange={(value) => setSelectedModel(value || null)}
-                    disabled={!selectedBrand}
-                  >
-                    <SelectTrigger className="w-[180px] bg-white">
-                      <SelectValue placeholder="Модель" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-models">Все модели</SelectItem>
-                      {brandModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                
-                  {/* Search button */}
-                  <Button type="submit" className="bg-primary hover:bg-primary/90">
-                    <Search className="h-4 w-4 mr-2" />
-                    Поиск
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Mobile filters (collapsible) */}
-              {showFilters && (
-                <div className="sm:hidden flex flex-col gap-3 p-3 bg-white rounded-lg shadow-sm border animate-fade-in">
-                  {/* Brand select */}
-                  <Select
-                    value={selectedBrand || ""}
-                    onValueChange={(value) => selectBrand(value || null)}
-                  >
-                    <SelectTrigger className="w-full bg-white">
-                      <SelectValue placeholder="Марка" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-brands">Все марки</SelectItem>
-                      {brands.map((brand) => (
-                        <SelectItem key={brand.id} value={brand.id}>
-                          {brand.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Model select */}
-                  <Select
-                    value={selectedModel || ""}
-                    onValueChange={(value) => setSelectedModel(value || null)}
-                    disabled={!selectedBrand}
-                  >
-                    <SelectTrigger className="w-full bg-white">
-                      <SelectValue placeholder="Модель" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all-models">Все модели</SelectItem>
-                      {brandModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  
-                  {/* Search button */}
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                    <Search className="h-4 w-4 mr-2" />
-                    Поиск
-                  </Button>
-                </div>
-              )}
-            </form>
-
-            {/* Hide sold products checkbox */}
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="hide-sold" 
-                checked={hideSoldProducts}
-                onCheckedChange={(checked) => setHideSoldProducts(checked === true)}
-              />
-              <Label htmlFor="hide-sold" className="text-sm cursor-pointer">
-                Не показывать проданные
-              </Label>
-            </div>
-
-            {/* Active filters display */}
-            {(searchQuery || selectedBrand || selectedModel) && (
-              <div className="flex items-center gap-2 text-sm">
-                {/* ... keep existing code (active filters) */}
-                <button 
-                  onClick={handleClearSearch}
-                  className="text-blue-600 underline hover:text-blue-800 text-sm"
-                >
-                  Сбросить все
-                </button>
-              </div>
-            )}
+            {/* Search Bar Component */}
+            <SearchBar 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              handleSearchSubmit={handleSearchSubmit}
+            />
+            
+            {/* Filters Panel Component */}
+            <FiltersPanel
+              showFilters={showFilters}
+              setShowFilters={setShowFilters}
+              selectedBrand={selectedBrand}
+              selectBrand={selectBrand}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              brands={brands}
+              brandModels={brandModels}
+              hideSoldProducts={hideSoldProducts}
+              setHideSoldProducts={setHideSoldProducts}
+              handleSearchSubmit={handleSearchSubmit}
+              handleClearSearch={handleClearSearch}
+              isActiveFilters={isActiveFilters}
+            />
           </div>
           
-          {/* Loading skeleton */}
-          {isLoading && (
-            <div className="animate-pulse">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <ProductSkeleton key={i} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Error state */}
-          {isError && (
-            <div className="text-center py-12">
-              <p className="text-lg text-red-600">Ошибка при загрузке товаров</p>
-              <Button 
-                onClick={() => window.location.reload()}
-                className="mt-4"
-              >
-                Попробовать снова
-              </Button>
-            </div>
-          )}
-
-          {/* No results found */}
-          {!isLoading && !isError && hasSearched && (debouncedSearchQuery || selectedBrand || selectedModel) && allProducts.length === 0 && (
-            <div className="text-center py-12 animate-fade-in">
-              <p className="text-lg text-gray-800">Товары не найдены</p>
-              <p className="text-gray-500 mt-2">Попробуйте изменить параметры поиска</p>
-              
-              {/* Show RequestPartsPromo when no search results are found */}
-              <div className="mt-10">
-                <RequestPartsPromo />
-              </div>
-            </div>
-          )}
-          
-          {/* Products grid */}
-          {!isLoading && allProducts.length > 0 && (
-            <div className="animate-fade-in space-y-12">
-              {productChunks.map((chunk, chunkIndex) => (
-                <ProductGrid key={`chunk-${chunkIndex}`} products={chunk} />
-              ))}
-              
-              {/* Show RequestPartsPromo after products when search was performed */}
-              {hasSearched && (
-                <div className="mt-6">
-                  <RequestPartsPromo />
-                </div>
-              )}
-            </div>
-          )}
-          
-          {/* Load more section */}
-          {(hasNextPage || isFetchingNextPage) && (
-            <div className="mt-8 flex flex-col items-center justify-center">
-              <div 
-                ref={loadMoreRef} 
-                className="h-20 w-full flex items-center justify-center"
-              >
-                {isFetchingNextPage ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
-                    <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
-                  </div>
-                ) : (
-                  <Button 
-                    onClick={handleLoadMoreClick}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    Загрузить ещё
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* End of results message */}
-          {!hasNextPage && !isLoading && allProducts.length > 0 && (
-            <div className="text-center py-8 text-gray-600">
-              Вы просмотрели все доступные товары
-            </div>
-          )}
+          {/* Products Section Component */}
+          <ProductsSection
+            isLoading={isLoading}
+            isError={isError}
+            hasSearched={hasSearched}
+            debouncedSearchQuery={debouncedSearchQuery}
+            selectedBrand={selectedBrand}
+            selectedModel={selectedModel}
+            allProducts={allProducts}
+            productChunks={productChunks}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage}
+            refetch={refetch}
+          />
         </div>
       </div>
     </Layout>

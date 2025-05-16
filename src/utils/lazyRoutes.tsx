@@ -28,6 +28,7 @@ export const LazyProductDetail = lazyLoad(() => import('../pages/ProductDetail')
 export const LazyCatalog = lazyLoad(() => import('../pages/Catalog'));
 export const LazySellerListings = lazyLoad(() => import('../pages/SellerListings'));
 export const LazySellerAddProduct = lazyLoad(() => import('../pages/SellerAddProduct'));
+export const LazyIndex = lazyLoad(() => import('../pages/Index'));
 
 // Admin pages
 export const LazyAdminDashboard = lazyLoad(() => import('../pages/AdminDashboard'));
@@ -40,3 +41,4 @@ export const LazyAdminCarCatalog = lazyLoad(() => import('../pages/AdminCarCatal
 export const LazyAdminAddProduct = lazyLoad(() => import('../pages/AdminAddProduct'));
 export const LazyAdminLogistics = lazyLoad(() => import('../pages/AdminLogistics'));
 export const LazyAdminImageOptimizer = lazyLoad(() => import('../pages/AdminImageOptimizer'));
+export const LazyAdminFreeOrder = lazyLoad(() => import('../pages/AdminFreeOrder'));

@@ -6,13 +6,14 @@ import { ToastProvider } from "@/hooks/use-toast"
 import React from 'react'
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
-// Create a client with proper configuration
+// Create a client with optimized configuration
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1, // Only retry once
       retryDelay: 500, // Wait 500ms before retrying
-      staleTime: 60000, // Data remains fresh for 1 minute
+      staleTime: 180000, // Data remains fresh for 3 minutes
+      gcTime: 300000, // Unused data is garbage collected after 5 minutes
       refetchOnWindowFocus: false, // Don't refetch when window regains focus
       refetchOnMount: true, // Refetch when component mounts
     },
