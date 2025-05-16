@@ -1,0 +1,35 @@
+
+{
+  "confirmation": {
+    "title": "Подтверждение заказа",
+    "checkInfo": "Проверьте информацию перед подтверждением",
+    "productInfo": "Информация о товаре",
+    "name": "Наименование:",
+    "brand": "Бренд:",
+    "model": "Модель:",
+    "price": "Цена:",
+    "lotNumber": "Номер лота:",
+    "productId": "ID товара:",
+    "deliveryMethod": "Способ доставки",
+    "selectDelivery": "Выберите способ доставки",
+    "deliveryPrice": "Стоимость доставки:",
+    "cargoRF": "Доставка Cargo РФ",
+    "cargoKZ": "Доставка Cargo KZ",
+    "selfPickup": "Самовывоз",
+    "sellerInfo": "Информация о продавце",
+    "seller": "Продавец:",
+    "optId": "OPT ID:",
+    "notSpecified": "Не указан",
+    "buyerInfo": "Информация о покупателе",
+    "yourOptId": "Ваш OPT ID:",
+    "yourTelegram": "Ваш Telegram:",
+    "additionalInfo": "Дополнительная информация",
+    "additionalInfoPlaceholder": "Укажите дополнительную информацию по заказу (необязательно)",
+    "warning": "Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями.",
+    "moreFAQ": "Больше информации в разделе",
+    "faq": "FAQ",
+    "cancel": "Отмена",
+    "confirm": "Подтвердить заказ",
+    "processing": "Обработка..."
+  }
+}

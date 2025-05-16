@@ -1,0 +1,29 @@
+
+{
+  "language": "Language",
+  "login": "Login",
+  "register": "Register",
+  "main": "Home",
+  "catalog": "Catalog",
+  "stores": "Stores",
+  "requests": "Requests",
+  "about": "About Us",
+  "logout": "Log Out",
+  "profile": "My Profile",
+  "adminPanel": "Admin Panel",
+  "sellerPanel": "Seller Panel",
+  "sellerDashboard": "Dashboard",
+  "addProduct": "Add Product",
+  "createOrder": "Create Order",
+  "myOrders": "My Orders",
+  "footer": {
+    "marketplace": "Automotive parts marketplace in UAE directly from suppliers and stores.",
+    "disclaimer": "Information on PartsBay is for informational purposes only. All sellers are independent companies or individuals, and our portal is not responsible for their actions.",
+    "rights": "All rights reserved."
+  },
+  "userTypes": {
+    "seller": "Seller",
+    "buyer": "Buyer",
+    "admin": "Administrator"
+  }
+}

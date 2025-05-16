@@ -1,0 +1,16 @@
+
+{
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "addProduct": "Add Listing",
+    "addProductSubtitle": "Create a new listing",
+    "stores": "Stores",
+    "storesSubtitle": "Manage stores",
+    "events": "Event Log",
+    "eventsSubtitle": "View system event log",
+    "carCatalog": "Makes & Models",
+    "carCatalogSubtitle": "Manage car catalog",
+    "freeOrder": "Create Free Order",
+    "freeOrderSubtitle": "Create order without attachment to listing"
+  }
+}
