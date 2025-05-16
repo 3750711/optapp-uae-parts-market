@@ -181,24 +181,25 @@ export const AdminFreeOrderForm = () => {
 
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       
+      // Обновлено: добавляем префикс p_ к каждому параметру
       const orderPayload = {
-        title: formData.title,
-        price: parseFloat(formData.price),
-        place_number: parseInt(formData.place_number),
-        seller_id: formData.sellerId,
-        order_seller_name: selectedSeller?.full_name || 'Unknown',
-        seller_opt_id: selectedSeller?.opt_id || null,
-        buyer_id: buyerData.id,
-        brand: formData.brand,
-        model: formData.model,
-        status: 'seller_confirmed' as OrderStatus,
-        order_created_type: 'free_order' as OrderCreatedType,
-        telegram_url_order: selectedSeller?.telegram || null,
-        images: images,
-        product_id: null,
-        delivery_method: formData.deliveryMethod as DeliveryMethod,
-        text_order: formData.text_order || null,
-        delivery_price_confirm: deliveryPrice,
+        p_title: formData.title,
+        p_price: parseFloat(formData.price),
+        p_place_number: parseInt(formData.place_number),
+        p_seller_id: formData.sellerId,
+        p_order_seller_name: selectedSeller?.full_name || 'Unknown',
+        p_seller_opt_id: selectedSeller?.opt_id || null,
+        p_buyer_id: buyerData.id,
+        p_brand: formData.brand,
+        p_model: formData.model,
+        p_status: 'seller_confirmed' as OrderStatus,
+        p_order_created_type: 'free_order' as OrderCreatedType,
+        p_telegram_url_order: selectedSeller?.telegram || null,
+        p_images: images,
+        p_product_id: null,
+        p_delivery_method: formData.deliveryMethod as DeliveryMethod,
+        p_text_order: formData.text_order || null,
+        p_delivery_price_confirm: deliveryPrice,
       };
 
       console.log("Creating order with payload:", orderPayload);
