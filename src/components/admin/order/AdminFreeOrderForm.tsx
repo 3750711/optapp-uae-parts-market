@@ -36,7 +36,8 @@ export const AdminFreeOrderForm = () => {
     handleOrderUpdate,
     handleSubmit,
     resetForm,
-    navigate
+    navigate,
+    parseTitleForBrand, // Add the new function
   } = useOrderFormLogic();
 
   if (createdOrder) {
@@ -78,6 +79,7 @@ export const AdminFreeOrderForm = () => {
                 setSearchModelTerm={setSearchModelTerm}
                 filteredBrands={filteredBrands}
                 filteredModels={filteredModels}
+                parseTitleForBrand={parseTitleForBrand} // Pass the new function
               />
               
               <MediaUploadSection

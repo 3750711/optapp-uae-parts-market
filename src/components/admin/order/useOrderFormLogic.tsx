@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -52,6 +51,30 @@ export const useOrderFormLogic = () => {
     text_order: "",
     delivery_price: "",
   });
+
+  // New function to parse title for brand information
+  const parseTitleForBrand = useCallback((title: string) => {
+    if (!title || brands.length === 0) return;
+    
+    // Convert title to lowercase for case-insensitive matching
+    const titleLower = title.toLowerCase();
+    
+    // Try to find a brand match in the title
+    for (const brand of brands) {
+      if (titleLower.includes(brand.name.toLowerCase())) {
+        // If brand is found in the title, set it
+        setFormData(prev => ({
+          ...prev,
+          brandId: brand.id,
+          brand: brand.name
+        }));
+        
+        // Load models for this brand
+        selectBrand(brand.id);
+        break;
+      }
+    }
+  }, [brands, selectBrand]);
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -370,6 +393,7 @@ export const useOrderFormLogic = () => {
     handleOrderUpdate,
     handleSubmit,
     resetForm,
-    navigate
+    navigate,
+    parseTitleForBrand // Add the new function to the return value
   };
 };

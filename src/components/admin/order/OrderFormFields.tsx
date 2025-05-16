@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,8 @@ interface OrderFormFieldsProps {
   setSearchModelTerm: (term: string) => void;
   filteredBrands: { id: string; name: string }[];
   filteredModels: { id: string; name: string; brand_id: string }[];
+  // Add new prop for title parsing
+  parseTitleForBrand: (title: string) => void;
 }
 
 export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
@@ -40,6 +42,8 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   setSearchModelTerm,
   filteredBrands,
   filteredModels,
+  // Add new prop for title parsing
+  parseTitleForBrand,
 }) => {
   return (
     <div className="space-y-6">
@@ -48,7 +52,11 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         <Input 
           id="title" 
           value={formData.title}
-          onChange={(e) => handleInputChange('title', e.target.value)}
+          onChange={(e) => {
+            handleInputChange('title', e.target.value);
+            // Call the parse function when title changes
+            parseTitleForBrand(e.target.value);
+          }}
           required 
           placeholder="Введите наименование"
         />
