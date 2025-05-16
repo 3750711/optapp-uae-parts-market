@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -36,6 +37,30 @@ const ProductDetail = () => {
     setDeliveryMethod(method);
   };
   
+  // Fixed back button functionality
+  const handleBack = () => {
+    try {
+      // Check if there's history to go back to
+      if (fromSeller) {
+        navigate('/seller/listings');
+      } else if (window.history.length > 2) {
+        navigate(-1);
+      } else {
+        // Fallback to home page if there's no history
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Navigation error:", error);
+      // Fallback to home page if navigation fails
+      toast({
+        title: "Ошибка навигации",
+        description: "Не удалось вернуться назад. Перенаправляем на главную страницу.",
+        variant: "destructive"
+      });
+      navigate('/');
+    }
+  };
+
   // Wait for auth to be checked before fetching product data
   const { data: product, isLoading, error, isError } = useQuery({
     queryKey: ['product', id],
@@ -54,7 +79,7 @@ const ProductDetail = () => {
             product_videos(*)
           `)
           .eq('id', id)
-          .single();
+          .maybeSingle(); // Using maybeSingle instead of single to avoid errors
         
         if (error) {
           console.error('Error fetching product:', error);
@@ -114,36 +139,33 @@ const ProductDetail = () => {
     }
   }, [isError, isLoading, authLoading, navigate]);
   
-  // Query for seller profile
+  // Query for seller profile with improved error handling
   const { data: sellerProfile } = useQuery({
     queryKey: ['sellerProfile', product?.seller_id],
     queryFn: async () => {
       if (!product?.seller_id) return null;
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', product.seller_id)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', product.seller_id)
+          .maybeSingle(); // Using maybeSingle to prevent errors when profile doesn't exist
+          
+        if (error) {
+          console.error('Error fetching seller profile:', error);
+          return null;
+        }
         
-      if (error) {
-        console.error('Error fetching seller profile:', error);
+        return data;
+      } catch (err) {
+        console.error('Exception in seller profile query:', err);
         return null;
       }
-      
-      return data;
     },
     enabled: !!product?.seller_id,
+    retry: 1, // Limit retries to avoid unnecessary requests
   });
-  
-  // Back button handler
-  const handleBack = () => {
-    if (fromSeller) {
-      navigate('/seller/listings');
-    } else {
-      navigate(-1);
-    }
-  };
   
   // Product update handler
   const handleProductUpdate = () => {
@@ -303,7 +325,7 @@ const ProductDetail = () => {
           <Alert className="mb-6 bg-gray-50 border-gray-200">
             <AlertTitle>Объявление в архиве</AlertTitle>
             <AlertDescription>
-              Это объявление находится в архиве. {isOwner ? 'Только вы и администраторы можете его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
+              Это объявление находится в архиве. {isOwner ? 'Только вы и администраторы могут его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
             </AlertDescription>
           </Alert>
         )}

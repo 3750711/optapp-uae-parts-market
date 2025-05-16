@@ -1,5 +1,5 @@
 
-// Исправлен путь импорта на корректный
+// Import from the correct path
 import { useToast, toast } from "@/hooks/use-toast";
 
 export { useToast, toast };

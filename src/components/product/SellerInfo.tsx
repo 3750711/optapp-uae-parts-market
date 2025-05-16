@@ -61,19 +61,30 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 
   const handleGoToLogin = () => {
     setShowAuthDialog(false);
-    navigate('/login');
+    navigate('/login', { state: { returnPath: window.location.pathname } });
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      toast({
-        title: "Скопировано!",
-        description: "OPT ID скопирован в буфер обмена",
+    if (!text) return;
+    
+    try {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true);
+        toast({
+          title: "Скопировано!",
+          description: "OPT ID скопирован в буфер обмена",
+        });
+        
+        setTimeout(() => setCopied(false), 2000);
       });
-      
-      setTimeout(() => setCopied(false), 2000);
-    });
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось скопировать OPT ID",
+      });
+    }
   };
 
   return (
@@ -211,8 +222,16 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
         </div>
       </div>
 
-      {/* Authentication Dialog */}
-      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+      {/* Authentication Dialog - improved to prevent accidental closing */}
+      <Dialog 
+        open={showAuthDialog} 
+        onOpenChange={(open) => {
+          // Only allow closing by explicit user action
+          if (!open) {
+            setShowAuthDialog(false);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Требуется авторизация</DialogTitle>

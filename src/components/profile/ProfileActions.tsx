@@ -47,6 +47,10 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
     try {
       await signOut();
       navigate('/login');
+      toast({
+        title: "Успешно",
+        description: "Вы вышли из системы",
+      });
     } catch (error) {
       console.error('Logout error:', error);
       toast({
@@ -94,7 +98,10 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
 
             <DeleteAccountButton />
             
-            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+            <AlertDialog 
+              open={logoutDialogOpen} 
+              onOpenChange={setLogoutDialogOpen}
+            >
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Выйти из системы</AlertDialogTitle>
@@ -115,7 +122,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
               <Button className="w-full">Действия</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
-              {/* Removed share profile dropdown item */}
+              {/* Empty dropdown for now */}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
