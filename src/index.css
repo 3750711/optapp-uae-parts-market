@@ -1,4 +1,5 @@
 
+
 @import url('https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap');
 
 @tailwind base;
@@ -10,6 +11,7 @@
     font-family: 'Inter', sans-serif;
     background: #f9fafb;
     color: #111827;
+    scroll-behavior: smooth;
   }
   body {
     @apply bg-background text-foreground antialiased;
@@ -74,13 +76,40 @@
   animation: scaleIn 0.3s ease-out forwards;
 }
 
-/* Enhanced scrollbar hiding for the horizontal product list */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+/* Enhanced transitions */
+@keyframes slideInFromBottom {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
+.animate-slide-in-bottom {
+  animation: slideInFromBottom 0.5s ease-out forwards;
+}
+
+@keyframes slideInFromRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-in-right {
+  animation: slideInFromRight 0.5s ease-out forwards;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.animate-pulse-soft {
+  animation: pulse 2s infinite ease-in-out;
+}
+
+/* Hero section background animation */
+@keyframes gradientBg {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.bg-gradient-animate {
+  background-size: 200% 200%;
+  animation: gradientBg 15s ease infinite;
 }
 
 /* Product card adjustments for horizontal layout */
@@ -91,4 +120,27 @@
 }
 .product-card-horizontal:hover {
   transform: translateY(-4px);
+}
+
+/* Enhanced scrollbar hiding */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: 2rem;
+    line-height: 1.2;
+  }
+  h2 {
+    font-size: 1.75rem;
+  }
+  .container {
+    padding: 1rem;
+  }
 }
