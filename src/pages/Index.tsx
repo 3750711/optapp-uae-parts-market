@@ -46,11 +46,11 @@ const Index = () => {
   } = useCatalogProducts(productsPerPage);
   
   return (
-    <Layout className="rounded-sm bg-gray-50">
-      <div className="bg-stone-50">
+    <Layout className="bg-white">
+      <div className="bg-white">
         {/* Hero section - keeping this from the original page */}
-        <section className="bg-gradient-to-br from-primary/5 to-secondary/5 relative overflow-hidden">
-          <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center rounded-full bg-white/[0.31]">
+        <section className="bg-white relative overflow-hidden">
+          <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center bg-white">
             <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0 animate-fade-in">
               <h1 className="text-3xl md:text-4xl lg:text-6xl font-extrabold mb-4 md:mb-6 leading-tight">
                 <span className="text-foreground">Оптовый рынок </span> 
