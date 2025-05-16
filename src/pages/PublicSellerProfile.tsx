@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
@@ -45,17 +46,22 @@ const PublicSellerProfile = () => {
     queryFn: async () => {
       if (!id) return false;
       
-      const { count, error } = await supabase
-        .from("profiles")
-        .select("id", { count: 'exact', head: true })
-        .eq("id", id);
+      try {
+        const { count, error } = await supabase
+          .from("profiles")
+          .select("id", { count: 'exact', head: true })
+          .eq("id", id);
 
-      if (error) {
-        console.error("Error checking if profile exists:", error);
+        if (error) {
+          console.error("Error checking if profile exists:", error);
+          return false;
+        }
+        
+        return count && count > 0;
+      } catch (err) {
+        console.error("Exception checking profile existence:", err);
         return false;
       }
-      
-      return count && count > 0;
     },
     enabled: !!id,
   });
@@ -64,6 +70,7 @@ const PublicSellerProfile = () => {
   useEffect(() => {
     if (!isCheckLoading) {
       setProfileExists(profileExistsCheck);
+      console.log("Profile exists check result:", profileExistsCheck);
     }
   }, [profileExistsCheck, isCheckLoading]);
   
@@ -73,21 +80,23 @@ const PublicSellerProfile = () => {
     queryFn: async () => {
       if (!id) return null;
       
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", id);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", id)
+          .maybeSingle(); // Используем maybeSingle вместо single чтобы избежать ошибки
 
-      if (error) {
-        console.error("Error fetching seller profile:", error);
-        throw error;
-      }
-      
-      if (!data || data.length === 0) {
+        if (error) {
+          console.error("Error fetching seller profile:", error);
+          throw error;
+        }
+        
+        return data;
+      } catch (err) {
+        console.error("Exception fetching seller profile:", err);
         return null;
       }
-      
-      return data[0];
     },
     enabled: !!id && !!user,
   });
@@ -96,30 +105,34 @@ const PublicSellerProfile = () => {
     const fetchStoreInfo = async () => {
       if (!id) return;
       
-      const { data, error } = await supabase
-        .from('stores')
-        .select('id, name')
-        .eq('seller_id', id)
-        .maybeSingle();
-        
-      if (!error && data) {
-        setStoreInfo(data);
-        
-        // Fetch car brands if store exists
-        if (data.id) {
-          const { data: brandsData, error: brandsError } = await supabase
-            .from('store_car_brands')
-            .select('car_brands(name)')
-            .eq('store_id', data.id);
-            
-          if (!brandsError && brandsData) {
-            const brandNames = brandsData
-              .map(item => item.car_brands?.name)
-              .filter(Boolean) as string[];
+      try {
+        const { data, error } = await supabase
+          .from('stores')
+          .select('id, name')
+          .eq('seller_id', id)
+          .maybeSingle();
+          
+        if (!error && data) {
+          setStoreInfo(data);
+          
+          // Fetch car brands if store exists
+          if (data.id) {
+            const { data: brandsData, error: brandsError } = await supabase
+              .from('store_car_brands')
+              .select('car_brands(name)')
+              .eq('store_id', data.id);
               
-            setCarBrands(brandNames);
+            if (!brandsError && brandsData) {
+              const brandNames = brandsData
+                .map(item => item.car_brands?.name)
+                .filter(Boolean) as string[];
+                
+              setCarBrands(brandNames);
+            }
           }
         }
+      } catch (err) {
+        console.error("Error fetching store info:", err);
       }
     };
 
@@ -134,13 +147,18 @@ const PublicSellerProfile = () => {
       // Если пользователь не авторизован, показываем заглушку
       if (!user) return "?";
       
-      const { count, error } = await supabase
-        .from("orders")
-        .select("*", { count: 'exact', head: true })
-        .eq("seller_id", id);
+      try {
+        const { count, error } = await supabase
+          .from("orders")
+          .select("*", { count: 'exact', head: true })
+          .eq("seller_id", id);
 
-      if (error) throw error;
-      return count || 0;
+        if (error) throw error;
+        return count || 0;
+      } catch (err) {
+        console.error("Error fetching order count:", err);
+        return 0;
+      }
     },
     enabled: !!id,
   });
@@ -150,14 +168,19 @@ const PublicSellerProfile = () => {
     queryFn: async () => {
       if (!id) return [];
 
-      const { data, error } = await supabase
-        .from("products")
-        .select("*, product_images(url, is_primary)")
-        .eq("seller_id", id)
-        .order("created_at", { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from("products")
+          .select("*, product_images(url, is_primary)")
+          .eq("seller_id", id)
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data || [];
+        if (error) throw error;
+        return data || [];
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        return [];
+      }
     },
     enabled: !!id,
   });
@@ -196,7 +219,7 @@ const PublicSellerProfile = () => {
   // Share to Telegram directly
   const handleShareToTelegram = () => {
     const url = encodeURIComponent(window.location.href);
-    const sellerName = encodeURIComponent(profile?.full_name || "Продавец на OPT");
+    const sellerName = profile?.full_name ? encodeURIComponent(profile.full_name) : encodeURIComponent("Продавец на OPT");
     const text = encodeURIComponent(`Посмотрите профиль продавца: ${profile?.full_name || "Продавец"}`);
     
     const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
@@ -225,7 +248,7 @@ const PublicSellerProfile = () => {
   }
 
   // Профиль действительно не существует - показываем страницу с ошибкой
-  if (profileExists === false || !id) {
+  if (profileExists === false && !isCheckLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
@@ -263,7 +286,7 @@ const PublicSellerProfile = () => {
   }
   
   // Профиль существует, но пользователь не авторизован - показываем страницу с требованием авторизации
-  if (!user && profileExists) {
+  if (!user && profileExists === true) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
@@ -379,12 +402,16 @@ const PublicSellerProfile = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-start gap-4">
-                {profile?.avatar_url && (
+                {profile?.avatar_url ? (
                   <img 
                     src={profile.avatar_url} 
                     alt={profile.full_name || "Продавец"} 
                     className="w-24 h-24 rounded-full object-cover"
                   />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User className="h-12 w-12 text-gray-400" />
+                  </div>
                 )}
                 <div>
                   <div className="flex items-center gap-2">
@@ -489,7 +516,7 @@ const PublicSellerProfile = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {profile?.rating !== null && (
+              {profile?.rating !== null && profile?.rating !== undefined && (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-500">Рейтинг продавца</p>
                   <div className="flex items-center gap-1">
@@ -526,7 +553,7 @@ const PublicSellerProfile = () => {
               <div>
                 <p className="text-sm text-gray-500">На платформе с</p>
                 <p className="font-medium">
-                  {new Date(profile?.created_at || '').toLocaleDateString()}
+                  {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "Нет данных"}
                 </p>
               </div>
             </CardContent>
@@ -537,7 +564,7 @@ const PublicSellerProfile = () => {
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Объявления продавца</CardTitle>
             <Badge variant="outline" className="text-lg">
-              {mappedProducts?.length}
+              {mappedProducts?.length || 0}
             </Badge>
           </CardHeader>
           <CardContent>
