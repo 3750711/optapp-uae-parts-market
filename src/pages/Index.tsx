@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductsSection from "@/components/catalog/ProductsSection";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
-
 const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 8;
@@ -45,7 +43,6 @@ const Index = () => {
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts(productsPerPage);
-
   return <Layout>
       <div className="bg-white">
         {/* Hero section with improved design */}
@@ -64,10 +61,7 @@ const Index = () => {
               </p>
               <div className="flex justify-center md:justify-start">
                 <Button size="lg" className="group shadow-elevation-hover" asChild>
-                  <Link to="/catalog">
-                    Перейти в каталог
-                    <ChevronRight className="transition-transform duration-300 group-hover:translate-x-1" />
-                  </Link>
+                  
                 </Button>
               </div>
             </div>
@@ -93,42 +87,14 @@ const Index = () => {
               <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearchSubmit={handleSearchSubmit} />
               
               {/* Filters Panel Component */}
-              <FiltersPanel 
-                showFilters={showFilters}
-                setShowFilters={setShowFilters}
-                selectedBrand={selectedBrand}
-                selectBrand={selectBrand}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
-                brands={brands}
-                brandModels={brandModels}
-                hideSoldProducts={hideSoldProducts}
-                setHideSoldProducts={setHideSoldProducts}
-                handleSearchSubmit={handleSearchSubmit}
-                handleClearSearch={handleClearSearch}
-                isActiveFilters={isActiveFilters}
-              />
+              <FiltersPanel showFilters={showFilters} setShowFilters={setShowFilters} selectedBrand={selectedBrand} selectBrand={selectBrand} selectedModel={selectedModel} setSelectedModel={setSelectedModel} brands={brands} brandModels={brandModels} hideSoldProducts={hideSoldProducts} setHideSoldProducts={setHideSoldProducts} handleSearchSubmit={handleSearchSubmit} handleClearSearch={handleClearSearch} isActiveFilters={isActiveFilters} />
             </div>
             
             {/* Products Section Component */}
-            <ProductsSection 
-              isLoading={isLoading}
-              isError={isError}
-              hasSearched={hasSearched}
-              debouncedSearchQuery={debouncedSearchQuery}
-              selectedBrand={selectedBrand}
-              selectedModel={selectedModel}
-              allProducts={allProducts}
-              productChunks={productChunks}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
-              refetch={refetch}
-            />
+            <ProductsSection isLoading={isLoading} isError={isError} hasSearched={hasSearched} debouncedSearchQuery={debouncedSearchQuery} selectedBrand={selectedBrand} selectedModel={selectedModel} allProducts={allProducts} productChunks={productChunks} hasNextPage={hasNextPage} isFetchingNextPage={isFetchingNextPage} fetchNextPage={fetchNextPage} refetch={refetch} />
           </div>
         </section>
       </div>
     </Layout>;
 };
-
 export default Index;
