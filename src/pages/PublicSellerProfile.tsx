@@ -39,18 +39,28 @@ const PublicSellerProfile = () => {
   const [carBrands, setCarBrands] = useState<string[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
+  // Update the query to use select method instead of maybeSingle
+  const { data: profile, isLoading: isProfileLoading, error: profileError } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: async () => {
       if (!id) return null;
+      
+      // Use select without maybeSingle, and then check if there's data
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
-        .eq("id", id)
-        .maybeSingle();
+        .eq("id", id);
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching seller profile:", error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        return null; // Return null if no profile is found
+      }
+      
+      return data[0]; // Return the first matching profile
     },
     enabled: !!id,
   });
@@ -183,7 +193,8 @@ const PublicSellerProfile = () => {
     );
   }
 
-  if (!id || !profile) {
+  // More detailed error handling for profile not found
+  if (!id || !profile || profileError) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
@@ -198,15 +209,22 @@ const PublicSellerProfile = () => {
             </Button>
           </div>
           <div className="text-center">
-            <p className="text-lg text-red-500">Профиль продавца не найден</p>
-            <p className="text-gray-500 mt-2">Запрошенный профиль не существует или был удален</p>
-            <Button 
-              variant="default" 
-              className="mt-4"
-              onClick={() => navigate('/')}
-            >
-              Вернуться на главную
-            </Button>
+            <h2 className="text-2xl font-bold text-red-500 mb-4">Профиль продавца не найден</h2>
+            <p className="text-gray-500 mt-2 mb-6">Запрошенный профиль не существует или был удален</p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button 
+                variant="default" 
+                onClick={() => navigate('/')}
+              >
+                Вернуться на главную
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => navigate('/catalog')}
+              >
+                Перейти в каталог
+              </Button>
+            </div>
           </div>
         </div>
       </Layout>

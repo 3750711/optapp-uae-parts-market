@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface SellerInfoProps {
-  sellerProfile: SellerProfile;
+  sellerProfile?: SellerProfile | null; // Make it optional and nullable
   seller_name: string;
   seller_id: string;
   children?: React.ReactNode;
@@ -32,14 +32,18 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
     const fetchStoreInfo = async () => {
       if (!seller_id) return;
       
-      const { data, error } = await supabase
-        .from('stores')
-        .select('id, name')
-        .eq('seller_id', seller_id)
-        .maybeSingle();
-        
-      if (!error && data) {
-        setStoreInfo(data);
+      try {
+        const { data, error } = await supabase
+          .from('stores')
+          .select('id, name')
+          .eq('seller_id', seller_id)
+          .maybeSingle();
+          
+        if (!error && data) {
+          setStoreInfo(data);
+        }
+      } catch (error) {
+        console.error("Error fetching store info:", error);
       }
     };
 
