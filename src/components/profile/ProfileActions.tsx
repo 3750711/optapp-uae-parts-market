@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { LogOut, UserCog, Settings, Share2 } from "lucide-react";
+import { LogOut, UserCog, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
@@ -56,26 +56,6 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
       });
     }
   };
-  
-  const copyProfileLink = () => {
-    // Создаем ссылку на профиль пользователя
-    const profileUrl = `${window.location.origin}/profile/${profile.opt_id || profile.id}`;
-    navigator.clipboard.writeText(profileUrl).then(
-      function() {
-        toast({
-          title: "Ссылка скопирована",
-          description: "Ссылка на профиль скопирована в буфер обмена",
-        });
-      },
-      function() {
-        toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: "Не удалось скопировать ссылку",
-        });
-      }
-    );
-  };
 
   return (
     <Card>
@@ -111,14 +91,6 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
                 <Settings className="h-4 w-4 mr-2" /> Панель администратора
               </Button>
             )}
-            
-            <Button 
-              variant="outline" 
-              className="w-full"
-              onClick={copyProfileLink}
-            >
-              <Share2 className="h-4 w-4 mr-2" /> Поделиться профилем
-            </Button>
 
             <DeleteAccountButton />
             
@@ -143,9 +115,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
               <Button className="w-full">Действия</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56">
-              <DropdownMenuItem onClick={copyProfileLink}>
-                <Share2 className="h-4 w-4 mr-2" /> Поделиться профилем
-              </DropdownMenuItem>
+              {/* Removed share profile dropdown item */}
             </DropdownMenuContent>
           </DropdownMenu>
         )}

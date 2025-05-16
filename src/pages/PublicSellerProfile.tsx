@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send, Heart } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -25,11 +25,6 @@ import {
 } from "@/components/ui/accordion";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { formatDistanceToNow } from "date-fns";
 import { ru } from "date-fns/locale";
 
@@ -41,7 +36,6 @@ const PublicSellerProfile = () => {
   const [carBrands, setCarBrands] = useState<string[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [profileExists, setProfileExists] = useState<boolean | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
 
   // Fixed back button functionality
   const handleGoBack = () => {
@@ -120,79 +114,6 @@ const PublicSellerProfile = () => {
     },
     enabled: !!id && !!user,
   });
-
-  // Проверка, добавлен ли продавец в избранное
-  useEffect(() => {
-    if (!user || !id) return;
-
-    const checkFavorite = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('favorite_sellers')
-          .select('*')
-          .eq('user_id', user.id)
-          .eq('seller_id', id)
-          .maybeSingle();
-
-        if (!error && data) {
-          setIsFavorite(true);
-        }
-      } catch (err) {
-        console.error("Error checking favorite status:", err);
-      }
-    };
-
-    checkFavorite();
-  }, [user, id]);
-
-  // Добавление/удаление из избранного
-  const toggleFavorite = async () => {
-    if (!user) {
-      setShowAuthDialog(true);
-      return;
-    }
-
-    try {
-      if (isFavorite) {
-        // Удаляем из избранного
-        const { error } = await supabase
-          .from('favorite_sellers')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('seller_id', id);
-
-        if (error) throw error;
-        
-        setIsFavorite(false);
-        toast({
-          description: "Продавец удален из избранного",
-        });
-      } else {
-        // Добавляем в избранное
-        const { error } = await supabase
-          .from('favorite_sellers')
-          .insert({
-            user_id: user.id,
-            seller_id: id,
-            seller_name: profile?.full_name || "Продавец"
-          });
-
-        if (error) throw error;
-        
-        setIsFavorite(true);
-        toast({
-          description: "Продавец добавлен в избранное",
-        });
-      }
-    } catch (err) {
-      console.error("Error toggling favorite:", err);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось изменить статус избранного",
-      });
-    }
-  };
 
   useEffect(() => {
     const fetchStoreInfo = async () => {
@@ -308,16 +229,6 @@ const PublicSellerProfile = () => {
       seller_id: product.seller_id
     };
   }) || [];
-
-  // Share to Telegram directly
-  const handleShareToTelegram = () => {
-    const url = encodeURIComponent(window.location.href);
-    const sellerName = profile?.full_name ? encodeURIComponent(profile.full_name) : encodeURIComponent("Продавец на OPT");
-    const text = encodeURIComponent(`Посмотрите профиль продавца: ${profile?.full_name || "Продавец"}`);
-    
-    const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
-    window.open(telegramUrl, '_blank');
-  };
 
   const handleShowContactInfo = () => {
     if (!user) {
@@ -462,7 +373,7 @@ const PublicSellerProfile = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center mb-6">
           <Button 
             variant="ghost" 
             size="sm"
@@ -470,37 +381,6 @@ const PublicSellerProfile = () => {
           >
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
-          
-          <div className="flex items-center gap-2">
-            {/* Кнопка добавления в избранное */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button 
-                  variant={isFavorite ? "default" : "outline"} 
-                  size="sm"
-                  onClick={toggleFavorite}
-                  className="flex items-center gap-2"
-                >
-                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-white" : ""}`} />
-                  {isFavorite ? "В избранном" : "В избранное"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
-              </TooltipContent>
-            </Tooltip>
-
-            {/* Кнопка поделиться в Telegram */}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleShareToTelegram}
-              className="flex items-center gap-2"
-            >
-              <Send className="h-4 w-4" /> 
-              Поделиться
-            </Button>
-          </div>
         </div>
 
         {!user && (
