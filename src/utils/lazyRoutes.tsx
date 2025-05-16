@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { Loader2 } from "lucide-react";
 
@@ -12,9 +11,24 @@ const PageLoader = () => (
   </div>
 );
 
-// Helper function to create lazy loaded routes
+// Helper function to create lazy loaded routes with better error handling
 export function lazyLoad(importFunc: () => Promise<any>) {
-  const LazyComponent = React.lazy(importFunc);
+  const LazyComponent = React.lazy(() => {
+    return importFunc()
+      .catch(error => {
+        console.error("Error loading component:", error);
+        // Return a module with a default component that shows the error
+        return {
+          default: () => (
+            <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md">
+              <h2 className="text-red-600 text-xl font-bold">Error Loading Component</h2>
+              <p className="mt-2 text-gray-600">There was a problem loading this component.</p>
+              <p className="mt-2 text-sm text-gray-500">Please try refreshing the page.</p>
+            </div>
+          )
+        };
+      });
+  });
   
   return () => (
     <Suspense fallback={<PageLoader />}>

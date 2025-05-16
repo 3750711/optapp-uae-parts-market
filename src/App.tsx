@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import PublicSellerProfile from "@/pages/PublicSellerProfile";
 import { 
   LazyCatalog,
   LazyProductDetail,
@@ -19,10 +17,14 @@ import {
   LazyAdminCarCatalog,
   LazyAdminLogistics,
   LazyAdminAddProduct,
-  LazyAdminImageOptimizer
+  LazyAdminImageOptimizer,
+  LazySellerRegister,
+  LazyPublicSellerProfile,
+  LazyAdminFreeOrder,
+  LazyIndex
 } from "@/utils/lazyRoutes";
 
-// Import admin pages
+// Import admin pages that don't use lazy loading
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
 import AdminProducts from "./pages/AdminProducts";
@@ -35,11 +37,8 @@ import AdminImageOptimizer from "./pages/AdminImageOptimizer";
 import AdminCarCatalog from "./pages/AdminCarCatalog";
 import AdminFreeOrder from "./pages/AdminFreeOrder";
 
-// Pages
-import Catalog from "./pages/Catalog";
-import Index from "./pages/Index";
+// Pages that don't use lazy loading
 import NotFound from "./pages/NotFound";
-import ProductDetail from "./pages/ProductDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import About from "./pages/About";
@@ -59,7 +58,6 @@ import CreateStore from "./pages/CreateStore";
 import Requests from "./pages/Requests";
 import CreateRequest from "./pages/CreateRequest";
 import RequestDetail from "./pages/RequestDetail";
-import SellerRegister from "./pages/SellerRegister";
 
 const App = () => {
   return (
@@ -69,7 +67,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<LazyIndex />} />
             <Route path="/catalog" element={<LazyCatalog />} />
             <Route path="/product/:id" element={<LazyProductDetail />} />
             <Route path="/login" element={<Login />} />
@@ -81,7 +79,8 @@ const App = () => {
             } />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/seller-register" element={<SellerRegister />} />
+            <Route path="/seller-register" element={<LazySellerRegister />} />
+            
             <Route path="/seller/dashboard" element={
               <ProtectedRoute allowedRoles={['seller']}>
                 <SellerProfile />
@@ -183,7 +182,7 @@ const App = () => {
                 <LazyAdminCarCatalog />
               </ProtectedRoute>
             } />
-            <Route path="/seller/:id" element={<PublicSellerProfile />} />
+            <Route path="/seller/:id" element={<LazyPublicSellerProfile />} />
             <Route path="/stores" element={<Stores />} />
             <Route path="/stores/:id" element={<StoreDetail />} />
             <Route path="/stores/create" element={
