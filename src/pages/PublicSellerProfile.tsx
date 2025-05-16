@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
@@ -333,7 +334,7 @@ const PublicSellerProfile = () => {
                 <AlertDescription className="flex flex-col gap-3">
                   <p>
                     Для просмотра профиля продавца необходимо авторизоваться на сайте или зарегистрироваться.
-                    После авторизации вы сможете видеть полную информацию о продавце, его контакты и товары.
+                    После авторизации вы сможете видеть полную информацию о продавце и его товары.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Button onClick={() => navigate('/login')}>Войти</Button>
@@ -491,35 +492,6 @@ const PublicSellerProfile = () => {
                     </AccordionContent>
                   </AccordionItem>
                 )}
-
-                <AccordionItem value="contact">
-                  <AccordionTrigger>Контактная информация</AccordionTrigger>
-                  <AccordionContent>
-                    {user ? (
-                      <div className="space-y-2">
-                        {profile?.company_name && (
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-gray-500" />
-                            <span>{profile.company_name}</span>
-                          </div>
-                        )}
-                        {profile?.telegram && (
-                          <div className="flex items-center gap-2">
-                            <MessageSquare className="h-4 w-4 text-gray-500" />
-                            <span>{profile.telegram}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center">
-                        <p className="text-gray-600 mb-3">Для просмотра контактной информации необходимо авторизоваться</p>
-                        <Button onClick={handleShowContactInfo}>
-                          Войти для просмотра контактов
-                        </Button>
-                      </div>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
               </Accordion>
             </CardContent>
           </Card>

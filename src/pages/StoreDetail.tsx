@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, Phone, Star, User, ShieldCheck, Package, Store as StoreIcon, Image, MessageSquare, Send, MessageCircle, ChevronLeft, Car, CarFront, Share } from 'lucide-react';
+import { MapPin, User, Star, ShieldCheck, Package, Store as StoreIcon, Image, Send, MessageCircle, ChevronLeft, Car, CarFront, Share } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
@@ -195,52 +195,6 @@ const StoreDetail: React.FC = () => {
 
   const onReviewSubmitted = () => {
     refetch();
-  };
-
-  const handleContactTelegram = () => {
-    if (!user) {
-      setPendingAction('telegram');
-      setShowAuthDialog(true);
-      return;
-    }
-
-    if (!store?.telegram && !store?.phone) {
-      toast({
-        title: "Контакт недоступен",
-        description: "У этого магазина нет контактной информации Telegram",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Use store.telegram if available, otherwise use phone for backward compatibility
-    const telegramUsername = store.telegram || store.phone;
-    const formattedUsername = telegramUsername?.startsWith('@') 
-      ? telegramUsername.substring(1) 
-      : telegramUsername;
-      
-    window.open(`https://t.me/${formattedUsername}`, '_blank');
-  };
-
-  const handleContactWhatsApp = () => {
-    if (!user) {
-      setPendingAction('whatsapp');
-      setShowAuthDialog(true);
-      return;
-    }
-
-    if (!store?.phone) {
-      toast({
-        title: "Контакт недоступен",
-        description: "У этого магазина нет номера телефона для WhatsApp",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Clean the number, only keep digits
-    const phoneNumber = store.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/${phoneNumber}`, '_blank');
   };
 
   const handleGoBack = () => {
@@ -687,27 +641,6 @@ const StoreDetail: React.FC = () => {
                   <div className="font-medium">{reviews?.length || 0}</div>
                   <div className="text-sm text-muted-foreground">отзывов</div>
                 </div>
-
-                {/* Contact buttons - make sure they're always visible if contact info is available */}
-                {(store?.phone || store?.telegram) && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        onClick={handleContactTelegram}
-                        className="w-full bg-[#0088cc] hover:bg-[#0077b5] text-white"
-                      >
-                        <Send className="mr-2 h-4 w-4" /> Telegram
-                      </Button>
-                      <Button 
-                        onClick={handleContactWhatsApp}
-                        className="w-full bg-[#25D366] hover:bg-[#20bd5c] text-white"
-                        disabled={!store?.phone}
-                      >
-                        <MessageCircle className="mr-2 h-4 w-4" /> WhatsApp
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 {/* Button to seller products */}
                 <Button asChild className="w-full">

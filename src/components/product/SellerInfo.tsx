@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star, User, Store, MessageSquare } from "lucide-react";
+import { ShieldCheck, CircleDollarSign, Star, User, Store } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
