@@ -24,6 +24,8 @@ export interface OrderFormData {
   buyerOptId: string;
   brand: string;
   model: string;
+  brandId: string;  // New field for brand ID
+  modelId: string;  // New field for model ID
   sellerId: string;
   deliveryMethod: DeliveryMethod;
   place_number: string;

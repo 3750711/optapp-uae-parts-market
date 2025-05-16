@@ -20,6 +20,15 @@ export const AdminFreeOrderForm = () => {
     selectedSeller,
     isLoading,
     createdOrder,
+    brands,
+    brandModels,
+    isLoadingCarData,
+    searchBrandTerm,
+    setSearchBrandTerm,
+    searchModelTerm,
+    setSearchModelTerm,
+    filteredBrands,
+    filteredModels,
     setImages,
     setVideos,
     handleInputChange,
@@ -60,6 +69,15 @@ export const AdminFreeOrderForm = () => {
                 buyerProfiles={buyerProfiles}
                 sellerProfiles={sellerProfiles}
                 selectedSeller={selectedSeller}
+                brands={brands}
+                brandModels={brandModels}
+                isLoadingCarData={isLoadingCarData}
+                searchBrandTerm={searchBrandTerm}
+                setSearchBrandTerm={setSearchBrandTerm}
+                searchModelTerm={searchModelTerm}
+                setSearchModelTerm={setSearchModelTerm}
+                filteredBrands={filteredBrands}
+                filteredModels={filteredModels}
               />
               
               <MediaUploadSection

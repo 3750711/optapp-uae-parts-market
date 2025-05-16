@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,16 @@ interface OrderFormFieldsProps {
   buyerProfiles: ProfileShort[];
   sellerProfiles: SellerProfile[];
   selectedSeller: SellerProfile | null;
+  // Car brand and model props
+  brands: { id: string; name: string }[];
+  brandModels: { id: string; name: string; brand_id: string }[];
+  isLoadingCarData: boolean;
+  searchBrandTerm: string;
+  setSearchBrandTerm: (term: string) => void;
+  searchModelTerm: string;
+  setSearchModelTerm: (term: string) => void;
+  filteredBrands: { id: string; name: string }[];
+  filteredModels: { id: string; name: string; brand_id: string }[];
 }
 
 export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
@@ -20,6 +30,16 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   buyerProfiles,
   sellerProfiles,
   selectedSeller,
+  // Car brand and model props
+  brands,
+  brandModels,
+  isLoadingCarData,
+  searchBrandTerm,
+  setSearchBrandTerm,
+  searchModelTerm,
+  setSearchModelTerm,
+  filteredBrands,
+  filteredModels,
 }) => {
   return (
     <div className="space-y-6">
@@ -36,22 +56,61 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="brand">Бренд</Label>
-          <Input 
-            id="brand" 
-            value={formData.brand}
-            onChange={(e) => handleInputChange('brand', e.target.value)}
-            placeholder="Введите бренд"
-          />
+          <Label htmlFor="brandId">Бренд</Label>
+          <Select
+            value={formData.brandId}
+            onValueChange={(value) => handleInputChange('brandId', value)}
+            disabled={isLoadingCarData}
+          >
+            <SelectTrigger id="brandId" className="bg-white">
+              <SelectValue placeholder="Выберите бренд" />
+            </SelectTrigger>
+            <SelectContent
+              showSearch={true}
+              searchPlaceholder="Поиск бренда..."
+              onSearchChange={setSearchBrandTerm}
+              searchValue={searchBrandTerm}
+            >
+              {filteredBrands.length === 0 ? (
+                <SelectItem value="no_data">Нет данных</SelectItem>
+              ) : (
+                filteredBrands.map((brand) => (
+                  <SelectItem key={brand.id} value={brand.id}>
+                    {brand.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="model">Модель</Label>
-          <Input 
-            id="model"
-            value={formData.model}
-            onChange={(e) => handleInputChange('model', e.target.value)}
-            placeholder="Введите модель"
-          />
+          <Label htmlFor="modelId">Модель</Label>
+          <Select
+            value={formData.modelId}
+            onValueChange={(value) => handleInputChange('modelId', value)}
+            disabled={!formData.brandId || isLoadingCarData}
+          >
+            <SelectTrigger id="modelId" className="bg-white">
+              <SelectValue placeholder="Выберите модель" />
+            </SelectTrigger>
+            <SelectContent
+              showSearch={true}
+              searchPlaceholder="Поиск модели..."
+              onSearchChange={setSearchModelTerm}
+              searchValue={searchModelTerm}
+            >
+              {filteredModels.length === 0 ? (
+                <SelectItem value="no_data">Нет данных</SelectItem>
+              ) : (
+                filteredModels.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

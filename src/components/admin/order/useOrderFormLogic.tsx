@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useNavigate } from "react-router-dom";
 import { OrderFormData, ProfileShort, SellerProfile, OrderStatus, OrderCreatedType, DeliveryMethod } from "./types";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 
 export const useOrderFormLogic = () => {
   const navigate = useNavigate();
@@ -14,6 +15,28 @@ export const useOrderFormLogic = () => {
   const [sellerProfiles, setSellerProfiles] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerProfile | null>(null);
+
+  // Car brands and models state
+  const [searchBrandTerm, setSearchBrandTerm] = useState("");
+  const [searchModelTerm, setSearchModelTerm] = useState("");
+  
+  const { 
+    brands, 
+    brandModels, 
+    selectBrand,
+    findBrandIdByName,
+    findModelIdByName, 
+    isLoading: isLoadingCarData 
+  } = useCarBrandsAndModels();
+
+  // Filter brands and models based on search terms
+  const filteredBrands = brands.filter(brand => 
+    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+  );
+
+  const filteredModels = brandModels.filter(model => 
+    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+  );
   
   const [formData, setFormData] = useState<OrderFormData>({
     title: "",
@@ -21,6 +44,8 @@ export const useOrderFormLogic = () => {
     buyerOptId: "",
     brand: "",
     model: "",
+    brandId: "",
+    modelId: "",
     sellerId: "",
     deliveryMethod: 'self_pickup' as DeliveryMethod,
     place_number: "1",
@@ -75,6 +100,50 @@ export const useOrderFormLogic = () => {
     fetchProfiles();
   }, []);
 
+  // Handle brand and model changes
+  useEffect(() => {
+    if (formData.brandId) {
+      selectBrand(formData.brandId);
+      
+      // Set the brand name when brandId changes
+      const selectedBrand = brands.find(brand => brand.id === formData.brandId);
+      if (selectedBrand) {
+        setFormData(prev => ({
+          ...prev,
+          brand: selectedBrand.name
+        }));
+      }
+      
+      // Reset model if the brand has changed
+      if (formData.modelId) {
+        const modelBelongsToBrand = brandModels.some(model => 
+          model.id === formData.modelId && model.brand_id === formData.brandId
+        );
+        
+        if (!modelBelongsToBrand) {
+          setFormData(prev => ({
+            ...prev,
+            modelId: '',
+            model: ''
+          }));
+        }
+      }
+    }
+  }, [formData.brandId, brands, brandModels, selectBrand]);
+  
+  // Update model name when modelId changes
+  useEffect(() => {
+    if (formData.modelId) {
+      const selectedModel = brandModels.find(model => model.id === formData.modelId);
+      if (selectedModel) {
+        setFormData(prev => ({
+          ...prev,
+          model: selectedModel.name
+        }));
+      }
+    }
+  }, [formData.modelId, brandModels]);
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -103,6 +172,8 @@ export const useOrderFormLogic = () => {
       buyerOptId: "",
       brand: "",
       model: "",
+      brandId: "",
+      modelId: "",
       sellerId: "",
       deliveryMethod: 'self_pickup',
       place_number: "1",
@@ -283,6 +354,15 @@ export const useOrderFormLogic = () => {
     selectedSeller,
     isLoading,
     createdOrder,
+    brands,
+    brandModels,
+    isLoadingCarData,
+    searchBrandTerm,
+    setSearchBrandTerm,
+    searchModelTerm,
+    setSearchModelTerm,
+    filteredBrands,
+    filteredModels,
     setImages,
     setVideos,
     handleInputChange,
