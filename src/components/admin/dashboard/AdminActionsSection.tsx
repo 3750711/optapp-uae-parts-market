@@ -6,6 +6,14 @@ import ActionCard from './ActionCard';
 const AdminActionsSection: React.FC = () => {
   const actions = [
     {
+      title: "Добавить объявление",
+      subtitle: "Создать новое объявление",
+      icon: Plus,
+      link: "/admin/add-product",
+      bgColor: "bg-primary", // Changed from bg-optapp-yellow to primary color
+      textColor: "text-primary-foreground" // Changed to make text stand out better
+    },
+    {
       title: "Магазины",
       subtitle: "Управление магазинами",
       icon: Store,
@@ -22,14 +30,6 @@ const AdminActionsSection: React.FC = () => {
       subtitle: "Управление каталогом автомобилей",
       icon: Car,
       link: "/admin/car-catalog",
-      bgColor: "bg-optapp-yellow",
-      textColor: "text-optapp-dark"
-    },
-    {
-      title: "Добавить объявление",
-      subtitle: "Создать новое объявление",
-      icon: Plus,
-      link: "/admin/add-product",
       bgColor: "bg-optapp-yellow",
       textColor: "text-optapp-dark"
     },
