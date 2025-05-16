@@ -8,7 +8,6 @@ import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductsSection from "@/components/catalog/ProductsSection";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
-
 const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 8;
@@ -44,13 +43,11 @@ const Index = () => {
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts(productsPerPage);
-  
-  return (
-    <Layout className="bg-white">
-      <div className="bg-white">
+  return <Layout>
+      <div className="bg-background">
         {/* Hero section - keeping this from the original page */}
-        <section className="bg-white relative overflow-hidden">
-          <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center bg-white">
+        <section className="bg-gradient-to-br from-primary/5 to-secondary/5 relative overflow-hidden">
+          <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center">
             <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0 animate-fade-in">
               <h1 className="text-3xl md:text-4xl lg:text-6xl font-extrabold mb-4 md:mb-6 leading-tight">
                 <span className="text-foreground">Оптовый рынок </span> 
@@ -64,10 +61,7 @@ const Index = () => {
               </p>
               <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-3 md:gap-4">
                 <Button size="lg" className="group w-full sm:w-auto" asChild>
-                  <Link to="/catalog">
-                    К каталогу
-                    <ChevronRight className="ml-1 transform group-hover:translate-x-1 transition-transform" />
-                  </Link>
+                  
                 </Button>
                 <Button size="lg" variant="outline" className="w-full sm:w-auto" asChild>
                   <Link to="/register">Регистрация</Link>
@@ -75,9 +69,7 @@ const Index = () => {
               </div>
             </div>
             <div className="md:w-1/2 relative animate-float">
-              <div className="w-full h-60 md:h-80 lg:h-96 bg-gradient-to-tr from-primary/20 to-secondary/20 rounded-2xl shadow-elevation relative overflow-hidden">
-                <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
-              </div>
+              
             </div>
           </div>
         </section>
@@ -100,8 +92,6 @@ const Index = () => {
           </div>
         </section>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Index;
