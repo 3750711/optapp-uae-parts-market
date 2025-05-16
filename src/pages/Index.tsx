@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ChevronRight, ArrowRight } from 'lucide-react';
+import { ShoppingCart, ChevronRight, ArrowRight, Store, Info } from 'lucide-react';
 import Layout from "@/components/layout/Layout";
 import SearchBar from "@/components/catalog/SearchBar";
 import FiltersPanel from "@/components/catalog/FiltersPanel";
@@ -98,42 +97,102 @@ const Index = () => {
           </div>
         </section>
 
-        {/* Features section */}
+        {/* Features section - redesigned with Sellers, Buyers, About Us */}
         <section className="py-16 bg-gray-50">
           <div className="container mx-auto px-4">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Наши преимущества</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Feature 1 */}
-              <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] group">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12">Наша платформа</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Sellers Block */}
+              <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] group relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-10 -mt-10"></div>
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors relative z-10">
+                  <Store className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Проверенные поставщики</h3>
-                <p className="text-gray-600">Мы тщательно отбираем наших продавцов, чтобы гарантировать высокое качество товаров и услуг.</p>
+                <h3 className="text-xl font-semibold mb-3">Продавцам</h3>
+                <ul className="space-y-3 text-gray-600">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary font-bold">•</span>
+                    <span>Доступ к тысячам оптовых покупателей</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary font-bold">•</span>
+                    <span>Бесплатное размещение товаров</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary font-bold">•</span>
+                    <span>Инструменты управления продажами</span>
+                  </li>
+                </ul>
+                <div className="mt-5">
+                  <Button variant="ghost" size="sm" className="text-primary group-hover:text-primary-hover" asChild>
+                    <Link to="/seller-register">
+                      Узнать больше
+                      <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
               
-              {/* Feature 2 */}
-              <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] group">
-                <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-secondary/20 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
+              {/* Buyers Block */}
+              <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] group relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/5 rounded-full -mr-10 -mt-10"></div>
+                <div className="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-secondary/20 transition-colors relative z-10">
+                  <ShoppingCart className="h-6 w-6 text-secondary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Прозрачные цены</h3>
-                <p className="text-gray-600">Никаких скрытых комиссий или наценок. Вы видите реальные оптовые цены от продавцов.</p>
+                <h3 className="text-xl font-semibold mb-3">Покупателям</h3>
+                <ul className="space-y-3 text-gray-600">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-secondary font-bold">•</span>
+                    <span>Прямой контакт с поставщиками из ОАЭ</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-secondary font-bold">•</span>
+                    <span>Оптовые цены без посредников</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-secondary font-bold">•</span>
+                    <span>Широкий выбор автозапчастей</span>
+                  </li>
+                </ul>
+                <div className="mt-5">
+                  <Button variant="ghost" size="sm" className="text-secondary group-hover:text-secondary-hover" asChild>
+                    <Link to="/catalog">
+                      Перейти в каталог
+                      <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
               
-              {/* Feature 3 */}
-              <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] group">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
+              {/* About Us Block */}
+              <div className="bg-white rounded-xl p-6 shadow-card hover:shadow-elevation-hover transition-all duration-300 hover:translate-y-[-4px] group relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-10 -mt-10"></div>
+                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors relative z-10">
+                  <Info className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Доставка по СНГ</h3>
-                <p className="text-gray-600">Партнёрская доставка в Россию, Казахстан и другие страны СНГ.</p>
+                <h3 className="text-xl font-semibold mb-3">О нас</h3>
+                <ul className="space-y-3 text-gray-600">
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary font-bold">•</span>
+                    <span>Более 100 проверенных продавцов</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary font-bold">•</span>
+                    <span>Прозрачная система рейтингов</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="mr-2 text-primary font-bold">•</span>
+                    <span>Техподдержка на русском языке</span>
+                  </li>
+                </ul>
+                <div className="mt-5">
+                  <Button variant="ghost" size="sm" className="text-primary group-hover:text-primary-hover" asChild>
+                    <Link to="/about">
+                      О компании
+                      <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
