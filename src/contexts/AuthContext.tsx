@@ -79,6 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
               setProfile(null);
             }
+            
+            // Only set isLoading to false after we've handled the auth state change
+            setIsLoading(false);
           }
         );
 
@@ -95,10 +98,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }, 100);
         }
         
+        // Set loading to false after initial session check
+        setIsLoading(false);
+        
         return () => subscription.unsubscribe();
       } catch (error) {
         console.error("Error setting up auth:", error);
-      } finally {
+        // Ensure we set loading to false even if there's an error
         setIsLoading(false);
       }
     };

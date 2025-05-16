@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -23,7 +23,7 @@ import { Database } from "@/integrations/supabase/types";
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const { isAdmin } = useAdminAccess();
   const [searchParams] = useSearchParams();
   const fromSeller = searchParams.get("from") === "seller";
@@ -36,57 +36,83 @@ const ProductDetail = () => {
     setDeliveryMethod(method);
   };
   
-  const { data: product, isLoading, error } = useQuery({
+  // Wait for auth to be checked before fetching product data
+  const { data: product, isLoading, error, isError } = useQuery({
     queryKey: ['product', id],
     queryFn: async () => {
-      if (!id) throw new Error('No product ID provided');
-      
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_images(*),
-          product_videos(*)
-        `)
-        .eq('id', id)
-        .single();
-      
-      if (error) {
-        console.error('Error fetching product:', error);
-        navigate('/404');
+      if (!id) {
+        console.error('No product ID provided');
         return null;
       }
       
-      if (!data) {
-        console.error('No product found with ID:', id);
-        navigate('/404');
-        return null;
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            *,
+            product_images(*),
+            product_videos(*)
+          `)
+          .eq('id', id)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching product:', error);
+          throw error;
+        }
+        
+        if (!data) {
+          console.error('No product found with ID:', id);
+          throw new Error('Product not found');
+        }
+        
+        // Check if current user is the product creator/seller
+        const isCreator = user?.id === data.seller_id;
+        console.log("Is creator check:", isCreator, user?.id, data.seller_id);
+        
+        // Check product visibility based on status and user role/ownership
+        // Allow creator to view their own products regardless of status
+        if (data.status === 'pending' && !isCreator && !isAdmin) {
+          console.log("Access denied: User is not product creator or admin for pending product");
+          throw new Error('Access denied: Product is pending approval');
+        }
+        
+        // Similar check for archived products
+        if (data.status === 'archived' && !isCreator && !isAdmin) {
+          console.log("Access denied: User is not product creator or admin for archived product");
+          throw new Error('Access denied: Product is archived');
+        }
+        
+        console.log("Fetched product details:", data);
+        return data as Product;
+      } catch (error) {
+        console.error("Error in product query:", error);
+        throw error;
       }
-      
-      // Check if current user is the product creator/seller
-      const isCreator = user?.id === data.seller_id;
-      console.log("Is creator check:", isCreator, user?.id, data.seller_id);
-      
-      // Check product visibility based on status and user role/ownership
-      // Allow creator to view their own products regardless of status
-      if (data.status === 'pending' && !isCreator && !isAdmin) {
-        console.log("Access denied: User is not product creator or admin for pending product");
-        navigate('/404');
-        return null;
-      }
-      
-      // Similar check for archived products
-      if (data.status === 'archived' && !isCreator && !isAdmin) {
-        console.log("Access denied: User is not product creator or admin for archived product");
-        navigate('/404');
-        return null;
-      }
-      
-      console.log("Fetched product details:", data);
-      return data as Product;
     },
-    enabled: !!id,
+    enabled: !!id && !authLoading, // Only run query when ID is available and auth check is completed
+    retry: (failureCount, error) => {
+      // Don't retry for access denied errors
+      if (error instanceof Error && 
+          (error.message.includes('Access denied') || 
+           error.message.includes('Product not found'))) {
+        return false;
+      }
+      // Otherwise retry up to 1 time (default from QueryClient)
+      return failureCount < 1;
+    },
   });
+  
+  // Handle navigation to 404 only after we're sure the product doesn't exist or access is denied
+  useEffect(() => {
+    if (isError && !isLoading && !authLoading) {
+      // Add a small delay to prevent false negatives
+      const timer = setTimeout(() => {
+        navigate('/404');
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isError, isLoading, authLoading, navigate]);
   
   // Query for seller profile
   const { data: sellerProfile } = useQuery({
@@ -125,8 +151,8 @@ const ProductDetail = () => {
     console.log("Product updated, refreshing data");
   };
   
-  // Loading state
-  if (isLoading) {
+  // Loading state - show during initial auth check or product loading
+  if (authLoading || (isLoading && !product)) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
@@ -174,10 +200,23 @@ const ProductDetail = () => {
     );
   }
   
-  if (error) {
-    console.error('Query error:', error);
-    navigate('/404');
-    return null;
+  // Show error message if product couldn't be loaded
+  if (isError) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-6 max-w-7xl">
+          <Alert variant="destructive" className="mb-6">
+            <AlertTitle>Ошибка загрузки объявления</AlertTitle>
+            <AlertDescription>
+              Не удалось загрузить информацию об объявлении. Пожалуйста, попробуйте позже или вернитесь на главную страницу.
+            </AlertDescription>
+          </Alert>
+          <Button variant="default" onClick={() => navigate('/')}>
+            Вернуться на главную
+          </Button>
+        </div>
+      </Layout>
+    );
   }
   
   if (!product) return null;
