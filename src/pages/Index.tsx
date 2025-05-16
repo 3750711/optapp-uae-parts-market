@@ -8,11 +8,10 @@ import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductsSection from "@/components/catalog/ProductsSection";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
-
 const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 8;
-  
+
   // Car brands and models
   const {
     brands,
@@ -44,13 +43,11 @@ const Index = () => {
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts(productsPerPage);
-
-  return (
-    <Layout>
+  return <Layout>
       <div className="bg-background">
         {/* Hero section - keeping this from the original page */}
         <section className="bg-gradient-to-br from-primary/5 to-secondary/5 relative overflow-hidden">
-          <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center">
+          <div className="container mx-auto px-4 py-12 md:px-6 md:py-20 lg:py-24 flex flex-col md:flex-row items-center rounded-full bg-white/[0.31]">
             <div className="md:w-1/2 text-center md:text-left mb-8 md:mb-0 animate-fade-in">
               <h1 className="text-3xl md:text-4xl lg:text-6xl font-extrabold mb-4 md:mb-6 leading-tight">
                 <span className="text-foreground">Оптовый рынок </span> 
@@ -95,50 +92,17 @@ const Index = () => {
             
             <div className="mb-6 flex flex-col gap-4">
               {/* Search Bar Component */}
-              <SearchBar 
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                handleSearchSubmit={handleSearchSubmit}
-              />
+              <SearchBar searchQuery={searchQuery} setSearchQuery={setSearchQuery} handleSearchSubmit={handleSearchSubmit} />
               
               {/* Filters Panel Component */}
-              <FiltersPanel
-                showFilters={showFilters}
-                setShowFilters={setShowFilters}
-                selectedBrand={selectedBrand}
-                selectBrand={selectBrand}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
-                brands={brands}
-                brandModels={brandModels}
-                hideSoldProducts={hideSoldProducts}
-                setHideSoldProducts={setHideSoldProducts}
-                handleSearchSubmit={handleSearchSubmit}
-                handleClearSearch={handleClearSearch}
-                isActiveFilters={isActiveFilters}
-              />
+              <FiltersPanel showFilters={showFilters} setShowFilters={setShowFilters} selectedBrand={selectedBrand} selectBrand={selectBrand} selectedModel={selectedModel} setSelectedModel={setSelectedModel} brands={brands} brandModels={brandModels} hideSoldProducts={hideSoldProducts} setHideSoldProducts={setHideSoldProducts} handleSearchSubmit={handleSearchSubmit} handleClearSearch={handleClearSearch} isActiveFilters={isActiveFilters} />
             </div>
             
             {/* Products Section Component */}
-            <ProductsSection
-              isLoading={isLoading}
-              isError={isError}
-              hasSearched={hasSearched}
-              debouncedSearchQuery={debouncedSearchQuery}
-              selectedBrand={selectedBrand}
-              selectedModel={selectedModel}
-              allProducts={allProducts}
-              productChunks={productChunks}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
-              refetch={refetch}
-            />
+            <ProductsSection isLoading={isLoading} isError={isError} hasSearched={hasSearched} debouncedSearchQuery={debouncedSearchQuery} selectedBrand={selectedBrand} selectedModel={selectedModel} allProducts={allProducts} productChunks={productChunks} hasNextPage={hasNextPage} isFetchingNextPage={isFetchingNextPage} fetchNextPage={fetchNextPage} refetch={refetch} />
           </div>
         </section>
       </div>
-    </Layout>
-  );
+    </Layout>;
 };
-
 export default Index;
