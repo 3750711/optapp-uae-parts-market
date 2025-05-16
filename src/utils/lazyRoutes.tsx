@@ -29,6 +29,7 @@ export const LazyCatalog = lazyLoad(() => import('../pages/Catalog'));
 export const LazySellerListings = lazyLoad(() => import('../pages/SellerListings'));
 export const LazySellerAddProduct = lazyLoad(() => import('../pages/SellerAddProduct'));
 export const LazyIndex = lazyLoad(() => import('../pages/Index'));
+export const LazySellerRegister = lazyLoad(() => import('../pages/SellerRegister'));
 
 // Admin pages
 export const LazyAdminDashboard = lazyLoad(() => import('../pages/AdminDashboard'));
