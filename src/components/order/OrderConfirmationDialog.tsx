@@ -56,7 +56,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 }) => {
   const [textOrder, setTextOrder] = useState<string>("");
   
-  // Устанавливаем значение по умолчанию при первом рендере
+  // Set default value to cargo_rf on first render if not set
   useEffect(() => {
     console.log("OrderConfirmationDialog (order) - Current delivery method:", deliveryMethod);
     if (!deliveryMethod) {

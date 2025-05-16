@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -46,7 +47,7 @@ export const useOrderFormLogic = () => {
     brandId: "",
     modelId: "",
     sellerId: "",
-    deliveryMethod: 'self_pickup' as DeliveryMethod,
+    deliveryMethod: 'cargo_rf' as DeliveryMethod, // Changed default from 'self_pickup' to 'cargo_rf'
     place_number: "1",
     text_order: "",
     delivery_price: "",
@@ -198,7 +199,7 @@ export const useOrderFormLogic = () => {
       brandId: "",
       modelId: "",
       sellerId: "",
-      deliveryMethod: 'self_pickup',
+      deliveryMethod: 'cargo_rf', // Changed default from 'self_pickup' to 'cargo_rf' here too
       place_number: "1",
       text_order: "",
       delivery_price: "",
