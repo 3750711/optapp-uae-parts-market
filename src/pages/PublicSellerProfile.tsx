@@ -23,6 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import {
   Tooltip,
@@ -236,6 +237,24 @@ const PublicSellerProfile = () => {
           </Button>
         </div>
 
+        {!user && (
+          <Alert className="mb-6 border-primary/50 bg-primary/10">
+            <AlertTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" /> 
+              Требуется авторизация
+            </AlertTitle>
+            <AlertDescription className="flex flex-col gap-3">
+              <p>
+                Для просмотра полного профиля продавца необходимо авторизоваться на сайте или зарегистрироваться.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={() => navigate('/login')}>Войти</Button>
+                <Button variant="outline" onClick={() => navigate('/register')}>Регистрация</Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="md:col-span-2">
             <CardHeader>
@@ -262,9 +281,15 @@ const PublicSellerProfile = () => {
                       </span>
                     )}
                   </div>
-                  <Badge variant="outline" className="text-sm">
-                    {profile?.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
-                  </Badge>
+                  {user ? (
+                    <Badge variant="outline" className="text-sm">
+                      {profile?.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-sm">
+                      OPT ID: <span className="text-gray-400">скрыт</span>
+                    </Badge>
+                  )}
                 </div>
               </div>
 
@@ -403,7 +428,21 @@ const PublicSellerProfile = () => {
           </CardHeader>
           <CardContent>
             {mappedProducts && mappedProducts.length > 0 ? (
-              <ProductGrid products={mappedProducts} />
+              user ? (
+                <ProductGrid products={mappedProducts} />
+              ) : (
+                <div className="p-6 border border-gray-200 rounded-lg bg-gray-50 text-center">
+                  <p className="text-gray-600 mb-4">Для просмотра всех объявлений продавца необходимо авторизоваться</p>
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                    <Button onClick={() => navigate('/login')}>
+                      Войти в аккаунт
+                    </Button>
+                    <Button variant="outline" onClick={() => navigate('/register')}>
+                      Зарегистрироваться
+                    </Button>
+                  </div>
+                </div>
+              )
             ) : (
               <p className="text-center py-8 text-gray-500">
                 У продавца пока нет активных объявлений

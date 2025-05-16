@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface SellerInfoProps {
   sellerProfile: SellerProfile;
@@ -149,12 +150,20 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
           {children}
         </div>
       ) : (
-        <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 text-center mt-4">
-          <p className="text-gray-600 mb-3">Для связи с продавцом необходимо авторизоваться</p>
-          <Button onClick={handleShowContactInfo}>
-            Войти для связи с продавцом
-          </Button>
-        </div>
+        <Alert className="mt-4 border-primary/20 bg-primary/5">
+          <AlertTitle className="text-primary">Требуется авторизация</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>Для связи с продавцом необходимо авторизоваться</p>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={handleShowContactInfo}>
+                Войти для связи с продавцом
+              </Button>
+              <Button variant="outline" onClick={() => navigate('/register')}>
+                Регистрация
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       <div className="space-y-3 text-sm mt-4">
