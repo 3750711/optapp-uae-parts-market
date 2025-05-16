@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
@@ -38,14 +37,42 @@ const PublicSellerProfile = () => {
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
   const [carBrands, setCarBrands] = useState<string[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [profileExists, setProfileExists] = useState<boolean | null>(null);
 
-  // Update the query to use select method instead of maybeSingle
+  // Проверка существования профиля - выполняется всегда, независимо от авторизации
+  const { data: profileExistsCheck, isLoading: isCheckLoading } = useQuery({
+    queryKey: ["seller-profile-exists", id],
+    queryFn: async () => {
+      if (!id) return false;
+      
+      const { count, error } = await supabase
+        .from("profiles")
+        .select("id", { count: 'exact', head: true })
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error checking if profile exists:", error);
+        return false;
+      }
+      
+      return count && count > 0;
+    },
+    enabled: !!id,
+  });
+
+  // Установка состояния существования профиля после загрузки
+  useEffect(() => {
+    if (!isCheckLoading) {
+      setProfileExists(profileExistsCheck);
+    }
+  }, [profileExistsCheck, isCheckLoading]);
+  
+  // Получение данных профиля продавца - выполняется только если пользователь авторизован
   const { data: profile, isLoading: isProfileLoading, error: profileError } = useQuery({
     queryKey: ["seller-profile", id],
     queryFn: async () => {
       if (!id) return null;
       
-      // Use select without maybeSingle, and then check if there's data
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
@@ -57,12 +84,12 @@ const PublicSellerProfile = () => {
       }
       
       if (!data || data.length === 0) {
-        return null; // Return null if no profile is found
+        return null;
       }
       
-      return data[0]; // Return the first matching profile
+      return data[0];
     },
-    enabled: !!id,
+    enabled: !!id && !!user,
   });
 
   useEffect(() => {
@@ -103,6 +130,10 @@ const PublicSellerProfile = () => {
     queryKey: ["seller-orders-count", id],
     queryFn: async () => {
       if (!id) return 0;
+      
+      // Если пользователь не авторизован, показываем заглушку
+      if (!user) return "?";
+      
       const { count, error } = await supabase
         .from("orders")
         .select("*", { count: 'exact', head: true })
@@ -183,7 +214,7 @@ const PublicSellerProfile = () => {
     navigate('/login');
   };
 
-  if (isProfileLoading || isProductsLoading) {
+  if (isCheckLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
@@ -193,8 +224,8 @@ const PublicSellerProfile = () => {
     );
   }
 
-  // More detailed error handling for profile not found
-  if (!id || !profile || profileError) {
+  // Профиль действительно не существует - показываем страницу с ошибкой
+  if (profileExists === false || !id) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
@@ -225,6 +256,71 @@ const PublicSellerProfile = () => {
                 Перейти в каталог
               </Button>
             </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Профиль существует, но пользователь не авторизован - показываем страницу с требованием авторизации
+  if (!user && profileExists) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-4" 
+              onClick={() => navigate(-1)}
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+            </Button>
+          </div>
+          
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Авторизация требуется
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Alert className="border-primary/50 bg-primary/10">
+                <AlertTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" /> 
+                  Просмотр профиля продавца
+                </AlertTitle>
+                <AlertDescription className="flex flex-col gap-3">
+                  <p>
+                    Для просмотра профиля продавца необходимо авторизоваться на сайте или зарегистрироваться.
+                    После авторизации вы сможете видеть полную информацию о продавце, его контакты и товары.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button onClick={() => navigate('/login')}>Войти</Button>
+                    <Button variant="outline" onClick={() => navigate('/register')}>Регистрация</Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+              
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p className="text-gray-600 text-center">
+                  На OPT наши пользователи могут просматривать профили продавцов только после авторизации 
+                  для обеспечения безопасности и качества сервиса.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Предварительная информация о продавце */}
+          <div className="text-center mt-8">
+            <Button 
+              variant="default" 
+              onClick={() => navigate('/catalog')}
+              className="mx-auto"
+            >
+              Перейти в каталог
+            </Button>
           </div>
         </div>
       </Layout>
