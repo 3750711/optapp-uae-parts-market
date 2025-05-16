@@ -77,12 +77,6 @@ const Index = () => {
             <div className="md:w-1/2 relative animate-float">
               <div className="w-full h-60 md:h-80 lg:h-96 bg-gradient-to-tr from-primary/20 to-secondary/20 rounded-2xl shadow-elevation relative overflow-hidden">
                 <div className="absolute inset-0 bg-white/40 backdrop-blur-sm"></div>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <h3 className="text-2xl md:text-3xl font-bold text-primary">OPTAPP</h3>
-                    <p className="text-foreground/70 mt-2">Ваш надежный партнер</p>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
