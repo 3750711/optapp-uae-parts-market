@@ -8,7 +8,6 @@ import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductsSection from "@/components/catalog/ProductsSection";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
-
 const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 8;
@@ -57,9 +56,8 @@ const Index = () => {
                   <span className="text-secondary">partsbay.ae</span>
                 </span>
               </h1>
-              <p className="text-base md:text-lg text-foreground/80 mb-6 md:mb-8 max-w-lg">
-                PartsBay - платформа, объединяющая продавцов и покупателей автозапчастей. Здесь каждый найдет качественные товары, надежных партнеров и комфортный сервис.
-              </p>
+              <p className="text-base md:text-lg text-foreground/80 mb-6 md:mb-8 max-w-lg">PartsBay - платформа, объединяющая продавцов и покупателей автозапчастей в ОАЭ.
+            </p>
               <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-3 md:gap-4">
                 <Button size="lg" className="group w-full sm:w-auto" asChild>
                   
