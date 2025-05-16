@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
@@ -21,6 +21,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
   activeSearchTerm,
   placeholder = "Поиск..."
 }) => {
+  const [isFocused, setIsFocused] = useState(false);
+  
   // Handle key press - if Enter is pressed, trigger search
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -32,36 +34,46 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const hasActiveSearch = activeSearchTerm && activeSearchTerm.trim() !== '';
 
   return (
-    <div className="relative flex items-center w-full">
-      <Input
-        type="search"
-        placeholder={placeholder}
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        onKeyDown={handleKeyDown}
-        className="w-full pr-10"
-      />
-      <div className="absolute right-0 top-0 h-10 flex">
-        {hasActiveSearch && onClear && (
+    <div className={`relative transition-all duration-300 w-full ${isFocused ? 'scale-[1.01]' : ''}`}>
+      <div className={`relative group transition-all duration-300 rounded-lg ${isFocused ? 'shadow-lg ring-2 ring-primary/20' : 'shadow-sm hover:shadow-md'}`}>
+        <span className={`absolute left-3 top-1/2 -translate-y-1/2 z-10 transition-all duration-300 ${isFocused ? 'text-primary' : 'text-gray-400'}`}>
+          <Search className={`h-4 w-4 transition-opacity ${searchTerm ? 'opacity-100' : 'group-hover:opacity-70'}`} />
+        </span>
+        
+        <Input
+          type="search"
+          placeholder={placeholder}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+          className="w-full pl-10 pr-16 py-2 border-gray-200 bg-white/70 backdrop-blur-sm rounded-lg shadow-none"
+        />
+        
+        <div className="absolute right-1 top-0 h-10 flex items-center">
+          {hasActiveSearch && onClear && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 rounded-full hover:bg-gray-100"
+              onClick={onClear}
+              title="Очистить поиск"
+            >
+              <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+            </Button>
+          )}
+          
           <Button 
             variant="ghost" 
-            size="icon" 
-            className="h-10"
-            onClick={onClear}
-            title="Очистить поиск"
+            size="sm"
+            className="rounded-lg h-8 px-3 ml-1 bg-gray-50 hover:bg-gray-100 text-gray-500"
+            onClick={onSearch}
+            title="Поиск"
           >
-            <X className="h-4 w-4" />
+            <span className="text-xs mr-1">Найти</span>
           </Button>
-        )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="h-10"
-          onClick={onSearch}
-          title="Поиск"
-        >
-          <Search className="h-4 w-4" />
-        </Button>
+        </div>
       </div>
     </div>
   );

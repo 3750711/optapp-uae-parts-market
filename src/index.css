@@ -1,5 +1,4 @@
 
-
 @import url('https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap');
 
 @tailwind base;
@@ -58,6 +57,21 @@
   .input-field {
     @apply w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all;
   }
+  
+  /* Enhanced search input styling */
+  .search-input {
+    @apply relative bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 
+           transition-all duration-300 shadow-sm hover:shadow-md focus-within:shadow-lg 
+           focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20;
+  }
+  
+  .search-input-icon {
+    @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors duration-300;
+  }
+  
+  .search-input:focus-within .search-input-icon {
+    @apply text-primary;
+  }
 }
 
 @keyframes fadeIn {
@@ -101,6 +115,14 @@
   animation: pulse 2s infinite ease-in-out;
 }
 
+/* Glassmorphism effect for search elements */
+.search-glassmorphism {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
 /* Hero section background animation */
 @keyframes gradientBg {
   0% { background-position: 0% 50%; }
@@ -110,6 +132,16 @@
 .bg-gradient-animate {
   background-size: 200% 200%;
   animation: gradientBg 15s ease infinite;
+}
+
+/* Search focus animation */
+@keyframes searchFocus {
+  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.1); }
+  70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
+}
+.search-focus-animation:focus-within {
+  animation: searchFocus 2s ease-out;
 }
 
 /* Product card adjustments for horizontal layout */
