@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
@@ -39,6 +38,23 @@ const PublicSellerProfile = () => {
   const [carBrands, setCarBrands] = useState<string[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [profileExists, setProfileExists] = useState<boolean | null>(null);
+
+  // Fixed back button functionality
+  const handleGoBack = () => {
+    try {
+      // First, try to navigate back in history
+      if (window.history.length > 2) {
+        navigate(-1);
+      } else {
+        // If there's no previous page, navigate to the home page
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Navigation error:", error);
+      // Fallback to home page if navigation fails
+      navigate('/');
+    }
+  };
 
   // Проверка существования профиля - выполняется всегда, независимо от авторизации
   const { data: profileExistsCheck, isLoading: isCheckLoading } = useQuery({
@@ -257,7 +273,7 @@ const PublicSellerProfile = () => {
               variant="ghost" 
               size="sm" 
               className="mr-4" 
-              onClick={() => navigate(-1)}
+              onClick={handleGoBack}
             >
               <ChevronLeft className="h-5 w-5 mr-1" /> Назад
             </Button>
@@ -295,7 +311,7 @@ const PublicSellerProfile = () => {
               variant="ghost" 
               size="sm" 
               className="mr-4" 
-              onClick={() => navigate(-1)}
+              onClick={handleGoBack}
             >
               <ChevronLeft className="h-5 w-5 mr-1" /> Назад
             </Button>
@@ -357,7 +373,7 @@ const PublicSellerProfile = () => {
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
           >
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
@@ -382,7 +398,7 @@ const PublicSellerProfile = () => {
             </AlertTitle>
             <AlertDescription className="flex flex-col gap-3">
               <p>
-                Для просмотра полного профиля продавца необходимо авторизоваться на сайте или зарегистрироваться.
+                Для просмотра полной информации о продавце необходимо авторизоваться на сайте или зарегистрироваться.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={() => navigate('/login')}>Войти</Button>

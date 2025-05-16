@@ -14,6 +14,23 @@ const SellerProfile = () => {
   const { user } = useAuth();
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
 
+  // Fixed back button functionality
+  const handleGoBack = () => {
+    try {
+      // First, try to navigate back in history
+      if (window.history.length > 2) {
+        navigate(-1);
+      } else {
+        // If there's no previous page, navigate to the home page
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Navigation error:", error);
+      // Fallback to home page if navigation fails
+      navigate('/');
+    }
+  };
+
   useEffect(() => {
     const fetchStoreInfo = async () => {
       if (!user) return;
@@ -40,7 +57,7 @@ const SellerProfile = () => {
             variant="ghost" 
             size="sm" 
             className="mr-4" 
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
           >
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
