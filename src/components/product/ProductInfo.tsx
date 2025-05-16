@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Share, Package2, Truck } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Package2, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -22,19 +22,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const isOwner = user?.id === product.seller_id;
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
-
-  const handleShare = () => {
-    const text = encodeURIComponent(
-      `🛍 Товар: ${product.title}\n` +
-      `💰 Цена: ${product.price} $\n` +
-      `🏷 Бренд: ${product.brand || 'Не указан'}\n` +
-      `📝 Модель: ${product.model || 'Не указана'}\n` +
-      (product.description ? `📄 Описание:\n${product.description}\n` : '')
-    );
-    
-    const url = encodeURIComponent(window.location.href);
-    window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
-  };
 
   const getStatusBadge = () => {
     switch (product.status) {
@@ -81,15 +68,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2 bg-[#229ED9] hover:bg-[#229ED9]/90 text-white border-none"
-            onClick={handleShare}
-          >
-            <Share className="h-4 w-4" />
-            Поделиться
-          </Button>
           {isOwner && product.status !== 'sold' && (
             <Button
               variant="outline"
