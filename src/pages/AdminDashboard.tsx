@@ -12,7 +12,7 @@ const AdminDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6">
-        <DashboardHeader title={t('dashboard.title')} />
+        <DashboardHeader title={t('admin:dashboard.title')} />
         <AdminMetricsSection />
         <AdminActionsSection />
       </div>
