@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send } from "lucide-react";
+import { ChevronLeft, User, Star, Building2, MessageSquare, Package2, Crown, ShoppingCart, Store as StoreIcon, Car, Send, Heart } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import Layout from "@/components/layout/Layout";
@@ -30,6 +30,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatDistanceToNow } from "date-fns";
+import { ru } from "date-fns/locale";
 
 const PublicSellerProfile = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +41,7 @@ const PublicSellerProfile = () => {
   const [carBrands, setCarBrands] = useState<string[]>([]);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [profileExists, setProfileExists] = useState<boolean | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
 
   // Fixed back button functionality
   const handleGoBack = () => {
@@ -117,6 +120,79 @@ const PublicSellerProfile = () => {
     },
     enabled: !!id && !!user,
   });
+
+  // Проверка, добавлен ли продавец в избранное
+  useEffect(() => {
+    if (!user || !id) return;
+
+    const checkFavorite = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('favorite_sellers')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('seller_id', id)
+          .maybeSingle();
+
+        if (!error && data) {
+          setIsFavorite(true);
+        }
+      } catch (err) {
+        console.error("Error checking favorite status:", err);
+      }
+    };
+
+    checkFavorite();
+  }, [user, id]);
+
+  // Добавление/удаление из избранного
+  const toggleFavorite = async () => {
+    if (!user) {
+      setShowAuthDialog(true);
+      return;
+    }
+
+    try {
+      if (isFavorite) {
+        // Удаляем из избранного
+        const { error } = await supabase
+          .from('favorite_sellers')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('seller_id', id);
+
+        if (error) throw error;
+        
+        setIsFavorite(false);
+        toast({
+          description: "Продавец удален из избранного",
+        });
+      } else {
+        // Добавляем в избранное
+        const { error } = await supabase
+          .from('favorite_sellers')
+          .insert({
+            user_id: user.id,
+            seller_id: id,
+            seller_name: profile?.full_name || "Продавец"
+          });
+
+        if (error) throw error;
+        
+        setIsFavorite(true);
+        toast({
+          description: "Продавец добавлен в избранное",
+        });
+      }
+    } catch (err) {
+      console.error("Error toggling favorite:", err);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось изменить статус избранного",
+      });
+    }
+  };
 
   useEffect(() => {
     const fetchStoreInfo = async () => {
@@ -254,6 +330,22 @@ const PublicSellerProfile = () => {
     navigate('/login');
   };
 
+  // Форматирование времени последнего входа
+  const formatLastActive = (lastLoginTime?: string) => {
+    if (!lastLoginTime) return "Нет данных";
+    
+    try {
+      const date = new Date(lastLoginTime);
+      return formatDistanceToNow(date, { 
+        addSuffix: true,
+        locale: ru 
+      });
+    } catch (err) {
+      console.error("Date formatting error:", err);
+      return "Нет данных";
+    }
+  };
+
   if (isCheckLoading) {
     return (
       <Layout>
@@ -379,16 +471,36 @@ const PublicSellerProfile = () => {
             <ChevronLeft className="h-5 w-5 mr-1" /> Назад
           </Button>
           
-          {/* Direct Telegram share button */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleShareToTelegram}
-            className="flex items-center gap-2"
-          >
-            <Send className="h-4 w-4" /> 
-            Поделиться в Telegram
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Кнопка добавления в избранное */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant={isFavorite ? "default" : "outline"} 
+                  size="sm"
+                  onClick={toggleFavorite}
+                  className="flex items-center gap-2"
+                >
+                  <Heart className={`h-4 w-4 ${isFavorite ? "fill-white" : ""}`} />
+                  {isFavorite ? "В избранном" : "В избранное"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {isFavorite ? "Удалить из избранного" : "Добавить в избранное"}
+              </TooltipContent>
+            </Tooltip>
+
+            {/* Кнопка поделиться в Telegram */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleShareToTelegram}
+              className="flex items-center gap-2"
+            >
+              <Send className="h-4 w-4" /> 
+              Поделиться
+            </Button>
+          </div>
         </div>
 
         {!user && (
@@ -439,6 +551,20 @@ const PublicSellerProfile = () => {
                       </span>
                     )}
                   </div>
+                  
+                  {/* Статус активности */}
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="flex items-center">
+                      <span className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                        profile?.last_login && (new Date().getTime() - new Date(profile.last_login).getTime() < 7 * 24 * 60 * 60 * 1000) 
+                        ? "bg-green-500" : "bg-gray-400"
+                      }`}></span>
+                      <span className="text-sm text-gray-600">
+                        Был(а) в сети: {formatLastActive(profile?.last_login)}
+                      </span>
+                    </span>
+                  </div>
+                  
                   {user ? (
                     <Badge variant="outline" className="text-sm">
                       {profile?.opt_id ? `OPT ID: ${profile.opt_id}` : 'OPT ID не указан'}
@@ -452,7 +578,7 @@ const PublicSellerProfile = () => {
               </div>
 
               {storeInfo && (
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                   <div className="flex items-center">
                     <StoreIcon className="h-5 w-5 mr-2 text-primary" />
                     <div>

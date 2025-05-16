@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star, User, Store } from "lucide-react";
+import { ShieldCheck, CircleDollarSign, Star, User, Store, Copy, CheckCheck } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "@/hooks/use-toast";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SellerInfoProps {
   sellerProfile?: SellerProfile | null; // Make it optional and nullable
@@ -25,6 +27,7 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 }) => {
   const [storeInfo, setStoreInfo] = useState<{ id: string; name: string } | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [copied, setCopied] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -61,8 +64,20 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
     navigate('/login');
   };
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      toast({
+        title: "Скопировано!",
+        description: "OPT ID скопирован в буфер обмена",
+      });
+      
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   return (
-    <div className="border rounded-lg p-4 mb-6">
+    <div className="border rounded-lg p-4 mb-6 shadow-sm hover:shadow-md transition-shadow">
       <h3 className="text-lg font-semibold mb-3 flex items-center">
         <User className="h-5 w-5 mr-2 text-primary" />
         Информация о продавце
@@ -86,9 +101,24 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
           </div>
           
           {sellerProfile?.opt_id && user ? (
-            <div className="text-sm">
+            <div className="text-sm flex items-center gap-2">
               <span className="text-gray-500">OPT ID: </span>
               <span className="font-medium">{sellerProfile.opt_id}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 text-gray-400 hover:text-primary"
+                    onClick={() => copyToClipboard(sellerProfile.opt_id || '')}
+                  >
+                    {copied ? <CheckCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Копировать OPT ID</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           ) : sellerProfile?.opt_id && (
             <div className="text-sm">
@@ -105,7 +135,7 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
         </div>
         
         {storeInfo && (
-          <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 flex justify-between items-center">
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 flex justify-between items-center">
             <div className="flex items-center">
               <Store className="h-5 w-5 mr-2 text-primary" />
               <div>
