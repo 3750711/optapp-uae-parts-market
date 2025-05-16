@@ -8,6 +8,7 @@ import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductsSection from "@/components/catalog/ProductsSection";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
+
 const Index = () => {
   const [showFilters, setShowFilters] = useState(false);
   const productsPerPage = 8;
@@ -43,7 +44,9 @@ const Index = () => {
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts(productsPerPage);
-  return <Layout className="rounded-sm bg-gray-50">
+  
+  return (
+    <Layout className="rounded-sm bg-gray-50">
       <div className="bg-stone-50">
         {/* Hero section - keeping this from the original page */}
         <section className="bg-gradient-to-br from-primary/5 to-secondary/5 relative overflow-hidden">
@@ -103,6 +106,8 @@ const Index = () => {
           </div>
         </section>
       </div>
-    </Layout>;
+    </Layout>
+  );
 };
+
 export default Index;
