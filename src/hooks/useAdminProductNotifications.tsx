@@ -46,7 +46,7 @@ export const useAdminProductNotifications = () => {
         return true;
       } else {
         toast({
-          variant: "destructive",
+          variant: "destructive", // Changed from "warning" to "destructive" to fix the error
           title: "Внимание",
           description: (data && data.message) || "Уведомление не было отправлено"
         });
@@ -137,7 +137,7 @@ export const useAdminProductNotifications = () => {
       });
     } else if (successful > 0 && failed > 0) {
       toast({
-        variant: "warning",
+        variant: "destructive", // Changed from "warning" to "destructive"
         title: "Частичный успех",
         description: `Отправлено ${successful} уведомлений, не удалось отправить ${failed}`,
       });
