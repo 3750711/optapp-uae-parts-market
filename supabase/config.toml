@@ -1,15 +1,26 @@
 
+# This file is meant to be edited. It is used to specify your Supabase project configuration.
+
 project_id = "vfiylfljiixqkjfqubyq"
 
 [api]
 enabled = true
 port = 54321
 schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
 [db]
 port = 54322
 shadow_port = 54320
 major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
 
 [realtime]
 enabled = true
@@ -17,6 +28,42 @@ enabled = true
 [studio]
 enabled = true
 port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+
+[auth.email]
+enabled = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[auth.sms]
+enabled = true
+
+[auth.external.github]
+enabled = false
+client_id = ""
+secret = ""
+
+[functions]
+enabled = true
+port = 54321
 
 [functions.send-telegram-notification]
 verify_jwt = false
+
+[migrations]
+migrate_on_boot = true
+
+[extensions]
+pg_cron = true
+pg_net = true

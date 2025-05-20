@@ -149,10 +149,30 @@ function isTrustedSeller(telegramUsername: string | null | undefined): boolean {
     'Elena_gult',
     'SanSanichUAE',
     'OptSeller_Georgii',
-    'Nastya_PostingLots_OptCargo'
+    'Nastya_PostingLots_OptCargo',
+    'OptSeller_IgorK'
   ];
   
   return trustedUsernames.includes(normalizedUsername);
+}
+
+// Enhanced fetch product function
+async function fetchProductDetails(productId: string) {
+  console.log(`Fetching complete product details for ID: ${productId}`);
+  
+  // Get full product details including images
+  const { data: product, error: fetchError } = await supabase
+    .from('products')
+    .select('*, product_images(*), product_videos(*)')
+    .eq('id', productId)
+    .single();
+
+  if (fetchError || !product) {
+    throw new Error(fetchError?.message || `Failed to fetch product details for ID: ${productId}`);
+  }
+  
+  console.log(`Successfully fetched product: ${product.title}, status: ${product.status}`);
+  return product;
 }
 
 serve(async (req) => {
@@ -167,8 +187,28 @@ serve(async (req) => {
   }
 
   try {
+    // Parse the request data
     const requestData = await req.json();
     console.log('Received request data:', JSON.stringify(requestData));
+
+    // Handle product ID-only requests (used by the database trigger)
+    if (requestData.productId && !requestData.product) {
+      console.log(`Processing simplified product notification request for ID: ${requestData.productId}`);
+      try {
+        const product = await fetchProductDetails(requestData.productId);
+        requestData.product = product;
+        console.log(`Successfully fetched and attached product data for ID: ${requestData.productId}`);
+      } catch (error) {
+        console.error(`Failed to fetch product for ID ${requestData.productId}:`, error);
+        return new Response(JSON.stringify({ 
+          error: `Failed to fetch product data: ${error}`,
+          message: 'Could not process product notification with ID-only request'
+        }), { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // Check if this is a product or order notification
     if (requestData.product) {

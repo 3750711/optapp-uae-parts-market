@@ -2,12 +2,14 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Package2, Truck } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Package2, Truck, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
 import { Product } from "@/types/product";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useAdminProductNotifications } from "@/hooks/useAdminProductNotifications";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProductInfoProps {
   product: Product;
@@ -16,8 +18,11 @@ interface ProductInfoProps {
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isSendingNotification, setIsSendingNotification] = useState(false);
   const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
+  const { sendNotification } = useAdminProductNotifications();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
 
@@ -41,6 +46,24 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const handleSave = () => {
     setIsEditing(false);
     onProductUpdate();
+  };
+
+  const handleSendNotification = async () => {
+    if (!isAdmin) {
+      toast({
+        title: "Ошибка",
+        description: "Только администратор может отправлять уведомления.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSendingNotification(true);
+    try {
+      await sendNotification(product);
+    } finally {
+      setIsSendingNotification(false);
+    }
   };
 
   if (isEditing && isOwner && product.status !== 'sold') {
@@ -68,6 +91,18 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           </span>
         </div>
         <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={handleSendNotification}
+              disabled={isSendingNotification}
+            >
+              <Bell className={`h-4 w-4 ${isSendingNotification ? 'animate-pulse' : ''}`} />
+              {isSendingNotification ? 'Отправка...' : 'Отправить уведомление'}
+            </Button>
+          )}
           {isOwner && product.status !== 'sold' && (
             <Button
               variant="outline"

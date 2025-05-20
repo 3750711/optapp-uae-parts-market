@@ -10,6 +10,7 @@ export const useAdminProductNotifications = () => {
 
   const sendNotification = async (product: Product) => {
     try {
+      console.log(`Starting notification process for product ID: ${product.id}`);
       setIsNotificationSending(prev => ({...prev, [product.id]: true}));
       
       // Получаем свежие данные о товаре со всеми изображениями
@@ -42,12 +43,14 @@ export const useAdminProductNotifications = () => {
           title: "Успех",
           description: "Уведомление отправлено в Telegram",
         });
+        return true;
       } else {
         toast({
           variant: "destructive",
           title: "Внимание",
           description: (data && data.message) || "Уведомление не было отправлено"
         });
+        return false;
       }
     } catch (error) {
       console.error('Error sending notification:', error);
@@ -56,6 +59,7 @@ export const useAdminProductNotifications = () => {
         title: "Ошибка",
         description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error))
       });
+      return false;
     } finally {
       setIsNotificationSending(prev => ({...prev, [product.id]: false}));
     }
@@ -94,9 +98,62 @@ export const useAdminProductNotifications = () => {
     return attemptSend();
   };
 
+  // New function to handle bulk notifications
+  const sendBulkNotifications = async (products: Product[]) => {
+    if (!products || products.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не выбраны товары для отправки уведомлений"
+      });
+      return;
+    }
+
+    let successful = 0;
+    let failed = 0;
+
+    for (const product of products) {
+      try {
+        setIsNotificationSending(prev => ({...prev, [product.id]: true}));
+        const result = await sendNotification(product);
+        if (result) {
+          successful++;
+        } else {
+          failed++;
+        }
+      } catch (error) {
+        console.error(`Ошибка при отправке уведомления для товара ${product.id}:`, error);
+        failed++;
+      } finally {
+        setIsNotificationSending(prev => ({...prev, [product.id]: false}));
+      }
+    }
+
+    // Show result summary
+    if (successful > 0 && failed === 0) {
+      toast({
+        title: "Успех",
+        description: `Успешно отправлено ${successful} уведомлений`,
+      });
+    } else if (successful > 0 && failed > 0) {
+      toast({
+        variant: "warning",
+        title: "Частичный успех",
+        description: `Отправлено ${successful} уведомлений, не удалось отправить ${failed}`,
+      });
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: `Не удалось отправить уведомления (${failed})`,
+      });
+    }
+  };
+
   return {
     sendNotification,
     sendNotificationWithRetry,
+    sendBulkNotifications,
     isNotificationSending
   };
 };
