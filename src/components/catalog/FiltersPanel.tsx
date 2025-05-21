@@ -11,8 +11,9 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Search } from 'lucide-react';
+import { Search, HelpCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Link } from 'react-router-dom';
 
 interface FiltersPanelProps {
   showFilters: boolean;
@@ -159,15 +160,26 @@ const FiltersPanel: React.FC<FiltersPanelProps> = ({
       )}
 
       {/* Hide sold products checkbox */}
-      <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="hide-sold" 
-          checked={hideSoldProducts}
-          onCheckedChange={(checked) => setHideSoldProducts(checked === true)}
-        />
-        <Label htmlFor="hide-sold" className="text-sm cursor-pointer">
-          Не показывать проданные
-        </Label>
+      <div className="flex flex-col space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox 
+            id="hide-sold" 
+            checked={hideSoldProducts}
+            onCheckedChange={(checked) => setHideSoldProducts(checked === true)}
+          />
+          <Label htmlFor="hide-sold" className="text-sm cursor-pointer">
+            Не показывать проданные
+          </Label>
+        </div>
+        
+        {/* Buyer guide link - added below the checkbox */}
+        <Link 
+          to="/buyer-guide" 
+          className="flex items-center text-sm text-primary hover:text-primary/80 pl-6"
+        >
+          <HelpCircle className="h-3.5 w-3.5 mr-1" />
+          Как покупать товар?
+        </Link>
       </div>
 
       {/* Active filters display */}
