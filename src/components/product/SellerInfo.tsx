@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ShieldCheck, CircleDollarSign, Star, User, Store, Copy, CheckCheck } from "lucide-react";
+import { HelpCircle, Star, User, Store, Copy, CheckCheck } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -170,7 +170,7 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
 
       <div className="space-y-3 text-sm mt-4">
         <div className="flex items-center text-gray-700">
-          <ShieldCheck className="h-5 w-5 mr-2 text-optapp-yellow" />
+          <HelpCircle className="h-5 w-5 mr-2 text-optapp-yellow" />
           <a 
             href="https://t.me/ElenaOPTcargo" 
             target="_blank" 
