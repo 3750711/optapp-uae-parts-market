@@ -59,13 +59,17 @@ export const AdminFreeOrderForm = () => {
 
       setIsLoadingProducts(true);
       try {
+        // Fix: Make sure we're using the correct seller ID format
+        const sellerId = selectedSeller.id;
+        console.log("Fetching products for seller ID:", sellerId);
+
         const { data, error } = await supabase
           .from('products')
           .select(`
             *,
             product_images(*)
           `)
-          .eq('seller_id', selectedSeller)
+          .eq('seller_id', sellerId)
           .eq('status', 'active')
           .order('created_at', { ascending: false });
 
@@ -74,6 +78,7 @@ export const AdminFreeOrderForm = () => {
           return;
         }
 
+        console.log("Fetched seller products:", data);
         setSellerProducts(data as Product[] || []);
       } catch (err) {
         console.error("Unexpected error fetching seller products:", err);
@@ -161,7 +166,9 @@ export const AdminFreeOrderForm = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">- Не выбирать товар -</SelectItem>
-                      {sellerProducts.length === 0 ? (
+                      {isLoadingProducts ? (
+                        <SelectItem value="loading" disabled>Загрузка товаров...</SelectItem>
+                      ) : sellerProducts.length === 0 ? (
                         <SelectItem value="no_products" disabled>У продавца нет активных товаров</SelectItem>
                       ) : (
                         sellerProducts.map((product) => (
