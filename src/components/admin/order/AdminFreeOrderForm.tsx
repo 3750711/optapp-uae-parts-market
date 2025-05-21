@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,6 +8,10 @@ import { OrderFormFields } from "./OrderFormFields";
 import { MediaUploadSection } from "./MediaUploadSection";
 import { CreatedOrderView } from "./CreatedOrderView";
 import { useOrderFormLogic } from "./useOrderFormLogic";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
+import { Product } from "@/types/product";
 
 export const AdminFreeOrderForm = () => {
   const { user } = useAuth();
@@ -37,8 +41,87 @@ export const AdminFreeOrderForm = () => {
     handleSubmit,
     resetForm,
     navigate,
-    parseTitleForBrand, // Add the new function
+    parseTitleForBrand,
   } = useOrderFormLogic();
+  
+  // New state for seller products
+  const [sellerProducts, setSellerProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(false);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
+
+  // Fetch seller products when a seller is selected
+  useEffect(() => {
+    const fetchSellerProducts = async () => {
+      if (!selectedSeller) {
+        setSellerProducts([]);
+        return;
+      }
+
+      setIsLoadingProducts(true);
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            *,
+            product_images(*)
+          `)
+          .eq('seller_id', selectedSeller)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error("Error fetching seller products:", error);
+          return;
+        }
+
+        setSellerProducts(data as Product[] || []);
+      } catch (err) {
+        console.error("Unexpected error fetching seller products:", err);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchSellerProducts();
+  }, [selectedSeller]);
+
+  // Handle product selection
+  const handleProductSelect = (productId: string) => {
+    setSelectedProduct(productId);
+    const selectedProductData = sellerProducts.find(p => p.id === productId);
+    
+    if (selectedProductData) {
+      // Update form data with product information
+      handleInputChange('title', selectedProductData.title);
+      handleInputChange('price', selectedProductData.price.toString());
+      
+      if (selectedProductData.delivery_price) {
+        handleInputChange('delivery_price', selectedProductData.delivery_price.toString());
+      }
+      
+      if (selectedProductData.brand) {
+        handleInputChange('brand', selectedProductData.brand);
+      }
+      
+      if (selectedProductData.model) {
+        handleInputChange('model', selectedProductData.model || '');
+      }
+      
+      if (selectedProductData.place_number) {
+        handleInputChange('place_number', selectedProductData.place_number.toString());
+      }
+      
+      if (selectedProductData.description) {
+        handleInputChange('text_order', selectedProductData.description);
+      }
+      
+      // Update images if available
+      if (selectedProductData.product_images && selectedProductData.product_images.length > 0) {
+        const productImages = selectedProductData.product_images.map(img => img.url);
+        setImages(productImages);
+      }
+    }
+  };
 
   if (createdOrder) {
     return (
@@ -64,6 +147,37 @@ export const AdminFreeOrderForm = () => {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
+              {/* Product selection section */}
+              {selectedSeller && (
+                <div className="space-y-2">
+                  <Label htmlFor="product-select">Выберите товар продавца (опционально)</Label>
+                  <Select
+                    value={selectedProduct || ""}
+                    onValueChange={handleProductSelect}
+                    disabled={isLoadingProducts}
+                  >
+                    <SelectTrigger className="bg-white" id="product-select">
+                      <SelectValue placeholder="Выберите товар для автозаполнения" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">- Не выбирать товар -</SelectItem>
+                      {sellerProducts.length === 0 ? (
+                        <SelectItem value="no_products" disabled>У продавца нет активных товаров</SelectItem>
+                      ) : (
+                        sellerProducts.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.title} - ${product.price}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    При выборе товара, поля формы будут автоматически заполнены данными из товара
+                  </p>
+                </div>
+              )}
+
               <OrderFormFields
                 formData={formData}
                 handleInputChange={handleInputChange}
@@ -79,7 +193,7 @@ export const AdminFreeOrderForm = () => {
                 setSearchModelTerm={setSearchModelTerm}
                 filteredBrands={filteredBrands}
                 filteredModels={filteredModels}
-                parseTitleForBrand={parseTitleForBrand} // Pass the new function
+                parseTitleForBrand={parseTitleForBrand}
               />
               
               <MediaUploadSection
