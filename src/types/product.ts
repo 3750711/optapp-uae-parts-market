@@ -1,8 +1,10 @@
+
 export interface ProductImage {
   id: string;
   product_id: string;
   url: string;
   is_primary: boolean;
+  preview_url?: string | null;
 }
 
 export interface ProductVideo {
@@ -17,6 +19,11 @@ export interface SellerProfile {
   avatar_url: string | null;
   rating: number | null;
   opt_id: string | null;
+  opt_status?: string | null;
+  description_user?: string | null;
+  telegram?: string | null;
+  phone?: string | null;
+  location?: string | null;
 }
 
 export type ProductStatus = 'pending' | 'active' | 'sold' | 'archived';

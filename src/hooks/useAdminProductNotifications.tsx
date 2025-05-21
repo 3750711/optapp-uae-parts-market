@@ -19,7 +19,7 @@ export const useAdminProductNotifications = () => {
         toast({
           title: "Внимание",
           description: "Уведомление для этого товара уже было отправлено недавно",
-          variant: "warning",
+          variant: "destructive", // Changed from "warning" to "destructive"
         });
         return false;
       }

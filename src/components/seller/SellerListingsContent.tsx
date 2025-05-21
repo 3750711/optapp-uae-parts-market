@@ -86,8 +86,9 @@ const SellerListingsContent = () => {
                         product.product_images?.[0]?.url || 
                         '/placeholder.svg';
     
+    // Fixed preview_url access
     const previewImage = product.product_images?.find(img => img.is_primary)?.preview_url || 
-                         product.product_images?.find(img => img.preview_url)?.preview_url;
+                         product.product_images?.find(img => img.preview_url !== null && img.preview_url !== undefined)?.preview_url;
     
     return {
       id: product.id,
@@ -105,7 +106,7 @@ const SellerListingsContent = () => {
       seller_id: product.seller_id,
       onStatusChange: handleStatusChange,
       delivery_price: product.delivery_price,
-      has_preview: product.hasPreviewImage || false,
+      has_preview: product.has_preview || false, // Fixed reference to has_preview
       created_at: product.created_at
     };
   });
