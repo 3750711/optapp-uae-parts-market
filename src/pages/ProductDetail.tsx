@@ -385,6 +385,7 @@ const ProductDetail = () => {
                 telegram: sellerProfile?.telegram,
                 phone: sellerProfile?.phone,
                 location: sellerProfile?.location,
+                avatar_url: sellerProfile?.avatar_url  // Added missing avatar_url property
               }}
               seller_name={sellerName}
               seller_id={product.seller_id}
