@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ShieldCheck, CircleDollarSign, Star, User, Store, Copy, CheckCheck } from "lucide-react";
@@ -11,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
 interface SellerInfoProps {
   sellerProfile?: SellerProfile | null; // Make it optional and nullable
   seller_name: string;
@@ -171,7 +171,14 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
       <div className="space-y-3 text-sm mt-4">
         <div className="flex items-center text-gray-700">
           <ShieldCheck className="h-5 w-5 mr-2 text-optapp-yellow" />
-          <span>Спросить у администратора</span>
+          <a 
+            href="https://t.me/ElenaOPTcargo" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:text-primary hover:underline transition-colors"
+          >
+            Спросить у администратора
+          </a>
         </div>
         <div className="flex items-center text-gray-700">
           
