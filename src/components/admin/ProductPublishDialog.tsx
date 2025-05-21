@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -59,6 +60,7 @@ export const ProductPublishDialog = ({
   const [internalOpen, setInternalOpen] = React.useState(false);
   const [isGuideOpen, setIsGuideOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isSendingNotification, setIsSendingNotification] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
 
@@ -92,6 +94,29 @@ Nose cut (Ноускат) высокий - $260
 Дверь багажника/боковая - $90
 Мелочь (1 место) - $12`;
 
+  // Check if a notification was recently sent
+  const shouldSendNotification = (product: Product): boolean => {
+    if (product.last_notification_sent_at) {
+      const lastSent = new Date(product.last_notification_sent_at);
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      return lastSent <= fiveMinutesAgo;
+    }
+    return true;
+  };
+
+  const updateNotificationTimestamp = async (productId: string): Promise<void> => {
+    try {
+      await supabase
+        .from('products')
+        .update({ last_notification_sent_at: new Date().toISOString() })
+        .eq('id', productId);
+    } catch (error) {
+      console.error('Error updating notification timestamp:', error);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsSubmitting(true);
@@ -120,41 +145,59 @@ Nose cut (Ноускат) высокий - $260
         throw productError;
       }
 
-      toast({
-        title: "Товар опубликован",
-        description: "Отправка уведомления в Telegram...",
-      });
-
-      // Send Telegram notification with updated retry logic
-      try {
-        const { data: notificationData, error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
-          body: { product: updatedProduct }
+      // Check if notification has been recently sent
+      let notificationSent = true;
+      if (shouldSendNotification(updatedProduct)) {
+        setIsSendingNotification(true);
+        toast({
+          title: "Товар опубликован",
+          description: "Отправка уведомления в Telegram...",
         });
 
-        if (notificationError) {
-          throw notificationError;
-        }
+        try {
+          // Update the notification timestamp before sending
+          await updateNotificationTimestamp(product.id);
+          
+          // Send Telegram notification
+          const { data: notificationData, error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+            body: { product: updatedProduct }
+          });
 
-        if (!notificationData?.success) {
-          console.warn('Notification response indicates failure:', notificationData);
+          if (notificationError) {
+            throw notificationError;
+          }
+
+          if (!notificationData?.success) {
+            console.warn('Notification response indicates failure:', notificationData);
+            toast({
+              title: "Внимание",
+              description: "Товар опубликован, но возникла проблема при отправке уведомления в Telegram",
+              variant: "destructive",
+            });
+            notificationSent = false;
+          } else {
+            toast({
+              title: "Успех",
+              description: "Товар успешно опубликован и отправлен в Telegram канал",
+            });
+          }
+        } catch (notificationError) {
+          console.error('Error sending Telegram notification:', notificationError);
           toast({
             title: "Внимание",
-            description: "Товар опубликован, но возникла проблема при отправке уведомления в Telegram",
+            description: "Товар опубликован, но возникла ошибка при отправке уведомления в Telegram",
             variant: "destructive",
           });
-        } else {
-          toast({
-            title: "Успех",
-            description: "Товар успешно опубликован и отправлен в Telegram канал",
-          });
+          notificationSent = false;
+        } finally {
+          setIsSendingNotification(false);
         }
-      } catch (notificationError) {
-        console.error('Error sending Telegram notification:', notificationError);
+      } else {
         toast({
-          title: "Внимание",
-          description: "Товар опубликован, но возникла ошибка при отправке уведомления в Telegram",
-          variant: "destructive",
+          title: "Товар опубликован",
+          description: "Уведомление в Telegram уже было отправлено недавно",
         });
+        notificationSent = false;
       }
       
       handleOpenChange(false);

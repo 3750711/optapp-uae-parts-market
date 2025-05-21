@@ -1,76 +1,64 @@
-
-export interface ProductProps {
-  id: string;
-  name: string;
-  price: number;
-  image: string;
-  preview_image?: string;  // Added for preview image
-  location: string;
-  seller_opt_id?: string;
-  seller_rating?: number;
-  optid_created?: string;
-  rating_seller?: number;
-  brand: string;
-  model: string;
-  seller_name: string;
-  seller_id: string;
-  status: 'pending' | 'active' | 'sold' | 'archived';
-  seller_verification?: 'pending' | 'verified' | 'blocked';
-  created_at?: string;
-  seller_opt_status?: 'free_user' | 'opt_user';
-  onStatusChange?: () => void;
-  delivery_price?: number | null;
-  has_preview?: boolean;  // Added to indicate if the product has preview images
-}
-
 export interface ProductImage {
+  id: string;
+  product_id: string;
   url: string;
-  is_primary?: boolean;
-  preview_url?: string; // Added for storing the preview image URL
+  is_primary: boolean;
 }
 
 export interface ProductVideo {
+  id: string;
+  product_id: string;
   url: string;
 }
 
 export interface SellerProfile {
-  id?: string;
-  full_name?: string;
-  rating?: number;
-  phone?: string;
-  opt_id?: string;
-  telegram?: string;
-  description_user?: string;
-  location?: string;
-  opt_status?: 'free_user' | 'opt_user';
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  rating: number | null;
+  opt_id: string | null;
 }
+
+export type ProductStatus = 'pending' | 'active' | 'sold' | 'archived';
 
 export interface Product {
   id: string;
-  seller_id: string;
   title: string;
-  price: string | number;
-  description?: string;
-  location?: string;
-  product_location?: string;
-  brand?: string;
-  model?: string;
-  lot_number?: string | number;
+  price: number;
+  condition: string;
+  brand: string;
+  model: string | null;
+  description?: string | null;
+  seller_id: string;
   seller_name: string;
-  telegram_url?: string;
-  phone_url?: string;
-  product_url?: string;
-  product_images?: ProductImage[];
-  product_videos?: ProductVideo[];
-  videos?: string[];
-  video_url?: string;
-  profiles?: SellerProfile;
-  rating_seller?: number | null;
-  optid_created?: string | null;
   status: 'pending' | 'active' | 'sold' | 'archived';
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
   place_number?: number | null;
   delivery_price?: number | null;
-  hasPreviewImage?: boolean; // Added to indicate if the product has preview images
+  has_preview?: boolean | null;
+  telegram_url?: string | null;
+  phone_url?: string | null;
+  product_url?: string | null;
+  optid_created?: string | null;
+  product_location?: string | null;
+  rating_seller?: number | null;
+  lot_number?: number;
+  location?: string | null;
+  last_notification_sent_at?: string | null;
+  
+  // Joined relationships
+  product_images?: ProductImage[];
+  product_videos?: ProductVideo[];
+  profiles?: SellerProfile;
+}
+
+export interface ActionLog {
+  id: string;
+  created_at: string;
+  action_type: string;
+  entity_type: string;
+  entity_id: string;
+  user_id: string;
+  details: object;
 }

@@ -394,6 +394,7 @@ export type Database = {
           description: string | null
           has_preview: boolean | null
           id: string
+          last_notification_sent_at: string | null
           location: string | null
           lot_number: number
           model: string | null
@@ -419,6 +420,7 @@ export type Database = {
           description?: string | null
           has_preview?: boolean | null
           id?: string
+          last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number
           model?: string | null
@@ -444,6 +446,7 @@ export type Database = {
           description?: string | null
           has_preview?: boolean | null
           id?: string
+          last_notification_sent_at?: string | null
           location?: string | null
           lot_number?: number
           model?: string | null

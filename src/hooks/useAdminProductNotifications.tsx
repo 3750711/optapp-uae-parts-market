@@ -8,12 +8,54 @@ export const useAdminProductNotifications = () => {
   const { toast } = useToast();
   const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
 
+  const shouldSendNotification = (product: Product): boolean => {
+    // Check if notification was recently sent (within 5 minutes)
+    if (product.last_notification_sent_at) {
+      const lastSent = new Date(product.last_notification_sent_at);
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      if (lastSent > fiveMinutesAgo) {
+        toast({
+          title: "Внимание",
+          description: "Уведомление для этого товара уже было отправлено недавно",
+          variant: "warning",
+        });
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const updateNotificationTimestamp = async (productId: string): Promise<boolean> => {
+    const { error } = await supabase
+      .from('products')
+      .update({ 
+        last_notification_sent_at: new Date().toISOString() 
+      })
+      .eq('id', productId);
+    
+    if (error) {
+      console.error('Error updating notification timestamp:', error);
+      return false;
+    }
+    return true;
+  };
+
   const sendNotification = async (product: Product) => {
     try {
+      // Check if notification was sent recently
+      if (!shouldSendNotification(product)) {
+        return false;
+      }
+      
       console.log(`Starting notification process for product ID: ${product.id}`);
       setIsNotificationSending(prev => ({...prev, [product.id]: true}));
       
-      // Получаем свежие данные о товаре со всеми изображениями
+      // Update the notification timestamp
+      await updateNotificationTimestamp(product.id);
+      
+      // Get fresh product data with all images
       const { data: freshProduct, error: fetchError } = await supabase
         .from('products')
         .select(`*, product_images(*)`)
@@ -26,7 +68,7 @@ export const useAdminProductNotifications = () => {
       
       console.log("Вызов edge-функции send-telegram-notification для товара", product.id);
       
-      // Вызываем edge функцию для отправки уведомления
+      // Call the edge function to send notification
       const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
         body: { product: freshProduct }
       });
@@ -65,20 +107,19 @@ export const useAdminProductNotifications = () => {
     }
   };
 
-  // Добавляем механизм повторных попыток для отправки уведомлений
+  // Retry logic for sending notifications
   const sendNotificationWithRetry = async (product: Product, maxRetries = 3) => {
     let retries = 0;
     
     const attemptSend = async (): Promise<boolean> => {
       try {
-        await sendNotification(product);
-        return true;
+        return await sendNotification(product);
       } catch (error) {
         if (retries < maxRetries) {
           retries++;
           console.log(`Попытка ${retries} из ${maxRetries} для отправки уведомления`);
           
-          // Экспоненциальная задержка между попытками
+          // Exponential backoff
           const delay = 1000 * Math.pow(2, retries);
           await new Promise(resolve => setTimeout(resolve, delay));
           
@@ -98,7 +139,7 @@ export const useAdminProductNotifications = () => {
     return attemptSend();
   };
 
-  // New function to handle bulk notifications
+  // Bulk notifications handling with timestamp and rate limiting
   const sendBulkNotifications = async (products: Product[]) => {
     if (!products || products.length === 0) {
       toast({
@@ -111,11 +152,19 @@ export const useAdminProductNotifications = () => {
 
     let successful = 0;
     let failed = 0;
+    let skipped = 0;
 
     for (const product of products) {
       try {
+        // Check if notification should be sent
+        if (!shouldSendNotification(product)) {
+          skipped++;
+          continue;
+        }
+        
         setIsNotificationSending(prev => ({...prev, [product.id]: true}));
         const result = await sendNotification(product);
+        
         if (result) {
           successful++;
         } else {
@@ -130,6 +179,13 @@ export const useAdminProductNotifications = () => {
     }
 
     // Show result summary
+    if (skipped > 0) {
+      toast({
+        title: "Информация",
+        description: `Пропущено ${skipped} уведомлений (недавно отправлены)`,
+      });
+    }
+    
     if (successful > 0 && failed === 0) {
       toast({
         title: "Успех",
@@ -141,7 +197,7 @@ export const useAdminProductNotifications = () => {
         title: "Частичный успех",
         description: `Отправлено ${successful} уведомлений, не удалось отправить ${failed}`,
       });
-    } else {
+    } else if (successful === 0 && failed > 0) {
       toast({
         variant: "destructive",
         title: "Ошибка",
@@ -154,6 +210,8 @@ export const useAdminProductNotifications = () => {
     sendNotification,
     sendNotificationWithRetry,
     sendBulkNotifications,
-    isNotificationSending
+    isNotificationSending,
+    shouldSendNotification,
+    updateNotificationTimestamp
   };
 };
