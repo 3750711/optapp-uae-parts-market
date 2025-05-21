@@ -25,7 +25,7 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
         <Label>Фотографии заказа</Label>
         <RealtimeImageUpload
           onUploadComplete={onImagesUpload}
-          maxImages={5}
+          maxImages={25}
           storageBucket="order-images"
           storagePath=""
         />

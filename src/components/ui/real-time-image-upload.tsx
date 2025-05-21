@@ -21,7 +21,7 @@ interface RealtimeImageUploadProps {
 
 export function RealtimeImageUpload({
   onUploadComplete,
-  maxImages = 10,
+  maxImages = 25,
   storageBucket,
   storagePath = "",
 }: RealtimeImageUploadProps) {

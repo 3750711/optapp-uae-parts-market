@@ -324,12 +324,11 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
           continue;
         }
         
-        // Проверяем размер файла
-        if (file.size > (deviceCapabilities.isLowEndDevice ? 10 : 25) * 1024 * 1024) {
-          const maxSize = deviceCapabilities.isLowEndDevice ? 10 : 25;
+        // Updated file size limit to 25MB for all devices
+        if (file.size > 25 * 1024 * 1024) {
           toast({
             title: "Ошибка",
-            description: `Файл ${file.name} слишком большой (макс. ${maxSize} МБ)`,
+            description: `Файл ${file.name} слишком большой (макс. 25 МБ)`,
             variant: "destructive",
           });
           continue;
@@ -437,7 +436,7 @@ export const AdminProductImagesManager: React.FC<AdminProductImagesManagerProps>
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
   }, [images, productId, onImagesChange, toast, primaryBucket, deviceCapabilities, hasPermission]);
-
+  
   // Открытие диалога выбора файлов
   const openFileDialog = useCallback(() => {
     if (fileInputRef.current) {

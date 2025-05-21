@@ -523,7 +523,7 @@ const SellerCreateOrder = () => {
                     images={images}
                     onUpload={handleImageUpload}
                     onDelete={handleImageDelete}
-                    maxImages={5}
+                    maxImages={25}
                   />
                 </div>
 
