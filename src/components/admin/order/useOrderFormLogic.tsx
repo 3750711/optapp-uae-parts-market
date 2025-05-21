@@ -176,7 +176,6 @@ export const useOrderFormLogic = () => {
     
     if (field === 'sellerId' && value) {
       const seller = sellerProfiles.find(s => s.id === value);
-      console.log("Selected seller:", seller);
       setSelectedSeller(seller || null);
     }
   };
@@ -396,6 +395,6 @@ export const useOrderFormLogic = () => {
     handleSubmit,
     resetForm,
     navigate,
-    parseTitleForBrand
+    parseTitleForBrand // Add the new function to the return value
   };
 };

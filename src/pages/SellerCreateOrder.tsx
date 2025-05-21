@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { Textarea } from "@/components/ui/textarea";
-import { Product } from "@/types/product";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -36,9 +34,6 @@ const SellerCreateOrder = () => {
   const [videos, setVideos] = useState<string[]>([]);
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [profiles, setProfiles] = useState<ProfileShort[]>([]);
-  const [sellerProducts, setSellerProducts] = useState<Product[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(false);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(productId);
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -53,7 +48,6 @@ const SellerCreateOrder = () => {
     delivery_price: "",
   });
 
-  // Fetch buyer profiles
   useEffect(() => {
     const fetchProfiles = async () => {
       try {
@@ -83,90 +77,13 @@ const SellerCreateOrder = () => {
 
     fetchProfiles();
   }, []);
-  
-  // Fetch seller's products
-  useEffect(() => {
-    const fetchSellerProducts = async () => {
-      if (!user) return;
-      
-      setIsLoadingProducts(true);
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select(`
-            *,
-            product_images(*)
-          `)
-          .eq('seller_id', user.id)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching seller products:", error);
-          return;
-        }
-        
-        setSellerProducts(data as Product[] || []);
-      } catch (err) {
-        console.error("Unexpected error fetching seller products:", err);
-      } finally {
-        setIsLoadingProducts(false);
-      }
-    };
-    
-    fetchSellerProducts();
-  }, [user]);
-
-  // Handle product selection
-  const handleProductSelect = (productId: string) => {
-    setSelectedProductId(productId);
-    
-    if (!productId) {
-      // Clear form fields if "no product" is selected
-      setFormData({
-        ...formData,
-        title: "",
-        price: "",
-        brand: "",
-        model: "",
-        place_number: "1",
-        text_order: "",
-        delivery_price: "",
-      });
-      setImages([]);
-      return;
-    }
-    
-    // Find selected product data
-    const selectedProductData = sellerProducts.find(p => p.id === productId);
-    
-    if (selectedProductData) {
-      // Update form data with product information
-      setFormData({
-        ...formData,
-        title: selectedProductData.title,
-        price: selectedProductData.price.toString(),
-        brand: selectedProductData.brand || "",
-        model: selectedProductData.model || "",
-        place_number: selectedProductData.place_number ? selectedProductData.place_number.toString() : "1",
-        text_order: selectedProductData.description || "",
-        delivery_price: selectedProductData.delivery_price ? selectedProductData.delivery_price.toString() : "",
-      });
-      
-      // Update images if available
-      if (selectedProductData.product_images && selectedProductData.product_images.length > 0) {
-        const productImages = selectedProductData.product_images.map(img => img.url);
-        setImages(productImages);
-      }
-    }
-  };
 
   useEffect(() => {
     const fetchProductData = async () => {
       if (productId) {
         const { data: product, error } = await supabase
           .from('products')
-          .select('*, seller:profiles!products_seller_id_fkey(opt_id), product_images(*)')
+          .select('*, seller:profiles!products_seller_id_fkey(opt_id)')
           .eq('id', productId)
           .single();
 
@@ -191,16 +108,10 @@ const SellerCreateOrder = () => {
             optid_created: product.optid_created || "",
             seller_opt_id: product.seller?.opt_id || "",
             deliveryMethod: 'self_pickup',
-            place_number: product.place_number ? product.place_number.toString() : "1",
-            text_order: product.description || "",
-            delivery_price: product.delivery_price ? product.delivery_price.toString() : "",
+            place_number: "1",
+            text_order: "",
+            delivery_price: "",
           });
-          
-          // Load product images
-          if (product.product_images && product.product_images.length > 0) {
-            const productImages = product.product_images.map(img => img.url);
-            setImages(productImages);
-          }
         }
       }
     };
@@ -493,37 +404,6 @@ const SellerCreateOrder = () => {
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-6">
-                {/* Product selection section */}
-                {user && (
-                  <div className="space-y-2">
-                    <Label htmlFor="product-select">Выберите свой товар (опционально)</Label>
-                    <Select
-                      value={selectedProductId || ""}
-                      onValueChange={handleProductSelect}
-                      disabled={isLoadingProducts}
-                    >
-                      <SelectTrigger className="bg-white" id="product-select">
-                        <SelectValue placeholder="Выберите товар для автозаполнения" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="">- Не выбирать товар -</SelectItem>
-                        {sellerProducts.length === 0 ? (
-                          <SelectItem value="no_products" disabled>У вас нет активных товаров</SelectItem>
-                        ) : (
-                          sellerProducts.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.title} - ${product.price}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <p className="text-sm text-muted-foreground">
-                      При выборе товара, поля формы будут автоматически заполнены данными из товара
-                    </p>
-                  </div>
-                )}
-
                 <div className="space-y-2">
                   <Label htmlFor="title">Наименование *</Label>
                   <Input 
