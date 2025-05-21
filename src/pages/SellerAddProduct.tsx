@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -246,7 +245,7 @@ const SellerAddProduct = () => {
         console.log("Videos associated successfully");
       }
 
-      // Вызов серверных функций для обработки превью и уведомлений
+      // Вызов только функции для обработки превью, удаляем вызов уведомления
       await handleServerFunctions(product.id);
 
       toast({
@@ -270,10 +269,10 @@ const SellerAddProduct = () => {
     }
   };
 
-  // Вынесенная логика вызова серверных функций
+  // Модифицируем функцию, чтобы не отправлять уведомления вручную
   const handleServerFunctions = async (productId: string) => {
     try {
-      // Генерируем превью для изображений продукта
+      // Генерируем только превью для изображений продукта
       console.log("Triggering preview generation for product:", productId);
       
       const { data: previewData, error: previewError } = await supabase.functions.invoke(
@@ -288,33 +287,9 @@ const SellerAddProduct = () => {
       } else {
         console.log("Preview generation response:", previewData);
       }
-
-      // Получаем полный продукт с изображениями для уведомления в Telegram
-      const { data: productDetails } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_images (*),
-          product_videos (*)
-        `)
-        .eq('id', productId)
-        .single();
-
-      // Отправляем уведомление в Telegram о новом товаре
-      if (productDetails) {
-        console.log("Sending Telegram notification for product:", productId);
-        
-        const { error: notificationError } = await supabase.functions.invoke(
-          'send-telegram-notification', 
-          {
-            body: { product: productDetails }
-          }
-        );
-        
-        if (notificationError) {
-          console.error("Error sending Telegram notification:", notificationError);
-        }
-      }
+      
+      // Удаляем вызов функции send-telegram-notification, т.к. теперь это будет
+      // обрабатываться автоматически через базу данных при изменении статуса
     } catch (error) {
       console.error("Error in server functions:", error);
       // Не выбрасываем ошибку, так как это некритичные операции

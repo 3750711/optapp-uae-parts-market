@@ -160,7 +160,7 @@ function isTrustedSeller(telegramUsername: string | null | undefined): boolean {
 async function fetchProductDetails(productId: string) {
   console.log(`Fetching complete product details for ID: ${productId}`);
   
-  // Get full product details including images
+  // Get full product details including images and videos
   const { data: product, error: fetchError } = await supabase
     .from('products')
     .select('*, product_images(*), product_videos(*)')
@@ -282,80 +282,119 @@ serve(async (req) => {
       console.log('Using BOT_TOKEN:', BOT_TOKEN);
       console.log('Using GROUP_CHAT_ID:', validChatId);
 
+      // Check if we have images to send
       if (product.product_images && product.product_images.length > 0) {
-        // Send all images as a media group
-        const mediaGroup = product.product_images.slice(0, 10).map((img: any, index: number) => ({
-          type: 'photo',
-          media: img.url,
-          // Add caption to the first image only
-          ...(index === 0 && {
-            caption: message,
-            parse_mode: 'HTML'
-          })
-        }));
-
         try {
+          // Prepare all images for the media group, limited to 10 per API requirements
+          const firstBatchImages = product.product_images.slice(0, 10);
+          const mediaGroup = firstBatchImages.map((img: any, index: number) => ({
+            type: 'photo',
+            media: img.url,
+            // Add caption to the first image only
+            ...(index === 0 && {
+              caption: message,
+              parse_mode: 'HTML'
+            })
+          }));
+
+          // Send first batch of images as media group
           const mediaResult = await callTelegramAPI('sendMediaGroup', {
             chat_id: validChatId,
             media: mediaGroup
           });
           
           console.log('Media group response:', mediaResult);
+          
+          // If there are more than 10 images, send the rest in another batch
+          if (product.product_images.length > 10) {
+            // Wait a bit to avoid rate limiting
+            await sleep(500);
+            
+            const remainingImages = product.product_images.slice(10);
+            // Process remaining images in batches of 10
+            for (let i = 0; i < remainingImages.length; i += 10) {
+              const batch = remainingImages.slice(i, i + 10).map((img: any) => ({
+                type: 'photo',
+                media: img.url
+              }));
+              
+              if (batch.length > 0) {
+                await callTelegramAPI('sendMediaGroup', {
+                  chat_id: validChatId,
+                  media: batch
+                });
+                
+                // Wait between batches
+                if (i + 10 < remainingImages.length) {
+                  await sleep(300);
+                }
+              }
+            }
+          }
+          
+          // After sending images, if there are videos, send them as separate messages
+          if (product.product_videos && product.product_videos.length > 0) {
+            // Add a small delay before sending videos to avoid rate limiting
+            await sleep(500);
+            
+            for (const video of product.product_videos) {
+              try {
+                await callTelegramAPI('sendVideo', {
+                  chat_id: validChatId,
+                  video: video.url
+                });
+                
+                // Add a small delay between videos to avoid rate limiting
+                await sleep(300);
+              } catch (error) {
+                console.error('Failed to send video:', error);
+              }
+            }
+          }
         } catch (error) {
           console.error('Failed to send media group:', error);
           // If media group fails, try sending just the text message
-          await callTelegramAPI('sendMessage', {
-            chat_id: validChatId,
-            text: message,
-            parse_mode: 'HTML'
-          });
-        }
-        
-        // After sending images, if there are videos, send them as separate messages
-        if (product.product_videos && product.product_videos.length > 0) {
-          // Add a small delay before sending videos to avoid rate limiting
-          await sleep(500);
-          
-          for (const video of product.product_videos) {
-            try {
-              await callTelegramAPI('sendVideo', {
-                chat_id: validChatId,
-                video: video.url
-              });
-              
-              // Add a small delay between videos to avoid rate limiting
-              await sleep(300);
-            } catch (error) {
-              console.error('Failed to send video:', error);
-            }
+          try {
+            await callTelegramAPI('sendMessage', {
+              chat_id: validChatId,
+              text: message,
+              parse_mode: 'HTML'
+            });
+          } catch (fallbackError) {
+            console.error('Failed to send fallback text message:', fallbackError);
           }
         }
       } else {
         // If no images, just send text message
-        const messageResult = await callTelegramAPI('sendMessage', {
-          chat_id: validChatId,
-          text: message,
-          parse_mode: 'HTML'
-        });
-        
-        console.log('Text message response:', messageResult);
-        
-        // If there are videos but no images, send videos after the text message
-        if (product.product_videos && product.product_videos.length > 0) {
-          await sleep(500); // Wait a bit before sending videos
+        try {
+          const messageResult = await callTelegramAPI('sendMessage', {
+            chat_id: validChatId,
+            text: message,
+            parse_mode: 'HTML'
+          });
           
-          for (const video of product.product_videos) {
-            try {
-              await callTelegramAPI('sendVideo', {
-                chat_id: validChatId,
-                video: video.url
-              });
-              
-              await sleep(300); // Small delay between videos
-            } catch (error) {
-              console.error('Failed to send video:', error);
+          console.log('Text message response:', messageResult);
+          
+          // If there are videos but no images, send videos after the text message
+          if (product.product_videos && product.product_videos.length > 0) {
+            await sleep(500); // Wait a bit before sending videos
+            
+            for (const video of product.product_videos) {
+              try {
+                await callTelegramAPI('sendVideo', {
+                  chat_id: validChatId,
+                  video: video.url
+                });
+                
+                await sleep(300); // Small delay between videos
+              } catch (error) {
+                console.error('Failed to send video:', error);
+              }
             }
           }
+        } catch (textError) {
+          console.error('Failed to send text message:', textError);
+          throw textError;
         }
       }
     } else if (requestData.order) {
