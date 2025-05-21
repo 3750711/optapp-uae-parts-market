@@ -8,7 +8,7 @@ import { OrderFormFields } from "./OrderFormFields";
 import { MediaUploadSection } from "./MediaUploadSection";
 import { CreatedOrderView } from "./CreatedOrderView";
 import { useOrderFormLogic } from "./useOrderFormLogic";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/product";
@@ -44,7 +44,7 @@ export const AdminFreeOrderForm = () => {
     parseTitleForBrand,
   } = useOrderFormLogic();
   
-  // New state for seller products
+  // State for seller products
   const [sellerProducts, setSellerProducts] = useState<Product[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(false);
   const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
@@ -147,7 +147,7 @@ export const AdminFreeOrderForm = () => {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
-              {/* Product selection section */}
+              {/* Product selection section - visible only when a seller is selected */}
               {selectedSeller && (
                 <div className="space-y-2">
                   <Label htmlFor="product-select">Выберите товар продавца (опционально)</Label>
