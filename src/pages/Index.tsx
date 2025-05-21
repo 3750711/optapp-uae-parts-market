@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, ChevronRight, ArrowRight, Store, Info } from 'lucide-react';
+import { ShoppingCart, ChevronRight, ArrowRight, Store, Info, HelpCircle } from 'lucide-react';
 import Layout from "@/components/layout/Layout";
 import SearchBar from "@/components/catalog/SearchBar";
 import FiltersPanel from "@/components/catalog/FiltersPanel";
@@ -72,6 +71,12 @@ const Index = () => {
                   <Link to="/catalog">
                     Перейти в каталог
                     <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" className="group shadow-sm hover:shadow-md transition-all duration-300" asChild>
+                  <Link to="/buyer-guide" className="flex items-center">
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Как покупать товар?
                   </Link>
                 </Button>
               </div>

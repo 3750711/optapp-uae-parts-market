@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store, MessageSquare } from "lucide-react";
+import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store, MessageSquare, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -22,6 +22,11 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const Header = () => {
   const { user, profile, signOut } = useAuth();
@@ -91,7 +96,22 @@ const Header = () => {
         onClick={onClick}
       >
         О нас
-      </Link>      
+      </Link>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link 
+            to="/buyer-guide" 
+            className="font-medium px-3 py-2 rounded-lg hover:bg-primary/10 text-foreground hover:text-primary transition-colors flex items-center"
+            onClick={onClick}
+          >
+            <HelpCircle className="mr-1 h-4 w-4" />
+            <span>Как покупать товар?</span>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>Инструкция для покупателей</p>
+        </TooltipContent>
+      </Tooltip>
       {profile?.user_type === 'seller' && (
         <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
           <Button variant="secondary" size="sm" className="animate-float">

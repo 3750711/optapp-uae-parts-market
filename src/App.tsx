@@ -58,6 +58,7 @@ import CreateStore from "./pages/CreateStore";
 import Requests from "./pages/Requests";
 import CreateRequest from "./pages/CreateRequest";
 import RequestDetail from "./pages/RequestDetail";
+import BuyerGuide from "./pages/BuyerGuide";
 
 const App = () => {
   return (
@@ -79,6 +80,7 @@ const App = () => {
             } />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/buyer-guide" element={<BuyerGuide />} />
             <Route path="/seller-register" element={<LazySellerRegister />} />
             
             <Route path="/seller/dashboard" element={

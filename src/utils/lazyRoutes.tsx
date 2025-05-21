@@ -1,3 +1,4 @@
+
 import React, { Suspense } from 'react';
 import { Loader2 } from "lucide-react";
 
@@ -45,6 +46,7 @@ export const LazySellerAddProduct = lazyLoad(() => import('../pages/SellerAddPro
 export const LazyIndex = lazyLoad(() => import('../pages/Index'));
 export const LazySellerRegister = lazyLoad(() => import('../pages/SellerRegister'));
 export const LazyPublicSellerProfile = lazyLoad(() => import('../pages/PublicSellerProfile'));
+export const LazyBuyerGuide = lazyLoad(() => import('../pages/BuyerGuide'));
 
 // Admin pages
 export const LazyAdminDashboard = lazyLoad(() => import('../pages/AdminDashboard'));
