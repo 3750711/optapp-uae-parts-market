@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -245,7 +246,7 @@ const SellerAddProduct = () => {
         console.log("Videos associated successfully");
       }
 
-      // Вызов только функции для обработки превью, удаляем вызов уведомления
+      // Вызов только функции для обработки превью
       await handleServerFunctions(product.id);
 
       toast({
@@ -269,7 +270,7 @@ const SellerAddProduct = () => {
     }
   };
 
-  // Модифицируем функцию, чтобы не отправлять уведомления вручную
+  // Функция только для генерации превью, без отправки уведомлений
   const handleServerFunctions = async (productId: string) => {
     try {
       // Генерируем только превью для изображений продукта
@@ -288,8 +289,8 @@ const SellerAddProduct = () => {
         console.log("Preview generation response:", previewData);
       }
       
-      // Удаляем вызов функции send-telegram-notification, т.к. теперь это будет
-      // обрабатываться автоматически через базу данных при изменении статуса
+      // Уведомления теперь отправляются автоматически через базу данных
+      // при создании/изменении статуса товара на 'active'
     } catch (error) {
       console.error("Error in server functions:", error);
       // Не выбрасываем ошибку, так как это некритичные операции
