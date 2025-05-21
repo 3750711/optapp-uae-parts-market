@@ -298,35 +298,6 @@ const AdminAddProduct = () => {
         }
       }
 
-      // Fetch the complete product with images for Telegram notification
-      const { data: productDetails } = await supabase
-        .from('products')
-        .select(`
-          *,
-          product_images (*),
-          product_videos (*)
-        `)
-        .eq('id', productId)
-        .single();
-
-      // Send Telegram notification for new product
-      if (productDetails) {
-        try {
-          const { error: notificationError } = await supabase.functions.invoke(
-            'send-telegram-notification', 
-            {
-              body: { product: productDetails }
-            }
-          );
-          
-          if (notificationError) {
-            console.error("Error sending Telegram notification:", notificationError);
-          }
-        } catch (telegramError) {
-          console.error("Failed to send Telegram notification:", telegramError);
-        }
-      }
-
       toast({
         title: "Товар добавлен",
         description: "Товар успешно опубликован на маркетплейсе", 
