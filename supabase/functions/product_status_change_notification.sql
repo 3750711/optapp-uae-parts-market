@@ -1,15 +1,24 @@
 
--- Create a trigger function that fires when a product status is updated to 'active'
-CREATE OR REPLACE FUNCTION public.notify_on_status_change_to_active()
+-- Создаем объединенную улучшенную функцию для уведомлений о товарах
+CREATE OR REPLACE FUNCTION public.notify_on_product_status_changes()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Only trigger notification when status changes from non-active to active
-  IF OLD.status != 'active' AND NEW.status = 'active' THEN
-    -- Call the Supabase Edge Function to send notification
-    -- This is done asynchronously via pg_net extension
+  -- Отправляем уведомление только если:
+  -- 1. При обновлении: статус меняется на active
+  -- 2. При создании: статус сразу active
+  -- 3. Прошло не менее 5 минут с последнего уведомления или его еще не было
+  IF ((TG_OP = 'UPDATE' AND OLD.status != 'active' AND NEW.status = 'active') OR
+      (TG_OP = 'INSERT' AND NEW.status = 'active')) AND
+     (NEW.last_notification_sent_at IS NULL OR 
+      NEW.last_notification_sent_at < NOW() - INTERVAL '5 minutes') THEN
+    
+    -- Обновляем timestamp последнего уведомления
+    NEW.last_notification_sent_at := NOW();
+    
+    -- Вызываем Edge Function для отправки уведомления
     PERFORM
       net.http_post(
         url:='https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification',
@@ -22,8 +31,17 @@ BEGIN
 END;
 $$;
 
--- Create a trigger on the products table for the notify_on_status_change_to_active function
-CREATE TRIGGER trigger_notify_on_status_change_to_active
-AFTER UPDATE ON public.products
+-- Удаляем старые триггеры
+DROP TRIGGER IF EXISTS trigger_notify_on_status_change_to_active ON public.products;
+DROP TRIGGER IF EXISTS trigger_notify_on_new_active_product ON public.products;
+
+-- Создаем новый объединенный триггер
+CREATE TRIGGER trigger_notify_on_product_status_changes
+BEFORE INSERT OR UPDATE ON public.products
 FOR EACH ROW
-EXECUTE FUNCTION public.notify_on_status_change_to_active();
+EXECUTE FUNCTION public.notify_on_product_status_changes();
+
+-- Очищаем старые функции, которые больше не используются
+DROP FUNCTION IF EXISTS public.notify_on_status_change_to_active() CASCADE;
+DROP FUNCTION IF EXISTS public.notify_on_active_product() CASCADE;
+DROP FUNCTION IF EXISTS public.notify_on_new_active_product() CASCADE;

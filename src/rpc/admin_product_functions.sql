@@ -122,7 +122,7 @@ BEGIN
 END;
 $$;
 
--- Enhanced function to auto-approve trusted sellers' products AND send notifications
+-- Обновленная функция для авто-одобрения товаров доверенных продавцов
 CREATE OR REPLACE FUNCTION public.auto_approve_trusted_seller_products()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -132,7 +132,7 @@ DECLARE
   user_email TEXT;
   is_trusted BOOLEAN := FALSE;
 BEGIN
-  -- Получаем email пользователя из таблицы profiles вместо auth.users
+  -- Получаем email пользователя из таблицы profiles
   SELECT email INTO user_email
   FROM public.profiles
   WHERE id = NEW.seller_id;
@@ -143,7 +143,8 @@ BEGIN
     'bahtin4ik409@yandex.ru',
     'Mail-igorek@mail.ru',
     'Mironenkonastya1997@mail.ru',
-    'dorovskikh.toni@bk.ru'
+    'dorovskikh.toni@bk.ru',
+    'ts12@g.com'
   ) OR NEW.telegram_url IN (
     'Elena_gult',
     'SanSanichUAE',
@@ -160,26 +161,9 @@ BEGIN
 END;
 $$;
 
--- New function to handle post-insert notification for active products
-CREATE OR REPLACE FUNCTION public.notify_on_active_product()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-BEGIN
-  -- Only trigger notification for new products with status = 'active'
-  IF NEW.status = 'active' THEN
-    -- Call the Supabase Edge Function to send notification
-    -- This is done asynchronously via pg_net extension
-    PERFORM
-      net.http_post(
-        url:='https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0"}'::jsonb,
-        body:=json_build_object('productId', NEW.id)::jsonb
-      );
-  END IF;
-  
-  RETURN NEW;
-END;
-$$;
-
+-- Создаем триггер для автоматического одобрения товаров доверенных продавцов
+DROP TRIGGER IF EXISTS trigger_auto_approve_trusted_seller_products ON public.products;
+CREATE TRIGGER trigger_auto_approve_trusted_seller_products
+BEFORE INSERT ON public.products
+FOR EACH ROW
+EXECUTE FUNCTION public.auto_approve_trusted_seller_products();
