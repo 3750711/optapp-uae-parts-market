@@ -89,11 +89,12 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
                               orderData.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 
                               orderData.delivery_method;
     
-    // Create order link
+    // Create order link - only for internal use in the code, not shown in message
     const orderLink = `${ORDER_BASE_URL}${orderData.id}`;
     
-    // Updated format with OPT IDs swapped and removed Telegram buyer label and modified link text
+    // Updated format with OPT IDs swapped and removed Telegram buyer label
     // Added "Дополнительная информация" section after delivery method
+    // Removed link to order
     const messageText = [
       `Номер заказа: ${orderData.order_number}`,
       `Статус: ${statusText}`,
@@ -107,7 +108,6 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `Доставка: ${deliveryMethodText}`,
       ``,
       `Дополнительная информация: ${orderData.text_order || 'Не указана'}`,
-      `<a href="${orderLink}">Ссылка на заказ</a>`,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
       `Цена: ${orderData.price} $`,
