@@ -15,23 +15,31 @@ BEGIN
      (NEW.last_notification_sent_at IS NULL OR 
       NEW.last_notification_sent_at < NOW() - INTERVAL '5 minutes') THEN
     
-    -- Обновляем timestamp последнего уведомления
-    NEW.last_notification_sent_at := NOW();
-    
-    -- Добавляем задержку при создании товара (только для INSERT)
-    -- чтобы изображения успели сохраниться в базе данных
-    IF TG_OP = 'INSERT' THEN
-      -- Добавляем задержку 3 секунды для INSERT операций
-      PERFORM pg_sleep(3);
+    -- Проверяем наличие изображений перед отправкой уведомления
+    IF EXISTS (
+      SELECT 1 FROM product_images WHERE product_id = NEW.id LIMIT 1
+    ) THEN
+      -- Обновляем timestamp последнего уведомления
+      NEW.last_notification_sent_at := NOW();
+      
+      -- Добавляем задержку при создании товара (только для INSERT)
+      -- чтобы изображения успели сохраниться в базе данных
+      IF TG_OP = 'INSERT' THEN
+        -- Увеличиваем задержку с 3 до 5 секунд для INSERT операций
+        PERFORM pg_sleep(5);
+      END IF;
+      
+      -- Вызываем Edge Function для отправки уведомления
+      PERFORM
+        net.http_post(
+          url:='https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification',
+          headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0"}'::jsonb,
+          body:=json_build_object('productId', NEW.id)::jsonb
+        );
+    ELSE
+      -- Если изображений нет, сбрасываем timestamp, чтобы можно было попробовать отправить уведомление позже
+      NEW.last_notification_sent_at := NULL;
     END IF;
-    
-    -- Вызываем Edge Function для отправки уведомления
-    PERFORM
-      net.http_post(
-        url:='https://vfiylfljiixqkjfqubyq.supabase.co/functions/v1/send-telegram-notification',
-        headers:='{"Content-Type": "application/json", "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0"}'::jsonb,
-        body:=json_build_object('productId', NEW.id)::jsonb
-      );
   END IF;
   
   RETURN NEW;
@@ -41,6 +49,7 @@ $$;
 -- Удаляем старые триггеры
 DROP TRIGGER IF EXISTS trigger_notify_on_status_change_to_active ON public.products;
 DROP TRIGGER IF EXISTS trigger_notify_on_new_active_product ON public.products;
+DROP TRIGGER IF EXISTS trigger_notify_on_product_status_changes ON public.products;
 
 -- Создаем новый объединенный триггер
 -- Меняем с BEFORE на AFTER, чтобы дать транзакции завершиться и все связанные данные сохраниться

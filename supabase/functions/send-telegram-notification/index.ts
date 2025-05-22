@@ -15,6 +15,9 @@ const corsHeaders = {
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s';
 const GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-4623601047';
 
+// Minimum number of images required to send a notification
+const MIN_IMAGES_REQUIRED = 1;
+
 // Maximum number of images per media group
 const MAX_IMAGES_PER_GROUP = 10;
 
@@ -78,9 +81,9 @@ serve(async (req) => {
     
     console.log('Product has', images.length, 'images and', videos.length, 'videos');
     
-    // Don't send notification if there are no images
-    if (images.length === 0) {
-      console.log('No images found for product, skipping notification');
+    // Don't send notification if there are not enough images
+    if (images.length < MIN_IMAGES_REQUIRED) {
+      console.log(`Not enough images found for product (${images.length}/${MIN_IMAGES_REQUIRED}), skipping notification`);
       
       // Reset the notification timestamp to allow another attempt later
       const { error: updateError } = await supabaseClient
@@ -90,10 +93,15 @@ serve(async (req) => {
       
       if (updateError) {
         console.log('Error resetting notification timestamp:', updateError);
+      } else {
+        console.log('Successfully reset notification timestamp to allow retry later');
       }
       
       return new Response(
-        JSON.stringify({ message: 'Notification skipped - no images found' }),
+        JSON.stringify({ 
+          success: false, 
+          message: `Notification skipped - not enough images found (${images.length}/${MIN_IMAGES_REQUIRED})` 
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       );
     }
@@ -143,8 +151,12 @@ serve(async (req) => {
     });
 
     const textMessageResult = await textMessageResponse.json();
-    console.log('Telegram API response:', JSON.stringify(textMessageResult));
     console.log('Text message response:', textMessageResult);
+    
+    if (!textMessageResult.ok) {
+      console.log('Error sending text message:', textMessageResult);
+      // Continue with image sending even if text message fails
+    }
 
     // Sort images to ensure the primary image comes first
     let sortedImages = [...images].sort((a, b) => {
@@ -172,6 +184,8 @@ serve(async (req) => {
     console.log('Divided', imageUrls.length, 'images into', imageChunks.length, 'chunks');
     
     // Send each chunk as a media group
+    let allMediaGroupsSuccessful = true;
+    
     for (let i = 0; i < imageChunks.length; i++) {
       const chunk = imageChunks[i];
       const mediaItems = [];
@@ -198,33 +212,101 @@ serve(async (req) => {
       
       console.log(`Sending ${i === 0 ? 'first' : 'next'} chunk with ${chunk.length} images${i === 0 ? ' and caption' : ''}`);
       
-      // Send the media group
-      const mediaGroupResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          chat_id: GROUP_CHAT_ID,
-          media: mediaItems,
-        }),
-      });
+      // Retry media group sending up to 3 times in case of failure
+      let mediaGroupResult = null;
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      const mediaGroupResult = await mediaGroupResponse.json();
-      console.log('Calling Telegram API sendMediaGroup with data:', JSON.stringify({
-        chat_id: GROUP_CHAT_ID,
-        media: mediaItems,
-      }));
-      console.log('Telegram API response:', JSON.stringify(mediaGroupResult));
+      while (retryCount < maxRetries) {
+        try {
+          // Send the media group
+          const mediaGroupResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              chat_id: GROUP_CHAT_ID,
+              media: mediaItems,
+            }),
+          });
+          
+          mediaGroupResult = await mediaGroupResponse.json();
+          console.log(`Media group ${i + 1} attempt ${retryCount + 1} response:`, 
+            mediaGroupResult.ok ? 'SUCCESS' : 'FAILED');
+          
+          if (mediaGroupResult.ok) {
+            break; // Exit retry loop on success
+          } else {
+            console.error(`Error sending media group ${i + 1}, attempt ${retryCount + 1}:`, 
+              mediaGroupResult.description || 'Unknown error');
+            retryCount++;
+            
+            if (retryCount < maxRetries) {
+              // Wait a moment before retrying (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+              console.log(`Retrying media group ${i + 1}, attempt ${retryCount + 1}...`);
+            }
+          }
+        } catch (error) {
+          console.error(`Network error sending media group ${i + 1}, attempt ${retryCount + 1}:`, error);
+          retryCount++;
+          
+          if (retryCount < maxRetries) {
+            // Wait a moment before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+            console.log(`Retrying media group ${i + 1} after network error, attempt ${retryCount + 1}...`);
+          }
+        }
+      }
       
-      if (i === 0) {
-        console.log('First media group response:', mediaGroupResult);
+      // Check if we exceeded retry count
+      if (retryCount >= maxRetries) {
+        console.error(`Failed to send media group ${i + 1} after ${maxRetries} attempts`);
+        allMediaGroupsSuccessful = false;
+      }
+      
+      if (i === 0 && mediaGroupResult) {
+        console.log('First media group detailed response:', JSON.stringify(mediaGroupResult));
+      }
+    }
+    
+    // Update the notification timestamp to indicate a successful send
+    if (allMediaGroupsSuccessful) {
+      const { error: updateError } = await supabaseClient
+        .from('products')
+        .update({ 
+          last_notification_sent_at: new Date().toISOString() 
+        })
+        .eq('id', reqData.productId);
+        
+      if (updateError) {
+        console.error('Error updating notification timestamp:', updateError);
+      } else {
+        console.log('Successfully updated notification timestamp after sending');
+      }
+    } else {
+      // If some media groups failed, reset notification timestamp to allow retry
+      const { error: updateError } = await supabaseClient
+        .from('products')
+        .update({ last_notification_sent_at: null })
+        .eq('id', reqData.productId);
+        
+      if (updateError) {
+        console.error('Error resetting notification timestamp after failure:', updateError);
+      } else {
+        console.log('Reset notification timestamp to allow retry after partial failure');
       }
     }
     
     // Return success response
     return new Response(
-      JSON.stringify({ success: true, message: 'Notification sent successfully' }),
+      JSON.stringify({ 
+        success: allMediaGroupsSuccessful, 
+        message: allMediaGroupsSuccessful 
+          ? 'Notification sent successfully' 
+          : 'Notification partially sent, some image groups failed'
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
