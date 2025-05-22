@@ -13,7 +13,10 @@ const corsHeaders = {
 
 // Telegram API constants
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') || '7251106221:AAE3UaXbAejz1SzkhknDTrsASjpe-glhL0s';
-const GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-4623601047';
+// Order notifications go to the original group
+const ORDER_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID_ORDERS') || '-4749346030'; 
+// Product notifications go to the new group
+const PRODUCT_GROUP_CHAT_ID = Deno.env.get('TELEGRAM_GROUP_CHAT_ID') || '-4623601047';
 
 // Minimum number of images required to send a notification
 const MIN_IMAGES_REQUIRED = 1;
@@ -23,7 +26,8 @@ const MAX_IMAGES_PER_GROUP = 10;
 
 console.log('Environment:', {
   BOT_TOKEN_EXISTS: !!BOT_TOKEN,
-  GROUP_CHAT_ID_EXISTS: !!GROUP_CHAT_ID
+  ORDER_GROUP_CHAT_ID_EXISTS: !!ORDER_GROUP_CHAT_ID,
+  PRODUCT_GROUP_CHAT_ID_EXISTS: !!PRODUCT_GROUP_CHAT_ID
 });
 
 serve(async (req) => {
@@ -83,14 +87,14 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `📊 Статус: ${orderData.status === 'created' ? 'Создан' : orderData.status}`
     ].join('\n');
 
-    // Send text message for order
+    // Send text message for order to the ORDER_GROUP_CHAT_ID
     const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        chat_id: GROUP_CHAT_ID,
+        chat_id: ORDER_GROUP_CHAT_ID,
         text: messageText,
         parse_mode: 'HTML'
       }),
@@ -105,9 +109,9 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
     
     console.log('Order notification sent successfully');
     
-    // If order has images, send them too
+    // If order has images, send them too to the ORDER_GROUP_CHAT_ID
     if (orderData.images && orderData.images.length > 0) {
-      await sendImageMediaGroups(orderData.images, null, supabaseClient, null);
+      await sendImageMediaGroups(orderData.images, null, supabaseClient, null, ORDER_GROUP_CHAT_ID);
     }
     
     return new Response(
@@ -236,7 +240,7 @@ async function handleProductNotification(productId, notificationType, supabaseCl
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chat_id: GROUP_CHAT_ID,
+          chat_id: PRODUCT_GROUP_CHAT_ID,
           text: messageText,
           parse_mode: 'HTML'
         }),
@@ -274,12 +278,13 @@ async function handleProductNotification(productId, notificationType, supabaseCl
     }
   }
 
-  // For regular notifications, continue with image processing
+  // For regular product notifications, continue with image processing and send to PRODUCT_GROUP_CHAT_ID
   return await sendImageMediaGroups(
     images.map(image => image.url), 
     messageText, 
     supabaseClient, 
     productId,
+    PRODUCT_GROUP_CHAT_ID,
     corsHeaders
   );
 }
@@ -287,7 +292,7 @@ async function handleProductNotification(productId, notificationType, supabaseCl
 /**
  * Sends images in media groups with optional message text
  */
-async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, productId, corsHeaders) {
+async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, productId, chatId, corsHeaders) {
   try {
     if (!imageUrls || imageUrls.length === 0) {
       console.log('No images to send');
@@ -343,14 +348,14 @@ async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, prod
       
       while (retryCount < maxRetries) {
         try {
-          // Send the media group
+          // Send the media group to the appropriate chat ID
           const mediaGroupResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              chat_id: GROUP_CHAT_ID,
+              chat_id: chatId,
               media: mediaItems,
             }),
           });
