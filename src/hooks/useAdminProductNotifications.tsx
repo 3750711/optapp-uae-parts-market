@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -55,20 +54,9 @@ export const useAdminProductNotifications = () => {
       // Update the notification timestamp
       await updateNotificationTimestamp(product.id);
       
-      // Get fresh product data with all images
-      const { data: freshProduct, error: fetchError } = await supabase
-        .from('products')
-        .select(`*, product_images(*)`)
-        .eq('id', product.id)
-        .single();
-
-      if (fetchError || !freshProduct) {
-        throw new Error(fetchError?.message || 'Failed to fetch product details');
-      }
-      
       console.log("Вызов edge-функции send-telegram-notification для товара", product.id);
       
-      // Call the edge function to send notification - ИСПРАВЛЕНО: передаем productId вместо объекта product
+      // Call the edge function to send notification - передаем только productId
       const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
         body: { productId: product.id }
       });

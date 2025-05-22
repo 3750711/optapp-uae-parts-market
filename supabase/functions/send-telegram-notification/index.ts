@@ -133,31 +133,6 @@ serve(async (req) => {
 
     console.log('Sending message to Telegram:', messageText);
     
-    // Use Bot Token and Chat ID
-    console.log('Using BOT_TOKEN:', BOT_TOKEN);
-    console.log('Using GROUP_CHAT_ID:', GROUP_CHAT_ID);
-
-    // First, send text message without images
-    const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: GROUP_CHAT_ID,
-        text: messageText,
-        parse_mode: 'HTML',
-      }),
-    });
-
-    const textMessageResult = await textMessageResponse.json();
-    console.log('Text message response:', textMessageResult);
-    
-    if (!textMessageResult.ok) {
-      console.log('Error sending text message:', textMessageResult);
-      // Continue with image sending even if text message fails
-    }
-
     // Sort images to ensure the primary image comes first
     let sortedImages = [...images].sort((a, b) => {
       // Primary images first
