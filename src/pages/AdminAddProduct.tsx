@@ -79,6 +79,7 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
+  const [primaryImage, setPrimaryImage] = useState<string>("");
   
   // Импортируем хук для работы с уведомлениями
   const { sendNotificationWithRetry } = useAdminProductNotifications();
@@ -206,7 +207,19 @@ const AdminAddProduct = () => {
   }, [brandModels, watchModelId, form]);
 
   const handleRealtimeImageUpload = (urls: string[]) => {
-    setImageUrls(prevUrls => [...prevUrls, ...urls]);
+    setImageUrls(urls); // Replace with the complete list instead of appending
+    
+    // Set default primary image if none is selected yet
+    if (!primaryImage && urls.length > 0) {
+      setPrimaryImage(urls[0]);
+    } else if (primaryImage && !urls.includes(primaryImage)) {
+      // If primary image was deleted, select the first available
+      if (urls.length > 0) {
+        setPrimaryImage(urls[0]);
+      } else {
+        setPrimaryImage("");
+      }
+    }
   };
 
   const removeImage = (url: string) => {
@@ -279,18 +292,13 @@ const AdminAddProduct = () => {
       setProgressStatus({ step: "Сохранение изображений", progress: 60 });
       
       // Images are already uploaded, we just need to associate them with the product
-      const productImages = imageUrls.map((url, index) => ({
-        product_id: productId,
-        url: url,
-        is_primary: index === 0
-      }));
-      
-      for (const img of productImages) {
+      // Reworked to ensure primary image is marked correctly
+      for (const url of imageUrls) {
         const { error: imageError } = await supabase
           .rpc('admin_insert_product_image', {
             p_product_id: productId,
-            p_url: img.url,
-            p_is_primary: img.is_primary
+            p_url: url,
+            p_is_primary: url === primaryImage
           });
           
         if (imageError) throw imageError;
@@ -618,6 +626,8 @@ const AdminAddProduct = () => {
                       maxImages={30}
                       storageBucket="product-images"
                       storagePath="admin-uploads"
+                      onPrimaryImageChange={setPrimaryImage}
+                      primaryImage={primaryImage}
                     />
                   </div>
                   

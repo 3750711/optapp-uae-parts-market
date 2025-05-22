@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -29,6 +30,7 @@ const SellerAddProduct = () => {
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
+  const [primaryImage, setPrimaryImage] = useState<string>("");
   
   // Use our custom hook for car brands and models
   const { 
@@ -122,7 +124,19 @@ const SellerAddProduct = () => {
   }, [brandModels, watchModelId, form]);
 
   const handleRealtimeImageUpload = (urls: string[]) => {
-    setImageUrls(prevUrls => [...prevUrls, ...urls]);
+    setImageUrls(urls); // Replace with the complete list
+    
+    // Set default primary image if none is selected yet
+    if (!primaryImage && urls.length > 0) {
+      setPrimaryImage(urls[0]);
+    } else if (primaryImage && !urls.includes(primaryImage)) {
+      // If primary image was deleted, select the first available
+      if (urls.length > 0) {
+        setPrimaryImage(urls[0]);
+      } else {
+        setPrimaryImage("");
+      }
+    }
   };
 
   const onSubmit = async (values: ProductFormValues) => {
@@ -212,10 +226,11 @@ const SellerAddProduct = () => {
       setProgressStatus({ step: "Сохранение изображений", progress: 60 });
 
       // Изображения уже загружены, нужно только связать их с продуктом
-      const productImages = imageUrls.map((url, index) => ({
+      // Обновлено для правильной обработки основного изображения
+      const productImages = imageUrls.map((url) => ({
         product_id: product.id,
         url: url,
-        is_primary: index === 0
+        is_primary: url === primaryImage
       }));
       
       console.log("Associating images with product:", productImages.length);
@@ -340,6 +355,8 @@ const SellerAddProduct = () => {
                 filteredModels={filteredModels}
                 handleRealtimeImageUpload={handleRealtimeImageUpload}
                 setVideoUrls={setVideoUrls}
+                primaryImage={primaryImage}
+                setPrimaryImage={setPrimaryImage}
               />
             </CardContent>
             

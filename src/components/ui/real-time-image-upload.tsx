@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Loader2, Camera, Trash2, AlertCircle, RefreshCcw } from "lucide-react";
+import { ImagePlus, X, Loader2, Camera, Trash2, AlertCircle, RefreshCcw, Check } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { 
   validateImageForMarketplace, 
@@ -17,6 +17,8 @@ interface RealtimeImageUploadProps {
   maxImages?: number;
   storageBucket?: string;
   storagePath?: string;
+  onPrimaryImageChange?: (primaryUrl: string) => void;
+  primaryImage?: string;
 }
 
 export function RealtimeImageUpload({
@@ -24,6 +26,8 @@ export function RealtimeImageUpload({
   maxImages = 25,
   storageBucket,
   storagePath = "",
+  onPrimaryImageChange,
+  primaryImage
 }: RealtimeImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
@@ -36,6 +40,14 @@ export function RealtimeImageUpload({
   const cameraInputRef = useRef<HTMLInputElement>(null);
   
   const deviceCapabilities = getDeviceCapabilities();
+
+  // Update local state when primaryImage prop changes
+  useEffect(() => {
+    if (primaryImage && Object.values(uploadedImages).includes(primaryImage)) {
+      // No need to update state as the primary image is already set from props
+      console.log("Primary image set from props:", primaryImage);
+    }
+  }, [primaryImage, uploadedImages]);
   
   // Получение основного имени бакета при загрузке компонента
   useEffect(() => {
@@ -73,6 +85,13 @@ export function RealtimeImageUpload({
   const isMobile = useCallback(() => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   }, []);
+
+  // Set an image as primary
+  const setPrimaryImage = useCallback((imageUrl: string) => {
+    if (onPrimaryImageChange) {
+      onPrimaryImageChange(imageUrl);
+    }
+  }, [onPrimaryImageChange]);
 
   // Функция для повторной попытки загрузки файлов с ошибками
   const handleRetryFailedUploads = useCallback(async () => {
@@ -182,7 +201,17 @@ export function RealtimeImageUpload({
     // Удаляем из очереди на повторную попытку
     setRetryQueue(prev => prev.filter(item => item.fileId !== fileId));
     
-    // Уведомляем родительский компонент
+    // If we're removing the primary image, select a new one or clear it
+    if (primaryImage === imageUrl && onPrimaryImageChange) {
+      const remainingImages = Object.values(newUploadedImages);
+      if (remainingImages.length > 0) {
+        onPrimaryImageChange(remainingImages[0]);
+      } else {
+        onPrimaryImageChange("");
+      }
+    }
+    
+    // Уведомляем родительский компонент об актуальном списке изображений
     onUploadComplete(Object.values(newUploadedImages));
   };
 
@@ -342,7 +371,7 @@ export function RealtimeImageUpload({
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
-  }, [onUploadComplete, storageBucket, storagePath, uploadedImages, deviceCapabilities, maxImages, primaryBucket, userPermissions]);
+  }, [onUploadComplete, storageBucket, storagePath, uploadedImages, deviceCapabilities, maxImages, primaryBucket, userPermissions, onPrimaryImageChange, primaryImage]);
 
   return (
     <div className="space-y-4">
@@ -358,14 +387,26 @@ export function RealtimeImageUpload({
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
         {/* Загруженные изображения */}
         {Object.entries(uploadedImages).map(([fileId, imageUrl]) => (
-          <div key={fileId} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+          <div key={fileId} className={`aspect-square bg-gray-100 rounded-lg overflow-hidden relative group ${primaryImage === imageUrl ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}>
             <img 
               src={imageUrl} 
               alt="Uploaded" 
               className="h-full w-full object-cover"
               loading="lazy"
             />
-            <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-2">
+              {onPrimaryImageChange && (
+                <Button 
+                  variant="secondary" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  title="Сделать основным фото"
+                  onClick={() => setPrimaryImage(imageUrl)}
+                  disabled={primaryImage === imageUrl}
+                >
+                  <Check className={`h-4 w-4 ${primaryImage === imageUrl ? 'text-blue-500' : ''}`} />
+                </Button>
+              )}
               <Button 
                 variant="destructive" 
                 size="icon" 
@@ -375,6 +416,11 @@ export function RealtimeImageUpload({
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
+            {primaryImage === imageUrl && (
+              <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-70 p-1">
+                <p className="text-white text-xs text-center">Основное фото</p>
+              </div>
+            )}
           </div>
         ))}
         
