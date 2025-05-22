@@ -289,13 +289,22 @@ serve(async (req) => {
         try {
           console.log(`Preparing to send ${product.product_images.length} images in media group(s)`);
           
+          // Sort images so primary image is first
+          const sortedImages = [...product.product_images].sort((a, b) => {
+            if (a.is_primary) return -1;
+            if (b.is_primary) return 1;
+            return 0;
+          });
+          
+          console.log(`Sorted images. Primary image is first: ${sortedImages[0].is_primary}`);
+          
           // Ensure all images are included by breaking them into chunks of 10 (Telegram API limit)
           const imageChunks = [];
-          for (let i = 0; i < product.product_images.length; i += 10) {
-            imageChunks.push(product.product_images.slice(i, i + 10));
+          for (let i = 0; i < sortedImages.length; i += 10) {
+            imageChunks.push(sortedImages.slice(i, i + 10));
           }
           
-          console.log(`Divided ${product.product_images.length} images into ${imageChunks.length} chunks`);
+          console.log(`Divided ${sortedImages.length} images into ${imageChunks.length} chunks`);
           
           // Send first chunk with the product description message attached
           const firstChunk = imageChunks[0];
