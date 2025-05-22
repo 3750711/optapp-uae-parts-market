@@ -1,13 +1,13 @@
 
-import React, { useState, useCallback } from "react";
-import { X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import VideoUpload from "@/components/ui/video-upload";
 
 interface AdminProductVideosManagerProps {
   productId: string;
   videos: string[];
-  onVideosChange: (urls: string[]) => void;
+  onVideosChange: (videos: string[]) => void;
 }
 
 export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps> = ({
@@ -16,59 +16,78 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
   onVideosChange,
 }) => {
   const { toast } = useToast();
-  const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleVideoDelete = useCallback(async (url: string) => {
-    setDeletingUrl(url);
+  const handleVideoUpload = async (newUrls: string[]) => {
     try {
-      let path = "";
-      if (url.includes("product-videos")) {
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'product-videos') + 1).join('/');
-      } else if (url.includes("order-videos")) {
-        path = url.split('/').slice(url.split('/').findIndex(p => p === 'order-videos') + 1).join('/');
-      } else {
-        path = url.split('/').slice(4).join('/');
-      }
-      await supabase.storage.from('product-videos').remove([path]);
-      await supabase.from('product_videos').delete().eq('url', url).eq('product_id', productId);
-      onVideosChange(videos.filter(vid => vid !== url));
-      toast({ title: "Видео удалено" });
-    } catch (error: any) {
+      setIsUploading(true);
+      
+      const videoInserts = newUrls.map(url => ({
+        product_id: productId,
+        url
+      }));
+
+      const { error } = await supabase
+        .from('product_videos')
+        .insert(videoInserts);
+        
+      if (error) throw error;
+      
+      onVideosChange([...videos, ...newUrls]);
+      
       toast({
-        title: "Ошибка удаления",
-        description: error?.message || "Не удалось удалить видео",
+        title: "Видео добавлены",
+        description: `Добавлено ${newUrls.length} видео`,
+      });
+    } catch (error) {
+      console.error("Error uploading videos:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить видео",
         variant: "destructive",
       });
     } finally {
-      setDeletingUrl(null);
+      setIsUploading(false);
     }
-  }, [videos, productId, onVideosChange, toast]);
+  };
 
-  if (!videos.length) return null;
+  const handleVideoDelete = async (urlToDelete: string) => {
+    try {
+      const { error } = await supabase
+        .from('product_videos')
+        .delete()
+        .eq('product_id', productId)
+        .eq('url', urlToDelete);
+        
+      if (error) throw error;
+      
+      onVideosChange(videos.filter(url => url !== urlToDelete));
+      
+      toast({
+        title: "Видео удалено",
+        description: "Видео успешно удалено",
+      });
+    } catch (error) {
+      console.error("Error deleting video:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить видео",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
-    <div className="mb-4">
-      <div className="text-xs font-medium mb-1">Видео</div>
-      <div className="grid grid-cols-2 gap-2">
-        {videos.map((vid, idx) => (
-          <div key={vid} className="relative group rounded-md overflow-hidden border aspect-video bg-black">
-            <video 
-              src={vid} 
-              controls 
-              className="w-full h-full object-cover"
-              preload="metadata" // Only load metadata, not the entire video
-            />
-            <button
-              type="button"
-              aria-label="Удалить видео"
-              className="absolute top-2 right-2 p-1 bg-red-600 bg-opacity-80 rounded-full text-white opacity-80 hover:opacity-100 focus:outline-none focus:ring-2"
-              onClick={() => handleVideoDelete(vid)}
-              disabled={deletingUrl === vid}
-            >
-              <X size={16}/>
-            </button>
-          </div>
-        ))}
-      </div>
+    <div>
+      <h3 className="text-sm font-medium mb-2">Видео</h3>
+      <VideoUpload
+        videos={videos}
+        onUpload={handleVideoUpload}
+        onDelete={handleVideoDelete}
+        maxVideos={3}
+        storageBucket="Product Images"
+        storagePrefix={`product-${productId}/`}
+      />
     </div>
   );
 };

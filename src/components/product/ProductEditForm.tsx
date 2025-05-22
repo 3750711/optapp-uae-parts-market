@@ -59,6 +59,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       ? product.product_videos.map((vid: any) => vid.url)
       : []
   );
+  const [primaryImage, setPrimaryImage] = React.useState<string>(() => {
+    if (Array.isArray(product.product_images)) {
+      const primary = product.product_images.find((img: any) => img.is_primary);
+      return primary ? primary.url : (product.product_images[0]?.url || '');
+    }
+    return '';
+  });
 
   // Set initial selected brand when the component mounts and brands are loaded
   useEffect(() => {
@@ -77,6 +84,12 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setVideos(
       Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []
     );
+    
+    // Set primary image
+    if (Array.isArray(product.product_images)) {
+      const primary = product.product_images.find((img: any) => img.is_primary);
+      setPrimaryImage(primary ? primary.url : (product.product_images[0]?.url || ''));
+    }
   }, [product]);
 
   React.useEffect(() => {
@@ -126,7 +139,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       const imageInserts = newUrls.map(url => ({
         product_id: product.id,
         url: url,
-        is_primary: false
+        is_primary: images.length === 0 && primaryImage === '' // First image is primary if no images exist
       }));
 
       const { error } = await supabase
@@ -135,7 +148,14 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
       if (error) throw error;
 
-      setImages([...images, ...newUrls]);
+      const updatedImages = [...images, ...newUrls];
+      setImages(updatedImages);
+      
+      // If no primary image is set, set the first new image as primary
+      if (primaryImage === '' && newUrls.length > 0) {
+        setPrimaryImage(newUrls[0]);
+      }
+      
       toast({
         title: "Фото добавлены",
         description: `Добавлено ${newUrls.length} фотографий`,
@@ -152,27 +172,14 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const handleImageDelete = async (urlToDelete: string) => {
     try {
-      const { error } = await supabase
-        .from('product_images')
-        .delete()
-        .eq('product_id', product.id)
-        .eq('url', urlToDelete);
-
-      if (error) throw error;
-
       setImages(images.filter(url => url !== urlToDelete));
-      toast({
-        title: "Фото удалено",
-        description: "Фотография успешно удалена",
-      });
     } catch (error) {
-      console.error("Error deleting image:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить фотографию",
-        variant: "destructive",
-      });
+      console.error("Error updating images array after deletion:", error);
     }
+  };
+
+  const handlePrimaryImageChange = (imageUrl: string) => {
+    setPrimaryImage(imageUrl);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -245,6 +252,8 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           onImageUpload={handleImageUpload}
           onImageDelete={handleImageDelete}
           onVideosChange={isCreator ? setVideos : () => {}}
+          onPrimaryImageChange={isCreator ? handlePrimaryImageChange : undefined}
+          primaryImage={primaryImage}
           maxImages={25}
         />
       </div>

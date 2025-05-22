@@ -21,7 +21,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
   onUpload,
   onDelete,
   maxVideos = 3,
-  storageBucket,
+  storageBucket = "Product Images",
   storagePrefix = ""
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
