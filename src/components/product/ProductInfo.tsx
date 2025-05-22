@@ -2,14 +2,14 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Package2, Truck, Bell } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Package2, Truck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
 import { Product } from "@/types/product";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { useAdminProductNotifications } from "@/hooks/useAdminProductNotifications";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductInfoProps {
   product: Product;
@@ -21,7 +21,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
-  const { sendNotification } = useAdminProductNotifications();
   const { toast } = useToast();
   const navigate = useNavigate();
   const isOwner = user?.id === product.seller_id;
@@ -62,7 +61,24 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
 
     setIsSendingNotification(true);
     try {
-      await sendNotification(product);
+      // Direct call to edge function instead of using the hook
+      const { error } = await supabase.functions.invoke("send-telegram-notification", {
+        body: { productId: product.id }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Успех",
+        description: "Уведомление успешно отправлено",
+      });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить уведомление",
+        variant: "destructive"
+      });
     } finally {
       setIsSendingNotification(false);
     }
@@ -101,8 +117,9 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
               onClick={handleSendNotification}
               disabled={isSendingNotification}
             >
-              <Bell className={`h-4 w-4 ${isSendingNotification ? 'animate-pulse' : ''}`} />
-              {isSendingNotification ? 'Отправка...' : 'Отправить уведомление'}
+              <span className={`${isSendingNotification ? 'animate-pulse' : ''}`}>
+                {isSendingNotification ? 'Отправка...' : 'Отправить уведомление'}
+              </span>
             </Button>
           )}
           {isOwner && product.status !== 'sold' && (

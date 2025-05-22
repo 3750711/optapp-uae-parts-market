@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -10,9 +9,11 @@ import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
-import { useAdminProductNotifications } from '@/hooks/useAdminProductNotifications';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { format } from 'date-fns';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminProductCardProps {
   product: Product;
@@ -28,7 +29,36 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
   onStatusChange
 }) => {
   const queryClient = useQueryClient();
-  const { sendNotification, isNotificationSending } = useAdminProductNotifications();
+  const { toast } = useToast();
+  const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
+  
+  // Replacement for the removed hook function
+  const sendNotification = async (product: Product) => {
+    try {
+      // Set notification sending state for this product
+      setIsNotificationSending(prev => ({ ...prev, [product.id]: true }));
+      
+      const { error } = await supabase.functions.invoke("send-telegram-notification", {
+        body: { productId: product.id }
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Успех",
+        description: "Уведомление успешно отправлено",
+      });
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить уведомление",
+        variant: "destructive"
+      });
+    } finally {
+      setIsNotificationSending(prev => ({ ...prev, [product.id]: false }));
+    }
+  };
   
   const getProductCardBackground = (status: string) => {
     switch (status) {

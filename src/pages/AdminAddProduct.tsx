@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminProductNotifications } from "@/hooks/useAdminProductNotifications";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,9 +80,6 @@ const AdminAddProduct = () => {
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   const [primaryImage, setPrimaryImage] = useState<string>("");
-  
-  // Импортируем хук для работы с уведомлениями
-  const { sendNotificationWithRetry } = useAdminProductNotifications();
   
   // Use our custom hook for car brands and models
   const { 
@@ -224,6 +221,21 @@ const AdminAddProduct = () => {
 
   const removeImage = (url: string) => {
     setImageUrls(imageUrls.filter(item => item !== url));
+  };
+
+  // Replacement function for sending notification
+  const sendNotificationWithRetry = async (product: any) => {
+    try {
+      const { error } = await supabase.functions.invoke("send-telegram-notification", {
+        body: { productId: product.id }
+      });
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error("Error sending notification:", error);
+      return false;
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
