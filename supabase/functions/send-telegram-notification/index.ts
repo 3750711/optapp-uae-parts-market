@@ -43,168 +43,259 @@ serve(async (req) => {
     const reqData = await req.json();
     console.log('Received request data:', reqData);
 
-    // Validate required parameters
-    if (!reqData.productId) {
-      console.log('Missing required parameter: productId');
+    // Handle different notification types
+    if (reqData.order && reqData.action === 'create') {
+      return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders);
+    } else if (reqData.productId) {
+      return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders);
+    } else {
+      console.log('Invalid request data: missing order or productId');
       return new Response(
-        JSON.stringify({ error: 'Missing required parameter: productId' }),
+        JSON.stringify({ error: 'Missing required parameters: either order+action or productId required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
+  } catch (error) {
+    console.error('Error processing request:', error);
 
-    const notificationType = reqData.notificationType || 'status_change';
-    console.log(`Processing ${notificationType} notification request for ID:`, reqData.productId);
-    
-    // Fetch complete product details including images and videos
-    const { data: product, error } = await supabaseClient
-      .from('products')
-      .select(`
-        *,
-        product_images(*),
-        product_videos(*)
-      `)
-      .eq('id', reqData.productId)
-      .maybeSingle();
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+});
 
-    if (error || !product) {
-      console.log('Error fetching product:', error);
-      return new Response(
-        JSON.stringify({ error: error?.message || 'Product not found' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
-      );
-    }
+/**
+ * Handles order creation notifications
+ */
+async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
+  console.log('Processing order notification, order #:', orderData.order_number);
+  
+  try {
+    // Prepare order notification message
+    const messageText = [
+      `Новый Заказ № ${orderData.order_number}`,
+      `🔍 Товар: ${orderData.title} ${orderData.brand || ''} ${orderData.model || ''}`,
+      `💰 Цена: ${orderData.price} $`,
+      `📝 Заказчик: ${orderData.buyer_opt_id || 'Не указан'}`,
+      `📱 Telegram заказчика: ${orderData.telegram_url_buyer || 'Не указан'}`,
+      ``,
+      `📊 Статус: ${orderData.status === 'created' ? 'Создан' : orderData.status}`
+    ].join('\n');
 
-    console.log('Successfully fetched product:', product.title, 'status:', product.status);
-    
-    // Check if there are any images for this product
-    const images = product.product_images || [];
-    const videos = product.product_videos || [];
-    
-    console.log('Product has', images.length, 'images and', videos.length, 'videos');
-    
-    // Don't send notification if there are not enough images (except for sold notifications)
-    if (notificationType !== 'sold' && images.length < MIN_IMAGES_REQUIRED) {
-      console.log(`Not enough images found for product (${images.length}/${MIN_IMAGES_REQUIRED}), skipping notification`);
-      
-      // Reset the notification timestamp to allow another attempt later
-      const { error: updateError } = await supabaseClient
-        .from('products')
-        .update({ last_notification_sent_at: null })
-        .eq('id', reqData.productId);
-      
-      if (updateError) {
-        console.log('Error resetting notification timestamp:', updateError);
-      } else {
-        console.log('Successfully reset notification timestamp to allow retry later');
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: `Notification skipped - not enough images found (${images.length}/${MIN_IMAGES_REQUIRED})` 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
-      );
-    }
-    
-    // Prepare the notification message based on notification type
-    let messageText = "";
-
-    if (notificationType === 'sold') {
-      // Create specialized message for sold products
-      messageText = [
-        `😔 Жаль, но Лот #${product.lot_number} ${product.title} ${product.brand || ''} ${product.model || ''} уже ушел!`,
-        `Кто-то оказался быстрее... в следующий раз повезет - будь начеку.`
-      ].join('\n');
-    } else {
-      // Standard notification for status changes or new products
-      const messageData = {
-        title: product.title,
-        price: product.price,
-        deliveryPrice: product.delivery_price,
-        lotNumber: product.lot_number,
-        optId: product.optid_created || '',
-        telegram: product.telegram_url || '',
-        status: product.status
-      };
-      
-      messageText = [
-        `LOT(лот) #${messageData.lotNumber}`,
-        `📦 ${messageData.title}`,
-        `💰 Цена: ${messageData.price} $`,
-        `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
-        `🆔 OPT_ID продавца: ${messageData.optId}`,
-        `👤 Telegram продавца: @${messageData.telegram}`,
-        '',
-        `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
-               messageData.status === 'sold' ? 'Продан' : 'На модерации'}`
-      ].join('\n');
-    }
-    
-    console.log('Sending message to Telegram:', messageText);
-    
-    // For sold notifications, we only need to send text message without images
-    if (notificationType === 'sold') {
-      try {
-        const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            chat_id: GROUP_CHAT_ID,
-            text: messageText,
-            parse_mode: 'HTML'
-          }),
-        });
-        
-        const textResult = await textMessageResponse.json();
-        
-        if (!textResult.ok) {
-          console.error('Error sending sold notification message:', textResult.description);
-          throw new Error(textResult.description || 'Failed to send sold notification');
-        }
-        
-        console.log('Sold notification sent successfully');
-        
-        // Update the notification timestamp
-        const { error: updateError } = await supabaseClient
-          .from('products')
-          .update({ last_notification_sent_at: new Date().toISOString() })
-          .eq('id', reqData.productId);
-          
-        if (updateError) {
-          console.error('Error updating notification timestamp:', updateError);
-        }
-        
-        return new Response(
-          JSON.stringify({ success: true, message: 'Sold notification sent successfully' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      } catch (error) {
-        console.error('Error sending sold notification:', error);
-        return new Response(
-          JSON.stringify({ success: false, message: `Failed to send sold notification: ${error.message}` }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-        );
-      }
-    }
-    
-    // For regular notifications, continue with image processing
-    // Sort images to ensure the primary image comes first
-    let sortedImages = [...images].sort((a, b) => {
-      // Primary images first
-      if (a.is_primary && !b.is_primary) return -1;
-      if (!a.is_primary && b.is_primary) return 1;
-      // Then by creation date
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    // Send text message for order
+    const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: GROUP_CHAT_ID,
+        text: messageText,
+        parse_mode: 'HTML'
+      }),
     });
     
-    const primaryImageFirst = sortedImages.length > 0 && sortedImages[0].is_primary;
-    console.log('Sorted images. Primary image is first:', primaryImageFirst);
+    const textResult = await textMessageResponse.json();
+    
+    if (!textResult.ok) {
+      console.error('Error sending order notification message:', textResult.description);
+      throw new Error(textResult.description || 'Failed to send order notification');
+    }
+    
+    console.log('Order notification sent successfully');
+    
+    // If order has images, send them too
+    if (orderData.images && orderData.images.length > 0) {
+      await sendImageMediaGroups(orderData.images, null, supabaseClient, null);
+    }
+    
+    return new Response(
+      JSON.stringify({ success: true, message: 'Order notification sent successfully' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Error sending order notification:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    );
+  }
+}
 
-    // URLs for all images
-    const imageUrls = sortedImages.map(image => image.url);
+/**
+ * Handles product status change notifications
+ */
+async function handleProductNotification(productId, notificationType, supabaseClient, corsHeaders) {
+  // Validate required parameters
+  if (!productId) {
+    console.log('Missing required parameter: productId');
+    return new Response(
+      JSON.stringify({ error: 'Missing required parameter: productId' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+    );
+  }
+
+  const productNotificationType = notificationType || 'status_change';
+  console.log(`Processing ${productNotificationType} notification request for ID:`, productId);
+  
+  // Fetch complete product details including images and videos
+  const { data: product, error } = await supabaseClient
+    .from('products')
+    .select(`
+      *,
+      product_images(*),
+      product_videos(*)
+    `)
+    .eq('id', productId)
+    .maybeSingle();
+
+  if (error || !product) {
+    console.log('Error fetching product:', error);
+    return new Response(
+      JSON.stringify({ error: error?.message || 'Product not found' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+    );
+  }
+
+  console.log('Successfully fetched product:', product.title, 'status:', product.status);
+  
+  // Check if there are any images for this product
+  const images = product.product_images || [];
+  const videos = product.product_videos || [];
+  
+  console.log('Product has', images.length, 'images and', videos.length, 'videos');
+  
+  // Don't send notification if there are not enough images (except for sold notifications)
+  if (notificationType !== 'sold' && images.length < MIN_IMAGES_REQUIRED) {
+    console.log(`Not enough images found for product (${images.length}/${MIN_IMAGES_REQUIRED}), skipping notification`);
+    
+    // Reset the notification timestamp to allow another attempt later
+    const { error: updateError } = await supabaseClient
+      .from('products')
+      .update({ last_notification_sent_at: null })
+      .eq('id', productId);
+    
+    if (updateError) {
+      console.log('Error resetting notification timestamp:', updateError);
+    } else {
+      console.log('Successfully reset notification timestamp to allow retry later');
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        message: `Notification skipped - not enough images found (${images.length}/${MIN_IMAGES_REQUIRED})` 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    );
+  }
+  
+  // Prepare the notification message based on notification type
+  let messageText = "";
+
+  if (notificationType === 'sold') {
+    // Create specialized message for sold products
+    messageText = [
+      `😔 Жаль, но Лот #${product.lot_number} ${product.title} ${product.brand || ''} ${product.model || ''} уже ушел!`,
+      `Кто-то оказался быстрее... в следующий раз повезет - будь начеку.`
+    ].join('\n');
+  } else {
+    // Standard notification for status changes or new products
+    const messageData = {
+      title: product.title,
+      price: product.price,
+      deliveryPrice: product.delivery_price,
+      lotNumber: product.lot_number,
+      optId: product.optid_created || '',
+      telegram: product.telegram_url || '',
+      status: product.status
+    };
+    
+    messageText = [
+      `LOT(лот) #${messageData.lotNumber}`,
+      `📦 ${messageData.title}`,
+      `💰 Цена: ${messageData.price} $`,
+      `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
+      `🆔 OPT_ID продавца: ${messageData.optId}`,
+      `👤 Telegram продавца: @${messageData.telegram}`,
+      '',
+      `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
+             messageData.status === 'sold' ? 'Продан' : 'На модерации'}`
+    ].join('\n');
+  }
+  
+  console.log('Sending message to Telegram:', messageText);
+  
+  // For sold notifications, we only need to send text message without images
+  if (notificationType === 'sold') {
+    try {
+      const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: GROUP_CHAT_ID,
+          text: messageText,
+          parse_mode: 'HTML'
+        }),
+      });
+      
+      const textResult = await textMessageResponse.json();
+      
+      if (!textResult.ok) {
+        console.error('Error sending sold notification message:', textResult.description);
+        throw new Error(textResult.description || 'Failed to send sold notification');
+      }
+      
+      console.log('Sold notification sent successfully');
+      
+      // Update the notification timestamp
+      const { error: updateError } = await supabaseClient
+        .from('products')
+        .update({ last_notification_sent_at: new Date().toISOString() })
+        .eq('id', productId);
+        
+      if (updateError) {
+        console.error('Error updating notification timestamp:', updateError);
+      }
+      
+      return new Response(
+        JSON.stringify({ success: true, message: 'Sold notification sent successfully' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } catch (error) {
+      console.error('Error sending sold notification:', error);
+      return new Response(
+        JSON.stringify({ success: false, message: `Failed to send sold notification: ${error.message}` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      );
+    }
+  }
+
+  // For regular notifications, continue with image processing
+  return await sendImageMediaGroups(
+    images.map(image => image.url), 
+    messageText, 
+    supabaseClient, 
+    productId,
+    corsHeaders
+  );
+}
+
+/**
+ * Sends images in media groups with optional message text
+ */
+async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, productId, corsHeaders) {
+  try {
+    if (!imageUrls || imageUrls.length === 0) {
+      console.log('No images to send');
+      return new Response(
+        JSON.stringify({ success: true, message: 'Notification sent successfully (no images)' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     console.log('Preparing to send', imageUrls.length, 'images in media group(s)');
     
@@ -235,7 +326,7 @@ serve(async (req) => {
           media: imageUrl,
         };
         
-        if (isFirstImageOfFirstGroup) {
+        if (isFirstImageOfFirstGroup && messageText) {
           mediaItem.caption = messageText;
           mediaItem.parse_mode = 'HTML';
         }
@@ -304,26 +395,26 @@ serve(async (req) => {
       }
     }
     
-    // Update the notification timestamp to indicate a successful send
-    if (allMediaGroupsSuccessful) {
+    // Update the notification timestamp to indicate a successful send (only for product notifications, not order notifications)
+    if (allMediaGroupsSuccessful && productId) {
       const { error: updateError } = await supabaseClient
         .from('products')
         .update({ 
           last_notification_sent_at: new Date().toISOString() 
         })
-        .eq('id', reqData.productId);
+        .eq('id', productId);
         
       if (updateError) {
         console.error('Error updating notification timestamp:', updateError);
       } else {
         console.log('Successfully updated notification timestamp after sending');
       }
-    } else {
+    } else if (!allMediaGroupsSuccessful && productId) {
       // If some media groups failed, reset notification timestamp to allow retry
       const { error: updateError } = await supabaseClient
         .from('products')
         .update({ last_notification_sent_at: null })
-        .eq('id', reqData.productId);
+        .eq('id', productId);
         
       if (updateError) {
         console.error('Error resetting notification timestamp after failure:', updateError);
@@ -342,13 +433,11 @@ serve(async (req) => {
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
   } catch (error) {
-    console.error('Error processing request:', error);
-
+    console.error('Error sending media groups:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }
-});
+}
