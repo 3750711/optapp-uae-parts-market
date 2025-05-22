@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -284,58 +285,63 @@ serve(async (req) => {
       // Check if we have images to send
       if (product.product_images && product.product_images.length > 0) {
         try {
-          // Prepare all images for the media group, limited to 10 per API requirements
-          const firstBatchImages = product.product_images.slice(0, 10);
-          const mediaGroup = firstBatchImages.map((img: any, index: number) => ({
+          console.log(`Preparing to send ${product.product_images.length} images in media group(s)`);
+          
+          // Разделяем изображения на пакеты по 10 (ограничение Telegram API)
+          const imageChunks = [];
+          for (let i = 0; i < product.product_images.length; i += 10) {
+            imageChunks.push(product.product_images.slice(i, i + 10));
+          }
+          
+          console.log(`Divided ${product.product_images.length} images into ${imageChunks.length} chunks`);
+          
+          // Отправляем первый пакет с сообщением
+          const firstChunk = imageChunks[0];
+          const firstMediaGroup = firstChunk.map((img: any, index: number) => ({
             type: 'photo',
             media: img.url,
-            // Add caption to the first image only
+            // Добавляем подпись только к первому изображению
             ...(index === 0 && {
               caption: message,
               parse_mode: 'HTML'
             })
           }));
 
-          // Send first batch of images as media group
+          console.log(`Sending first chunk with ${firstChunk.length} images and caption`);
           const mediaResult = await callTelegramAPI('sendMediaGroup', {
             chat_id: validChatId,
-            media: mediaGroup
+            media: firstMediaGroup
           });
           
-          console.log('Media group response:', mediaResult);
+          console.log('First media group response:', mediaResult);
           
-          // If there are more than 10 images, send the rest in another batch
-          if (product.product_images.length > 10) {
-            // Wait a bit to avoid rate limiting
-            await sleep(500);
-            
-            const remainingImages = product.product_images.slice(10);
-            // Process remaining images in batches of 10
-            for (let i = 0; i < remainingImages.length; i += 10) {
-              const batch = remainingImages.slice(i, i + 10).map((img: any) => ({
+          // Если есть дополнительные пакеты изображений, отправляем их без подписи
+          if (imageChunks.length > 1) {
+            for (let i = 1; i < imageChunks.length; i++) {
+              console.log(`Sending additional chunk ${i+1} with ${imageChunks[i].length} images`);
+              // Добавляем небольшую задержку перед отправкой следующего пакета
+              await sleep(1000);
+              
+              const additionalMediaGroup = imageChunks[i].map((img: any) => ({
                 type: 'photo',
                 media: img.url
               }));
               
-              if (batch.length > 0) {
-                await callTelegramAPI('sendMediaGroup', {
-                  chat_id: validChatId,
-                  media: batch
-                });
-                
-                // Wait between batches
-                if (i + 10 < remainingImages.length) {
-                  await sleep(300);
-                }
-              }
+              await callTelegramAPI('sendMediaGroup', {
+                chat_id: validChatId,
+                media: additionalMediaGroup
+              });
+              
+              console.log(`Additional chunk ${i+1} sent successfully`);
             }
           }
           
-          // After sending images, if there are videos, send them as separate messages
+          // После отправки изображений, если есть видео, отправляем их отдельными сообщениями
           if (product.product_videos && product.product_videos.length > 0) {
-            // Add a small delay before sending videos to avoid rate limiting
-            await sleep(500);
+            // Добавляем небольшую задержку перед отправкой видео
+            await sleep(1000);
             
+            console.log(`Sending ${product.product_videos.length} videos`);
             for (const video of product.product_videos) {
               try {
                 await callTelegramAPI('sendVideo', {
@@ -343,8 +349,8 @@ serve(async (req) => {
                   video: video.url
                 });
                 
-                // Add a small delay between videos to avoid rate limiting
-                await sleep(300);
+                // Добавляем небольшую задержку между видео
+                await sleep(1000);
               } catch (error) {
                 console.error('Failed to send video:', error);
               }
@@ -352,7 +358,7 @@ serve(async (req) => {
           }
         } catch (error) {
           console.error('Failed to send media group:', error);
-          // If media group fails, try sending just the text message
+          // Если отправка медиагруппы не удалась, пробуем отправить только текстовое сообщение
           try {
             await callTelegramAPI('sendMessage', {
               chat_id: validChatId,
@@ -364,8 +370,9 @@ serve(async (req) => {
           }
         }
       } else {
-        // If no images, just send text message
+        // Если нет изображений, отправляем только текстовое сообщение
         try {
+          console.log('No images found, sending text-only message');
           const messageResult = await callTelegramAPI('sendMessage', {
             chat_id: validChatId,
             text: message,
@@ -374,9 +381,9 @@ serve(async (req) => {
           
           console.log('Text message response:', messageResult);
           
-          // If there are videos but no images, send videos after the text message
+          // Если есть видео, но нет изображений, отправляем видео после текстового сообщения
           if (product.product_videos && product.product_videos.length > 0) {
-            await sleep(500); // Wait a bit before sending videos
+            await sleep(1000); // Небольшая задержка перед отправкой видео
             
             for (const video of product.product_videos) {
               try {
@@ -385,7 +392,7 @@ serve(async (req) => {
                   video: video.url
                 });
                 
-                await sleep(300); // Small delay between videos
+                await sleep(1000); // Небольшая задержка между видео
               } catch (error) {
                 console.error('Failed to send video:', error);
               }
