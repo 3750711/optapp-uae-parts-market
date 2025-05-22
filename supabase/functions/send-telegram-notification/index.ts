@@ -1,3 +1,4 @@
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -114,7 +115,30 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `${orderData.buyer_opt_id || ''}`
     ].join('\n');
 
-    // Send text message for order to the ORDER_GROUP_CHAT_ID
+    // First fetch order images from the database if available
+    let orderImages = [];
+    
+    // Check if order has images directly from the payload
+    if (orderData.images && orderData.images.length > 0) {
+      console.log('Using images from order data payload:', orderData.images.length, 'images');
+      orderImages = orderData.images.map(url => url);
+    } else {
+      // If no images in payload, fetch them from the database
+      console.log('Fetching images from database for order:', orderData.id);
+      const { data: imagesData, error: imagesError } = await supabaseClient
+        .from('order_images')
+        .select('url')
+        .eq('order_id', orderData.id);
+      
+      if (imagesError) {
+        console.error('Error fetching order images:', imagesError);
+      } else if (imagesData && imagesData.length > 0) {
+        console.log('Found', imagesData.length, 'images for order in database');
+        orderImages = imagesData.map(img => img.url);
+      }
+    }
+    
+    // Send text message first
     const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: 'POST',
       headers: {
@@ -134,11 +158,98 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       throw new Error(textResult.description || 'Failed to send order notification');
     }
     
-    console.log('Order notification sent successfully');
+    console.log('Order notification text sent successfully');
     
-    // If order has images, send them too to the ORDER_GROUP_CHAT_ID
-    if (orderData.images && orderData.images.length > 0) {
-      await sendImageMediaGroups(orderData.images, null, supabaseClient, null, ORDER_GROUP_CHAT_ID);
+    // If we have images, send them in media groups
+    if (orderImages && orderImages.length > 0) {
+      console.log('Preparing to send', orderImages.length, 'order images');
+      
+      // Split images into chunks of MAX_IMAGES_PER_GROUP (10) for media groups
+      const imageChunks = [];
+      for (let i = 0; i < orderImages.length; i += MAX_IMAGES_PER_GROUP) {
+        imageChunks.push(orderImages.slice(i, i + MAX_IMAGES_PER_GROUP));
+      }
+      
+      console.log('Will send images in', imageChunks.length, 'groups');
+      
+      // Send each chunk as a media group
+      let allMediaGroupsSuccessful = true;
+      
+      for (let i = 0; i < imageChunks.length; i++) {
+        const chunk = imageChunks[i];
+        const mediaItems = [];
+        
+        // Add each image to the group
+        for (let j = 0; j < chunk.length; j++) {
+          const imageUrl = chunk[j];
+          mediaItems.push({
+            type: 'photo',
+            media: imageUrl
+          });
+        }
+        
+        console.log(`Sending image group ${i + 1} with ${chunk.length} images`);
+        
+        // Retry media group sending up to 3 times in case of failure
+        let mediaGroupResult = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            const mediaGroupResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                chat_id: ORDER_GROUP_CHAT_ID,
+                media: mediaItems,
+              }),
+            });
+            
+            mediaGroupResult = await mediaGroupResponse.json();
+            console.log(`Media group ${i + 1} attempt ${retryCount + 1} response:`, 
+              mediaGroupResult.ok ? 'SUCCESS' : 'FAILED');
+            
+            if (mediaGroupResult.ok) {
+              break; // Exit retry loop on success
+            } else {
+              console.error(`Error sending media group ${i + 1}, attempt ${retryCount + 1}:`, 
+                mediaGroupResult.description || 'Unknown error');
+              retryCount++;
+              
+              if (retryCount < maxRetries) {
+                // Wait a moment before retrying (exponential backoff)
+                await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+                console.log(`Retrying media group ${i + 1}, attempt ${retryCount + 1}...`);
+              }
+            }
+          } catch (error) {
+            console.error(`Network error sending media group ${i + 1}, attempt ${retryCount + 1}:`, error);
+            retryCount++;
+            
+            if (retryCount < maxRetries) {
+              // Wait a moment before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+            }
+          }
+        }
+        
+        // Check if we exceeded retry count
+        if (retryCount >= maxRetries) {
+          console.error(`Failed to send media group ${i + 1} after ${maxRetries} attempts`);
+          allMediaGroupsSuccessful = false;
+        }
+      }
+      
+      if (!allMediaGroupsSuccessful) {
+        console.warn('Some image groups failed to send');
+      } else {
+        console.log('All order images sent successfully');
+      }
+    } else {
+      console.log('No images found for this order');
     }
     
     return new Response(
