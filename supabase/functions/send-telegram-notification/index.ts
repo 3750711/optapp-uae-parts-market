@@ -76,15 +76,34 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
   console.log('Processing order notification, order #:', orderData.order_number);
   
   try {
-    // Prepare order notification message
+    // Prepare order notification message with the new format
+    const statusText = orderData.status === 'created' ? 'Создан' : 
+                      orderData.status === 'seller_confirmed' ? 'Подтвержден продавцом' : 
+                      orderData.status;
+                      
+    const deliveryMethodText = orderData.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
+                              orderData.delivery_method === 'self_pickup' ? 'Самовывоз' : 
+                              orderData.delivery_method;
+    
     const messageText = [
-      `Новый Заказ № ${orderData.order_number}`,
-      `🔍 Товар: ${orderData.title} ${orderData.brand || ''} ${orderData.model || ''}`,
-      `💰 Цена: ${orderData.price} $`,
-      `📝 Заказчик: ${orderData.buyer_opt_id || 'Не указан'}`,
-      `📱 Telegram заказчика: ${orderData.telegram_url_buyer || 'Не указан'}`,
+      `Заказ № ${orderData.order_number}`,
+      `Статус: ${statusText}`,
       ``,
-      `📊 Статус: ${orderData.status === 'created' ? 'Создан' : orderData.status}`
+      `🟰🟰🟰🟰🟰🟰`,
+      `Товар: ${orderData.title}`,
+      `Бренд: ${orderData.brand || ''}`,
+      `Модель: ${orderData.model || ''}`,
+      `Количество мест для отправки: ${orderData.place_number || 1}`,
+      `Доставка: ${deliveryMethodText}`,
+      `🔗 Страница заказа`,
+      ``,
+      `🟰🟰🟰🟰🟰🟰`,
+      `Цена: ${orderData.price} $`,
+      `Цена доставки: ${orderData.delivery_price_confirm || 0} $`,
+      ``,
+      `===`,
+      `${orderData.buyer_opt_id || ''}`,
+      `${orderData.telegram_url_buyer || ''}`
     ].join('\n');
 
     // Send text message for order to the ORDER_GROUP_CHAT_ID
