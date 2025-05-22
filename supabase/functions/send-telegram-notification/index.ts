@@ -1,4 +1,3 @@
-
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -92,7 +91,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
     // Create order link
     const orderLink = `${ORDER_BASE_URL}${orderData.id}`;
     
-    // Updated format with OPT IDs swapped and removed Telegram buyer label
+    // Updated format with OPT IDs swapped and removed Telegram buyer label and modified link text
     const messageText = [
       `Номер заказа: ${orderData.order_number}`,
       `Статус: ${statusText}`,
@@ -104,7 +103,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `Модель: ${orderData.model || ''}`,
       `Количество мест для отправки: ${orderData.place_number || 1}`,
       `Доставка: ${deliveryMethodText}`,
-      `🔗 <a href="${orderLink}">Страница заказа</a>`,
+      `<a href="${orderLink}">🔗</a>`,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
       `Цена: ${orderData.price} $`,
