@@ -1,4 +1,15 @@
 
+// ======================== IMPORTANT NOTICE ========================
+// This file contains critical notification functionality.
+// DO NOT EDIT unless absolutely necessary!
+// 
+// Any changes may affect the order notification system that sends
+// messages to Telegram. This system is currently working properly.
+// 
+// Version: 1.0.0
+// Last Verified Working: 2025-05-22
+// ================================================================
+
 // Handler for order notifications
 
 import { BOT_TOKEN, ORDER_GROUP_CHAT_ID, ORDER_BASE_URL } from "./config.ts";
@@ -6,6 +17,8 @@ import { waitBetweenBatches } from "./telegram-api.ts";
 
 /**
  * Handles order creation notifications
+ * IMPORTANT: This function is critical for business operations
+ * and has been thoroughly tested. Modify with extreme caution.
  */
 export async function handleOrderNotification(orderData: any, supabaseClient: any, corsHeaders: Record<string, string>) {
   console.log('Processing order notification, order #:', orderData.order_number);

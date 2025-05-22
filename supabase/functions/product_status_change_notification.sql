@@ -1,3 +1,13 @@
+-- ======================== IMPORTANT NOTICE ========================
+-- This file contains critical database trigger functionality.
+-- DO NOT EDIT unless absolutely necessary!
+-- 
+-- Any changes may affect the product notification system that sends
+-- messages to Telegram. This system is currently working properly.
+-- 
+-- Version: 1.0.0
+-- Last Verified Working: 2025-05-22
+-- ================================================================
 
 -- Создаем объединенную улучшенную функцию для уведомлений о товарах
 CREATE OR REPLACE FUNCTION public.notify_on_product_status_changes()

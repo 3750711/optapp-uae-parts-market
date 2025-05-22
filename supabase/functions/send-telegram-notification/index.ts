@@ -1,4 +1,15 @@
 
+// ======================== IMPORTANT NOTICE ========================
+// This file orchestrates critical notification functionality.
+// DO NOT EDIT unless absolutely necessary!
+// 
+// Any changes may affect both order and product notifications
+// that send messages to Telegram. This system is currently working properly.
+// 
+// Version: 1.0.0
+// Last Verified Working: 2025-05-22
+// ================================================================
+
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.

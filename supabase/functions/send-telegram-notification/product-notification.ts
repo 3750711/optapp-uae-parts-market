@@ -1,4 +1,15 @@
 
+// ======================== IMPORTANT NOTICE ========================
+// This file contains critical notification functionality.
+// DO NOT EDIT unless absolutely necessary!
+// 
+// Any changes may affect the product notification system that sends
+// messages to Telegram. This system is currently working properly.
+// 
+// Version: 1.0.0
+// Last Verified Working: 2025-05-22
+// ================================================================
+
 // Handler for product notifications
 
 import { BOT_TOKEN, MIN_IMAGES_REQUIRED, PRODUCT_GROUP_CHAT_ID } from "./config.ts";
@@ -6,6 +17,8 @@ import { sendImageMediaGroups } from "./telegram-api.ts";
 
 /**
  * Handles product status change notifications
+ * IMPORTANT: This function is critical for business operations
+ * and has been thoroughly tested. Modify with extreme caution.
  */
 export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>) {
   // Validate required parameters

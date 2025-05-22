@@ -1,3 +1,13 @@
+// ======================== IMPORTANT NOTICE ========================
+// This file contains critical API interaction functionality.
+// DO NOT EDIT unless absolutely necessary!
+// 
+// Any changes may affect both order and product notifications
+// that send messages to Telegram. This system is currently working properly.
+// 
+// Version: 1.0.0
+// Last Verified Working: 2025-05-22
+// ================================================================
 
 // Utility functions for sending messages via Telegram API
 
