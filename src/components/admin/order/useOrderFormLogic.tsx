@@ -365,6 +365,26 @@ export const useOrderFormLogic = () => {
         }
       }
 
+      // Отправляем уведомление о проданном товаре, если заказ связан с товаром
+      if (orderData.product_id) {
+        try {
+          console.log("Отправка уведомления о проданном товаре через новую функцию");
+          // Используем setTimeout, чтобы не блокировать UI
+          setTimeout(async () => {
+            try {
+              await supabase.functions.invoke('send-product-sold-notification', {
+                body: { productId: orderData.product_id }
+              });
+              console.log("Уведомление о продаже товара отправлено успешно");
+            } catch (notifyError) {
+              console.error('Ошибка при отправке уведомления о продаже товара:', notifyError);
+            }
+          }, 100);
+        } catch (error) {
+          console.error('Ошибка при настройке отправки уведомления о продаже товара:', error);
+        }
+      }
+
       setCreatedOrder(orderData);
       setCreationStage('completed');
       setCreationProgress(100);

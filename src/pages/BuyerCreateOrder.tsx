@@ -403,7 +403,18 @@ const BuyerCreateOrder = () => {
           });
         } else {
           console.log("Product status updated to sold successfully");
-          // Notification will be sent automatically by the database trigger
+          
+          // Вызов новой функции для отправки уведомления о проданном товаре
+          try {
+            console.log("Отправка уведомления о проданном товаре через новую функцию");
+            await supabase.functions.invoke('send-product-sold-notification', {
+              body: { productId: resolvedProductId }
+            });
+            console.log("Уведомление о продаже товара отправлено успешно");
+          } catch (notifyError) {
+            console.error('Ошибка при отправке уведомления о продаже товара:', notifyError);
+            // Не показываем уведомление пользователю, так как заказ всё равно создан успешно
+          }
         }
       }
 
