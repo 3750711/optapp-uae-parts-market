@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -64,6 +65,26 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     }
 
     try {
+      // If changing to sold status, explicitly send notification first
+      if (values.status === 'sold' && product.status !== 'sold') {
+        setIsSendingNotification(true);
+        try {
+          console.log("Admin explicitly sending sold notification");
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: { 
+              productId: product.id,
+              notificationType: 'sold'
+            }
+          });
+          console.log("Admin notification sent successfully");
+        } catch (notifyError) {
+          console.error("Error sending notification from admin:", notifyError);
+          // Continue with status update even if notification fails
+        } finally {
+          setIsSendingNotification(false);
+        }
+      }
+      
       // Update product status
       const { data, error } = await supabase
         .from('products')
@@ -79,9 +100,6 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         title: "Успех",
         description: "Статус товара успешно обновлен",
       });
-      
-      // Notification will be automatically sent by database trigger
-      // when status changes to "sold"
       
       setOpen(false);
       if (onSuccess) onSuccess();
