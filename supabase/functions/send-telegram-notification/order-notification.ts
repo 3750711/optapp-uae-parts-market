@@ -1,7 +1,7 @@
 
 // Handler for order notifications
 
-import { BOT_TOKEN, ORDER_GROUP_CHAT_ID } from "./config.ts";
+import { BOT_TOKEN, ORDER_GROUP_CHAT_ID, ORDER_BASE_URL } from "./config.ts";
 import { waitBetweenBatches } from "./telegram-api.ts";
 
 /**
