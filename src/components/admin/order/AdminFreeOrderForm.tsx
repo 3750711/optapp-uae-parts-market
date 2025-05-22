@@ -1,28 +1,45 @@
-import React, { useState } from "react";
+
+import React from "react";
 import { Form } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
-
-const formSchema = z.object({
-  // Form validation schema
-  // Will be expanded as needed
-});
+import { useOrderFormLogic } from "@/components/admin/order/useOrderFormLogic";
+import { OrderFormFields } from "@/components/admin/order/OrderFormFields";
+import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
+import { Loader } from "lucide-react";
 
 export const AdminFreeOrderForm = () => {
-  const [images, setImages] = useState<string[]>([]);
-  const [videos, setVideos] = useState<string[]>([]);
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      // Default values
-    },
-  });
+  const {
+    formData,
+    images,
+    videos,
+    buyerProfiles,
+    sellerProfiles,
+    selectedSeller,
+    isLoading,
+    createdOrder,
+    brands,
+    brandModels,
+    isLoadingCarData,
+    searchBrandTerm,
+    setSearchBrandTerm,
+    searchModelTerm,
+    setSearchModelTerm,
+    filteredBrands,
+    filteredModels,
+    setImages,
+    setVideos,
+    handleInputChange,
+    handleImageUpload,
+    handleOrderUpdate,
+    handleSubmit,
+    resetForm,
+    navigate,
+    parseTitleForBrand
+  } = useOrderFormLogic();
 
   const onImagesUpload = (urls: string[]) => {
-    setImages((prev) => [...prev, ...urls]);
+    handleImageUpload(urls);
   };
 
   const onVideoUpload = (urls: string[]) => {
@@ -33,10 +50,42 @@ export const AdminFreeOrderForm = () => {
     setVideos((prev) => prev.filter((v) => v !== url));
   };
 
+  const handleGoBack = () => {
+    navigate('/admin/dashboard');
+  };
+
+  if (createdOrder) {
+    return (
+      <CreatedOrderView
+        order={createdOrder}
+        images={images}
+        onBack={handleGoBack}
+        onNewOrder={resetForm}
+        onOrderUpdate={handleOrderUpdate}
+      />
+    );
+  }
+
   return (
-    <Form {...form}>
-      <form className="space-y-6">
-        {/* Other form fields */}
+    <Form>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <OrderFormFields
+          formData={formData}
+          handleInputChange={handleInputChange}
+          buyerProfiles={buyerProfiles}
+          sellerProfiles={sellerProfiles}
+          selectedSeller={selectedSeller}
+          brands={brands}
+          brandModels={brandModels}
+          isLoadingCarData={isLoadingCarData}
+          searchBrandTerm={searchBrandTerm}
+          setSearchBrandTerm={setSearchBrandTerm}
+          searchModelTerm={searchModelTerm}
+          setSearchModelTerm={setSearchModelTerm}
+          filteredBrands={filteredBrands}
+          filteredModels={filteredModels}
+          parseTitleForBrand={parseTitleForBrand}
+        />
         
         <MediaUploadSection 
           images={images}
@@ -46,8 +95,18 @@ export const AdminFreeOrderForm = () => {
           onVideoDelete={onVideoDelete}
         />
         
-        {/* Submit button and other controls */}
-        <Button type="submit">Создать заказ</Button>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
+            {isLoading ? (
+              <>
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                Создание заказа...
+              </>
+            ) : (
+              "Создать заказ"
+            )}
+          </Button>
+        </div>
       </form>
     </Form>
   );
