@@ -6,8 +6,9 @@
 -- Any changes may affect the product notification system that sends
 -- messages to Telegram. This system is currently working properly.
 -- 
--- Version: 1.0.0
+-- Version: 1.1.0
 -- Last Verified Working: 2025-05-22
+-- Change: Removed 5-minute notification throttling period
 -- ================================================================
 
 -- Создаем объединенную улучшенную функцию для уведомлений о товарах
@@ -20,12 +21,10 @@ BEGIN
   -- Отправляем уведомление когда:
   -- 1. При обновлении: статус меняется на active
   -- 2. При обновлении: статус меняется на sold
-  -- 3. Прошло не менее 5 минут с последнего уведомления или его еще не было
+  -- 3. ИЗМЕНЕНО: Убрали проверку на прошедшие 5 минут
   IF (TG_OP = 'UPDATE' AND 
       ((OLD.status != 'active' AND NEW.status = 'active') OR 
-       (OLD.status != 'sold' AND NEW.status = 'sold'))) AND
-     (NEW.last_notification_sent_at IS NULL OR 
-      NEW.last_notification_sent_at < NOW() - INTERVAL '5 minutes') THEN
+       (OLD.status != 'sold' AND NEW.status = 'sold'))) THEN
     
     -- Если статус изменился на sold, отправляем уведомление в любом случае, даже без изображений
     -- Иначе проверяем наличие изображений для других типов уведомлений
