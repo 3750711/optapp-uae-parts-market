@@ -24,6 +24,9 @@ const MIN_IMAGES_REQUIRED = 1;
 // Maximum number of images per media group
 const MAX_IMAGES_PER_GROUP = 10;
 
+// Base URL for order links
+const ORDER_BASE_URL = 'https://lovable.dev/projects/c014f9d5-5d5d-4d39-8818-e0435c781fa6/order/';
+
 console.log('Environment:', {
   BOT_TOKEN_EXISTS: !!BOT_TOKEN,
   ORDER_GROUP_CHAT_ID_EXISTS: !!ORDER_GROUP_CHAT_ID,
@@ -86,6 +89,9 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
                               orderData.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 
                               orderData.delivery_method;
     
+    // Create order link
+    const orderLink = `${ORDER_BASE_URL}${orderData.id}`;
+    
     // Updated format with OPT IDs swapped and removed Telegram buyer label
     const messageText = [
       `Номер заказа: ${orderData.order_number}`,
@@ -98,7 +104,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `Модель: ${orderData.model || ''}`,
       `Количество мест для отправки: ${orderData.place_number || 1}`,
       `Доставка: ${deliveryMethodText}`,
-      `🔗 Страница заказа`,
+      `🔗 <a href="${orderLink}">Страница заказа</a>`,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
       `Цена: ${orderData.price} $`,
