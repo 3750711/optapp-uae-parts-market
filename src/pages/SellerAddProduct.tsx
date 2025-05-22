@@ -260,7 +260,7 @@ const SellerAddProduct = () => {
         description: "Ваш товар успешно размещен на маркетплейсе",
       });
 
-      // Перенаправление на страницу товара вместо dashboard
+      // Перенаправление на страницу товара
       navigate(`/product/${product.id}`);
     } catch (error) {
       console.error("Error adding product:", error);

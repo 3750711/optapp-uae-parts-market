@@ -315,7 +315,8 @@ const AdminAddProduct = () => {
         description: "Товар успешно опубликован на маркетплейсе", 
       });
 
-      navigate('/admin/products');
+      // Redirect to product page instead of admin products list
+      navigate(`/product/${productId}`);
     } catch (error) {
       console.error("Error adding product:", error);
       toast({
