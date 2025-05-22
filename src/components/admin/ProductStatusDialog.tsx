@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -54,94 +53,6 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     },
   });
 
-  // Check if a notification was recently sent
-  const shouldSendNotification = (product: Product, newStatus: string): boolean => {
-    // Only send notifications for active or sold status
-    if (newStatus !== 'active' && newStatus !== 'sold') {
-      return false;
-    }
-
-    // Check if notification was sent recently
-    if (product.last_notification_sent_at) {
-      const lastSent = new Date(product.last_notification_sent_at);
-      const fiveMinutesAgo = new Date();
-      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
-      
-      if (lastSent > fiveMinutesAgo) {
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const updateNotificationTimestamp = async (productId: string): Promise<void> => {
-    try {
-      await supabase
-        .from('products')
-        .update({ last_notification_sent_at: new Date().toISOString() })
-        .eq('id', productId);
-    } catch (error) {
-      console.error('Error updating notification timestamp:', error);
-    }
-  };
-
-  const sendTelegramNotification = async (updatedProduct: Product) => {
-    setIsSendingNotification(true);
-    try {
-      // Determine notification type based on status
-      const notificationType = updatedProduct.status === 'sold' ? 'sold' : 'status_change';
-      
-      // First, get a fresh product with all images
-      const { data: freshProduct, error: fetchError } = await supabase
-        .from('products')
-        .select(`*, product_images(*)`)
-        .eq('id', updatedProduct.id)
-        .single();
-
-      if (fetchError || !freshProduct) {
-        throw new Error(fetchError?.message || 'Failed to fetch product details');
-      }
-      
-      // Update notification timestamp
-      await updateNotificationTimestamp(updatedProduct.id);
-      
-      // Now call the edge function with the complete product data
-      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { 
-          productId: freshProduct.id,
-          notificationType: notificationType
-        }
-      });
-      
-      if (error) {
-        console.error('Error calling function:', error);
-        throw new Error(error.message);
-      }
-      
-      if (data && data.success) {
-        toast({
-          title: "Успех",
-          description: "Уведомление об изменении статуса отправлено в Telegram",
-        });
-      } else {
-        toast({
-          title: "Внимание",
-          description: (data && data.message) || "Уведомление не было отправлено",
-          variant: "destructive", 
-        });
-      }
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)),
-        variant: "destructive",
-      });
-    } finally {
-      setIsSendingNotification(false);
-    }
-  };
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!isAdmin) {
       toast({
@@ -169,12 +80,8 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         description: "Статус товара успешно обновлен",
       });
       
-      // Check if we should send notification based on the new status
-      if (data && data.length > 0 && 
-          (values.status === 'active' || values.status === 'sold') && 
-          shouldSendNotification(product, values.status)) {
-        await sendTelegramNotification(data[0]);
-      }
+      // Notification will be automatically sent by database trigger
+      // when status changes to "sold"
       
       setOpen(false);
       if (onSuccess) onSuccess();

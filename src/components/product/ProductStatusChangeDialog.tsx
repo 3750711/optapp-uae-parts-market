@@ -29,95 +29,6 @@ const ProductStatusChangeDialog = ({
 }: ProductStatusChangeDialogProps) => {
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Check if a notification was recently sent
-  const shouldSendNotification = async (productId: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('last_notification_sent_at')
-        .eq('id', productId)
-        .single();
-      
-      if (error || !data) {
-        console.error('Error fetching notification timestamp:', error);
-        return true; // Default to sending if there's an error
-      }
-      
-      if (data.last_notification_sent_at) {
-        const lastSent = new Date(data.last_notification_sent_at);
-        const fiveMinutesAgo = new Date();
-        fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
-        
-        if (lastSent > fiveMinutesAgo) {
-          toast.info("Уведомление для этого товара уже было отправлено недавно");
-          return false;
-        }
-      }
-      return true;
-    } catch (error) {
-      console.error('Error checking notification timestamp:', error);
-      return true; // Default to sending if there's an error
-    }
-  };
-
-  const updateNotificationTimestamp = async (productId: string): Promise<void> => {
-    try {
-      await supabase
-        .from('products')
-        .update({ last_notification_sent_at: new Date().toISOString() })
-        .eq('id', productId);
-    } catch (error) {
-      console.error('Error updating notification timestamp:', error);
-    }
-  };
-
-  const sendTelegramNotification = async (productId: string) => {
-    try {
-      // Check if notification should be sent
-      if (!await shouldSendNotification(productId)) {
-        return;
-      }
-
-      // Update notification timestamp first
-      await updateNotificationTimestamp(productId);
-      
-      // Get a fresh product with all images and details needed for the "sold" notification
-      const { data: freshProduct, error: fetchError } = await supabase
-        .from('products')
-        .select(`*, product_images(*)`)
-        .eq('id', productId)
-        .single();
-
-      if (fetchError || !freshProduct) {
-        throw new Error(fetchError?.message || 'Failed to fetch product details');
-      }
-      
-      // Now call the edge function with the complete product data and specify it's a sold notification
-      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { 
-          productId: freshProduct.id,
-          notificationType: 'sold'  // Indicate this is a sold notification
-        }
-      });
-      
-      if (error) {
-        console.error('Error calling function:', error);
-        throw new Error(error.message);
-      }
-      
-      if (data && data.success) {
-        console.log("Sold notification sent successfully");
-        toast.success("Уведомление о продаже отправлено в Telegram");
-      } else {
-        console.error("Notification failed:", data?.message);
-        toast.error("Уведомление не было отправлено: " + (data?.message || "Неизвестная ошибка"));
-      }
-    } catch (error) {
-      console.error('Error sending notification:', error);
-      toast.error("Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)));
-    }
-  };
-
   const handleMarkAsSold = async () => {
     try {
       setIsProcessing(true);
@@ -161,10 +72,8 @@ const ProductStatusChangeDialog = ({
 
       toast.success("Статус товара успешно изменен на 'Продано'");
       
-      // Send notification about status change to "sold"
-      if (data && data.length > 0) {
-        await sendTelegramNotification(productId);
-      }
+      // The notification will be automatically triggered by our database function
+      // We don't need to manually call the notification service anymore
       
       onStatusChange();
     } catch (error) {
