@@ -68,9 +68,9 @@ export const useAdminProductNotifications = () => {
       
       console.log("Вызов edge-функции send-telegram-notification для товара", product.id);
       
-      // Call the edge function to send notification
+      // Call the edge function to send notification - ИСПРАВЛЕНО: передаем productId вместо объекта product
       const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { product: freshProduct }
+        body: { productId: product.id }
       });
       
       if (error) {
