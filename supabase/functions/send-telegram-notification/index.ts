@@ -107,7 +107,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `Доставка: ${deliveryMethodText}`,
       ``,
       `Дополнительная информация: ${orderData.text_order || 'Не указана'}`,
-      `<a href="${orderLink}">🔗</a>`,
+      `<a href="${orderLink}">Ссылка на заказ</a>`,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
       `Цена: ${orderData.price} $`,
