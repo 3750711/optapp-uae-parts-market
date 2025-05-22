@@ -93,6 +93,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
     const orderLink = `${ORDER_BASE_URL}${orderData.id}`;
     
     // Updated format with OPT IDs swapped and removed Telegram buyer label and modified link text
+    // Added "Дополнительная информация" section after delivery method
     const messageText = [
       `Номер заказа: ${orderData.order_number}`,
       `Статус: ${statusText}`,
@@ -104,6 +105,8 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       `Модель: ${orderData.model || ''}`,
       `Количество мест для отправки: ${orderData.place_number || 1}`,
       `Доставка: ${deliveryMethodText}`,
+      ``,
+      `Дополнительная информация: ${orderData.text_order || 'Не указана'}`,
       `<a href="${orderLink}">🔗</a>`,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
@@ -245,9 +248,19 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       
       console.log(`Split remaining images into ${remainingChunks.length} chunks`);
       
-      // Send each chunk of remaining images
+      // Wait between sending batches to avoid rate limits
+      const waitBetweenBatches = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+      
+      // Send each chunk of remaining images with increased delay between attempts
       for (let i = 0; i < remainingChunks.length; i++) {
         const chunk = remainingChunks[i];
+        
+        // Wait 5 seconds between chunks to avoid rate limits
+        if (i > 0) {
+          console.log(`Waiting 5 seconds before sending next chunk to avoid rate limits...`);
+          await waitBetweenBatches(5000);
+        }
+        
         const mediaItems = chunk.map((imageUrl, index) => {
           // First image of each group gets the caption
           if (index === 0) {
@@ -268,7 +281,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
         // Retry media group sending up to 3 times in case of failure
         let mediaGroupResult = null;
         let retryCount = 0;
-        const maxRetries = 3;
+        const maxRetries = 5; // Increased from 3 to 5 for more reliability
         
         while (retryCount < maxRetries) {
           try {
@@ -290,13 +303,17 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
             if (mediaGroupResult.ok) {
               break; // Exit retry loop on success
             } else {
+              const retryAfter = mediaGroupResult.parameters?.retry_after || 10;
               console.error(`Error sending remaining images chunk ${i+1}, attempt ${retryCount+1}:`, 
-                mediaGroupResult.description || 'Unknown error');
+                mediaGroupResult.description || 'Unknown error', 
+                `Retry after: ${retryAfter} seconds`);
               retryCount++;
               
               if (retryCount < maxRetries) {
-                // Wait a moment before retrying (exponential backoff)
-                await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+                // Wait longer between retries (exponential backoff + retry_after)
+                const waitTime = (Math.pow(2, retryCount) * 1000) + (retryAfter * 1000);
+                console.log(`Waiting ${waitTime/1000} seconds before retry ${retryCount+1}...`);
+                await waitBetweenBatches(waitTime);
                 console.log(`Retrying remaining images chunk ${i+1}, attempt ${retryCount+1}...`);
               }
             }
@@ -305,8 +322,10 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
             retryCount++;
             
             if (retryCount < maxRetries) {
-              // Wait a moment before retrying
-              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+              // Wait longer between retries for network errors
+              const waitTime = Math.pow(2, retryCount) * 2000;
+              console.log(`Waiting ${waitTime/1000} seconds before retry ${retryCount+1}...`);
+              await waitBetweenBatches(waitTime);
             }
           }
         }
@@ -314,6 +333,48 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
         // Check if we exceeded retry count
         if (retryCount >= maxRetries) {
           console.error(`Failed to send remaining images chunk ${i+1} after ${maxRetries} attempts`);
+          // Don't throw error, continue with next chunks
+          
+          // Try with a smaller number of images from this chunk if batch failed
+          if (chunk.length > 5) {
+            const smallerChunk = chunk.slice(0, 5);
+            const smallerItems = smallerChunk.map((imageUrl, index) => {
+              if (index === 0) {
+                return {
+                  type: 'photo',
+                  media: imageUrl,
+                  caption: `${remainingCaption} (часть ${i+1})`
+                };
+              }
+              return {
+                type: 'photo',
+                media: imageUrl
+              };
+            });
+            
+            console.log(`Trying with smaller batch of ${smallerChunk.length} images...`);
+            await waitBetweenBatches(3000);
+            
+            try {
+              const smallerResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  chat_id: ORDER_GROUP_CHAT_ID,
+                  media: smallerItems
+                }),
+              });
+              
+              const smallerResult = await smallerResponse.json();
+              console.log(`Smaller batch result:`, smallerResult.ok ? 'SUCCESS' : 'FAILED');
+            } catch (error) {
+              console.error(`Error sending smaller batch:`, error);
+            }
+          }
+        } else {
+          console.log(`Successfully sent remaining images chunk ${i+1} with ${chunk.length} images`);
         }
       }
     }
@@ -519,9 +580,18 @@ async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, prod
     // Send each chunk as a media group
     let allMediaGroupsSuccessful = true;
     
+    // Add delay function for rate limiting
+    const waitBetweenBatches = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+    
     for (let i = 0; i < imageChunks.length; i++) {
       const chunk = imageChunks[i];
       const mediaItems = [];
+      
+      // Wait between chunks to avoid rate limits
+      if (i > 0) {
+        console.log(`Waiting 5 seconds before sending chunk ${i+1} to avoid rate limits...`);
+        await waitBetweenBatches(5000);
+      }
       
       // Add each image to the group
       for (let j = 0; j < chunk.length; j++) {
@@ -545,10 +615,10 @@ async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, prod
       
       console.log(`Sending ${i === 0 ? 'first' : 'next'} chunk with ${chunk.length} images${i === 0 ? ' and caption' : ''}`);
       
-      // Retry media group sending up to 3 times in case of failure
+      // Retry media group sending up to 5 times in case of failure
       let mediaGroupResult = null;
       let retryCount = 0;
-      const maxRetries = 3;
+      const maxRetries = 5; // Increased from 3 to 5
       
       while (retryCount < maxRetries) {
         try {
@@ -571,13 +641,17 @@ async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, prod
           if (mediaGroupResult.ok) {
             break; // Exit retry loop on success
           } else {
+            const retryAfter = mediaGroupResult.parameters?.retry_after || 10;
             console.error(`Error sending media group ${i + 1}, attempt ${retryCount + 1}:`, 
-              mediaGroupResult.description || 'Unknown error');
+              mediaGroupResult.description || 'Unknown error',
+              `Retry after: ${retryAfter} seconds`);
             retryCount++;
             
             if (retryCount < maxRetries) {
-              // Wait a moment before retrying (exponential backoff)
-              await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+              // Wait longer between retries (exponential backoff + retry_after)
+              const waitTime = (Math.pow(2, retryCount) * 1000) + (retryAfter * 1000);
+              console.log(`Waiting ${waitTime/1000} seconds before retry ${retryCount+1}...`);
+              await waitBetweenBatches(waitTime);
               console.log(`Retrying media group ${i + 1}, attempt ${retryCount + 1}...`);
             }
           }
@@ -586,8 +660,10 @@ async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, prod
           retryCount++;
           
           if (retryCount < maxRetries) {
-            // Wait a moment before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
+            // Wait longer between retries for network errors
+            const waitTime = Math.pow(2, retryCount) * 2000;
+            console.log(`Waiting ${waitTime/1000} seconds before retry ${retryCount+1}...`);
+            await waitBetweenBatches(waitTime);
             console.log(`Retrying media group ${i + 1} after network error, attempt ${retryCount + 1}...`);
           }
         }
@@ -597,6 +673,46 @@ async function sendImageMediaGroups(imageUrls, messageText, supabaseClient, prod
       if (retryCount >= maxRetries) {
         console.error(`Failed to send media group ${i + 1} after ${maxRetries} attempts`);
         allMediaGroupsSuccessful = false;
+        
+        // Try with a smaller number of images if batch failed
+        if (chunk.length > 5) {
+          const smallerChunk = chunk.slice(0, 5);
+          const smallerItems = smallerChunk.map((imageUrl, index) => {
+            if (index === 0 && i === 0) {
+              return {
+                type: 'photo',
+                media: imageUrl,
+                caption: messageText,
+                parse_mode: 'HTML'
+              };
+            }
+            return {
+              type: 'photo',
+              media: imageUrl
+            };
+          });
+          
+          console.log(`Trying with smaller batch of ${smallerChunk.length} images...`);
+          await waitBetweenBatches(3000);
+          
+          try {
+            const smallerResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                chat_id: chatId,
+                media: smallerItems
+              }),
+            });
+            
+            const smallerResult = await smallerResponse.json();
+            console.log(`Smaller batch result:`, smallerResult.ok ? 'SUCCESS' : 'FAILED');
+          } catch (error) {
+            console.error(`Error sending smaller batch:`, error);
+          }
+        }
       }
       
       if (i === 0 && mediaGroupResult) {
