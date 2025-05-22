@@ -416,108 +416,132 @@ serve(async (req) => {
       
       console.log("Processing order notification with action:", action || 'undefined');
 
-      // Fetch order images from the database if not already included
-      let orderImages = order.images || [];
+      // For Edge Functions, use waitUntil for tasks that can be continued after response is sent
+      // This way we can quickly return success to the client while processing continues
       
-      // Улучшенная обработка изображений заказа
-      if (orderImages.length === 0 && order.id) {
-        try {
-          console.log(`Fetching images for order ${order.id} from database...`);
-          
-          // Try to fetch images from order_images table
-          const { data: orderImageData, error: imageError } = await supabase
-            .from('order_images')
-            .select('url')
-            .eq('order_id', order.id);
-
-          if (imageError) {
-            console.error(`Error fetching order images from database:`, imageError);
-            throw imageError;
-          }
-
-          if (orderImageData && orderImageData.length > 0) {
-            orderImages = orderImageData.map(img => img.url);
-            console.log(`Found ${orderImages.length} images for order ${order.id}:`, orderImages);
-          } else {
-            console.log(`No images found in order_images table for order ${order.id}`);
-          }
-        } catch (error) {
-          console.error('Error in order image processing:', error);
-          // Не останавливаем выполнение функции при проблемах с изображениями
-          console.log('Continuing with notification without images');
-        }
-      } else {
-        console.log(`Using ${orderImages.length} images provided in request payload`);
-      }
-
-      const orderNumber = order.order_number || 'Без номера';
-      const orderStatus = getOrderStatusLabel(order.status);
-      // Use proper action text based on action parameter (with fallback for missing action)
-      const actionType = action || (order.status === 'created' ? 'create' : 'status_change');
-      const actionText = actionType === 'create' ? 'СОЗДАН НОВЫЙ ЗАКАЗ!' : `ИЗМЕНЕН СТАТУС ЗАКАЗА на "${orderStatus}"`;
-      const deliveryMethod = order.delivery_method === 'self_pickup' ? 'Самовывоз' : 
-                             order.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
-                             order.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 'Не указан';
+      // Respond quickly to the client with success
+      const responsePromise = new Response(JSON.stringify({ 
+        success: true,
+        message: 'Order notification queued for processing'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
       
-      // Create the order detail page URL
-      const orderPageUrl = `https://partsbay.ae/admin/orders/${order.id}`;
-      
-      // Обновленный формат сообщения согласно новым требованиям
-      const message = `Заказ № ${orderNumber}\n` +
-        `Статус: ${orderStatus}\n` +
-        `${order.telegram_url_order ? `Telegram отправителя: @${order.telegram_url_order}\n` : ''}\n` +
-        `🟰🟰🟰🟰🟰🟰\n` +
-        `Товар: ${order.title}\n` +
-        `Бренд: ${order.brand || 'Не указан'}\n` +
-        `Модель: ${order.model || 'Не указана'}\n` +
-        `Количество мест для отправки: ${order.place_number || 1}\n` +
-        `Доставка: ${deliveryMethod}\n` +
-        `🔗 <a href="${orderPageUrl}">Страница заказа</a>\n` +
-        (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '') + 
-        `\n🟰🟰🟰🟰🟰🟰\n` +
-        `Цена: ${order.price} $\n` +
-        `Цена доставки: ${order.delivery_price_confirm || 0} $\n\n` +
-        `===\n` +
-        `${order.seller_opt_id || 'Не указан'}\n` +
-        `${order.buyer_opt_id || 'Не указан'}`;
-
-      // Use the updated order-specific group chat ID for orders
-      const chatId = ORDER_GROUP_CHAT_ID;
-      console.log('Sending order message to Telegram:', message);
-      console.log('Using BOT_TOKEN:', BOT_TOKEN);
-      console.log('Using ORDER_GROUP_CHAT_ID:', chatId);
-      console.log('Images to send:', orderImages.length > 0 ? orderImages : 'No images');
-
-      // Send order with images if available, otherwise just text
-      if (orderImages && orderImages.length > 0) {
-        try {
-          console.log(`Preparing to send ${orderImages.length} images as media group`);
-          
-          // Send all images as a media group
-          const mediaGroup = orderImages.slice(0, 10).map((imgUrl: string, index: number) => ({
-            type: 'photo',
-            media: imgUrl,
-            // Add caption to the first image only
-            ...(index === 0 && {
-              caption: message,
-              parse_mode: 'HTML'
-            })
-          }));
-
-          console.log(`Media group prepared with ${mediaGroup.length} items`);
-
-          const mediaResult = await callTelegramAPI('sendMediaGroup', {
-            chat_id: chatId,
-            media: mediaGroup,
-            disable_web_page_preview: true
-          });
-          
-          console.log('Order media group response:', mediaResult);
-        } catch (error) {
-          console.error('Failed to send order media group:', error);
-          // If media group fails, try sending just the text message
-          console.log('Falling back to text-only message');
+      // The rest of the processing continues in the background without blocking the response
+      const processingPromise = (async () => {
+        // Fetch order images from the database if not already included
+        let orderImages = order.images || [];
+        
+        // Улучшенная обработка изображений заказа
+        if (orderImages.length === 0 && order.id) {
           try {
+            console.log(`Fetching images for order ${order.id} from database...`);
+            
+            // Try to fetch images from order_images table
+            const { data: orderImageData, error: imageError } = await supabase
+              .from('order_images')
+              .select('url')
+              .eq('order_id', order.id);
+
+            if (imageError) {
+              console.error(`Error fetching order images from database:`, imageError);
+              throw imageError;
+            }
+
+            if (orderImageData && orderImageData.length > 0) {
+              orderImages = orderImageData.map(img => img.url);
+              console.log(`Found ${orderImages.length} images for order ${order.id}:`, orderImages);
+            } else {
+              console.log(`No images found in order_images table for order ${order.id}`);
+            }
+          } catch (error) {
+            console.error('Error in order image processing:', error);
+            // Не останавливаем выполнение функции при проблемах с изображениями
+            console.log('Continuing with notification without images');
+          }
+        } else {
+          console.log(`Using ${orderImages.length} images provided in request payload`);
+        }
+
+        const orderNumber = order.order_number || 'Без номера';
+        const orderStatus = getOrderStatusLabel(order.status);
+        // Use proper action text based on action parameter (with fallback for missing action)
+        const actionType = action || (order.status === 'created' ? 'create' : 'status_change');
+        const actionText = actionType === 'create' ? 'СОЗДАН НОВЫЙ ЗАКАЗ!' : `ИЗМЕНЕН СТАТУС ЗАКАЗА на "${orderStatus}"`;
+        const deliveryMethod = order.delivery_method === 'self_pickup' ? 'Самовывоз' : 
+                              order.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
+                              order.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 'Не указан';
+        
+        // Create the order detail page URL
+        const orderPageUrl = `https://partsbay.ae/admin/orders/${order.id}`;
+        
+        // Обновленный формат сообщения согласно новым требованиям
+        const message = `Заказ № ${orderNumber}\n` +
+          `Статус: ${orderStatus}\n` +
+          `${order.telegram_url_order ? `Telegram отправителя: @${order.telegram_url_order}\n` : ''}\n` +
+          `🟰🟰🟰🟰🟰🟰\n` +
+          `Товар: ${order.title}\n` +
+          `Бренд: ${order.brand || 'Не указан'}\n` +
+          `Модель: ${order.model || 'Не указана'}\n` +
+          `Количество мест для отправки: ${order.place_number || 1}\n` +
+          `Доставка: ${deliveryMethod}\n` +
+          `🔗 <a href="${orderPageUrl}">Страница заказа</a>\n` +
+          (order.text_order ? `📋 Комментарий: ${order.text_order}\n` : '') + 
+          `\n🟰🟰🟰🟰🟰🟰\n` +
+          `Цена: ${order.price} $\n` +
+          `Цена доставки: ${order.delivery_price_confirm || 0} $\n\n` +
+          `===\n` +
+          `${order.seller_opt_id || 'Не указан'}\n` +
+          `${order.buyer_opt_id || 'Не указан'}`;
+
+        // Use the updated order-specific group chat ID for orders
+        const chatId = ORDER_GROUP_CHAT_ID;
+        console.log('Sending order message to Telegram:', message);
+        console.log('Using BOT_TOKEN:', BOT_TOKEN);
+        console.log('Using ORDER_GROUP_CHAT_ID:', chatId);
+        console.log('Images to send:', orderImages.length > 0 ? orderImages : 'No images');
+
+        // Send order with images if available, otherwise just text
+        if (orderImages && orderImages.length > 0) {
+          try {
+            console.log(`Preparing to send ${orderImages.length} images as media group`);
+            
+            // Send all images as a media group
+            const mediaGroup = orderImages.slice(0, 10).map((imgUrl: string, index: number) => ({
+              type: 'photo',
+              media: imgUrl,
+              // Add caption to the first image only
+              ...(index === 0 && {
+                caption: message,
+                parse_mode: 'HTML'
+              })
+            }));
+
+            console.log(`Media group prepared with ${mediaGroup.length} items`);
+
+            await callTelegramAPI('sendMediaGroup', {
+              chat_id: chatId,
+              media: mediaGroup,
+              disable_web_page_preview: true
+            });
+          } catch (error) {
+            console.error('Failed to send order media group:', error);
+            // If media group fails, try sending just the text message
+            try {
+              await callTelegramAPI('sendMessage', {
+                chat_id: chatId,
+                text: message,
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+              });
+            } catch (textError) {
+              console.error('Failed to send fallback text message:', textError);
+            }
+          }
+        } else {
+          // If no images, just send text message
+          try {
+            console.log('Sending text-only message (no images available)');
             await callTelegramAPI('sendMessage', {
               chat_id: chatId,
               text: message,
@@ -525,27 +549,15 @@ serve(async (req) => {
               disable_web_page_preview: true
             });
           } catch (textError) {
-            console.error('Failed to send fallback text message:', textError);
-            throw textError; // Re-throw to handle in outer catch
+            console.error('Failed to send text message:', textError);
           }
         }
-      } else {
-        // If no images, just send text message
-        try {
-          console.log('Sending text-only message (no images available)');
-          const messageResult = await callTelegramAPI('sendMessage', {
-            chat_id: chatId,
-            text: message,
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-          });
-          
-          console.log('Order text message response:', messageResult);
-        } catch (textError) {
-          console.error('Failed to send text message:', textError);
-          throw textError;
-        }
-      }
+      })();
+
+      // Use EdgeRuntime.waitUntil to let processing continue after response is sent
+      EdgeRuntime.waitUntil(processingPromise);
+      
+      return responsePromise;
     } else {
       return new Response(JSON.stringify({ error: 'Invalid request data. Expected product or order object.' }), { 
         status: 400,

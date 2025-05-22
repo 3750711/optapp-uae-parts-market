@@ -7,6 +7,8 @@ import { OrderFormFields } from "@/components/admin/order/OrderFormFields";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { Loader } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const AdminFreeOrderForm = () => {
   const {
@@ -35,7 +37,10 @@ export const AdminFreeOrderForm = () => {
     handleSubmit,
     resetForm,
     navigate,
-    parseTitleForBrand
+    parseTitleForBrand,
+    // New states for progress tracking
+    creationStage,
+    creationProgress
   } = useOrderFormLogic();
 
   // Create form instance for shadcn/ui Form component
@@ -55,6 +60,28 @@ export const AdminFreeOrderForm = () => {
 
   const handleGoBack = () => {
     navigate('/admin/dashboard');
+  };
+  
+  // Get stage message based on current creation stage
+  const getStageMessage = () => {
+    switch (creationStage) {
+      case 'validating':
+        return 'Проверка данных формы...';
+      case 'fetching_buyer':
+        return 'Поиск профиля покупателя...';
+      case 'creating_order':
+        return 'Создание заказа в базе данных...';
+      case 'fetching_order':
+        return 'Получение данных созданного заказа...';
+      case 'saving_videos':
+        return 'Сохранение видео...';
+      case 'sending_notification':
+        return 'Отправка уведомления...';
+      case 'completed':
+        return 'Заказ успешно создан!';
+      default:
+        return 'Создание заказа...';
+    }
   };
 
   if (createdOrder) {
@@ -100,17 +127,36 @@ export const AdminFreeOrderForm = () => {
         onVideoDelete={onVideoDelete}
       />
       
-      <div className="flex justify-end">
-        <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
-          {isLoading ? (
-            <>
-              <Loader className="mr-2 h-4 w-4 animate-spin" />
-              Создание заказа...
-            </>
-          ) : (
-            "Создать заказ"
-          )}
-        </Button>
+      <div className="flex flex-col space-y-4">
+        {isLoading && (
+          <div className="border rounded-md p-4 bg-gray-50 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                <span className="font-medium">{getStageMessage()}</span>
+              </div>
+              <span className="text-sm text-gray-500">{creationProgress}%</span>
+            </div>
+            <Progress value={creationProgress} className="h-2" />
+            {creationStage === 'completed' && (
+              <div className="text-sm text-gray-600">
+                Уведомление в Telegram будет отправлено в фоновом режиме.
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
+            {isLoading ? (
+              <>
+                <Loader className="mr-2 h-4 w-4 animate-spin" />
+                Создание заказа...
+              </>
+            ) : (
+              "Создать заказ"
+            )}
+          </Button>
+        </div>
       </div>
     </form>
   );

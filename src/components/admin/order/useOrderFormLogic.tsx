@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -15,6 +14,10 @@ export const useOrderFormLogic = () => {
   const [sellerProfiles, setSellerProfiles] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerProfile | null>(null);
+  
+  // New states for tracking order creation stages
+  const [creationStage, setCreationStage] = useState<string>('');
+  const [creationProgress, setCreationProgress] = useState<number>(0);
 
   // Car brands and models state
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
@@ -47,7 +50,7 @@ export const useOrderFormLogic = () => {
     brandId: "",
     modelId: "",
     sellerId: "",
-    deliveryMethod: 'cargo_rf' as DeliveryMethod, // Changed default from 'self_pickup' to 'cargo_rf'
+    deliveryMethod: 'cargo_rf' as DeliveryMethod,
     place_number: "1",
     text_order: "",
     delivery_price: "",
@@ -206,11 +209,15 @@ export const useOrderFormLogic = () => {
     });
     setImages([]);
     setVideos([]);
+    setCreationStage('');
+    setCreationProgress(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setCreationStage('validating');
+    setCreationProgress(10);
 
     if (!formData.title.trim()) {
       toast({
@@ -219,6 +226,8 @@ export const useOrderFormLogic = () => {
         variant: "destructive",
       });
       setIsLoading(false);
+      setCreationStage('');
+      setCreationProgress(0);
       return;
     }
 
@@ -229,6 +238,8 @@ export const useOrderFormLogic = () => {
         variant: "destructive",
       });
       setIsLoading(false);
+      setCreationStage('');
+      setCreationProgress(0);
       return;
     }
 
@@ -239,10 +250,15 @@ export const useOrderFormLogic = () => {
         variant: "destructive",
       });
       setIsLoading(false);
+      setCreationStage('');
+      setCreationProgress(0);
       return;
     }
 
     try {
+      setCreationStage('fetching_buyer');
+      setCreationProgress(20);
+      
       const { data: buyerData, error: buyerError } = await supabase
         .from('profiles')
         .select('id, full_name, telegram')
@@ -258,9 +274,14 @@ export const useOrderFormLogic = () => {
           variant: "destructive",
         });
         setIsLoading(false);
+        setCreationStage('');
+        setCreationProgress(0);
         return;
       }
 
+      setCreationStage('creating_order');
+      setCreationProgress(40);
+      
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       
       // Обновлено: добавляем префикс p_ к каждому параметру
@@ -301,6 +322,9 @@ export const useOrderFormLogic = () => {
         throw new Error("Order was created but no data was returned");
       }
 
+      setCreationStage('fetching_order');
+      setCreationProgress(60);
+
       // Fetch the newly created order
       const { data: orderData, error: fetchError } = await supabase
         .from('orders')
@@ -312,6 +336,9 @@ export const useOrderFormLogic = () => {
         console.error("Error fetching created order:", fetchError);
         throw fetchError;
       }
+
+      setCreationStage('saving_videos');
+      setCreationProgress(75);
 
       if (videos.length > 0 && createdOrderData) {
         console.log("Saving video references to database, order ID:", createdOrderData);
@@ -338,25 +365,18 @@ export const useOrderFormLogic = () => {
         }
       }
 
-      // Send notification to Telegram with explicit 'create' action
-      try {
-        console.log("Sending Telegram notification for new order creation");
-        await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            order: { ...orderData, images },
-            action: 'create'
-          }
-        });
-        console.log("Telegram notification sent for new order");
-      } catch (notifyError) {
-        console.error('Failed to send order notification:', notifyError);
-      }
-
       setCreatedOrder(orderData);
+      setCreationStage('completed');
+      setCreationProgress(100);
+      
       toast({
         title: "Заказ создан",
         description: "Заказ был успешно создан",
       });
+      
+      // Отправляем уведомление в Telegram асинхронно
+      sendTelegramNotification(orderData, images);
+      
     } catch (error) {
       console.error("Error creating order:", error);
       toast({
@@ -366,6 +386,31 @@ export const useOrderFormLogic = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // New function to send notifications asynchronously
+  const sendTelegramNotification = async (orderData: any, orderImages: string[]) => {
+    try {
+      console.log("Sending Telegram notification for new order creation (async)");
+      
+      // Use setTimeout to make this non-blocking
+      setTimeout(async () => {
+        try {
+          await supabase.functions.invoke('send-telegram-notification', {
+            body: { 
+              order: { ...orderData, images: orderImages },
+              action: 'create'
+            }
+          });
+          console.log("Telegram notification sent for new order");
+        } catch (notifyError) {
+          console.error('Failed to send order notification:', notifyError);
+          // We don't show a toast here as the order is already created successfully
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Error setting up async notification:', error);
     }
   };
 
@@ -395,6 +440,9 @@ export const useOrderFormLogic = () => {
     handleSubmit,
     resetForm,
     navigate,
-    parseTitleForBrand // Add the new function to the return value
+    parseTitleForBrand,
+    // Export new states to show progress
+    creationStage,
+    creationProgress
   };
 };
