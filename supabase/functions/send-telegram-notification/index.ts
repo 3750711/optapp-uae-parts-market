@@ -138,57 +138,132 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       }
     }
     
-    // Send text message first
-    const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        chat_id: ORDER_GROUP_CHAT_ID,
-        text: messageText,
-        parse_mode: 'HTML'
-      }),
-    });
+    // Determine if we have more than 10 images that need to be split
+    const firstBatchImages = orderImages.slice(0, 10);
+    const remainingImages = orderImages.slice(10);
+    const hasRemainingImages = remainingImages.length > 0;
     
-    const textResult = await textMessageResponse.json();
+    console.log(`Total images: ${orderImages.length}, First batch: ${firstBatchImages.length}, Remaining: ${remainingImages.length}`);
     
-    if (!textResult.ok) {
-      console.error('Error sending order notification message:', textResult.description);
-      throw new Error(textResult.description || 'Failed to send order notification');
-    }
-    
-    console.log('Order notification text sent successfully');
-    
-    // If we have images, send them in media groups
-    if (orderImages && orderImages.length > 0) {
-      console.log('Preparing to send', orderImages.length, 'order images');
+    // If we have images for the first group, send them with the text
+    if (firstBatchImages.length > 0) {
+      console.log('Sending first batch of images with notification text');
       
-      // Split images into chunks of MAX_IMAGES_PER_GROUP (10) for media groups
-      const imageChunks = [];
-      for (let i = 0; i < orderImages.length; i += MAX_IMAGES_PER_GROUP) {
-        imageChunks.push(orderImages.slice(i, i + MAX_IMAGES_PER_GROUP));
+      const mediaItems = firstBatchImages.map((imageUrl, index) => {
+        // First image gets the caption
+        if (index === 0) {
+          return {
+            type: 'photo',
+            media: imageUrl,
+            caption: messageText,
+            parse_mode: 'HTML'
+          };
+        }
+        return {
+          type: 'photo',
+          media: imageUrl
+        };
+      });
+      
+      // Send media group with the first 10 images and text
+      const mediaGroupResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMediaGroup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: ORDER_GROUP_CHAT_ID,
+          media: mediaItems
+        }),
+      });
+      
+      const mediaResult = await mediaGroupResponse.json();
+      
+      if (!mediaResult.ok) {
+        console.error('Error sending first batch of images:', mediaResult.description);
+        
+        // If sending media group fails, fall back to sending text message
+        const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            chat_id: ORDER_GROUP_CHAT_ID,
+            text: messageText,
+            parse_mode: 'HTML'
+          }),
+        });
+        
+        const textResult = await textMessageResponse.json();
+        
+        if (!textResult.ok) {
+          console.error('Error sending fallback text message:', textResult.description);
+          throw new Error(textResult.description || 'Failed to send order notification');
+        }
+      } else {
+        console.log('First batch of images sent successfully with notification text');
+      }
+    } else {
+      // If no images, just send text message
+      console.log('No images for first batch, sending text only message');
+      
+      const textMessageResponse = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_id: ORDER_GROUP_CHAT_ID,
+          text: messageText,
+          parse_mode: 'HTML'
+        }),
+      });
+      
+      const textResult = await textMessageResponse.json();
+      
+      if (!textResult.ok) {
+        console.error('Error sending order notification message:', textResult.description);
+        throw new Error(textResult.description || 'Failed to send order notification');
       }
       
-      console.log('Will send images in', imageChunks.length, 'groups');
+      console.log('Order notification text sent successfully');
+    }
+    
+    // If we have remaining images (more than 10), send them in additional groups
+    if (hasRemainingImages) {
+      console.log(`Sending remaining ${remainingImages.length} images in additional message(s)`);
       
-      // Send each chunk as a media group
-      let allMediaGroupsSuccessful = true;
+      // Caption for the remaining images
+      const remainingCaption = `К заказу номер ${orderData.order_number}`;
       
-      for (let i = 0; i < imageChunks.length; i++) {
-        const chunk = imageChunks[i];
-        const mediaItems = [];
-        
-        // Add each image to the group
-        for (let j = 0; j < chunk.length; j++) {
-          const imageUrl = chunk[j];
-          mediaItems.push({
+      // Split remaining images into chunks of MAX_IMAGES_PER_GROUP (10) for media groups
+      const remainingChunks = [];
+      for (let i = 0; i < remainingImages.length; i += MAX_IMAGES_PER_GROUP) {
+        remainingChunks.push(remainingImages.slice(i, i + MAX_IMAGES_PER_GROUP));
+      }
+      
+      console.log(`Split remaining images into ${remainingChunks.length} chunks`);
+      
+      // Send each chunk of remaining images
+      for (let i = 0; i < remainingChunks.length; i++) {
+        const chunk = remainingChunks[i];
+        const mediaItems = chunk.map((imageUrl, index) => {
+          // First image of each group gets the caption
+          if (index === 0) {
+            return {
+              type: 'photo',
+              media: imageUrl,
+              caption: remainingCaption
+            };
+          }
+          return {
             type: 'photo',
             media: imageUrl
-          });
-        }
+          };
+        });
         
-        console.log(`Sending image group ${i + 1} with ${chunk.length} images`);
+        console.log(`Sending remaining images chunk ${i+1} with ${chunk.length} images`);
         
         // Retry media group sending up to 3 times in case of failure
         let mediaGroupResult = null;
@@ -204,29 +279,29 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
               },
               body: JSON.stringify({
                 chat_id: ORDER_GROUP_CHAT_ID,
-                media: mediaItems,
+                media: mediaItems
               }),
             });
             
             mediaGroupResult = await mediaGroupResponse.json();
-            console.log(`Media group ${i + 1} attempt ${retryCount + 1} response:`, 
+            console.log(`Remaining images chunk ${i+1}, attempt ${retryCount+1} response:`, 
               mediaGroupResult.ok ? 'SUCCESS' : 'FAILED');
             
             if (mediaGroupResult.ok) {
               break; // Exit retry loop on success
             } else {
-              console.error(`Error sending media group ${i + 1}, attempt ${retryCount + 1}:`, 
+              console.error(`Error sending remaining images chunk ${i+1}, attempt ${retryCount+1}:`, 
                 mediaGroupResult.description || 'Unknown error');
               retryCount++;
               
               if (retryCount < maxRetries) {
                 // Wait a moment before retrying (exponential backoff)
                 await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
-                console.log(`Retrying media group ${i + 1}, attempt ${retryCount + 1}...`);
+                console.log(`Retrying remaining images chunk ${i+1}, attempt ${retryCount+1}...`);
               }
             }
           } catch (error) {
-            console.error(`Network error sending media group ${i + 1}, attempt ${retryCount + 1}:`, error);
+            console.error(`Network error sending remaining images chunk ${i+1}, attempt ${retryCount+1}:`, error);
             retryCount++;
             
             if (retryCount < maxRetries) {
@@ -238,18 +313,9 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
         
         // Check if we exceeded retry count
         if (retryCount >= maxRetries) {
-          console.error(`Failed to send media group ${i + 1} after ${maxRetries} attempts`);
-          allMediaGroupsSuccessful = false;
+          console.error(`Failed to send remaining images chunk ${i+1} after ${maxRetries} attempts`);
         }
       }
-      
-      if (!allMediaGroupsSuccessful) {
-        console.warn('Some image groups failed to send');
-      } else {
-        console.log('All order images sent successfully');
-      }
-    } else {
-      console.log('No images found for this order');
     }
     
     return new Response(
