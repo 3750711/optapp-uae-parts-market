@@ -9,7 +9,6 @@ import ProductEditForm from "./ProductEditForm";
 import { Product } from "@/types/product";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ProductInfoProps {
   product: Product;
@@ -18,7 +17,6 @@ interface ProductInfoProps {
 
 const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isSendingNotification, setIsSendingNotification] = useState(false);
   const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { toast } = useToast();
@@ -26,8 +24,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const isOwner = user?.id === product.seller_id;
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
-  
-  const canSendNotification = isAdmin || isOwner;
 
   const getStatusBadge = () => {
     switch (product.status) {
@@ -47,41 +43,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const handleSave = () => {
     setIsEditing(false);
     onProductUpdate();
-  };
-
-  const handleSendNotification = async () => {
-    if (!canSendNotification) {
-      toast({
-        title: "Ошибка",
-        description: "Только администратор или создатель объявления могут отправлять уведомления.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSendingNotification(true);
-    try {
-      // Direct call to edge function instead of using the hook
-      const { error } = await supabase.functions.invoke("send-telegram-notification", {
-        body: { productId: product.id }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Успех",
-        description: "Уведомление успешно отправлено",
-      });
-    } catch (error) {
-      console.error("Error sending notification:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось отправить уведомление",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSendingNotification(false);
-    }
   };
 
   if (isEditing && isOwner && product.status !== 'sold') {
@@ -109,19 +70,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {canSendNotification && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={handleSendNotification}
-              disabled={isSendingNotification}
-            >
-              <span className={`${isSendingNotification ? 'animate-pulse' : ''}`}>
-                {isSendingNotification ? 'Отправка...' : 'Отправить уведомление'}
-              </span>
-            </Button>
-          )}
           {isOwner && product.status !== 'sold' && (
             <Button
               variant="outline"

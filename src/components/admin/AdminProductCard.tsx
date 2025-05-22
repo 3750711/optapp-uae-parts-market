@@ -1,9 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, Bell, Tag, Hash, Calendar } from "lucide-react";
+import { Edit, Trash2, Eye, Tag, Hash, Calendar } from "lucide-react";
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
@@ -12,8 +12,6 @@ import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { format } from 'date-fns';
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 interface AdminProductCardProps {
@@ -31,35 +29,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [isNotificationSending, setIsNotificationSending] = useState<Record<string, boolean>>({});
-  
-  // Replacement for the removed hook function
-  const sendNotification = async (product: Product) => {
-    try {
-      // Set notification sending state for this product
-      setIsNotificationSending(prev => ({ ...prev, [product.id]: true }));
-      
-      const { error } = await supabase.functions.invoke("send-telegram-notification", {
-        body: { productId: product.id }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Успех",
-        description: "Уведомление успешно отправлено",
-      });
-    } catch (error) {
-      console.error("Error sending notification:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось отправить уведомление",
-        variant: "destructive"
-      });
-    } finally {
-      setIsNotificationSending(prev => ({ ...prev, [product.id]: false }));
-    }
-  };
   
   const getProductCardBackground = (status: string) => {
     switch (status) {
@@ -182,17 +151,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
               }
               onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
             />
-            
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-blue-600"
-              onClick={() => sendNotification(product)}
-              disabled={isNotificationSending[product.id]}
-              title="Отправить уведомление в Telegram"
-            >
-              <Bell className={`h-3.5 w-3.5 ${isNotificationSending[product.id] ? 'animate-pulse' : ''}`} />
-            </Button>
             
             <ProductStatusDialog
               product={product}
