@@ -91,10 +91,17 @@ BEGIN
   -- Только при создании заказа с привязкой к продукту
   -- отправляем уведомление о смене статуса продукта на sold
   IF NEW.product_id IS NOT NULL AND TG_OP = 'INSERT' THEN
-    -- Обновляем статус продукта на sold
+    -- Изменяем порядок операций:
+    -- 1. Сначала сбрасываем timestamp последнего уведомления, чтобы уведомление точно отправилось
+    -- 2. Затем обновляем статус продукта на sold
     UPDATE public.products
-    SET status = 'sold', 
-        last_notification_sent_at = NULL  -- Сбрасываем timestamp, чтобы уведомление точно отправилось
+    SET last_notification_sent_at = NULL  
+    WHERE id = NEW.product_id 
+    AND status != 'sold';
+    
+    -- Теперь обновляем статус продукта на sold в отдельном запросе
+    UPDATE public.products
+    SET status = 'sold'
     WHERE id = NEW.product_id 
     AND status != 'sold';
   END IF;
