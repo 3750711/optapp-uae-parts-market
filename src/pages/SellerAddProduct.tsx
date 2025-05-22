@@ -18,6 +18,7 @@ import {
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import AddProductForm, { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
+import { Progress } from "@/components/ui/progress";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const SellerAddProduct = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
+  const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   
   // Use our custom hook for car brands and models
   const { 
@@ -144,6 +146,7 @@ const SellerAddProduct = () => {
     }
 
     setIsSubmitting(true);
+    setProgressStatus({ step: "Создание товара", progress: 10 });
 
     try {
       // Получаем имена бренда и модели для базы данных
@@ -168,6 +171,8 @@ const SellerAddProduct = () => {
 
       // Устанавливаем имя продавца, убеждаясь, что оно никогда не будет null
       const sellerName = profile.full_name || user.email || "Unknown Seller";
+
+      setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
 
       // Логируем данные для отладки на мобильных устройствах
       console.log("Preparing to insert product:", {
@@ -205,6 +210,7 @@ const SellerAddProduct = () => {
       }
       
       console.log("Product created successfully:", product.id);
+      setProgressStatus({ step: "Сохранение изображений", progress: 60 });
 
       // Изображения уже загружены, нужно только связать их с продуктом
       const productImages = imageUrls.map((url, index) => ({
@@ -225,6 +231,7 @@ const SellerAddProduct = () => {
       }
       
       console.log("Images associated successfully");
+      setProgressStatus({ step: "Сохранение видео", progress: 80 });
 
       if (videoUrls.length > 0) {
         console.log("Associating videos with product:", videoUrls.length);
@@ -245,9 +252,8 @@ const SellerAddProduct = () => {
         
         console.log("Videos associated successfully");
       }
-
-      // Вызов только функции для обработки превью
-      await handleServerFunctions(product.id);
+      
+      setProgressStatus({ step: "Завершение", progress: 100 });
 
       toast({
         title: "Товар добавлен",
@@ -267,33 +273,7 @@ const SellerAddProduct = () => {
       });
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  // Функция только для генерации превью, без отправки уведомлений
-  const handleServerFunctions = async (productId: string) => {
-    try {
-      // Генерируем только превью для изображений продукта
-      console.log("Triggering preview generation for product:", productId);
-      
-      const { data: previewData, error: previewError } = await supabase.functions.invoke(
-        'generate-preview', 
-        {
-          body: { action: 'process_product', productId }
-        }
-      );
-      
-      if (previewError) {
-        console.error("Error generating previews:", previewError);
-      } else {
-        console.log("Preview generation response:", previewData);
-      }
-      
-      // Уведомления теперь отправляются автоматически через базу данных
-      // при создании/изменении статуса товара на 'active'
-    } catch (error) {
-      console.error("Error in server functions:", error);
-      // Не выбрасываем ошибку, так как это некритичные операции
+      setProgressStatus({ step: "", progress: 0 });
     }
   };
 
@@ -338,6 +318,16 @@ const SellerAddProduct = () => {
                 setVideoUrls={setVideoUrls}
               />
             </CardContent>
+            
+            {isSubmitting && (
+              <div className="px-6 pb-4">
+                <div className="mb-2 flex justify-between items-center">
+                  <span className="text-sm font-medium">{progressStatus.step || "Публикация товара..."}</span>
+                  <span className="text-sm">{progressStatus.progress}%</span>
+                </div>
+                <Progress value={progressStatus.progress} className="h-2" />
+              </div>
+            )}
           </Card>
         </div>
       </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -38,6 +39,7 @@ import VideoUpload from "@/components/ui/video-upload";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
+import { Progress } from "@/components/ui/progress";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -76,6 +78,7 @@ const AdminAddProduct = () => {
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
+  const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   
   // Use our custom hook for car brands and models
   const { 
@@ -218,6 +221,7 @@ const AdminAddProduct = () => {
     }
 
     setIsSubmitting(true);
+    setProgressStatus({ step: "Создание товара", progress: 10 });
 
     try {
       // Get brand and model names for the database
@@ -241,6 +245,8 @@ const AdminAddProduct = () => {
         return;
       }
 
+      setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
+      
       // Using RPC to create the product using admin permissions
       // Changed product status from 'pending' to 'active' when admin creates it
       const { data: productId, error: productError } = await supabase
@@ -267,6 +273,8 @@ const AdminAddProduct = () => {
         throw new Error("Failed to get product ID");
       }
       
+      setProgressStatus({ step: "Сохранение изображений", progress: 60 });
+      
       // Images are already uploaded, we just need to associate them with the product
       const productImages = imageUrls.map((url, index) => ({
         product_id: productId,
@@ -284,6 +292,8 @@ const AdminAddProduct = () => {
           
         if (imageError) throw imageError;
       }
+      
+      setProgressStatus({ step: "Сохранение видео", progress: 80 });
 
       if (videoUrls.length > 0) {
         // Use RPC to insert videos as admin
@@ -297,6 +307,8 @@ const AdminAddProduct = () => {
           if (videoError) throw videoError;
         }
       }
+      
+      setProgressStatus({ step: "Завершение", progress: 100 });
 
       toast({
         title: "Товар добавлен",
@@ -313,6 +325,7 @@ const AdminAddProduct = () => {
       });
     } finally {
       setIsSubmitting(false);
+      setProgressStatus({ step: "", progress: 0 });
     }
   };
 
@@ -580,6 +593,16 @@ const AdminAddProduct = () => {
                     />
                   </div>
                 </CardContent>
+
+                {isSubmitting && (
+                  <div className="px-6 pb-4">
+                    <div className="mb-2 flex justify-between items-center">
+                      <span className="text-sm font-medium">{progressStatus.step || "Публикация товара..."}</span>
+                      <span className="text-sm">{progressStatus.progress}%</span>
+                    </div>
+                    <Progress value={progressStatus.progress} className="h-2" />
+                  </div>
+                )}
                 
                 <CardFooter className="flex justify-end space-x-4">
                   <Button 
