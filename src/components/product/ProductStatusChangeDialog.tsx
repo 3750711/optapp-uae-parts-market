@@ -81,7 +81,7 @@ const ProductStatusChangeDialog = ({
       // Update notification timestamp first
       await updateNotificationTimestamp(productId);
       
-      // Get a fresh product with all images
+      // Get a fresh product with all images and details needed for the "sold" notification
       const { data: freshProduct, error: fetchError } = await supabase
         .from('products')
         .select(`*, product_images(*)`)
@@ -92,9 +92,12 @@ const ProductStatusChangeDialog = ({
         throw new Error(fetchError?.message || 'Failed to fetch product details');
       }
       
-      // Now call the edge function with the complete product data
+      // Now call the edge function with the complete product data and specify it's a sold notification
       const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { product: freshProduct }
+        body: { 
+          productId: freshProduct.id,
+          notificationType: 'sold'  // Indicate this is a sold notification
+        }
       });
       
       if (error) {
@@ -103,8 +106,8 @@ const ProductStatusChangeDialog = ({
       }
       
       if (data && data.success) {
-        console.log("Notification sent successfully");
-        toast.success("Уведомление отправлено в Telegram");
+        console.log("Sold notification sent successfully");
+        toast.success("Уведомление о продаже отправлено в Telegram");
       } else {
         console.error("Notification failed:", data?.message);
         toast.error("Уведомление не было отправлено: " + (data?.message || "Неизвестная ошибка"));
@@ -158,7 +161,7 @@ const ProductStatusChangeDialog = ({
 
       toast.success("Статус товара успешно изменен на 'Продано'");
       
-      // Send notification about status change if appropriate
+      // Send notification about status change to "sold"
       if (data && data.length > 0) {
         await sendTelegramNotification(productId);
       }

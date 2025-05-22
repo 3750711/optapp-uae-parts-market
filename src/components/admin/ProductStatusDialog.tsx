@@ -56,8 +56,8 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
 
   // Check if a notification was recently sent
   const shouldSendNotification = (product: Product, newStatus: string): boolean => {
-    // Only send notifications for active status
-    if (newStatus !== 'active') {
+    // Only send notifications for active or sold status
+    if (newStatus !== 'active' && newStatus !== 'sold') {
       return false;
     }
 
@@ -88,6 +88,9 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
   const sendTelegramNotification = async (updatedProduct: Product) => {
     setIsSendingNotification(true);
     try {
+      // Determine notification type based on status
+      const notificationType = updatedProduct.status === 'sold' ? 'sold' : 'status_change';
+      
       // First, get a fresh product with all images
       const { data: freshProduct, error: fetchError } = await supabase
         .from('products')
@@ -104,7 +107,10 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
       
       // Now call the edge function with the complete product data
       const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
-        body: { product: freshProduct }
+        body: { 
+          productId: freshProduct.id,
+          notificationType: notificationType
+        }
       });
       
       if (error) {
@@ -163,8 +169,9 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         description: "Статус товара успешно обновлен",
       });
       
-      // Check if we should send notification (only if status changed to active AND notification wasn't recently sent)
-      if (data && data.length > 0 && values.status === 'active' && 
+      // Check if we should send notification based on the new status
+      if (data && data.length > 0 && 
+          (values.status === 'active' || values.status === 'sold') && 
           shouldSendNotification(product, values.status)) {
         await sendTelegramNotification(data[0]);
       }
