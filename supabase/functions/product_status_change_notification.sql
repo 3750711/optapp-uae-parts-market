@@ -8,10 +8,9 @@ AS $$
 BEGIN
   -- Отправляем уведомление только если:
   -- 1. При обновлении: статус меняется на active
-  -- 2. При создании: статус сразу active
+  -- 2. НЕ отправляем автоматически при создании товара (INSERT удален)
   -- 3. Прошло не менее 5 минут с последнего уведомления или его еще не было
-  IF ((TG_OP = 'UPDATE' AND OLD.status != 'active' AND NEW.status = 'active') OR
-      (TG_OP = 'INSERT' AND NEW.status = 'active')) AND
+  IF (TG_OP = 'UPDATE' AND OLD.status != 'active' AND NEW.status = 'active') AND
      (NEW.last_notification_sent_at IS NULL OR 
       NEW.last_notification_sent_at < NOW() - INTERVAL '5 minutes') THEN
     
@@ -21,13 +20,6 @@ BEGIN
     ) THEN
       -- Обновляем timestamp последнего уведомления
       NEW.last_notification_sent_at := NOW();
-      
-      -- Добавляем задержку при создании товара (только для INSERT)
-      -- чтобы изображения успели сохраниться в базе данных
-      IF TG_OP = 'INSERT' THEN
-        -- Увеличиваем задержку с 3 до 5 секунд для INSERT операций
-        PERFORM pg_sleep(5);
-      END IF;
       
       -- Вызываем Edge Function для отправки уведомления
       PERFORM

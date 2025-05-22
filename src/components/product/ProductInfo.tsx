@@ -27,6 +27,8 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const isOwner = user?.id === product.seller_id;
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
+  
+  const canSendNotification = isAdmin || isOwner;
 
   const getStatusBadge = () => {
     switch (product.status) {
@@ -49,10 +51,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   };
 
   const handleSendNotification = async () => {
-    if (!isAdmin) {
+    if (!canSendNotification) {
       toast({
         title: "Ошибка",
-        description: "Только администратор может отправлять уведомления.",
+        description: "Только администратор или создатель объявления могут отправлять уведомления.",
         variant: "destructive"
       });
       return;
@@ -91,7 +93,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           </span>
         </div>
         <div className="flex items-center gap-2">
-          {isAdmin && (
+          {canSendNotification && (
             <Button
               variant="outline"
               size="sm"
