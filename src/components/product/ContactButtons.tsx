@@ -217,6 +217,20 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         });
       } else {
         console.log('Product status updated to sold successfully');
+        
+        // Добавляем вызов edge-функции для отправки уведомления о проданном товаре
+        try {
+          console.log('Отправка уведомления о проданном товаре в Telegram:', product.id);
+          
+          const productSoldNotificationResult = await supabase.functions.invoke('send-product-sold-notification', {
+            body: { productId: product.id }
+          });
+          
+          console.log('Результат отправки уведомления о проданном товаре:', productSoldNotificationResult);
+        } catch (notifySoldError) {
+          console.error('Ошибка отправки уведомления о проданном товаре:', notifySoldError);
+          // Продолжаем выполнение даже при ошибке отправки уведомления
+        }
       }
 
       // Добавляем вызов edge-функции для отправки уведомления о новом заказе
