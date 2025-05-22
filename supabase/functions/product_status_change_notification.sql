@@ -8,10 +8,9 @@ AS $$
 BEGIN
   -- Отправляем уведомление только если:
   -- 1. При обновлении: статус меняется на active
-  -- 2. При создании: статус сразу active
+  -- 2. При создании: не отправляем уведомление (это будет делаться явно в коде)
   -- 3. Прошло не менее 5 минут с последнего уведомления или его еще не было
-  IF ((TG_OP = 'UPDATE' AND OLD.status != 'active' AND NEW.status = 'active') OR
-      (TG_OP = 'INSERT' AND NEW.status = 'active')) AND
+  IF (TG_OP = 'UPDATE' AND OLD.status != 'active' AND NEW.status = 'active') AND
      (NEW.last_notification_sent_at IS NULL OR 
       NEW.last_notification_sent_at < NOW() - INTERVAL '5 minutes') THEN
     
@@ -36,8 +35,9 @@ DROP TRIGGER IF EXISTS trigger_notify_on_status_change_to_active ON public.produ
 DROP TRIGGER IF EXISTS trigger_notify_on_new_active_product ON public.products;
 
 -- Создаем новый объединенный триггер
+-- Меняем с BEFORE на AFTER, чтобы дать транзакции завершиться и все связанные данные сохраниться
 CREATE TRIGGER trigger_notify_on_product_status_changes
-BEFORE INSERT OR UPDATE ON public.products
+AFTER UPDATE ON public.products
 FOR EACH ROW
 EXECUTE FUNCTION public.notify_on_product_status_changes();
 

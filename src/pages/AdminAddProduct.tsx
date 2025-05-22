@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
+import { useAdminProductNotifications } from "@/hooks/useAdminProductNotifications";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -79,6 +79,9 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
+  
+  // Импортируем хук для работы с уведомлениями
+  const { sendNotificationWithRetry } = useAdminProductNotifications();
   
   // Use our custom hook for car brands and models
   const { 
@@ -306,6 +309,42 @@ const AdminAddProduct = () => {
             
           if (videoError) throw videoError;
         }
+      }
+
+      // Получаем полные данные о продукте со всеми изображениями
+      const { data: fullProduct, error: fetchError } = await supabase
+        .from('products')
+        .select(`*, product_images(*)`)
+        .eq('id', productId)
+        .single();
+      
+      if (fetchError) {
+        console.warn("Ошибка при получении полных данных о продукте:", fetchError);
+        // Не выбрасываем ошибку, продолжаем
+      }
+      
+      setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 90 });
+      
+      // Отправляем уведомление в Telegram асинхронно
+      // Не ждем завершения и не блокируем основной поток
+      try {
+        // Попытаемся отправить уведомление с полученными данными о продукте
+        if (fullProduct) {
+          // Запускаем асинхронно, не дожидаясь завершения
+          sendNotificationWithRetry(fullProduct).catch(notifyError => {
+            console.error("Ошибка асинхронной отправки уведомления:", notifyError);
+          });
+        } else {
+          // Если у нас нет полных данных, отправляем просто ID продукта через прямой вызов edge-функции
+          supabase.functions.invoke('send-telegram-notification', {
+            body: { productId }
+          }).catch(notifyError => {
+            console.error("Ошибка прямого вызова функции отправки уведомления:", notifyError);
+          });
+        }
+      } catch (notifyError) {
+        console.warn("Ошибка при запуске отправки уведомления (не критично):", notifyError);
+        // Продолжаем процесс, так как отправка уведомлений не критична
       }
       
       setProgressStatus({ step: "Завершение", progress: 100 });

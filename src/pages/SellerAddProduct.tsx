@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -251,6 +250,31 @@ const SellerAddProduct = () => {
         }
         
         console.log("Videos associated successfully");
+      }
+      
+      // Если товар был публикуется со статусом active, для доверенных продавцов
+      // (у которых в trigger_auto_approve_trusted_seller_products меняется статус на active),
+      // (у которых в trigger_auto_approve_trusted_seller_products меняется статус на active),
+      // отправляем уведомление явно после того как все изображения загружены
+      const { data: currentProduct } = await supabase
+        .from('products')
+        .select('*')
+        .eq('id', product.id)
+        .single();
+
+      if (currentProduct && currentProduct.status === 'active') {
+        setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 90 });
+        try {
+          // Отправляем запрос на отправку уведомлений, но не ждем завершения
+          supabase.functions.invoke('send-telegram-notification', {
+            body: { productId: product.id }
+          }).catch(notifyError => {
+            console.error("Ошибка при отправке уведомления (не критично):", notifyError);
+          });
+        } catch (notifyError) {
+          console.error("Ошибка при запуске отправки уведомления (не критично):", notifyError);
+          // Несмотря на ошибку, продолжаем процесс создания объявления
+        }
       }
       
       setProgressStatus({ step: "Завершение", progress: 100 });
