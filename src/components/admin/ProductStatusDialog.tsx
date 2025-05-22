@@ -54,6 +54,88 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     },
   });
 
+  // Check if a notification was recently sent
+  const shouldSendNotification = (product: Product, newStatus: string): boolean => {
+    // Only send notifications for active status
+    if (newStatus !== 'active') {
+      return false;
+    }
+
+    // Check if notification was sent recently
+    if (product.last_notification_sent_at) {
+      const lastSent = new Date(product.last_notification_sent_at);
+      const fiveMinutesAgo = new Date();
+      fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
+      
+      if (lastSent > fiveMinutesAgo) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const updateNotificationTimestamp = async (productId: string): Promise<void> => {
+    try {
+      await supabase
+        .from('products')
+        .update({ last_notification_sent_at: new Date().toISOString() })
+        .eq('id', productId);
+    } catch (error) {
+      console.error('Error updating notification timestamp:', error);
+    }
+  };
+
+  const sendTelegramNotification = async (updatedProduct: Product) => {
+    setIsSendingNotification(true);
+    try {
+      // First, get a fresh product with all images
+      const { data: freshProduct, error: fetchError } = await supabase
+        .from('products')
+        .select(`*, product_images(*)`)
+        .eq('id', updatedProduct.id)
+        .single();
+
+      if (fetchError || !freshProduct) {
+        throw new Error(fetchError?.message || 'Failed to fetch product details');
+      }
+      
+      // Update notification timestamp
+      await updateNotificationTimestamp(updatedProduct.id);
+      
+      // Now call the edge function with the complete product data
+      const { data, error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: { product: freshProduct }
+      });
+      
+      if (error) {
+        console.error('Error calling function:', error);
+        throw new Error(error.message);
+      }
+      
+      if (data && data.success) {
+        toast({
+          title: "Успех",
+          description: "Уведомление об изменении статуса отправлено в Telegram",
+        });
+      } else {
+        toast({
+          title: "Внимание",
+          description: (data && data.message) || "Уведомление не было отправлено",
+          variant: "destructive", 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось отправить уведомление: " + (error instanceof Error ? error.message : String(error)),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!isAdmin) {
       toast({
@@ -65,26 +147,6 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
     }
 
     try {
-      // If changing to sold status, explicitly send notification first
-      if (values.status === 'sold' && product.status !== 'sold') {
-        setIsSendingNotification(true);
-        try {
-          console.log("Admin explicitly sending sold notification");
-          await supabase.functions.invoke('send-telegram-notification', {
-            body: { 
-              productId: product.id,
-              notificationType: 'sold'
-            }
-          });
-          console.log("Admin notification sent successfully");
-        } catch (notifyError) {
-          console.error("Error sending notification from admin:", notifyError);
-          // Continue with status update even if notification fails
-        } finally {
-          setIsSendingNotification(false);
-        }
-      }
-      
       // Update product status
       const { data, error } = await supabase
         .from('products')
@@ -100,6 +162,12 @@ export const ProductStatusDialog = ({ product, trigger, onSuccess }: ProductStat
         title: "Успех",
         description: "Статус товара успешно обновлен",
       });
+      
+      // Check if we should send notification (only if status changed to active AND notification wasn't recently sent)
+      if (data && data.length > 0 && values.status === 'active' && 
+          shouldSendNotification(product, values.status)) {
+        await sendTelegramNotification(data[0]);
+      }
       
       setOpen(false);
       if (onSuccess) onSuccess();

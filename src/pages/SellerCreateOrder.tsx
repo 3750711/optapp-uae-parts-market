@@ -252,7 +252,6 @@ const SellerCreateOrder = () => {
           });
         } else {
           console.log("Product status updated to sold successfully");
-          // Notification will be sent automatically by the database trigger
         }
       }
 
