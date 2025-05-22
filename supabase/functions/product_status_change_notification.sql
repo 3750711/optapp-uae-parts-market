@@ -1,3 +1,4 @@
+
 -- ======================== IMPORTANT NOTICE ========================
 -- This file contains critical database trigger functionality.
 -- DO NOT EDIT unless absolutely necessary!
@@ -79,3 +80,31 @@ EXECUTE FUNCTION public.notify_on_product_status_changes();
 DROP FUNCTION IF EXISTS public.notify_on_status_change_to_active() CASCADE;
 DROP FUNCTION IF EXISTS public.notify_on_active_product() CASCADE;
 DROP FUNCTION IF EXISTS public.notify_on_new_active_product() CASCADE;
+
+-- Создаем функцию для уведомлений при изменении статуса продукта в заказах
+CREATE OR REPLACE FUNCTION public.notify_on_order_product_status_changes()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Только при создании заказа с привязкой к продукту
+  -- отправляем уведомление о смене статуса продукта на sold
+  IF NEW.product_id IS NOT NULL AND TG_OP = 'INSERT' THEN
+    -- Обновляем статус продукта на sold
+    UPDATE public.products
+    SET status = 'sold', 
+        last_notification_sent_at = NULL  -- Сбрасываем timestamp, чтобы уведомление точно отправилось
+    WHERE id = NEW.product_id 
+    AND status != 'sold';
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+-- Создаем триггер для функции уведомлений при заказах
+CREATE TRIGGER trigger_notify_on_order_product_status_changes
+AFTER INSERT ON public.orders
+FOR EACH ROW
+EXECUTE FUNCTION public.notify_on_order_product_status_changes();
