@@ -1,4 +1,3 @@
-
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -76,21 +75,24 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
   console.log('Processing order notification, order #:', orderData.order_number);
   
   try {
-    // Prepare order notification message with the new format
+    // Prepare order notification message with the new updated format
     const statusText = orderData.status === 'created' ? 'Создан' : 
                       orderData.status === 'seller_confirmed' ? 'Подтвержден продавцом' : 
                       orderData.status;
                       
     const deliveryMethodText = orderData.delivery_method === 'cargo_rf' ? 'Доставка Cargo РФ' : 
                               orderData.delivery_method === 'self_pickup' ? 'Самовывоз' : 
+                              orderData.delivery_method === 'cargo_kz' ? 'Доставка Cargo KZ' : 
                               orderData.delivery_method;
     
+    // New format according to user requirements
     const messageText = [
-      `Заказ № ${orderData.order_number}`,
+      `Номер заказа: ${orderData.order_number}`,
       `Статус: ${statusText}`,
+      `Телеграм покупателя: ${orderData.telegram_url_buyer || ''}`,
       ``,
       `🟰🟰🟰🟰🟰🟰`,
-      `Товар: ${orderData.title}`,
+      `Описание товара: ${orderData.title}`,
       `Бренд: ${orderData.brand || ''}`,
       `Модель: ${orderData.model || ''}`,
       `Количество мест для отправки: ${orderData.place_number || 1}`,
@@ -103,7 +105,7 @@ async function handleOrderNotification(orderData, supabaseClient, corsHeaders) {
       ``,
       `===`,
       `${orderData.buyer_opt_id || ''}`,
-      `${orderData.telegram_url_buyer || ''}`
+      `${orderData.seller_opt_id || ''}`
     ].join('\n');
 
     // Send text message for order to the ORDER_GROUP_CHAT_ID
