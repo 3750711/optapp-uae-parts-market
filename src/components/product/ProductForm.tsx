@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { X, Save, Loader2 } from "lucide-react";
-import { Product } from "@/types/product";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   Select, 
