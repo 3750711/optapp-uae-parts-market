@@ -44,7 +44,10 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     selectedBrand, 
     selectBrand, 
     isLoading: loadingBrands,
-    findBrandIdByName
+    findBrandIdByName,
+    findModelIdByName,
+    findBrandNameById,
+    findModelNameById
   } = useCarBrandsAndModels();
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
@@ -72,10 +75,26 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     if (brands.length > 0 && product.brand) {
       const brandId = findBrandIdByName(product.brand);
       if (brandId) {
+        console.log(`Found brand ID ${brandId} for brand name ${product.brand}`);
         selectBrand(brandId);
+      } else {
+        console.log(`Brand ID not found for name: ${product.brand}`);
       }
     }
   }, [brands, product.brand, findBrandIdByName, selectBrand]);
+
+  // Set initial selected model when brand models are loaded
+  useEffect(() => {
+    if (selectedBrand && brandModels.length > 0 && product.model) {
+      const modelId = findModelIdByName(product.model, selectedBrand);
+      if (modelId) {
+        console.log(`Found model ID ${modelId} for model name ${product.model} and brand ID ${selectedBrand}`);
+        setSelectedModelId(modelId);
+      } else {
+        console.log(`Model ID not found for name: ${product.model} and brand ID: ${selectedBrand}`);
+      }
+    }
+  }, [brandModels, product.model, selectedBrand, findModelIdByName]);
 
   React.useEffect(() => {
     setImages(
@@ -111,11 +130,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     selectBrand(brandId);
     setSelectedModelId(null);
     
-    const selectedBrand = brands.find(b => b.id === brandId);
-    if (selectedBrand) {
+    const brandName = findBrandNameById(brandId);
+    console.log(`Selected brand ID ${brandId} with name ${brandName}`);
+    
+    if (brandName) {
       setFormData({
         ...formData,
-        brand: selectedBrand.name,
+        brand: brandName,
         model: '' // Reset model when brand changes
       });
     }
@@ -125,11 +146,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   const handleModelChange = (modelId: string) => {
     setSelectedModelId(modelId);
     
-    const selectedModel = brandModels.find(m => m.id === modelId);
-    if (selectedModel) {
+    const modelName = findModelNameById(modelId);
+    console.log(`Selected model ID ${modelId} with name ${modelName}`);
+    
+    if (modelName) {
       setFormData({
         ...formData,
-        model: selectedModel.name
+        model: modelName
       });
     }
   };
@@ -172,9 +195,32 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const handleImageDelete = async (urlToDelete: string) => {
     try {
+      // Update state first for immediate UI feedback
       setImages(images.filter(url => url !== urlToDelete));
+      
+      // Then delete from the database
+      const { error } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', product.id)
+        .eq('url', urlToDelete);
+      
+      if (error) throw error;
+      
+      // If this was the primary image, set another image as primary
+      if (primaryImage === urlToDelete && images.length > 1) {
+        const newPrimaryUrl = images.find(url => url !== urlToDelete);
+        if (newPrimaryUrl) {
+          await handlePrimaryImageChange(newPrimaryUrl);
+        }
+      }
     } catch (error) {
-      console.error("Error updating images array after deletion:", error);
+      console.error("Error deleting image:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить фотографию",
+        variant: "destructive",
+      });
     }
   };
 
@@ -283,6 +329,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           onPrimaryImageChange={isCreator ? handlePrimaryImageChange : undefined}
           primaryImage={primaryImage}
           maxImages={25}
+          storageBucket="Product Images"
         />
       </div>
 

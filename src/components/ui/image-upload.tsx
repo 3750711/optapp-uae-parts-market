@@ -1,358 +1,159 @@
-import React, { useState, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { ImagePlus, X, Loader2, Camera } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { isImage } from "@/utils/imageCompression";
-import { optimizeImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
 
-interface ImageUploadProps {
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { UploadCloud, X, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { v4 as uuidv4 } from "uuid";
+import { compressImage } from "@/utils/imageCompression";
+
+export interface ImageUploadProps {
+  images: string[];
   onUpload: (urls: string[]) => void;
   onDelete: (url: string) => void;
-  images: string[];
   maxImages?: number;
+  storageBucket?: string;
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
+  images,
   onUpload,
   onDelete,
-  images,
-  maxImages = 10
+  maxImages = 10,
+  storageBucket = "product-images"
 }) => {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<number[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  // Check if device is mobile
-  const isMobile = useCallback(() => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  }, []);
-
-  // Function to generate previews for uploaded images
-  const generatePreviews = async (imageUrls: string[] = []) => {
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
-      console.log("Generating previews for images:", imageUrls);
+      setUploading(true);
+      setProgress(0);
       
-      if (imageUrls.length === 0) return;
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error("You must select an image to upload.");
+      }
+
+      const files = Array.from(event.target.files);
       
-      // Call the Edge Function to generate previews
-      const { data, error } = await supabase.functions.invoke('generate-preview', {
-        body: { 
-          action: 'regenerate_previews',
-          limit: imageUrls.length
+      if (images.length + files.length > maxImages) {
+        toast({
+          title: "Превышен лимит",
+          description: `Максимальное количество изображений: ${maxImages}`,
+          variant: "destructive",
+        });
+        setUploading(false);
+        return;
+      }
+
+      // Compress and upload each file
+      const uploadPromises = files.map(async (file, index) => {
+        try {
+          // Compress the image before uploading
+          const compressedFile = await compressImage(file, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+          });
+
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${uuidv4()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { data, error } = await supabase.storage
+            .from(storageBucket)
+            .upload(filePath, compressedFile);
+
+          if (error) {
+            throw error;
+          }
+
+          // Calculate progress for UI feedback
+          setProgress(Math.round(((index + 1) / files.length) * 100));
+
+          // Get the public URL
+          const { data: publicUrlData } = supabase.storage
+            .from(storageBucket)
+            .getPublicUrl(filePath);
+
+          return publicUrlData.publicUrl;
+        } catch (error) {
+          console.error("Error processing file:", file.name, error);
+          return null;
         }
       });
-      
-      if (error) {
-        console.error("Error generating previews:", error);
-      } else {
-        console.log("Preview generation response:", data);
-      }
-    } catch (err) {
-      console.error("Failed to generate previews:", err);
-    }
-  };
 
-  const uploadImages = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      const files = event.target.files;
-      if (!files || files.length === 0) return;
+      const uploadedUrls = await Promise.all(uploadPromises);
+      const validUrls = uploadedUrls.filter((url): url is string => url !== null);
 
-      setIsUploading(true);
-      const newUploadProgress = Array(files.length).fill(0);
-      setUploadProgress(newUploadProgress);
-      
-      const newUrls: string[] = [];
-      
-      logImageProcessing('BatchUploadStart', { fileCount: files.length });
-      
-      for (let i = 0; i < files.length; i++) {
-        if (images.length + newUrls.length >= maxImages) {
-          toast({
-            title: "Предупреждение",
-            description: `Достигнуто максимальное количество изображений (${maxImages})`,
-          });
-          break;
-        }
-        
-        const file = files[i];
-        // Проверка размера файла (не более 25 МБ)
-        if (file.size > 25 * 1024 * 1024) {
-          toast({
-            title: "Ошибка",
-            description: `Файл ${file.name} слишком большой. Максимальный размер - 25 МБ`,
-            variant: "destructive",
-          });
-          logImageProcessing('FileSizeError', {
-            fileName: file.name,
-            fileSize: `${(file.size / (1024 * 1024)).toFixed(2)} MB`,
-            maxSize: '25 MB'
-          });
-          continue;
-        }
-        
-        // Проверка типа файла
-        if (!isImage(file)) {
-          toast({
-            title: "Ошибка",
-            description: `Файл ${file.name} не является изображением`,
-            variant: "destructive",
-          });
-          logImageProcessing('FileTypeError', {
-            fileName: file.name,
-            fileType: file.type
-          });
-          continue;
-        }
-        
-        // Process the image using unified utility
-        newUploadProgress[i] = 10; // Show initial progress
-        setUploadProgress([...newUploadProgress]);
-        
-        // Now use optimizeImageForMarketplace instead of processImageForUpload
-        const optimizedFile = await optimizeImageForMarketplace(file);
-        
-        // Update progress for current file after processing
-        newUploadProgress[i] = 30;
-        setUploadProgress([...newUploadProgress]);
-        
-        // Generate unique filenames
-        const fileExt = optimizedFile.name.split('.').pop();
-        const uniqueId = `${Math.random().toString(36).substring(2, 10)}-${Date.now()}`;
-        const fileName = `${uniqueId}.${fileExt}`;
-
-        // Upload original file
-        const { error: uploadError, data } = await supabase.storage
-          .from('order-images')
-          .upload(fileName, optimizedFile, {
-            cacheControl: '3600',
-            contentType: optimizedFile.type,
-            upsert: false
-          });
-
-        if (uploadError) {
-          logImageProcessing('UploadError', {
-            fileName,
-            error: uploadError.message
-          });
-          toast({
-            title: "Ошибка",
-            description: `Не удалось загрузить ${file.name}: ${uploadError.message}`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
-        // Get the public URL for the original image
-        const { data: { publicUrl } } = supabase.storage
-          .from('order-images')
-          .getPublicUrl(fileName);
-        
-        // Since preview functionality is removed, we just log the upload
-        logImageProcessing('UploadComplete', {
-          url: publicUrl,
-          size: `${(optimizedFile.size / 1024).toFixed(2)}KB`
-        });
-
-        newUrls.push(publicUrl);
-        
-        // Update progress for current file
-        newUploadProgress[i] = 100;
-        setUploadProgress([...newUploadProgress]);
-      }
-
-      if (newUrls.length > 0) {
-        onUpload(newUrls);
+      if (validUrls.length > 0) {
+        onUpload(validUrls);
         toast({
-          title: "Успешно",
-          description: `Загружено ${newUrls.length} изображений`,
+          title: "Успех",
+          description: `Загружено ${validUrls.length} из ${files.length} изображений`,
         });
       }
     } catch (error) {
-      console.error('Error uploading image:', error);
-      logImageProcessing('UnexpectedError', { error: error instanceof Error ? error.message : String(error) });
+      console.error("Error uploading image:", error);
       toast({
         title: "Ошибка",
         description: "Не удалось загрузить изображение",
         variant: "destructive",
       });
     } finally {
-      setIsUploading(false);
-      setUploadProgress([]);
-      // Reset the file inputs after upload
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      if (cameraInputRef.current) cameraInputRef.current.value = '';
+      setUploading(false);
+      setProgress(0);
+      // Reset the input value to allow uploading the same file again
+      if (event.target.value) event.target.value = "";
     }
-  }, [images, maxImages, onUpload, setUploadProgress]);
-
-  const handleDelete = useCallback(async (url: string) => {
-    try {
-      // Extract the filename from the URL
-      const pathParts = url.split('/');
-      const fileName = pathParts[pathParts.length - 1];
-      
-      if (fileName) {
-        // Try to delete original image from storage
-        const { error } = await supabase.storage
-          .from('order-images')
-          .remove([fileName]);
-          
-        if (error) {
-          console.error("Error removing file from storage:", error);
-          // Continue with deletion even if storage removal fails
-        }
-        
-        // Try to delete preview image if it exists
-        try {
-          // Extract base name and construct preview filename
-          const baseName = fileName.substring(0, fileName.lastIndexOf('.'));
-          const extension = fileName.substring(fileName.lastIndexOf('.'));
-          const previewFileName = `${baseName}-preview${extension}`;
-          
-          await supabase.storage
-            .from('order-images')
-            .remove([previewFileName]);
-        } catch (previewError) {
-          console.warn("Could not delete preview image:", previewError);
-          // Continue even if preview deletion fails
-        }
-      }
-      
-      onDelete(url);
-      toast({
-        title: "Успешно",
-        description: "Изображение удалено",
-      });
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить изображение",
-        variant: "destructive",
-      });
-    }
-  }, [onDelete]);
-
-  // Функция для открытия диалога выбора файла из галереи
-  const handleChooseFromGallery = useCallback(() => {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-      fileInputRef.current.click();
-    }
-  }, []);
-
-  // Функция для открытия камеры
-  const handleOpenCamera = useCallback(() => {
-    if (cameraInputRef.current) {
-      cameraInputRef.current.value = '';
-      cameraInputRef.current.click();
-    }
-  }, []);
+  };
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {images.map((url, index) => (
-          <div key={`${url}-${index}`} className="relative group aspect-square">
-            <img
-              src={url}
-              alt={`Order image ${index + 1}`}
-              className="w-full h-full object-cover rounded-lg"
-              loading="lazy"
-              decoding="async"
-            />
-            <button
-              onClick={() => handleDelete(url)}
-              className="absolute top-2 right-2 p-1 bg-red-500 rounded-full text-white opacity-80 hover:opacity-100 transition-opacity"
-              disabled={isUploading}
-            >
-              <X className="h-4 w-4" />
-            </button>
+      {uploading ? (
+        <div className="bg-gray-50 border rounded-md p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium">Загрузка изображений...</span>
+            <span className="text-sm">{progress}%</span>
           </div>
-        ))}
-
-        {/* Показываем индикаторы загрузки */}
-        {isUploading && uploadProgress.map((progress, index) => (
-          <div key={`progress-${index}`} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
-              <span className="text-sm text-gray-500 mt-2">{progress}%</span>
-            </div>
+          <div className="w-full bg-gray-200 rounded-full h-2.5">
+            <div 
+              className="bg-blue-600 h-2.5 rounded-full" 
+              style={{ width: `${progress}%` }}
+            ></div>
           </div>
-        ))}
-        
-        {images.length < maxImages && (
-          <div 
-            className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
-            onClick={handleChooseFromGallery}
+        </div>
+      ) : (
+        <div className="border-2 border-dashed border-gray-300 rounded-md p-6 flex flex-col items-center justify-center bg-gray-50">
+          <UploadCloud className="h-8 w-8 text-gray-400 mb-2" />
+          <p className="text-sm text-gray-500 mb-4 text-center">
+            Нажмите или перетащите изображения для загрузки
+            <br />
+            <span className="text-xs">
+              {images.length}/{maxImages} изображений загружено
+            </span>
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={images.length >= maxImages}
+            className="relative"
           >
-            <div className="text-3xl text-gray-300">+</div>
-            <p className="text-sm text-gray-500">Добавить фото</p>
-          </div>
-        )}
-      </div>
-
-      {images.length < maxImages && (
-        <>
-          {/* Скрытые input'ы для выбора изображений */}
-          <input
-            type="file"
-            id="gallery-images"
-            ref={fileInputRef}
-            multiple
-            accept="image/*"
-            className="hidden"
-            onChange={uploadImages}
-            disabled={isUploading}
-          />
-          <input
-            type="file"
-            id="camera-images"
-            ref={cameraInputRef}
-            multiple
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={uploadImages}
-            disabled={isUploading}
-          />
-          
-          <div className="flex items-center gap-2">
-            <Button 
-              type="button"
-              variant="outline"
-              disabled={isUploading}
-              className="flex items-center gap-2 flex-1"
-              onClick={handleChooseFromGallery}
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Загрузка...
-                </>
-              ) : (
-                <>
-                  <ImagePlus className="h-4 w-4" />
-                  Галерея
-                </>
-              )}
-            </Button>
-            
-            {isMobile() && (
-              <Button 
-                type="button"
-                variant="outline"
-                disabled={isUploading}
-                className="flex items-center gap-2 flex-1"
-                onClick={handleOpenCamera}
-              >
-                <Camera className="h-4 w-4" />
-                Камера
-              </Button>
-            )}
-          </div>
-        </>
+            Выбрать изображения
+            <Input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleUpload}
+              disabled={uploading || images.length >= maxImages}
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              title="Выберите файлы для загрузки"
+            />
+          </Button>
+        </div>
       )}
     </div>
   );

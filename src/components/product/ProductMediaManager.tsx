@@ -17,6 +17,7 @@ interface ProductMediaManagerProps {
   onPrimaryImageChange?: (imageUrl: string) => void;
   primaryImage?: string;
   maxImages?: number;
+  storageBucket?: string;
 }
 
 const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
@@ -28,7 +29,8 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   onVideosChange,
   onPrimaryImageChange,
   primaryImage,
-  maxImages = 25
+  maxImages = 25,
+  storageBucket = "Product Images"
 }) => {
   const { toast } = useToast();
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
@@ -157,7 +159,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
           onUpload={onImageUpload}
           onDelete={handleImageDelete}
           maxImages={maxImages}
-          storageBucket="Product Images"
+          storageBucket={storageBucket}
         />
       </div>
       <div>
