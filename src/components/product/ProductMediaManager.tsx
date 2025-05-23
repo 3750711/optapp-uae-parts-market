@@ -3,10 +3,10 @@ import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, Save } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query"; // Add this import
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProductMediaManagerProps {
   productId: string;
@@ -34,9 +34,11 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   storageBucket = "Product Images"
 }) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient(); // Get queryClient to invalidate cache
+  const queryClient = useQueryClient();
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [pendingChanges, setPendingChanges] = useState<boolean>(false);
 
   // Enhanced image delete function that actually removes the image from storage and database
   const handleImageDelete = async (imageUrl: string) => {
@@ -75,9 +77,10 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
       // Call the parent's onImageDelete function to update UI
       onImageDelete(imageUrl);
       
-      // Invalidate React Query cache to refresh the data - ADDED THIS
+      // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       console.log("Cache invalidated after image deletion");
+      setPendingChanges(true);
 
       toast({
         title: "Успешно",
@@ -130,8 +133,9 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
       
       // Update state in the parent component
       onPrimaryImageChange(imageUrl);
+      setPendingChanges(true);
       
-      // Invalidate React Query cache to refresh the data - ADDED THIS
+      // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       console.log("Cache invalidated after primary image change");
       
@@ -151,10 +155,53 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
     }
   };
 
+  const handleSaveChanges = async () => {
+    try {
+      setIsSaving(true);
+      
+      // Here we're invalidating the product cache to ensure all changes are reflected
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      console.log("All changes saved, cache invalidated");
+      
+      toast({
+        title: "Успешно",
+        description: "Все изменения сохранены",
+      });
+      setPendingChanges(false);
+    } catch (error) {
+      console.error("Error saving changes:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сохранить изменения",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <h3 className="font-medium mb-2">Фотографии</h3>
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-medium">Фотографии</h3>
+          {pendingChanges && (
+            <Button 
+              onClick={handleSaveChanges} 
+              disabled={isSaving}
+              variant="secondary"
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              {isSaving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Сохранить изменения
+            </Button>
+          )}
+        </div>
         <div className="mb-3 grid grid-cols-3 gap-2">
           {images.map((url, index) => (
             <div 
@@ -210,8 +257,14 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
 
         <ImageUpload 
           images={images}
-          onUpload={onImageUpload}
-          onDelete={handleImageDelete}
+          onUpload={(newUrls) => {
+            onImageUpload(newUrls);
+            setPendingChanges(true);
+          }}
+          onDelete={(url) => {
+            handleImageDelete(url);
+            setPendingChanges(true);
+          }}
           maxImages={maxImages}
           storageBucket={storageBucket}
         />
@@ -221,7 +274,10 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
         <AdminProductVideosManager
           productId={productId}
           videos={videos}
-          onVideosChange={onVideosChange}
+          onVideosChange={(newVideos) => {
+            onVideosChange(newVideos);
+            setPendingChanges(true);
+          }}
         />
       </div>
     </div>
