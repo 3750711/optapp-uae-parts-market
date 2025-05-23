@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query"; // Add this import
 
 interface ProductMediaManagerProps {
   productId: string;
@@ -33,6 +34,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   storageBucket = "Product Images"
 }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient(); // Get queryClient to invalidate cache
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
 
@@ -72,6 +74,10 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
 
       // Call the parent's onImageDelete function to update UI
       onImageDelete(imageUrl);
+      
+      // Invalidate React Query cache to refresh the data - ADDED THIS
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      console.log("Cache invalidated after image deletion");
 
       toast({
         title: "Успешно",
@@ -103,7 +109,11 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
         .update({ is_primary: false })
         .eq('product_id', productId);
       
-      if (resetError) throw resetError;
+      if (resetError) {
+        console.error("Error resetting primary status:", resetError);
+        throw resetError;
+      }
+      console.log("Reset all images to non-primary successfully");
       
       // Then set the selected image as primary
       const { error } = await supabase
@@ -112,11 +122,18 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
         .eq('product_id', productId)
         .eq('url', imageUrl);
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error setting image as primary:", error);
+        throw error;
+      }
       console.log("Database updated successfully for primary image");
       
       // Update state in the parent component
       onPrimaryImageChange(imageUrl);
+      
+      // Invalidate React Query cache to refresh the data - ADDED THIS
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      console.log("Cache invalidated after primary image change");
       
       toast({
         title: "Успешно",
