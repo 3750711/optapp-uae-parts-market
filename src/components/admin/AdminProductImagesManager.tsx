@@ -1,12 +1,11 @@
 
-// Assuming this component is similar to ProductMediaManager
-// but without implementation details provided, we need to update its prop types
 import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface AdminProductImagesManagerProps {
   productId: string;
@@ -26,10 +25,13 @@ export const AdminProductImagesManager = ({
   const { toast } = useToast();
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   // Handle image upload
   const handleImageUpload = async (newUrls: string[]) => {
     try {
+      console.log("Uploading new images:", newUrls);
+      
       const imageInserts = newUrls.map(url => ({
         product_id: productId,
         url: url,
@@ -47,8 +49,11 @@ export const AdminProductImagesManager = ({
       
       // If no primary image is set, set the first new image as primary
       if (!primaryImage && newUrls.length > 0 && onPrimaryImageChange) {
-        onPrimaryImageChange(newUrls[0]);
+        await handleSetPrimaryImage(newUrls[0]);
       }
+      
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       
       toast({
         title: "Успех",
@@ -77,8 +82,9 @@ export const AdminProductImagesManager = ({
 
     try {
       setDeletingImage(urlToDelete);
+      console.log("Deleting image:", urlToDelete);
 
-      // Delete the image record from the database
+      // First delete the image record from the database
       const { error } = await supabase
         .from('product_images')
         .delete()
@@ -86,18 +92,23 @@ export const AdminProductImagesManager = ({
         .eq('url', urlToDelete);
 
       if (error) throw error;
+      console.log("Successfully deleted image from database");
 
       // If this was the primary image, set another image as primary
       if (primaryImage === urlToDelete && images.length > 1 && onPrimaryImageChange) {
         const newPrimaryUrl = images.find(img => img !== urlToDelete);
         if (newPrimaryUrl) {
-          onPrimaryImageChange(newPrimaryUrl);
+          console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
+          await handleSetPrimaryImage(newPrimaryUrl);
         }
       }
 
-      // Update UI
+      // Update UI after successful DB operation
       const updatedImages = images.filter(url => url !== urlToDelete);
       onImagesChange(updatedImages);
+      
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
 
       toast({
         title: "Успех",
@@ -121,7 +132,36 @@ export const AdminProductImagesManager = ({
     
     try {
       setSettingPrimary(imageUrl);
+      console.log("Setting primary image:", imageUrl);
+      
+      // First reset all images for this product to not primary
+      const { error: resetError } = await supabase
+        .from('product_images')
+        .update({ is_primary: false })
+        .eq('product_id', productId);
+      
+      if (resetError) throw resetError;
+      
+      // Then set the selected image as primary
+      const { error } = await supabase
+        .from('product_images')
+        .update({ is_primary: true })
+        .eq('product_id', productId)
+        .eq('url', imageUrl);
+      
+      if (error) throw error;
+      console.log("Database updated successfully for primary image");
+      
+      // Update parent state
       onPrimaryImageChange(imageUrl);
+      
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      
+      toast({
+        title: "Успех",
+        description: "Основное фото обновлено",
+      });
     } catch (error) {
       console.error("Error setting primary image:", error);
       toast({
@@ -157,7 +197,11 @@ export const AdminProductImagesManager = ({
                   onClick={() => handleSetPrimaryImage(url)}
                   disabled={settingPrimary === url || primaryImage === url}
                 >
-                  <Check className="h-4 w-4" />
+                  {settingPrimary === url ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
                 </Button>
               )}
               <Button
@@ -169,7 +213,11 @@ export const AdminProductImagesManager = ({
                 disabled={deletingImage === url || images.length <= 1}
               >
                 <span className="sr-only">Удалить</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                {deletingImage === url ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                )}
               </Button>
             </div>
             {primaryImage === url && (

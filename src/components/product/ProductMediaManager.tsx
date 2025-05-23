@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { Button } from "@/components/ui/button";
-import { Check, StarIcon } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -49,6 +49,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
 
     try {
       setDeletingImage(imageUrl);
+      console.log("Deleting image:", imageUrl);
 
       // First, delete the image record from the database
       const { error: dbError } = await supabase
@@ -58,11 +59,13 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
         .eq('url', imageUrl);
 
       if (dbError) throw dbError;
+      console.log("Successfully deleted from database");
 
       // If this was the primary image, set another image as primary
       if (primaryImage === imageUrl && images.length > 1 && onPrimaryImageChange) {
         const newPrimaryUrl = images.find(img => img !== imageUrl);
         if (newPrimaryUrl) {
+          console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
           await handleSetPrimaryImage(newPrimaryUrl);
         }
       }
@@ -92,7 +95,33 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
     
     try {
       setSettingPrimary(imageUrl);
+      console.log("Setting primary image:", imageUrl);
+      
+      // First, reset all images for this product to not primary
+      const { error: resetError } = await supabase
+        .from('product_images')
+        .update({ is_primary: false })
+        .eq('product_id', productId);
+      
+      if (resetError) throw resetError;
+      
+      // Then set the selected image as primary
+      const { error } = await supabase
+        .from('product_images')
+        .update({ is_primary: true })
+        .eq('product_id', productId)
+        .eq('url', imageUrl);
+      
+      if (error) throw error;
+      console.log("Database updated successfully for primary image");
+      
+      // Update state in the parent component
       onPrimaryImageChange(imageUrl);
+      
+      toast({
+        title: "Успешно",
+        description: "Основное фото установлено",
+      });
     } catch (error) {
       console.error("Error setting primary image:", error);
       toast({
@@ -130,7 +159,11 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
                     onClick={() => handleSetPrimaryImage(url)}
                     disabled={settingPrimary === url || primaryImage === url}
                   >
-                    <Check className="h-4 w-4" />
+                    {settingPrimary === url ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
                   </Button>
                 )}
                 <Button
@@ -142,7 +175,11 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
                   disabled={deletingImage === url || images.length <= 1}
                 >
                   <span className="sr-only">Удалить</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  {deletingImage === url ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                  )}
                 </Button>
               </div>
               {primaryImage === url && (

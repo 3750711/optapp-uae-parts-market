@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AdminProductImagesManager } from "./AdminProductImagesManager";
 import { AdminProductVideosManager } from "./AdminProductVideosManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useQueryClient } from "@tanstack/react-query";
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Название должно содержать не менее 2 символов" }),
@@ -66,6 +66,7 @@ export const ProductEditDialog = ({
   setOpen,
 }: ProductEditDialogProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient(); // Get queryClient to invalidate cache
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
@@ -114,11 +115,15 @@ export const ProductEditDialog = ({
 
   const handlePrimaryImageChange = async (imageUrl: string) => {
     try {
+      console.log("Setting primary image in ProductEditDialog:", imageUrl);
+      
       // First, reset all images for this product to not primary
-      await supabase
+      const { error: resetError } = await supabase
         .from('product_images')
         .update({ is_primary: false })
         .eq('product_id', product.id);
+      
+      if (resetError) throw resetError;
       
       // Then set the selected image as primary
       const { error } = await supabase
@@ -130,6 +135,10 @@ export const ProductEditDialog = ({
       if (error) throw error;
       
       setPrimaryImage(imageUrl);
+      
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      
       toast({
         title: "Успех",
         description: "Основное фото обновлено",
@@ -169,10 +178,14 @@ export const ProductEditDialog = ({
         variant: "destructive",
       });
     } else {
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      
       toast({
         title: "Успех",
         description: "Товар успешно обновлен",
       });
+      
       handleOpenChange(false);
       if (onSuccess) onSuccess();
     }
