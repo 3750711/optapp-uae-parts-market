@@ -51,12 +51,13 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       // Compress and upload each file
       const uploadPromises = files.map(async (file, index) => {
         try {
-          // Compress the image before uploading
-          const compressedFile = await compressImage(file, {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            useWebWorker: true,
-          });
+          // Fix: Pass the compression options as separate parameters instead of as an object
+          const compressedFile = await compressImage(
+            file,
+            1920, // maxWidth
+            1920, // maxHeight
+            0.8   // quality
+          );
 
           const fileExt = file.name.split(".").pop();
           const fileName = `${uuidv4()}.${fileExt}`;
