@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import SearchBar from "@/components/catalog/SearchBar";
@@ -17,7 +17,9 @@ const Catalog: React.FC = () => {
     brandModels,
     selectedBrand,
     selectBrand,
-    isLoading: isLoadingBrands
+    isLoading: isLoadingBrands,
+    findBrandNameById,
+    findModelNameById
   } = useCarBrandsAndModels();
 
   // Products data and filter logic
@@ -28,6 +30,10 @@ const Catalog: React.FC = () => {
     hasSearched,
     selectedModel,
     setSelectedModel,
+    selectedBrandName,
+    setSelectedBrandName,
+    selectedModelName,
+    setSelectedModelName,
     hideSoldProducts,
     setHideSoldProducts,
     allProducts,
@@ -42,6 +48,27 @@ const Catalog: React.FC = () => {
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts(productsPerPage);
+
+  // Update brand and model names when IDs change
+  useEffect(() => {
+    if (selectedBrand) {
+      const brandName = findBrandNameById(selectedBrand);
+      console.log('Selected brand ID:', selectedBrand, 'Brand name:', brandName);
+      setSelectedBrandName(brandName);
+    } else {
+      setSelectedBrandName(null);
+    }
+  }, [selectedBrand, findBrandNameById, setSelectedBrandName]);
+
+  useEffect(() => {
+    if (selectedModel) {
+      const modelName = findModelNameById(selectedModel);
+      console.log('Selected model ID:', selectedModel, 'Model name:', modelName);
+      setSelectedModelName(modelName);
+    } else {
+      setSelectedModelName(null);
+    }
+  }, [selectedModel, findModelNameById, setSelectedModelName]);
 
   return (
     <Layout>

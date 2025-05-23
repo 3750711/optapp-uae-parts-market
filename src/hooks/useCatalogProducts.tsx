@@ -30,6 +30,8 @@ export interface CatalogFilters {
   selectedBrand: string | null;
   selectedModel: string | null;
   hideSoldProducts: boolean;
+  selectedBrandName: string | null;
+  selectedModelName: string | null;
 }
 
 export const useCatalogProducts = (productsPerPage = 8) => {
@@ -38,6 +40,8 @@ export const useCatalogProducts = (productsPerPage = 8) => {
   const [hasSearched, setHasSearched] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [selectedBrandName, setSelectedBrandName] = useState<string | null>(null);
+  const [selectedModelName, setSelectedModelName] = useState<string | null>(null);
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
 
@@ -59,6 +63,7 @@ export const useCatalogProducts = (productsPerPage = 8) => {
   // Reset model when brand changes
   useEffect(() => {
     setSelectedModel(null);
+    setSelectedModelName(null);
   }, [selectedBrand]);
 
   // Memoize filters to use in query key
@@ -66,8 +71,10 @@ export const useCatalogProducts = (productsPerPage = 8) => {
     debouncedSearchQuery,
     selectedBrand,
     selectedModel,
-    hideSoldProducts
-  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts]);
+    hideSoldProducts,
+    selectedBrandName,
+    selectedModelName
+  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, selectedBrandName, selectedModelName]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -97,7 +104,7 @@ export const useCatalogProducts = (productsPerPage = 8) => {
       }
 
       // Apply search filters
-      if (filters.debouncedSearchQuery || filters.selectedBrand || filters.selectedModel) {
+      if (filters.debouncedSearchQuery || filters.selectedBrandName || filters.selectedModelName) {
         let conditions = [];
         
         // Text search with partial matching
@@ -118,14 +125,24 @@ export const useCatalogProducts = (productsPerPage = 8) => {
           });
         }
         
-        // Brand filter
-        if (filters.selectedBrand) {
-          query = query.ilike('brand', `%${filters.selectedBrand}%`);
+        // Log search parameters for debugging
+        console.log('Search filters:', {
+          brandId: filters.selectedBrand,
+          brandName: filters.selectedBrandName,
+          modelId: filters.selectedModel,
+          modelName: filters.selectedModelName
+        });
+        
+        // Brand filter - now using the actual brand name
+        if (filters.selectedBrandName) {
+          console.log('Filtering by brand name:', filters.selectedBrandName);
+          query = query.ilike('brand', filters.selectedBrandName);
         }
         
-        // Model filter (only if brand is selected)
-        if (filters.selectedModel && filters.selectedBrand) {
-          query = query.ilike('model', `%${filters.selectedModel}%`);
+        // Model filter - now using the actual model name
+        if (filters.selectedModelName && filters.selectedBrandName) {
+          console.log('Filtering by model name:', filters.selectedModelName);
+          query = query.ilike('model', filters.selectedModelName);
         }
         
         // Apply text search conditions with OR logic
@@ -134,6 +151,7 @@ export const useCatalogProducts = (productsPerPage = 8) => {
         }
       }
 
+      console.log('Final query filters:', query);
       const { data, error } = await query.range(from, to);
       
       if (error) {
@@ -141,6 +159,7 @@ export const useCatalogProducts = (productsPerPage = 8) => {
         throw new Error('Failed to fetch products');
       }
       
+      console.log(`Fetched ${data?.length || 0} products for page ${pageParam}`);
       return data || [];
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -185,6 +204,8 @@ export const useCatalogProducts = (productsPerPage = 8) => {
     setSearchQuery('');
     setSelectedBrand(null);
     setSelectedModel(null);
+    setSelectedBrandName(null);
+    setSelectedModelName(null);
     setHasSearched(false);
   }, []);
 
@@ -272,9 +293,15 @@ export const useCatalogProducts = (productsPerPage = 8) => {
     debouncedSearchQuery,
     hasSearched,
     selectedBrand,
-    setSelectedBrand: (brand: string | null) => setSelectedBrand(brand),
+    setSelectedBrand: (brand: string | null) => {
+      setSelectedBrand(brand);
+    },
     selectedModel,
     setSelectedModel,
+    selectedBrandName,
+    setSelectedBrandName,
+    selectedModelName,
+    setSelectedModelName,
     hideSoldProducts,
     setHideSoldProducts,
     allProducts,
