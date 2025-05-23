@@ -28,3 +28,23 @@ export const compressImage = async (
     return imageFile; // Return original file if compression fails
   }
 };
+
+/**
+ * Checks if a file is an image based on its MIME type
+ * 
+ * @param file - The file to check
+ * @returns boolean - True if the file is an image
+ */
+export const isImage = (file: File): boolean => {
+  return file.type.startsWith('image/');
+};
+
+/**
+ * Checks if a file is a video based on its MIME type
+ * 
+ * @param file - The file to check
+ * @returns boolean - True if the file is a video
+ */
+export const isVideo = (file: File): boolean => {
+  return file.type.startsWith('video/');
+};
