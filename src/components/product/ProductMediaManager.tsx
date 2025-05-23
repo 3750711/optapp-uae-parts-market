@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, StarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -90,29 +90,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
     
     try {
       setSettingPrimary(imageUrl);
-      
-      // Update the database - set all images for this product to not primary
-      await supabase
-        .from('product_images')
-        .update({ is_primary: false })
-        .eq('product_id', productId);
-      
-      // Set the selected image as primary
-      const { error } = await supabase
-        .from('product_images')
-        .update({ is_primary: true })
-        .eq('product_id', productId)
-        .eq('url', imageUrl);
-      
-      if (error) throw error;
-      
-      // Update the UI through parent component
       onPrimaryImageChange(imageUrl);
-      
-      toast({
-        title: "Успешно",
-        description: "Основное фото изменено",
-      });
     } catch (error) {
       console.error("Error setting primary image:", error);
       toast({
@@ -128,11 +106,12 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <div className="mb-2 flex flex-wrap gap-2">
+        <h3 className="font-medium mb-2">Фотографии</h3>
+        <div className="mb-3 grid grid-cols-3 gap-2">
           {images.map((url, index) => (
             <div 
               key={url} 
-              className={`relative group rounded-md overflow-hidden border aspect-square w-24 h-24 ${primaryImage === url ? 'ring-2 ring-blue-500' : ''}`}
+              className={`relative group rounded-md overflow-hidden border aspect-square ${primaryImage === url ? 'ring-2 ring-blue-500' : ''}`}
             >
               <img 
                 src={url} 
@@ -143,9 +122,9 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
                 {onPrimaryImageChange && (
                   <Button
                     type="button"
-                    size="icon"
+                    size="sm"
                     variant="secondary"
-                    className="h-7 w-7 rounded-full"
+                    className="h-7 w-7 rounded-full p-0"
                     onClick={() => handleSetPrimaryImage(url)}
                     disabled={settingPrimary === url || primaryImage === url}
                   >
@@ -154,11 +133,11 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
                 )}
                 <Button
                   type="button"
-                  size="icon"
+                  size="sm"
                   variant="destructive"
-                  className="h-7 w-7 rounded-full"
+                  className="h-7 w-7 rounded-full p-0"
                   onClick={() => handleImageDelete(url)}
-                  disabled={deletingImage === url}
+                  disabled={deletingImage === url || images.length <= 1}
                 >
                   <span className="sr-only">Удалить</span>
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -178,9 +157,11 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
           onUpload={onImageUpload}
           onDelete={handleImageDelete}
           maxImages={maxImages}
+          storageBucket="Product Images"
         />
       </div>
       <div>
+        <h3 className="font-medium mb-2">Видео</h3>
         <AdminProductVideosManager
           productId={productId}
           videos={videos}

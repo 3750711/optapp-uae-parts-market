@@ -178,8 +178,36 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     }
   };
 
-  const handlePrimaryImageChange = (imageUrl: string) => {
-    setPrimaryImage(imageUrl);
+  const handlePrimaryImageChange = async (imageUrl: string) => {
+    try {
+      // First reset all images for this product to not primary
+      await supabase
+        .from('product_images')
+        .update({ is_primary: false })
+        .eq('product_id', product.id);
+      
+      // Then set the selected image as primary
+      const { error } = await supabase
+        .from('product_images')
+        .update({ is_primary: true })
+        .eq('product_id', product.id)
+        .eq('url', imageUrl);
+      
+      if (error) throw error;
+      
+      setPrimaryImage(imageUrl);
+      toast({
+        title: "Обновлено",
+        description: "Основное фото изменено",
+      });
+    } catch (error) {
+      console.error("Error setting primary image:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось изменить основное фото",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -238,13 +266,13 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-md mx-auto w-full flex flex-col ${isMobile ? "gap-2 p-2" : "md:flex-row gap-6 p-4 max-w-3xl"}`}
+      className={`bg-white rounded-2xl shadow-md mx-auto w-full flex flex-col ${isMobile ? "gap-2 p-2" : "md:flex-row gap-6 p-6 max-w-3xl"}`}
       style={{
         minHeight: "440px",
         maxWidth: isMobile ? "100vw" : "98vw",
       }}
     >
-      <div className={isMobile ? "mb-2 border-b pb-3" : "flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-4 md:border-gray-100"}>
+      <div className={isMobile ? "mb-2 border-b pb-3" : "flex flex-col gap-4 md:w-2/5 w-full border-r-0 md:border-r md:pr-6 md:border-gray-100"}>
         <ProductMediaManager
           productId={product.id}
           images={images}
@@ -258,7 +286,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         />
       </div>
 
-      <div className="flex-1 flex flex-col gap-1 sm:gap-2">
+      <div className="flex-1 flex flex-col gap-3 sm:gap-4">
         <ProductForm
           formData={formData}
           setFormData={setFormData}
