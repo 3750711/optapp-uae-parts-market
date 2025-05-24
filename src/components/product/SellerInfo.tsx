@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { HelpCircle, Star, User, Store, Copy, CheckCheck } from "lucide-react";
+import { HelpCircle, Star, User, Store, Copy, CheckCheck, Wrench } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -121,7 +122,8 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
             </div>}
         </div>
         
-        {storeInfo && <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 flex justify-between items-center">
+        {storeInfo ? (
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 flex justify-between items-center">
             <div className="flex items-center">
               <Store className="h-5 w-5 mr-2 text-primary" />
               <div>
@@ -134,7 +136,16 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
                 Посмотреть магазин
               </Link>
             </Button>
-          </div>}
+          </div>
+        ) : (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-100 rounded-lg p-3 border border-amber-200 flex items-center">
+            <Wrench className="h-5 w-5 mr-2 text-amber-600" />
+            <div>
+              <div className="font-medium text-amber-800">Профессиональный подбор запчастей</div>
+              <div className="text-sm text-amber-700">Продавец специализируется на индивидуальном подборе автозапчастей</div>
+            </div>
+          </div>
+        )}
         
         {sellerProfile?.description_user && <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
             <p className="text-sm text-gray-700 whitespace-pre-wrap">{sellerProfile.description_user}</p>
