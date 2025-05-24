@@ -902,6 +902,10 @@ export type Database = {
         }
         Returns: string
       }
+      admin_delete_store: {
+        Args: { p_store_id: string }
+        Returns: boolean
+      }
       admin_insert_product_image: {
         Args: { p_product_id: string; p_url: string; p_is_primary?: boolean }
         Returns: undefined

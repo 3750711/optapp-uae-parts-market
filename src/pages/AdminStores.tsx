@@ -139,6 +139,99 @@ const AdminStores = () => {
     enabled: isAdmin
   });
 
+  // Enhanced delete store mutation with detailed logging
+  const deleteStoreMutation = useMutation({
+    mutationFn: async (storeId: string) => {
+      console.log('🔥 DELETION PROCESS STARTED');
+      console.log('Store ID to delete:', storeId);
+      console.log('Current user admin status:', isAdmin);
+      
+      try {
+        // Check admin status first
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', (await supabase.auth.getUser()).data.user?.id)
+          .single();
+          
+        console.log('Profile check result:', { profile, profileError });
+        
+        if (profileError || profile?.user_type !== 'admin') {
+          throw new Error('Недостаточно прав для удаления магазина');
+        }
+        
+        console.log('✅ Admin rights confirmed');
+        
+        // Check if store exists before deletion
+        const { data: storeExists, error: checkError } = await supabase
+          .from('stores')
+          .select('id, name')
+          .eq('id', storeId)
+          .single();
+          
+        console.log('Store existence check:', { storeExists, checkError });
+        
+        if (checkError || !storeExists) {
+          throw new Error('Магазин не найден или уже удален');
+        }
+        
+        console.log('✅ Store exists, proceeding with deletion');
+        
+        // Call the admin function to delete store safely
+        console.log('🚀 Calling admin_delete_store RPC function...');
+        const { data, error } = await supabase
+          .rpc('admin_delete_store', { p_store_id: storeId });
+        
+        console.log('RPC function response:', { data, error });
+        
+        if (error) {
+          console.error('❌ RPC function error:', error);
+          throw new Error(`Ошибка функции удаления: ${error.message}`);
+        }
+        
+        if (data !== true) {
+          console.error('❌ RPC function returned unexpected result:', data);
+          throw new Error('Функция удаления вернула неожиданный результат');
+        }
+        
+        console.log('✅ Store deletion completed successfully');
+        return storeId;
+      } catch (error: any) {
+        console.error('💥 Error in store deletion process:', error);
+        
+        // More detailed error information
+        if (error.code) {
+          console.error('Error code:', error.code);
+        }
+        if (error.details) {
+          console.error('Error details:', error.details);
+        }
+        if (error.hint) {
+          console.error('Error hint:', error.hint);
+        }
+        
+        throw error;
+      }
+    },
+    onSuccess: (deletedStoreId) => {
+      console.log('🎉 Store deletion successful for ID:', deletedStoreId);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
+      toast.success('Магазин успешно удален');
+      setIsDeleteDialogOpen(false);
+      setStoreToDelete(null);
+    },
+    onError: (error: any) => {
+      console.error('💀 Store deletion failed:', error);
+      
+      // Show detailed error message to user
+      const errorMessage = error.message || 'Неизвестная ошибка при удалении магазина';
+      toast.error(`Ошибка при удалении магазина: ${errorMessage}`);
+      
+      // Log additional error details for debugging
+      console.error('Full error object:', error);
+    }
+  });
+
   // Update store mutation
   const updateStoreMutation = useMutation({
     mutationFn: async (store: Partial<StoreWithDetails>) => {
@@ -221,41 +314,6 @@ const AdminStores = () => {
     }
   });
 
-  // Delete store mutation - updated to use admin function
-  const deleteStoreMutation = useMutation({
-    mutationFn: async (storeId: string) => {
-      console.log('Starting store deletion for ID:', storeId);
-      
-      try {
-        // Use the admin function to delete store safely
-        const { data, error } = await supabase
-          .rpc('admin_delete_store', { p_store_id: storeId });
-        
-        if (error) {
-          console.error('Error calling admin_delete_store:', error);
-          throw error;
-        }
-        
-        console.log('Store deletion completed successfully');
-        return storeId;
-      } catch (error) {
-        console.error('Error in store deletion process:', error);
-        throw error;
-      }
-    },
-    onSuccess: (deletedStoreId) => {
-      console.log('Store deletion successful for ID:', deletedStoreId);
-      queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
-      toast.success('Магазин успешно удален');
-      setIsDeleteDialogOpen(false);
-      setStoreToDelete(null);
-    },
-    onError: (error: any) => {
-      console.error('Store deletion failed:', error);
-      toast.error(`Ошибка при удалении магазина: ${error.message || 'Неизвестная ошибка'}`);
-    }
-  });
-
   const handleEditStore = async (store: StoreWithDetails) => {
     setSelectedStore(store);
     setEditedStore({
@@ -288,17 +346,22 @@ const AdminStores = () => {
   };
 
   const handleDeleteStore = (store: StoreWithDetails) => {
-    console.log('Delete button clicked for store:', store.name, 'ID:', store.id);
+    console.log('🗑️ Delete button clicked for store:', store.name, 'ID:', store.id);
+    console.log('Store data:', store);
     setStoreToDelete(store);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDeleteStore = () => {
     if (storeToDelete) {
-      console.log('Confirming deletion for store:', storeToDelete.name, 'ID:', storeToDelete.id);
+      console.log('✅ Confirming deletion for store:', storeToDelete.name, 'ID:', storeToDelete.id);
+      console.log('Admin status:', isAdmin);
+      console.log('Mutation pending status:', deleteStoreMutation.isPending);
+      
       deleteStoreMutation.mutate(storeToDelete.id);
     } else {
-      console.error('No store selected for deletion');
+      console.error('❌ No store selected for deletion');
+      toast.error('Ошибка: магазин не выбран для удаления');
     }
   };
 
@@ -719,7 +782,7 @@ const AdminStores = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Delete Store Dialog */}
+        {/* Enhanced Delete Store Dialog */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -729,10 +792,18 @@ const AdminStores = () => {
               <AlertDialogDescription>
                 Вы уверены, что хотите удалить магазин "{storeToDelete?.name}"? Это действие нельзя отменить.
                 Также будут удалены все связанные с магазином данные: изображения, отзывы и связи с марками и моделями автомобилей.
+                
+                {deleteStoreMutation.isPending && (
+                  <div className="mt-2 text-sm text-blue-600">
+                    Выполняется удаление, пожалуйста подождите...
+                  </div>
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Отмена</AlertDialogCancel>
+              <AlertDialogCancel disabled={deleteStoreMutation.isPending}>
+                Отмена
+              </AlertDialogCancel>
               <AlertDialogAction 
                 onClick={confirmDeleteStore} 
                 className="bg-destructive hover:bg-destructive/90"
