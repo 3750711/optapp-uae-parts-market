@@ -221,60 +221,88 @@ const AdminStores = () => {
     }
   });
 
-  // Delete store mutation
+  // Delete store mutation - fixed version
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: string) => {
-      // First delete all store car brands associations
-      const { error: brandsError } = await supabase
-        .from('store_car_brands')
-        .delete()
-        .eq('store_id', storeId);
+      console.log('Starting store deletion for ID:', storeId);
       
-      if (brandsError) throw brandsError;
-      
-      // Delete all store car models associations
-      const { error: modelsError } = await supabase
-        .from('store_car_models')
-        .delete()
-        .eq('store_id', storeId);
-      
-      if (modelsError) throw modelsError;
-      
-      // Delete all store reviews
-      const { error: reviewsError } = await supabase
-        .from('store_reviews')
-        .delete()
-        .eq('store_id', storeId);
-      
-      if (reviewsError) throw reviewsError;
-      
-      // Delete all store images
-      const { error: imagesError } = await supabase
-        .from('store_images')
-        .delete()
-        .eq('store_id', storeId);
-      
-      if (imagesError) throw imagesError;
-      
-      // Finally delete the store
-      const { error } = await supabase
-        .from('stores')
-        .delete()
-        .eq('id', storeId);
-      
-      if (error) throw error;
-      
-      return storeId;
+      try {
+        // Delete all store car brands associations
+        const { error: brandsError } = await supabase
+          .from('store_car_brands')
+          .delete()
+          .eq('store_id', storeId);
+        
+        if (brandsError) {
+          console.error('Error deleting store car brands:', brandsError);
+          throw brandsError;
+        }
+        console.log('Deleted store car brands');
+        
+        // Delete all store car models associations
+        const { error: modelsError } = await supabase
+          .from('store_car_models')
+          .delete()
+          .eq('store_id', storeId);
+        
+        if (modelsError) {
+          console.error('Error deleting store car models:', modelsError);
+          throw modelsError;
+        }
+        console.log('Deleted store car models');
+        
+        // Delete all store reviews
+        const { error: reviewsError } = await supabase
+          .from('store_reviews')
+          .delete()
+          .eq('store_id', storeId);
+        
+        if (reviewsError) {
+          console.error('Error deleting store reviews:', reviewsError);
+          throw reviewsError;
+        }
+        console.log('Deleted store reviews');
+        
+        // Delete all store images
+        const { error: imagesError } = await supabase
+          .from('store_images')
+          .delete()
+          .eq('store_id', storeId);
+        
+        if (imagesError) {
+          console.error('Error deleting store images:', imagesError);
+          throw imagesError;
+        }
+        console.log('Deleted store images');
+        
+        // Finally delete the store
+        const { error: storeError } = await supabase
+          .from('stores')
+          .delete()
+          .eq('id', storeId);
+        
+        if (storeError) {
+          console.error('Error deleting store:', storeError);
+          throw storeError;
+        }
+        console.log('Deleted store successfully');
+        
+        return storeId;
+      } catch (error) {
+        console.error('Error in store deletion process:', error);
+        throw error;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (deletedStoreId) => {
+      console.log('Store deletion successful for ID:', deletedStoreId);
       queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
-      toast.success('Магазин удален');
+      toast.success('Магазин успешно удален');
       setIsDeleteDialogOpen(false);
       setStoreToDelete(null);
     },
-    onError: (error) => {
-      console.error('Error deleting store:', error);
-      toast.error('Ошибка при удалении магазина');
+    onError: (error: any) => {
+      console.error('Store deletion failed:', error);
+      toast.error(`Ошибка при удалении магазина: ${error.message || 'Неизвестная ошибка'}`);
     }
   });
 
@@ -310,13 +338,17 @@ const AdminStores = () => {
   };
 
   const handleDeleteStore = (store: StoreWithDetails) => {
+    console.log('Delete button clicked for store:', store.name, 'ID:', store.id);
     setStoreToDelete(store);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDeleteStore = () => {
     if (storeToDelete) {
+      console.log('Confirming deletion for store:', storeToDelete.name, 'ID:', storeToDelete.id);
       deleteStoreMutation.mutate(storeToDelete.id);
+    } else {
+      console.error('No store selected for deletion');
     }
   };
 
@@ -485,6 +517,7 @@ const AdminStores = () => {
                               size="icon"
                               onClick={() => handleDeleteStore(store)}
                               className="text-destructive hover:bg-destructive/10"
+                              disabled={deleteStoreMutation.isPending}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -750,8 +783,12 @@ const AdminStores = () => {
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Отмена</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmDeleteStore} className="bg-destructive hover:bg-destructive/90">
-                Удалить
+              <AlertDialogAction 
+                onClick={confirmDeleteStore} 
+                className="bg-destructive hover:bg-destructive/90"
+                disabled={deleteStoreMutation.isPending}
+              >
+                {deleteStoreMutation.isPending ? 'Удаление...' : 'Удалить'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
