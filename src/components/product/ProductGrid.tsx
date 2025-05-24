@@ -6,13 +6,18 @@ import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 interface ProductGridProps {
   products: ProductProps[];
   isLoading?: boolean;
+  showAllStatuses?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, isLoading = false }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ 
+  products, 
+  isLoading = false,
+  showAllStatuses = false 
+}) => {
   // Display loading skeleton when data is loading
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[400px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[400px] auto-rows-fr">
         {Array.from({ length: 8 }).map((_, index) => (
           <ProductSkeleton key={`skeleton-${index}`} />
         ))}
@@ -36,7 +41,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, isLoading = false }
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px] auto-rows-fr">
       {products.map((product) => (
-        <div key={product.id} className="flex">
+        <div key={product.id} className="flex min-h-0">
           <MemoizedProductCard product={product} />
         </div>
       ))}
