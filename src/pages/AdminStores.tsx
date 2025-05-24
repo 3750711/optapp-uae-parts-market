@@ -1,40 +1,22 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { 
-  Table, TableBody, TableCell, TableHead, 
+  Table, TableBody, TableHead, 
   TableHeader, TableRow 
 } from '@/components/ui/table';
-import { 
-  Dialog, DialogContent, DialogDescription, 
-  DialogHeader, DialogTitle, DialogFooter 
-} from '@/components/ui/dialog';
-import { 
-  AlertDialog, AlertDialogAction, AlertDialogCancel, 
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter, 
-  AlertDialogHeader, AlertDialogTitle 
-} from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Select, SelectContent, SelectItem, 
-  SelectTrigger, SelectValue 
-} from '@/components/ui/select';
-import { 
-  Pencil, Shield, ShieldCheck, ShieldAlert, Store, Car, Check, Trash2
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { Store } from 'lucide-react';
 import { StoreTag } from '@/types/store';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import StoreTableRow from '@/components/admin/stores/StoreTableRow';
+import StoreEditDialog from '@/components/admin/stores/StoreEditDialog';
+import StoreDeleteDialog from '@/components/admin/stores/StoreDeleteDialog';
+import { useStoreOperations } from '@/hooks/useStoreOperations';
 
-// Store types with additional fields needed for the admin view
 type StoreWithDetails = {
   id: string;
   name: string;
@@ -63,7 +45,8 @@ type StoreWithDetails = {
 
 const AdminStores = () => {
   const { isAdmin } = useAdminAccess();
-  const queryClient = useQueryClient();
+  const { deleteStoreMutation, updateStoreMutation, deletingStoreIds } = useStoreOperations(isAdmin);
+  
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState<StoreWithDetails | null>(null);
   const [editedStore, setEditedStore] = useState<Partial<StoreWithDetails>>({});
@@ -72,15 +55,6 @@ const AdminStores = () => {
   const [selectedBrandForModels, setSelectedBrandForModels] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<StoreWithDetails | null>(null);
-  const [deletingStoreIds, setDeletingStoreIds] = useState<Set<string>>(new Set());
-  
-  const { 
-    brands: allCarBrands,
-    brandModels: allCarModels,
-    selectBrand,
-    selectedBrand,
-    isLoading: isBrandsLoading
-  } = useCarBrandsAndModels();
   
   // Fetch stores with related data
   const { data: stores, isLoading, refetch } = useQuery({
@@ -88,7 +62,6 @@ const AdminStores = () => {
     queryFn: async () => {
       console.log('🔄 Fetching stores data...');
       
-      // Fetch stores with their images
       const { data: storesData, error } = await supabase
         .from('stores')
         .select(`
@@ -104,7 +77,6 @@ const AdminStores = () => {
 
       console.log('✅ Stores fetched successfully:', storesData?.length || 0, 'stores');
 
-      // Fetch seller information for each store
       const storesWithSellerInfo = await Promise.all(
         (storesData || []).map(async (store) => {
           if (!store.seller_id) return { ...store, seller_name: 'Неизвестно', seller_email: 'Неизвестно' };
@@ -115,7 +87,6 @@ const AdminStores = () => {
             .eq('id', store.seller_id)
             .single();
           
-          // Fetch car brands and models associated with this store
           const { data: storeBrands } = await supabase
             .from('store_car_brands')
             .select('car_brand_id, car_brands(id, name)')
@@ -143,198 +114,7 @@ const AdminStores = () => {
     },
     enabled: isAdmin,
     refetchOnWindowFocus: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
-  });
-
-  // Enhanced delete store mutation with better error handling and logging
-  const deleteStoreMutation = useMutation({
-    mutationFn: async (storeId: string) => {
-      console.log('🔥 DELETION PROCESS STARTED');
-      console.log('Store ID to delete:', storeId);
-      console.log('Current user admin status:', isAdmin);
-      
-      // Add store to deleting set immediately
-      setDeletingStoreIds(prev => new Set(prev).add(storeId));
-      
-      try {
-        // Check current user and admin status
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        console.log('Current user:', user?.id);
-        
-        if (userError || !user) {
-          throw new Error('Пользователь не авторизован');
-        }
-
-        // Check admin status in profiles table
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type, full_name')
-          .eq('id', user.id)
-          .single();
-          
-        console.log('Profile check result:', { profile, profileError });
-        
-        if (profileError) {
-          console.error('Profile error:', profileError);
-          throw new Error(`Ошибка получения профиля: ${profileError.message}`);
-        }
-        
-        if (!profile || profile.user_type !== 'admin') {
-          throw new Error('Недостаточно прав для удаления магазина');
-        }
-        
-        console.log('✅ Admin rights confirmed for user:', profile.full_name);
-        
-        // Call the admin function to delete store safely
-        console.log('🚀 Calling admin_delete_store RPC function...');
-        const { data, error } = await supabase
-          .rpc('admin_delete_store', { p_store_id: storeId });
-        
-        console.log('RPC function response:', { data, error });
-        
-        if (error) {
-          console.error('❌ RPC function error:', error);
-          throw new Error(`Ошибка функции удаления: ${error.message}`);
-        }
-        
-        if (data !== true) {
-          console.error('❌ RPC function returned unexpected result:', data);
-          throw new Error('Функция удаления вернула неожиданный результат');
-        }
-        
-        console.log('✅ Store deletion completed successfully');
-        return storeId;
-      } catch (error: any) {
-        console.error('💥 Error in store deletion process:', error);
-        
-        // Remove store from deleting set on error
-        setDeletingStoreIds(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(storeId);
-          return newSet;
-        });
-        
-        throw error;
-      }
-    },
-    onSuccess: (deletedStoreId) => {
-      console.log('🎉 Store deletion successful for ID:', deletedStoreId);
-      
-      // Remove from deleting set
-      setDeletingStoreIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(deletedStoreId);
-        return newSet;
-      });
-      
-      // Force refetch of stores data
-      queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
-      refetch();
-      
-      toast.success('Магазин успешно удален');
-      setIsDeleteDialogOpen(false);
-      setStoreToDelete(null);
-    },
-    onError: (error: any, storeId) => {
-      console.error('💀 Store deletion failed:', error);
-      
-      // Remove from deleting set on error
-      setDeletingStoreIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(storeId);
-        return newSet;
-      });
-      
-      // Show detailed error message to user
-      const errorMessage = error.message || 'Неизвестная ошибка при удалении магазина';
-      toast.error(`Ошибка при удалении магазина: ${errorMessage}`);
-      
-      // Close dialog on error
-      setIsDeleteDialogOpen(false);
-      setStoreToDelete(null);
-    }
-  });
-
-  // Update store mutation
-  const updateStoreMutation = useMutation({
-    mutationFn: async (store: Partial<StoreWithDetails>) => {
-      // Update store basic info
-      const { error } = await supabase
-        .from('stores')
-        .update({
-          name: store.name,
-          description: store.description,
-          address: store.address,
-          location: store.location,
-          phone: store.phone,
-          owner_name: store.owner_name,
-          tags: store.tags,
-          verified: store.verified,
-          telegram: store.telegram
-        })
-        .eq('id', store.id);
-
-      if (error) throw error;
-      
-      // Update car brands
-      if (selectedCarBrands.length > 0) {
-        // First delete existing associations
-        await supabase
-          .from('store_car_brands')
-          .delete()
-          .eq('store_id', store.id);
-          
-        // Then add new associations
-        const brandInserts = selectedCarBrands.map(brandId => ({
-          store_id: store.id,
-          car_brand_id: brandId
-        }));
-        
-        const { error: brandError } = await supabase
-          .from('store_car_brands')
-          .insert(brandInserts);
-          
-        if (brandError) throw brandError;
-      }
-      
-      // Update car models
-      // First delete existing associations
-      await supabase
-        .from('store_car_models')
-        .delete()
-        .eq('store_id', store.id);
-        
-      // Then add new associations
-      const modelInserts: {store_id: string, car_model_id: string}[] = [];
-      
-      Object.keys(selectedCarModels).forEach(brandId => {
-        selectedCarModels[brandId].forEach(modelId => {
-          modelInserts.push({
-            store_id: store.id!,
-            car_model_id: modelId
-          });
-        });
-      });
-      
-      if (modelInserts.length > 0) {
-        const { error: modelError } = await supabase
-          .from('store_car_models')
-          .insert(modelInserts);
-          
-        if (modelError) throw modelError;
-      }
-      
-      return store;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
-      toast.success('Данные магазина обновлены');
-      handleCloseEditDialog();
-    },
-    onError: (error) => {
-      console.error('Error updating store:', error);
-      toast.error('Ошибка при обновлении магазина');
-    }
+    staleTime: 1000 * 60 * 5,
   });
 
   const handleEditStore = async (store: StoreWithDetails) => {
@@ -352,7 +132,6 @@ const AdminStores = () => {
       telegram: store.telegram
     });
     
-    // Initialize selected car brands and models
     const storeBrands = store.car_brands?.map(brand => brand.id) || [];
     setSelectedCarBrands(storeBrands);
     
@@ -372,14 +151,12 @@ const AdminStores = () => {
     console.log('🗑️ Delete button clicked for store:', store.name, 'ID:', store.id);
     console.log('Current admin status:', isAdmin);
     
-    // Check if current user is admin
     if (!isAdmin) {
       console.error('❌ User is not admin');
       toast.error('Недостаточно прав для удаления магазина');
       return;
     }
     
-    // Check if store is already being deleted
     if (deletingStoreIds.has(store.id)) {
       console.log('⚠️ Store is already being deleted, ignoring click');
       toast.warning('Магазин уже удаляется, пожалуйста подождите');
@@ -399,7 +176,6 @@ const AdminStores = () => {
     
     console.log('✅ Confirming deletion for store:', storeToDelete.name, 'ID:', storeToDelete.id);
     
-    // Check if store is already being deleted
     if (deletingStoreIds.has(storeToDelete.id)) {
       console.log('⚠️ Store is already being deleted');
       toast.warning('Магазин уже удаляется, пожалуйста подождите');
@@ -407,6 +183,8 @@ const AdminStores = () => {
     }
     
     deleteStoreMutation.mutate(storeToDelete.id);
+    setIsDeleteDialogOpen(false);
+    setStoreToDelete(null);
   };
 
   const handleCloseEditDialog = () => {
@@ -420,7 +198,12 @@ const AdminStores = () => {
 
   const handleSaveStore = () => {
     if (!editedStore.id) return;
-    updateStoreMutation.mutate(editedStore);
+    updateStoreMutation.mutate({
+      store: editedStore,
+      selectedCarBrands,
+      selectedCarModels
+    });
+    handleCloseEditDialog();
   };
 
   const handleChange = (key: keyof StoreWithDetails, value: any) => {
@@ -439,7 +222,6 @@ const AdminStores = () => {
   const handleToggleCarBrand = (brandId: string) => {
     setSelectedCarBrands(prev => {
       if (prev.includes(brandId)) {
-        // If removing a brand, also remove all its models
         setSelectedCarModels(prevModels => {
           const newModels = { ...prevModels };
           delete newModels[brandId];
@@ -470,28 +252,8 @@ const AdminStores = () => {
     });
   };
 
-  const getMainImageUrl = (store: StoreWithDetails) => {
-    const primaryImage = store.store_images?.find(img => img.is_primary);
-    return primaryImage?.url || store.store_images?.[0]?.url || '/placeholder.svg';
-  };
-
-  const availableTags: { value: StoreTag; label: string }[] = [
-    { value: 'electronics', label: 'Электроника' },
-    { value: 'auto_parts', label: 'Автозапчасти' },
-    { value: 'accessories', label: 'Аксессуары' },
-    { value: 'spare_parts', label: 'Запчасти' },
-    { value: 'other', label: 'Другое' }
-  ];
-  
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'Неизвестно';
-    return new Date(dateString).toLocaleString('ru-RU');
-  };
-
-  // Filter out stores that are being deleted or no longer exist
   const filteredStores = stores?.filter(store => !deletingStoreIds.has(store.id)) || [];
 
-  // Show admin status in UI for debugging
   useEffect(() => {
     console.log('Admin access status:', isAdmin);
   }, [isAdmin]);
@@ -505,14 +267,12 @@ const AdminStores = () => {
             <div className="text-sm text-muted-foreground">
               Всего магазинов: {filteredStores.length}
             </div>
-            {/* Debug admin status */}
             <div className="text-xs text-blue-600">
               Админ: {isAdmin ? 'Да' : 'Нет'}
             </div>
           </div>
         </div>
 
-        
         <Card>
           <CardContent className="p-4 md:p-6">
             {isLoading ? (
@@ -533,76 +293,17 @@ const AdminStores = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredStores.map((store) => {
-                      const isDeleting = deletingStoreIds.has(store.id);
-                      
-                      return (
-                        <TableRow key={store.id} className={isDeleting ? 'opacity-50' : ''}>
-                          
-                          <TableCell>
-                            <div className="w-12 h-12 relative">
-                              <img
-                                src={getMainImageUrl(store)}
-                                alt={store.name}
-                                className="rounded-md object-cover w-full h-full"
-                              />
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="font-medium">{store.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Создан: {formatDate(store.created_at)}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div>{store.address}</div>
-                            <div className="text-xs text-muted-foreground">{store.location}</div>
-                          </TableCell>
-                          <TableCell>{store.phone || 'Не указан'}</TableCell>
-                          <TableCell>
-                            <div>{store.owner_name || 'Неизвестно'}</div>
-                            <div className="text-xs text-muted-foreground">{store.seller_email}</div>
-                          </TableCell>
-                          <TableCell>{store.rating?.toFixed(1) || '-'}</TableCell>
-                          <TableCell>
-                            {store.verified ? (
-                              <Badge variant="success" className="flex items-center gap-1">
-                                <ShieldCheck className="w-3 h-3" />
-                                Проверен
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="flex items-center gap-1">
-                                <ShieldAlert className="w-3 h-3" />
-                                Не проверен
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditStore(store)}
-                                disabled={isDeleting}
-                                title="Редактировать магазин"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteStore(store)}
-                                className="text-destructive hover:bg-destructive/10"
-                                disabled={isDeleting || deleteStoreMutation.isPending || !isAdmin}
-                                title={!isAdmin ? 'Недостаточно прав' : 'Удалить магазин'}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
+                    {filteredStores.map((store) => (
+                      <StoreTableRow
+                        key={store.id}
+                        store={store}
+                        isDeleting={deletingStoreIds.has(store.id)}
+                        isAdmin={isAdmin}
+                        onEdit={handleEditStore}
+                        onDelete={handleDeleteStore}
+                        deleteStorePending={deleteStoreMutation.isPending}
+                      />
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -618,273 +319,31 @@ const AdminStores = () => {
           </CardContent>
         </Card>
 
-        {/* Edit Store Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Редактировать магазин</DialogTitle>
-              <DialogDescription>
-                Внесите изменения в информацию о магазине.
-              </DialogDescription>
-            </DialogHeader>
+        <StoreEditDialog
+          isOpen={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          store={selectedStore}
+          editedStore={editedStore}
+          selectedCarBrands={selectedCarBrands}
+          selectedCarModels={selectedCarModels}
+          selectedBrandForModels={selectedBrandForModels}
+          onClose={handleCloseEditDialog}
+          onSave={handleSaveStore}
+          onChange={handleChange}
+          onToggleTag={handleToggleTag}
+          onToggleCarBrand={handleToggleCarBrand}
+          onToggleCarModel={handleToggleCarModel}
+          onSelectBrandForModels={setSelectedBrandForModels}
+        />
 
-            {selectedStore && (
-              <ScrollArea className="h-[500px] pr-4">
-                <div className="space-y-4 py-2">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Название магазина</label>
-                    <Input
-                      value={editedStore.name || ''}
-                      onChange={(e) => handleChange('name', e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Описание</label>
-                    <Textarea
-                      value={editedStore.description || ''}
-                      onChange={(e) => handleChange('description', e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Адрес</label>
-                      <Input
-                        value={editedStore.address || ''}
-                        onChange={(e) => handleChange('address', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Город</label>
-                      <Input
-                        value={editedStore.location || ''}
-                        onChange={(e) => handleChange('location', e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Телефон</label>
-                      <Input
-                        value={editedStore.phone || ''}
-                        onChange={(e) => handleChange('phone', e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Имя владельца</label>
-                      <Input
-                        value={editedStore.owner_name || ''}
-                        onChange={(e) => handleChange('owner_name', e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Телеграм</label>
-                    <Input
-                      value={editedStore.telegram || ''}
-                      onChange={(e) => handleChange('telegram', e.target.value)}
-                      placeholder="username или https://t.me/username"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Теги</label>
-                    <div className="flex flex-wrap gap-2">
-                      {availableTags.map((tag) => (
-                        <div key={tag.value} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`tag-${tag.value}`}
-                            checked={(editedStore.tags || []).includes(tag.value)}
-                            onCheckedChange={() => handleToggleTag(tag.value)}
-                          />
-                          <label
-                            htmlFor={`tag-${tag.value}`}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            {tag.label}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Car Brands Selection */}
-                  <div className="space-y-2 border-t pt-4">
-                    <div className="flex items-center gap-2">
-                      <Car className="h-4 w-4" />
-                      <h3 className="text-sm font-medium">Марки и модели автомобилей</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Выберите марки и модели автомобилей, с которыми работает этот магазин
-                    </p>
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      {allCarBrands.map((brand) => (
-                        <div key={brand.id} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={`brand-${brand.id}`}
-                            checked={selectedCarBrands.includes(brand.id)}
-                            onCheckedChange={() => handleToggleCarBrand(brand.id)}
-                          />
-                          <label
-                            htmlFor={`brand-${brand.id}`}
-                            className="text-sm font-medium leading-none"
-                          >
-                            {brand.name}
-                          </label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Car Models Selection */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <label className="text-sm font-medium">Модели автомобилей</label>
-                      {selectedCarBrands.length > 0 && (
-                        <Select 
-                          value={selectedBrandForModels || ''} 
-                          onValueChange={(value) => {
-                            setSelectedBrandForModels(value);
-                            selectBrand(value);
-                          }}
-                        >
-                          <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Выберите марку" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {selectedCarBrands.map(brandId => {
-                              const brand = allCarBrands.find(b => b.id === brandId);
-                              return brand ? (
-                                <SelectItem key={brand.id} value={brand.id}>
-                                  {brand.name}
-                                </SelectItem>
-                              ) : null;
-                            })}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                    
-                    {selectedBrandForModels && (
-                      <div className="border rounded-md p-2">
-                        {isBrandsLoading ? (
-                          <div className="text-center py-2">Загрузка моделей...</div>
-                        ) : allCarModels.length > 0 ? (
-                          <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
-                            {allCarModels.map((model) => (
-                              <div key={model.id} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`model-${model.id}`}
-                                  checked={(selectedCarModels[selectedBrandForModels] || []).includes(model.id)}
-                                  onCheckedChange={() => handleToggleCarModel(model.id, selectedBrandForModels)}
-                                />
-                                <label
-                                  htmlFor={`model-${model.id}`}
-                                  className="text-sm leading-none"
-                                >
-                                  {model.name}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-2 text-sm text-muted-foreground">
-                            Нет доступных моделей для этой марки
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    {!selectedBrandForModels && selectedCarBrands.length > 0 && (
-                      <div className="text-sm text-muted-foreground">
-                        Выберите марку для отображения моделей
-                      </div>
-                    )}
-                    
-                    {selectedCarBrands.length === 0 && (
-                      <div className="text-sm text-muted-foreground">
-                        Сначала выберите хотя бы одну марку автомобиля
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="verified"
-                      checked={editedStore.verified}
-                      onCheckedChange={(checked) => handleChange('verified', !!checked)}
-                    />
-                    <div className="grid gap-1.5 leading-none">
-                      <label
-                        htmlFor="verified"
-                        className="text-sm font-medium leading-none flex items-center gap-1"
-                      >
-                        <Shield className="h-4 w-4" />
-                        Проверенный магазин
-                      </label>
-                      <p className="text-sm text-muted-foreground">
-                        Проверенные магазины отображаются с отметкой проверки
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            )}
-
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCloseEditDialog}>
-                Отмена
-              </Button>
-              <Button onClick={handleSaveStore}>
-                Сохранить
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Enhanced Delete Store Dialog with better error information */}
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Удалить магазин
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                Вы уверены, что хотите удалить магазин "{storeToDelete?.name}"? Это действие нельзя отменить.
-                Также будут удалены все связанные с магазином данные: изображения, отзывы и связи с марками и моделями автомобилей.
-                
-                {deleteStoreMutation.isPending && (
-                  <div className="mt-2 text-sm text-blue-600">
-                    Выполняется удаление, пожалуйста подождите...
-                  </div>
-                )}
-                
-                {!isAdmin && (
-                  <div className="mt-2 text-sm text-red-600">
-                    ⚠️ У вас недостаточно прав для удаления магазинов
-                  </div>
-                )}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={deleteStoreMutation.isPending}>
-                Отмена
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={confirmDeleteStore} 
-                className="bg-destructive hover:bg-destructive/90"
-                disabled={deleteStoreMutation.isPending || !isAdmin}
-              >
-                {deleteStoreMutation.isPending ? 'Удаление...' : 'Удалить'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <StoreDeleteDialog
+          isOpen={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+          store={storeToDelete}
+          onConfirm={confirmDeleteStore}
+          isDeleting={deleteStoreMutation.isPending}
+          isAdmin={isAdmin}
+        />
       </div>
     </AdminLayout>
   );
