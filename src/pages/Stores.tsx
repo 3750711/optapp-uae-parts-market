@@ -8,11 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreWithImages } from '@/types/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useOptimizedStores, useStoreFilterOptions, StoresFilters } from '@/hooks/useOptimizedStores';
+import { useOptimizedStores, useStoreFilterOptions, type StoresFilters } from '@/hooks/useOptimizedStores';
 import { useIsMobile } from '@/hooks/use-mobile';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import StoreSkeleton from '@/components/stores/StoreSkeleton';
-import StoresFilters from '@/components/stores/StoresFilters';
+import StoresFiltersComponent from '@/components/stores/StoresFilters';
 import StoresAdvancedFilters from '@/components/stores/StoresAdvancedFilters';
 import StoresMobileSearch from '@/components/stores/StoresMobileSearch';
 import StoresMobileFilters from '@/components/stores/StoresMobileFilters';
@@ -152,7 +152,7 @@ const Stores: React.FC = () => {
           <>
             {/* Desktop Basic Search and Sorting */}
             <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-              <StoresFilters
+              <StoresFiltersComponent
                 searchQuery={searchQuery}
                 onSearchChange={handleSearchChange}
                 sortBy={sortBy}

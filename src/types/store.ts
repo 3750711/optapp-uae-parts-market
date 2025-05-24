@@ -1,7 +1,9 @@
 
 import { Database } from "@/integrations/supabase/types";
 
-export type Store = Database['public']['Tables']['stores']['Row'];
+export type Store = Database['public']['Tables']['stores']['Row'] & {
+  whatsapp?: string;
+};
 export type StoreInsert = Database['public']['Tables']['stores']['Insert'];
 export type StoreUpdate = Database['public']['Tables']['stores']['Update'];
 
