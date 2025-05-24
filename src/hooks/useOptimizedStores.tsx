@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { StoreWithImages } from '@/types/store';
@@ -39,13 +38,12 @@ export const useOptimizedStores = (options: UseOptimizedStoresOptions = {}) => {
     queryFn: async () => {
       console.log('🔍 Starting stores query with options:', { page, pageSize, searchQuery, sortBy, sortOrder, filters });
       
-      // Построение запроса с подсчетом товаров через LEFT JOIN
+      // Построение запроса без подсчета товаров через JOIN (исправляем ошибку отношений)
       let query = supabase
         .from('stores')
         .select(`
           *,
-          store_images(*),
-          products!stores_seller_id_fkey(count)
+          store_images(*)
         `)
         .range((page - 1) * pageSize, page * pageSize - 1);
 
@@ -75,16 +73,11 @@ export const useOptimizedStores = (options: UseOptimizedStoresOptions = {}) => {
 
       if (filters.tags && filters.tags.length > 0) {
         console.log('🏷️ Applying tags filter:', filters.tags);
-        // Фильтр по тегам - проверяем пересечение массивов
         query = query.overlaps('tags', filters.tags);
       }
 
-      // Добавляем сортировку
-      if (sortBy === 'product_count') {
-        console.log('📦 Sorting by product count (will be done after data fetch)');
-        // Для сортировки по количеству товаров нужен отдельный запрос
-        query = query.order('created_at', { ascending: sortOrder === 'asc' });
-      } else {
+      // Добавляем сортировку (кроме product_count)
+      if (sortBy !== 'product_count') {
         console.log('📋 Sorting by:', sortBy, 'order:', sortOrder);
         query = query.order(sortBy, { ascending: sortOrder === 'asc' });
       }
@@ -98,14 +91,18 @@ export const useOptimizedStores = (options: UseOptimizedStoresOptions = {}) => {
       }
       
       console.log('📦 Raw stores data received:', storesData?.length || 0, 'stores');
-      console.log('📋 First store sample:', storesData?.[0]);
       
       if (!storesData) {
         console.log('⚠️ No stores data returned');
-        return { stores: [], totalCount: 0 };
+        return { 
+          stores: [], 
+          totalCount: 0,
+          hasNextPage: false,
+          hasPreviousPage: false
+        };
       }
 
-      // Получаем количество товаров для каждого магазина одним запросом
+      // Получаем количество товаров для каждого магазина отдельным запросом
       const sellerIds = storesData.map(store => store.seller_id).filter(Boolean);
       console.log('👤 Seller IDs found:', sellerIds.length);
       
@@ -120,7 +117,6 @@ export const useOptimizedStores = (options: UseOptimizedStoresOptions = {}) => {
           .eq('status', 'active');
         
         if (!countError && countData) {
-          // Подсчитываем товары по продавцам
           productCounts = countData.reduce((acc, product) => {
             acc[product.seller_id] = (acc[product.seller_id] || 0) + 1;
             return acc;
