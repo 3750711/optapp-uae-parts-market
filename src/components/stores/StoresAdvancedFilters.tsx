@@ -8,14 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Filter, X, ChevronDown, Star, MapPin, Package, ShieldCheck } from 'lucide-react';
-
-export interface StoresFilters {
-  verified?: boolean;
-  minRating?: number;
-  minProductCount?: number;
-  tags?: string[];
-  location?: string;
-}
+import { StoresFilters } from '@/hooks/useOptimizedStores';
 
 interface StoresAdvancedFiltersProps {
   filters: StoresFilters;
