@@ -16,11 +16,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import StoreSEO from '@/components/store/StoreSEO';
+import StoreBreadcrumb from '@/components/store/StoreBreadcrumb';
+import StoreImageGallery from '@/components/store/StoreImageGallery';
+import StoreHeader from '@/components/store/StoreHeader';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -247,11 +247,12 @@ const StoreDetail: React.FC = () => {
     const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
     window.open(telegramUrl, '_blank');
   };
-
+  
   if (isStoreLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
+          <Skeleton className="h-6 w-64 mb-6" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <Skeleton className="h-96 w-full md:col-span-2" />
             <div className="space-y-4">
@@ -281,9 +282,22 @@ const StoreDetail: React.FC = () => {
 
   return (
     <Layout>
+      {/* SEO component */}
+      <StoreSEO 
+        store={store} 
+        reviewsCount={reviews?.length} 
+        averageRating={store.rating} 
+      />
+
       <div className="container mx-auto px-4 py-8">
-        {/* Back button and share button */}
-        <div className="mb-6 flex justify-between items-center">
+        {/* Breadcrumbs */}
+        <StoreBreadcrumb 
+          storeName={store.name} 
+          storeLocation={store.location || undefined} 
+        />
+
+        {/* Back button */}
+        <div className="mb-6">
           <Button 
             variant="ghost" 
             className="flex items-center gap-2" 
@@ -292,80 +306,21 @@ const StoreDetail: React.FC = () => {
             <ChevronLeft className="h-5 w-5" />
             Назад
           </Button>
-          
-          {/* Direct Telegram share button */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleShareToTelegram}
-            className="flex items-center gap-2"
-          >
-            <Send className="h-4 w-4" /> 
-            Поделиться в Telegram
-          </Button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Left column content */}
-          <div className="md:col-span-2">
-            {/* Store name, rating, tags */}
-            <div className="mb-6">
-              <div className="flex justify-between items-start">
-                <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-                  {store.name}
-                  {/* Verification status badge */}
-                  {store.verified ? (
-                    <Badge variant="success" className="flex items-center gap-1">
-                      <ShieldCheck className="w-3 h-3" />
-                      Проверено
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      Не проверено
-                    </Badge>
-                  )}
-                </h1>
-                
-                {/* Mobile share button */}
-                <div className="md:hidden">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleShareStore}
-                    className="flex items-center gap-1"
-                  >
-                    <Share className="h-4 w-4" />
-                    <span className="sr-only md:not-sr-only">Поделиться</span>
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex items-center mb-4">
-                <div className="flex items-center">
-                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 mr-1" />
-                  <span className="font-medium">{store.rating?.toFixed(1) || '-'}</span>
-                </div>
-                <div className="mx-2">•</div>
-                <div className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-1 text-muted-foreground" />
-                  <span>{store.address}</span>
-                </div>
-              </div>
+          <div className="md:col-span-2 space-y-6">
+            {/* Store header */}
+            <StoreHeader 
+              store={store}
+              onShare={handleShareStore}
+              onShareToTelegram={handleShareToTelegram}
+            />
 
-              {store.tags && store.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-4">
-                  {store.tags.map((tag, index) => (
-                    <Badge key={index} variant="outline" className="capitalize">
-                      {tag.replace('_', ' ')}
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <Tabs defaultValue="about">
+            <Tabs defaultValue="about" className="space-y-4">
               {/* Tabs list */}
-              <TabsList className="mb-4">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="about">О магазине</TabsTrigger>
                 <TabsTrigger value="photos">Фото</TabsTrigger>
                 <TabsTrigger value="products">Объявления</TabsTrigger>
@@ -373,70 +328,57 @@ const StoreDetail: React.FC = () => {
               </TabsList>
 
               {/* About tab */}
-              <TabsContent value="about" className="space-y-4">
+              <TabsContent value="about" className="space-y-6">
                 {store.description && (
-                  <div>
-                    <h3 className="font-medium mb-2">Описание</h3>
-                    <p className="text-muted-foreground">{store.description}</p>
-                  </div>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg">Описание</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-muted-foreground leading-relaxed">{store.description}</p>
+                    </CardContent>
+                  </Card>
                 )}
                 
                 {/* Car brands and models display */}
                 {carBrandsData && carBrandsData.length > 0 && (
-                  <div className="mt-6 bg-muted/30 p-4 rounded-lg border">
-                    <h3 className="font-medium mb-3 flex items-center">
-                      <Car className="w-4 h-4 mr-2" />
-                      Марки и модели автомобилей
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-4">
-                      {carBrandsData.map((brand) => (
-                        <div key={brand.id} className="bg-card rounded-md p-3 border">
-                          <div className="flex items-center mb-2">
-                            <CarFront className="w-4 h-4 mr-2 text-primary" />
-                            <span className="font-medium">{brand.name}</span>
-                          </div>
-                          {brand.models && brand.models.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 ml-6">
-                              {brand.models.map((model) => (
-                                <Badge 
-                                  key={model.id} 
-                                  variant="secondary"
-                                  className="text-xs"
-                                >
-                                  {model.name}
-                                </Badge>
-                              ))}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center">
+                        <Car className="w-5 h-5 mr-2" />
+                        Марки и модели автомобилей
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {carBrandsData.map((brand) => (
+                          <div key={brand.id} className="bg-muted/30 rounded-lg p-4 border">
+                            <div className="flex items-center mb-3">
+                              <CarFront className="w-4 h-4 mr-2 text-primary" />
+                              <span className="font-medium">{brand.name}</span>
                             </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground ml-6">
-                              Все модели
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Store photos after description */}
-                {store.store_images && store.store_images.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="font-medium mb-2 flex items-center">
-                      <Image className="w-4 h-4 mr-2" />
-                      Фотографии магазина
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {store.store_images.map((image) => (
-                        <div key={image.id} className="aspect-square overflow-hidden rounded-md">
-                          <img 
-                            src={image.url} 
-                            alt={store.name} 
-                            className="object-cover w-full h-full hover:scale-105 transition-transform"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                            {brand.models && brand.models.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {brand.models.map((model) => (
+                                  <Badge 
+                                    key={model.id} 
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    {model.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-sm text-muted-foreground">
+                                Все модели
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 )}
               </TabsContent>
 
@@ -445,17 +387,21 @@ const StoreDetail: React.FC = () => {
                 {store.store_images && store.store_images.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {store.store_images.map((image) => (
-                      <div key={image.id} className="aspect-square overflow-hidden rounded-md">
-                        <img 
+                      <div key={image.id} className="aspect-square overflow-hidden rounded-lg">
+                        <OptimizedImage 
                           src={image.url} 
                           alt={store.name} 
-                          className="object-cover w-full h-full hover:scale-105 transition-transform"
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">У этого магазина пока нет фотографий</p>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <p className="text-muted-foreground text-center">У этого магазина пока нет фотографий</p>
+                    </CardContent>
+                  </Card>
                 )}
               </TabsContent>
 
@@ -569,15 +515,13 @@ const StoreDetail: React.FC = () => {
             </Tabs>
           </div>
 
-          {/* Right column - Store info and contact */}
-          <div>
-            <div className="aspect-square overflow-hidden rounded-lg mb-4">
-              <img
-                src={getMainImageUrl()}
-                alt={store.name}
-                className="object-cover w-full h-full"
-              />
-            </div>
+          {/* Right column - Store image gallery and info */}
+          <div className="space-y-6">
+            {/* Image gallery */}
+            <StoreImageGallery 
+              images={store.store_images || []}
+              storeName={store.name}
+            />
 
             <Card>
               <CardHeader>
