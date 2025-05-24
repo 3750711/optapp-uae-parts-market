@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -155,6 +154,7 @@ export const ProductEditDialog = ({
     },
   });
 
+  // Simplified handlers that only update local state
   const handleImageUpload = (newUrls: string[]) => {
     console.log("ProductEditDialog - handleImageUpload called with:", newUrls);
     const updatedImages = [...images, ...newUrls];
@@ -182,11 +182,6 @@ export const ProductEditDialog = ({
   const handlePrimaryImageChange = (imageUrl: string) => {
     console.log("ProductEditDialog - handlePrimaryImageChange called with:", imageUrl);
     setPrimaryImage(imageUrl);
-    
-    toast({
-      title: "Успех",
-      description: "Основное фото обновлено",
-    });
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -398,6 +393,7 @@ export const ProductEditDialog = ({
                     onImageDelete={handleImageDelete}
                     primaryImage={primaryImage}
                     onPrimaryImageChange={handlePrimaryImageChange}
+                    storageBucket="product-images"
                   />
                 </div>
                 

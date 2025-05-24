@@ -26,7 +26,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   onPrimaryImageChange,
   primaryImage,
   maxImages = 25,
-  storageBucket = "Product Images"
+  storageBucket = "product-images" // Изменили на правильное имя bucket
 }) => {
   console.log("ProductMediaManager props:", {
     productId,
