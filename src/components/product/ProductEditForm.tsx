@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/product";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useStoreCarBrandsAndModels } from "@/hooks/useStoreCarBrandsAndModels";
 import ProductForm from "@/components/product/ProductForm";
 import ProductMediaManager from "@/components/product/ProductMediaManager";
 
@@ -37,7 +36,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       : product.delivery_price || 0,
   });
 
-  // Use our car brands and models hook
+  // Use store car brands and models hook instead of regular car brands
   const { 
     brands, 
     brandModels, 
@@ -48,7 +47,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     findModelIdByName,
     findBrandNameById,
     findModelNameById
-  } = useCarBrandsAndModels();
+  } = useStoreCarBrandsAndModels();
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
