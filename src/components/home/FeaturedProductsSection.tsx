@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Flame } from 'lucide-react';
+import { ArrowRight, Clock } from 'lucide-react';
 import ProductGrid from '@/components/product/ProductGrid';
 import ProductSkeleton from '@/components/catalog/ProductSkeleton';
 import { useQuery } from '@tanstack/react-query';
@@ -51,7 +50,7 @@ const FeaturedProductsSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Загружаем только популярные товары
+  // Загружаем только последние опубликованные товары
   const { data: products, isLoading } = useQuery({
     queryKey: ['featured-products'],
     queryFn: async () => {
@@ -60,7 +59,7 @@ const FeaturedProductsSection = () => {
         .select('*, product_images(url, is_primary, preview_url), profiles:seller_id(*)')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(6); // Показываем только 6 товаров
+        .limit(8); // Показываем 8 товаров вместо 6
 
       if (error) throw error;
       return data || [];
@@ -124,17 +123,17 @@ const FeaturedProductsSection = () => {
       <div className="container mx-auto px-4">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-2xl md:text-3xl font-bold mb-4 flex items-center justify-center gap-2">
-            <Flame className="h-6 w-6 text-orange-500" />
-            <span>Популярные товары</span>
+            <Clock className="h-6 w-6 text-blue-500" />
+            <span>Последние опубликованные</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Самые востребованные автозапчасти от проверенных поставщиков
+            Самые свежие автозапчасти от проверенных поставщиков
           </p>
         </div>
         
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-            {Array.from({ length: 6 }).map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
               <ProductSkeleton key={i} />
             ))}
           </div>
