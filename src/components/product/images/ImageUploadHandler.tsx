@@ -28,7 +28,7 @@ export const useImageUpload = ({
       const imageInserts = newUrls.map((url, index) => ({
         product_id: productId,
         url: url,
-        is_primary: images.length === 0 && index === 0 && !primaryImage // First image is primary if no images exist
+        is_primary: images.length === 0 && index === 0 && !primaryImage
       }));
 
       const { error } = await supabase
@@ -37,16 +37,13 @@ export const useImageUpload = ({
 
       if (error) throw error;
 
-      // Update local state
       onImageUpload(newUrls);
       
-      // If no primary image is set, set the first new image as primary
       if (!primaryImage && newUrls.length > 0 && onPrimaryImageChange && images.length === 0) {
         console.log("Setting first uploaded image as primary:", newUrls[0]);
         onPrimaryImageChange(newUrls[0]);
       }
       
-      // Invalidate caches to ensure fresh data
       invalidateAllCaches(productId);
       
       toast({

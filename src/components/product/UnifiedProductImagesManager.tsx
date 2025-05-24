@@ -26,7 +26,7 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
   onPrimaryImageChange,
   primaryImage,
   maxImages = 25,
-  storageBucket = "product-images", // Изменили на правильное имя bucket
+  storageBucket = "product-images",
   showUpload = true
 }) => {
   console.log("UnifiedProductImagesManager rendered with:", {
