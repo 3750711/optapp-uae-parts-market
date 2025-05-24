@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import ProductForm from "@/components/product/ProductForm";
 import ProductMediaManager from "@/components/product/ProductMediaManager";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProductEditFormProps {
   product: Product;
@@ -24,6 +25,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   const [isLoading, setIsLoading] = React.useState(false);
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
 
   const [formData, setFormData] = React.useState({
     title: product.title,
@@ -158,102 +160,43 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   };
 
   const handleImageUpload = async (newUrls: string[]) => {
-    try {
-      const imageInserts = newUrls.map(url => ({
-        product_id: product.id,
-        url: url,
-        is_primary: images.length === 0 && primaryImage === '' // First image is primary if no images exist
-      }));
-
-      const { error } = await supabase
-        .from('product_images')
-        .insert(imageInserts);
-
-      if (error) throw error;
-
-      const updatedImages = [...images, ...newUrls];
-      setImages(updatedImages);
-      
-      // If no primary image is set, set the first new image as primary
-      if (primaryImage === '' && newUrls.length > 0) {
-        setPrimaryImage(newUrls[0]);
-      }
-      
-      toast({
-        title: "Фото добавлены",
-        description: `Добавлено ${newUrls.length} фотографий`,
-      });
-    } catch (error) {
-      console.error("Error uploading images:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось добавить фотографии",
-        variant: "destructive",
-      });
+    console.log("ProductEditForm - handleImageUpload called with:", newUrls);
+    const updatedImages = [...images, ...newUrls];
+    setImages(updatedImages);
+    
+    // If no primary image is set, set the first new image as primary
+    if (primaryImage === '' && newUrls.length > 0) {
+      console.log("ProductEditForm - Setting first uploaded image as primary:", newUrls[0]);
+      setPrimaryImage(newUrls[0]);
     }
   };
 
   const handleImageDelete = async (urlToDelete: string) => {
-    try {
-      // Update state first for immediate UI feedback
-      setImages(images.filter(url => url !== urlToDelete));
-      
-      // Then delete from the database
-      const { error } = await supabase
-        .from('product_images')
-        .delete()
-        .eq('product_id', product.id)
-        .eq('url', urlToDelete);
-      
-      if (error) throw error;
-      
-      // If this was the primary image, set another image as primary
-      if (primaryImage === urlToDelete && images.length > 1) {
-        const newPrimaryUrl = images.find(url => url !== urlToDelete);
-        if (newPrimaryUrl) {
-          await handlePrimaryImageChange(newPrimaryUrl);
-        }
-      }
-    } catch (error) {
-      console.error("Error deleting image:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить фотографию",
-        variant: "destructive",
-      });
+    console.log("ProductEditForm - handleImageDelete called with:", urlToDelete);
+    // Update state first for immediate UI feedback
+    const updatedImages = images.filter(url => url !== urlToDelete);
+    setImages(updatedImages);
+    
+    // If this was the primary image, set another image as primary
+    if (primaryImage === urlToDelete && updatedImages.length > 0) {
+      console.log("ProductEditForm - Primary image deleted, setting new primary:", updatedImages[0]);
+      setPrimaryImage(updatedImages[0]);
+    } else if (updatedImages.length === 0) {
+      setPrimaryImage('');
     }
   };
 
   const handlePrimaryImageChange = async (imageUrl: string) => {
-    try {
-      // First reset all images for this product to not primary
-      await supabase
-        .from('product_images')
-        .update({ is_primary: false })
-        .eq('product_id', product.id);
-      
-      // Then set the selected image as primary
-      const { error } = await supabase
-        .from('product_images')
-        .update({ is_primary: true })
-        .eq('product_id', product.id)
-        .eq('url', imageUrl);
-      
-      if (error) throw error;
-      
-      setPrimaryImage(imageUrl);
-      toast({
-        title: "Обновлено",
-        description: "Основное фото изменено",
-      });
-    } catch (error) {
-      console.error("Error setting primary image:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось изменить основное фото",
-        variant: "destructive",
-      });
-    }
+    console.log("ProductEditForm - handlePrimaryImageChange called with:", imageUrl);
+    setPrimaryImage(imageUrl);
+    
+    // Invalidate cache to update product detail view
+    queryClient.invalidateQueries({ queryKey: ['product', product.id] });
+    
+    toast({
+      title: "Обновлено",
+      description: "Основное фото изменено",
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -291,6 +234,10 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         console.error("Error details:", error);
         throw error;
       }
+
+      // Invalidate cache to refresh all views
+      queryClient.invalidateQueries({ queryKey: ['product', product.id] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
 
       toast({
         title: "Успешно",

@@ -39,7 +39,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
     onPrimaryImageChange: !!onPrimaryImageChange
   });
 
-  // Function to handle image deletion - using AdminProductImagesManager logic
+  // Function to handle image deletion
   const handleImageDelete = async (imageUrl: string) => {
     if (images.length <= 1) {
       toast({
@@ -78,6 +78,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
       
       // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
       console.log("Cache invalidated after image deletion");
 
       toast({
@@ -96,7 +97,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
     }
   };
 
-  // Function to set an image as primary - using AdminProductImagesManager logic
+  // Function to set an image as primary
   const handleSetPrimaryImage = async (imageUrl: string) => {
     if (!onPrimaryImageChange) {
       console.log("onPrimaryImageChange not provided");
@@ -132,11 +133,13 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
       }
       console.log("Database updated successfully for primary image");
       
-      // Update state in the parent component
+      // Update state in the parent component immediately
       onPrimaryImageChange(imageUrl);
       
-      // Invalidate React Query cache to refresh the data
+      // Invalidate React Query cache to refresh the data everywhere
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
       console.log("Cache invalidated after primary image change");
       
       toast({
@@ -155,7 +158,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
     }
   };
 
-  // Handle image upload - using AdminProductImagesManager logic
+  // Handle image upload
   const handleImageUpload = async (newUrls: string[]) => {
     try {
       console.log("Uploading new images:", newUrls);
@@ -182,6 +185,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
       
       // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
       
       toast({
         title: "Успех",

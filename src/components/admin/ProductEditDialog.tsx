@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -115,7 +116,7 @@ export const ProductEditDialog = ({
 
   const handlePrimaryImageChange = async (imageUrl: string) => {
     try {
-      console.log("Setting primary image in ProductEditDialog:", imageUrl);
+      console.log("ProductEditDialog - Setting primary image:", imageUrl);
       
       // First, reset all images for this product to not primary
       const { error: resetError } = await supabase
@@ -136,8 +137,9 @@ export const ProductEditDialog = ({
       
       setPrimaryImage(imageUrl);
       
-      // Invalidate React Query cache to refresh the data
+      // Invalidate React Query cache to refresh the data everywhere
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', product.id] });
       
       toast({
         title: "Успех",
@@ -180,6 +182,7 @@ export const ProductEditDialog = ({
     } else {
       // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['product', product.id] });
       
       toast({
         title: "Успех",
