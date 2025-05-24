@@ -25,7 +25,7 @@ const HowItWorksSection = () => {
     {
       icon: CheckCircle,
       title: "Получите товар",
-      description: "Отследите посылку и получите качественные автозапчасти",
+      description: "Заберите товар в магазине либо в офисе Cargo компании",
       color: "bg-purple-500"
     }
   ];
