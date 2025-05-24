@@ -14,6 +14,8 @@ import OptimizedImage from '@/components/ui/OptimizedImage';
 import StoreSkeleton from '@/components/stores/StoreSkeleton';
 import StoresFilters from '@/components/stores/StoresFilters';
 import StoresPagination from '@/components/stores/StoresPagination';
+import StoresSEO from '@/components/stores/StoresSEO';
+import StoresBreadcrumb from '@/components/stores/StoresBreadcrumb';
 import { useDebounce } from '@/hooks/useDebounce';
 
 interface StoreWithProductCount extends StoreWithImages {
@@ -73,9 +75,21 @@ const Stores: React.FC = () => {
 
   return (
     <Layout>
+      {/* SEO Component */}
+      <StoresSEO 
+        totalCount={totalCount} 
+        searchQuery={debouncedSearchQuery || undefined}
+      />
+
       <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumbs */}
+        <StoresBreadcrumb 
+          searchQuery={debouncedSearchQuery || undefined} 
+          totalCount={totalCount}
+        />
+
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Магазины</h1>
+          <h1 className="text-3xl font-bold mb-2">Магазины автозапчастей</h1>
           <p className="text-gray-600">
             Найдите проверенных продавцов автозапчастей в ОАЭ
           </p>
