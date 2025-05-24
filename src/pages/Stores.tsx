@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,14 +9,12 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreWithImages } from '@/types/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useOptimizedStores, useStoreFilterOptions, type StoresFilters } from '@/hooks/useOptimizedStores';
+import { useOptimizedStores } from '@/hooks/useOptimizedStores';
 import { useIsMobile } from '@/hooks/use-mobile';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import StoreSkeleton from '@/components/stores/StoreSkeleton';
 import StoresFiltersComponent from '@/components/stores/StoresFilters';
-import StoresAdvancedFilters from '@/components/stores/StoresAdvancedFilters';
 import StoresMobileSearch from '@/components/stores/StoresMobileSearch';
-import StoresMobileFilters from '@/components/stores/StoresMobileFilters';
 import StoreCardMobile from '@/components/stores/StoreCardMobile';
 import StoresPagination from '@/components/stores/StoresPagination';
 import StoresSEO from '@/components/stores/StoresSEO';
@@ -33,7 +32,6 @@ const Stores: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'created_at' | 'rating' | 'product_count' | 'name'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [advancedFilters, setAdvancedFilters] = useState<StoresFilters>({});
   
   // Debounce search query for optimizing requests
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -46,7 +44,6 @@ const Stores: React.FC = () => {
     searchQuery: debouncedSearchQuery,
     sortBy,
     sortOrder,
-    advancedFilters,
     isMobile
   });
 
@@ -63,7 +60,7 @@ const Stores: React.FC = () => {
     searchQuery: debouncedSearchQuery,
     sortBy,
     sortOrder,
-    filters: advancedFilters
+    filters: {} // Убираем все фильтры
   });
 
   console.log('🏪 Stores data received:', {
@@ -78,18 +75,6 @@ const Stores: React.FC = () => {
   if (error) {
     console.error('❌ Stores component error:', error);
   }
-
-  const { 
-    availableTags, 
-    availableLocations, 
-    isLoading: isLoadingFilterOptions 
-  } = useStoreFilterOptions();
-
-  console.log('🏷️ Filter options:', {
-    availableTags: availableTags?.length || 0,
-    availableLocations: availableLocations?.length || 0,
-    isLoadingFilterOptions
-  });
 
   const getMainImageUrl = (store: StoreWithProductCount) => {
     const primaryImage = store.store_images?.find(img => img.is_primary);
@@ -116,21 +101,6 @@ const Stores: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleAdvancedFiltersChange = (filters: StoresFilters) => {
-    setAdvancedFilters(filters);
-    setCurrentPage(1); // Reset to first page when filters change
-  };
-
-  const handleClearFilters = () => {
-    setAdvancedFilters({});
-    setCurrentPage(1);
-  };
-
-  const hasActiveFilters = Object.values(advancedFilters).some(value => 
-    value !== undefined && value !== null && 
-    (Array.isArray(value) ? value.length > 0 : true)
-  );
-
   return (
     <Layout>
       {/* SEO Component */}
@@ -155,7 +125,7 @@ const Stores: React.FC = () => {
           </p>
         </div>
 
-        {/* Mobile optimized search and filters */}
+        {/* Search and Sorting */}
         {isMobile ? (
           <div className="space-y-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
             <StoresMobileSearch
@@ -166,50 +136,25 @@ const Stores: React.FC = () => {
               sortOrder={sortOrder}
               onSortOrderChange={handleSortOrderChange}
             />
-            
-            <div className="flex justify-center">
-              <StoresMobileFilters
-                filters={advancedFilters}
-                onFiltersChange={handleAdvancedFiltersChange}
-                onClearFilters={handleClearFilters}
-                availableTags={availableTags}
-                availableLocations={availableLocations}
-                hasActiveFilters={hasActiveFilters}
-              />
-            </div>
           </div>
         ) : (
-          <>
-            {/* Desktop Basic Search and Sorting */}
-            <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-              <StoresFiltersComponent
-                searchQuery={searchQuery}
-                onSearchChange={handleSearchChange}
-                sortBy={sortBy}
-                onSortChange={handleSortChange}
-                sortOrder={sortOrder}
-                onSortOrderChange={handleSortOrderChange}
-              />
-            </div>
-
-            {/* Desktop Advanced Filters */}
-            <div className="animate-fade-in" style={{ animationDelay: '150ms' }}>
-              <StoresAdvancedFilters
-                filters={advancedFilters}
-                onFiltersChange={handleAdvancedFiltersChange}
-                onClearFilters={handleClearFilters}
-                availableTags={availableTags}
-                availableLocations={availableLocations}
-              />
-            </div>
-          </>
+          <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
+            <StoresFiltersComponent
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              sortBy={sortBy}
+              onSortChange={handleSortChange}
+              sortOrder={sortOrder}
+              onSortOrderChange={handleSortOrderChange}
+            />
+          </div>
         )}
 
         {/* Results count */}
         {!isLoading && (
           <div className="mb-4 text-sm text-gray-600 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            {searchQuery || hasActiveFilters ? (
-              `Найдено ${totalCount} магазинов${searchQuery ? ` по запросу "${searchQuery}"` : ''}${hasActiveFilters ? ' с учетом фильтров' : ''}`
+            {searchQuery ? (
+              `Найдено ${totalCount} магазинов по запросу "${searchQuery}"`
             ) : (
               `Всего магазинов: ${totalCount}`
             )}
@@ -230,37 +175,22 @@ const Stores: React.FC = () => {
             <div className="max-w-md mx-auto">
               <div className="text-6xl mb-4 animate-float">🏪</div>
               <h3 className="text-xl font-medium mb-2">
-                {searchQuery || hasActiveFilters ? 'Магазины не найдены' : 'Пока нет магазинов'}
+                {searchQuery ? 'Магазины не найдены' : 'Пока нет магазинов'}
               </h3>
               <p className="text-gray-500 mb-6">
-                {searchQuery || hasActiveFilters
-                  ? 'По заданным критериям ничего не найдено. Попробуйте изменить параметры поиска или фильтры.'
+                {searchQuery
+                  ? 'По заданным критериям ничего не найдено. Попробуйте изменить параметры поиска.'
                   : 'Магазины появятся здесь, когда продавцы их создадут.'
                 }
               </p>
-              {(searchQuery || hasActiveFilters) && (
-                <div className={`${isMobile ? 'space-y-2' : 'space-x-2'} ${isMobile ? 'flex flex-col' : 'flex justify-center'}`}>
-                  {searchQuery && (
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setSearchQuery('')}
-                      className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                      size={isMobile ? "default" : "default"}
-                    >
-                      Очистить поиск
-                    </Button>
-                  )}
-                  {hasActiveFilters && (
-                    <Button 
-                      variant="outline" 
-                      onClick={handleClearFilters}
-                      className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                      size={isMobile ? "default" : "default"}
-                    >
-                      Сбросить фильтры
-                    </Button>
-                  )}
-                </div>
+              {searchQuery && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setSearchQuery('')}
+                  className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  Очистить поиск
+                </Button>
               )}
             </div>
           </div>
