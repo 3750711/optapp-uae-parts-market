@@ -39,6 +39,7 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   const [imageError, setImageError] = useState(false);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
   
   const formatPrice = (price: number) => {
@@ -88,51 +89,103 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     api.on("select", () => {
       setCurrent(api.selectedScrollSnap());
     });
+
+    // Debug logging
+    api.on("dragStart", () => {
+      console.log("Carousel drag started");
+      setIsDragging(true);
+    });
+
+    api.on("dragEnd", () => {
+      console.log("Carousel drag ended");
+      setIsDragging(false);
+    });
   }, [api]);
+
+  // Prevent link navigation when dragging/swiping
+  const handleLinkClick = (e: React.MouseEvent) => {
+    if (isDragging) {
+      console.log("Preventing link click due to drag");
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  // Prevent touch events from bubbling to parent Link
+  const handleTouchStart = (e: React.TouchEvent) => {
+    console.log("Touch start on carousel");
+    e.stopPropagation();
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation();
+  };
 
   const renderImageContent = () => {
     if (isMobile && allImages.length > 1) {
-      // Mobile carousel with touch support for multiple images
+      // Mobile carousel with enhanced touch support
       return (
-        <Carousel 
-          className="w-full" 
-          setApi={setApi}
-          opts={{
-            align: "start",
-            loop: true,
-            dragFree: true,
-          }}
+        <div 
+          className="w-full h-full touch-pan-x"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{ touchAction: 'pan-x' }}
         >
-          <CarouselContent>
-            {allImages.map((imageUrl, index) => (
-              <CarouselItem key={index} className="basis-full">
-                <div className="relative w-full h-full">
-                  <img
-                    src={imageError ? "/placeholder.svg" : imageUrl}
-                    alt={`${product.title} ${index + 1}`}
-                    className="w-full h-full object-contain"
-                    onError={handleImageError}
-                    loading="lazy"
-                  />
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          
-          {/* Dots indicator for mobile */}
-          {allImages.length > 1 && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+          <Carousel 
+            className="w-full h-full" 
+            setApi={setApi}
+            opts={{
+              align: "start",
+              loop: true,
+              dragFree: true,
+              watchDrag: true,
+              skipSnaps: false,
+            }}
+          >
+            <CarouselContent className="h-full">
+              {allImages.map((imageUrl, index) => (
+                <CarouselItem key={index} className="basis-full h-full">
+                  <div className="relative w-full h-full">
+                    <img
+                      src={imageError ? "/placeholder.svg" : imageUrl}
+                      alt={`${product.title} ${index + 1}`}
+                      className="w-full h-full object-contain select-none"
+                      onError={handleImageError}
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  </div>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            
+            {/* Dots indicator for mobile with improved visibility */}
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 bg-black/20 backdrop-blur-sm rounded-full px-2 py-1">
               {allImages.map((_, index) => (
                 <div
                   key={index}
-                  className={`h-1.5 w-1.5 rounded-full transition-all ${
-                    index === current ? 'bg-white' : 'bg-white/60'
+                  className={`h-2 w-2 rounded-full transition-all duration-200 ${
+                    index === current ? 'bg-white scale-110' : 'bg-white/60'
                   }`}
                 />
               ))}
             </div>
-          )}
-        </Carousel>
+
+            {/* Visual feedback for swipe capability */}
+            {allImages.length > 1 && current === 0 && (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20 animate-pulse">
+                <div className="bg-black/40 backdrop-blur-sm text-white text-xs px-2 py-1 rounded-full">
+                  Свайп →
+                </div>
+              </div>
+            )}
+          </Carousel>
+        </div>
       );
     } else {
       // Desktop single image
@@ -152,14 +205,15 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     <Link
       to={`/product/${product.id}`}
       className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200"
+      onClick={handleLinkClick}
     >
       <div className="relative">
-        <AspectRatio ratio={16 / 9} className="bg-gray-50">
+        <AspectRatio ratio={16 / 9} className="bg-gray-50 overflow-hidden">
           {renderImageContent()}
         </AspectRatio>
         {getStatusBadge(product.status)}
         {product.lot_number && (
-          <Badge variant="outline" className="absolute top-2 left-2 text-xs">
+          <Badge variant="outline" className="absolute top-2 left-2 text-xs z-20">
             Лот: {product.lot_number}
           </Badge>
         )}

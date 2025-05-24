@@ -40,6 +40,14 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Enhanced touch support for mobile carousel */
+  .touch-pan-x {
+    touch-action: pan-x;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 @keyframes scale-in {
@@ -93,4 +101,28 @@
 .scroll-container {
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Enhanced carousel touch support */
+.embla {
+  touch-action: pan-x;
+}
+
+.embla__container {
+  touch-action: pan-x;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.embla__slide {
+  touch-action: pan-x;
+}
+
+/* Prevent text selection during swipe */
+.embla__slide img {
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
