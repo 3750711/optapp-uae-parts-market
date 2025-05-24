@@ -1,4 +1,3 @@
-
 // ======================== IMPORTANT NOTICE ========================
 // This file contains critical notification functionality.
 // DO NOT EDIT unless absolutely necessary!
@@ -37,13 +36,29 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
     // Create order link - only for internal use in the code, not shown in message
     const orderLink = `${ORDER_BASE_URL}${orderData.id}`;
     
-    // Updated format with OPT IDs swapped and removed Telegram buyer label
+    // List of users who should have their Telegram shown as-is
+    const showTelegramAsIsUsers = [
+      '@OptSeller_Anton',
+      '@OptSeller_Georgii', 
+      '@IgorD_OptSeller',
+      '@OptSeller_IgorK',
+      '@Pavel_optuae',
+      '@SanSanichUAE',
+      '@dmotrii_st',
+      '@OptSeller_Vlad'
+    ];
+    
+    // Check if the current seller's telegram should be shown as-is
+    const telegramUrl = orderData.telegram_url_buyer || '';
+    const shouldShowAsIs = showTelegramAsIsUsers.includes(telegramUrl);
+    
+    // Updated format with OPT IDs swapped and conditional Telegram display
     // Added "Дополнительная информация" section after delivery method
     // Removed link to order
     const messageText = [
       `Номер заказа: ${orderData.order_number}`,
       `Статус: ${statusText}`,
-      `${orderData.telegram_url_buyer || ''}`,
+      shouldShowAsIs ? telegramUrl : (telegramUrl || ''),
       ``,
       `🟰🟰🟰🟰🟰🟰`,
       `Описание товара: ${orderData.title}`,
