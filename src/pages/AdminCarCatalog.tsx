@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
@@ -146,12 +145,38 @@ const AdminCarCatalog = () => {
     }
   }, [selectedBrandForEdit, brands, brandForm]);
 
+  // Helper function to handle database errors
+  const handleDatabaseError = (error: any, entityType: 'марку' | 'модель') => {
+    console.error(`Error with ${entityType}:`, error);
+    
+    if (error.code === '23505' || error.message?.includes('duplicate key')) {
+      return `${entityType === 'марку' ? 'Марка' : 'Модель'} с таким названием уже существует`;
+    }
+    
+    if (error.code === '23503') {
+      return `Ошибка связи с базой данных. Проверьте правильность данных`;
+    }
+    
+    return `Не удалось ${entityType === 'марку' ? 'добавить марку' : 'добавить модель'}: ${error.message}`;
+  };
+
   // Mutation for adding a brand
   const addBrandMutation = useMutation({
     mutationFn: async (data: BrandFormValues) => {
+      // Check if brand already exists (case-insensitive)
+      const { data: existingBrand } = await supabase
+        .from('car_brands')
+        .select('id')
+        .ilike('name', data.name)
+        .single();
+      
+      if (existingBrand) {
+        throw new Error('Марка с таким названием уже существует');
+      }
+      
       const { data: brand, error } = await supabase
         .from('car_brands')
-        .insert([{ name: data.name }])
+        .insert([{ name: data.name.trim() }])
         .select()
         .single();
       
@@ -168,9 +193,10 @@ const AdminCarCatalog = () => {
       brandForm.reset();
     },
     onError: (error) => {
+      const errorMessage = handleDatabaseError(error, 'марку');
       toast({
         title: "Ошибка",
-        description: `Не удалось добавить марку: ${error.message}`,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -179,9 +205,21 @@ const AdminCarCatalog = () => {
   // Mutation for updating a brand
   const updateBrandMutation = useMutation({
     mutationFn: async (data: { id: string; name: string }) => {
+      // Check if another brand with this name exists (excluding current one)
+      const { data: existingBrand } = await supabase
+        .from('car_brands')
+        .select('id')
+        .ilike('name', data.name)
+        .neq('id', data.id)
+        .single();
+      
+      if (existingBrand) {
+        throw new Error('Марка с таким названием уже существует');
+      }
+      
       const { data: brand, error } = await supabase
         .from('car_brands')
-        .update({ name: data.name })
+        .update({ name: data.name.trim() })
         .eq('id', data.id)
         .select()
         .single();
@@ -200,9 +238,10 @@ const AdminCarCatalog = () => {
       brandForm.reset();
     },
     onError: (error) => {
+      const errorMessage = handleDatabaseError(error, 'марку');
       toast({
         title: "Ошибка",
-        description: `Не удалось обновить марку: ${error.message}`,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -259,9 +298,21 @@ const AdminCarCatalog = () => {
   // Mutation for adding a model
   const addModelMutation = useMutation({
     mutationFn: async (data: ModelFormValues) => {
+      // Check if model already exists for this brand (case-insensitive)
+      const { data: existingModel } = await supabase
+        .from('car_models')
+        .select('id')
+        .eq('brand_id', data.brandId)
+        .ilike('name', data.name)
+        .single();
+      
+      if (existingModel) {
+        throw new Error('Модель с таким названием уже существует для данной марки');
+      }
+      
       const { data: model, error } = await supabase
         .from('car_models')
-        .insert([{ name: data.name, brand_id: data.brandId }])
+        .insert([{ name: data.name.trim(), brand_id: data.brandId }])
         .select()
         .single();
       
@@ -278,9 +329,10 @@ const AdminCarCatalog = () => {
       modelForm.reset();
     },
     onError: (error) => {
+      const errorMessage = handleDatabaseError(error, 'модель');
       toast({
         title: "Ошибка",
-        description: `Не удалось добавить модель: ${error.message}`,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -289,9 +341,22 @@ const AdminCarCatalog = () => {
   // Mutation for updating a model
   const updateModelMutation = useMutation({
     mutationFn: async (data: { id: string; name: string; brandId: string }) => {
+      // Check if another model with this name exists for this brand (excluding current one)
+      const { data: existingModel } = await supabase
+        .from('car_models')
+        .select('id')
+        .eq('brand_id', data.brandId)
+        .ilike('name', data.name)
+        .neq('id', data.id)
+        .single();
+      
+      if (existingModel) {
+        throw new Error('Модель с таким названием уже существует для данной марки');
+      }
+      
       const { data: model, error } = await supabase
         .from('car_models')
-        .update({ name: data.name, brand_id: data.brandId })
+        .update({ name: data.name.trim(), brand_id: data.brandId })
         .eq('id', data.id)
         .select()
         .single();
@@ -310,9 +375,10 @@ const AdminCarCatalog = () => {
       modelForm.reset();
     },
     onError: (error) => {
+      const errorMessage = handleDatabaseError(error, 'модель');
       toast({
         title: "Ошибка",
-        description: `Не удалось обновить модель: ${error.message}`,
+        description: errorMessage,
         variant: "destructive",
       });
     },
