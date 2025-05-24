@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -5,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import ProductInfo from "@/components/product/ProductInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
@@ -13,10 +13,13 @@ import ProductGallery from "@/components/product/ProductGallery";
 import ProductVideos from "@/components/product/ProductVideos";
 import ContactButtons from "@/components/product/ContactButtons";
 import SellerInfo from "@/components/product/SellerInfo";
+import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
+import ProductSEO from "@/components/seo/ProductSEO";
+import ProductSkeleton from "@/components/product/ProductSkeleton";
+import ProductStatusBadge from "@/components/product/ProductStatusBadge";
 import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Database } from "@/integrations/supabase/types";
 
@@ -39,18 +42,15 @@ const ProductDetail = () => {
   // Fixed back button functionality
   const handleBack = () => {
     try {
-      // Check if there's history to go back to
       if (fromSeller) {
         navigate('/seller/listings');
       } else if (window.history.length > 2) {
         navigate(-1);
       } else {
-        // Fallback to home page if there's no history
         navigate('/');
       }
     } catch (error) {
       console.error("Navigation error:", error);
-      // Fallback to home page if navigation fails
       toast({
         title: "Ошибка навигации",
         description: "Не удалось вернуться назад. Перенаправляем на главную страницу.",
@@ -60,7 +60,7 @@ const ProductDetail = () => {
     }
   };
 
-  // Wait for auth to be checked before fetching product data
+  // Product query
   const { data: product, isLoading, error, isError } = useQuery({
     queryKey: ['product', id],
     queryFn: async () => {
@@ -78,7 +78,7 @@ const ProductDetail = () => {
             product_videos(*)
           `)
           .eq('id', id)
-          .maybeSingle(); // Using maybeSingle instead of single to avoid errors
+          .maybeSingle();
         
         if (error) {
           console.error('Error fetching product:', error);
@@ -90,47 +90,36 @@ const ProductDetail = () => {
           throw new Error('Product not found');
         }
         
-        // Check if current user is the product creator/seller
         const isCreator = user?.id === data.seller_id;
-        console.log("Is creator check:", isCreator, user?.id, data.seller_id);
         
-        // Check product visibility based on status and user role/ownership
-        // Allow creator to view their own products regardless of status
         if (data.status === 'pending' && !isCreator && !isAdmin) {
-          console.log("Access denied: User is not product creator or admin for pending product");
           throw new Error('Access denied: Product is pending approval');
         }
         
-        // Similar check for archived products
         if (data.status === 'archived' && !isCreator && !isAdmin) {
-          console.log("Access denied: User is not product creator or admin for archived product");
           throw new Error('Access denied: Product is archived');
         }
         
-        console.log("Fetched product details:", data);
         return data as Product;
       } catch (error) {
         console.error("Error in product query:", error);
         throw error;
       }
     },
-    enabled: !!id && !authLoading, // Only run query when ID is available and auth check is completed
+    enabled: !!id && !authLoading,
     retry: (failureCount, error) => {
-      // Don't retry for access denied errors
       if (error instanceof Error && 
           (error.message.includes('Access denied') || 
            error.message.includes('Product not found'))) {
         return false;
       }
-      // Otherwise retry up to 1 time (default from QueryClient)
       return failureCount < 1;
     },
   });
   
-  // Handle navigation to 404 only after we're sure the product doesn't exist or access is denied
+  // Navigate to 404 on error
   useEffect(() => {
     if (isError && !isLoading && !authLoading) {
-      // Add a small delay to prevent false negatives
       const timer = setTimeout(() => {
         navigate('/404');
       }, 300);
@@ -138,7 +127,7 @@ const ProductDetail = () => {
     }
   }, [isError, isLoading, authLoading, navigate]);
   
-  // Query for seller profile with improved error handling
+  // Seller profile query
   const { data: sellerProfile } = useQuery({
     queryKey: ['sellerProfile', product?.seller_id],
     queryFn: async () => {
@@ -149,7 +138,7 @@ const ProductDetail = () => {
           .from('profiles')
           .select('*')
           .eq('id', product.seller_id)
-          .maybeSingle(); // Using maybeSingle to prevent errors when profile doesn't exist
+          .maybeSingle();
           
         if (error) {
           console.error('Error fetching seller profile:', error);
@@ -163,65 +152,25 @@ const ProductDetail = () => {
       }
     },
     enabled: !!product?.seller_id,
-    retry: 1, // Limit retries to avoid unnecessary requests
+    retry: 1,
   });
   
-  // Product update handler
   const handleProductUpdate = () => {
-    // Refresh product data
     console.log("Product updated, refreshing data");
   };
   
-  // Loading state - show during initial auth check or product loading
+  // Loading state
   if (authLoading || (isLoading && !product)) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
-          <div className="flex items-center mb-6">
-            <Button variant="ghost" onClick={handleBack} className="mr-2">
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Назад
-            </Button>
-            <Skeleton className="h-8 w-64" />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <Skeleton className="w-full aspect-square rounded-lg" />
-              <div className="mt-4 grid grid-cols-4 gap-2">
-                {[...Array(4)].map((_, i) => (
-                  <Skeleton key={i} className="aspect-square rounded-md" />
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-6">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-6 w-1/4" />
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-              
-              <div className="py-4">
-                <Skeleton className="h-10 w-full max-w-xs mb-2" />
-                <Skeleton className="h-10 w-full max-w-xs" />
-              </div>
-              
-              <div className="border rounded-lg p-4">
-                <Skeleton className="h-6 w-1/3 mb-3" />
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            </div>
-          </div>
+          <ProductSkeleton />
         </div>
       </Layout>
     );
   }
   
-  // Show error message if product couldn't be loaded
+  // Error state
   if (isError) {
     return (
       <Layout>
@@ -256,81 +205,81 @@ const ProductDetail = () => {
     setSelectedImage(url);
   };
   
-  // Extract URLs from product_images for the ProductGallery component
+  // Extract URLs for components
   const imageUrls = product.product_images 
     ? product.product_images.map(img => img.url) 
     : [];
   
-  // Extract URLs from product_videos for the ProductVideos component
   const videoUrls = product.product_videos 
     ? product.product_videos.map(video => video.url) 
     : [];
   
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
-  
-  // Check if current user is the product creator/seller
   const isOwner = user?.id === product.seller_id;
-  console.log("Is owner check on render:", isOwner, user?.id, product.seller_id);
   
-  // Prepare values for ProductSpecifications component
-  const brand = product.brand || "Не указано";
-  const model = product.model || "Не указано";
-  const lot_number = product.lot_number || 0;
-
   return (
     <Layout>
+      {/* SEO Component */}
+      <ProductSEO 
+        product={product}
+        sellerName={sellerName}
+        images={imageUrls}
+      />
+      
       <div className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
-            <Button variant="ghost" onClick={handleBack} className="mr-2">
+        {/* Breadcrumb Navigation */}
+        <ProductBreadcrumb
+          productTitle={product.title}
+          brand={product.brand}
+          model={product.model}
+        />
+        
+        {/* Header with improved layout */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4 mb-8">
+          <div className="flex items-center flex-1">
+            <Button variant="ghost" onClick={handleBack} className="mr-3 shrink-0">
               <ChevronLeft className="mr-1 h-4 w-4" />
               Назад
             </Button>
-            <h1 className="text-xl md:text-2xl font-bold truncate">{product.title}</h1>
+            <h1 className="text-xl md:text-3xl font-bold text-foreground truncate">
+              {product.title}
+            </h1>
           </div>
           
-          <div className="flex items-center space-x-2">
+          {/* Status and lot badges */}
+          <div className="flex items-center gap-3 shrink-0">
             {product.lot_number && (
-              <Badge variant="outline" className="text-xs">
+              <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm font-medium border border-blue-200">
                 Лот: {product.lot_number}
-              </Badge>
+              </div>
             )}
-            
-            {product.status === 'pending' && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                На проверке
-              </Badge>
-            )}
-            
-            {product.status === 'archived' && (
-              <Badge variant="secondary" className="bg-gray-100 text-gray-800">
-                В архиве
-              </Badge>
-            )}
+            <ProductStatusBadge status={product.status} size="md" />
           </div>
         </div>
         
-        {/* Status warning for product creators/admins */}
+        {/* Status warnings for creators/admins */}
         {product.status === 'pending' && (isOwner || isAdmin) && (
-          <Alert className="mb-6 bg-yellow-50 border-yellow-200">
-            <AlertTitle>Объявление на проверке</AlertTitle>
-            <AlertDescription>
+          <Alert className="mb-6 bg-yellow-50 border-yellow-200 animate-fade-in">
+            <AlertTitle className="text-yellow-800">Объявление на проверке</AlertTitle>
+            <AlertDescription className="text-yellow-700">
               Это объявление ожидает проверки модераторами. {isOwner ? 'Только вы и администраторы могут его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
             </AlertDescription>
           </Alert>
         )}
         
         {product.status === 'archived' && (isOwner || isAdmin) && (
-          <Alert className="mb-6 bg-gray-50 border-gray-200">
-            <AlertTitle>Объявление в архиве</AlertTitle>
-            <AlertDescription>
+          <Alert className="mb-6 bg-gray-50 border-gray-200 animate-fade-in">
+            <AlertTitle className="text-gray-800">Объявление в архиве</AlertTitle>
+            <AlertDescription className="text-gray-600">
               Это объявление находится в архиве. {isOwner ? 'Только вы и администраторы могут его видеть.' : 'Как администратор, вы можете видеть это объявление.'}
             </AlertDescription>
           </Alert>
         )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div>
+        {/* Main content grid with improved spacing */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          {/* Gallery section */}
+          <div className="space-y-6">
             <ProductGallery 
               images={imageUrls} 
               title={product.title}
@@ -339,14 +288,15 @@ const ProductDetail = () => {
             />
             
             {videoUrls.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-2">Видео</h3>
+              <div className="animate-fade-in">
+                <h3 className="text-lg font-semibold mb-4 text-foreground">Видео</h3>
                 <ProductVideos videos={videoUrls} />
               </div>
             )}
           </div>
           
-          <div className="space-y-6">
+          {/* Info section with better spacing */}
+          <div className="space-y-8">
             <ProductInfo 
               product={product} 
               onProductUpdate={handleProductUpdate}
@@ -385,17 +335,17 @@ const ProductDetail = () => {
                 telegram: sellerProfile?.telegram,
                 phone: sellerProfile?.phone,
                 location: sellerProfile?.location,
-                avatar_url: sellerProfile?.avatar_url  // Added missing avatar_url property
+                avatar_url: sellerProfile?.avatar_url
               }}
               seller_name={sellerName}
               seller_id={product.seller_id}
             />
             
-            {product.description && brand && model && lot_number && (
+            {(product.brand || product.model || product.lot_number) && (
               <ProductSpecifications 
-                brand={brand}
-                model={model}
-                lot_number={lot_number}
+                brand={product.brand || "Не указано"}
+                model={product.model || "Не указано"}
+                lot_number={product.lot_number || 0}
               />
             )}
           </div>

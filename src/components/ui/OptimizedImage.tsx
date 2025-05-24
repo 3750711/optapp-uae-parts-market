@@ -12,6 +12,7 @@ interface OptimizedImageProps {
   sizes?: string;
   onLoad?: () => void;
   onError?: () => void;
+  placeholder?: boolean;
 }
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -23,34 +24,37 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   priority = false,
   sizes = '(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw',
   onLoad,
-  onError
+  onError,
+  placeholder = true
 }) => {
   const [imageError, setImageError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleLoad = useCallback(() => {
     setIsLoaded(true);
+    setIsLoading(false);
     onLoad?.();
   }, [onLoad]);
 
   const handleError = useCallback(() => {
     setImageError(true);
+    setIsLoading(false);
     onError?.();
   }, [onError]);
 
-  // Generate WebP and responsive image URLs
+  // Generate optimized URLs for Supabase
   const generateSrcSet = (originalSrc: string) => {
     if (originalSrc.includes('placeholder.svg') || imageError) {
       return originalSrc;
     }
 
-    // For Supabase storage, we can add transformation parameters
     if (originalSrc.includes('supabase')) {
       const baseUrl = originalSrc.split('?')[0];
       return `
-        ${baseUrl}?width=400&format=webp 400w,
-        ${baseUrl}?width=800&format=webp 800w,
-        ${baseUrl}?width=1200&format=webp 1200w
+        ${baseUrl}?width=400&quality=75&format=webp 400w,
+        ${baseUrl}?width=800&quality=80&format=webp 800w,
+        ${baseUrl}?width=1200&quality=85&format=webp 1200w
       `.trim();
     }
 
@@ -65,9 +69,9 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     if (originalSrc.includes('supabase')) {
       const baseUrl = originalSrc.split('?')[0];
       return `
-        ${baseUrl}?width=400 400w,
-        ${baseUrl}?width=800 800w,
-        ${baseUrl}?width=1200 1200w
+        ${baseUrl}?width=400&quality=75 400w,
+        ${baseUrl}?width=800&quality=80 800w,
+        ${baseUrl}?width=1200&quality=85 1200w
       `.trim();
     }
 
@@ -76,44 +80,58 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   if (imageError) {
     return (
-      <img
-        src="/placeholder.svg"
-        alt={alt}
-        className={cn('object-contain', className)}
-        width={width}
-        height={height}
-      />
+      <div className={cn(
+        'flex items-center justify-center bg-gray-100 text-gray-400 rounded-lg',
+        className
+      )}>
+        <div className="text-center p-4">
+          <div className="text-2xl mb-2">📷</div>
+          <div className="text-sm">Изображение недоступно</div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <picture>
-      {/* WebP version */}
-      <source
-        srcSet={generateSrcSet(src)}
-        sizes={sizes}
-        type="image/webp"
-      />
+    <div className={cn('relative overflow-hidden', className)}>
+      {/* Loading placeholder */}
+      {placeholder && isLoading && (
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+          </div>
+        </div>
+      )}
       
-      {/* Fallback to original format */}
-      <img
-        src={imageError ? '/placeholder.svg' : src}
-        srcSet={generateFallbackSrcSet(src)}
-        sizes={sizes}
-        alt={alt}
-        className={cn(
-          'transition-opacity duration-300',
-          isLoaded ? 'opacity-100' : 'opacity-0',
-          'object-contain',
-          className
-        )}
-        width={width}
-        height={height}
-        loading={priority ? 'eager' : 'lazy'}
-        onLoad={handleLoad}
-        onError={handleError}
-      />
-    </picture>
+      <picture>
+        {/* WebP version with srcset */}
+        <source
+          srcSet={generateSrcSet(src)}
+          sizes={sizes}
+          type="image/webp"
+        />
+        
+        {/* Fallback to original format */}
+        <img
+          src={imageError ? '/placeholder.svg' : src}
+          srcSet={generateFallbackSrcSet(src)}
+          sizes={sizes}
+          alt={alt}
+          className={cn(
+            'transition-all duration-500',
+            isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105',
+            'w-full h-full object-cover',
+            className
+          )}
+          width={width}
+          height={height}
+          loading={priority ? 'eager' : 'lazy'}
+          onLoad={handleLoad}
+          onError={handleError}
+          decoding={priority ? 'sync' : 'async'}
+        />
+      </picture>
+    </div>
   );
 };
 
