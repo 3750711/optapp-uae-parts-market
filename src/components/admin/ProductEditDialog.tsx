@@ -154,36 +154,6 @@ export const ProductEditDialog = ({
     },
   });
 
-  // Simplified handlers that only update local state
-  const handleImageUpload = (newUrls: string[]) => {
-    console.log("ProductEditDialog - handleImageUpload called with:", newUrls);
-    const updatedImages = [...images, ...newUrls];
-    setImages(updatedImages);
-    
-    if (primaryImage === '' && newUrls.length > 0) {
-      console.log("ProductEditDialog - Setting first uploaded image as primary:", newUrls[0]);
-      setPrimaryImage(newUrls[0]);
-    }
-  };
-
-  const handleImageDelete = (urlToDelete: string) => {
-    console.log("ProductEditDialog - handleImageDelete called with:", urlToDelete);
-    const updatedImages = images.filter(url => url !== urlToDelete);
-    setImages(updatedImages);
-    
-    if (primaryImage === urlToDelete && updatedImages.length > 0) {
-      console.log("ProductEditDialog - Primary image deleted, setting new primary:", updatedImages[0]);
-      setPrimaryImage(updatedImages[0]);
-    } else if (updatedImages.length === 0) {
-      setPrimaryImage('');
-    }
-  };
-
-  const handlePrimaryImageChange = (imageUrl: string) => {
-    console.log("ProductEditDialog - handlePrimaryImageChange called with:", imageUrl);
-    setPrimaryImage(imageUrl);
-  };
-
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     const modelValue = values.model === "" ? null : values.model;
     
@@ -389,10 +359,13 @@ export const ProductEditDialog = ({
                   <UnifiedProductImagesManager
                     productId={product.id}
                     images={images}
-                    onImageUpload={handleImageUpload}
-                    onImageDelete={handleImageDelete}
+                    onImageUpload={setImages}
+                    onImageDelete={(urlToDelete) => {
+                      console.log("ProductEditDialog - Image deleted:", urlToDelete);
+                      setImages(prev => prev.filter(url => url !== urlToDelete));
+                    }}
                     primaryImage={primaryImage}
-                    onPrimaryImageChange={handlePrimaryImageChange}
+                    onPrimaryImageChange={setPrimaryImage}
                     storageBucket="product-images"
                   />
                 </div>
