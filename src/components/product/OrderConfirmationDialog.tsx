@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, InfoIcon } from "lucide-react";
+import { Loader2, InfoIcon, Package, Truck, User, DollarSign, ShoppingCart, CheckCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -69,8 +70,27 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     }
   }, [deliveryMethod, onDeliveryMethodChange]);
 
+  // Мемоизируем вычисляемые значения для оптимизации производительности
+  const showDeliveryPrice = useMemo(() => 
+    profile?.opt_status === 'opt_user' && deliveryMethod === 'cargo_rf',
+    [profile?.opt_status, deliveryMethod]
+  );
+
+  const totalPrice = useMemo(() => {
+    const basePrice = product.price;
+    const deliveryPrice = showDeliveryPrice && product.delivery_price ? product.delivery_price : 0;
+    return basePrice + deliveryPrice;
+  }, [product.price, product.delivery_price, showDeliveryPrice]);
+
+  const isFormValid = useMemo(() => {
+    if (deliveryMethod === 'self_pickup') {
+      return contactConsent;
+    }
+    return true;
+  }, [deliveryMethod, contactConsent]);
+
   const handleConfirm = () => {
-    if (deliveryMethod === 'self_pickup' && !contactConsent) {
+    if (!isFormValid) {
       toast({
         title: "Требуется согласие",
         description: "Для самовывоза необходимо дать согласие на передачу контактных данных",
@@ -95,59 +115,81 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
     }
   };
 
-  // Updated condition to show delivery price when opt_status is 'opt_user' (was 'opt_used')
-  const showDeliveryPrice = profile?.opt_status === 'opt_user' && deliveryMethod === 'cargo_rf';
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-w-[95vw] p-3 sm:p-6 max-h-[85vh] flex flex-col">
-        <DialogHeader className="space-y-0.5 pb-2 flex-shrink-0">
-          <DialogTitle>Подтверждение заказа</DialogTitle>
-          <DialogDescription className="text-xs">
+      <DialogContent className="sm:max-w-lg max-w-[95vw] p-4 sm:p-6 max-h-[90vh] flex flex-col">
+        <DialogHeader className="space-y-1 pb-3 flex-shrink-0">
+          <DialogTitle className="text-lg sm:text-xl">Подтверждение заказа</DialogTitle>
+          <DialogDescription className="text-sm">
             Проверьте информацию перед подтверждением
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow overflow-y-auto pr-3">
-          <div className="space-y-2 sm:space-y-4 text-sm">
-            <div>
-              <h3 className="font-semibold text-sm mb-1">Информация о товаре</h3>
-              <div className="space-y-0.5 text-xs sm:text-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Наименование:</span>
+        {/* Общая сумма - выделенная секция */}
+        <div className="bg-gradient-to-r from-optapp-yellow/10 to-yellow-50 border-2 border-optapp-yellow/30 rounded-lg p-4 mb-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-optapp-yellow" />
+              <span className="font-semibold text-gray-700">Итого к оплате:</span>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-gray-900">{totalPrice} $</div>
+              {showDeliveryPrice && product.delivery_price && (
+                <div className="text-sm text-gray-600">
+                  включая доставку {product.delivery_price} $
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-grow overflow-y-auto pr-2">
+          <div className="space-y-4 text-sm">
+            {/* Информация о товаре */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Package className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold text-blue-900">Информация о товаре</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between items-start">
+                  <span className="text-gray-600">Наименование:</span>
                   <span className="font-medium text-right max-w-[60%] break-words">{product.title}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Бренд:</span>
+                  <span className="text-gray-600">Бренд:</span>
                   <span className="font-medium">{product.brand}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Модель:</span>
+                  <span className="text-gray-600">Модель:</span>
                   <span className="font-medium">{product.model}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Цена:</span>
-                  <span className="font-medium">{product.price} $</span>
+                  <span className="text-gray-600">Цена:</span>
+                  <span className="font-medium text-green-700">{product.price} $</span>
                 </div>
                 {product.lot_number !== undefined && product.lot_number !== null && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-500">Номер лота:</span>
+                    <span className="text-gray-600">Номер лота:</span>
                     <span className="font-medium">{product.lot_number}</span>
                   </div>
                 )}
                 {product.id && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-500">ID товара:</span>
-                    <span className="font-medium text-right max-w-[60%] break-words">{product.id}</span>
+                  <div className="flex justify-between items-start">
+                    <span className="text-gray-600">ID товара:</span>
+                    <span className="font-medium text-right max-w-[60%] break-words text-xs">{product.id}</span>
                   </div>
                 )}
               </div>
             </div>
 
-            <Separator className="my-1.5" />
-
-            <div className="space-y-1.5">
-              <h3 className="font-semibold text-sm mb-1">Способ доставки</h3>
+            {/* Способ доставки */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Truck className="h-5 w-5 text-green-600" />
+                <h3 className="font-semibold text-green-900">Способ доставки</h3>
+              </div>
+              
               <Select 
                 value={deliveryMethod || 'cargo_rf'}
                 onValueChange={(value) => {
@@ -155,7 +197,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   onDeliveryMethodChange(value as DeliveryMethod);
                 }}
               >
-                <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow">
+                <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow h-10">
                   <SelectValue placeholder="Выберите способ доставки" />
                 </SelectTrigger>
                 <SelectContent className="bg-white border border-gray-200 shadow-lg rounded-md">
@@ -163,87 +205,95 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                     value="cargo_rf" 
                     className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                   >
-                    Доставка Cargo РФ
+                    🚛 Доставка Cargo РФ
                   </SelectItem>
                   <SelectItem 
                     value="cargo_kz" 
                     className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                   >
-                    Доставка Cargo KZ
+                    🚚 Доставка Cargo KZ
                   </SelectItem>
                   <SelectItem 
                     value="self_pickup" 
                     className="hover:bg-gray-100 focus:bg-gray-100 cursor-pointer"
                   >
-                    Самовывоз
+                    📦 Самовывоз
                   </SelectItem>
                 </SelectContent>
               </Select>
               
               {showDeliveryPrice && product.delivery_price !== undefined && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Стоимость доставки:</span>
-                    <span className="font-medium text-gray-900">{product.delivery_price} $</span>
+                <div className="mt-3 p-3 bg-white rounded-md border border-green-300">
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-700 font-medium">Стоимость доставки:</span>
+                    <span className="font-bold text-green-800">{product.delivery_price} $</span>
                   </div>
                 </div>
               )}
 
               {deliveryMethod === 'self_pickup' && (
-                <div className="flex items-start space-x-2 mt-1.5">
+                <div className="flex items-start space-x-3 mt-3 p-3 bg-white rounded-md border border-green-300">
                   <Checkbox 
                     id="contactConsent"
                     checked={contactConsent}
                     onCheckedChange={(checked) => setContactConsent(checked as boolean)}
-                    className="border-gray-300"
+                    className="border-green-400 mt-1"
                   />
                   <label
                     htmlFor="contactConsent"
-                    className="text-xs text-gray-700 leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    className="text-sm text-green-800 leading-relaxed peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
                   >
-                    Даю согласие поделиться моими контактными данными с продавцом
+                    Даю согласие поделиться моими контактными данными с продавцом для организации самовывоза
                   </label>
                 </div>
               )}
             </div>
 
-            <Separator className="my-1.5" />
-
-            <div>
-              <h3 className="font-semibold text-sm mb-1">Информация о продавце</h3>
-              <div className="space-y-0.5 text-xs sm:text-sm">
+            {/* Информация о продавце */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <User className="h-5 w-5 text-purple-600" />
+                <h3 className="font-semibold text-purple-900">Информация о продавце</h3>
+              </div>
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Продавец:</span>
+                  <span className="text-gray-600">Продавец:</span>
                   <span className="font-medium">{product.seller_name || 'Не указан'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">OPT ID:</span>
+                  <span className="text-gray-600">OPT ID:</span>
                   <span className="font-medium">{product.optid_created || 'Не указан'}</span>
                 </div>
               </div>
             </div>
 
-            <Separator className="my-1.5" />
-
-            <div>
-              <h3 className="font-semibold text-sm mb-1">Информация о покупателе</h3>
-              <div className="space-y-0.5 text-xs sm:text-sm">
+            {/* Информация о покупателе */}
+            <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ShoppingCart className="h-5 w-5 text-indigo-600" />
+                <h3 className="font-semibold text-indigo-900">Информация о покупателе</h3>
+              </div>
+              <div className="space-y-2 text-sm">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Ваш OPT ID:</span>
+                  <span className="text-gray-600">Ваш OPT ID:</span>
                   <span className="font-medium">{profile?.opt_id || 'Не указан'}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Ваш Telegram:</span>
+                  <span className="text-gray-600">Ваш Telegram:</span>
                   <span className="font-medium">{profile?.telegram || 'Не указан'}</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <h3 className="font-semibold text-sm mb-1">Дополнительная информация</h3>
+            {/* Дополнительная информация */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm flex items-center gap-2">
+                <InfoIcon className="h-4 w-4 text-gray-600" />
+                Дополнительная информация
+              </h3>
               <Textarea
                 placeholder="Укажите дополнительную информацию по заказу (необязательно)"
-                className="resize-none text-sm"
+                className="resize-none text-sm min-h-[80px]"
                 rows={3}
                 value={textOrder}
                 onChange={(e) => setTextOrder(e.target.value)}
@@ -252,11 +302,12 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           </div>
         </ScrollArea>
 
-        <div className="mt-2 flex-shrink-0">
-          <Alert variant="default" className="bg-yellow-50 border-yellow-200 p-2">
+        {/* Предупреждение */}
+        <div className="mt-3 flex-shrink-0">
+          <Alert variant="default" className="bg-yellow-50 border-yellow-200 p-3">
             <div className="flex items-start space-x-2">
               <InfoIcon className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-              <AlertDescription className="text-yellow-900 text-xs">
+              <AlertDescription className="text-yellow-900 text-sm">
                 Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
                 Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
               </AlertDescription>
@@ -264,27 +315,31 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           </Alert>
         </div>
 
-        <DialogFooter className="flex sm:justify-end justify-between gap-2 sm:gap-0 mt-2 pt-0 px-0 flex-shrink-0">
+        {/* Кнопки */}
+        <DialogFooter className="flex sm:justify-end justify-between gap-3 mt-4 pt-0 px-0 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="text-xs sm:text-sm h-8 sm:h-9"
+            className="text-sm h-11 px-6 sm:h-10"
           >
             Отмена
           </Button>
           <Button
             onClick={handleConfirm}
-            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-xs sm:text-sm h-8 sm:h-9"
-            disabled={isSubmitting}
+            className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-sm h-11 px-6 sm:h-10 disabled:opacity-50"
+            disabled={isSubmitting || !isFormValid}
           >
             {isSubmitting ? (
               <>
-                <Loader2 className="mr-2 h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Обработка...
               </>
             ) : (
-              "Подтвердить заказ"
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Подтвердить заказ
+              </>
             )}
           </Button>
         </DialogFooter>
