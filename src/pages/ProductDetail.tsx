@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -21,7 +22,6 @@ import Layout from "@/components/layout/Layout";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Database } from "@/integrations/supabase/types";
-import OptimizedImage from "@/components/ui/OptimizedImage";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -364,22 +364,22 @@ const ProductDetail = () => {
           </div>
         </div>
         
-        {/* Full Size Images Section */}
+        {/* Full Size Images Section - Real size without compression and borders */}
         {imageUrls.length > 0 && (
           <div className="mt-16 border-t pt-12">
             <h2 className="text-2xl font-bold text-foreground mb-8">Все фотографии товара</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
               {imageUrls.map((imageUrl, index) => (
                 <div 
                   key={index} 
-                  className="overflow-hidden rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  className="overflow-hidden cursor-pointer"
                   onClick={() => handleImageClick(imageUrl)}
                 >
-                  <OptimizedImage
+                  <img
                     src={imageUrl}
                     alt={`${product.title} - фото ${index + 1}`}
-                    className="w-full h-auto aspect-square object-cover hover:scale-105 transition-transform duration-300"
-                    priority={index < 3}
+                    className="w-full h-auto object-contain hover:opacity-90 transition-opacity duration-300"
+                    loading={index < 3 ? 'eager' : 'lazy'}
                   />
                 </div>
               ))}
