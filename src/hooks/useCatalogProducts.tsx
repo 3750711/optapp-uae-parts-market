@@ -1,9 +1,9 @@
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
+import { SortOption } from '@/components/catalog/ProductSorting';
 
 export type ProductType = {
   id: string;
@@ -34,7 +34,7 @@ export interface CatalogFilters {
   selectedModelName: string | null;
 }
 
-export const useCatalogProducts = (productsPerPage = 8) => {
+export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'newest') => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
@@ -66,15 +66,36 @@ export const useCatalogProducts = (productsPerPage = 8) => {
     setSelectedModelName(null);
   }, [selectedBrand]);
 
-  // Memoize filters to use in query key
+  // Helper function to build sort query
+  const buildSortQuery = (query: any, sortOption: SortOption) => {
+    switch (sortOption) {
+      case 'newest':
+        return query.order('created_at', { ascending: false });
+      case 'oldest':
+        return query.order('created_at', { ascending: true });
+      case 'price_asc':
+        return query.order('price', { ascending: true });
+      case 'price_desc':
+        return query.order('price', { ascending: false });
+      case 'name_asc':
+        return query.order('title', { ascending: true });
+      case 'name_desc':
+        return query.order('title', { ascending: false });
+      default:
+        return query.order('created_at', { ascending: false });
+    }
+  };
+
+  // Memoize filters to use in query key - now includes sortBy
   const filters = useMemo(() => ({
     debouncedSearchQuery,
     selectedBrand,
     selectedModel,
     hideSoldProducts,
     selectedBrandName,
-    selectedModelName
-  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, selectedBrandName, selectedModelName]);
+    selectedModelName,
+    sortBy
+  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, selectedBrandName, selectedModelName, sortBy]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -93,8 +114,10 @@ export const useCatalogProducts = (productsPerPage = 8) => {
       
       let query = supabase
         .from('products')
-        .select('*, product_images(url, is_primary, preview_url), profiles:seller_id(*)')
-        .order('created_at', { ascending: false });
+        .select('*, product_images(url, is_primary, preview_url), profiles:seller_id(*)');
+
+      // Apply sorting
+      query = buildSortQuery(query, sortBy);
 
       // Filter out sold products if checkbox is checked
       if (filters.hideSoldProducts) {
@@ -315,7 +338,7 @@ export const useCatalogProducts = (productsPerPage = 8) => {
     refetch,
     handleClearSearch,
     handleSearchSubmit,
-    isActiveFilters: !!(searchQuery || selectedBrand || selectedModel)
+    isActiveFilters: !!(searchQuery || selectedBrand || selectedModel || hideSoldProducts)
   };
 };
 

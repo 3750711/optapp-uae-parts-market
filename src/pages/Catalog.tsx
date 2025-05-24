@@ -5,10 +5,15 @@ import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import SearchBar from "@/components/catalog/SearchBar";
 import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductsSection from "@/components/catalog/ProductsSection";
+import CatalogSEO from "@/components/catalog/CatalogSEO";
+import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
+import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting";
+import ActiveFilters from "@/components/catalog/ActiveFilters";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
 
 const Catalog: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
   const productsPerPage = 8;
   
   // Car brands and models
@@ -47,7 +52,7 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearchSubmit,
     isActiveFilters
-  } = useCatalogProducts(productsPerPage);
+  } = useCatalogProducts(productsPerPage, sortBy);
 
   // Update brand and model names when IDs change
   useEffect(() => {
@@ -70,55 +75,116 @@ const Catalog: React.FC = () => {
     }
   }, [selectedModel, findModelNameById, setSelectedModelName]);
 
+  // Handlers for clearing individual filters
+  const handleClearBrand = () => {
+    selectBrand(null);
+    setSelectedModel(null);
+  };
+
+  const handleClearModel = () => {
+    setSelectedModel(null);
+  };
+
+  const handleClearSoldFilter = () => {
+    setHideSoldProducts(false);
+  };
+
+  const handleClearSearchQuery = () => {
+    setSearchQuery('');
+  };
+
   return (
-    <Layout>
-      <div className="bg-lightGray min-h-screen py-0">
-        <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-          {/* Search and filters section */}
-          <div className="mb-6 flex flex-col gap-4">
-            {/* Search Bar Component */}
-            <SearchBar 
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleSearchSubmit={handleSearchSubmit}
+    <>
+      <CatalogSEO
+        searchQuery={debouncedSearchQuery}
+        selectedBrandName={selectedBrandName}
+        selectedModelName={selectedModelName}
+        totalProducts={allProducts.length}
+      />
+      
+      <Layout>
+        <div className="bg-lightGray min-h-screen py-0">
+          <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
+            {/* Breadcrumb Navigation */}
+            <CatalogBreadcrumb
+              searchQuery={debouncedSearchQuery}
+              selectedBrandName={selectedBrandName}
+              selectedModelName={selectedModelName}
             />
+
+            {/* Search and filters section */}
+            <div className="mb-6 flex flex-col gap-4">
+              {/* Search Bar Component */}
+              <SearchBar 
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                handleSearchSubmit={handleSearchSubmit}
+              />
+              
+              {/* Filters Panel Component */}
+              <FiltersPanel
+                showFilters={showFilters}
+                setShowFilters={setShowFilters}
+                selectedBrand={selectedBrand}
+                selectBrand={selectBrand}
+                selectedModel={selectedModel}
+                setSelectedModel={setSelectedModel}
+                brands={brands}
+                brandModels={brandModels}
+                hideSoldProducts={hideSoldProducts}
+                setHideSoldProducts={setHideSoldProducts}
+                handleSearchSubmit={handleSearchSubmit}
+                handleClearSearch={handleClearSearch}
+                isActiveFilters={isActiveFilters}
+              />
+
+              {/* Active Filters Display */}
+              <ActiveFilters
+                searchQuery={debouncedSearchQuery}
+                selectedBrandName={selectedBrandName}
+                selectedModelName={selectedModelName}
+                hideSoldProducts={hideSoldProducts}
+                onClearSearch={handleClearSearchQuery}
+                onClearBrand={handleClearBrand}
+                onClearModel={handleClearModel}
+                onClearSoldFilter={handleClearSoldFilter}
+                onClearAll={handleClearSearch}
+              />
+
+              {/* Results summary and sorting */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                {allProducts.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
+                  </div>
+                )}
+                
+                <ProductSorting
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                />
+              </div>
+            </div>
             
-            {/* Filters Panel Component */}
-            <FiltersPanel
-              showFilters={showFilters}
-              setShowFilters={setShowFilters}
+            {/* Products Section Component */}
+            <ProductsSection
+              isLoading={isLoading}
+              isError={isError}
+              hasSearched={hasSearched}
+              debouncedSearchQuery={debouncedSearchQuery}
               selectedBrand={selectedBrand}
-              selectBrand={selectBrand}
               selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              brands={brands}
-              brandModels={brandModels}
-              hideSoldProducts={hideSoldProducts}
-              setHideSoldProducts={setHideSoldProducts}
-              handleSearchSubmit={handleSearchSubmit}
-              handleClearSearch={handleClearSearch}
-              isActiveFilters={isActiveFilters}
+              allProducts={allProducts}
+              productChunks={productChunks}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              fetchNextPage={fetchNextPage}
+              refetch={refetch}
             />
           </div>
-          
-          {/* Products Section Component */}
-          <ProductsSection
-            isLoading={isLoading}
-            isError={isError}
-            hasSearched={hasSearched}
-            debouncedSearchQuery={debouncedSearchQuery}
-            selectedBrand={selectedBrand}
-            selectedModel={selectedModel}
-            allProducts={allProducts}
-            productChunks={productChunks}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            fetchNextPage={fetchNextPage}
-            refetch={refetch}
-          />
         </div>
-      </div>
-    </Layout>
+      </Layout>
+    </>
   );
 };
 
