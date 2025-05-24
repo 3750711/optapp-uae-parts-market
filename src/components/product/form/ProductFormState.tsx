@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Product } from "@/types/product";
 
 interface UseProductFormStateProps {
@@ -8,8 +7,6 @@ interface UseProductFormStateProps {
 }
 
 export const useProductFormState = ({ product }: UseProductFormStateProps) => {
-  const queryClient = useQueryClient();
-  
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const [primaryImage, setPrimaryImage] = useState<string>('');
@@ -45,40 +42,6 @@ export const useProductFormState = ({ product }: UseProductFormStateProps) => {
   useEffect(() => {
     initializeState();
   }, [initializeState]);
-
-  // Listen for cache updates and sync local state
-  useEffect(() => {
-    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query?.queryKey?.[0] === 'product' && event?.query?.queryKey?.[1] === product.id) {
-        console.log("ProductFormState - Cache updated for product:", product.id);
-        
-        // Get fresh data from cache and sync
-        const freshProduct = queryClient.getQueryData(['product', product.id]) as Product;
-        if (freshProduct && event.type === 'updated') {
-          const freshImages = Array.isArray(freshProduct.product_images)
-            ? freshProduct.product_images.map((img: any) => img.url)
-            : [];
-          
-          let freshPrimaryImage = '';
-          if (Array.isArray(freshProduct.product_images)) {
-            const primary = freshProduct.product_images.find((img: any) => img.is_primary);
-            freshPrimaryImage = primary ? primary.url : (freshProduct.product_images[0]?.url || '');
-          }
-
-          // Only update if data actually changed
-          setImages(prev => {
-            const hasChanged = prev.length !== freshImages.length || 
-              prev.some((img, index) => img !== freshImages[index]);
-            return hasChanged ? freshImages : prev;
-          });
-
-          setPrimaryImage(prev => prev !== freshPrimaryImage ? freshPrimaryImage : prev);
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [product.id, queryClient]);
 
   return {
     images,

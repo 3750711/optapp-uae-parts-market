@@ -57,25 +57,16 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
     onPrimaryImageChange
   });
 
-  // Enhanced delete handler that also handles primary image logic
-  const enhancedDeleteHandler = async (imageUrl: string) => {
+  // Simple delete handler that doesn't duplicate primary image logic
+  const simpleDeleteHandler = async (imageUrl: string) => {
     await handleImageDelete(imageUrl);
-    
-    // If this was the primary image, set another image as primary
-    if (primaryImage === imageUrl && images.length > 1 && onPrimaryImageChange) {
-      const newPrimaryUrl = images.find(img => img !== imageUrl);
-      if (newPrimaryUrl) {
-        console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
-        await handleSetPrimaryImage(newPrimaryUrl);
-      }
-    }
   };
 
   return (
     <div className="space-y-4">
       <ProductImagesGallery 
         images={images}
-        onImageDelete={enhancedDeleteHandler}
+        onImageDelete={simpleDeleteHandler}
         onSetPrimaryImage={onPrimaryImageChange ? handleSetPrimaryImage : undefined}
         primaryImage={primaryImage}
         deletingImage={deletingImage}
@@ -86,7 +77,7 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
         <ImageUpload 
           images={images}
           onUpload={handleImageUpload}
-          onDelete={enhancedDeleteHandler}
+          onDelete={simpleDeleteHandler}
           maxImages={maxImages}
           storageBucket={storageBucket}
         />

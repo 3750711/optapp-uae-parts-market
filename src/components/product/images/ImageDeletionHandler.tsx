@@ -20,7 +20,7 @@ export const useImageDeletion = ({
   onPrimaryImageChange
 }: UseImageDeletionProps) => {
   const { toast } = useToast();
-  const { invalidateAllCaches } = useImageCacheManager();
+  const { invalidateAllCaches, optimisticRemoveImage } = useImageCacheManager();
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const handleImageDelete = async (imageUrl: string) => {
@@ -37,6 +37,9 @@ export const useImageDeletion = ({
       setDeletingImage(imageUrl);
       console.log("Deleting image:", imageUrl);
 
+      // Optimistic update - remove image from cache immediately
+      optimisticRemoveImage(productId, imageUrl);
+
       // First, delete the image record from the database
       const { error: dbError } = await supabase
         .from('product_images')
@@ -47,19 +50,19 @@ export const useImageDeletion = ({
       if (dbError) throw dbError;
       console.log("Successfully deleted from database");
 
+      // Call the parent's onImageDelete function to update UI
+      onImageDelete(imageUrl);
+      
       // If this was the primary image, set another image as primary
       if (primaryImage === imageUrl && images.length > 1 && onPrimaryImageChange) {
         const newPrimaryUrl = images.find(img => img !== imageUrl);
         if (newPrimaryUrl) {
           console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
-          // We'll handle this in the parent component
+          onPrimaryImageChange(newPrimaryUrl);
         }
       }
-
-      // Call the parent's onImageDelete function to update UI
-      onImageDelete(imageUrl);
       
-      // Unified cache invalidation
+      // Final cache invalidation to ensure consistency
       invalidateAllCaches(productId);
 
       toast({
@@ -68,6 +71,10 @@ export const useImageDeletion = ({
       });
     } catch (error) {
       console.error("Error deleting image:", error);
+      
+      // Revert optimistic update on error
+      invalidateAllCaches(productId);
+      
       toast({
         title: "Ошибка",
         description: "Не удалось удалить фотографию",

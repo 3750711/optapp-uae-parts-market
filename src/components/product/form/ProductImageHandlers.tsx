@@ -1,6 +1,6 @@
 
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useImageCacheManager } from "../images/ImageCacheManager";
 
 interface UseProductImageHandlersProps {
   productId: string;
@@ -18,7 +18,7 @@ export const useProductImageHandlers = ({
   setPrimaryImage
 }: UseProductImageHandlersProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { invalidateAllCaches, optimisticUpdateCache } = useImageCacheManager();
 
   const handleImageUpload = (newUrls: string[]) => {
     console.log("ProductImageHandlers - handleImageUpload called with:", newUrls);
@@ -48,11 +48,11 @@ export const useProductImageHandlers = ({
     console.log("ProductImageHandlers - handlePrimaryImageChange called with:", imageUrl);
     setPrimaryImage(imageUrl);
     
-    // Unified cache invalidation
-    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-    queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
-    queryClient.invalidateQueries({ queryKey: ['product', productId] });
-    queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
+    // Optimistic update first for immediate UI response
+    optimisticUpdateCache(productId, imageUrl);
+    
+    // Then invalidate to ensure fresh data
+    invalidateAllCaches(productId);
     
     toast({
       title: "Обновлено",
