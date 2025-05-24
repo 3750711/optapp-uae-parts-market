@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon, Package, Truck, User, DollarSign, ShoppingCart, CheckCircle } from "lucide-react";
@@ -301,7 +302,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
             <div className="flex items-start space-x-2">
               <InfoIcon className="h-4 w-4 text-yellow-600 mt-0.5 flex-shrink-0" />
               <AlertDescription className="text-yellow-900 text-sm">
-                Внимательно изучите фото и описание товара. Optapp не несет ответственности за сделки между пользователями. 
+                Внимательно изучите фото и описание товара. Partsbay.ae не несет ответственности за сделки между пользователями. 
                 Больше информации в разделе <a href="/faq" className="underline text-yellow-700 hover:text-yellow-800">FAQ</a>.
               </AlertDescription>
             </div>
