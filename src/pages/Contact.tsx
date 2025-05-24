@@ -46,7 +46,7 @@ const Contact = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+              <Button className="w-full bg-primary text-white hover:bg-primary/90">
                 Отправить сообщение
               </Button>
             </CardFooter>
@@ -54,37 +54,37 @@ const Contact = () => {
 
           {/* Contact Information */}
           <div className="space-y-6">
-            <div className="bg-optapp-yellow p-6 rounded-lg shadow">
-              <h3 className="text-xl font-bold text-optapp-dark mb-6">Контактные данные</h3>
+            <div className="bg-primary p-6 rounded-lg shadow">
+              <h3 className="text-xl font-bold text-white mb-6">Контактные данные</h3>
               <div className="space-y-4">
                 <div className="flex items-start">
-                  <Phone className="h-5 w-5 mr-3 text-optapp-dark" />
+                  <Phone className="h-5 w-5 mr-3 text-white" />
                   <div>
-                    <p className="font-medium">Телефон</p>
-                    <p>+971 58 123 4567</p>
+                    <p className="font-medium text-white">Телефон</p>
+                    <p className="text-white">+971 58 123 4567</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Mail className="h-5 w-5 mr-3 text-optapp-dark" />
+                  <Mail className="h-5 w-5 mr-3 text-white" />
                   <div>
-                    <p className="font-medium">Email</p>
-                    <p>info@optapp.ae</p>
+                    <p className="font-medium text-white">Email</p>
+                    <p className="text-white">info@partsbay.ae</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <MapPin className="h-5 w-5 mr-3 text-optapp-dark" />
+                  <MapPin className="h-5 w-5 mr-3 text-white" />
                   <div>
-                    <p className="font-medium">Адрес</p>
-                    <p>Sheikh Zayed Road, Dubai, UAE</p>
+                    <p className="font-medium text-white">Адрес</p>
+                    <p className="text-white">Sheikh Zayed Road, Dubai, UAE</p>
                   </div>
                 </div>
                 <div className="flex items-start">
-                  <Clock className="h-5 w-5 mr-3 text-optapp-dark" />
+                  <Clock className="h-5 w-5 mr-3 text-white" />
                   <div>
-                    <p className="font-medium">Время работы</p>
-                    <p>Пн-Пт: 9:00 - 18:00</p>
-                    <p>Сб: 10:00 - 15:00</p>
-                    <p>Вс: Выходной</p>
+                    <p className="font-medium text-white">Время работы</p>
+                    <p className="text-white">Пн-Пт: 9:00 - 18:00</p>
+                    <p className="text-white">Сб: 10:00 - 15:00</p>
+                    <p className="text-white">Вс: Выходной</p>
                   </div>
                 </div>
               </div>

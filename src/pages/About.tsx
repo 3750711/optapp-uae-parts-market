@@ -10,7 +10,7 @@ const About = () => {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-6 text-center">О компании OPTAPP</h1>
+          <h1 className="text-4xl font-bold mb-6 text-center">О компании PartsBay.ae</h1>
           <div className="mb-12 text-center">
             <p className="text-lg text-gray-600">
               Инновационный маркетплейс автозапчастей из Объединенных Арабских Эмиратов
@@ -22,10 +22,10 @@ const About = () => {
             <h2 className="text-2xl font-bold mb-4">Наша история</h2>
             <div className="bg-white rounded-lg shadow-md p-6">
               <p className="mb-4">
-                OPTAPP начал свою деятельность в 2023 году с простой идеи – создать надежную платформу для покупки и продажи качественных автозапчастей из ОАЭ. Мы заметили потребность рынка в прозрачной и удобной системе, которая соединяет поставщиков и покупателей автомобильных запчастей.
+                PartsBay.ae начал свою деятельность в 2023 году с простой идеи – создать надежную платформу для покупки и продажи качественных автозапчастей из ОАЭ. Мы заметили потребность рынка в прозрачной и удобной системе, которая соединяет поставщиков и покупателей автомобильных запчастей.
               </p>
               <p>
-                Сегодня OPTAPP – это быстрорастущая платформа, соединяющая сотни продавцов и тысячи клиентов. Мы стремимся к постоянному совершенствованию и расширению предлагаемых услуг, чтобы обеспечить максимальное удобство для всех участников нашего маркетплейса.
+                Сегодня PartsBay.ae – это быстрорастущая платформа, соединяющая сотни продавцов и тысячи клиентов. Мы стремимся к постоянному совершенствованию и расширению предлагаемых услуг, чтобы обеспечить максимальное удобство для всех участников нашего маркетплейса.
               </p>
             </div>
           </div>
@@ -51,8 +51,8 @@ const About = () => {
             <h2 className="text-2xl font-bold mb-6 text-center">Наши ценности</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="flex items-start bg-white rounded-lg shadow-md p-6">
-                <div className="mr-4 p-2 bg-optapp-yellow rounded-full">
-                  <ShieldCheck className="h-6 w-6 text-optapp-dark" />
+                <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                  <ShieldCheck className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">Качество и надежность</h3>
@@ -61,8 +61,8 @@ const About = () => {
               </div>
               
               <div className="flex items-start bg-white rounded-lg shadow-md p-6">
-                <div className="mr-4 p-2 bg-optapp-yellow rounded-full">
-                  <Truck className="h-6 w-6 text-optapp-dark" />
+                <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                  <Truck className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">Быстрая доставка</h3>
@@ -71,8 +71,8 @@ const About = () => {
               </div>
               
               <div className="flex items-start bg-white rounded-lg shadow-md p-6">
-                <div className="mr-4 p-2 bg-optapp-yellow rounded-full">
-                  <Award className="h-6 w-6 text-optapp-dark" />
+                <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                  <Award className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">Высокий сервис</h3>
@@ -81,8 +81,8 @@ const About = () => {
               </div>
               
               <div className="flex items-start bg-white rounded-lg shadow-md p-6">
-                <div className="mr-4 p-2 bg-optapp-yellow rounded-full">
-                  <TrendingUp className="h-6 w-6 text-optapp-dark" />
+                <div className="mr-4 p-2 bg-primary/10 rounded-full">
+                  <TrendingUp className="h-6 w-6 text-primary" />
                 </div>
                 <div>
                   <h3 className="font-bold mb-1">Постоянное развитие</h3>
@@ -93,14 +93,14 @@ const About = () => {
           </div>
           
           {/* CTA */}
-          <div className="bg-optapp-yellow rounded-lg shadow-md p-8 text-center">
-            <h2 className="text-2xl font-bold mb-4 text-optapp-dark">Станьте частью OPTAPP!</h2>
-            <p className="mb-6 text-optapp-dark">
+          <div className="bg-primary rounded-lg shadow-md p-8 text-center">
+            <h2 className="text-2xl font-bold mb-4 text-white">Станьте частью PartsBay.ae!</h2>
+            <p className="mb-6 text-white">
               Присоединяйтесь к нашей платформе сегодня и испытайте все преимущества надежной торговой площадки автозапчастей.
             </p>
             <div className="flex justify-center space-x-4">
               {!user && (
-                <a href="/register" className="bg-white text-optapp-dark font-medium py-2 px-6 rounded shadow hover:shadow-lg">
+                <a href="/register" className="bg-white text-primary font-medium py-2 px-6 rounded shadow hover:shadow-lg">
                   Регистрация
                 </a>
               )}
