@@ -221,72 +221,22 @@ const AdminStores = () => {
     }
   });
 
-  // Delete store mutation - fixed version
+  // Delete store mutation - updated to use admin function
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: string) => {
       console.log('Starting store deletion for ID:', storeId);
       
       try {
-        // Delete all store car brands associations
-        const { error: brandsError } = await supabase
-          .from('store_car_brands')
-          .delete()
-          .eq('store_id', storeId);
+        // Use the admin function to delete store safely
+        const { data, error } = await supabase
+          .rpc('admin_delete_store', { p_store_id: storeId });
         
-        if (brandsError) {
-          console.error('Error deleting store car brands:', brandsError);
-          throw brandsError;
+        if (error) {
+          console.error('Error calling admin_delete_store:', error);
+          throw error;
         }
-        console.log('Deleted store car brands');
         
-        // Delete all store car models associations
-        const { error: modelsError } = await supabase
-          .from('store_car_models')
-          .delete()
-          .eq('store_id', storeId);
-        
-        if (modelsError) {
-          console.error('Error deleting store car models:', modelsError);
-          throw modelsError;
-        }
-        console.log('Deleted store car models');
-        
-        // Delete all store reviews
-        const { error: reviewsError } = await supabase
-          .from('store_reviews')
-          .delete()
-          .eq('store_id', storeId);
-        
-        if (reviewsError) {
-          console.error('Error deleting store reviews:', reviewsError);
-          throw reviewsError;
-        }
-        console.log('Deleted store reviews');
-        
-        // Delete all store images
-        const { error: imagesError } = await supabase
-          .from('store_images')
-          .delete()
-          .eq('store_id', storeId);
-        
-        if (imagesError) {
-          console.error('Error deleting store images:', imagesError);
-          throw imagesError;
-        }
-        console.log('Deleted store images');
-        
-        // Finally delete the store
-        const { error: storeError } = await supabase
-          .from('stores')
-          .delete()
-          .eq('id', storeId);
-        
-        if (storeError) {
-          console.error('Error deleting store:', storeError);
-          throw storeError;
-        }
-        console.log('Deleted store successfully');
-        
+        console.log('Store deletion completed successfully');
         return storeId;
       } catch (error) {
         console.error('Error in store deletion process:', error);
