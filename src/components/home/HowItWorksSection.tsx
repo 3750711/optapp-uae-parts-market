@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Search, MessageCircle, Truck, CheckCircle } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,8 +18,8 @@ const HowItWorksSection = () => {
     },
     {
       icon: Truck,
-      title: "Оформите доставку",
-      description: "Согласуйте логистику и способ доставки в вашу страну",
+      title: "Выберите доставку",
+      description: "Самовывоз, Cargo РФ или Cargo KZ - выберите удобный способ",
       color: "bg-orange-500"
     },
     {
