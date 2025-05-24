@@ -1,4 +1,3 @@
-
 // ======================== IMPORTANT NOTICE ========================
 // This file contains critical notification functionality.
 // DO NOT EDIT unless absolutely necessary!
@@ -22,6 +21,31 @@ import { sendImageMediaGroups } from "./telegram-api.ts";
  * and has been thoroughly tested. Modify with extreme caution.
  */
 export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>) {
+  // List of local Telegram accounts that should show their real username
+  const localTelegramAccounts = [
+    'LocalSeller_Ali',
+    'Faruknose', 
+    'faiznose',
+    'LocalSeller_Jahangir',
+    'LocalSeller_Pochemy',
+    'LocalSeller_Rakib',
+    'LocalSeller_Sharif',
+    'LocalSeller_Younus'
+  ];
+
+  // Function to determine which Telegram to display in notifications
+  const getTelegramForDisplay = (telegram: string) => {
+    if (!telegram) return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
+    
+    // Remove @ symbol if present for comparison
+    const cleanTelegram = telegram.replace('@', '');
+    
+    if (localTelegramAccounts.includes(cleanTelegram)) {
+      return `@${cleanTelegram}`;
+    }
+    return 'Для заказа пересылайте лот @Nastya_PostingLots_OptCargo';
+  };
+
   // Validate required parameters
   if (!productId) {
     console.log('Missing required parameter: productId');
@@ -132,7 +156,7 @@ export async function handleProductNotification(productId: string, notificationT
       `💰 Цена: ${messageData.price} $`,
       `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
       `🆔 OPT_ID продавца: ${messageData.optId}`,
-      `👤 Telegram продавца: @${messageData.telegram}`,
+      `👤 Telegram продавца: ${getTelegramForDisplay(messageData.telegram)}`,
       '',
       `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
              messageData.status === 'sold' ? 'Продан' : 'На модерации'}`
