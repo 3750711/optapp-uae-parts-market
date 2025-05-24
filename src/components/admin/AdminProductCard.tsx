@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Tag, Hash, Calendar } from "lucide-react";
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
+import ProductEditDialog from '@/components/admin/ProductEditDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
@@ -136,16 +137,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 
         <div className="flex flex-wrap items-center justify-between gap-1 mt-2 border-t pt-2">
           <div className="flex items-center flex-wrap gap-1">
-            <Link to={`/product/${product.id}`}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                title="Редактировать товар"
-              >
-                <Edit className="h-3.5 w-3.5" />
-              </Button>
-            </Link>
+            <ProductEditDialog product={product} />
             
             <ProductStatusDialog
               product={product}
