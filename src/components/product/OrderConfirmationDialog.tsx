@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon, Package, Truck, User, DollarSign, ShoppingCart, CheckCircle } from "lucide-react";
@@ -172,12 +171,6 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   <div className="flex justify-between items-center">
                     <span className="text-gray-600">Номер лота:</span>
                     <span className="font-medium">{product.lot_number}</span>
-                  </div>
-                )}
-                {product.id && (
-                  <div className="flex justify-between items-start">
-                    <span className="text-gray-600">ID товара:</span>
-                    <span className="font-medium text-right max-w-[60%] break-words text-xs">{product.id}</span>
                   </div>
                 )}
               </div>
