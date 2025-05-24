@@ -6,8 +6,9 @@
 // Any changes may affect the product notification system that sends
 // messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.0.0
-// Last Verified Working: 2025-05-22
+// Version: 1.1.0
+// Last Verified Working: 2025-05-24
+// Change: Added brand and model to product notifications
 // ================================================================
 
 // Handler for product notifications
@@ -85,19 +86,38 @@ export async function handleProductNotification(productId: string, notificationT
     );
   }
   
+  // Helper function to format brand and model
+  const formatBrandModel = (brand: string | null, model: string | null): string => {
+    const brandText = brand || '';
+    const modelText = model || '';
+    
+    if (brandText && modelText) {
+      return ` ${brandText} ${modelText}`;
+    } else if (brandText) {
+      return ` ${brandText}`;
+    } else if (modelText) {
+      return ` ${modelText}`;
+    }
+    return '';
+  };
+
   // Prepare the notification message based on notification type
   let messageText = "";
 
   if (notificationType === 'sold') {
-    // Create specialized message for sold products
+    // Create specialized message for sold products with brand and model
+    const brandModelText = formatBrandModel(product.brand, product.model);
     messageText = [
-      `😔 Жаль, но Лот #${product.lot_number} ${product.title} ${product.brand || ''} ${product.model || ''} уже ушел!`,
+      `😔 Жаль, но Лот #${product.lot_number} ${product.title}${brandModelText} уже ушел!`,
       `Кто-то оказался быстрее... в следующий раз повезет - будь начеку.`
     ].join('\n');
   } else {
-    // Standard notification for status changes or new products
+    // Standard notification for status changes or new products with brand and model
+    const brandModelText = formatBrandModel(product.brand, product.model);
+    
     const messageData = {
       title: product.title,
+      brandModel: brandModelText,
       price: product.price,
       deliveryPrice: product.delivery_price,
       lotNumber: product.lot_number,
@@ -108,7 +128,7 @@ export async function handleProductNotification(productId: string, notificationT
     
     messageText = [
       `LOT(лот) #${messageData.lotNumber}`,
-      `📦 ${messageData.title}`,
+      `📦 ${messageData.title}${messageData.brandModel}`,
       `💰 Цена: ${messageData.price} $`,
       `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
       `🆔 OPT_ID продавца: ${messageData.optId}`,
