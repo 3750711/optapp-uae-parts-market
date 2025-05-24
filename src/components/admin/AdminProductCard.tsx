@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Tag, Hash, Calendar } from "lucide-react";
-import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -138,20 +137,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 
         <div className="flex flex-wrap items-center justify-between gap-1 mt-2 border-t pt-2">
           <div className="flex items-center flex-wrap gap-1">
-            <ProductEditDialog
-              product={product}
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
-              }
-              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
-            />
-            
             <ProductStatusDialog
               product={product}
               trigger={
