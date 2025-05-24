@@ -72,6 +72,7 @@ const AdminStores = () => {
   const [selectedBrandForModels, setSelectedBrandForModels] = useState<string | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<StoreWithDetails | null>(null);
+  const [deletingStoreIds, setDeletingStoreIds] = useState<Set<string>>(new Set());
   
   const { 
     brands: allCarBrands,
@@ -82,9 +83,11 @@ const AdminStores = () => {
   } = useCarBrandsAndModels();
   
   // Fetch stores with related data
-  const { data: stores, isLoading } = useQuery({
+  const { data: stores, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'stores'],
     queryFn: async () => {
+      console.log('🔄 Fetching stores data...');
+      
       // Fetch stores with their images
       const { data: storesData, error } = await supabase
         .from('stores')
@@ -95,9 +98,11 @@ const AdminStores = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching stores:', error);
+        console.error('❌ Error fetching stores:', error);
         throw error;
       }
+
+      console.log('✅ Stores fetched successfully:', storesData?.length || 0, 'stores');
 
       // Fetch seller information for each store
       const storesWithSellerInfo = await Promise.all(
@@ -136,15 +141,19 @@ const AdminStores = () => {
 
       return storesWithSellerInfo as StoreWithDetails[];
     },
-    enabled: isAdmin
+    enabled: isAdmin,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Enhanced delete store mutation with detailed logging
+  // Enhanced delete store mutation with better state management
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: string) => {
       console.log('🔥 DELETION PROCESS STARTED');
       console.log('Store ID to delete:', storeId);
-      console.log('Current user admin status:', isAdmin);
+      
+      // Add store to deleting set immediately
+      setDeletingStoreIds(prev => new Set(prev).add(storeId));
       
       try {
         // Check admin status first
@@ -161,21 +170,6 @@ const AdminStores = () => {
         }
         
         console.log('✅ Admin rights confirmed');
-        
-        // Check if store exists before deletion
-        const { data: storeExists, error: checkError } = await supabase
-          .from('stores')
-          .select('id, name')
-          .eq('id', storeId)
-          .single();
-          
-        console.log('Store existence check:', { storeExists, checkError });
-        
-        if (checkError || !storeExists) {
-          throw new Error('Магазин не найден или уже удален');
-        }
-        
-        console.log('✅ Store exists, proceeding with deletion');
         
         // Call the admin function to delete store safely
         console.log('🚀 Calling admin_delete_store RPC function...');
@@ -199,36 +193,51 @@ const AdminStores = () => {
       } catch (error: any) {
         console.error('💥 Error in store deletion process:', error);
         
-        // More detailed error information
-        if (error.code) {
-          console.error('Error code:', error.code);
-        }
-        if (error.details) {
-          console.error('Error details:', error.details);
-        }
-        if (error.hint) {
-          console.error('Error hint:', error.hint);
-        }
+        // Remove store from deleting set on error
+        setDeletingStoreIds(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(storeId);
+          return newSet;
+        });
         
         throw error;
       }
     },
     onSuccess: (deletedStoreId) => {
       console.log('🎉 Store deletion successful for ID:', deletedStoreId);
+      
+      // Remove from deleting set
+      setDeletingStoreIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(deletedStoreId);
+        return newSet;
+      });
+      
+      // Force refetch of stores data
       queryClient.invalidateQueries({ queryKey: ['admin', 'stores'] });
+      refetch();
+      
       toast.success('Магазин успешно удален');
       setIsDeleteDialogOpen(false);
       setStoreToDelete(null);
     },
-    onError: (error: any) => {
+    onError: (error: any, storeId) => {
       console.error('💀 Store deletion failed:', error);
+      
+      // Remove from deleting set on error
+      setDeletingStoreIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(storeId);
+        return newSet;
+      });
       
       // Show detailed error message to user
       const errorMessage = error.message || 'Неизвестная ошибка при удалении магазина';
       toast.error(`Ошибка при удалении магазина: ${errorMessage}`);
       
-      // Log additional error details for debugging
-      console.error('Full error object:', error);
+      // Close dialog on error
+      setIsDeleteDialogOpen(false);
+      setStoreToDelete(null);
     }
   });
 
@@ -347,22 +356,35 @@ const AdminStores = () => {
 
   const handleDeleteStore = (store: StoreWithDetails) => {
     console.log('🗑️ Delete button clicked for store:', store.name, 'ID:', store.id);
-    console.log('Store data:', store);
+    
+    // Check if store is already being deleted
+    if (deletingStoreIds.has(store.id)) {
+      console.log('⚠️ Store is already being deleted, ignoring click');
+      toast.warning('Магазин уже удаляется, пожалуйста подождите');
+      return;
+    }
+    
     setStoreToDelete(store);
     setIsDeleteDialogOpen(true);
   };
 
   const confirmDeleteStore = () => {
-    if (storeToDelete) {
-      console.log('✅ Confirming deletion for store:', storeToDelete.name, 'ID:', storeToDelete.id);
-      console.log('Admin status:', isAdmin);
-      console.log('Mutation pending status:', deleteStoreMutation.isPending);
-      
-      deleteStoreMutation.mutate(storeToDelete.id);
-    } else {
+    if (!storeToDelete) {
       console.error('❌ No store selected for deletion');
       toast.error('Ошибка: магазин не выбран для удаления');
+      return;
     }
+    
+    console.log('✅ Confirming deletion for store:', storeToDelete.name, 'ID:', storeToDelete.id);
+    
+    // Check if store is already being deleted
+    if (deletingStoreIds.has(storeToDelete.id)) {
+      console.log('⚠️ Store is already being deleted');
+      toast.warning('Магазин уже удаляется, пожалуйста подождите');
+      return;
+    }
+    
+    deleteStoreMutation.mutate(storeToDelete.id);
   };
 
   const handleCloseEditDialog = () => {
@@ -444,6 +466,9 @@ const AdminStores = () => {
     return new Date(dateString).toLocaleString('ru-RU');
   };
 
+  // Filter out stores that are being deleted or no longer exist
+  const filteredStores = stores?.filter(store => !deletingStoreIds.has(store.id)) || [];
+
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6 p-4 md:p-6">
@@ -451,7 +476,7 @@ const AdminStores = () => {
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Управление магазинами</h1>
           <div className="flex items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              Всего магазинов: {stores?.length || 0}
+              Всего магазинов: {filteredStores.length}
             </div>
           </div>
         </div>
@@ -460,7 +485,7 @@ const AdminStores = () => {
           <CardContent className="p-4 md:p-6">
             {isLoading ? (
               <div className="text-center py-4">Загрузка...</div>
-            ) : stores && stores.length > 0 ? (
+            ) : filteredStores.length > 0 ? (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -476,68 +501,73 @@ const AdminStores = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stores.map((store) => (
-                      <TableRow key={store.id}>
-                        <TableCell>
-                          <div className="w-12 h-12 relative">
-                            <img
-                              src={getMainImageUrl(store)}
-                              alt={store.name}
-                              className="rounded-md object-cover w-full h-full"
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="font-medium">{store.name}</div>
-                          <div className="text-xs text-muted-foreground">
-                            Создан: {formatDate(store.created_at)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>{store.address}</div>
-                          <div className="text-xs text-muted-foreground">{store.location}</div>
-                        </TableCell>
-                        <TableCell>{store.phone || 'Не указан'}</TableCell>
-                        <TableCell>
-                          <div>{store.owner_name || 'Неизвестно'}</div>
-                          <div className="text-xs text-muted-foreground">{store.seller_email}</div>
-                        </TableCell>
-                        <TableCell>{store.rating?.toFixed(1) || '-'}</TableCell>
-                        <TableCell>
-                          {store.verified ? (
-                            <Badge variant="success" className="flex items-center gap-1">
-                              <ShieldCheck className="w-3 h-3" />
-                              Проверен
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <ShieldAlert className="w-3 h-3" />
-                              Не проверен
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditStore(store)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteStore(store)}
-                              className="text-destructive hover:bg-destructive/10"
-                              disabled={deleteStoreMutation.isPending}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {filteredStores.map((store) => {
+                      const isDeleting = deletingStoreIds.has(store.id);
+                      
+                      return (
+                        <TableRow key={store.id} className={isDeleting ? 'opacity-50' : ''}>
+                          <TableCell>
+                            <div className="w-12 h-12 relative">
+                              <img
+                                src={getMainImageUrl(store)}
+                                alt={store.name}
+                                className="rounded-md object-cover w-full h-full"
+                              />
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">{store.name}</div>
+                            <div className="text-xs text-muted-foreground">
+                              Создан: {formatDate(store.created_at)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>{store.address}</div>
+                            <div className="text-xs text-muted-foreground">{store.location}</div>
+                          </TableCell>
+                          <TableCell>{store.phone || 'Не указан'}</TableCell>
+                          <TableCell>
+                            <div>{store.owner_name || 'Неизвестно'}</div>
+                            <div className="text-xs text-muted-foreground">{store.seller_email}</div>
+                          </TableCell>
+                          <TableCell>{store.rating?.toFixed(1) || '-'}</TableCell>
+                          <TableCell>
+                            {store.verified ? (
+                              <Badge variant="success" className="flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3" />
+                                Проверен
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <ShieldAlert className="w-3 h-3" />
+                                Не проверен
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditStore(store)}
+                                disabled={isDeleting}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteStore(store)}
+                                className="text-destructive hover:bg-destructive/10"
+                                disabled={isDeleting || deleteStoreMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
