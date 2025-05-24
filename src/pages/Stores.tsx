@@ -9,10 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { StoreWithImages } from '@/types/store';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { useOptimizedStores } from '@/hooks/useOptimizedStores';
+import { useOptimizedStores, useStoreFilterOptions, type StoresFilters } from '@/hooks/useOptimizedStores';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import StoreSkeleton from '@/components/stores/StoreSkeleton';
 import StoresFilters from '@/components/stores/StoresFilters';
+import StoresAdvancedFilters from '@/components/stores/StoresAdvancedFilters';
 import StoresPagination from '@/components/stores/StoresPagination';
 import StoresSEO from '@/components/stores/StoresSEO';
 import StoresBreadcrumb from '@/components/stores/StoresBreadcrumb';
@@ -28,6 +29,7 @@ const Stores: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'created_at' | 'rating' | 'product_count' | 'name'>('created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [advancedFilters, setAdvancedFilters] = useState<StoresFilters>({});
   
   // Debounce search query для оптимизации запросов
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -45,8 +47,15 @@ const Stores: React.FC = () => {
     pageSize,
     searchQuery: debouncedSearchQuery,
     sortBy,
-    sortOrder
+    sortOrder,
+    filters: advancedFilters
   });
+
+  const { 
+    availableTags, 
+    availableLocations, 
+    isLoading: isLoadingFilterOptions 
+  } = useStoreFilterOptions();
 
   const getMainImageUrl = (store: StoreWithProductCount) => {
     const primaryImage = store.store_images?.find(img => img.is_primary);
@@ -73,6 +82,21 @@ const Stores: React.FC = () => {
     setCurrentPage(1);
   };
 
+  const handleAdvancedFiltersChange = (filters: StoresFilters) => {
+    setAdvancedFilters(filters);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const handleClearFilters = () => {
+    setAdvancedFilters({});
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = Object.values(advancedFilters).some(value => 
+    value !== undefined && value !== null && 
+    (Array.isArray(value) ? value.length > 0 : true)
+  );
+
   return (
     <Layout>
       {/* SEO Component */}
@@ -97,7 +121,7 @@ const Stores: React.FC = () => {
           </p>
         </div>
 
-        {/* Filters and Search */}
+        {/* Basic Search and Sorting */}
         <div className="animate-fade-in" style={{ animationDelay: '100ms' }}>
           <StoresFilters
             searchQuery={searchQuery}
@@ -109,11 +133,22 @@ const Stores: React.FC = () => {
           />
         </div>
 
+        {/* Advanced Filters */}
+        <div className="animate-fade-in" style={{ animationDelay: '150ms' }}>
+          <StoresAdvancedFilters
+            filters={advancedFilters}
+            onFiltersChange={handleAdvancedFiltersChange}
+            onClearFilters={handleClearFilters}
+            availableTags={availableTags}
+            availableLocations={availableLocations}
+          />
+        </div>
+
         {/* Results count */}
         {!isLoading && (
           <div className="mb-4 text-sm text-gray-600 animate-fade-in" style={{ animationDelay: '200ms' }}>
-            {searchQuery ? (
-              `Найдено ${totalCount} магазинов по запросу "${searchQuery}"`
+            {searchQuery || hasActiveFilters ? (
+              `Найдено ${totalCount} магазинов${searchQuery ? ` по запросу "${searchQuery}"` : ''}${hasActiveFilters ? ' с учетом фильтров' : ''}`
             ) : (
               `Всего магазинов: ${totalCount}`
             )}
@@ -134,22 +169,35 @@ const Stores: React.FC = () => {
             <div className="max-w-md mx-auto">
               <div className="text-6xl mb-4 animate-float">🏪</div>
               <h3 className="text-xl font-medium mb-2">
-                {searchQuery ? 'Магазины не найдены' : 'Пока нет магазинов'}
+                {searchQuery || hasActiveFilters ? 'Магазины не найдены' : 'Пока нет магазинов'}
               </h3>
               <p className="text-gray-500 mb-6">
-                {searchQuery 
-                  ? `По запросу "${searchQuery}" ничего не найдено. Попробуйте изменить критерии поиска.`
+                {searchQuery || hasActiveFilters
+                  ? 'По заданным критериям ничего не найдено. Попробуйте изменить параметры поиска или фильтры.'
                   : 'Магазины появятся здесь, когда продавцы их создадут.'
                 }
               </p>
-              {searchQuery && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => setSearchQuery('')}
-                  className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                >
-                  Очистить поиск
-                </Button>
+              {(searchQuery || hasActiveFilters) && (
+                <div className="space-x-2">
+                  {searchQuery && (
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setSearchQuery('')}
+                      className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                    >
+                      Очистить поиск
+                    </Button>
+                  )}
+                  {hasActiveFilters && (
+                    <Button 
+                      variant="outline" 
+                      onClick={handleClearFilters}
+                      className="transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                    >
+                      Сбросить фильтры
+                    </Button>
+                  )}
+                </div>
               )}
             </div>
           </div>
