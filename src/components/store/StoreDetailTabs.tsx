@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StoreAboutTab from './StoreAboutTab';
 import StorePhotosTab from './StorePhotosTab';
@@ -30,7 +30,7 @@ interface StoreDetailTabsProps {
   isReviewsLoading: boolean;
 }
 
-const StoreDetailTabs: React.FC<StoreDetailTabsProps> = ({
+const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({
   store,
   carBrandsData,
   sellerProducts,
@@ -39,49 +39,78 @@ const StoreDetailTabs: React.FC<StoreDetailTabsProps> = ({
   isReviewsLoading
 }) => {
   return (
-    <Tabs defaultValue="about" className="space-y-4">
-      {/* Tabs list */}
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="about">О магазине</TabsTrigger>
-        <TabsTrigger value="photos">Фото</TabsTrigger>
-        <TabsTrigger value="products">Объявления</TabsTrigger>
-        <TabsTrigger value="reviews">Отзывы</TabsTrigger>
-      </TabsList>
+    <div className="animate-fade-in">
+      <Tabs defaultValue="about" className="space-y-6">
+        {/* Tabs list with enhanced styling */}
+        <TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1 rounded-lg">
+          <TabsTrigger 
+            value="about" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
+          >
+            О магазине
+          </TabsTrigger>
+          <TabsTrigger 
+            value="photos"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
+          >
+            Фото {store.store_images?.length ? `(${store.store_images.length})` : ''}
+          </TabsTrigger>
+          <TabsTrigger 
+            value="products"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
+          >
+            Объявления
+          </TabsTrigger>
+          <TabsTrigger 
+            value="reviews"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm transition-all duration-200 hover:bg-white/50"
+          >
+            Отзывы {reviews?.length ? `(${reviews.length})` : ''}
+          </TabsTrigger>
+        </TabsList>
 
-      {/* About tab */}
-      <TabsContent value="about">
-        <StoreAboutTab 
-          description={store.description}
-          carBrandsData={carBrandsData}
-        />
-      </TabsContent>
+        {/* Tab content with animations */}
+        <TabsContent value="about" className="mt-6">
+          <div className="animate-fade-in animation-delay-100">
+            <StoreAboutTab 
+              description={store.description}
+              carBrandsData={carBrandsData}
+            />
+          </div>
+        </TabsContent>
 
-      {/* Photos tab */}
-      <TabsContent value="photos">
-        <StorePhotosTab 
-          storeImages={store.store_images}
-          storeName={store.name}
-        />
-      </TabsContent>
+        <TabsContent value="photos" className="mt-6">
+          <div className="animate-fade-in animation-delay-100">
+            <StorePhotosTab 
+              storeImages={store.store_images}
+              storeName={store.name}
+            />
+          </div>
+        </TabsContent>
 
-      {/* Products tab */}
-      <TabsContent value="products">
-        <StoreProductsTab 
-          sellerProducts={sellerProducts}
-          isProductsLoading={isProductsLoading}
-          sellerId={store.seller_id}
-        />
-      </TabsContent>
+        <TabsContent value="products" className="mt-6">
+          <div className="animate-fade-in animation-delay-100">
+            <StoreProductsTab 
+              sellerProducts={sellerProducts}
+              isProductsLoading={isProductsLoading}
+              sellerId={store.seller_id}
+            />
+          </div>
+        </TabsContent>
 
-      {/* Reviews tab */}
-      <TabsContent value="reviews">
-        <StoreReviewsTab 
-          reviews={reviews}
-          isReviewsLoading={isReviewsLoading}
-        />
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="reviews" className="mt-6">
+          <div className="animate-fade-in animation-delay-100">
+            <StoreReviewsTab 
+              reviews={reviews}
+              isReviewsLoading={isReviewsLoading}
+            />
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
-};
+});
+
+StoreDetailTabs.displayName = 'StoreDetailTabs';
 
 export default StoreDetailTabs;
