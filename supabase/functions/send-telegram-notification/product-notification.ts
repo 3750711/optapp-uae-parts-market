@@ -5,9 +5,9 @@
 // Any changes may affect the product notification system that sends
 // messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.1.0
+// Version: 1.1.1
 // Last Verified Working: 2025-05-24
-// Change: Added brand and model to product notifications
+// Change: Show real telegram for @OptSeller_Georgii
 // ================================================================
 
 // Handler for product notifications
@@ -30,7 +30,8 @@ export async function handleProductNotification(productId: string, notificationT
     'LocalSeller_Pochemy',
     'LocalSeller_Rakib',
     'LocalSeller_Sharif',
-    'LocalSeller_Younus'
+    'LocalSeller_Younus',
+    'OptSeller_Georgii'  // Added OptSeller_Georgii to show real telegram
   ];
 
   // Function to determine which Telegram to display in notifications
