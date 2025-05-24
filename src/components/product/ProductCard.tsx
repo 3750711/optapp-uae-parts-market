@@ -90,15 +90,16 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
       setCurrent(api.selectedScrollSnap());
     });
 
-    // Debug logging
-    api.on("dragStart", () => {
-      console.log("Carousel drag started");
+    // Use pointerDown and pointerUp events to track dragging
+    api.on("pointerDown", () => {
+      console.log("Carousel pointer down");
       setIsDragging(true);
     });
 
-    api.on("dragEnd", () => {
-      console.log("Carousel drag ended");
-      setIsDragging(false);
+    api.on("pointerUp", () => {
+      console.log("Carousel pointer up");
+      // Small delay to prevent immediate link clicks
+      setTimeout(() => setIsDragging(false), 100);
     });
   }, [api]);
 
@@ -111,9 +112,10 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     }
   };
 
-  // Prevent touch events from bubbling to parent Link
+  // Enhanced touch event handling
   const handleTouchStart = (e: React.TouchEvent) => {
     console.log("Touch start on carousel");
+    setIsDragging(true);
     e.stopPropagation();
   };
 
@@ -122,6 +124,9 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    console.log("Touch end on carousel");
+    // Small delay to prevent immediate link clicks
+    setTimeout(() => setIsDragging(false), 150);
     e.stopPropagation();
   };
 
@@ -130,7 +135,7 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
       // Mobile carousel with enhanced touch support
       return (
         <div 
-          className="w-full h-full touch-pan-x"
+          className="w-full h-full touch-pan-x select-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -154,7 +159,7 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
                     <img
                       src={imageError ? "/placeholder.svg" : imageUrl}
                       alt={`${product.title} ${index + 1}`}
-                      className="w-full h-full object-contain select-none"
+                      className="w-full h-full object-contain select-none pointer-events-none"
                       onError={handleImageError}
                       loading="lazy"
                       draggable={false}
