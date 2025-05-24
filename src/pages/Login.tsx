@@ -69,7 +69,7 @@ const Login = () => {
       // Show success message
       toast({
         title: "Вход выполнен успешно",
-        description: "Добро пожаловать в OPTAPP",
+        description: "Добро пожаловать в partsbay.ae",
       });
       
       // Check URL for "from" parameter for redirection
