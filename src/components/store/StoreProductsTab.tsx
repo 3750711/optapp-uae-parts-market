@@ -12,6 +12,8 @@ interface Product {
   price: number;
   created_at: string;
   status: string;
+  brand?: string;
+  model?: string;
 }
 
 interface StoreProductsTabProps {
@@ -89,9 +91,17 @@ const StoreProductsTab: React.FC<StoreProductsTabProps> = memo(({
                       {product.title}
                     </h4>
                   </Link>
+                  
+                  {/* Brand and model display */}
+                  {(product.brand || product.model) && (
+                    <p className="text-sm text-muted-foreground mb-2 font-medium">
+                      {[product.brand, product.model].filter(Boolean).join(' ')}
+                    </p>
+                  )}
+                  
                   <div className="flex items-center justify-between">
                     <div className="text-lg font-bold text-primary">
-                      {product.price} AED
+                      {product.price} $
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {new Date(product.created_at).toLocaleDateString('ru-RU')}
