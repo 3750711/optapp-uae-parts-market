@@ -146,30 +146,44 @@ const AdminStores = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Enhanced delete store mutation with better state management
+  // Enhanced delete store mutation with better error handling and logging
   const deleteStoreMutation = useMutation({
     mutationFn: async (storeId: string) => {
       console.log('🔥 DELETION PROCESS STARTED');
       console.log('Store ID to delete:', storeId);
+      console.log('Current user admin status:', isAdmin);
       
       // Add store to deleting set immediately
       setDeletingStoreIds(prev => new Set(prev).add(storeId));
       
       try {
-        // Check admin status first
+        // Check current user and admin status
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        console.log('Current user:', user?.id);
+        
+        if (userError || !user) {
+          throw new Error('Пользователь не авторизован');
+        }
+
+        // Check admin status in profiles table
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('user_type')
-          .eq('id', (await supabase.auth.getUser()).data.user?.id)
+          .select('user_type, full_name')
+          .eq('id', user.id)
           .single();
           
         console.log('Profile check result:', { profile, profileError });
         
-        if (profileError || profile?.user_type !== 'admin') {
+        if (profileError) {
+          console.error('Profile error:', profileError);
+          throw new Error(`Ошибка получения профиля: ${profileError.message}`);
+        }
+        
+        if (!profile || profile.user_type !== 'admin') {
           throw new Error('Недостаточно прав для удаления магазина');
         }
         
-        console.log('✅ Admin rights confirmed');
+        console.log('✅ Admin rights confirmed for user:', profile.full_name);
         
         // Call the admin function to delete store safely
         console.log('🚀 Calling admin_delete_store RPC function...');
@@ -356,6 +370,14 @@ const AdminStores = () => {
 
   const handleDeleteStore = (store: StoreWithDetails) => {
     console.log('🗑️ Delete button clicked for store:', store.name, 'ID:', store.id);
+    console.log('Current admin status:', isAdmin);
+    
+    // Check if current user is admin
+    if (!isAdmin) {
+      console.error('❌ User is not admin');
+      toast.error('Недостаточно прав для удаления магазина');
+      return;
+    }
     
     // Check if store is already being deleted
     if (deletingStoreIds.has(store.id)) {
@@ -469,6 +491,11 @@ const AdminStores = () => {
   // Filter out stores that are being deleted or no longer exist
   const filteredStores = stores?.filter(store => !deletingStoreIds.has(store.id)) || [];
 
+  // Show admin status in UI for debugging
+  useEffect(() => {
+    console.log('Admin access status:', isAdmin);
+  }, [isAdmin]);
+
   return (
     <AdminLayout>
       <div className="space-y-4 md:space-y-6 p-4 md:p-6">
@@ -478,9 +505,14 @@ const AdminStores = () => {
             <div className="text-sm text-muted-foreground">
               Всего магазинов: {filteredStores.length}
             </div>
+            {/* Debug admin status */}
+            <div className="text-xs text-blue-600">
+              Админ: {isAdmin ? 'Да' : 'Нет'}
+            </div>
           </div>
         </div>
 
+        
         <Card>
           <CardContent className="p-4 md:p-6">
             {isLoading ? (
@@ -506,6 +538,7 @@ const AdminStores = () => {
                       
                       return (
                         <TableRow key={store.id} className={isDeleting ? 'opacity-50' : ''}>
+                          
                           <TableCell>
                             <div className="w-12 h-12 relative">
                               <img
@@ -551,6 +584,7 @@ const AdminStores = () => {
                                 size="icon"
                                 onClick={() => handleEditStore(store)}
                                 disabled={isDeleting}
+                                title="Редактировать магазин"
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
@@ -559,7 +593,8 @@ const AdminStores = () => {
                                 size="icon"
                                 onClick={() => handleDeleteStore(store)}
                                 className="text-destructive hover:bg-destructive/10"
-                                disabled={isDeleting || deleteStoreMutation.isPending}
+                                disabled={isDeleting || deleteStoreMutation.isPending || !isAdmin}
+                                title={!isAdmin ? 'Недостаточно прав' : 'Удалить магазин'}
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
@@ -812,7 +847,7 @@ const AdminStores = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Enhanced Delete Store Dialog */}
+        {/* Enhanced Delete Store Dialog with better error information */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -828,6 +863,12 @@ const AdminStores = () => {
                     Выполняется удаление, пожалуйста подождите...
                   </div>
                 )}
+                
+                {!isAdmin && (
+                  <div className="mt-2 text-sm text-red-600">
+                    ⚠️ У вас недостаточно прав для удаления магазинов
+                  </div>
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -837,7 +878,7 @@ const AdminStores = () => {
               <AlertDialogAction 
                 onClick={confirmDeleteStore} 
                 className="bg-destructive hover:bg-destructive/90"
-                disabled={deleteStoreMutation.isPending}
+                disabled={deleteStoreMutation.isPending || !isAdmin}
               >
                 {deleteStoreMutation.isPending ? 'Удаление...' : 'Удалить'}
               </AlertDialogAction>
