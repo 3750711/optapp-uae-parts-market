@@ -1,26 +1,21 @@
+
 import React, { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MapPin, User, Star, ShieldCheck, Package, Store as StoreIcon, Image, Send, MessageCircle, ChevronLeft, Car, CarFront, Share } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { StoreReview, StoreWithImages } from '@/types/store';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import StoreSEO from '@/components/store/StoreSEO';
 import StoreBreadcrumb from '@/components/store/StoreBreadcrumb';
 import StoreImageGallery from '@/components/store/StoreImageGallery';
 import StoreHeader from '@/components/store/StoreHeader';
-import OptimizedImage from '@/components/ui/OptimizedImage';
+import StoreDetailTabs from '@/components/store/StoreDetailTabs';
+import StoreSidebar from '@/components/store/StoreSidebar';
+import { useStoreData } from '@/hooks/useStoreData';
 
 const StoreDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,170 +23,21 @@ const StoreDetail: React.FC = () => {
   const navigate = useNavigate();
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [pendingAction, setPendingAction] = useState<'telegram' | 'whatsapp' | null>(null);
 
-  // Store data query
-  const { data: store, isLoading: isStoreLoading, refetch } = useQuery({
-    queryKey: ['store', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('stores')
-        .select(`
-          *,
-          store_images(*)
-        `)
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data as StoreWithImages;
-    }
-  });
-
-  // Car brands and models query
-  const { data: carBrandsData, isLoading: isBrandsLoading } = useQuery({
-    queryKey: ['store-car-brands', id],
-    queryFn: async () => {
-      if (!id) return [];
-      
-      const { data: brandData, error: brandError } = await supabase
-        .from('store_car_brands')
-        .select(`
-          car_brands(id, name)
-        `)
-        .eq('store_id', id);
-      
-      if (brandError) throw brandError;
-      
-      // Get all models for this store
-      const { data: modelData, error: modelError } = await supabase
-        .from('store_car_models')
-        .select(`
-          car_models(id, name, brand_id)
-        `)
-        .eq('store_id', id);
-        
-      if (modelError) throw modelError;
-      
-      // Group models by brand_id for easier display
-      const carBrands = brandData.map((brand) => {
-        const brandId = brand.car_brands.id;
-        const models = modelData
-          .filter(model => model.car_models.brand_id === brandId)
-          .map(model => ({
-            id: model.car_models.id,
-            name: model.car_models.name
-          }));
-        
-        return {
-          id: brandId,
-          name: brand.car_brands.name,
-          models: models
-        };
-      });
-      
-      return carBrands;
-    },
-    enabled: !!id
-  });
-
-  // Seller products query
-  const { data: sellerProducts, isLoading: isProductsLoading } = useQuery({
-    queryKey: ['seller-products', store?.seller_id],
-    queryFn: async () => {
-      if (!store?.seller_id) return [];
-      
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, title, price, created_at, status')
-        .eq('seller_id', store.seller_id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .limit(5);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!store?.seller_id
-  });
-
-  // Reviews query
-  const { data: reviews, isLoading: isReviewsLoading } = useQuery({
-    queryKey: ['store-reviews', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('store_reviews')
-        .select(`
-          *,
-          profiles:user_id (full_name, avatar_url)
-        `)
-        .eq('store_id', id)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      return data.map(review => ({
-        ...review,
-        user_name: review.profiles?.full_name,
-        user_avatar: review.profiles?.avatar_url
-      })) as StoreReview[];
-    }
-  });
-
-  // Seller product count query
-  const { data: productCount = 0, isLoading: isCountLoading } = useQuery({
-    queryKey: ['seller-products-count', store?.seller_id],
-    queryFn: async () => {
-      if (!store?.seller_id) return 0;
-      
-      const { count, error } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('seller_id', store.seller_id)
-        .eq('status', 'active');
-      
-      if (error) throw error;
-      return count || 0;
-    },
-    enabled: !!store?.seller_id
-  });
-
-  // Sold product count query
-  const { data: soldProductCount = 0, isLoading: isSoldCountLoading } = useQuery({
-    queryKey: ['seller-sold-products-count', store?.seller_id],
-    queryFn: async () => {
-      if (!store?.seller_id) return 0;
-      
-      const { count, error } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('seller_id', store.seller_id)
-        .eq('status', 'sold');
-      
-      if (error) throw error;
-      return count || 0;
-    },
-    enabled: !!store?.seller_id
-  });
-
-  // Format location for display - simplified to just return the string
-  const formatLocation = (location: string | null) => {
-    if (!location) return 'Местоположение не указано';
-    return location;
-  };
-
-  const getMainImageUrl = () => {
-    // First uploaded photo will always be the main one
-    if (store?.store_images && store.store_images.length > 0) {
-      // First check if there's an image with is_primary = true
-      const primaryImage = store.store_images.find(img => img.is_primary);
-      if (primaryImage) return primaryImage.url;
-      
-      // Otherwise return the first image from the array
-      return store.store_images[0].url;
-    }
-    return '/placeholder.svg';
-  };
+  const {
+    store,
+    isStoreLoading,
+    refetch,
+    carBrandsData,
+    sellerProducts,
+    isProductsLoading,
+    reviews,
+    isReviewsLoading,
+    productCount,
+    isCountLoading,
+    soldProductCount,
+    isSoldCountLoading
+  } = useStoreData(id || '');
 
   const onReviewSubmitted = () => {
     refetch();
@@ -208,7 +54,6 @@ const StoreDetail: React.FC = () => {
 
   const handleAuthDialogClose = () => {
     setShowAuthDialog(false);
-    setPendingAction(null);
   };
 
   // Share functionality
@@ -223,10 +68,8 @@ const StoreDetail: React.FC = () => {
 
     try {
       if (navigator.share) {
-        // Use Web Share API if available
         await navigator.share(shareData);
       } else {
-        // Fallback to clipboard copy
         await navigator.clipboard.writeText(url);
         toast({
           title: "Ссылка скопирована",
@@ -238,10 +81,8 @@ const StoreDetail: React.FC = () => {
     }
   };
   
-  // Share directly to Telegram
   const handleShareToTelegram = () => {
     const url = encodeURIComponent(window.location.href);
-    const storeName = encodeURIComponent(store?.name || "магазин автозапчастей");
     const text = encodeURIComponent(`Посмотрите этот магазин автозапчастей: ${store?.name || "магазин"}`);
     
     const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
@@ -318,201 +159,15 @@ const StoreDetail: React.FC = () => {
               onShareToTelegram={handleShareToTelegram}
             />
 
-            <Tabs defaultValue="about" className="space-y-4">
-              {/* Tabs list */}
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="about">О магазине</TabsTrigger>
-                <TabsTrigger value="photos">Фото</TabsTrigger>
-                <TabsTrigger value="products">Объявления</TabsTrigger>
-                <TabsTrigger value="reviews">Отзывы</TabsTrigger>
-              </TabsList>
-
-              {/* About tab */}
-              <TabsContent value="about" className="space-y-6">
-                {store.description && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Описание</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-muted-foreground leading-relaxed">{store.description}</p>
-                    </CardContent>
-                  </Card>
-                )}
-                
-                {/* Car brands and models display */}
-                {carBrandsData && carBrandsData.length > 0 && (
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg flex items-center">
-                        <Car className="w-5 h-5 mr-2" />
-                        Марки и модели автомобилей
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {carBrandsData.map((brand) => (
-                          <div key={brand.id} className="bg-muted/30 rounded-lg p-4 border">
-                            <div className="flex items-center mb-3">
-                              <CarFront className="w-4 h-4 mr-2 text-primary" />
-                              <span className="font-medium">{brand.name}</span>
-                            </div>
-                            {brand.models && brand.models.length > 0 ? (
-                              <div className="flex flex-wrap gap-1">
-                                {brand.models.map((model) => (
-                                  <Badge 
-                                    key={model.id} 
-                                    variant="secondary"
-                                    className="text-xs"
-                                  >
-                                    {model.name}
-                                  </Badge>
-                                ))}
-                              </div>
-                            ) : (
-                              <p className="text-sm text-muted-foreground">
-                                Все модели
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              {/* Photos tab */}
-              <TabsContent value="photos">
-                {store.store_images && store.store_images.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {store.store_images.map((image) => (
-                      <div key={image.id} className="aspect-square overflow-hidden rounded-lg">
-                        <OptimizedImage 
-                          src={image.url} 
-                          alt={store.name} 
-                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <Card>
-                    <CardContent className="pt-6">
-                      <p className="text-muted-foreground text-center">У этого магазина пока нет фотографий</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              {/* Products tab */}
-              <TabsContent value="products">
-                <div className="space-y-4">
-                  {isProductsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-16 w-full" />
-                      ))}
-                    </div>
-                  ) : sellerProducts && sellerProducts.length > 0 ? (
-                    <div>
-                      <div className="space-y-3">
-                        {sellerProducts.map((product) => (
-                          <Card key={product.id}>
-                            <CardContent className="p-4 flex justify-between items-center">
-                              <div>
-                                <Link 
-                                  to={`/product/${product.id}`} 
-                                  className="font-medium hover:text-primary"
-                                >
-                                  {product.title}
-                                </Link>
-                                <div className="text-sm text-muted-foreground">
-                                  Цена: {product.price} AED
-                                </div>
-                              </div>
-                              <Button asChild variant="outline" size="sm">
-                                <Link to={`/product/${product.id}`}>
-                                  Просмотреть
-                                </Link>
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                      
-                      <div className="mt-6 text-right">
-                        <Button asChild variant="outline">
-                          <Link to={`/seller/${store.seller_id}`}>
-                            <Package className="mr-2" />
-                            Все объявления продавца
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-6">
-                      <div className="flex justify-center mb-4">
-                        <Package className="h-12 w-12 text-muted-foreground opacity-50" />
-                      </div>
-                      <h3 className="font-medium mb-2">У продавца пока нет объявлений</h3>
-                      <p className="text-muted-foreground mb-6">Загляните позже, возможно здесь появятся новые товары</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-
-              {/* Reviews tab */}
-              <TabsContent value="reviews">
-                <div className="space-y-6">
-                  {isReviewsLoading ? (
-                    <div className="space-y-4">
-                      {[1, 2].map((i) => (
-                        <div key={i} className="flex gap-4">
-                          <Skeleton className="h-10 w-10 rounded-full" />
-                          <div className="flex-1 space-y-2">
-                            <Skeleton className="h-4 w-1/4" />
-                            <Skeleton className="h-4 w-full" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : reviews && reviews.length > 0 ? (
-                    <div className="space-y-6">
-                      {reviews.map((review) => (
-                        <Card key={review.id}>
-                          <CardHeader>
-                            <CardTitle className="text-base flex items-center justify-between">
-                              <div className="flex items-center">
-                                <Avatar className="h-8 w-8 mr-2">
-                                  <AvatarImage src={review.user_avatar} />
-                                  <AvatarFallback>
-                                    <User className="h-4 w-4" />
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{review.user_name || 'Пользователь'}</span>
-                              </div>
-                              <div className="flex items-center">
-                                {Array.from({ length: review.rating || 0 }).map((_, i) => (
-                                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                ))}
-                              </div>
-                            </CardTitle>
-                          </CardHeader>
-                          {review.comment && (
-                            <CardContent>
-                              <p>{review.comment}</p>
-                            </CardContent>
-                          )}
-                        </Card>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-muted-foreground">У этого магазина пока нет отзывов</p>
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
+            {/* Tabs */}
+            <StoreDetailTabs 
+              store={store}
+              carBrandsData={carBrandsData}
+              sellerProducts={sellerProducts}
+              isProductsLoading={isProductsLoading}
+              reviews={reviews}
+              isReviewsLoading={isReviewsLoading}
+            />
           </div>
 
           {/* Right column - Store image gallery and info */}
@@ -523,78 +178,16 @@ const StoreDetail: React.FC = () => {
               storeName={store.name}
             />
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Информация</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Store info */}
-                <div>
-                  <h3 className="font-medium mb-1">Адрес</h3>
-                  <p className="text-muted-foreground">{store.address}</p>
-                </div>
-
-                <div>
-                  <h3 className="font-medium mb-1">Статус</h3>
-                  <div className="flex items-center">
-                    {store.verified ? (
-                      <Badge variant="success" className="flex items-center gap-1">
-                        <ShieldCheck className="w-3 h-3" />
-                        Проверено
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="flex items-center gap-1">
-                        Не проверено
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Product information */}
-                <div>
-                  <h3 className="font-medium mb-1">Объявления</h3>
-                  <div className="space-y-1">
-                    <p className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-muted-foreground" />
-                      <span>{isCountLoading ? "Загрузка..." : productCount} активных</span>
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <Package className="w-4 h-4 text-green-500" />
-                      <span>{isSoldCountLoading ? "Загрузка..." : soldProductCount} проданных</span>
-                    </p>
-                  </div>
-                </div>
-
-                {/* Car brands summary for sidebar */}
-                {carBrandsData && carBrandsData.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-1">Марки автомобилей</h3>
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {carBrandsData.map((brand) => (
-                        <Badge key={brand.id} variant="outline">
-                          {brand.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <Separator />
-
-                <div className="text-center mb-4">
-                  <div className="font-medium">{reviews?.length || 0}</div>
-                  <div className="text-sm text-muted-foreground">отзывов</div>
-                </div>
-
-                {/* Button to seller products */}
-                <Button asChild className="w-full">
-                  <Link to={`/seller/${store?.seller_id}`}>
-                    <Package className="mr-2" />
-                    Все объявления продавца
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            {/* Store sidebar */}
+            <StoreSidebar 
+              store={store}
+              carBrandsData={carBrandsData}
+              productCount={productCount}
+              soldProductCount={soldProductCount}
+              reviewsCount={reviews?.length || 0}
+              isCountLoading={isCountLoading}
+              isSoldCountLoading={isSoldCountLoading}
+            />
           </div>
         </div>
       </div>
