@@ -40,12 +40,23 @@ const Stores: React.FC = () => {
   
   const pageSize = isMobile ? 8 : 12;
 
+  console.log('🏪 Stores component render with params:', {
+    currentPage,
+    pageSize,
+    searchQuery: debouncedSearchQuery,
+    sortBy,
+    sortOrder,
+    advancedFilters,
+    isMobile
+  });
+
   const { 
     data: stores, 
     totalCount, 
     hasNextPage, 
     hasPreviousPage, 
-    isLoading 
+    isLoading,
+    error
   } = useOptimizedStores({
     page: currentPage,
     pageSize,
@@ -55,11 +66,30 @@ const Stores: React.FC = () => {
     filters: advancedFilters
   });
 
+  console.log('🏪 Stores data received:', {
+    storesLength: stores?.length || 0,
+    totalCount,
+    hasNextPage,
+    hasPreviousPage,
+    isLoading,
+    hasError: !!error
+  });
+
+  if (error) {
+    console.error('❌ Stores component error:', error);
+  }
+
   const { 
     availableTags, 
     availableLocations, 
     isLoading: isLoadingFilterOptions 
   } = useStoreFilterOptions();
+
+  console.log('🏷️ Filter options:', {
+    availableTags: availableTags?.length || 0,
+    availableLocations: availableLocations?.length || 0,
+    isLoadingFilterOptions
+  });
 
   const getMainImageUrl = (store: StoreWithProductCount) => {
     const primaryImage = store.store_images?.find(img => img.is_primary);
