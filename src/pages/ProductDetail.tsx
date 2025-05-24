@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -214,6 +213,19 @@ const ProductDetail = () => {
     ? product.product_videos.map(video => video.url) 
     : [];
   
+  // Построить заголовок с маркой и моделью
+  const buildTitle = () => {
+    let title = product.title;
+    
+    if (product.brand && product.model) {
+      title = `${title} - ${product.brand} ${product.model}`;
+    } else if (product.brand) {
+      title = `${title} - ${product.brand}`;
+    }
+    
+    return title;
+  };
+  
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
   const isOwner = user?.id === product.seller_id;
   
@@ -242,7 +254,7 @@ const ProductDetail = () => {
               Назад
             </Button>
             <h1 className="text-xl md:text-3xl font-bold text-foreground truncate">
-              {product.title}
+              {buildTitle()}
             </h1>
           </div>
           
