@@ -1,210 +1,96 @@
-@import url('https://fonts.googleapis.com/css?family=Inter:400,500,600,700&display=swap');
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html {
-    font-family: 'Inter', sans-serif;
-    background: #f9fafb;
-    color: #111827;
-    scroll-behavior: smooth;
+  * {
+    @apply border-border;
   }
   body {
-    @apply bg-background text-foreground antialiased;
-  }
-  .container {
-    @apply px-5 md:px-8 py-10 md:py-16;
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
   }
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-primary text-white font-semibold py-2.5 px-6 rounded-lg shadow-button transition-all duration-300 
-           hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-elevation-hover active:scale-95;
-  }
-  .btn-secondary {
-    @apply bg-secondary text-white font-semibold py-2.5 px-6 rounded-lg shadow-button transition-all duration-300 
-           hover:bg-secondary-hover hover:-translate-y-0.5 hover:shadow-elevation-hover active:scale-95;
-  }
-  .btn-outline {
-    @apply border-2 border-primary text-primary bg-white rounded-lg font-semibold py-2 px-5
-           hover:bg-primary hover:text-white transition-all duration-300 hover:-translate-y-0.5;
-  }
-  .btn-ghost {
-    @apply text-primary bg-transparent font-semibold py-2.5 px-6 rounded-lg transition-all duration-200
-           hover:bg-primary/10 active:scale-95;
-  }
-  .optapp-card {
-    @apply bg-white rounded-xl shadow-card p-5 transition-all duration-300 hover:shadow-elevation overflow-hidden;
-  }
-  .text-link {
-    @apply text-primary hover:text-primary-hover underline-offset-4 transition-colors relative
-           after:absolute after:left-0 after:bottom-0 after:h-0.5 after:w-0 after:bg-primary-hover
-           hover:after:w-full after:transition-all after:duration-300;
-  }
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
-  }
-  .badge-primary {
-    @apply bg-primary/20 text-primary;
-  }
-  .badge-secondary {
-    @apply bg-secondary/20 text-secondary;
-  }
-  .input-field {
-    @apply w-full rounded-lg border border-gray-300 px-4 py-2.5 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all;
+@layer utilities {
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out;
   }
   
-  /* Enhanced search input styling */
-  .search-input {
-    @apply relative bg-white/80 backdrop-blur-sm rounded-xl border border-gray-200 
-           transition-all duration-300 shadow-sm hover:shadow-md focus-within:shadow-lg 
-           focus-within:border-primary/30 focus-within:ring-2 focus-within:ring-primary/20;
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
   }
   
-  .search-input-icon {
-    @apply absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors duration-300;
+  .animate-slide-down {
+    animation: slide-down 0.3s ease-out;
   }
   
-  .search-input:focus-within .search-input-icon {
-    @apply text-primary;
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
   
-  /* Feature block list styling */
-  .feature-list li {
-    @apply transition-all duration-300;
-  }
-  
-  .feature-list li:hover {
-    @apply translate-x-1;
-  }
-  
-  .feature-icon-pulse {
-    animation: iconPulse 2s infinite ease-in-out;
-  }
-  
-  @keyframes iconPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px);}
-  to { opacity: 1; transform: translateY(0);}
-}
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-@keyframes scaleIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
-}
-.animate-scale-in {
-  animation: scaleIn 0.3s ease-out forwards;
-}
-
-/* Enhanced transitions */
-@keyframes slideInFromBottom {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-slide-in-bottom {
-  animation: slideInFromBottom 0.5s ease-out forwards;
-}
-
-@keyframes slideInFromRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.animate-slide-in-right {
-  animation: slideInFromRight 0.5s ease-out forwards;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-.animate-pulse-soft {
-  animation: pulse 2s infinite ease-in-out;
-}
-
-/* Glassmorphism effect for search elements */
-.search-glassmorphism {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-}
-
-/* Hero section background animation */
-@keyframes gradientBg {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-.bg-gradient-animate {
-  background-size: 200% 200%;
-  animation: gradientBg 15s ease infinite;
-}
-
-/* Search focus animation */
-@keyframes searchFocus {
-  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.1); }
-  70% { box-shadow: 0 0 0 10px rgba(79, 70, 229, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0); }
-}
-.search-focus-animation:focus-within {
-  animation: searchFocus 2s ease-out;
-}
-
-/* Product card adjustments for horizontal layout */
-.product-card-horizontal {
-  width: 220px;
-  flex-shrink: 0;
-  transition: transform 0.3s;
-}
-.product-card-horizontal:hover {
-  transform: translateY(-4px);
-}
-
-/* Enhanced scrollbar hiding */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari and Opera */
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 2rem;
-    line-height: 1.2;
+@keyframes scale-in {
+  0% {
+    transform: scale(0.9);
+    opacity: 0;
   }
-  h2 {
-    font-size: 1.75rem;
-  }
-  .container {
-    padding: 1rem;
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
-@keyframes listItemAppear {
-  from { opacity: 0; transform: translateX(-10px); }
-  to { opacity: 1; transform: translateX(0); }
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.feature-list li {
-  animation: listItemAppear 0.5s ease-out forwards;
-  opacity: 0;
+@keyframes slide-down {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-.feature-list li:nth-child(1) { animation-delay: 0.1s; }
-.feature-list li:nth-child(2) { animation-delay: 0.2s; }
-.feature-list li:nth-child(3) { animation-delay: 0.3s; }
+/* Улучшения для каталога */
+.catalog-container {
+  contain: layout style paint;
+}
+
+.product-grid {
+  contain: layout;
+}
+
+.product-card {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+/* Оптимизация скроллинга */
+.scroll-container {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
