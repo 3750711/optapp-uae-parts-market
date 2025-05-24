@@ -1,6 +1,6 @@
 
 import React from "react";
-import { ProductImagesManager } from "@/components/product/ProductImagesManager";
+import { UnifiedProductImagesManager } from "@/components/product/UnifiedProductImagesManager";
 import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 
 interface ProductMediaManagerProps {
@@ -39,7 +39,7 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
     <div className="flex flex-col gap-4">
       <div>
         <h3 className="font-medium mb-2">Фотографии</h3>
-        <ProductImagesManager
+        <UnifiedProductImagesManager
           productId={productId}
           images={images}
           onImageUpload={onImageUpload}

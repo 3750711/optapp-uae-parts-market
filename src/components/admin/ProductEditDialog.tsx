@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,8 +23,8 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from '@/types/product';
 import { supabase } from '@/integrations/supabase/client';
-import { AdminProductImagesManager } from "./AdminProductImagesManager";
-import { AdminProductVideosManager } from "./AdminProductVideosManager";
+import { UnifiedProductImagesManager } from "@/components/product/UnifiedProductImagesManager";
+import { AdminProductVideosManager } from "@/components/admin/AdminProductVideosManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -40,7 +39,7 @@ const formSchema = z.object({
   ),
   description: z.string().optional(),
   brand: z.string().min(1, { message: "Введите бренд" }),
-  model: z.string().optional(), // Make model optional
+  model: z.string().optional(),
   place_number: z.number().min(1, { message: "Минимальное количество мест - 1" }),
   delivery_price: z.string().refine(
     (val) => {
@@ -67,7 +66,7 @@ export const ProductEditDialog = ({
   setOpen,
 }: ProductEditDialogProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient(); // Get queryClient to invalidate cache
+  const queryClient = useQueryClient();
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
@@ -94,7 +93,6 @@ export const ProductEditDialog = ({
     setImages(Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []);
     setVideos(Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []);
     
-    // Set primary image
     if (Array.isArray(product.product_images)) {
       const primary = product.product_images.find((img: any) => img.is_primary);
       setPrimaryImage(primary ? primary.url : (product.product_images[0]?.url || ''));
@@ -108,55 +106,47 @@ export const ProductEditDialog = ({
       price: product.price?.toString() || "",
       description: product.description || "",
       brand: product.brand || "",
-      model: product.model || "",  // Allow empty model
+      model: product.model || "",
       place_number: product.place_number || 1,
       delivery_price: product.delivery_price?.toString() || "0",
     },
   });
 
-  const handlePrimaryImageChange = async (imageUrl: string) => {
-    try {
-      console.log("ProductEditDialog - Setting primary image:", imageUrl);
-      
-      // First, reset all images for this product to not primary
-      const { error: resetError } = await supabase
-        .from('product_images')
-        .update({ is_primary: false })
-        .eq('product_id', product.id);
-      
-      if (resetError) throw resetError;
-      
-      // Then set the selected image as primary
-      const { error } = await supabase
-        .from('product_images')
-        .update({ is_primary: true })
-        .eq('product_id', product.id)
-        .eq('url', imageUrl);
-      
-      if (error) throw error;
-      
-      setPrimaryImage(imageUrl);
-      
-      // Invalidate React Query cache to refresh the data everywhere
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      queryClient.invalidateQueries({ queryKey: ['product', product.id] });
-      
-      toast({
-        title: "Успех",
-        description: "Основное фото обновлено",
-      });
-    } catch (error) {
-      console.error("Error setting primary image:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить основное фото",
-        variant: "destructive",
-      });
+  const handleImageUpload = (newUrls: string[]) => {
+    console.log("ProductEditDialog - handleImageUpload called with:", newUrls);
+    const updatedImages = [...images, ...newUrls];
+    setImages(updatedImages);
+    
+    if (primaryImage === '' && newUrls.length > 0) {
+      console.log("ProductEditDialog - Setting first uploaded image as primary:", newUrls[0]);
+      setPrimaryImage(newUrls[0]);
     }
   };
 
+  const handleImageDelete = (urlToDelete: string) => {
+    console.log("ProductEditDialog - handleImageDelete called with:", urlToDelete);
+    const updatedImages = images.filter(url => url !== urlToDelete);
+    setImages(updatedImages);
+    
+    if (primaryImage === urlToDelete && updatedImages.length > 0) {
+      console.log("ProductEditDialog - Primary image deleted, setting new primary:", updatedImages[0]);
+      setPrimaryImage(updatedImages[0]);
+    } else if (updatedImages.length === 0) {
+      setPrimaryImage('');
+    }
+  };
+
+  const handlePrimaryImageChange = (imageUrl: string) => {
+    console.log("ProductEditDialog - handlePrimaryImageChange called with:", imageUrl);
+    setPrimaryImage(imageUrl);
+    
+    toast({
+      title: "Успех",
+      description: "Основное фото обновлено",
+    });
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    // Allow for empty model value
     const modelValue = values.model === "" ? null : values.model;
     
     const { error } = await supabase
@@ -166,7 +156,7 @@ export const ProductEditDialog = ({
         price: parseFloat(values.price),
         description: values.description,
         brand: values.brand,
-        model: modelValue, // This can now be null
+        model: modelValue,
         place_number: values.place_number,
         delivery_price: parseFloat(values.delivery_price),
       })
@@ -180,7 +170,6 @@ export const ProductEditDialog = ({
         variant: "destructive",
       });
     } else {
-      // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       queryClient.invalidateQueries({ queryKey: ['product', product.id] });
       
@@ -356,10 +345,11 @@ export const ProductEditDialog = ({
               <div className="space-y-6">
                 <div>
                   <h3 className="text-lg font-medium mb-2">Фотографии</h3>
-                  <AdminProductImagesManager
+                  <UnifiedProductImagesManager
                     productId={product.id}
                     images={images}
-                    onImagesChange={setImages}
+                    onImageUpload={handleImageUpload}
+                    onImageDelete={handleImageDelete}
                     primaryImage={primaryImage}
                     onPrimaryImageChange={handlePrimaryImageChange}
                   />

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -106,7 +105,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []
     );
     
-    // Set primary image
     if (Array.isArray(product.product_images)) {
       const primary = product.product_images.find((img: any) => img.is_primary);
       setPrimaryImage(primary ? primary.url : (product.product_images[0]?.url || ''));
@@ -159,25 +157,22 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     }
   };
 
-  const handleImageUpload = async (newUrls: string[]) => {
+  const handleImageUpload = (newUrls: string[]) => {
     console.log("ProductEditForm - handleImageUpload called with:", newUrls);
     const updatedImages = [...images, ...newUrls];
     setImages(updatedImages);
     
-    // If no primary image is set, set the first new image as primary
     if (primaryImage === '' && newUrls.length > 0) {
       console.log("ProductEditForm - Setting first uploaded image as primary:", newUrls[0]);
       setPrimaryImage(newUrls[0]);
     }
   };
 
-  const handleImageDelete = async (urlToDelete: string) => {
+  const handleImageDelete = (urlToDelete: string) => {
     console.log("ProductEditForm - handleImageDelete called with:", urlToDelete);
-    // Update state first for immediate UI feedback
     const updatedImages = images.filter(url => url !== urlToDelete);
     setImages(updatedImages);
     
-    // If this was the primary image, set another image as primary
     if (primaryImage === urlToDelete && updatedImages.length > 0) {
       console.log("ProductEditForm - Primary image deleted, setting new primary:", updatedImages[0]);
       setPrimaryImage(updatedImages[0]);
@@ -186,11 +181,10 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     }
   };
 
-  const handlePrimaryImageChange = async (imageUrl: string) => {
+  const handlePrimaryImageChange = (imageUrl: string) => {
     console.log("ProductEditForm - handlePrimaryImageChange called with:", imageUrl);
     setPrimaryImage(imageUrl);
     
-    // Invalidate cache to update product detail view
     queryClient.invalidateQueries({ queryKey: ['product', product.id] });
     
     toast({
@@ -214,7 +208,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setIsLoading(true);
 
     try {
-      // Handle null model value properly
       const modelValue = formData.model === "" ? null : formData.model;
       
       const { error } = await supabase
@@ -224,7 +217,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           price: formData.price,
           description: formData.description,
           brand: formData.brand,
-          model: modelValue, // This can now be null
+          model: modelValue,
           place_number: formData.place_number,
           delivery_price: formData.delivery_price,
         })
@@ -235,7 +228,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         throw error;
       }
 
-      // Invalidate cache to refresh all views
       queryClient.invalidateQueries({ queryKey: ['product', product.id] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
 
