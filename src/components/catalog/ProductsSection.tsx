@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import ProductGrid from '@/components/product/ProductGrid';
+import VirtualizedProductGrid from '@/components/product/VirtualizedProductGrid';
 import RequestPartsPromo from '@/components/catalog/RequestPartsPromo';
 import ProductSkeleton from '@/components/catalog/ProductSkeleton';
 import { useIntersection } from '@/hooks/useIntersection';
@@ -96,13 +96,17 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
     );
   }
   
-  // Products grid
+  // Use virtualized grid for large product lists
   if (!isLoading && allProducts.length > 0) {
+    const flatProducts = productChunks.flat();
+    
     return (
       <div className="animate-fade-in space-y-12">
-        {productChunks.map((chunk, chunkIndex) => (
-          <ProductGrid key={`chunk-${chunkIndex}`} products={chunk} />
-        ))}
+        {/* Use virtualization for better performance */}
+        <VirtualizedProductGrid 
+          products={flatProducts}
+          containerHeight={800}
+        />
         
         {/* Show RequestPartsPromo after products when search was performed */}
         {hasSearched && (

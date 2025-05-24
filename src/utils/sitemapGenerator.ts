@@ -1,4 +1,6 @@
 
+import { supabase } from '@/integrations/supabase/client';
+
 export interface SitemapUrl {
   loc: string;
   lastmod?: string;
@@ -34,30 +36,62 @@ export class SitemapGenerator {
     });
   }
 
-  addProducts(products: Array<{ id: string; updated_at?: string }>) {
-    const baseUrl = window.location.origin;
-    
-    products.forEach(product => {
-      this.addUrl({
-        loc: `${baseUrl}/product/${product.id}`,
-        lastmod: product.updated_at ? new Date(product.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        changefreq: 'weekly',
-        priority: 0.8
+  async addProductsFromAPI() {
+    try {
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('id, updated_at, status')
+        .eq('status', 'active')
+        .order('updated_at', { ascending: false })
+        .limit(1000);
+
+      if (error) {
+        console.error('Error fetching products for sitemap:', error);
+        return;
+      }
+
+      const baseUrl = window.location.origin;
+      
+      products?.forEach(product => {
+        this.addUrl({
+          loc: `${baseUrl}/product/${product.id}`,
+          lastmod: product.updated_at ? new Date(product.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          changefreq: 'weekly',
+          priority: 0.8
+        });
       });
-    });
+    } catch (error) {
+      console.error('Failed to fetch products for sitemap:', error);
+    }
   }
 
-  addStores(stores: Array<{ id: string; updated_at?: string }>) {
-    const baseUrl = window.location.origin;
-    
-    stores.forEach(store => {
-      this.addUrl({
-        loc: `${baseUrl}/store/${store.id}`,
-        lastmod: store.updated_at ? new Date(store.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        changefreq: 'weekly',
-        priority: 0.7
+  async addStoresFromAPI() {
+    try {
+      const { data: stores, error } = await supabase
+        .from('stores')
+        .select('id, updated_at')
+        .eq('verified', true)
+        .order('updated_at', { ascending: false })
+        .limit(500);
+
+      if (error) {
+        console.error('Error fetching stores for sitemap:', error);
+        return;
+      }
+
+      const baseUrl = window.location.origin;
+      
+      stores?.forEach(store => {
+        this.addUrl({
+          loc: `${baseUrl}/store/${store.id}`,
+          lastmod: store.updated_at ? new Date(store.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          changefreq: 'weekly',
+          priority: 0.7
+        });
       });
-    });
+    } catch (error) {
+      console.error('Failed to fetch stores for sitemap:', error);
+    }
   }
 
   generateXML(): string {
@@ -103,7 +137,7 @@ export class SitemapGenerator {
   }
 }
 
-// Hook for generating sitemap
+// Hook for generating sitemap with API data
 export const useSitemapGenerator = () => {
   const generateSitemap = async () => {
     const generator = new SitemapGenerator();
@@ -111,9 +145,9 @@ export const useSitemapGenerator = () => {
     // Add static pages
     generator.addStaticPages();
     
-    // TODO: Fetch and add dynamic content
-    // This would require API calls to get products and stores
-    // For now, we'll generate with static pages only
+    // Add dynamic content from API
+    await generator.addProductsFromAPI();
+    await generator.addStoresFromAPI();
     
     return generator;
   };
