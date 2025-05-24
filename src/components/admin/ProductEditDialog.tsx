@@ -27,14 +27,6 @@ import { AdminProductImagesManager } from "./AdminProductImagesManager";
 import { AdminProductVideosManager } from "./AdminProductVideosManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQueryClient } from "@tanstack/react-query";
-import { useStoreCarBrandsAndModels } from "@/hooks/useStoreCarBrandsAndModels";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
 
 const formSchema = z.object({
   title: z.string().min(2, { message: "Название должно содержать не менее 2 символов" }),
@@ -74,25 +66,10 @@ export const ProductEditDialog = ({
   setOpen,
 }: ProductEditDialogProps) => {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient(); // Get queryClient to invalidate cache
   const [internalOpen, setInternalOpen] = React.useState(false);
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
-
-  // Use store car brands and models
-  const { 
-    brands, 
-    brandModels, 
-    selectedBrand, 
-    selectBrand, 
-    isLoading: loadingBrands,
-    findBrandIdByName,
-    findModelIdByName,
-    findBrandNameById,
-    findModelNameById
-  } = useStoreCarBrandsAndModels();
-
-  const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
   const [images, setImages] = React.useState<string[]>(
     Array.isArray(product.product_images)
@@ -123,26 +100,6 @@ export const ProductEditDialog = ({
     }
   }, [product]);
 
-  // Set initial selected brand when brands are loaded
-  useEffect(() => {
-    if (brands.length > 0 && product.brand) {
-      const brandId = findBrandIdByName(product.brand);
-      if (brandId) {
-        selectBrand(brandId);
-      }
-    }
-  }, [brands, product.brand, findBrandIdByName, selectBrand]);
-
-  // Set initial selected model when brand models are loaded
-  useEffect(() => {
-    if (selectedBrand && brandModels.length > 0 && product.model) {
-      const modelId = findModelIdByName(product.model, selectedBrand);
-      if (modelId) {
-        setSelectedModelId(modelId);
-      }
-    }
-  }, [brandModels, product.model, selectedBrand, findModelIdByName]);
-
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -155,28 +112,6 @@ export const ProductEditDialog = ({
       delivery_price: product.delivery_price?.toString() || "0",
     },
   });
-
-  // When brand changes, update form and reset model
-  const handleBrandChange = (brandId: string) => {
-    selectBrand(brandId);
-    setSelectedModelId(null);
-    
-    const brandName = findBrandNameById(brandId);
-    if (brandName) {
-      form.setValue('brand', brandName);
-      form.setValue('model', ''); // Reset model when brand changes
-    }
-  };
-
-  // When model changes, update form
-  const handleModelChange = (modelId: string) => {
-    setSelectedModelId(modelId);
-    
-    const modelName = findModelNameById(modelId);
-    if (modelName) {
-      form.setValue('model', modelName);
-    }
-  };
 
   const handlePrimaryImageChange = async (imageUrl: string) => {
     try {
@@ -336,22 +271,7 @@ export const ProductEditDialog = ({
                         <FormItem>
                           <FormLabel>Бренд</FormLabel>
                           <FormControl>
-                            <Select
-                              disabled={loadingBrands}
-                              value={selectedBrand || ""}
-                              onValueChange={handleBrandChange}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Выберите бренд" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-[300px]">
-                                {brands.map((brand) => (
-                                  <SelectItem key={brand.id} value={brand.id}>
-                                    {brand.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Input placeholder="Бренд" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -364,22 +284,7 @@ export const ProductEditDialog = ({
                         <FormItem>
                           <FormLabel>Модель (необязательно)</FormLabel>
                           <FormControl>
-                            <Select
-                              disabled={!selectedBrand || loadingBrands}
-                              value={selectedModelId || ""}
-                              onValueChange={handleModelChange}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Выберите модель" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-[300px]">
-                                {brandModels.map((model) => (
-                                  <SelectItem key={model.id} value={model.id}>
-                                    {model.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <Input placeholder="Модель" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
