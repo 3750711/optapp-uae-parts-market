@@ -56,37 +56,42 @@ const StoresPagination: React.FC<StoresPaginationProps> = ({
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex flex-col items-center gap-4 mt-8">
+    <div className="flex flex-col items-center gap-6 mt-12">
       {/* Page info */}
-      <div className="text-sm text-gray-600">
-        Показано {startItem}-{endItem} из {totalCount} магазинов
+      <div className="text-sm text-gray-600 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm">
+        Показано <span className="font-medium text-primary">{startItem}-{endItem}</span> из{' '}
+        <span className="font-medium text-primary">{totalCount}</span> магазинов
       </div>
 
       {/* Pagination controls */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2 bg-white/70 backdrop-blur-sm p-2 rounded-xl shadow-card">
         <Button
           variant="outline"
           size="sm"
           onClick={() => onPageChange(currentPage - 1)}
           disabled={!hasPreviousPage}
-          className="mr-2"
+          className="mr-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary hover:text-white border-primary/20"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" />
+          <ChevronLeft className="h-4 w-4 mr-1 transition-transform duration-300 group-hover:-translate-x-1" />
           Назад
         </Button>
 
         {getVisiblePages().map((page, index) => (
           <React.Fragment key={index}>
             {page === 'dots' ? (
-              <Button variant="ghost" size="sm" disabled>
-                <MoreHorizontal className="h-4 w-4" />
+              <Button variant="ghost" size="sm" disabled className="cursor-default">
+                <MoreHorizontal className="h-4 w-4 text-gray-400" />
               </Button>
             ) : (
               <Button
                 variant={currentPage === page ? "default" : "outline"}
                 size="sm"
                 onClick={() => onPageChange(page as number)}
-                className="min-w-[40px]"
+                className={`min-w-[40px] transition-all duration-300 hover:scale-110 ${
+                  currentPage === page 
+                    ? 'bg-primary text-white shadow-button' 
+                    : 'hover:bg-primary hover:text-white border-primary/20 hover:shadow-lg'
+                }`}
               >
                 {page}
               </Button>
@@ -99,10 +104,10 @@ const StoresPagination: React.FC<StoresPaginationProps> = ({
           size="sm"
           onClick={() => onPageChange(currentPage + 1)}
           disabled={!hasNextPage}
-          className="ml-2"
+          className="ml-2 transition-all duration-300 hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary hover:text-white border-primary/20"
         >
           Вперед
-          <ChevronRight className="h-4 w-4 ml-1" />
+          <ChevronRight className="h-4 w-4 ml-1 transition-transform duration-300 group-hover:translate-x-1" />
         </Button>
       </div>
     </div>
