@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import useEmblaCarousel, {
   type UseEmblaCarouselType,
@@ -60,6 +61,10 @@ const Carousel = React.forwardRef<
       {
         ...opts,
         axis: orientation === "horizontal" ? "x" : "y",
+        // Enhanced touch support
+        watchDrag: true,
+        dragFree: opts?.dragFree || false,
+        containScroll: "trimSnaps",
       },
       plugins
     )

@@ -9,7 +9,8 @@ import {
   CarouselContent, 
   CarouselItem, 
   CarouselNext, 
-  CarouselPrevious 
+  CarouselPrevious,
+  CarouselApi 
 } from "@/components/ui/carousel";
 
 export interface ProductProps {
@@ -36,6 +37,8 @@ export interface ProductProps {
 
 const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   const [imageError, setImageError] = useState(false);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
   const isMobile = useIsMobile();
   
   const formatPrice = (price: number) => {
@@ -77,11 +80,29 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     setImageError(true);
   };
 
+  React.useEffect(() => {
+    if (!api) return;
+
+    setCurrent(api.selectedScrollSnap());
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap());
+    });
+  }, [api]);
+
   const renderImageContent = () => {
     if (isMobile && allImages.length > 1) {
-      // Mobile carousel for multiple images
+      // Mobile carousel with touch support for multiple images
       return (
-        <Carousel className="w-full">
+        <Carousel 
+          className="w-full" 
+          setApi={setApi}
+          opts={{
+            align: "start",
+            loop: true,
+            dragFree: true,
+          }}
+        >
           <CarouselContent>
             {allImages.map((imageUrl, index) => (
               <CarouselItem key={index} className="basis-full">
@@ -97,19 +118,16 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
               </CarouselItem>
             ))}
           </CarouselContent>
+          
+          {/* Dots indicator for mobile */}
           {allImages.length > 1 && (
-            <>
-              <CarouselPrevious className="left-2 h-8 w-8" />
-              <CarouselNext className="right-2 h-8 w-8" />
-            </>
-          )}
-          {/* Dots indicator */}
-          {allImages.length > 1 && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
               {allImages.map((_, index) => (
                 <div
                   key={index}
-                  className="h-1.5 w-1.5 rounded-full bg-white/60"
+                  className={`h-1.5 w-1.5 rounded-full transition-all ${
+                    index === current ? 'bg-white' : 'bg-white/60'
+                  }`}
                 />
               ))}
             </div>
