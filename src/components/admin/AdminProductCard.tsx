@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -137,6 +136,17 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 
         <div className="flex flex-wrap items-center justify-between gap-1 mt-2 border-t pt-2">
           <div className="flex items-center flex-wrap gap-1">
+            <Link to={`/product/${product.id}`}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title="Редактировать товар"
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+            
             <ProductStatusDialog
               product={product}
               trigger={
