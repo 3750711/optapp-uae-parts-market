@@ -32,7 +32,8 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
     productId,
     imagesCount: images.length,
     primaryImage,
-    onPrimaryImageChange: !!onPrimaryImageChange
+    onPrimaryImageChange: !!onPrimaryImageChange,
+    storageBucket
   });
 
   return (

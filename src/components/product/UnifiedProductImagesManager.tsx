@@ -33,7 +33,8 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
     productId,
     imagesCount: images.length,
     primaryImage,
-    onPrimaryImageChange: !!onPrimaryImageChange
+    onPrimaryImageChange: !!onPrimaryImageChange,
+    storageBucket
   });
 
   const { handleImageDelete, deletingImage } = useImageDeletion({

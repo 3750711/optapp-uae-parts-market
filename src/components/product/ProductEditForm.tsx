@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,7 +229,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           onPrimaryImageChange={isCreator ? handlePrimaryImageChange : undefined}
           primaryImage={primaryImage}
           maxImages={25}
-          storageBucket="Product Images"
+          storageBucket="product-images"
         />
       </div>
 
