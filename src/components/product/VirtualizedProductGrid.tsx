@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProductCard, { ProductProps } from './ProductCard';
@@ -18,7 +18,18 @@ const VirtualizedProductGrid: React.FC<VirtualizedProductGridProps> = ({
 }) => {
   const isMobile = useIsMobile();
   const { isAdmin } = useAdminAccess();
+  const [containerWidth, setContainerWidth] = useState(window.innerWidth);
   
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setContainerWidth(window.innerWidth);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Filter products based on status and admin privileges
   const visibleProducts = useMemo(() => {
     return products.filter(product => {
@@ -30,24 +41,28 @@ const VirtualizedProductGrid: React.FC<VirtualizedProductGridProps> = ({
   }, [products, showAllStatuses, isAdmin]);
 
   // Calculate grid dimensions
-  const { columnCount, columnWidth, rowHeight } = useMemo(() => {
+  const { columnCount, columnWidth, rowHeight, gridWidth } = useMemo(() => {
     if (isMobile) {
+      const width = containerWidth - 24; // Account for padding
       return {
         columnCount: 2,
-        columnWidth: window.innerWidth / 2 - 20,
-        rowHeight: 320
+        columnWidth: width / 2,
+        rowHeight: 320,
+        gridWidth: width
       };
     } else {
-      const width = window.innerWidth - 100; // Account for padding
+      const width = containerWidth - 100; // Account for padding
       const minCardWidth = 280;
       const cols = Math.floor(width / minCardWidth);
+      const finalCols = Math.max(2, Math.min(4, cols));
       return {
-        columnCount: Math.max(2, Math.min(4, cols)),
-        columnWidth: width / Math.max(2, Math.min(4, cols)),
-        rowHeight: 380
+        columnCount: finalCols,
+        columnWidth: width / finalCols,
+        rowHeight: 380,
+        gridWidth: width
       };
     }
-  }, [isMobile]);
+  }, [isMobile, containerWidth]);
 
   const rowCount = Math.ceil(visibleProducts.length / columnCount);
 
@@ -81,7 +96,7 @@ const VirtualizedProductGrid: React.FC<VirtualizedProductGridProps> = ({
         height={containerHeight}
         rowCount={rowCount}
         rowHeight={rowHeight}
-        width="100%"
+        width={gridWidth}
         className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
       >
         {Cell}
