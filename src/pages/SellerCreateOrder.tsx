@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -194,10 +195,26 @@ const SellerCreateOrder = () => {
 
       console.log("Preparing to create order");
 
+      // Get the next order number
+      const { data: maxOrderData, error: maxOrderError } = await supabase
+        .from('orders')
+        .select('order_number')
+        .order('order_number', { ascending: false })
+        .limit(1);
+
+      if (maxOrderError) {
+        console.error("Error getting max order number:", maxOrderError);
+        throw maxOrderError;
+      }
+
+      const nextOrderNumber = (maxOrderData?.[0]?.order_number || 0) + 1;
+      console.log("Next order number will be:", nextOrderNumber);
+
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       console.log("Delivery price to be saved:", deliveryPrice);
       
       const orderPayload = {
+        order_number: nextOrderNumber,
         title: formData.title,
         price: parseFloat(formData.price),
         place_number: parseInt(formData.place_number),
