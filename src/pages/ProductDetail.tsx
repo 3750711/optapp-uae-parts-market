@@ -370,12 +370,15 @@ const ProductDetail = () => {
             <h2 className="text-2xl font-bold text-foreground mb-8">Все фотографии товара</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {imageUrls.map((imageUrl, index) => (
-                <div key={index} className="overflow-hidden rounded-lg border shadow-sm hover:shadow-md transition-shadow">
+                <div 
+                  key={index} 
+                  className="overflow-hidden rounded-lg border shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => handleImageClick(imageUrl)}
+                >
                   <OptimizedImage
                     src={imageUrl}
                     alt={`${product.title} - фото ${index + 1}`}
-                    className="w-full h-auto aspect-square object-cover cursor-pointer hover:scale-105 transition-transform duration-300"
-                    onClick={() => handleImageClick(imageUrl)}
+                    className="w-full h-auto aspect-square object-cover hover:scale-105 transition-transform duration-300"
                     priority={index < 3}
                   />
                 </div>
