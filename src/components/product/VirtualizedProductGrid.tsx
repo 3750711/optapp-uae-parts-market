@@ -46,7 +46,7 @@ const VirtualizedProductGrid: React.FC<VirtualizedProductGridProps> = ({
       const width = containerWidth - 24; // Account for padding
       return {
         columnCount: 2,
-        columnWidth: Math.floor(width / 2),
+        columnWidth: width / 2,
         rowHeight: 320,
         gridWidth: width
       };
@@ -57,7 +57,7 @@ const VirtualizedProductGrid: React.FC<VirtualizedProductGridProps> = ({
       const finalCols = Math.max(2, Math.min(4, cols));
       return {
         columnCount: finalCols,
-        columnWidth: Math.floor(width / finalCols),
+        columnWidth: width / finalCols,
         rowHeight: 380,
         gridWidth: width
       };

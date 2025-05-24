@@ -1,22 +1,18 @@
 
 import SEOHead from '@/components/seo/SEOHead';
-import ProductSchemaMarkup from '@/components/seo/ProductSchemaMarkup';
-import { ProductProps } from '@/components/product/ProductCard';
 
 interface CatalogSEOProps {
   searchQuery?: string;
   selectedBrandName?: string | null;
   selectedModelName?: string | null;
   totalProducts?: number;
-  products?: ProductProps[];
 }
 
 const CatalogSEO: React.FC<CatalogSEOProps> = ({
   searchQuery,
   selectedBrandName,
   selectedModelName,
-  totalProducts = 0,
-  products = []
+  totalProducts = 0
 }) => {
   // Построение динамического title
   const buildTitle = () => {
@@ -113,23 +109,13 @@ const CatalogSEO: React.FC<CatalogSEOProps> = ({
   }
 
   return (
-    <>
-      <SEOHead
-        title={buildTitle()}
-        description={buildDescription()}
-        keywords={buildKeywords()}
-        canonicalUrl={window.location.href}
-        structuredData={structuredData}
-      />
-      
-      {/* Add product schema markup for Rich Snippets */}
-      <ProductSchemaMarkup
-        products={products}
-        searchQuery={searchQuery}
-        selectedBrandName={selectedBrandName}
-        selectedModelName={selectedModelName}
-      />
-    </>
+    <SEOHead
+      title={buildTitle()}
+      description={buildDescription()}
+      keywords={buildKeywords()}
+      canonicalUrl={window.location.href}
+      structuredData={structuredData}
+    />
   );
 };
 

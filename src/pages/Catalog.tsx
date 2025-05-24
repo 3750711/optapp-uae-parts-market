@@ -12,16 +12,12 @@ import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
-import { useServiceWorker } from "@/hooks/useServiceWorker";
 import { SearchHistoryItem } from "@/hooks/useSearchHistory";
 
 const Catalog: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
   const productsPerPage = 8;
-  
-  // Register Service Worker for image caching
-  useServiceWorker();
   
   // Car brands and models
   const {
@@ -139,7 +135,6 @@ const Catalog: React.FC = () => {
         selectedBrandName={selectedBrandName}
         selectedModelName={selectedModelName}
         totalProducts={allProducts.length}
-        products={mappedProducts}
       />
       
       {/* Sticky фильтры для мобильных */}
