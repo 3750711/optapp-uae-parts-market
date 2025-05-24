@@ -40,7 +40,7 @@ export const useImageDeletion = ({
       // Optimistic update - remove image from cache immediately
       optimisticRemoveImage(productId, imageUrl);
 
-      // First, delete the image record from the database
+      // Delete the image record from the database
       const { error: dbError } = await supabase
         .from('product_images')
         .delete()
@@ -50,15 +50,28 @@ export const useImageDeletion = ({
       if (dbError) throw dbError;
       console.log("Successfully deleted from database");
 
-      // Call the parent's onImageDelete function to update UI
+      // Update local state
       onImageDelete(imageUrl);
       
       // If this was the primary image, set another image as primary
       if (primaryImage === imageUrl && images.length > 1 && onPrimaryImageChange) {
-        const newPrimaryUrl = images.find(img => img !== imageUrl);
-        if (newPrimaryUrl) {
-          console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
-          onPrimaryImageChange(newPrimaryUrl);
+        const remainingImages = images.filter(img => img !== imageUrl);
+        if (remainingImages.length > 0) {
+          console.log("Primary image deleted, setting new primary:", remainingImages[0]);
+          
+          // Update primary image in database
+          await supabase
+            .from('product_images')
+            .update({ is_primary: false })
+            .eq('product_id', productId);
+            
+          await supabase
+            .from('product_images')
+            .update({ is_primary: true })
+            .eq('product_id', productId)
+            .eq('url', remainingImages[0]);
+            
+          onPrimaryImageChange(remainingImages[0]);
         }
       }
       

@@ -27,7 +27,13 @@ export const usePrimaryImage = ({
       setSettingPrimary(imageUrl);
       console.log("Setting primary image:", imageUrl);
       
-      // First, reset all images for this product to not primary
+      // Optimistic update first for immediate UI response
+      optimisticUpdateCache(productId, imageUrl);
+      
+      // Update local state immediately
+      onPrimaryImageChange(imageUrl);
+      
+      // Reset all images for this product to not primary
       const { error: resetError } = await supabase
         .from('product_images')
         .update({ is_primary: false })
@@ -37,9 +43,8 @@ export const usePrimaryImage = ({
         console.error("Error resetting primary status:", resetError);
         throw resetError;
       }
-      console.log("Reset all images to non-primary successfully");
       
-      // Then set the selected image as primary
+      // Set the selected image as primary
       const { error } = await supabase
         .from('product_images')
         .update({ is_primary: true })
@@ -50,23 +55,22 @@ export const usePrimaryImage = ({
         console.error("Error setting image as primary:", error);
         throw error;
       }
+      
       console.log("Database updated successfully for primary image");
       
-      // Update state in the parent component immediately
-      onPrimaryImageChange(imageUrl);
-      
-      // Unified cache invalidation with optimistic updates
+      // Final cache invalidation to ensure consistency
       invalidateAllCaches(productId);
-      optimisticUpdateCache(productId, imageUrl);
-      
-      console.log("Cache invalidated and optimistically updated after primary image change");
       
       toast({
-        title: "Успешно",
-        description: "Основное фото установлено",
+        title: "Обновлено",
+        description: "Основное фото изменено",
       });
     } catch (error) {
       console.error("Error setting primary image:", error);
+      
+      // Revert optimistic update on error
+      invalidateAllCaches(productId);
+      
       toast({
         title: "Ошибка",
         description: "Не удалось установить основное фото",
