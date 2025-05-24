@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,10 +13,10 @@ import StoresTable from '@/components/admin/stores/StoresTable';
 import StoreCards from '@/components/admin/stores/StoreCards';
 import StoreEditDialog from '@/components/admin/stores/StoreEditDialog';
 import AdminSEO from '@/components/seo/AdminSEO';
-import { useMobile } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const AdminStores = () => {
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const {
     stores,
     isLoading,
