@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,7 @@ import {
   CarouselPrevious,
   CarouselApi 
 } from "@/components/ui/carousel";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 
 export interface ProductProps {
   id: string;
@@ -107,12 +107,13 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
             {allImages.map((imageUrl, index) => (
               <CarouselItem key={index} className="basis-full">
                 <div className="relative w-full h-full">
-                  <img
+                  <OptimizedImage
                     src={imageError ? "/placeholder.svg" : imageUrl}
                     alt={`${product.title} ${index + 1}`}
                     className="w-full h-full object-contain"
                     onError={handleImageError}
-                    loading="lazy"
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 100vw, 50vw"
                   />
                 </div>
               </CarouselItem>
@@ -137,12 +138,13 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     } else {
       // Desktop single image
       return (
-        <img
+        <OptimizedImage
           src={imageError ? "/placeholder.svg" : primaryImage}
           alt={product.title}
           className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
-          loading="lazy"
+          priority={false}
+          sizes="(max-width: 768px) 50vw, 25vw"
         />
       );
     }
