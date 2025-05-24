@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +38,7 @@ export interface ProductProps {
 
 const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const isMobile = useIsMobile();
@@ -58,15 +60,15 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     }
   };
 
-  // Get all available images
+  // Get all available images with better fallback logic
   const allImages = [];
-  if (product.preview_image) {
+  if (product.preview_image && !imageError) {
     allImages.push(product.preview_image);
   }
-  if (product.image && product.image !== product.preview_image) {
+  if (product.image && product.image !== product.preview_image && !imageError) {
     allImages.push(product.image);
   }
-  if (product.product_images) {
+  if (product.product_images && !imageError) {
     product.product_images.forEach(img => {
       if (!allImages.includes(img.url)) {
         allImages.push(img.url);
@@ -74,10 +76,17 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     });
   }
 
-  const primaryImage = product.preview_image || product.image || "/placeholder.svg";
+  // Fallback to placeholder if no images or error
+  const primaryImage = allImages.length > 0 ? allImages[0] : "/placeholder.svg";
 
   const handleImageError = () => {
+    console.log(`Image error for product ${product.id}`);
     setImageError(true);
+    setImageLoading(false);
+  };
+
+  const handleImageLoad = () => {
+    setImageLoading(false);
   };
 
   React.useEffect(() => {
@@ -108,13 +117,19 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
               <CarouselItem key={index} className="basis-full">
                 <div className="relative w-full h-full">
                   <OptimizedImage
-                    src={imageError ? "/placeholder.svg" : imageUrl}
+                    src={imageUrl}
                     alt={`${product.title} ${index + 1}`}
                     className="w-full h-full object-contain"
                     onError={handleImageError}
+                    onLoad={handleImageLoad}
                     priority={index === 0}
                     sizes="(max-width: 768px) 100vw, 50vw"
                   />
+                  {imageLoading && (
+                    <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
+                      <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+                    </div>
+                  )}
                 </div>
               </CarouselItem>
             ))}
@@ -136,16 +151,24 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
         </Carousel>
       );
     } else {
-      // Desktop single image
+      // Desktop single image with loading state
       return (
-        <OptimizedImage
-          src={imageError ? "/placeholder.svg" : primaryImage}
-          alt={product.title}
-          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-          onError={handleImageError}
-          priority={false}
-          sizes="(max-width: 768px) 50vw, 25vw"
-        />
+        <div className="relative w-full h-full">
+          <OptimizedImage
+            src={primaryImage}
+            alt={product.title}
+            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+            priority={false}
+            sizes="(max-width: 768px) 50vw, 25vw"
+          />
+          {imageLoading && !imageError && (
+            <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
+              <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
+            </div>
+          )}
+        </div>
       );
     }
   };
@@ -153,9 +176,9 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   return (
     <Link
       to={`/product/${product.id}`}
-      className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200"
+      className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col"
     >
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <AspectRatio ratio={16 / 9} className="bg-gray-50">
           {renderImageContent()}
         </AspectRatio>
@@ -167,8 +190,8 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
         )}
       </div>
       
-      <div className="p-4">
-        <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors">
+      <div className="p-4 flex-grow flex flex-col">
+        <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors flex-grow">
           {product.title}
         </h3>
         
@@ -178,7 +201,7 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
           </p>
         )}
         
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-bold text-primary">
             {formatPrice(product.price)} ₽
           </span>

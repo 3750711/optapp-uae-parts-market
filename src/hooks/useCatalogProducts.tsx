@@ -1,10 +1,10 @@
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
+import { useAdminAccess } from '@/hooks/useAdminAccess';
 
 export type ProductType = {
   id: string;
@@ -45,6 +45,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
   const [selectedModelName, setSelectedModelName] = useState<string | null>(null);
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
+  const { isAdmin } = useAdminAccess();
 
   // Debounce search query for better performance
   useEffect(() => {
@@ -95,8 +96,9 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     hideSoldProducts,
     selectedBrandName,
     selectedModelName,
-    sortBy
-  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, selectedBrandName, selectedModelName, sortBy]);
+    sortBy,
+    isAdmin
+  }), [debouncedSearchQuery, selectedBrand, selectedModel, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -120,11 +122,18 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
       // Apply sorting
       query = buildSortQuery(query, sortBy);
 
-      // Filter out sold products if checkbox is checked
+      // UNIFIED FILTERING LOGIC - handle all status filtering here
       if (filters.hideSoldProducts) {
         query = query.eq('status', 'active');
       } else {
-        query = query.in('status', ['active', 'sold']);
+        // Show different products based on admin status
+        if (filters.isAdmin) {
+          // Admin can see all products
+          query = query.in('status', ['active', 'sold', 'pending', 'archived']);
+        } else {
+          // Regular users only see active and sold products
+          query = query.in('status', ['active', 'sold']);
+        }
       }
 
       // Apply search filters
@@ -133,12 +142,10 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         
         // Text search with partial matching
         if (filters.debouncedSearchQuery) {
-          // Use more efficient search
           conditions.push(`title.ilike.%${filters.debouncedSearchQuery}%`);
           conditions.push(`brand.ilike.%${filters.debouncedSearchQuery}%`);
           conditions.push(`model.ilike.%${filters.debouncedSearchQuery}%`);
           
-          // Handle possible typos by checking for similar terms
           const searchTerms = filters.debouncedSearchQuery.trim().split(/\s+/).filter(t => t.length > 2);
           searchTerms.forEach(term => {
             if (term.length > 2) {
@@ -149,23 +156,13 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
           });
         }
         
-        // Log search parameters for debugging
-        console.log('Search filters:', {
-          brandId: filters.selectedBrand,
-          brandName: filters.selectedBrandName,
-          modelId: filters.selectedModel,
-          modelName: filters.selectedModelName
-        });
-        
-        // Brand filter - now using the actual brand name
+        // Brand filter
         if (filters.selectedBrandName) {
-          console.log('Filtering by brand name:', filters.selectedBrandName);
           query = query.ilike('brand', filters.selectedBrandName);
         }
         
-        // Model filter - now using the actual model name
+        // Model filter
         if (filters.selectedModelName && filters.selectedBrandName) {
-          console.log('Filtering by model name:', filters.selectedModelName);
           query = query.ilike('model', filters.selectedModelName);
         }
         
@@ -175,7 +172,6 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         }
       }
 
-      console.log('Final query filters:', query);
       const { data, error } = await query.range(from, to);
       
       if (error) {
@@ -190,7 +186,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 180000, // 3 minutes
+    staleTime: 180000,
     refetchOnWindowFocus: false
   });
 
@@ -224,29 +220,12 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     };
   }, [refetch, toast]);
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-    setSelectedBrand(null);
-    setSelectedModel(null);
-    setSelectedBrandName(null);
-    setSelectedModelName(null);
-    setHasSearched(false);
-  }, []);
-
-  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    // When user explicitly submits search, we update hasSearched
-    setHasSearched(!!(searchQuery || selectedBrand || selectedModel));
-    // Force refetch
-    refetch();
-  }, [searchQuery, selectedBrand, selectedModel, refetch]);
-
-  // Map products to the correct format with optimized memo
+  // Get all products from all pages
   const allProducts = data?.pages.flat() || [];
   
+  // Map products to the correct format with better image handling
   const mappedProducts: ProductProps[] = useMemo(() => {
-    return allProducts.map((product) => {
-      // Cast product to our known type
+    const products = allProducts.map((product) => {
       const typedProduct = product as unknown as ProductType;
       
       let imageUrl = "/placeholder.svg";
@@ -257,7 +236,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         for (const img of typedProduct.product_images) {
           if (img.preview_url) {
             previewUrl = img.preview_url;
-            if (img.is_primary) break; // Stop if this is the primary image with preview
+            if (img.is_primary) break;
           }
         }
         
@@ -275,7 +254,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         title: typedProduct.title,
         price: Number(typedProduct.price),
         image: imageUrl,
-        preview_image: previewUrl, // Use preview for catalog display
+        preview_image: previewUrl,
         brand: typedProduct.brand || "",
         model: typedProduct.model || "",
         seller_name: typedProduct.seller_name,
@@ -285,20 +264,41 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         optid_created: typedProduct.optid_created
       } as ProductProps;
     });
+
+    console.log(`Mapped ${products.length} products total`);
+    return products;
   }, [allProducts]);
 
-  // Split products into chunks for better rendering performance
+  // Optimized chunking logic - ensure even distribution
   const productChunks = useMemo(() => {
     const chunks = [];
-    const chunkSize = 30;
+    const chunkSize = 20; // Larger chunks for better performance
     const total = mappedProducts.length;
     
     for (let i = 0; i < total; i += chunkSize) {
-      chunks.push(mappedProducts.slice(i, i + chunkSize));
+      const chunk = mappedProducts.slice(i, i + chunkSize);
+      chunks.push(chunk);
+      console.log(`Chunk ${chunks.length}: ${chunk.length} products`);
     }
     
+    console.log(`Created ${chunks.length} chunks from ${total} products`);
     return chunks;
   }, [mappedProducts]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSelectedBrand(null);
+    setSelectedModel(null);
+    setSelectedBrandName(null);
+    setSelectedModelName(null);
+    setHasSearched(false);
+  }, []);
+
+  const handleSearchSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    setHasSearched(!!(searchQuery || selectedBrand || selectedModel));
+    refetch();
+  }, [searchQuery, selectedBrand, selectedModel, refetch]);
 
   return {
     searchQuery,
@@ -317,7 +317,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     setSelectedModelName,
     hideSoldProducts,
     setHideSoldProducts,
-    allProducts,
+    allProducts: mappedProducts, // Return already filtered products
     mappedProducts,
     productChunks,
     fetchNextPage,

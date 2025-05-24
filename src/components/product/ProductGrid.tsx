@@ -1,34 +1,18 @@
 
 import React, { memo } from "react";
 import ProductCard, { ProductProps } from "./ProductCard";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
+import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 
 interface ProductGridProps {
   products: ProductProps[];
-  showAllStatuses?: boolean;
   isLoading?: boolean;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, showAllStatuses = false, isLoading = false }) => {
-  const { isAdmin } = useAdminAccess();
-  
-  // Filter products based on status and admin privileges
-  const visibleProducts = React.useMemo(() => {
-    return products.filter(product => {
-      // If showing all statuses is enabled or user is admin, show all products
-      if (showAllStatuses || isAdmin) {
-        return true;
-      }
-      
-      // Otherwise only show active and sold products in the grid
-      return product.status === 'active' || product.status === 'sold';
-    });
-  }, [products, showAllStatuses, isAdmin]);
-
+const ProductGrid: React.FC<ProductGridProps> = ({ products, isLoading = false }) => {
   // Display loading skeleton when data is loading
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[400px]">
         {Array.from({ length: 8 }).map((_, index) => (
           <ProductSkeleton key={`skeleton-${index}`} />
         ))}
@@ -36,17 +20,29 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, showAllStatuses = f
     );
   }
 
+  // No filtering here - all filtering is now handled in useCatalogProducts
+  if (products.length === 0) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px]">
+        <div className="col-span-full text-center py-12 text-gray-500">
+          Товары не найдены
+        </div>
+      </div>
+    );
+  }
+
+  console.log(`ProductGrid rendering ${products.length} products`);
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {visibleProducts.map((product) => (
-        <MemoizedProductCard key={product.id} product={product} />
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px] auto-rows-fr">
+      {products.map((product) => (
+        <div key={product.id} className="flex">
+          <MemoizedProductCard product={product} />
+        </div>
       ))}
     </div>
   );
 };
-
-// Import ProductSkeleton component for loading states
-import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 
 // Memoize ProductCard to prevent unnecessary re-renders
 const MemoizedProductCard = memo(ProductCard);

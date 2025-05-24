@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
@@ -82,6 +83,31 @@
 
   .animate-pulse-slow {
     animation: pulse-slow 3s ease-in-out infinite;
+  }
+
+  /* Grid improvements for consistent layout */
+  .auto-rows-fr {
+    grid-auto-rows: 1fr;
+  }
+
+  /* Prevent grid collapse and ensure minimum heights */
+  .grid > * {
+    min-height: 0;
+  }
+
+  /* Improved product grid layout */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+  }
+
+  @media (max-width: 640px) {
+    .product-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 1rem;
+    }
   }
 }
 
@@ -184,4 +210,17 @@
   100% {
     background-position: 200% 0;
   }
+}
+
+/* Grid layout improvements - prevent empty spaces */
+.grid-auto-fit {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.grid-item-stretch {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
