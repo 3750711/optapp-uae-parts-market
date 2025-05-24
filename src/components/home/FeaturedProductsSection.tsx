@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -91,30 +92,19 @@ const FeaturedProductsSection = () => {
       }
     }
     
-    const sellerLocation = typedProduct.profiles?.location || typedProduct.location || "Dubai";
-    
     return {
       id: typedProduct.id,
-      name: typedProduct.title,
+      title: typedProduct.title,
       price: Number(typedProduct.price),
       image: imageUrl,
       preview_image: previewUrl,
-      condition: typedProduct.condition as "Новый" | "Б/У" | "Восстановленный",
-      location: sellerLocation,
-      seller_opt_id: typedProduct.profiles?.opt_id,
-      seller_rating: typedProduct.profiles?.rating,
-      optid_created: typedProduct.optid_created,
-      rating_seller: typedProduct.rating_seller,
       brand: typedProduct.brand || "",
       model: typedProduct.model || "",
       seller_name: typedProduct.seller_name,
       status: typedProduct.status,
       seller_id: typedProduct.seller_id,
-      seller_verification: typedProduct.profiles?.verification_status,
-      seller_opt_status: typedProduct.profiles?.opt_status,
-      created_at: typedProduct.created_at,
       delivery_price: typedProduct.delivery_price,
-      has_preview: typedProduct.has_preview
+      optid_created: typedProduct.optid_created
     } as ProductProps;
   });
 

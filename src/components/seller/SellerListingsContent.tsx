@@ -92,22 +92,17 @@ const SellerListingsContent = () => {
     
     return {
       id: product.id,
-      name: product.title,
+      title: product.title,
       price: Number(product.price),
       image: primaryImage,
       preview_image: previewImage,
-      location: product.location || '',
       brand: product.brand || '',
       model: product.model || '',
       seller_name: product.seller_name,
       status: product.status,
-      seller_rating: product.rating_seller,
-      optid_created: product.optid_created,
       seller_id: product.seller_id,
-      onStatusChange: handleStatusChange,
       delivery_price: product.delivery_price,
-      has_preview: product.has_preview || false, // Fixed reference to has_preview
-      created_at: product.created_at
+      optid_created: product.optid_created
     };
   });
 
