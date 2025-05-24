@@ -1,5 +1,5 @@
 
--- Updated admin order creation function with proper order number logic
+-- Updated admin order creation function with gap-filling order number logic
 CREATE OR REPLACE FUNCTION public.admin_create_order(
   p_title text, 
   p_price numeric, 
@@ -36,10 +36,19 @@ BEGIN
     RAISE EXCEPTION 'Only administrators can use this function';
   END IF;
 
-  -- Get the next order number (max + 1)
-  SELECT COALESCE(MAX(order_number), 0) + 1 
-  INTO next_order_number 
-  FROM public.orders;
+  -- Find the first missing order number in the sequence
+  -- This query finds the smallest positive integer not in the order_number column
+  WITH RECURSIVE number_series AS (
+    SELECT 1 as num
+    UNION ALL
+    SELECT num + 1
+    FROM number_series
+    WHERE num < (SELECT COALESCE(MAX(order_number), 0) + 1 FROM public.orders)
+  )
+  SELECT COALESCE(
+    (SELECT MIN(num) FROM number_series WHERE num NOT IN (SELECT order_number FROM public.orders)),
+    (SELECT COALESCE(MAX(order_number), 0) + 1 FROM public.orders)
+  ) INTO next_order_number;
 
   -- Insert the order with the calculated order number
   INSERT INTO public.orders (

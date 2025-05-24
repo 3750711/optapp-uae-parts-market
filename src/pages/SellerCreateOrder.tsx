@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -195,19 +194,35 @@ const SellerCreateOrder = () => {
 
       console.log("Preparing to create order");
 
-      // Get the next order number
-      const { data: maxOrderData, error: maxOrderError } = await supabase
+      // Find the first missing order number in the sequence
+      const { data: existingOrders, error: ordersError } = await supabase
         .from('orders')
         .select('order_number')
-        .order('order_number', { ascending: false })
-        .limit(1);
+        .order('order_number', { ascending: true });
 
-      if (maxOrderError) {
-        console.error("Error getting max order number:", maxOrderError);
-        throw maxOrderError;
+      if (ordersError) {
+        console.error("Error getting existing order numbers:", ordersError);
+        throw ordersError;
       }
 
-      const nextOrderNumber = (maxOrderData?.[0]?.order_number || 0) + 1;
+      let nextOrderNumber = 1;
+      if (existingOrders && existingOrders.length > 0) {
+        // Find the first gap in the sequence
+        const orderNumbers = existingOrders.map(order => order.order_number).sort((a, b) => a - b);
+        
+        for (let i = 0; i < orderNumbers.length; i++) {
+          if (orderNumbers[i] !== i + 1) {
+            nextOrderNumber = i + 1;
+            break;
+          }
+        }
+        
+        // If no gap found, use next number after the last one
+        if (nextOrderNumber === 1 && orderNumbers.length > 0) {
+          nextOrderNumber = orderNumbers[orderNumbers.length - 1] + 1;
+        }
+      }
+
       console.log("Next order number will be:", nextOrderNumber);
 
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
