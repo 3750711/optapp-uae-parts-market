@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +30,7 @@ const Stores: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [advancedFilters, setAdvancedFilters] = useState<StoresFilters>({});
   
-  // Debounce search query для оптимизации запросов
+  // Debounce search query for optimizing requests
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
   
   const pageSize = 12;
