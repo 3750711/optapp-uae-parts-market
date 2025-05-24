@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +7,8 @@ import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import ProductForm from "@/components/product/ProductForm";
 import ProductMediaManager from "@/components/product/ProductMediaManager";
 import { useQueryClient } from "@tanstack/react-query";
+import { useProductFormState } from "./form/ProductFormState";
+import { useProductImageHandlers } from "./form/ProductImageHandlers";
 
 interface ProductEditFormProps {
   product: Product;
@@ -39,6 +40,29 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       : product.delivery_price || 0,
   });
 
+  // Use our state management hook
+  const {
+    images,
+    videos,
+    primaryImage,
+    setImages,
+    setVideos,
+    setPrimaryImage
+  } = useProductFormState({ product });
+
+  // Use our image handlers hook
+  const {
+    handleImageUpload,
+    handleImageDelete,
+    handlePrimaryImageChange
+  } = useProductImageHandlers({
+    productId: product.id,
+    images,
+    primaryImage,
+    setImages,
+    setPrimaryImage
+  });
+
   // Use our car brands and models hook
   const { 
     brands, 
@@ -53,76 +77,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   } = useCarBrandsAndModels();
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-
-  const [images, setImages] = React.useState<string[]>([]);
-  const [videos, setVideos] = React.useState<string[]>([]);
-  const [primaryImage, setPrimaryImage] = React.useState<string>('');
-
-  // Initialize state from product data
-  const initializeState = React.useCallback(() => {
-    const newImages = Array.isArray(product.product_images)
-      ? product.product_images.map((img: any) => img.url)
-      : [];
-    
-    const newVideos = Array.isArray(product.product_videos)
-      ? product.product_videos.map((vid: any) => vid.url)
-      : [];
-    
-    let newPrimaryImage = '';
-    if (Array.isArray(product.product_images)) {
-      const primary = product.product_images.find((img: any) => img.is_primary);
-      newPrimaryImage = primary ? primary.url : (product.product_images[0]?.url || '');
-    }
-
-    console.log("ProductEditForm - Initializing state:", {
-      newImages: newImages.length,
-      newPrimaryImage,
-      productId: product.id
-    });
-
-    setImages(newImages);
-    setVideos(newVideos);
-    setPrimaryImage(newPrimaryImage);
-  }, [product]);
-
-  // Initialize state when product changes
-  useEffect(() => {
-    initializeState();
-  }, [initializeState]);
-
-  // Listen for cache updates and sync local state
-  useEffect(() => {
-    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event?.query?.queryKey?.[0] === 'product' && event?.query?.queryKey?.[1] === product.id) {
-        console.log("ProductEditForm - Cache updated for product:", product.id);
-        
-        // Get fresh data from cache and sync
-        const freshProduct = queryClient.getQueryData(['product', product.id]) as Product;
-        if (freshProduct && event.type === 'updated') {
-          const freshImages = Array.isArray(freshProduct.product_images)
-            ? freshProduct.product_images.map((img: any) => img.url)
-            : [];
-          
-          let freshPrimaryImage = '';
-          if (Array.isArray(freshProduct.product_images)) {
-            const primary = freshProduct.product_images.find((img: any) => img.is_primary);
-            freshPrimaryImage = primary ? primary.url : (freshProduct.product_images[0]?.url || '');
-          }
-
-          // Only update if data actually changed
-          setImages(prev => {
-            const hasChanged = prev.length !== freshImages.length || 
-              prev.some((img, index) => img !== freshImages[index]);
-            return hasChanged ? freshImages : prev;
-          });
-
-          setPrimaryImage(prev => prev !== freshPrimaryImage ? freshPrimaryImage : prev);
-        }
-      }
-    });
-
-    return unsubscribe;
-  }, [product.id, queryClient]);
 
   // Set initial selected brand when the component mounts and brands are loaded
   useEffect(() => {
@@ -194,46 +148,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         model: modelName
       });
     }
-  };
-
-  const handleImageUpload = (newUrls: string[]) => {
-    console.log("ProductEditForm - handleImageUpload called with:", newUrls);
-    const updatedImages = [...images, ...newUrls];
-    setImages(updatedImages);
-    
-    if (primaryImage === '' && newUrls.length > 0) {
-      console.log("ProductEditForm - Setting first uploaded image as primary:", newUrls[0]);
-      setPrimaryImage(newUrls[0]);
-    }
-  };
-
-  const handleImageDelete = (urlToDelete: string) => {
-    console.log("ProductEditForm - handleImageDelete called with:", urlToDelete);
-    const updatedImages = images.filter(url => url !== urlToDelete);
-    setImages(updatedImages);
-    
-    if (primaryImage === urlToDelete && updatedImages.length > 0) {
-      console.log("ProductEditForm - Primary image deleted, setting new primary:", updatedImages[0]);
-      setPrimaryImage(updatedImages[0]);
-    } else if (updatedImages.length === 0) {
-      setPrimaryImage('');
-    }
-  };
-
-  const handlePrimaryImageChange = (imageUrl: string) => {
-    console.log("ProductEditForm - handlePrimaryImageChange called with:", imageUrl);
-    setPrimaryImage(imageUrl);
-    
-    // Unified cache invalidation
-    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-    queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
-    queryClient.invalidateQueries({ queryKey: ['product', product.id] });
-    queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
-    
-    toast({
-      title: "Обновлено",
-      description: "Основное фото изменено",
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
