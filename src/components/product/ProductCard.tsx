@@ -203,7 +203,7 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
         
         <div className="flex items-center justify-between mt-auto">
           <span className="text-lg font-bold text-primary">
-            {formatPrice(product.price)} ₽
+            {formatPrice(product.price)} $
           </span>
           
           {product.seller_name && (
