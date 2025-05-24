@@ -32,7 +32,14 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
 
-  // Enhanced image delete function that actually removes the image from storage and database
+  console.log("ProductImagesManager props:", {
+    productId,
+    imagesCount: images.length,
+    primaryImage,
+    onPrimaryImageChange: !!onPrimaryImageChange
+  });
+
+  // Function to handle image deletion - using AdminProductImagesManager logic
   const handleImageDelete = async (imageUrl: string) => {
     if (images.length <= 1) {
       toast({
@@ -89,9 +96,12 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
     }
   };
 
-  // Function to set an image as primary
+  // Function to set an image as primary - using AdminProductImagesManager logic
   const handleSetPrimaryImage = async (imageUrl: string) => {
-    if (!onPrimaryImageChange) return;
+    if (!onPrimaryImageChange) {
+      console.log("onPrimaryImageChange not provided");
+      return;
+    }
     
     try {
       setSettingPrimary(imageUrl);
@@ -145,12 +155,54 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
     }
   };
 
+  // Handle image upload - using AdminProductImagesManager logic
+  const handleImageUpload = async (newUrls: string[]) => {
+    try {
+      console.log("Uploading new images:", newUrls);
+      
+      const imageInserts = newUrls.map(url => ({
+        product_id: productId,
+        url: url,
+        is_primary: images.length === 0 && !primaryImage // First image is primary if no images exist
+      }));
+
+      const { error } = await supabase
+        .from('product_images')
+        .insert(imageInserts);
+
+      if (error) throw error;
+
+      // Call the parent's onImageUpload function to update UI
+      onImageUpload(newUrls);
+      
+      // If no primary image is set, set the first new image as primary
+      if (!primaryImage && newUrls.length > 0 && onPrimaryImageChange) {
+        await handleSetPrimaryImage(newUrls[0]);
+      }
+      
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      
+      toast({
+        title: "Успех",
+        description: `Добавлено ${newUrls.length} фотографий`,
+      });
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить фотографии",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <ProductImagesGallery 
         images={images}
         onImageDelete={handleImageDelete}
-        onSetPrimaryImage={handleSetPrimaryImage}
+        onSetPrimaryImage={onPrimaryImageChange ? handleSetPrimaryImage : undefined}
         primaryImage={primaryImage}
         deletingImage={deletingImage}
         settingPrimary={settingPrimary}
@@ -158,7 +210,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
 
       <ImageUpload 
         images={images}
-        onUpload={onImageUpload}
+        onUpload={handleImageUpload}
         onDelete={handleImageDelete}
         maxImages={maxImages}
         storageBucket={storageBucket}
