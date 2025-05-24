@@ -42,6 +42,20 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
     onPrimaryImageChange: !!onPrimaryImageChange
   });
 
+  // Unified cache invalidation function
+  const invalidateAllCaches = () => {
+    console.log("Invalidating all product caches for:", productId);
+    
+    // Invalidate all related cache keys
+    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+    queryClient.invalidateQueries({ queryKey: ['product', productId] });
+    queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
+    
+    // Also refetch specific product data to ensure immediate updates
+    queryClient.refetchQueries({ queryKey: ['product', productId] });
+  };
+
   // Function to handle image deletion
   const handleImageDelete = async (imageUrl: string) => {
     if (images.length <= 1) {
@@ -79,11 +93,8 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
       // Call the parent's onImageDelete function to update UI
       onImageDelete(imageUrl);
       
-      // Invalidate React Query cache to refresh all data
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      queryClient.invalidateQueries({ queryKey: ['product', productId] });
-      queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
-      console.log("Cache invalidated after image deletion");
+      // Unified cache invalidation
+      invalidateAllCaches();
 
       toast({
         title: "Успешно",
@@ -140,11 +151,48 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
       // Update state in the parent component immediately
       onPrimaryImageChange(imageUrl);
       
-      // Invalidate React Query cache to refresh the data everywhere
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      queryClient.invalidateQueries({ queryKey: ['product', productId] });
-      queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
-      console.log("Cache invalidated after primary image change");
+      // Unified cache invalidation with optimistic updates
+      invalidateAllCaches();
+      
+      // Optimistic update for admin products cache
+      queryClient.setQueryData(['admin', 'products'], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        // Update the product in the cache optimistically
+        const updateProduct = (product: any) => {
+          if (product.id === productId) {
+            return {
+              ...product,
+              product_images: product.product_images?.map((img: any) => ({
+                ...img,
+                is_primary: img.url === imageUrl
+              })) || []
+            };
+          }
+          return product;
+        };
+
+        if (oldData.pages) {
+          // For infinite query structure
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              products: page.products?.map(updateProduct) || []
+            }))
+          };
+        } else if (oldData.products) {
+          // For regular query structure
+          return {
+            ...oldData,
+            products: oldData.products.map(updateProduct)
+          };
+        }
+        
+        return oldData;
+      });
+      
+      console.log("Cache invalidated and optimistically updated after primary image change");
       
       toast({
         title: "Успешно",
@@ -187,9 +235,8 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
         await handleSetPrimaryImage(newUrls[0]);
       }
       
-      // Invalidate React Query cache to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      // Unified cache invalidation
+      invalidateAllCaches();
       
       toast({
         title: "Успех",

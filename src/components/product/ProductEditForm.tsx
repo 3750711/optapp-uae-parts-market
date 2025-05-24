@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,23 +54,75 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 
-  const [images, setImages] = React.useState<string[]>(
-    Array.isArray(product.product_images)
+  const [images, setImages] = React.useState<string[]>([]);
+  const [videos, setVideos] = React.useState<string[]>([]);
+  const [primaryImage, setPrimaryImage] = React.useState<string>('');
+
+  // Initialize state from product data
+  const initializeState = React.useCallback(() => {
+    const newImages = Array.isArray(product.product_images)
       ? product.product_images.map((img: any) => img.url)
-      : []
-  );
-  const [videos, setVideos] = React.useState<string[]>(
-    Array.isArray(product.product_videos)
+      : [];
+    
+    const newVideos = Array.isArray(product.product_videos)
       ? product.product_videos.map((vid: any) => vid.url)
-      : []
-  );
-  const [primaryImage, setPrimaryImage] = React.useState<string>(() => {
+      : [];
+    
+    let newPrimaryImage = '';
     if (Array.isArray(product.product_images)) {
       const primary = product.product_images.find((img: any) => img.is_primary);
-      return primary ? primary.url : (product.product_images[0]?.url || '');
+      newPrimaryImage = primary ? primary.url : (product.product_images[0]?.url || '');
     }
-    return '';
-  });
+
+    console.log("ProductEditForm - Initializing state:", {
+      newImages: newImages.length,
+      newPrimaryImage,
+      productId: product.id
+    });
+
+    setImages(newImages);
+    setVideos(newVideos);
+    setPrimaryImage(newPrimaryImage);
+  }, [product]);
+
+  // Initialize state when product changes
+  useEffect(() => {
+    initializeState();
+  }, [initializeState]);
+
+  // Listen for cache updates and sync local state
+  useEffect(() => {
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event?.query?.queryKey?.[0] === 'product' && event?.query?.queryKey?.[1] === product.id) {
+        console.log("ProductEditForm - Cache updated for product:", product.id);
+        
+        // Get fresh data from cache and sync
+        const freshProduct = queryClient.getQueryData(['product', product.id]) as Product;
+        if (freshProduct && event.type === 'updated') {
+          const freshImages = Array.isArray(freshProduct.product_images)
+            ? freshProduct.product_images.map((img: any) => img.url)
+            : [];
+          
+          let freshPrimaryImage = '';
+          if (Array.isArray(freshProduct.product_images)) {
+            const primary = freshProduct.product_images.find((img: any) => img.is_primary);
+            freshPrimaryImage = primary ? primary.url : (freshProduct.product_images[0]?.url || '');
+          }
+
+          // Only update if data actually changed
+          setImages(prev => {
+            const hasChanged = prev.length !== freshImages.length || 
+              prev.some((img, index) => img !== freshImages[index]);
+            return hasChanged ? freshImages : prev;
+          });
+
+          setPrimaryImage(prev => prev !== freshPrimaryImage ? freshPrimaryImage : prev);
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [product.id, queryClient]);
 
   // Set initial selected brand when the component mounts and brands are loaded
   useEffect(() => {
@@ -96,20 +149,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
       }
     }
   }, [brandModels, product.model, selectedBrand, findModelIdByName]);
-
-  React.useEffect(() => {
-    setImages(
-      Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []
-    );
-    setVideos(
-      Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []
-    );
-    
-    if (Array.isArray(product.product_images)) {
-      const primary = product.product_images.find((img: any) => img.is_primary);
-      setPrimaryImage(primary ? primary.url : (product.product_images[0]?.url || ''));
-    }
-  }, [product]);
 
   React.useEffect(() => {
     const checkIsCreator = async () => {
@@ -185,7 +224,11 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     console.log("ProductEditForm - handlePrimaryImageChange called with:", imageUrl);
     setPrimaryImage(imageUrl);
     
+    // Unified cache invalidation
+    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
     queryClient.invalidateQueries({ queryKey: ['product', product.id] });
+    queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
     
     toast({
       title: "Обновлено",
@@ -228,8 +271,11 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
         throw error;
       }
 
-      queryClient.invalidateQueries({ queryKey: ['product', product.id] });
+      // Unified cache invalidation
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['product', product.id] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
 
       toast({
         title: "Успешно",

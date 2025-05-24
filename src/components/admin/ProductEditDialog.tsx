@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -71,33 +72,75 @@ export const ProductEditDialog = ({
   const isOpen = open !== undefined ? open : internalOpen;
   const handleOpenChange = setOpen || setInternalOpen;
 
-  const [images, setImages] = React.useState<string[]>(
-    Array.isArray(product.product_images)
-      ? product.product_images.map((img: any) => img.url)
-      : []
-  );
-  const [videos, setVideos] = React.useState<string[]>(
-    Array.isArray(product.product_videos)
-      ? product.product_videos.map((vid: any) => vid.url)
-      : []
-  );
-  const [primaryImage, setPrimaryImage] = useState<string>(() => {
-    if (Array.isArray(product.product_images)) {
-      const primary = product.product_images.find((img: any) => img.is_primary);
-      return primary ? primary.url : (product.product_images[0]?.url || '');
-    }
-    return '';
-  });
+  const [images, setImages] = React.useState<string[]>([]);
+  const [videos, setVideos] = React.useState<string[]>([]);
+  const [primaryImage, setPrimaryImage] = useState<string>('');
 
-  useEffect(() => {
-    setImages(Array.isArray(product.product_images) ? product.product_images.map((img: any) => img.url) : []);
-    setVideos(Array.isArray(product.product_videos) ? product.product_videos.map((vid: any) => vid.url) : []);
+  // Initialize state from product data
+  const initializeState = React.useCallback(() => {
+    const newImages = Array.isArray(product.product_images)
+      ? product.product_images.map((img: any) => img.url)
+      : [];
     
+    const newVideos = Array.isArray(product.product_videos)
+      ? product.product_videos.map((vid: any) => vid.url)
+      : [];
+    
+    let newPrimaryImage = '';
     if (Array.isArray(product.product_images)) {
       const primary = product.product_images.find((img: any) => img.is_primary);
-      setPrimaryImage(primary ? primary.url : (product.product_images[0]?.url || ''));
+      newPrimaryImage = primary ? primary.url : (product.product_images[0]?.url || '');
     }
+
+    console.log("ProductEditDialog - Initializing state:", {
+      newImages: newImages.length,
+      newPrimaryImage,
+      productId: product.id
+    });
+
+    setImages(newImages);
+    setVideos(newVideos);
+    setPrimaryImage(newPrimaryImage);
   }, [product]);
+
+  // Initialize state when product changes or dialog opens
+  useEffect(() => {
+    initializeState();
+  }, [initializeState]);
+
+  // Sync with fresh data when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      console.log("ProductEditDialog - Dialog opened, fetching fresh data");
+      
+      // Refetch fresh product data when dialog opens
+      queryClient.refetchQueries({ queryKey: ['product', product.id] }).then(() => {
+        // Get the fresh data and sync local state
+        const freshProduct = queryClient.getQueryData(['product', product.id]) as Product;
+        if (freshProduct) {
+          console.log("ProductEditDialog - Syncing with fresh data from cache");
+          
+          const freshImages = Array.isArray(freshProduct.product_images)
+            ? freshProduct.product_images.map((img: any) => img.url)
+            : [];
+          
+          const freshVideos = Array.isArray(freshProduct.product_videos)
+            ? freshProduct.product_videos.map((vid: any) => vid.url)
+            : [];
+          
+          let freshPrimaryImage = '';
+          if (Array.isArray(freshProduct.product_images)) {
+            const primary = freshProduct.product_images.find((img: any) => img.is_primary);
+            freshPrimaryImage = primary ? primary.url : (freshProduct.product_images[0]?.url || '');
+          }
+
+          setImages(freshImages);
+          setVideos(freshVideos);
+          setPrimaryImage(freshPrimaryImage);
+        }
+      });
+    }
+  }, [isOpen, product.id, queryClient]);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -170,8 +213,11 @@ export const ProductEditDialog = ({
         variant: "destructive",
       });
     } else {
+      // Invalidate all related caches
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       queryClient.invalidateQueries({ queryKey: ['product', product.id] });
+      queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
       
       toast({
         title: "Успех",
