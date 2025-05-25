@@ -1,4 +1,3 @@
-
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -157,8 +156,8 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
       setRawExcelData(jsonData);
       setColumnMapping(fileValidation.columnMapping);
 
-      // Build users cache and validate data
-      const { cache, missingUsers } = await buildUsersCache(jsonData);
+      // Build users cache and validate data - ИСПРАВЛЕНО: передаем columnMapping
+      const { cache, missingUsers } = await buildUsersCache(jsonData, fileValidation.columnMapping);
       console.log('Кэш пользователей построен:', {
         cacheSize: cache.size,
         missingUsers
@@ -281,7 +280,7 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
         }
 
         // Rebuild cache after creating users
-        const { cache } = await buildUsersCache(rawExcelData);
+        const { cache } = await buildUsersCache(rawExcelData, columnMapping);
         
         // Update preview data with new user info
         for (const row of previewData.rows) {

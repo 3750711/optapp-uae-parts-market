@@ -15,18 +15,18 @@ export interface FileValidationResult {
   sampleData: any[];
 }
 
-// Mapping различных названий столбцов к стандартным полям
+// Расширенный mapping различных названий столбцов к стандартным полям
 const COLUMN_MAPPINGS = {
-  title: ['Title', 'Название', 'Name', 'Product Name'],
-  price: ['Price', 'Цена', 'Cost', 'Amount'],
-  orderNumber: ['Order Number', 'Номер заказа', 'Number', 'Order#'],
-  places: ['Places', 'Количество мест', 'Quantity', 'Qty'],
-  deliveryPrice: ['Цена доставки', 'Delivery Price', 'Shipping Cost', 'Доставка'],
-  sellerId: ['Seller ID', 'ID продавца', 'Seller', 'SellerID'],
-  buyerId: ['Buyer ID', 'ID покупателя', 'Buyer', 'BuyerID'],
-  brand: ['Brand', 'Бренд', 'Марка'],
-  model: ['Model', 'Модель'],
-  description: ['Description', 'Дополнительная информация', 'Info', 'Details']
+  title: ['Title', 'Название', 'Name', 'Product Name', 'title'],
+  price: ['Price', 'Цена', 'Cost', 'Amount', 'price'],
+  orderNumber: ['Order Number', 'Номер заказа', 'Number', 'Order#', 'order number'],
+  places: ['Places', 'Количество мест', 'Quantity', 'Qty', 'places'],
+  deliveryPrice: ['Цена доставки', 'Delivery Price', 'Shipping Cost', 'Доставка', 'цена доставки'],
+  sellerId: ['Seller ID', 'ID продавца', 'Seller', 'SellerID', 'seller id'],
+  buyerId: ['Buyer ID', 'ID покупателя', 'Buyer', 'BuyerID', 'buyer id'],
+  brand: ['Brand', 'Бренд', 'Марка', 'brand'],
+  model: ['Model', 'Модель', 'model'],
+  description: ['Description', 'Дополнительная информация', 'Info', 'Details', 'description']
 };
 
 export const validateExcelFile = (data: any[]): FileValidationResult => {
@@ -56,7 +56,7 @@ export const validateExcelFile = (data: any[]): FileValidationResult => {
     };
   }
 
-  // Создаем mapping столбцов
+  // Создаем mapping столбцов с нечувствительным к регистру поиском
   const columnMapping: Record<string, string> = {};
   
   Object.entries(COLUMN_MAPPINGS).forEach(([standardField, variants]) => {
@@ -82,7 +82,14 @@ export const validateExcelFile = (data: any[]): FileValidationResult => {
       const expectedNames = COLUMN_MAPPINGS[field as keyof typeof COLUMN_MAPPINGS];
       return `${field} (ожидается: ${expectedNames.join(', ')})`;
     });
+    
+    // Добавим дополнительную диагностику
+    console.log('Отсутствующие поля:', missingFields);
+    console.log('Доступные заголовки:', headers);
+    console.log('Текущий mapping:', columnMapping);
+    
     errors.push(`Отсутствуют обязательные столбцы: ${missingMappings.join('; ')}`);
+    errors.push(`Найденные заголовки в файле: ${headers.join(', ')}`);
   }
 
   // Берем первые 3 строки как образец
@@ -186,7 +193,7 @@ export const validateImportRow = async (
   };
 };
 
-export const buildUsersCache = async (data: any[]): Promise<{
+export const buildUsersCache = async (data: any[], columnMapping: Record<string, string>): Promise<{
   cache: Map<string, string>;
   missingUsers: { sellers: string[]; buyers: string[] };
 }> => {
@@ -194,16 +201,16 @@ export const buildUsersCache = async (data: any[]): Promise<{
   const sellerOptIds = new Set<string>();
   const buyerOptIds = new Set<string>();
 
-  // Collect all unique opt_ids
+  // Collect all unique opt_ids используя правильные названия столбцов
   data.forEach(row => {
-    const sellerOptId = row['ID продавца'] || row['Seller ID'];
-    const buyerOptId = row['ID покупателя'] || row['Buyer ID'];
+    const sellerOptId = row[columnMapping.sellerId];
+    const buyerOptId = row[columnMapping.buyerId];
     
-    if (sellerOptId && sellerOptId.trim()) {
-      sellerOptIds.add(sellerOptId.trim());
+    if (sellerOptId && sellerOptId.toString().trim()) {
+      sellerOptIds.add(sellerOptId.toString().trim());
     }
-    if (buyerOptId && buyerOptId.trim()) {
-      buyerOptIds.add(buyerOptId.trim());
+    if (buyerOptId && buyerOptId.toString().trim()) {
+      buyerOptIds.add(buyerOptId.toString().trim());
     }
   });
 
