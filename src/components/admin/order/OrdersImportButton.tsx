@@ -55,6 +55,7 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
             place_number: parseInt(row['Количество мест'] || row['Places'] || '1'),
             text_order: row['Дополнительная информация'] || row['Description'] || '',
             delivery_price_confirm: parseFloat(row['Цена доставки'] || row['Delivery Price'] || '0'),
+            order_number: parseInt(row['Номер заказа'] || row['Order Number'] || '0'),
             status: 'created' as const,
             order_created_type: 'free_order' as const,
             delivery_method: 'self_pickup' as const,
@@ -148,6 +149,7 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
         size="sm"
         onClick={handleFileSelect}
         className="hover:bg-blue-50 hover:border-blue-300"
+        title="Ожидаемые столбцы: Название/Title, Цена/Price, Бренд/Brand, Модель/Model, Количество мест/Places, Дополнительная информация/Description, Цена доставки/Delivery Price, Номер заказа/Order Number, ID продавца/Seller ID, ID покупателя/Buyer ID"
       >
         <FileUp className="h-4 w-4 mr-1 text-blue-600" />
         Импорт из Excel
