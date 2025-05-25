@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -142,12 +141,26 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   const handleImagesUpload = async (urls: string[]) => {
     if (!order?.id) return;
 
+    // Если это массив всех изображений (после удаления), просто обновляем состояние
+    if (urls.length < orderImages.length) {
+      setOrderImages(urls);
+      // Обновляем запросы для обновления данных
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+      return;
+    }
+
+    // Определяем новые изображения (те, которых еще нет в текущем состоянии)
+    const newUrls = urls.filter(url => !orderImages.includes(url));
+    
+    if (newUrls.length === 0) return;
+
     try {
-      // Insert new images into order_images table
+      // Добавляем только новые изображения в базу данных
       const { error } = await supabase
         .from('order_images')
         .insert(
-          urls.map(url => ({
+          newUrls.map(url => ({
             order_id: order.id,
             url
           }))
@@ -155,12 +168,12 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
       if (error) throw error;
 
-      // Update local state
-      setOrderImages(prev => [...prev, ...urls]);
+      // Обновляем локальное состояние
+      setOrderImages(urls);
 
       toast({
         title: "Успешно",
-        description: `Добавлено ${urls.length} фотографий`,
+        description: `Добавлено ${newUrls.length} фотографий`,
       });
 
       // Invalidate queries to refresh data
@@ -491,6 +504,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                   onImagesUpload={handleImagesUpload}
                   onVideoUpload={handleVideoUpload}
                   onVideoDelete={handleVideoDelete}
+                  orderId={order.id}
                 />
               </div>
             )}

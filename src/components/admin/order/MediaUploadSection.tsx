@@ -1,9 +1,10 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
-import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface MediaUploadSectionProps {
   images: string[];
@@ -11,6 +12,7 @@ interface MediaUploadSectionProps {
   onImagesUpload: (urls: string[]) => void;
   onVideoUpload: (urls: string[]) => void;
   onVideoDelete: (url: string) => void;
+  orderId?: string;
 }
 
 export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
@@ -19,12 +21,42 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
   onImagesUpload,
   onVideoUpload,
   onVideoDelete,
+  orderId,
 }) => {
   
   const handleImageDelete = async (url: string) => {
-    // This will be handled by the parent component through database operations
-    // For now, we'll just show a notification that the image will be removed
-    console.log("Image delete requested:", url);
+    if (!orderId) {
+      console.log("Image delete requested, but no order ID provided:", url);
+      return;
+    }
+
+    try {
+      // Удаляем изображение из базы данных
+      const { error } = await supabase
+        .from('order_images')
+        .delete()
+        .eq('order_id', orderId)
+        .eq('url', url);
+
+      if (error) throw error;
+
+      // Обновляем локальное состояние через родительский компонент
+      // Создаем новый массив без удаленного изображения
+      const updatedImages = images.filter(imageUrl => imageUrl !== url);
+      onImagesUpload(updatedImages);
+
+      toast({
+        title: "Успешно",
+        description: "Изображение удалено",
+      });
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить изображение",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
