@@ -31,6 +31,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from "lucide-react";
+import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -63,6 +64,9 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   onStatusChange
 }) => {
   const queryClient = useQueryClient();
+  const [orderImages, setOrderImages] = React.useState<string[]>([]);
+  const [orderVideos, setOrderVideos] = React.useState<string[]>([]);
+
   const form = useForm({
     defaultValues: {
       title: order?.title || '',
@@ -76,6 +80,48 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       delivery_method: order?.delivery_method || 'self_pickup',
     }
   });
+
+  // Load order images and videos when dialog opens
+  React.useEffect(() => {
+    if (order?.id && open) {
+      // Load images from order_images table
+      const loadOrderImages = async () => {
+        try {
+          const { data: images, error } = await supabase
+            .from('order_images')
+            .select('url')
+            .eq('order_id', order.id);
+
+          if (error) throw error;
+          
+          const imageUrls = images?.map(img => img.url) || [];
+          setOrderImages(imageUrls);
+        } catch (error) {
+          console.error('Error loading order images:', error);
+        }
+      };
+
+      // Load videos from order_videos table
+      const loadOrderVideos = async () => {
+        try {
+          const { data: videos, error } = await supabase
+            .from('order_videos')
+            .select('url')
+            .eq('order_id', order.id);
+
+          if (error) throw error;
+          
+          const videoUrls = videos?.map(video => video.url) || [];
+          setOrderVideos(videoUrls);
+        } catch (error) {
+          console.error('Error loading order videos:', error);
+        }
+      };
+
+      loadOrderImages();
+      loadOrderVideos();
+    }
+  }, [order?.id, open]);
 
   React.useEffect(() => {
     if (order) {
@@ -92,6 +138,113 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       });
     }
   }, [order, form]);
+
+  const handleImagesUpload = async (urls: string[]) => {
+    if (!order?.id) return;
+
+    try {
+      // Insert new images into order_images table
+      const { error } = await supabase
+        .from('order_images')
+        .insert(
+          urls.map(url => ({
+            order_id: order.id,
+            url
+          }))
+        );
+
+      if (error) throw error;
+
+      // Update local state
+      setOrderImages(prev => [...prev, ...urls]);
+
+      toast({
+        title: "Успешно",
+        description: `Добавлено ${urls.length} фотографий`,
+      });
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить фотографии",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleVideoUpload = async (urls: string[]) => {
+    if (!order?.id) return;
+
+    try {
+      // Insert new videos into order_videos table
+      const { error } = await supabase
+        .from('order_videos')
+        .insert(
+          urls.map(url => ({
+            order_id: order.id,
+            url
+          }))
+        );
+
+      if (error) throw error;
+
+      // Update local state
+      setOrderVideos(prev => [...prev, ...urls]);
+
+      toast({
+        title: "Успешно",
+        description: `Добавлено ${urls.length} видео`,
+      });
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+    } catch (error) {
+      console.error('Error uploading videos:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить видео",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleVideoDelete = async (url: string) => {
+    if (!order?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('order_videos')
+        .delete()
+        .eq('order_id', order.id)
+        .eq('url', url);
+
+      if (error) throw error;
+
+      // Update local state
+      setOrderVideos(prev => prev.filter(videoUrl => videoUrl !== url));
+
+      toast({
+        title: "Успешно",
+        description: "Видео удалено",
+      });
+
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+    } catch (error) {
+      console.error('Error deleting video:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить видео",
+        variant: "destructive",
+      });
+    }
+  };
 
   const updateOrderMutation = useMutation({
     mutationFn: async (values: any) => {
@@ -170,13 +323,14 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Редактирование заказа № {order?.order_number}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Basic Information */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -326,6 +480,20 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                 </FormItem>
               )}
             />
+
+            {/* Media Upload Section */}
+            {order?.id && (
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Медиафайлы заказа</h3>
+                <MediaUploadSection
+                  images={orderImages}
+                  videos={orderVideos}
+                  onImagesUpload={handleImagesUpload}
+                  onVideoUpload={handleVideoUpload}
+                  onVideoDelete={handleVideoDelete}
+                />
+              </div>
+            )}
 
             <DialogFooter>
               <Button

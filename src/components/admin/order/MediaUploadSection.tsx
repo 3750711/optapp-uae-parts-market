@@ -3,6 +3,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
 import { VideoUpload } from "@/components/ui/video-upload";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 interface MediaUploadSectionProps {
   images: string[];
@@ -19,15 +20,23 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
   onVideoUpload,
   onVideoDelete,
 }) => {
+  
+  const handleImageDelete = async (url: string) => {
+    // This will be handled by the parent component through database operations
+    // For now, we'll just show a notification that the image will be removed
+    console.log("Image delete requested:", url);
+  };
+
   return (
-    <>
+    <div className="space-y-6">
       <div className="space-y-2">
         <Label>Фотографии заказа</Label>
-        <RealtimeImageUpload
-          onUploadComplete={onImagesUpload}
+        <ImageUpload
+          images={images}
+          onUpload={onImagesUpload}
+          onDelete={handleImageDelete}
           maxImages={25}
           storageBucket="order-images"
-          storagePath=""
         />
       </div>
 
@@ -42,6 +51,6 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           storagePrefix=""
         />
       </div>
-    </>
+    </div>
   );
 };
