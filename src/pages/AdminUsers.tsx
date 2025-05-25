@@ -97,6 +97,18 @@ const AdminUsers = () => {
   const [editingUser, setEditingUser] = useState<ProfileType | null>(null);
   const [ratingUser, setRatingUser] = useState<ProfileType | null>(null);
 
+  // Handle editing user - add logging
+  const handleEditUser = (user: ProfileType) => {
+    console.log("Setting editing user:", user);
+    setEditingUser(user);
+  };
+
+  const handleEditDialogClose = () => {
+    console.log("Closing edit dialog, invalidating cache");
+    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    setEditingUser(null);
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -478,7 +490,7 @@ const AdminUsers = () => {
                     onSelect={handleSelectUser}
                     onQuickAction={handleContextAction}
                     onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                    onEdit={setEditingUser}
+                    onEdit={handleEditUser}
                     onRating={setRatingUser}
                   />
                 ))}
@@ -559,7 +571,7 @@ const AdminUsers = () => {
                         user={user}
                         onQuickAction={handleContextAction}
                         onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                        onEdit={setEditingUser}
+                        onEdit={handleEditUser}
                         onRating={setRatingUser}
                       >
                         <TableRow 
@@ -574,7 +586,7 @@ const AdminUsers = () => {
                           } hover:bg-muted/50 transition-colors cursor-pointer`}
                         >
                           <TableCell className={isCompactMode ? 'py-2' : ''}>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1">
                               <input
                                 type="checkbox"
                                 checked={selectedUsers.includes(user.id)}
@@ -677,7 +689,7 @@ const AdminUsers = () => {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent>
-                                  <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                                  <DropdownMenuItem onClick={() => handleEditUser(user)}>
                                     <Edit className="mr-2 h-4 w-4" />
                                     Редактировать
                                   </DropdownMenuItem>
@@ -740,10 +752,7 @@ const AdminUsers = () => {
           <UserEditDialog
             user={editingUser}
             trigger={<div />}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-              setEditingUser(null);
-            }}
+            onSuccess={handleEditDialogClose}
           />
         )}
         

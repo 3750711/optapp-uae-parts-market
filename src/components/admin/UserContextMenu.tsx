@@ -27,6 +27,16 @@ export const UserContextMenu: React.FC<UserContextMenuProps> = ({
   onEdit,
   onRating
 }) => {
+  const handleEdit = () => {
+    console.log("Context menu edit clicked for user:", user.id);
+    onEdit(user);
+  };
+
+  const handleRating = () => {
+    console.log("Context menu rating clicked for user:", user.id);
+    onRating(user);
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -37,11 +47,11 @@ export const UserContextMenu: React.FC<UserContextMenuProps> = ({
           <ExternalLink className="mr-2 h-4 w-4" />
           Открыть профиль
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onEdit(user)}>
+        <ContextMenuItem onClick={handleEdit}>
           <Edit className="mr-2 h-4 w-4" />
           Редактировать
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => onRating(user)}>
+        <ContextMenuItem onClick={handleRating}>
           <Star className="mr-2 h-4 w-4" />
           Изменить рейтинг
         </ContextMenuItem>

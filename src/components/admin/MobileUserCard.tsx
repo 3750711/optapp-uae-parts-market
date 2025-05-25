@@ -34,6 +34,16 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
   onEdit,
   onRating
 }) => {
+  const handleEdit = () => {
+    console.log("Mobile card edit clicked for user:", user.id);
+    onEdit(user);
+  };
+
+  const handleRating = () => {
+    console.log("Mobile card rating clicked for user:", user.id);
+    onRating(user);
+  };
+
   return (
     <Card className={`transition-all duration-200 ${
       user.verification_status === 'pending'
@@ -81,10 +91,10 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Открыть профиль
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onEdit(user)}>
+                  <DropdownMenuItem onClick={handleEdit}>
                     Редактировать
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onRating(user)}>
+                  <DropdownMenuItem onClick={handleRating}>
                     Изменить рейтинг
                   </DropdownMenuItem>
                   {user.verification_status !== 'verified' && (
