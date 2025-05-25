@@ -1,7 +1,5 @@
 
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
@@ -12,29 +10,13 @@ import { Database } from "@/integrations/supabase/types";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import OrderSearchFilters from '@/components/admin/filters/OrderSearchFilters';
-import { usePaginatedData } from "@/hooks/usePaginatedData";
-import LoadMoreTrigger from "@/components/admin/productGrid/LoadMoreTrigger";
-import { EnhancedAdminOrderCard } from "@/components/admin/order/EnhancedAdminOrderCard";
+import { VirtualizedOrdersList } from "@/components/admin/order/VirtualizedOrdersList";
+import { OrdersPagination } from "@/components/admin/order/OrdersPagination";
+import { useOptimizedOrdersQuery, Order } from "@/hooks/useOptimizedOrdersQuery";
+import { useDebounceValue } from "@/hooks/useDebounceValue";
+import { supabase } from "@/integrations/supabase/client";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
-
-type Order = Database['public']['Tables']['orders']['Row'] & {
-  buyer: {
-    telegram: string | null;
-    full_name: string | null;
-    opt_id: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-  seller: {
-    telegram: string | null;
-    full_name: string | null;
-    opt_id: string | null;
-    email: string | null;
-    phone: string | null;
-    opt_status: string | null;
-  } | null;
-};
 
 const AdminOrders = () => {
   const navigate = useNavigate();
@@ -43,117 +25,57 @@ const AdminOrders = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 20;
 
-  const { data: orders, isLoading } = useQuery({
-    queryKey: ['admin-orders', statusFilter, activeSearchTerm],
-    queryFn: async () => {
-      let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey (
-            telegram,
-            full_name,
-            opt_id,
-            email,
-            phone
-          ),
-          seller:profiles!orders_seller_id_fkey (
-            telegram,
-            full_name,
-            opt_id,
-            email,
-            phone,
-            opt_status
-          )
-        `)
-        .order('created_at', { ascending: false });
+  // Debounce search term for better performance
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      if (activeSearchTerm) {
-        const isNumeric = !isNaN(Number(activeSearchTerm));
-        
-        if (isNumeric) {
-          query = query.or(
-            `order_number.eq.${Number(activeSearchTerm)},` +
-            `title.ilike.%${activeSearchTerm}%,` +
-            `brand.ilike.%${activeSearchTerm}%,` +
-            `model.ilike.%${activeSearchTerm}%,` +
-            `buyer_opt_id.ilike.%${activeSearchTerm}%,` +
-            `seller_opt_id.ilike.%${activeSearchTerm}%,` +
-            `text_order.ilike.%${activeSearchTerm}%`
-          );
-        } else {
-          query = query.or(
-            `title.ilike.%${activeSearchTerm}%,` +
-            `brand.ilike.%${activeSearchTerm}%,` +
-            `model.ilike.%${activeSearchTerm}%,` +
-            `buyer_opt_id.ilike.%${activeSearchTerm}%,` +
-            `seller_opt_id.ilike.%${activeSearchTerm}%,` +
-            `text_order.ilike.%${activeSearchTerm}%`
-          );
-        }
-      }
-
-      const { data, error } = await query;
-
-      if (error) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить заказы",
-          variant: "destructive",
-        });
-        console.error("Ошибка загрузки заказов:", error);
-        throw error;
-      }
-
-      return data as Order[];
-    }
+  const { data, isLoading, refetch } = useOptimizedOrdersQuery({
+    statusFilter,
+    searchTerm: debouncedSearchTerm,
+    page: currentPage,
+    pageSize
   });
 
-  const { paginatedData: paginatedOrders, totalPages } = usePaginatedData(
-    orders || [],
-    { pageSize, currentPage }
-  );
+  const orders = data?.data || [];
+  const totalCount = data?.totalCount || 0;
+  const hasNextPage = data?.hasNextPage || false;
+  const hasPreviousPage = data?.hasPreviousPage || false;
 
-  const handleLoadMore = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-
-  const handleSearch = () => {
-    setActiveSearchTerm(searchTerm.trim());
+  const handleSearch = useCallback(() => {
     setCurrentPage(1);
-  };
+  }, []);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchTerm('');
-    setActiveSearchTerm('');
     setCurrentPage(1);
-  };
+  }, []);
 
-  const handleViewDetails = (orderId: string) => {
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handleStatusFilterChange = useCallback((value: StatusFilterType) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  }, []);
+
+  const handleViewDetails = useCallback((orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
-  };
+  }, [navigate]);
 
-  const handleEdit = (order: Order) => {
+  const handleEdit = useCallback((order: Order) => {
     setSelectedOrder(order);
     setShowEditDialog(true);
-  };
+  }, []);
 
-  const handleDelete = (order: Order) => {
+  const handleDelete = useCallback((order: Order) => {
     setSelectedOrder(order);
     setShowDeleteDialog(true);
-  };
+  }, []);
 
-  const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
+  const handleOrderStatusChange = useCallback(async (orderId: string, newStatus: string) => {
     if (!selectedOrder) return;
     
     try {
@@ -174,19 +96,18 @@ const AdminOrders = () => {
           
         const images = orderImages?.map(img => img.url) || [];
         
-        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
+        await supabase.functions.invoke('send-telegram-notification', {
           body: { 
             order: { ...updatedOrder, images },
             action: 'status_change'
           }
         });
-        
-        console.log("Status update notification result:", notificationResult);
       } catch (notifyError) {
         console.error('Failed to send status update notification:', notifyError);
       }
       
       setShowEditDialog(false);
+      refetch(); // Refetch data instead of invalidating
       toast({
         title: "Статус обновлен",
         description: `Статус заказа №${selectedOrder.order_number} обновлен`,
@@ -199,7 +120,7 @@ const AdminOrders = () => {
         variant: "destructive",
       });
     }
-  };
+  }, [selectedOrder, refetch]);
 
   if (isLoading) {
     return (
@@ -222,10 +143,7 @@ const AdminOrders = () => {
               </CardTitle>
               <Select
                 value={statusFilter}
-                onValueChange={(value: StatusFilterType) => {
-                  setStatusFilter(value);
-                  setCurrentPage(1);
-                }}
+                onValueChange={handleStatusFilterChange}
               >
                 <SelectTrigger className="w-[200px] border-2 transition-colors hover:border-primary/50">
                   <SelectValue placeholder="Фильтр по статусу" />
@@ -246,44 +164,27 @@ const AdminOrders = () => {
             <OrderSearchFilters
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              activeSearchTerm={activeSearchTerm}
+              activeSearchTerm={debouncedSearchTerm}
               onSearch={handleSearch}
               onClearSearch={clearSearch}
             />
           </CardHeader>
           <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {paginatedOrders?.length ? (
-                paginatedOrders.map((order) => (
-                  <EnhancedAdminOrderCard
-                    key={order.id}
-                    order={order}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onViewDetails={handleViewDetails}
-                  />
-                ))
-              ) : (
-                <div className="col-span-3 text-center py-20">
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8">
-                    <p className="text-lg text-muted-foreground">
-                      {activeSearchTerm ? "Нет заказов, соответствующих поисковому запросу" : "Нет заказов с выбранным статусом"}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
+            <VirtualizedOrdersList
+              orders={orders}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onViewDetails={handleViewDetails}
+            />
             
-            {orders && orders.length > 0 && currentPage < totalPages && (
-              <div className="flex justify-center mt-8">
-                <LoadMoreTrigger
-                  hasNextPage={currentPage < totalPages}
-                  isFetchingNextPage={false}
-                  innerRef={React.createRef()}
-                  onLoadMore={handleLoadMore}
-                />
-              </div>
-            )}
+            <OrdersPagination
+              currentPage={currentPage}
+              totalCount={totalCount}
+              pageSize={pageSize}
+              onPageChange={handlePageChange}
+              hasNextPage={hasNextPage}
+              hasPreviousPage={hasPreviousPage}
+            />
           </CardContent>
         </Card>
 
