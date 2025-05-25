@@ -85,8 +85,15 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   // Load order images and videos when dialog opens
   React.useEffect(() => {
     if (order && open) {
+      console.log('Loading order data for editing:', order.id);
+      
+      // Reset local state first
+      setOrderImages([]);
+      setOrderVideos([]);
+      
       // Load images from the images field in orders table
       const images = order.images || [];
+      console.log('Setting order images from order data:', images);
       setOrderImages(images);
 
       // Load videos from order_videos table
@@ -100,6 +107,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           if (error) throw error;
           
           const videoUrls = videos?.map(video => video.url) || [];
+          console.log('Loaded order videos:', videoUrls);
           setOrderVideos(videoUrls);
         } catch (error) {
           console.error('Error loading order videos:', error);
@@ -110,8 +118,10 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     }
   }, [order, open]);
 
+  // Reset form when order changes
   React.useEffect(() => {
     if (order) {
+      console.log('Resetting form with order data:', order);
       form.reset({
         title: order.title,
         brand: order.brand,
@@ -161,9 +171,17 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         });
       }
 
-      // Invalidate queries to refresh data
+      // Invalidate ALL related queries to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      
+      // Force refetch of the current order data
+      queryClient.refetchQueries({ queryKey: ['admin-orders'] });
+      queryClient.refetchQueries({ queryKey: ['admin-orders-optimized'] });
+      
+      console.log('Cache invalidated and queries refetched');
     } catch (error) {
       console.error('Error updating order images:', error);
       toast({
@@ -202,6 +220,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
     } catch (error) {
       console.error('Error uploading videos:', error);
@@ -235,6 +254,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
     } catch (error) {
       console.error('Error deleting video:', error);
@@ -295,7 +315,16 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       }
     },
     onSuccess: () => {
+      // Invalidate ALL related queries to ensure fresh data everywhere
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
+      
+      // Force refetch of current data
+      queryClient.refetchQueries({ queryKey: ['admin-orders'] });
+      queryClient.refetchQueries({ queryKey: ['admin-orders-optimized'] });
+      
       toast({
         title: "Заказ обновлен",
         description: "Данные заказа успешно обновлены",
