@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -6,33 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Form } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
 import { Database } from '@/integrations/supabase/types';
-import { Loader2 } from "lucide-react";
-import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
-import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
+import { Loader2, Save, X } from "lucide-react";
+import { OrderEditHeader } from "@/components/admin/order/OrderEditHeader";
+import { OrderEditTabs } from "@/components/admin/order/OrderEditTabs";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -136,6 +117,25 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     }
   }, [order, form]);
 
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!open) return;
+
+      if (event.ctrlKey && event.key === 's') {
+        event.preventDefault();
+        form.handleSubmit(onSubmit)();
+      }
+      
+      if (event.key === 'Escape') {
+        onOpenChange(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [open, form, onOpenChange]);
+
   const handleImagesUpload = async (updatedUrls: string[]) => {
     if (!order?.id) return;
 
@@ -176,10 +176,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
-      
-      // Force refetch of the current order data
-      queryClient.refetchQueries({ queryKey: ['admin-orders'] });
-      queryClient.refetchQueries({ queryKey: ['admin-orders-optimized'] });
       
       console.log('Cache invalidated and queries refetched');
     } catch (error) {
@@ -321,10 +317,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order'] });
       
-      // Force refetch of current data
-      queryClient.refetchQueries({ queryKey: ['admin-orders'] });
-      queryClient.refetchQueries({ queryKey: ['admin-orders-optimized'] });
-      
       toast({
         title: "Заказ обновлен",
         description: "Данные заказа успешно обновлены",
@@ -347,211 +339,51 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Редактирование заказа № {order?.order_number}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+        <OrderEditHeader order={order} />
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Basic Information */}
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Наименование</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="brand"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Бренд</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="model"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Модель</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Цена ($)</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="delivery_method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Способ доставки</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите способ доставки" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="self_pickup">Самовывоз</SelectItem>
-                        <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-                        <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="delivery_price_confirm"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Подтвержденная стоимость доставки ($)</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" step="0.01" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="place_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Количество мест</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="number" min="1" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Статус</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите статус" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="bg-white border border-gray-200 shadow-md">
-                        <SelectItem value="created">Создан</SelectItem>
-                        <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
-                        <SelectItem value="admin_confirmed">Подтвержден администратором</SelectItem>
-                        <SelectItem value="processed">Зарегистрирован</SelectItem>
-                        <SelectItem value="shipped">Отправлен</SelectItem>
-                        <SelectItem value="delivered">Доставлен</SelectItem>
-                        <SelectItem value="cancelled">Отменен</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Описание</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <OrderEditTabs
+              order={order}
+              form={form}
+              orderImages={orderImages}
+              orderVideos={orderVideos}
+              onImagesUpload={handleImagesUpload}
+              onVideoUpload={handleVideoUpload}
+              onVideoDelete={handleVideoDelete}
             />
 
-            {/* Media Upload Section - Order Images and Videos */}
-            {order?.id && (
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Основные медиафайлы заказа</h3>
-                <MediaUploadSection
-                  images={orderImages}
-                  videos={orderVideos}
-                  onImagesUpload={handleImagesUpload}
-                  onVideoUpload={handleVideoUpload}
-                  onVideoDelete={handleVideoDelete}
-                  orderId={order.id}
-                />
+            <DialogFooter className="flex items-center justify-between bg-gray-50 -mx-6 -mb-6 px-6 py-4">
+              <div className="text-xs text-gray-500">
+                Используйте Ctrl+S для быстрого сохранения, Esc для закрытия
               </div>
-            )}
-
-            {/* Confirmation Images Section */}
-            {order?.id && (
-              <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Фотографии подтверждения заказа</h3>
-                <OrderConfirmationImages 
-                  orderId={order.id} 
-                  canEdit={true}
-                />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Отмена
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={updateOrderMutation.isPending}
+                >
+                  {updateOrderMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Сохранить
+                    </>
+                  )}
+                </Button>
               </div>
-            )}
-
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                Отмена
-              </Button>
-              <Button 
-                type="submit"
-                disabled={updateOrderMutation.isPending}
-              >
-                {updateOrderMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Сохранение...
-                  </>
-                ) : (
-                  'Сохранить'
-                )}
-              </Button>
             </DialogFooter>
           </form>
         </Form>
