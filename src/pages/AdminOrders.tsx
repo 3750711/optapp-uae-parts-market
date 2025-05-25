@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -271,15 +272,109 @@ const AdminOrders = () => {
     navigate(`/admin/orders/${orderId}`);
   };
 
-  const handleEdit = (order: Order) => {
+  const handleEdit = useCallback((order: Order) => {
     setSelectedOrder(order);
     setShowEditDialog(true);
-  };
+  }, []);
 
-  const handleDelete = (order: Order) => {
+  const handleDelete = useCallback((order: Order) => {
     setSelectedOrder(order);
     setShowDeleteDialog(true);
-  };
+  }, []);
+
+  const handleConfirm = useCallback(async (order: Order) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'admin_confirmed' })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Заказ подтвержден администратором",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      
+      // Отправка уведомления об изменении статуса заказа
+      try {
+        console.log('Отправка уведомления об изменении статуса заказа:', order.id);
+        
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', order.id);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, status: 'admin_confirmed', images },
+            action: 'status_change'
+          }
+        });
+        
+        console.log('Результат отправки уведомления об изменении статуса:', notificationResult);
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления об изменении статуса заказа:', notifyError);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось подтвердить заказ",
+        variant: "destructive",
+      });
+    }
+  }, [queryClient]);
+
+  const handleRegister = useCallback(async (order: Order) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'processed' })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Заказ зарегистрирован",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      
+      // Отправка уведомления о регистрации заказа
+      try {
+        console.log('Отправка уведомления о регистрации заказа:', order.id);
+        
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', order.id);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, status: 'processed', images },
+            action: 'status_change'
+          }
+        });
+        
+        console.log('Результат отправки уведомления о регистрации заказа:', notificationResult);
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления о регистрации заказа:', notifyError);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось зарегистрировать заказ",
+        variant: "destructive",
+      });
+    }
+  }, [queryClient]);
 
   const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
     if (!selectedOrder) return;
@@ -426,8 +521,10 @@ const AdminOrders = () => {
                   <div key={order.id} className="relative group">
                     <OptimizedAdminOrderCard
                       order={order}
-                      onEdit={setSelectedOrder}
-                      onDelete={setSelectedOrder}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onConfirm={handleConfirm}
+                      onRegister={handleRegister}
                       isSelected={selectedIds.includes(order.id)}
                       onSelectionChange={handleSelectionChange}
                       showCheckbox={showBulkActions}
