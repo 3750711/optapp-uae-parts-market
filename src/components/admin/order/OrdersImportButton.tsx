@@ -58,7 +58,7 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
             order_number: parseInt(row['Номер заказа'] || row['Order Number'] || '0'),
             status: 'created' as const,
             order_created_type: 'free_order' as const,
-            delivery_method: 'self_pickup' as const,
+            delivery_method: 'cargo_rf' as const,
           };
 
           // Поиск продавца по opt_id или email
