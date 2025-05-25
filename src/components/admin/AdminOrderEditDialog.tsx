@@ -129,6 +129,8 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (!order?.id) return;
 
     try {
+      console.log('Uploading images to order:', { orderId: order.id, urls });
+      
       // Update the images field in the orders table
       const { error } = await supabase
         .from('orders')
@@ -165,6 +167,8 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (!order?.id) return;
 
     try {
+      console.log('Uploading videos to order:', { orderId: order.id, urls });
+      
       // Insert new videos into order_videos table
       const { error } = await supabase
         .from('order_videos')

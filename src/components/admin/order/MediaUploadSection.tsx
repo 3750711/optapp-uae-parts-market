@@ -97,7 +97,7 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           onUpload={onImagesUpload}
           onDelete={handleImageDelete}
           maxImages={25}
-          storageBucket="Product Images"
+          storageBucket="order-images"
         />
       </div>
 
@@ -137,7 +137,7 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           onUpload={onVideoUpload}
           onDelete={onVideoDelete}
           maxVideos={2}
-          storageBucket="Product Images"
+          storageBucket="order-images"
           storagePrefix=""
         />
       </div>
