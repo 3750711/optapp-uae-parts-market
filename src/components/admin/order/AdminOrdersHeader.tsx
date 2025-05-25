@@ -1,5 +1,6 @@
-
 import React from 'react';
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileAdminOrdersHeader } from './MobileAdminOrdersHeader';
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,24 +25,19 @@ interface AdminOrdersHeaderProps {
   sortDirection: SortDirection;
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onRefetch: () => void;
+  totalCount?: number;
 }
 
-export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
-  searchTerm,
-  setSearchTerm,
-  debouncedSearchTerm,
-  onSearch,
-  onClearSearch,
-  statusFilter,
-  onStatusFilterChange,
-  sortField,
-  sortDirection,
-  onSortChange,
-  onRefetch
-}) => {
+export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return <MobileAdminOrdersHeader {...props} totalCount={props.totalCount || 0} />;
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      onSearch();
+      props.onSearch();
     }
   };
 
@@ -50,20 +46,20 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
           <CardTitle className="text-xl font-bold">Заказы</CardTitle>
-          {debouncedSearchTerm && (
+          {props.debouncedSearchTerm && (
             <Badge variant="secondary" className="text-xs">
-              Поиск: "{debouncedSearchTerm}"
+              Поиск: "{props.debouncedSearchTerm}"
             </Badge>
           )}
         </div>
         
         <div className="flex flex-wrap items-center gap-2">
-          <EnhancedOrdersImportButton onImportComplete={onRefetch} />
+          <EnhancedOrdersImportButton onImportComplete={props.onRefetch} />
           
           <Button
             variant="outline"
             size="sm"
-            onClick={onRefetch}
+            onClick={props.onRefetch}
             title="Обновить данные"
           >
             <RefreshCw className="h-4 w-4" />
@@ -76,16 +72,16 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
             placeholder="Поиск по названию, бренду, модели, номеру заказа, OPT ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={props.searchTerm}
+            onChange={(e) => props.setSearchTerm(e.target.value)}
             onKeyPress={handleKeyPress}
             className="pl-10 pr-10"
           />
-          {searchTerm && (
+          {props.searchTerm && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClearSearch}
+              onClick={props.onClearSearch}
               className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
             >
               <X className="h-3 w-3" />
@@ -94,7 +90,7 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
         </div>
 
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+          <Select value={props.statusFilter} onValueChange={props.onStatusFilterChange}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Статус" />
             </SelectTrigger>
@@ -110,9 +106,9 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
           </Select>
 
           <SortingControls
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSortChange={onSortChange}
+            sortField={props.sortField}
+            sortDirection={props.sortDirection}
+            onSortChange={props.onSortChange}
           />
         </div>
       </div>

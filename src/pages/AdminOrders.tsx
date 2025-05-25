@@ -5,6 +5,7 @@ import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { ResponsiveOrdersView } from "@/components/admin/order/ResponsiveOrdersView";
 import { OrdersPagination } from "@/components/admin/order/OrdersPagination";
+import { MobilePagination } from "@/components/admin/order/MobilePagination";
 import { BulkActionsBar } from "@/components/admin/order/BulkActionsBar";
 import { MobileBulkActionsBar } from "@/components/admin/order/MobileBulkActionsBar";
 import { AdminOrdersHeader } from "@/components/admin/order/AdminOrdersHeader";
@@ -99,6 +100,7 @@ const AdminOrders = () => {
               sortDirection={sortDirection}
               onSortChange={handleSortChange}
               onRefetch={refetch}
+              totalCount={totalCount}
             />
             <CardContent className="space-y-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -127,6 +129,7 @@ const AdminOrders = () => {
             sortDirection={sortDirection}
             onSortChange={handleSortChange}
             onRefetch={refetch}
+            totalCount={totalCount}
           />
           
           <CardContent className="p-6">
@@ -155,14 +158,26 @@ const AdminOrders = () => {
               onQuickAction={handleQuickAction}
             />
             
-            <OrdersPagination
-              currentPage={currentPage}
-              totalCount={totalCount}
-              pageSize={pageSize}
-              onPageChange={handlePageChange}
-              hasNextPage={hasNextPage}
-              hasPreviousPage={hasPreviousPage}
-            />
+            {/* Responsive Pagination */}
+            {isMobile ? (
+              <MobilePagination
+                currentPage={currentPage}
+                totalCount={totalCount}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                hasNextPage={hasNextPage}
+                hasPreviousPage={hasPreviousPage}
+              />
+            ) : (
+              <OrdersPagination
+                currentPage={currentPage}
+                totalCount={totalCount}
+                pageSize={pageSize}
+                onPageChange={handlePageChange}
+                hasNextPage={hasNextPage}
+                hasPreviousPage={hasPreviousPage}
+              />
+            )}
           </CardContent>
         </Card>
 

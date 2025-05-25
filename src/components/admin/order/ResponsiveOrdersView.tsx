@@ -3,6 +3,7 @@ import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { VirtualizedOrdersList } from './VirtualizedOrdersList';
 import { MobileOrderCard } from './MobileOrderCard';
+import { CompactMobileOrderCard } from './CompactMobileOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { Button } from '@/components/ui/button';
 import { Grid, List } from 'lucide-react';
@@ -30,7 +31,7 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
   containerHeight = 600
 }) => {
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>(isMobile ? 'list' : 'grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>(isMobile ? 'compact' : 'grid');
 
   if (orders.length === 0) {
     return (
@@ -46,7 +47,7 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* View Mode Toggle - only on desktop */}
+      {/* View Mode Toggle */}
       {!isMobile && (
         <div className="flex items-center justify-end">
           <div className="flex items-center bg-muted rounded-lg p-1">
@@ -70,8 +71,60 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
         </div>
       )}
 
+      {/* Mobile View Mode Toggle */}
+      {isMobile && (
+        <div className="flex items-center justify-end">
+          <div className="flex items-center bg-muted rounded-lg p-1">
+            <Button
+              variant={viewMode === 'compact' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('compact')}
+              className="h-8 text-xs px-2"
+            >
+              Компактно
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+              className="h-8 text-xs px-2"
+            >
+              Подробно
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Orders Display */}
-      {(isMobile || viewMode === 'list') ? (
+      {isMobile ? (
+        <div className="space-y-3">
+          {orders.map((order) => 
+            viewMode === 'compact' ? (
+              <CompactMobileOrderCard
+                key={order.id}
+                order={order}
+                isSelected={selectedOrders.includes(order.id)}
+                onSelect={onSelectOrder || (() => {})}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onViewDetails={onViewDetails}
+                onQuickAction={onQuickAction}
+              />
+            ) : (
+              <MobileOrderCard
+                key={order.id}
+                order={order}
+                isSelected={selectedOrders.includes(order.id)}
+                onSelect={onSelectOrder || (() => {})}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onViewDetails={onViewDetails}
+                onQuickAction={onQuickAction}
+              />
+            )
+          )}
+        </div>
+      ) : viewMode === 'list' ? (
         <div className="space-y-4">
           {orders.map((order) => (
             <MobileOrderCard
