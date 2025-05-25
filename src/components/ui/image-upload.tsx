@@ -14,6 +14,7 @@ export interface ImageUploadProps {
   onDelete: (url: string) => void;
   maxImages?: number;
   storageBucket?: string;
+  filePrefix?: string; // New prop for file prefix
 }
 
 export const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -21,7 +22,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
   onUpload,
   onDelete,
   maxImages = 10,
-  storageBucket = "product-images"
+  storageBucket = "product-images",
+  filePrefix = "" // Default empty prefix
 }) => {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
@@ -60,7 +62,8 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
           );
 
           const fileExt = file.name.split(".").pop();
-          const fileName = `${uuidv4()}.${fileExt}`;
+          // Use prefix if provided
+          const fileName = filePrefix ? `${filePrefix}_${uuidv4()}.${fileExt}` : `${uuidv4()}.${fileExt}`;
           const filePath = `${fileName}`;
 
           const { data, error } = await supabase.storage

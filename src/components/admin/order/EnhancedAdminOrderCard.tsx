@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
+import { OrderConfirmationImagesDisplay } from "@/components/order/OrderConfirmationImagesDisplay";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { OrderPriorityIndicator } from './OrderPriorityIndicator';
 import { CompactOrderInfo } from './CompactOrderInfo';
@@ -194,6 +194,9 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
           orderId={order.id} 
           canEdit={true}
         />
+
+        {/* Display confirmation images in the card */}
+        <OrderConfirmationImagesDisplay orderId={order.id} />
       </CardContent>
       
       <div className="p-4 border-t bg-white/50 backdrop-blur-sm flex items-center justify-end gap-2">
