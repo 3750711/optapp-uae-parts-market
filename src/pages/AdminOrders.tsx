@@ -98,6 +98,7 @@ const AdminOrders = () => {
               sortField={sortField}
               sortDirection={sortDirection}
               onSortChange={handleSortChange}
+              onRefetch={refetch}
             />
             <CardContent className="space-y-4">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -125,6 +126,7 @@ const AdminOrders = () => {
             sortField={sortField}
             sortDirection={sortDirection}
             onSortChange={handleSortChange}
+            onRefetch={refetch}
           />
           
           <CardContent className="p-6">

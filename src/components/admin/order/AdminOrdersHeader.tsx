@@ -3,6 +3,7 @@ import React from 'react';
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "@/components/admin/order/SortingControls";
+import { OrdersImportButton } from './OrdersImportButton';
 import OrderSearchFilters from '@/components/admin/filters/OrderSearchFilters';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Database } from "@/integrations/supabase/types";
@@ -20,6 +21,7 @@ interface AdminOrdersHeaderProps {
   sortField: SortField;
   sortDirection: SortDirection;
   onSortChange: (field: SortField, direction: SortDirection) => void;
+  onRefetch?: () => void;
 }
 
 export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
@@ -32,7 +34,8 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
   onStatusFilterChange,
   sortField,
   sortDirection,
-  onSortChange
+  onSortChange,
+  onRefetch
 }) => {
   const isMobile = useIsMobile();
 
@@ -44,6 +47,7 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = ({
         </CardTitle>
         {!isMobile && (
           <div className="flex items-center gap-4">
+            <OrdersImportButton onImportComplete={onRefetch} />
             <SortingControls
               sortField={sortField}
               sortDirection={sortDirection}
