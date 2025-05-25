@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -22,6 +21,7 @@ export type Order = Database['public']['Tables']['orders']['Row'] & {
     phone: string | null;
     opt_status: string | null;
   } | null;
+  updated_at?: string;
 };
 
 interface UseOptimizedOrdersQueryParams {

@@ -32,7 +32,7 @@ export const MemoizedAdminOrderCard = React.memo<MemoizedAdminOrderCardProps>(({
   return (
     prevOrder.id === nextOrder.id &&
     prevOrder.status === nextOrder.status &&
-    prevOrder.updated_at === nextOrder.updated_at &&
+    prevOrder.created_at === nextOrder.created_at &&
     prevOrder.price === nextOrder.price &&
     prevOrder.delivery_price_confirm === nextOrder.delivery_price_confirm
   );
