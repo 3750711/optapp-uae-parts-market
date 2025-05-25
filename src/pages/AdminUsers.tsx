@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -10,14 +9,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCheck, UserX, Edit, Star, ExternalLink, Ban, UserCog, ChevronDown, ChevronUp, LayoutGrid, List } from "lucide-react";
+import { UserCheck, UserX, Edit, Star, ExternalLink, Ban, UserCog, ChevronDown, ChevronUp, Keyboard } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
 import { useNavigate } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,22 +38,48 @@ import { UsersPagination } from '@/components/admin/UsersPagination';
 import { UsersTableSkeleton } from '@/components/admin/UsersTableSkeleton';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { UserContextMenu } from '@/components/admin/UserContextMenu';
+import { MobileUserCard } from '@/components/admin/MobileUserCard';
+import { BulkUserActions } from '@/components/admin/BulkUserActions';
+import { EnhancedUserFilters } from '@/components/admin/EnhancedUserFilters';
+import { useIsMobile } from "@/hooks/use-mobile";
+import * as XLSX from 'xlsx';
 
 // Sorting types
 type SortField = 'full_name' | 'email' | 'user_type' | 'verification_status' | 'opt_status' | 'created_at' | 'rating' | 'opt_id';
 type SortDirection = 'asc' | 'desc';
 
+// Filter state type
+interface FilterState {
+  search: string;
+  status: string;
+  userType: string;
+  optStatus: string;
+  ratingFrom: string;
+  ratingTo: string;
+  dateFrom: Date | undefined;
+  dateTo: Date | undefined;
+}
+
 const AdminUsers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
-  // Search and filters
-  const [searchInput, setSearchInput] = useState('');
-  const debouncedSearch = useDebounceSearch(searchInput, 300);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'verified' | 'blocked'>('all');
-  const [userTypeFilter, setUserTypeFilter] = useState<'all' | 'admin' | 'seller' | 'buyer'>('all');
-  const [optStatusFilter, setOptStatusFilter] = useState<'all' | 'opt_user' | 'free_user'>('all');
+  // Filter state
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    status: 'all',
+    userType: 'all',
+    optStatus: 'all',
+    ratingFrom: '',
+    ratingTo: '',
+    dateFrom: undefined,
+    dateTo: undefined
+  });
+
+  const debouncedSearch = useDebounceSearch(filters.search, 300);
   
   // Sorting and pagination
   const [sortField, setSortField] = useState<SortField>('created_at');
@@ -65,6 +89,70 @@ const AdminUsers = () => {
   
   // UI settings
   const [isCompactMode, setIsCompactMode] = useState(false);
+  
+  // Bulk actions
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  
+  // Dialog states
+  const [editingUser, setEditingUser] = useState<ProfileType | null>(null);
+  const [ratingUser, setRatingUser] = useState<ProfileType | null>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'a':
+            e.preventDefault();
+            handleSelectAll();
+            break;
+          case 'e':
+            e.preventDefault();
+            handleExportUsers();
+            break;
+          case 'f':
+            e.preventDefault();
+            document.getElementById('user-search')?.focus();
+            break;
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [selectedUsers.length]);
+
+  // Count active filters
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.status !== 'all') count++;
+    if (filters.userType !== 'all') count++;
+    if (filters.optStatus !== 'all') count++;
+    if (filters.ratingFrom) count++;
+    if (filters.ratingTo) count++;
+    if (filters.dateFrom) count++;
+    if (filters.dateTo) count++;
+    return count;
+  }, [filters]);
+
+  const handleFilterChange = (key: keyof FilterState, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      search: '',
+      status: 'all',
+      userType: 'all',
+      optStatus: 'all',
+      ratingFrom: '',
+      ratingTo: '',
+      dateFrom: undefined,
+      dateTo: undefined
+    });
+    setCurrentPage(1);
+  };
 
   const { data: pendingUsersCount } = useQuery({
     queryKey: ['admin', 'users', 'pending-count'],
@@ -80,27 +168,45 @@ const AdminUsers = () => {
   });
 
   const { data: usersData, isLoading } = useQuery({
-    queryKey: ['admin', 'users', statusFilter, userTypeFilter, optStatusFilter, sortField, sortDirection, debouncedSearch, currentPage, pageSize],
+    queryKey: ['admin', 'users', filters, sortField, sortDirection, debouncedSearch, currentPage, pageSize],
     queryFn: async () => {
       let query = supabase
         .from('profiles')
         .select('*', { count: 'exact' });
       
       // Apply filters
-      if (statusFilter !== 'all') {
-        query = query.eq('verification_status', statusFilter);
+      if (filters.status !== 'all') {
+        query = query.eq('verification_status', filters.status);
       }
       
-      if (userTypeFilter !== 'all') {
-        query = query.eq('user_type', userTypeFilter);
+      if (filters.userType !== 'all') {
+        query = query.eq('user_type', filters.userType);
       }
       
-      if (optStatusFilter !== 'all') {
-        query = query.eq('opt_status', optStatusFilter);
+      if (filters.optStatus !== 'all') {
+        query = query.eq('opt_status', filters.optStatus);
       }
 
       if (debouncedSearch) {
-        query = query.or(`full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%,opt_id.ilike.%${debouncedSearch}%`);
+        query = query.or(`full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%,opt_id.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%,telegram.ilike.%${debouncedSearch}%`);
+      }
+
+      // Rating filters
+      if (filters.ratingFrom) {
+        query = query.gte('rating', parseFloat(filters.ratingFrom));
+      }
+      if (filters.ratingTo) {
+        query = query.lte('rating', parseFloat(filters.ratingTo));
+      }
+
+      // Date filters
+      if (filters.dateFrom) {
+        query = query.gte('created_at', filters.dateFrom.toISOString());
+      }
+      if (filters.dateTo) {
+        const dateTo = new Date(filters.dateTo);
+        dateTo.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', dateTo.toISOString());
       }
       
       // Apply sorting and pagination
@@ -118,8 +224,8 @@ const AdminUsers = () => {
         totalPages: Math.ceil((count || 0) / pageSize)
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const users = usersData?.users || [];
@@ -207,7 +313,99 @@ const AdminUsers = () => {
     }
   };
 
-  // Render sort direction indicator
+  // Bulk operations
+  const handleSelectUser = (userId: string) => {
+    setSelectedUsers(prev => 
+      prev.includes(userId) 
+        ? prev.filter(id => id !== userId)
+        : [...prev, userId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedUsers(users.map(user => user.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedUsers([]);
+  };
+
+  const handleBulkAction = async (action: string) => {
+    if (selectedUsers.length === 0) return;
+
+    const statusMap: Record<string, 'verified' | 'pending' | 'blocked'> = {
+      verify: 'verified',
+      block: 'blocked',
+      pending: 'pending'
+    };
+
+    const newStatus = statusMap[action];
+    if (!newStatus) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ verification_status: newStatus })
+        .in('id', selectedUsers);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успех",
+        description: `Статус ${selectedUsers.length} пользователей обновлен`
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      setSelectedUsers([]);
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить статус пользователей",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExportUsers = () => {
+    const exportData = users.map(user => ({
+      'Имя': user.full_name || '',
+      'Email': user.email,
+      'Телефон': user.phone || '',
+      'Телеграм': user.telegram || '',
+      'Компания': user.company_name || '',
+      'OPT ID': user.opt_id || '',
+      'Тип пользователя': user.user_type,
+      'Статус верификации': user.verification_status,
+      'OPT статус': user.opt_status,
+      'Рейтинг': user.rating || '',
+      'Местоположение': user.location || '',
+      'Дата регистрации': new Date(user.created_at).toLocaleDateString('ru-RU')
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Пользователи');
+    XLSX.writeFile(wb, `users_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    toast({
+      title: "Успех",
+      description: "Данные пользователей экспортированы"
+    });
+  };
+
+  const handleContextAction = (userId: string, action: string) => {
+    const statusMap: Record<string, 'verified' | 'pending' | 'blocked'> = {
+      verify: 'verified',
+      block: 'blocked',
+      pending: 'pending'
+    };
+
+    const newStatus = statusMap[action];
+    if (newStatus) {
+      handleQuickStatusChange(userId, newStatus);
+    }
+  };
+
   const renderSortIcon = (field: SortField) => {
     if (sortField === field) {
       return sortDirection === 'asc' ? 
@@ -229,9 +427,7 @@ const AdminUsers = () => {
               )}
             </div>
             
-            {/* Controls row */}
             <div className="flex flex-wrap items-center gap-2">
-              {/* Compact mode toggle */}
               <div className="flex items-center space-x-2">
                 <Switch 
                   id="compact-mode" 
@@ -243,84 +439,58 @@ const AdminUsers = () => {
                 </Label>
               </div>
               
-              {/* Search */}
-              <Input 
-                placeholder="Поиск пользователей..." 
-                className="w-[250px]" 
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-              />
-              
-              {/* Filters */}
-              <Select
-                value={statusFilter}
-                onValueChange={(value: 'all' | 'pending' | 'verified' | 'blocked') => {
-                  setStatusFilter(value);
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все статусы</SelectItem>
-                  <SelectItem value="pending">Ожидает</SelectItem>
-                  <SelectItem value="verified">Подтвержден</SelectItem>
-                  <SelectItem value="blocked">Заблокирован</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={userTypeFilter}
-                onValueChange={(value: 'all' | 'admin' | 'seller' | 'buyer') => {
-                  setUserTypeFilter(value);
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Тип" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все типы</SelectItem>
-                  <SelectItem value="admin">Админ</SelectItem>
-                  <SelectItem value="seller">Продавец</SelectItem>
-                  <SelectItem value="buyer">Покупатель</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select
-                value={optStatusFilter}
-                onValueChange={(value: 'all' | 'opt_user' | 'free_user') => {
-                  setOptStatusFilter(value);
-                  setCurrentPage(1);
-                }}
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="OPT статус" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Все OPT</SelectItem>
-                  <SelectItem value="opt_user">OPT</SelectItem>
-                  <SelectItem value="free_user">Бесплатный</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button variant="outline" size="sm" onClick={() => toast({
+                title: "Горячие клавиши",
+                description: "Ctrl+A - выбрать все, Ctrl+E - экспорт, Ctrl+F - поиск"
+              })}>
+                <Keyboard className="h-4 w-4 mr-1" />
+                Подсказки
+              </Button>
             </div>
           </CardHeader>
           
-          <CardContent>
-            <div className="overflow-x-auto">
-              {isLoading ? (
-                <UsersTableSkeleton rows={pageSize} isCompact={isCompactMode} />
-              ) : (
+          <CardContent className="space-y-4">
+            <EnhancedUserFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              onClearFilters={handleClearFilters}
+              activeFiltersCount={activeFiltersCount}
+            />
+
+            <BulkUserActions
+              selectedUsers={selectedUsers}
+              totalUsers={users.length}
+              onSelectAll={handleSelectAll}
+              onClearSelection={handleClearSelection}
+              onBulkAction={handleBulkAction}
+              onExport={handleExportUsers}
+            />
+            
+            {isLoading ? (
+              <UsersTableSkeleton rows={pageSize} isCompact={isCompactMode} />
+            ) : isMobile ? (
+              <div className="space-y-3">
+                {users.map((user) => (
+                  <MobileUserCard
+                    key={user.id}
+                    user={user}
+                    isSelected={selectedUsers.includes(user.id)}
+                    onSelect={handleSelectUser}
+                    onQuickAction={handleContextAction}
+                    onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
+                    onEdit={setEditingUser}
+                    onRating={setRatingUser}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead 
-                        className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
-                        onClick={() => handleSort('full_name')}
-                      >
+                      <TableHead className={isCompactMode ? 'py-2' : ''}>
                         <div className="flex items-center">
-                          Пользователь {renderSortIcon('full_name')}
+                          Пользователь
                         </div>
                       </TableHead>
                       <TableHead 
@@ -384,196 +554,165 @@ const AdminUsers = () => {
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow 
+                      <UserContextMenu
                         key={user.id}
-                        className={`${
-                          user.verification_status === 'pending'
-                            ? 'bg-orange-50/50'
-                            : user.verification_status === 'verified'
-                            ? 'bg-green-50/50'
-                            : user.verification_status === 'blocked'
-                            ? 'bg-red-50/50'
-                            : ''
-                        } hover:bg-muted/50 transition-colors`}
+                        user={user}
+                        onQuickAction={handleContextAction}
+                        onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
+                        onEdit={setEditingUser}
+                        onRating={setRatingUser}
                       >
-                        <TableCell className={isCompactMode ? 'py-2' : ''}>
-                          <div className="flex items-center gap-3">
-                            <UserAvatar 
-                              user={user} 
-                              size={isCompactMode ? 'sm' : 'md'} 
-                            />
-                            <div className="min-w-0">
-                              <div className="font-medium text-sm">
-                                {user.full_name || 'Без имени'}
-                              </div>
-                              {user.company_name && (
-                                <div className="text-xs text-muted-foreground truncate">
-                                  {user.company_name}
+                        <TableRow 
+                          className={`${
+                            user.verification_status === 'pending'
+                              ? 'bg-orange-50/50'
+                              : user.verification_status === 'verified'
+                              ? 'bg-green-50/50'
+                              : user.verification_status === 'blocked'
+                              ? 'bg-red-50/50'
+                              : ''
+                          } hover:bg-muted/50 transition-colors cursor-pointer`}
+                        >
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="checkbox"
+                                checked={selectedUsers.includes(user.id)}
+                                onChange={() => handleSelectUser(user.id)}
+                                className="rounded"
+                              />
+                              <UserAvatar 
+                                user={user} 
+                                size={isCompactMode ? 'sm' : 'md'} 
+                              />
+                              <div className="min-w-0">
+                                <div className="font-medium text-sm">
+                                  {user.full_name || 'Без имени'}
                                 </div>
-                              )}
+                                {user.company_name && (
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {user.company_name}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className={`${isCompactMode ? 'py-2' : ''} font-mono text-sm`}>
-                          {user.email}
-                        </TableCell>
-                        <TableCell className={`${isCompactMode ? 'py-2' : ''} font-mono text-sm`}>
-                          {user.opt_id || <span className="text-muted-foreground">Не указан</span>}
-                        </TableCell>
-                        <TableCell className={isCompactMode ? 'py-2' : ''}>
-                          <EnhancedStatusBadge 
-                            type="userType" 
-                            value={user.user_type} 
-                            size={isCompactMode ? 'sm' : 'md'}
-                          />
-                        </TableCell>
-                        <TableCell className={isCompactMode ? 'py-2' : ''}>
-                          <EnhancedStatusBadge 
-                            type="verification" 
-                            value={user.verification_status} 
-                            size={isCompactMode ? 'sm' : 'md'}
-                          />
-                        </TableCell>
-                        <TableCell className={isCompactMode ? 'py-2' : ''}>
-                          {user.opt_status && (
+                          </TableCell>
+                          <TableCell className={`${isCompactMode ? 'py-2' : ''} font-mono text-sm`}>
+                            {user.email}
+                          </TableCell>
+                          <TableCell className={`${isCompactMode ? 'py-2' : ''} font-mono text-sm`}>
+                            {user.opt_id || <span className="text-muted-foreground">Не указан</span>}
+                          </TableCell>
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
                             <EnhancedStatusBadge 
-                              type="optStatus" 
-                              value={user.opt_status} 
+                              type="userType" 
+                              value={user.user_type} 
                               size={isCompactMode ? 'sm' : 'md'}
                             />
-                          )}
-                        </TableCell>
-                        <TableCell className={isCompactMode ? 'py-2' : ''}>
-                          <div className="flex items-center gap-1">
-                            {user.rating !== null ? (
-                              <>
-                                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                                <span className="font-medium">{user.rating.toFixed(1)}</span>
-                              </>
-                            ) : (
-                              <span className="text-muted-foreground">N/A</span>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className={`${isCompactMode ? 'py-2' : ''} text-sm text-muted-foreground`}>
-                          {new Date(user.created_at).toLocaleDateString('ru-RU')}
-                        </TableCell>
-                        <TableCell className={isCompactMode ? 'py-2' : ''}>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/seller/${user.id}`)}
-                              className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-blue-100`}
-                              title="Открыть публичный профиль"
-                            >
-                              <ExternalLink className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-blue-600`} />
-                            </Button>
-
-                            {user.verification_status !== 'verified' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleQuickStatusChange(user.id, 'verified')}
-                                className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-green-100`}
-                                title="Подтвердить пользователя"
-                              >
-                                <UserCheck className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-green-600`} />
-                              </Button>
-                            )}
-
-                            {user.verification_status !== 'blocked' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleQuickStatusChange(user.id, 'blocked')}
-                                className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-red-100`}
-                                title="Заблокировать пользователя"
-                              >
-                                <Ban className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-red-600`} />
-                              </Button>
-                            )}
-
-                            {user.verification_status !== 'pending' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleQuickStatusChange(user.id, 'pending')}
-                                className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-orange-100`}
-                                title="Сбросить статус на 'Ожидает'"
-                              >
-                                <UserX className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-orange-600`} />
-                              </Button>
-                            )}
-
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-gray-100`}
-                                  title="Изменить OPT статус"
-                                >
-                                  <UserCog className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent>
-                                <DropdownMenuItem
-                                  onClick={() => handleOptStatusChange(user.id, 'free_user')}
-                                  className={user.opt_status === 'free_user' ? 'bg-accent' : ''}
-                                >
-                                  Свободный пользователь
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleOptStatusChange(user.id, 'opt_user')}
-                                  className={user.opt_status === 'opt_user' ? 'bg-accent' : ''}
-                                >
-                                  OPT пользователь
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-
-                            <UserEditDialog
-                              user={user}
-                              trigger={
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-gray-100`}
-                                >
-                                  <Edit className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
-                                </Button>
-                              }
-                              onSuccess={() => {
-                                queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-                              }}
+                          </TableCell>
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
+                            <EnhancedStatusBadge 
+                              type="verification" 
+                              value={user.verification_status} 
+                              size={isCompactMode ? 'sm' : 'md'}
                             />
-                            
-                            <UserRatingDialog
-                              user={user}
-                              trigger={
+                          </TableCell>
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
+                            {user.opt_status && (
+                              <EnhancedStatusBadge 
+                                type="optStatus" 
+                                value={user.opt_status} 
+                                size={isCompactMode ? 'sm' : 'md'}
+                              />
+                            )}
+                          </TableCell>
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
+                            <div className="flex items-center gap-1">
+                              {user.rating !== null ? (
+                                <>
+                                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                                  <span className="font-medium">{user.rating.toFixed(1)}</span>
+                                </>
+                              ) : (
+                                <span className="text-muted-foreground">N/A</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className={`${isCompactMode ? 'py-2' : ''} text-sm text-muted-foreground`}>
+                            {new Date(user.created_at).toLocaleDateString('ru-RU')}
+                          </TableCell>
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => navigate(`/seller/${user.id}`)}
+                                className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-blue-100`}
+                                title="Открыть публичный профиль"
+                              >
+                                <ExternalLink className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-blue-600`} />
+                              </Button>
+
+                              {user.verification_status !== 'verified' && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-amber-100`}
+                                  onClick={() => handleQuickStatusChange(user.id, 'verified')}
+                                  className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-green-100`}
+                                  title="Подтвердить пользователя"
                                 >
-                                  <Star className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-amber-600`} />
+                                  <UserCheck className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'} text-green-600`} />
                                 </Button>
-                              }
-                              onSuccess={() => {
-                                queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-                              }}
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
+                              )}
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className={`${isCompactMode ? 'h-7 w-7' : 'h-8 w-8'} hover:bg-gray-100`}
+                                    title="Больше действий"
+                                  >
+                                    <UserCog className={`${isCompactMode ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                  <DropdownMenuItem onClick={() => setEditingUser(user)}>
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Редактировать
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => setRatingUser(user)}>
+                                    <Star className="mr-2 h-4 w-4" />
+                                    Изменить рейтинг
+                                  </DropdownMenuItem>
+                                  {user.verification_status !== 'blocked' && (
+                                    <DropdownMenuItem
+                                      onClick={() => handleQuickStatusChange(user.id, 'blocked')}
+                                    >
+                                      <Ban className="mr-2 h-4 w-4 text-red-600" />
+                                      Заблокировать
+                                    </DropdownMenuItem>
+                                  )}
+                                  <DropdownMenuItem
+                                    onClick={() => handleOptStatusChange(
+                                      user.id, 
+                                      user.opt_status === 'opt_user' ? 'free_user' : 'opt_user'
+                                    )}
+                                  >
+                                    Переключить OPT статус
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </UserContextMenu>
                     ))}
                   </TableBody>
                 </Table>
-              )}
-            </div>
+              </div>
+            )}
             
-            {/* Pagination */}
             {!isLoading && users.length > 0 && (
               <UsersPagination
                 currentPage={currentPage}
@@ -587,7 +726,7 @@ const AdminUsers = () => {
             
             {!isLoading && users.length === 0 && (
               <div className="text-center text-sm text-gray-500 mt-8">
-                {debouncedSearch || statusFilter !== 'all' || userTypeFilter !== 'all' || optStatusFilter !== 'all' 
+                {debouncedSearch || filters.status !== 'all' || filters.userType !== 'all' || filters.optStatus !== 'all' || activeFiltersCount > 0
                   ? 'Пользователи не найдены по заданным критериям' 
                   : 'Пользователи не найдены'
                 }
@@ -595,6 +734,29 @@ const AdminUsers = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Dialogs */}
+        {editingUser && (
+          <UserEditDialog
+            user={editingUser}
+            trigger={<div />}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+              setEditingUser(null);
+            }}
+          />
+        )}
+        
+        {ratingUser && (
+          <UserRatingDialog
+            user={ratingUser}
+            trigger={<div />}
+            onSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+              setRatingUser(null);
+            }}
+          />
+        )}
       </div>
     </AdminLayout>
   );
