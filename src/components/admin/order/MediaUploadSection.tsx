@@ -31,18 +31,18 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
     }
 
     try {
-      // Удаляем изображение из базы данных
+      // Remove image from the images array by updating the order
+      const updatedImages = images.filter(imageUrl => imageUrl !== url);
+      
+      // Update the images field in the orders table
       const { error } = await supabase
-        .from('order_images')
-        .delete()
-        .eq('order_id', orderId)
-        .eq('url', url);
+        .from('orders')
+        .update({ images: updatedImages })
+        .eq('id', orderId);
 
       if (error) throw error;
 
-      // Обновляем локальное состояние через родительский компонент
-      // Создаем новый массив без удаленного изображения
-      const updatedImages = images.filter(imageUrl => imageUrl !== url);
+      // Update local state through parent component
       onImagesUpload(updatedImages);
 
       toast({

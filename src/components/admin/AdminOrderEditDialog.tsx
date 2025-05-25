@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -82,23 +83,10 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   // Load order images and videos when dialog opens
   React.useEffect(() => {
-    if (order?.id && open) {
-      // Load images from order_images table
-      const loadOrderImages = async () => {
-        try {
-          const { data: images, error } = await supabase
-            .from('order_images')
-            .select('url')
-            .eq('order_id', order.id);
-
-          if (error) throw error;
-          
-          const imageUrls = images?.map(img => img.url) || [];
-          setOrderImages(imageUrls);
-        } catch (error) {
-          console.error('Error loading order images:', error);
-        }
-      };
+    if (order && open) {
+      // Load images from the images field in orders table
+      const images = order.images || [];
+      setOrderImages(images);
 
       // Load videos from order_videos table
       const loadOrderVideos = async () => {
@@ -117,10 +105,9 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         }
       };
 
-      loadOrderImages();
       loadOrderVideos();
     }
-  }, [order?.id, open]);
+  }, [order, open]);
 
   React.useEffect(() => {
     if (order) {
@@ -141,49 +128,34 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   const handleImagesUpload = async (urls: string[]) => {
     if (!order?.id) return;
 
-    // Если это массив всех изображений (после удаления), просто обновляем состояние
-    if (urls.length < orderImages.length) {
-      setOrderImages(urls);
-      // Обновляем запросы для обновления данных
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-      return;
-    }
-
-    // Определяем новые изображения (те, которых еще нет в текущем состоянии)
-    const newUrls = urls.filter(url => !orderImages.includes(url));
-    
-    if (newUrls.length === 0) return;
-
     try {
-      // Добавляем только новые изображения в базу данных
+      // Update the images field in the orders table
       const { error } = await supabase
-        .from('order_images')
-        .insert(
-          newUrls.map(url => ({
-            order_id: order.id,
-            url
-          }))
-        );
+        .from('orders')
+        .update({ images: urls })
+        .eq('id', order.id);
 
       if (error) throw error;
 
-      // Обновляем локальное состояние
+      // Update local state
       setOrderImages(urls);
 
-      toast({
-        title: "Успешно",
-        description: `Добавлено ${newUrls.length} фотографий`,
-      });
+      const newImagesCount = urls.length - orderImages.length;
+      if (newImagesCount > 0) {
+        toast({
+          title: "Успешно",
+          description: `Добавлено ${newImagesCount} фотографий`,
+        });
+      }
 
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
     } catch (error) {
-      console.error('Error uploading images:', error);
+      console.error('Error updating order images:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось загрузить фотографии",
+        description: "Не удалось обновить фотографии",
         variant: "destructive",
       });
     }
@@ -288,13 +260,8 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         // If status changed but no onStatusChange handler, send notification manually
         if (statusChanged) {
           try {
-            // Get order images
-            const { data: orderImages } = await supabase
-              .from('order_images')
-              .select('url')
-              .eq('order_id', order.id);
-              
-            const images = orderImages?.map(img => img.url) || [];
+            // Get order images from the images field
+            const images = orderImages || [];
             
             await supabase.functions.invoke('send-telegram-notification', {
               body: { 
