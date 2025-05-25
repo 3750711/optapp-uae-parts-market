@@ -32,6 +32,7 @@ import { toast } from "@/hooks/use-toast";
 import { Database } from '@/integrations/supabase/types';
 import { Loader2 } from "lucide-react";
 import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
+import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -465,10 +466,10 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
               )}
             />
 
-            {/* Media Upload Section */}
+            {/* Media Upload Section - Order Images and Videos */}
             {order?.id && (
               <div className="border-t pt-6">
-                <h3 className="text-lg font-semibold mb-4">Медиафайлы заказа</h3>
+                <h3 className="text-lg font-semibold mb-4">Основные медиафайлы заказа</h3>
                 <MediaUploadSection
                   images={orderImages}
                   videos={orderVideos}
@@ -476,6 +477,17 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                   onVideoUpload={handleVideoUpload}
                   onVideoDelete={handleVideoDelete}
                   orderId={order.id}
+                />
+              </div>
+            )}
+
+            {/* Confirmation Images Section */}
+            {order?.id && (
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-semibold mb-4">Фотографии подтверждения заказа</h3>
+                <OrderConfirmationImages 
+                  orderId={order.id} 
+                  canEdit={true}
                 />
               </div>
             )}
