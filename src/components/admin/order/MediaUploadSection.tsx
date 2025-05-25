@@ -80,7 +80,12 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
                     />
                   </div>
                   <button
-                    onClick={() => handleImageDelete(imageUrl)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleImageDelete(imageUrl);
+                    }}
                     className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                     title="Удалить изображение"
                   >
@@ -120,7 +125,12 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
                     />
                   </div>
                   <button
-                    onClick={() => onVideoDelete(videoUrl)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onVideoDelete(videoUrl);
+                    }}
                     className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                     title="Удалить видео"
                   >
