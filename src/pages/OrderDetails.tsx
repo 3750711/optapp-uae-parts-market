@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,13 +5,18 @@ import Layout from '@/components/layout/Layout';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
+import { OptimizedOrderImages } from '@/components/order/OptimizedOrderImages';
+import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
+import { OrderQuickActions } from '@/components/order/OrderQuickActions';
+import { OrderBreadcrumbs } from '@/components/order/OrderBreadcrumbs';
 import { toast } from '@/hooks/use-toast';
-import { OrderImages } from '@/components/order/OrderImages';
-import { OrderVideos } from '@/components/order/OrderVideos';
 import { Database } from '@/integrations/supabase/types';
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 import OrderPriceConfirmDialog from '@/components/order/OrderPriceConfirmDialog';
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 
 type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -31,14 +35,82 @@ type OrderWithBuyer = Database['public']['Tables']['orders']['Row'] & {
   } | null;
 };
 
+const OrderDetailsSkeleton = () => {
+  const isMobile = useIsMobile();
+  
+  return (
+    <div className="space-y-6">
+      {/* Breadcrumbs skeleton */}
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-24" />
+        <Skeleton className="h-4 w-4" />
+        <Skeleton className="h-4 w-32" />
+      </div>
+      
+      {/* Quick actions skeleton */}
+      <Card>
+        <CardContent className="p-4">
+          <div className={`flex gap-2 ${isMobile ? 'flex-wrap' : 'flex-wrap md:flex-nowrap'}`}>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className={`h-10 ${isMobile ? 'flex-1 min-w-[100px]' : 'w-32'}`} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Order card skeleton */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <Skeleton className="h-8 w-48" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-full" />
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-6 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Images skeleton */}
+      <Card>
+        <CardContent className="p-6">
+          <Skeleton className="h-6 w-32 mb-4" />
+          <div className={`grid gap-4 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'}`}>
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
+  const isMobile = useIsMobile();
   const [isUpdating, setIsUpdating] = useState(false);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
 
-  const { data: orderData, isLoading } = useQuery({
+  const { data: orderData, isLoading, refetch } = useQuery({
     queryKey: ['order', id],
     queryFn: async () => {
       console.log("Fetching order details for ID:", id);
@@ -75,7 +147,6 @@ const OrderDetails = () => {
 
       if (!order) return null;
       console.log("Fetched order data:", order);
-      console.log("Order", order.order_number, "text_order:", order.text_order);
 
       let images: string[] = [];
       let videos: string[] = [];
@@ -109,7 +180,9 @@ const OrderDetails = () => {
         videos,
       };
     },
-    enabled: !!id
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
 
   const handleSellerConfirm = async (newPrice: number) => {
@@ -138,7 +211,6 @@ const OrderDetails = () => {
       
       // Send notification about order status change with images
       try {
-        // Include order images in the notification
         const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
           body: { 
             order: { 
@@ -176,8 +248,8 @@ const OrderDetails = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+        <div className="container mx-auto px-4 py-8">
+          <OrderDetailsSkeleton />
         </div>
       </Layout>
     );
@@ -204,61 +276,84 @@ const OrderDetails = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <OrderConfirmationCard
-          order={orderData?.order}
-          images={orderData?.images || []}
-          videos={orderData?.videos || []}
-          onOrderUpdate={(updatedOrder) => {
-            if (orderData?.order) {
-              const preservedFields = {
-                telegram_url_order: orderData.order.telegram_url_order,
-                buyer_opt_id: orderData.order.buyer_opt_id,
-                text_order: orderData.order.text_order,
-              };
-              const mergedOrder = { ...preservedFields, ...updatedOrder };
-              queryClient.setQueryData(['order', id], {
-                order: mergedOrder,
-                images: orderData.images,
-                videos: orderData.videos,
-              });
-              
-              // Send notification about order update
-              try {
-                supabase.functions.invoke('send-telegram-notification', {
-                  body: { 
-                    order: { ...mergedOrder, images: orderData.images },
-                    action: 'status_change'
-                  }
-                });
-              } catch (error) {
-                console.error('Failed to send update notification:', error);
-              }
-            }
-            queryClient.invalidateQueries({ queryKey: ['order', id] });
-          }}
+        <OrderBreadcrumbs 
+          orderNumber={orderData.order.order_number}
+          orderTitle={orderData.order.title}
+        />
+        
+        <OrderQuickActions 
+          order={orderData.order}
+          onRefresh={() => refetch()}
         />
 
-        {canConfirm && (
-          <div className="mt-6 flex justify-center">
-            <Button 
-              onClick={() => {
-                console.log("Opening price dialog with price:", orderData?.order?.price);
-                setIsPriceDialogOpen(true);
-              }}
-              disabled={isUpdating}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3"
-            >
-              {isUpdating ? (
-                <>
-                  <Loader2 className="animate-spin w-4 h-4 mr-2" />
-                  Подтверждение...
-                </>
-              ) : (
-                <>Подтвердить заказ</>
-              )}
-            </Button>
-          </div>
-        )}
+        <div className="space-y-8">
+          <OrderConfirmationCard
+            order={orderData?.order}
+            images={orderData?.images || []}
+            videos={orderData?.videos || []}
+            onOrderUpdate={(updatedOrder) => {
+              if (orderData?.order) {
+                const preservedFields = {
+                  telegram_url_order: orderData.order.telegram_url_order,
+                  buyer_opt_id: orderData.order.buyer_opt_id,
+                  text_order: orderData.order.text_order,
+                };
+                const mergedOrder = { ...preservedFields, ...updatedOrder };
+                queryClient.setQueryData(['order', id], {
+                  order: mergedOrder,
+                  images: orderData.images,
+                  videos: orderData.videos,
+                });
+                
+                // Send notification about order update
+                try {
+                  supabase.functions.invoke('send-telegram-notification', {
+                    body: { 
+                      order: { ...mergedOrder, images: orderData.images },
+                      action: 'status_change'
+                    }
+                  });
+                } catch (error) {
+                  console.error('Failed to send update notification:', error);
+                }
+              }
+              queryClient.invalidateQueries({ queryKey: ['order', id] });
+            }}
+          />
+
+          {canConfirm && (
+            <div className="flex justify-center">
+              <Button 
+                onClick={() => {
+                  console.log("Opening price dialog with price:", orderData?.order?.price);
+                  setIsPriceDialogOpen(true);
+                }}
+                disabled={isUpdating}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-lg px-8 py-3"
+                size={isMobile ? "default" : "lg"}
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="animate-spin w-4 h-4 mr-2" />
+                    Подтверждение...
+                  </>
+                ) : (
+                  <>Подтвердить заказ</>
+                )}
+              </Button>
+            </div>
+          )}
+
+          <OptimizedOrderImages 
+            images={orderData?.images || []} 
+            orderNumber={orderData.order.order_number?.toString()}
+          />
+          
+          <OptimizedOrderVideos 
+            videos={orderData?.videos || []}
+            orderNumber={orderData.order.order_number?.toString()}
+          />
+        </div>
 
         <OrderPriceConfirmDialog
           open={isPriceDialogOpen}
@@ -267,15 +362,6 @@ const OrderDetails = () => {
           onConfirm={handleSellerConfirm}
           isSubmitting={isUpdating}
         />
-
-        <div className="mt-10">
-          <h2 className="text-2xl font-semibold mb-4">Фотографии заказа</h2>
-          <OrderImages images={orderData?.images || []} />
-        </div>
-        <div className="mt-10">
-          <h2 className="text-2xl font-semibold mb-4">Видео заказа</h2>
-          <OrderVideos videos={orderData?.videos || []} />
-        </div>
       </div>
     </Layout>
   );
