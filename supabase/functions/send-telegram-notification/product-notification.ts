@@ -1,3 +1,4 @@
+
 // ======================== IMPORTANT NOTICE ========================
 // This file contains critical notification functionality.
 // DO NOT EDIT unless absolutely necessary!
@@ -5,9 +6,9 @@
 // Any changes may affect the product notification system that sends
 // messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.1.1
-// Last Verified Working: 2025-05-24
-// Change: Show real telegram for @OptSeller_Georgii
+// Version: 1.1.2
+// Last Verified Working: 2025-05-25
+// Change: Updated telegram accounts list to show real handles
 // ================================================================
 
 // Handler for product notifications
@@ -23,6 +24,14 @@ import { sendImageMediaGroups } from "./telegram-api.ts";
 export async function handleProductNotification(productId: string, notificationType: string | null, supabaseClient: any, corsHeaders: Record<string, string>) {
   // List of local Telegram accounts that should show their real username
   const localTelegramAccounts = [
+    'OptSeller_Anton',
+    'OptSeller_Georgii',
+    'IgorD_OptSeller',
+    'OptSeller_IgorK',
+    'Pavel_optuae',
+    'SanSanichUAE',
+    'dmotrii_st',
+    'OptSeller_Vlad',
     'LocalSeller_Ali',
     'Faruknose', 
     'faiznose',
@@ -30,8 +39,7 @@ export async function handleProductNotification(productId: string, notificationT
     'LocalSeller_Pochemy',
     'LocalSeller_Rakib',
     'LocalSeller_Sharif',
-    'LocalSeller_Younus',
-    'OptSeller_Georgii'  // Added OptSeller_Georgii to show real telegram
+    'LocalSeller_Younus'
   ];
 
   // Function to determine which Telegram to display in notifications
