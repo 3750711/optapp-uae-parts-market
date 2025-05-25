@@ -47,11 +47,9 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
         <div className="flex items-center gap-4">
           <Checkbox
             checked={isAllSelected}
-            ref={(el) => {
-              if (el) el.indeterminate = isPartiallySelected;
-            }}
             onCheckedChange={isAllSelected ? onClearSelection : onSelectAll}
             className="scale-110"
+            {...(isPartiallySelected && { 'data-state': 'indeterminate' })}
           />
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="text-sm">
