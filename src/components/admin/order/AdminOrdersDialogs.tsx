@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from '@/components/admin/AdminOrderDeleteDialog';
@@ -10,7 +11,7 @@ interface AdminOrdersDialogsProps {
   showEditDialog: boolean;
   setShowEditDialog: (show: boolean) => void;
   selectedOrder: Order | null;
-  onOrderStatusChange: (orderId: string, newStatus: string) => void;
+  onOrderStatusChange: (orderId: string, newStatus: string) => Promise<void>;
   
   // Delete Dialog
   showDeleteDialog: boolean;
