@@ -93,7 +93,9 @@ export const ImageUpload: React.FC<ImageUploadProps> = ({
       const validUrls = uploadedUrls.filter((url): url is string => url !== null);
 
       if (validUrls.length > 0) {
-        onUpload(validUrls);
+        // Changed: Add new URLs to existing images instead of replacing them
+        const updatedImages = [...images, ...validUrls];
+        onUpload(updatedImages);
         toast({
           title: "Успех",
           description: `Загружено ${validUrls.length} из ${files.length} изображений`,

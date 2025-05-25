@@ -34,12 +34,18 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
     }
   });
 
-  const handleUpload = async (urls: string[]) => {
+  const handleUpload = async (updatedUrls: string[]) => {
     try {
+      // Find only the new URLs that need to be inserted
+      const currentUrls = images || [];
+      const newUrls = updatedUrls.filter(url => !currentUrls.includes(url));
+      
+      if (newUrls.length === 0) return;
+
       const { error } = await supabase
         .from('confirm_images')
         .insert(
-          urls.map(url => ({
+          newUrls.map(url => ({
             order_id: orderId,
             url
           }))
@@ -52,7 +58,7 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
 
       toast({
         title: "Успешно",
-        description: "Фотографии подтверждения загружены",
+        description: `Загружено ${newUrls.length} фотографий подтверждения`,
       });
     } catch (error) {
       console.error('Error uploading confirmation images:', error);
@@ -95,8 +101,6 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
 
   return (
     <div className="space-y-4">
-      <div className="font-medium text-lg">Фотографии подтверждения</div>
-      
       {/* Display existing confirmation images */}
       {images && images.length > 0 && (
         <div className="mb-4">
@@ -132,7 +136,7 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
           images={images || []}
           onUpload={handleUpload}
           onDelete={handleDelete}
-          maxImages={5}
+          maxImages={10}
           storageBucket="order-images"
           filePrefix="confirm" // Add prefix for confirmation images
         />
