@@ -17,6 +17,19 @@ export const useImageCacheManager = () => {
     queryClient.refetchQueries({ queryKey: ['product', productId] });
   };
 
+  const invalidateOrderCaches = (orderId: string) => {
+    console.log("Invalidating all order caches for:", orderId);
+    
+    // Invalidate all order-related cache keys
+    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+    queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+    queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+    
+    // Force refetch to ensure fresh data
+    queryClient.refetchQueries({ queryKey: ['order', orderId] });
+  };
+
   const optimisticUpdateCache = (productId: string, imageUrl: string) => {
     console.log("Optimistic update for product:", productId, "new primary image:", imageUrl);
     
@@ -75,6 +88,59 @@ export const useImageCacheManager = () => {
     queryClient.setQueryData(['product', productId], (oldData: any) => {
       if (!oldData) return oldData;
       return updateProduct(oldData);
+    });
+  };
+
+  const optimisticUpdateOrderImages = (orderId: string, updatedImages: string[]) => {
+    console.log("Optimistic update for order images:", orderId, "new images:", updatedImages);
+    
+    // Helper function to update order in any data structure
+    const updateOrder = (order: any) => {
+      if (order.id === orderId) {
+        return {
+          ...order,
+          images: updatedImages
+        };
+      }
+      return order;
+    };
+
+    // Update admin orders cache
+    queryClient.setQueryData(['admin-orders'], (oldData: any) => {
+      if (!oldData) return oldData;
+      
+      if (oldData.pages) {
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            data: page.data?.map(updateOrder) || []
+          }))
+        };
+      } else if (oldData.data) {
+        return {
+          ...oldData,
+          data: oldData.data.map(updateOrder)
+        };
+      }
+      
+      return oldData;
+    });
+
+    // Update optimized orders cache
+    queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+      if (!oldData?.data) return oldData;
+      
+      return {
+        ...oldData,
+        data: oldData.data.map(updateOrder)
+      };
+    });
+
+    // Update specific order cache
+    queryClient.setQueryData(['order', orderId], (oldData: any) => {
+      if (!oldData) return oldData;
+      return updateOrder(oldData);
     });
   };
 
@@ -139,7 +205,9 @@ export const useImageCacheManager = () => {
 
   return {
     invalidateAllCaches,
+    invalidateOrderCaches,
     optimisticUpdateCache,
+    optimisticUpdateOrderImages,
     optimisticRemoveImage
   };
 };

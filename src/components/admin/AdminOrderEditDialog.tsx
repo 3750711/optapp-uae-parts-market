@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -68,38 +69,63 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   // Load order images and videos when dialog opens
   React.useEffect(() => {
     if (order && open) {
-      console.log('Loading order data for editing:', order.id);
+      console.log('Dialog opened - forcing fresh data fetch for order:', order.id);
+      
+      // Force refresh all order-related queries when dialog opens
+      queryClient.refetchQueries({ queryKey: ['admin-orders'] });
+      queryClient.refetchQueries({ queryKey: ['admin-orders-optimized'] });
+      queryClient.refetchQueries({ queryKey: ['order', order.id] });
       
       // Reset local state first
       setOrderImages([]);
       setOrderVideos([]);
       
-      // Load images from the images field in orders table
-      const images = order.images || [];
-      console.log('Setting order images from order data:', images);
-      setOrderImages(images);
-
-      // Load videos from order_videos table
-      const loadOrderVideos = async () => {
+      // Fetch fresh order data from database
+      const loadFreshOrderData = async () => {
         try {
-          const { data: videos, error } = await supabase
+          console.log('Fetching fresh order data from database...');
+          
+          // Get fresh order data
+          const { data: freshOrder, error: orderError } = await supabase
+            .from('orders')
+            .select('images')
+            .eq('id', order.id)
+            .single();
+
+          if (orderError) throw orderError;
+
+          const freshImages = freshOrder?.images || [];
+          console.log('Fresh images from database:', freshImages);
+          console.log('Cached images from prop:', order.images);
+          
+          setOrderImages(freshImages);
+
+          // Load videos from order_videos table
+          const { data: videos, error: videosError } = await supabase
             .from('order_videos')
             .select('url')
             .eq('order_id', order.id);
 
-          if (error) throw error;
+          if (videosError) throw videosError;
           
           const videoUrls = videos?.map(video => video.url) || [];
-          console.log('Loaded order videos:', videoUrls);
+          console.log('Fresh videos from database:', videoUrls);
           setOrderVideos(videoUrls);
+          
+          // Update cache with fresh data
+          queryClient.setQueryData(['order', order.id], (oldData: any) => {
+            console.log('Updating cache with fresh order data');
+            return oldData ? { ...oldData, images: freshImages } : oldData;
+          });
+
         } catch (error) {
-          console.error('Error loading order videos:', error);
+          console.error('Error loading fresh order data:', error);
         }
       };
 
-      loadOrderVideos();
+      loadFreshOrderData();
     }
-  }, [order, open]);
+  }, [order, open, queryClient]);
 
   // Reset form when order changes
   React.useEffect(() => {
@@ -152,6 +178,57 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
       if (error) throw error;
 
+      // Optimistically update cache immediately
+      queryClient.setQueryData(['admin-orders'], (oldData: any) => {
+        if (!oldData) return oldData;
+        
+        if (oldData.pages) {
+          console.log('Optimistically updating admin-orders cache (paginated)');
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              data: page.data?.map((orderItem: any) => 
+                orderItem.id === order.id 
+                  ? { ...orderItem, images: updatedUrls }
+                  : orderItem
+              ) || []
+            }))
+          };
+        } else if (oldData.data) {
+          console.log('Optimistically updating admin-orders cache (regular)');
+          return {
+            ...oldData,
+            data: oldData.data.map((orderItem: any) => 
+              orderItem.id === order.id 
+                ? { ...orderItem, images: updatedUrls }
+                : orderItem
+            )
+          };
+        }
+        
+        return oldData;
+      });
+
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        console.log('Optimistically updating admin-orders-optimized cache');
+        return {
+          ...oldData,
+          data: oldData.data.map((orderItem: any) => 
+            orderItem.id === order.id 
+              ? { ...orderItem, images: updatedUrls }
+              : orderItem
+          )
+        };
+      });
+
+      queryClient.setQueryData(['order', order.id], (oldData: any) => {
+        console.log('Optimistically updating specific order cache');
+        return oldData ? { ...oldData, images: updatedUrls } : oldData;
+      });
+
       // Update local state
       setOrderImages(updatedUrls);
 
@@ -173,13 +250,14 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         });
       }
 
-      // Invalidate ALL related queries to ensure fresh data
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
-      queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      // Force refetch to ensure consistency
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+        queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+        console.log('Forced cache invalidation after image update');
+      }, 100);
       
-      console.log('Cache invalidated and queries refetched');
     } catch (error) {
       console.error('Error updating order images:', error);
       toast({

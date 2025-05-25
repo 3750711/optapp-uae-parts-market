@@ -137,7 +137,7 @@ export const useOptimizedOrdersQuery = ({
         hasPreviousPage
       };
     },
-    staleTime: 30000, // 30 seconds
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 1 * 60 * 1000, // Reduce cache time to 1 minute
   });
 };
