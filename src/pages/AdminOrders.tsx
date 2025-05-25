@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +18,7 @@ import { AdminSEO } from "@/components/admin/AdminSEO";
 import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
 import { BulkOrderActions } from "@/components/admin/BulkOrderActions";
 import { OrderSortingControls } from "@/components/admin/OrderSortingControls";
-import { OptimizedAdminOrderCard } from "@/components/admin/OptimizedAdminOrderCard";
+import { EnhancedAdminOrderCard } from "@/components/admin/EnhancedAdminOrderCard";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -318,7 +317,7 @@ const AdminOrders = () => {
         
         console.log('Результат отправки уведомления об изменении статуса:', notificationResult);
       } catch (notifyError) {
-        console.error('Ошибка отправки уведомления об изменении статуса заказа:', notifyError);
+        console.error('Ошибка отправки уведомления об изменении стatus заказа:', notifyError);
       }
     } catch (error) {
       toast({
@@ -515,33 +514,25 @@ const AdminOrders = () => {
               isLoading={bulkConfirmMutation.isPending || bulkDeleteMutation.isPending}
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {paginatedOrders?.length ? (
                 paginatedOrders.map((order) => (
-                  <div key={order.id} className="relative group">
-                    <OptimizedAdminOrderCard
-                      order={order}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                      onConfirm={handleConfirm}
-                      onRegister={handleRegister}
-                      isSelected={selectedIds.includes(order.id)}
-                      onSelectionChange={handleSelectionChange}
-                      showCheckbox={showBulkActions}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      onClick={() => navigate(`/admin/orders/${order.id}`)}
-                      title="Посмотреть детали заказа"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <EnhancedAdminOrderCard
+                    key={order.id}
+                    order={order}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onConfirm={handleConfirm}
+                    onRegister={handleRegister}
+                    onViewDetails={handleViewDetails}
+                    isSelected={selectedIds.includes(order.id)}
+                    onSelectionChange={handleSelectionChange}
+                    showCheckbox={showBulkActions}
+                    isLoading={bulkConfirmMutation.isPending || bulkDeleteMutation.isPending}
+                  />
                 ))
               ) : (
-                <div className="col-span-3 text-center py-10 text-muted-foreground">
+                <div className="col-span-full text-center py-10 text-muted-foreground">
                   {activeSearchTerm ? "Нет заказов, соответствующих поисковому запросу" : "Нет заказов с выбранным статусом"}
                 </div>
               )}
