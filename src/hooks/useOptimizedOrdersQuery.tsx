@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -29,6 +30,8 @@ interface UseOptimizedOrdersQueryParams {
   searchTerm: string;
   page: number;
   pageSize: number;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
 }
 
 interface OrdersResponse {
@@ -42,10 +45,12 @@ export const useOptimizedOrdersQuery = ({
   statusFilter,
   searchTerm,
   page,
-  pageSize
+  pageSize,
+  sortField = 'created_at',
+  sortDirection = 'desc'
 }: UseOptimizedOrdersQueryParams) => {
   return useQuery({
-    queryKey: ['admin-orders-optimized', statusFilter, searchTerm, page, pageSize],
+    queryKey: ['admin-orders-optimized', statusFilter, searchTerm, page, pageSize, sortField, sortDirection],
     queryFn: async (): Promise<OrdersResponse> => {
       const offset = (page - 1) * pageSize;
       
@@ -69,8 +74,16 @@ export const useOptimizedOrdersQuery = ({
             opt_status
           )
         `, { count: 'exact' })
-        .range(offset, offset + pageSize - 1)
-        .order('created_at', { ascending: false });
+        .range(offset, offset + pageSize - 1);
+
+      // Apply sorting
+      if (sortField === 'seller_name') {
+        query = query.order('order_seller_name', { ascending: sortDirection === 'asc' });
+      } else if (sortField === 'buyer_name') {
+        query = query.order('buyer_opt_id', { ascending: sortDirection === 'asc' });
+      } else {
+        query = query.order(sortField, { ascending: sortDirection === 'asc' });
+      }
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);

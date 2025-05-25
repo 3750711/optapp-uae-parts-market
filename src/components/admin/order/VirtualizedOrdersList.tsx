@@ -1,11 +1,14 @@
-
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { MemoizedAdminOrderCard } from './MemoizedAdminOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
+import { Checkbox } from '@/components/ui/checkbox';
+import { OrderPriorityIndicator } from './OrderPriorityIndicator';
 
 interface VirtualizedOrdersListProps {
   orders: Order[];
+  selectedOrders?: string[];
+  onSelectOrder?: (orderId: string) => void;
   onEdit: (order: Order) => void;
   onDelete: (order: Order) => void;
   onViewDetails: (orderId: string) => void;
@@ -18,6 +21,8 @@ const GAP = 24;
 
 export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
   orders,
+  selectedOrders = [],
+  onSelectOrder,
   onEdit,
   onDelete,
   onViewDetails,
@@ -50,6 +55,8 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
 
     if (!order) return null;
 
+    const isSelected = selectedOrders.includes(order.id);
+
     return (
       <div style={{
         ...style,
@@ -59,12 +66,32 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
         width: style.width - GAP,
         height: style.height - GAP,
       }}>
-        <MemoizedAdminOrderCard
-          order={order}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onViewDetails={onViewDetails}
-        />
+        <div className={`relative ${isSelected ? 'ring-2 ring-primary ring-opacity-50' : ''}`}>
+          {onSelectOrder && (
+            <div className="absolute top-2 left-2 z-10">
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onSelectOrder(order.id)}
+                className="bg-white shadow-sm"
+              />
+            </div>
+          )}
+          
+          <div className="absolute top-2 right-2 z-10">
+            <OrderPriorityIndicator
+              createdAt={order.created_at}
+              status={order.status}
+              totalValue={order.price || 0}
+            />
+          </div>
+          
+          <MemoizedAdminOrderCard
+            order={order}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
+          />
+        </div>
       </div>
     );
   });
@@ -87,15 +114,37 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
   if (orders.length <= 20) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {orders.map((order) => (
-          <MemoizedAdminOrderCard
-            key={order.id}
-            order={order}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onViewDetails={onViewDetails}
-          />
-        ))}
+        {orders.map((order) => {
+          const isSelected = selectedOrders.includes(order.id);
+          return (
+            <div key={order.id} className={`relative ${isSelected ? 'ring-2 ring-primary ring-opacity-50' : ''}`}>
+              {onSelectOrder && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Checkbox
+                    checked={isSelected}
+                    onCheckedChange={() => onSelectOrder(order.id)}
+                    className="bg-white shadow-sm"
+                  />
+                </div>
+              )}
+              
+              <div className="absolute top-2 right-2 z-10">
+                <OrderPriorityIndicator
+                  createdAt={order.created_at}
+                  status={order.status}
+                  totalValue={order.price || 0}
+                />
+              </div>
+              
+              <MemoizedAdminOrderCard
+                order={order}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onViewDetails={onViewDetails}
+              />
+            </div>
+          );
+        })}
       </div>
     );
   }
