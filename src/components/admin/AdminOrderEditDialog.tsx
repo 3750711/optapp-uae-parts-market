@@ -14,6 +14,7 @@ import { Database } from '@/integrations/supabase/types';
 import { Loader2, Save, X } from "lucide-react";
 import { OrderEditHeader } from "@/components/admin/order/OrderEditHeader";
 import { OrderEditTabs } from "@/components/admin/order/OrderEditTabs";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -46,6 +47,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   onStatusChange
 }) => {
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
   const [orderImages, setOrderImages] = React.useState<string[]>([]);
   const [orderVideos, setOrderVideos] = React.useState<string[]>([]);
 
@@ -339,7 +341,15 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+      <DialogContent 
+        className={`
+          ${isMobile 
+            ? 'max-w-[95vw] max-h-[95vh] w-full h-full m-2 p-4' 
+            : 'max-w-6xl max-h-[95vh]'
+          } 
+          overflow-y-auto
+        `}
+      >
         <OrderEditHeader order={order} />
 
         <Form {...form}>
@@ -354,15 +364,23 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
               onVideoDelete={handleVideoDelete}
             />
 
-            <DialogFooter className="flex items-center justify-between bg-gray-50 -mx-6 -mb-6 px-6 py-4">
-              <div className="text-xs text-gray-500">
-                Используйте Ctrl+S для быстрого сохранения, Esc для закрытия
-              </div>
-              <div className="flex gap-2">
+            <DialogFooter 
+              className={`
+                flex items-center justify-between bg-gray-50 
+                ${isMobile ? '-mx-4 -mb-4 px-4 py-3 flex-col gap-2' : '-mx-6 -mb-6 px-6 py-4 flex-row'}
+              `}
+            >
+              {!isMobile && (
+                <div className="text-xs text-gray-500">
+                  Используйте Ctrl+S для быстрого сохранения, Esc для закрытия
+                </div>
+              )}
+              <div className={`flex gap-2 ${isMobile ? 'w-full' : ''}`}>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
+                  className={isMobile ? 'flex-1' : ''}
                 >
                   <X className="mr-2 h-4 w-4" />
                   Отмена
@@ -370,11 +388,12 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                 <Button 
                   type="submit"
                   disabled={updateOrderMutation.isPending}
+                  className={isMobile ? 'flex-1' : ''}
                 >
                   {updateOrderMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Сохранение...
+                      {isMobile ? 'Сохр...' : 'Сохранение...'}
                     </>
                   ) : (
                     <>
