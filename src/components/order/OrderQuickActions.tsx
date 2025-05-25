@@ -5,10 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { 
   Copy, 
   Download, 
-  Share2, 
-  Phone, 
-  MessageCircle, 
-  ExternalLink,
   FileText,
   RefreshCw
 } from "lucide-react";
@@ -67,37 +63,6 @@ export const OrderQuickActions: React.FC<OrderQuickActionsProps> = ({
     }
   };
 
-  const handleShareOrder = async () => {
-    const shareData = {
-      title: `Заказ №${order.order_number}`,
-      text: `${order.title} - ${order.brand} ${order.model}`,
-      url: window.location.href,
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (error) {
-        console.log('Share cancelled');
-      }
-    } else {
-      await handleCopyOrderInfo();
-    }
-  };
-
-  const handleContactTelegram = () => {
-    if (order.telegram_url_order) {
-      const telegramUrl = `https://t.me/${order.telegram_url_order.replace('@', '')}`;
-      window.open(telegramUrl, '_blank');
-    } else {
-      toast({
-        title: "Контакт недоступен",
-        description: "Telegram пользователя не указан",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleExportOrder = () => {
     const orderData = {
       order_number: order.order_number,
@@ -141,27 +106,12 @@ export const OrderQuickActions: React.FC<OrderQuickActionsProps> = ({
       variant: "outline" as const,
     },
     {
-      icon: Share2,
-      label: "Поделиться",
-      action: handleShareOrder,
-      variant: "outline" as const,
-    },
-    {
       icon: Download,
       label: "Экспорт",
       action: handleExportOrder,
       variant: "outline" as const,
     },
   ];
-
-  if (order.telegram_url_order) {
-    actions.push({
-      icon: MessageCircle,
-      label: "Telegram",
-      action: handleContactTelegram,
-      variant: "default" as const,
-    });
-  }
 
   if (onRefresh) {
     actions.push({
