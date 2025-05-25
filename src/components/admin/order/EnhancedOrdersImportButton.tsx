@@ -2,12 +2,13 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { FileUp, Loader2 } from 'lucide-react';
+import { FileUp, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
 import { ImportPreviewDialog, ImportPreviewData, ImportOptions, ImportRow } from './ImportPreviewDialog';
-import { validateImportRow, buildUsersCache, createMissingUser } from './ImportValidationUtils';
+import { validateImportRow, buildUsersCache, createMissingUser, validateExcelFile } from './ImportValidationUtils';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface EnhancedOrdersImportButtonProps {
   onImportComplete?: () => void;
@@ -38,6 +39,8 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<ImportPreviewData | null>(null);
   const [rawExcelData, setRawExcelData] = useState<any[]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [fileValidationError, setFileValidationError] = useState<string>('');
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
@@ -58,10 +61,43 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setFileValidationError('');
+
+    console.log('Выбран файл:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: new Date(file.lastModified)
+    });
+
     if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      const error = "Пожалуйста, выберите файл Excel (.xlsx или .xls)";
+      setFileValidationError(error);
+      toast({
+        title: "Ошибка формата файла",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size === 0) {
+      const error = "Файл пустой";
+      setFileValidationError(error);
       toast({
         title: "Ошибка",
-        description: "Пожалуйста, выберите файл Excel (.xlsx или .xls)",
+        description: error,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      const error = "Файл слишком большой (максимум 10MB)";
+      setFileValidationError(error);
+      toast({
+        title: "Ошибка",
+        description: error,
         variant: "destructive",
       });
       return;
@@ -77,19 +113,56 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
         stage: 'validating'
       });
 
+      console.log('Начинаем чтение файла...');
       const data = await file.arrayBuffer();
+      console.log('Файл прочитан, размер буфера:', data.byteLength);
+      
       const workbook = XLSX.read(data);
+      console.log('Workbook создан, листы:', workbook.SheetNames);
+      
+      if (workbook.SheetNames.length === 0) {
+        throw new Error('Файл не содержит листов');
+      }
+      
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      console.log('Выбран лист:', sheetName);
+      
       const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      console.log('Данные извлечены из Excel:', {
+        rowCount: jsonData.length,
+        firstRow: jsonData[0]
+      });
 
-      console.log('Загруженные данные из Excel:', jsonData);
+      if (jsonData.length === 0) {
+        throw new Error('Первый лист файла пустой');
+      }
+
+      // Валидируем структуру файла
+      const fileValidation = validateExcelFile(jsonData);
+      console.log('Результат валидации файла:', fileValidation);
+
+      if (!fileValidation.isValid) {
+        const errorMessage = fileValidation.errors.join('; ');
+        setFileValidationError(errorMessage);
+        resetProgress();
+        toast({
+          title: "Ошибка структуры файла",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
+
       setRawExcelData(jsonData);
+      setColumnMapping(fileValidation.columnMapping);
 
       // Build users cache and validate data
       const { cache, missingUsers } = await buildUsersCache(jsonData);
-      console.log('Кэш пользователей:', cache);
-      console.log('Отсутствующие пользователи:', missingUsers);
+      console.log('Кэш пользователей построен:', {
+        cacheSize: cache.size,
+        missingUsers
+      });
 
       const rows: ImportRow[] = [];
       let validCount = 0;
@@ -98,7 +171,7 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
 
       for (let i = 0; i < jsonData.length; i++) {
         const row = jsonData[i];
-        const validation = await validateImportRow(row, i + 2, cache); // +2 for Excel row number (starting from 2)
+        const validation = await validateImportRow(row, i + 2, cache, fileValidation.columnMapping);
         
         const importRow: ImportRow = {
           rowNumber: i + 2,
@@ -156,10 +229,12 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
 
     } catch (error) {
       console.error('Ошибка при чтении файла:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      setFileValidationError(`Ошибка чтения файла: ${errorMessage}`);
       resetProgress();
       toast({
-        title: "Ошибка",
-        description: "Не удалось прочитать файл Excel",
+        title: "Ошибка чтения файла",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -210,8 +285,8 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
         
         // Update preview data with new user info
         for (const row of previewData.rows) {
-          const sellerOptId = row.data['ID продавца'] || row.data['Seller ID'];
-          const buyerOptId = row.data['ID покупателя'] || row.data['Buyer ID'];
+          const sellerOptId = row.data[columnMapping.sellerId] || '';
+          const buyerOptId = row.data[columnMapping.buyerId] || '';
           
           if (sellerOptId && cache.has(`seller_${sellerOptId}`)) {
             row.sellerId = cache.get(`seller_${sellerOptId}`);
@@ -236,16 +311,16 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
 
         try {
           const row = importRow.data;
-          const excelOrderNumber = parseInt(row['Номер заказа'] || row['Order Number'] || '0');
+          const excelOrderNumber = parseInt(row[columnMapping.orderNumber] || '0');
           
           const orderData: any = {
-            title: row['Название'] || row['Title'] || 'Импорт из Excel',
-            price: parseFloat(row['Цена'] || row['Price'] || '0'),
-            brand: row['Бренд'] || row['Brand'] || '',
-            model: row['Модель'] || row['Model'] || '',
-            place_number: parseInt(row['Количество мест'] || row['Places'] || '1'),
-            text_order: row['Дополнительная информация'] || row['Description'] || '',
-            delivery_price_confirm: parseFloat(row['Цена доставки'] || row['Delivery Price'] || '0'),
+            title: row[columnMapping.title] || 'Импорт из Excel',
+            price: parseFloat(row[columnMapping.price] || '0'),
+            brand: row[columnMapping.brand] || '',
+            model: row[columnMapping.model] || '',
+            place_number: parseInt(row[columnMapping.places] || '1'),
+            text_order: row[columnMapping.description] || '',
+            delivery_price_confirm: parseFloat(row[columnMapping.deliveryPrice] || '0'),
             status: 'created' as const,
             order_created_type: 'free_order' as const,
             delivery_method: 'cargo_rf' as const,
@@ -346,6 +421,25 @@ export const EnhancedOrdersImportButton: React.FC<EnhancedOrdersImportButtonProp
           )}
           {progress.isImporting ? 'Обработка...' : 'Импорт из Excel'}
         </Button>
+
+        {fileValidationError && (
+          <Alert variant="destructive" className="text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              {fileValidationError}
+              <div className="mt-2 text-xs">
+                <div className="font-medium mb-1">Ожидаемые столбцы:</div>
+                <div>• Title или Название (обязательно)</div>
+                <div>• Price или Цена (обязательно)</div>
+                <div>• Seller ID или ID продавца (обязательно)</div>
+                <div>• Buyer ID или ID покупателя (обязательно)</div>
+                <div>• Order Number или Номер заказа (опционально)</div>
+                <div>• Places или Количество мест (опционально)</div>
+                <div>• Цена доставки или Delivery Price (опционально)</div>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {progress.isImporting && (
           <div className="w-full space-y-2 p-3 bg-blue-50 rounded-lg border">

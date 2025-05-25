@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ValidationResult {
@@ -9,31 +8,124 @@ export interface ValidationResult {
   buyerId?: string;
 }
 
+export interface FileValidationResult {
+  isValid: boolean;
+  errors: string[];
+  columnMapping: Record<string, string>;
+  sampleData: any[];
+}
+
+// Mapping различных названий столбцов к стандартным полям
+const COLUMN_MAPPINGS = {
+  title: ['Title', 'Название', 'Name', 'Product Name'],
+  price: ['Price', 'Цена', 'Cost', 'Amount'],
+  orderNumber: ['Order Number', 'Номер заказа', 'Number', 'Order#'],
+  places: ['Places', 'Количество мест', 'Quantity', 'Qty'],
+  deliveryPrice: ['Цена доставки', 'Delivery Price', 'Shipping Cost', 'Доставка'],
+  sellerId: ['Seller ID', 'ID продавца', 'Seller', 'SellerID'],
+  buyerId: ['Buyer ID', 'ID покупателя', 'Buyer', 'BuyerID'],
+  brand: ['Brand', 'Бренд', 'Марка'],
+  model: ['Model', 'Модель'],
+  description: ['Description', 'Дополнительная информация', 'Info', 'Details']
+};
+
+export const validateExcelFile = (data: any[]): FileValidationResult => {
+  const errors: string[] = [];
+  
+  console.log('Валидация Excel файла. Данные:', data);
+  
+  if (!data || data.length === 0) {
+    return {
+      isValid: false,
+      errors: ['Файл пустой или не содержит данных'],
+      columnMapping: {},
+      sampleData: []
+    };
+  }
+
+  // Получаем заголовки из первой строки
+  const headers = Object.keys(data[0] || {});
+  console.log('Найденные заголовки:', headers);
+
+  if (headers.length === 0) {
+    return {
+      isValid: false,
+      errors: ['Не найдены заголовки столбцов'],
+      columnMapping: {},
+      sampleData: []
+    };
+  }
+
+  // Создаем mapping столбцов
+  const columnMapping: Record<string, string> = {};
+  
+  Object.entries(COLUMN_MAPPINGS).forEach(([standardField, variants]) => {
+    const foundHeader = headers.find(header => 
+      variants.some(variant => 
+        header.toLowerCase().trim() === variant.toLowerCase().trim()
+      )
+    );
+    
+    if (foundHeader) {
+      columnMapping[standardField] = foundHeader;
+    }
+  });
+
+  console.log('Создан mapping столбцов:', columnMapping);
+
+  // Проверяем обязательные поля
+  const requiredFields = ['title', 'price', 'sellerId', 'buyerId'];
+  const missingFields = requiredFields.filter(field => !columnMapping[field]);
+
+  if (missingFields.length > 0) {
+    const missingMappings = missingFields.map(field => {
+      const expectedNames = COLUMN_MAPPINGS[field as keyof typeof COLUMN_MAPPINGS];
+      return `${field} (ожидается: ${expectedNames.join(', ')})`;
+    });
+    errors.push(`Отсутствуют обязательные столбцы: ${missingMappings.join('; ')}`);
+  }
+
+  // Берем первые 3 строки как образец
+  const sampleData = data.slice(0, 3);
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    columnMapping,
+    sampleData
+  };
+};
+
 export const validateImportRow = async (
   row: Record<string, any>, 
   rowNumber: number,
-  usersCache: Map<string, string>
+  usersCache: Map<string, string>,
+  columnMapping: Record<string, string>
 ): Promise<ValidationResult> => {
   const errors: string[] = [];
   const warnings: string[] = [];
   let sellerId: string | undefined;
   let buyerId: string | undefined;
 
-  // Validate required fields
-  const title = row['Название'] || row['Title'];
-  if (!title || title.trim() === '') {
+  console.log(`Валидация строки ${rowNumber}:`, row);
+  console.log('Используемый mapping:', columnMapping);
+
+  // Validate required fields используя mapping
+  const title = row[columnMapping.title] || '';
+  if (!title || title.toString().trim() === '') {
     errors.push('Отсутствует название заказа');
   }
 
-  const price = parseFloat(row['Цена'] || row['Price'] || '0');
+  const priceValue = row[columnMapping.price] || '0';
+  const price = parseFloat(priceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
   if (isNaN(price) || price <= 0) {
     errors.push('Некорректная цена товара');
   }
 
-  const sellerOptId = row['ID продавца'] || row['Seller ID'];
-  const buyerOptId = row['ID покупателя'] || row['Buyer ID'];
+  const sellerOptId = row[columnMapping.sellerId] || '';
+  const buyerOptId = row[columnMapping.buyerId] || '';
 
-  if (!sellerOptId || sellerOptId.trim() === '') {
+  if (!sellerOptId || sellerOptId.toString().trim() === '') {
     errors.push('Отсутствует ID продавца');
   } else {
     // Check if seller exists in cache
@@ -44,7 +136,7 @@ export const validateImportRow = async (
     }
   }
 
-  if (!buyerOptId || buyerOptId.trim() === '') {
+  if (!buyerOptId || buyerOptId.toString().trim() === '') {
     errors.push('Отсутствует ID покупателя');
   } else {
     // Check if buyer exists in cache
@@ -56,19 +148,22 @@ export const validateImportRow = async (
   }
 
   // Validate places
-  const places = parseInt(row['Количество мест'] || row['Places'] || '1');
+  const placesValue = row[columnMapping.places] || '1';
+  const places = parseInt(placesValue.toString());
   if (isNaN(places) || places <= 0) {
     warnings.push('Некорректное количество мест, будет использовано значение 1');
   }
 
   // Validate delivery price
-  const deliveryPrice = parseFloat(row['Цена доставки'] || row['Delivery Price'] || '0');
+  const deliveryPriceValue = row[columnMapping.deliveryPrice] || '0';
+  const deliveryPrice = parseFloat(deliveryPriceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
   if (isNaN(deliveryPrice)) {
     warnings.push('Некорректная цена доставки, будет использовано значение 0');
   }
 
   // Validate order number
-  const orderNumber = parseInt(row['Номер заказа'] || row['Order Number'] || '0');
+  const orderNumberValue = row[columnMapping.orderNumber] || '0';
+  const orderNumber = parseInt(orderNumberValue.toString());
   if (orderNumber > 0) {
     // Check if order number already exists
     const { data: existingOrder } = await supabase
