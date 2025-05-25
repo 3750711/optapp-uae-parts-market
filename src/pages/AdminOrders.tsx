@@ -18,7 +18,7 @@ import { AdminSEO } from "@/components/admin/AdminSEO";
 import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
 import { BulkOrderActions } from "@/components/admin/BulkOrderActions";
 import { OrderSortingControls } from "@/components/admin/OrderSortingControls";
-import { EnhancedAdminOrderCard } from "@/components/admin/EnhancedAdminOrderCard";
+import { OptimizedAdminOrderCard } from "@/components/admin/OptimizedAdminOrderCard";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -271,109 +271,15 @@ const AdminOrders = () => {
     navigate(`/admin/orders/${orderId}`);
   };
 
-  const handleEdit = useCallback((order: Order) => {
+  const handleEdit = (order: Order) => {
     setSelectedOrder(order);
     setShowEditDialog(true);
-  }, []);
+  };
 
-  const handleDelete = useCallback((order: Order) => {
+  const handleDelete = (order: Order) => {
     setSelectedOrder(order);
     setShowDeleteDialog(true);
-  }, []);
-
-  const handleConfirm = useCallback(async (order: Order) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'admin_confirmed' })
-        .eq('id', order.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно",
-        description: "Заказ подтвержден администратором",
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-      
-      // Отправка уведомления об изменении статуса заказа
-      try {
-        console.log('Отправка уведомления об изменении статуса заказа:', order.id);
-        
-        const { data: orderImages } = await supabase
-          .from('order_images')
-          .select('url')
-          .eq('order_id', order.id);
-          
-        const images = orderImages?.map(img => img.url) || [];
-        
-        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            order: { ...order, status: 'admin_confirmed', images },
-            action: 'status_change'
-          }
-        });
-        
-        console.log('Результат отправки уведомления об изменении статуса:', notificationResult);
-      } catch (notifyError) {
-        console.error('Ошибка отправки уведомления об изменении стatus заказа:', notifyError);
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось подтвердить заказ",
-        variant: "destructive",
-      });
-    }
-  }, [queryClient]);
-
-  const handleRegister = useCallback(async (order: Order) => {
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'processed' })
-        .eq('id', order.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно",
-        description: "Заказ зарегистрирован",
-      });
-
-      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
-      
-      // Отправка уведомления о регистрации заказа
-      try {
-        console.log('Отправка уведомления о регистрации заказа:', order.id);
-        
-        const { data: orderImages } = await supabase
-          .from('order_images')
-          .select('url')
-          .eq('order_id', order.id);
-          
-        const images = orderImages?.map(img => img.url) || [];
-        
-        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            order: { ...order, status: 'processed', images },
-            action: 'status_change'
-          }
-        });
-        
-        console.log('Результат отправки уведомления о регистрации заказа:', notificationResult);
-      } catch (notifyError) {
-        console.error('Ошибка отправки уведомления о регистрации заказа:', notifyError);
-      }
-    } catch (error) {
-      toast({
-        title: "Ошибка",
-        description: "Не удалось зарегистрировать заказ",
-        variant: "destructive",
-      });
-    }
-  }, [queryClient]);
+  };
 
   const handleOrderStatusChange = async (orderId: string, newStatus: string) => {
     if (!selectedOrder) return;
@@ -514,25 +420,31 @@ const AdminOrders = () => {
               isLoading={bulkConfirmMutation.isPending || bulkDeleteMutation.isPending}
             />
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedOrders?.length ? (
                 paginatedOrders.map((order) => (
-                  <EnhancedAdminOrderCard
-                    key={order.id}
-                    order={order}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onConfirm={handleConfirm}
-                    onRegister={handleRegister}
-                    onViewDetails={handleViewDetails}
-                    isSelected={selectedIds.includes(order.id)}
-                    onSelectionChange={handleSelectionChange}
-                    showCheckbox={showBulkActions}
-                    isLoading={bulkConfirmMutation.isPending || bulkDeleteMutation.isPending}
-                  />
+                  <div key={order.id} className="relative group">
+                    <OptimizedAdminOrderCard
+                      order={order}
+                      onEdit={setSelectedOrder}
+                      onDelete={setSelectedOrder}
+                      isSelected={selectedIds.includes(order.id)}
+                      onSelectionChange={handleSelectionChange}
+                      showCheckbox={showBulkActions}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      onClick={() => navigate(`/admin/orders/${order.id}`)}
+                      title="Посмотреть детали заказа"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </div>
                 ))
               ) : (
-                <div className="col-span-full text-center py-10 text-muted-foreground">
+                <div className="col-span-3 text-center py-10 text-muted-foreground">
                   {activeSearchTerm ? "Нет заказов, соответствующих поисковому запросу" : "Нет заказов с выбранным статусом"}
                 </div>
               )}
