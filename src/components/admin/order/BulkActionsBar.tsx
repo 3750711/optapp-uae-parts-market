@@ -95,6 +95,16 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
           <Button 
             variant="outline" 
             size="sm"
+            onClick={onBulkDelete}
+            className="hover:bg-red-50 hover:border-red-300"
+          >
+            <Trash2 className="h-4 w-4 mr-1 text-red-600" />
+            Удалить
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm"
             onClick={onClearSelection}
             className="hover:bg-gray-50"
           >
