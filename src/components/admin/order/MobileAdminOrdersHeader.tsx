@@ -4,11 +4,10 @@ import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Search, X, Filter, MoreVertical } from "lucide-react";
+import { Search, X, Filter } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
-import { EnhancedOrdersImportButton } from './EnhancedOrdersImportButton';
 import {
   Dialog,
   DialogContent,
@@ -24,12 +23,6 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -193,26 +186,6 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
               </div>
             </SheetContent>
           </Sheet>
-
-          {/* Actions Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="h-9 w-9 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onRefetch}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Обновить
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <div className="w-full">
-                  <EnhancedOrdersImportButton onImportComplete={onRefetch} />
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileAdminOrdersHeader } from './MobileAdminOrdersHeader';
@@ -9,7 +10,6 @@ import { RefreshCw, Search, X, SortAsc, SortDesc } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
-import { EnhancedOrdersImportButton } from './EnhancedOrdersImportButton';
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -51,19 +51,6 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
               Поиск: "{props.debouncedSearchTerm}"
             </Badge>
           )}
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          <EnhancedOrdersImportButton onImportComplete={props.onRefetch} />
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={props.onRefetch}
-            title="Обновить данные"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
