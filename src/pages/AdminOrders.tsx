@@ -3,23 +3,21 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminOrderCard } from "@/components/admin/AdminOrderCard";
-import { Loader2, Eye } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { AdminOrderEditDialog } from '@/components/admin/AdminOrderEditDialog';
 import { AdminOrderDeleteDialog } from '@/components/admin/AdminOrderDeleteDialog';
 import { toast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Database } from "@/integrations/supabase/types";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import OrderSearchFilters from '@/components/admin/filters/OrderSearchFilters';
 import { usePaginatedData } from "@/hooks/usePaginatedData";
 import LoadMoreTrigger from "@/components/admin/productGrid/LoadMoreTrigger";
+import { EnhancedAdminOrderCard } from "@/components/admin/order/EnhancedAdminOrderCard";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
-// Определяем тип для заказа, чтобы избежать ошибок TypeScript
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
     telegram: string | null;
@@ -78,14 +76,10 @@ const AdminOrders = () => {
         query = query.eq('status', statusFilter);
       }
 
-      // Применяем поиск, если есть активный поисковый запрос
       if (activeSearchTerm) {
         const isNumeric = !isNaN(Number(activeSearchTerm));
         
-        // Создаем фильтры поиска
         if (isNumeric) {
-          // Если это число, ищем точное соответствие по order_number
-          // и также по текстовым полям для подстрок
           query = query.or(
             `order_number.eq.${Number(activeSearchTerm)},` +
             `title.ilike.%${activeSearchTerm}%,` +
@@ -96,7 +90,6 @@ const AdminOrders = () => {
             `text_order.ilike.%${activeSearchTerm}%`
           );
         } else {
-          // Если это не число, ищем только в текстовых полях
           query = query.or(
             `title.ilike.%${activeSearchTerm}%,` +
             `brand.ilike.%${activeSearchTerm}%,` +
@@ -124,7 +117,6 @@ const AdminOrders = () => {
     }
   });
 
-  // Используем хук для пагинации
   const { paginatedData: paginatedOrders, totalPages } = usePaginatedData(
     orders || [],
     { pageSize, currentPage }
@@ -138,13 +130,13 @@ const AdminOrders = () => {
 
   const handleSearch = () => {
     setActiveSearchTerm(searchTerm.trim());
-    setCurrentPage(1); // Сбрасываем на первую страницу при новом поиске
+    setCurrentPage(1);
   };
 
   const clearSearch = () => {
     setSearchTerm('');
     setActiveSearchTerm('');
-    setCurrentPage(1); // Сбрасываем на первую страницу при очистке поиска
+    setCurrentPage(1);
   };
 
   const handleViewDetails = (orderId: string) => {
@@ -174,9 +166,7 @@ const AdminOrders = () => {
         
       if (error) throw error;
       
-      // Send notification about order status change
       try {
-        // Get order images
         const { data: orderImages } = await supabase
           .from('order_images')
           .select('url')
@@ -215,7 +205,7 @@ const AdminOrders = () => {
     return (
       <AdminLayout>
         <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       </AdminLayout>
     );
@@ -224,18 +214,20 @@ const AdminOrders = () => {
   return (
     <AdminLayout>
       <div className="container mx-auto py-8">
-        <Card>
-          <CardHeader className="flex flex-col space-y-4">
+        <Card className="shadow-lg">
+          <CardHeader className="flex flex-col space-y-4 bg-gradient-to-r from-primary/5 to-secondary/5">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <CardTitle>Управление заказами</CardTitle>
+              <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                Управление заказами
+              </CardTitle>
               <Select
                 value={statusFilter}
                 onValueChange={(value: StatusFilterType) => {
                   setStatusFilter(value);
-                  setCurrentPage(1); // Сбрасываем на первую страницу при изменении фильтра
+                  setCurrentPage(1);
                 }}
               >
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-[200px] border-2 transition-colors hover:border-primary/50">
                   <SelectValue placeholder="Фильтр по статусу" />
                 </SelectTrigger>
                 <SelectContent>
@@ -259,35 +251,29 @@ const AdminOrders = () => {
               onClearSearch={clearSearch}
             />
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {paginatedOrders?.length ? (
                 paginatedOrders.map((order) => (
-                  <div key={order.id} className="relative group">
-                    <AdminOrderCard
-                      order={order}
-                      onEdit={handleEdit}
-                      onDelete={handleDelete}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      onClick={() => handleViewDetails(order.id)}
-                      title="Посмотреть детали заказа"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <EnhancedAdminOrderCard
+                    key={order.id}
+                    order={order}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    onViewDetails={handleViewDetails}
+                  />
                 ))
               ) : (
-                <div className="col-span-3 text-center py-10 text-muted-foreground">
-                  {activeSearchTerm ? "Нет заказов, соответствующих поисковому запросу" : "Нет заказов с выбранным статусом"}
+                <div className="col-span-3 text-center py-20">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8">
+                    <p className="text-lg text-muted-foreground">
+                      {activeSearchTerm ? "Нет заказов, соответствующих поисковому запросу" : "Нет заказов с выбранным статусом"}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
             
-            {/* Кнопка "Загрузить еще" */}
             {orders && orders.length > 0 && currentPage < totalPages && (
               <div className="flex justify-center mt-8">
                 <LoadMoreTrigger

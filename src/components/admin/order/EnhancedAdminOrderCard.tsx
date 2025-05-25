@@ -1,0 +1,241 @@
+
+import React from 'react';
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Edit2, Trash2, CheckCircle, Eye } from "lucide-react";
+import { Database } from '@/integrations/supabase/types';
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "@/hooks/use-toast";
+import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
+import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
+import { OrderPriorityIndicator } from './OrderPriorityIndicator';
+import { CompactOrderInfo } from './CompactOrderInfo';
+
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  buyer: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  seller: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+    opt_status: string | null;
+  } | null;
+};
+
+interface EnhancedAdminOrderCardProps {
+  order: Order;
+  onEdit: (order: Order) => void;
+  onDelete: (order: Order) => void;
+  onViewDetails: (orderId: string) => void;
+}
+
+export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({ 
+  order, 
+  onEdit, 
+  onDelete,
+  onViewDetails 
+}) => {
+  const queryClient = useQueryClient();
+  
+  const highlightColor = 
+    order.status === 'processed' ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' :
+    order.status === 'created' || order.status === 'seller_confirmed' ? 'bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200' :
+    order.status === 'admin_confirmed' ? 'bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200' :
+    order.status === 'shipped' ? 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200' :
+    order.status === 'delivered' ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' :
+    order.status === 'cancelled' ? 'bg-gradient-to-br from-red-50 to-red-100 border-red-200' :
+    'bg-white';
+
+  const handleConfirm = async () => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'admin_confirmed' })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Заказ подтвержден администратором",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      
+      // Отправка уведомления
+      try {
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', order.id);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, status: 'admin_confirmed', images },
+            action: 'status_change'
+          }
+        });
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления:', notifyError);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось подтвердить заказ",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'processed' })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Заказ зарегистрирован",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      
+      // Отправка уведомления
+      try {
+        const { data: orderImages } = await supabase
+          .from('order_images')
+          .select('url')
+          .eq('order_id', order.id);
+          
+        const images = orderImages?.map(img => img.url) || [];
+        
+        await supabase.functions.invoke('send-telegram-notification', {
+          body: { 
+            order: { ...order, status: 'processed', images },
+            action: 'status_change'
+          }
+        });
+      } catch (notifyError) {
+        console.error('Ошибка отправки уведомления:', notifyError);
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось зарегистрировать заказ",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
+  const showRegisterButton = order.status === 'admin_confirmed';
+  const totalValue = Number(order.price) + Number(order.delivery_price_confirm || 0);
+
+  return (
+    <Card className={`${highlightColor} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden`}>
+      {/* Индикатор приоритета */}
+      <div className="absolute top-2 left-2 z-10">
+        <OrderPriorityIndicator 
+          createdAt={order.created_at}
+          status={order.status}
+          totalValue={totalValue}
+        />
+      </div>
+
+      <CardHeader className="space-y-3 pb-4">
+        <div className="flex justify-between items-start">
+          <EnhancedOrderStatusBadge status={order.status} />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            onClick={() => onViewDetails(order.id)}
+            title="Посмотреть детали заказа"
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+        </div>
+        
+        <div className="text-xs text-muted-foreground">
+          {new Date(order.created_at).toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <CompactOrderInfo order={order} />
+
+        {order.text_order && order.text_order.trim() !== "" && (
+          <div className="text-sm text-gray-600 border-t pt-3">
+            <span className="font-medium">Дополнительная информация:</span>
+            <p className="mt-1 whitespace-pre-wrap line-clamp-2">{order.text_order}</p>
+          </div>
+        )}
+
+        <OrderConfirmationImages 
+          orderId={order.id} 
+          canEdit={true}
+        />
+      </CardContent>
+      
+      <div className="p-4 border-t bg-white/50 backdrop-blur-sm flex items-center justify-end gap-2">
+        {showConfirmButton && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors"
+            onClick={handleConfirm}
+          >
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Подтвердить
+          </Button>
+        )}
+        {showRegisterButton && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-green-600 hover:text-green-700 hover:bg-green-50 transition-colors"
+            onClick={handleRegister}
+          >
+            <CheckCircle className="h-4 w-4 mr-1" />
+            Зарегистрировать
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hover:bg-blue-50 hover:text-blue-600 transition-colors"
+          onClick={() => onEdit(order)}
+        >
+          <Edit2 className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+          onClick={() => onDelete(order)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </Card>
+  );
+};
