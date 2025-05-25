@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { MemoizedAdminOrderCard } from './MemoizedAdminOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
@@ -23,12 +23,26 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
   onViewDetails,
   containerHeight = 600
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(1200); // Default width
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
   const { columnCount, rowCount } = useMemo(() => {
-    // Calculate based on container width - defaulting to 3 columns for now
-    const cols = 3;
+    const cols = Math.max(1, Math.floor(containerWidth / (CARD_WIDTH + GAP)));
     const rows = Math.ceil(orders.length / cols);
     return { columnCount: cols, rowCount: rows };
-  }, [orders.length]);
+  }, [orders.length, containerWidth]);
 
   const Cell = React.memo(({ columnIndex, rowIndex, style }: any) => {
     const index = rowIndex * columnCount + columnIndex;
@@ -87,15 +101,17 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
   }
 
   return (
-    <Grid
-      columnCount={columnCount}
-      columnWidth={CARD_WIDTH + GAP}
-      height={containerHeight}
-      rowCount={rowCount}
-      rowHeight={CARD_HEIGHT + GAP}
-      width="100%"
-    >
-      {Cell}
-    </Grid>
+    <div ref={containerRef} className="w-full">
+      <Grid
+        columnCount={columnCount}
+        columnWidth={CARD_WIDTH + GAP}
+        height={containerHeight}
+        rowCount={rowCount}
+        rowHeight={CARD_HEIGHT + GAP}
+        width={containerWidth}
+      >
+        {Cell}
+      </Grid>
+    </div>
   );
 };
