@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -35,7 +34,7 @@ import {
 } from "@/components/ui/table";
 
 // Sorting types
-type SortField = 'full_name' | 'email' | 'user_type' | 'verification_status' | 'opt_status' | 'created_at' | 'rating';
+type SortField = 'full_name' | 'email' | 'user_type' | 'verification_status' | 'opt_status' | 'created_at' | 'rating' | 'opt_id';
 type SortDirection = 'asc' | 'desc';
 
 const AdminUsers = () => {
@@ -250,6 +249,14 @@ const AdminUsers = () => {
                     </TableHead>
                     <TableHead 
                       className="cursor-pointer"
+                      onClick={() => handleSort('opt_id')}
+                    >
+                      <div className="flex items-center">
+                        OPT_ID {renderSortIcon('opt_id')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer"
                       onClick={() => handleSort('user_type')}
                     >
                       <div className="flex items-center">
@@ -307,6 +314,7 @@ const AdminUsers = () => {
                     >
                       <TableCell>{user.full_name || 'Без имени'}</TableCell>
                       <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.opt_id || 'Не указан'}</TableCell>
                       <TableCell>
                         <Badge className={`${
                           user.user_type === 'admin' 
