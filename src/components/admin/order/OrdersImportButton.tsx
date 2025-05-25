@@ -1,7 +1,8 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { FileUp } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { FileUp, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,13 +11,48 @@ interface OrdersImportButtonProps {
   onImportComplete?: () => void;
 }
 
+interface ImportProgress {
+  isImporting: boolean;
+  currentRow: number;
+  totalRows: number;
+  successCount: number;
+  errorCount: number;
+}
+
 export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
   onImportComplete
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<ImportProgress>({
+    isImporting: false,
+    currentRow: 0,
+    totalRows: 0,
+    successCount: 0,
+    errorCount: 0
+  });
 
   const handleFileSelect = () => {
     fileInputRef.current?.click();
+  };
+
+  const updateProgress = (current: number, total: number, success: number, errors: number) => {
+    setProgress({
+      isImporting: true,
+      currentRow: current,
+      totalRows: total,
+      successCount: success,
+      errorCount: errors
+    });
+  };
+
+  const resetProgress = () => {
+    setProgress({
+      isImporting: false,
+      currentRow: 0,
+      totalRows: 0,
+      successCount: 0,
+      errorCount: 0
+    });
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,6 +69,8 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
     }
 
     try {
+      setProgress({ isImporting: true, currentRow: 0, totalRows: 0, successCount: 0, errorCount: 0 });
+
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data);
       const sheetName = workbook.SheetNames[0];
@@ -41,10 +79,18 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
 
       console.log('Импортируемые данные:', jsonData);
 
+      const totalRows = jsonData.length;
+      setProgress({ isImporting: true, currentRow: 0, totalRows, successCount: 0, errorCount: 0 });
+
       let successCount = 0;
       let errorCount = 0;
 
-      for (const row of jsonData as any[]) {
+      for (let i = 0; i < jsonData.length; i++) {
+        const row = jsonData[i] as any;
+        
+        // Обновляем прогресс
+        updateProgress(i + 1, totalRows, successCount, errorCount);
+
         try {
           // Получаем номер заказа из Excel
           const excelOrderNumber = parseInt(row['Номер заказа'] || row['Order Number'] || '0');
@@ -115,7 +161,12 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
           console.error('Ошибка при обработке строки:', error);
           errorCount++;
         }
+
+        // Небольшая задержка для обновления UI
+        await new Promise(resolve => setTimeout(resolve, 50));
       }
+
+      resetProgress();
 
       toast({
         title: "Импорт завершен",
@@ -129,6 +180,7 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
 
     } catch (error) {
       console.error('Ошибка при чтении файла:', error);
+      resetProgress();
       toast({
         title: "Ошибка",
         description: "Не удалось прочитать файл Excel",
@@ -142,8 +194,12 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
     }
   };
 
+  const progressPercentage = progress.totalRows > 0 
+    ? Math.round((progress.currentRow / progress.totalRows) * 100) 
+    : 0;
+
   return (
-    <>
+    <div className="space-y-2">
       <input
         ref={fileInputRef}
         type="file"
@@ -151,16 +207,39 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
         onChange={handleFileChange}
         style={{ display: 'none' }}
       />
+      
       <Button
         variant="outline"
         size="sm"
         onClick={handleFileSelect}
+        disabled={progress.isImporting}
         className="hover:bg-blue-50 hover:border-blue-300"
         title="Ожидаемые столбцы: Название/Title, Цена/Price, Бренд/Brand, Модель/Model, Количество мест/Places, Дополнительная информация/Description, Цена доставки/Delivery Price, Номер заказа/Order Number, ID продавца/Seller ID, ID покупателя/Buyer ID"
       >
-        <FileUp className="h-4 w-4 mr-1 text-blue-600" />
-        Импорт из Excel
+        {progress.isImporting ? (
+          <Loader2 className="h-4 w-4 mr-1 animate-spin text-blue-600" />
+        ) : (
+          <FileUp className="h-4 w-4 mr-1 text-blue-600" />
+        )}
+        {progress.isImporting ? 'Импортируется...' : 'Импорт из Excel'}
       </Button>
-    </>
+
+      {progress.isImporting && (
+        <div className="w-full space-y-2 p-3 bg-blue-50 rounded-lg border">
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>Импорт заказов...</span>
+            <span>{progress.currentRow} из {progress.totalRows}</span>
+          </div>
+          
+          <Progress value={progressPercentage} className="w-full" />
+          
+          <div className="flex justify-between text-xs text-gray-500">
+            <span className="text-green-600">✓ Успешно: {progress.successCount}</span>
+            <span className="text-red-600">✗ Ошибок: {progress.errorCount}</span>
+            <span>{progressPercentage}%</span>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
