@@ -46,8 +46,11 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
 
       for (const row of jsonData as any[]) {
         try {
-          // Маппинг полей из Excel в поля базы данных
-          const orderData = {
+          // Получаем номер заказа из Excel
+          const excelOrderNumber = parseInt(row['Номер заказа'] || row['Order Number'] || '0');
+          
+          // Базовые данные заказа
+          const orderData: any = {
             title: row['Название'] || row['Title'] || 'Импорт из Excel',
             price: parseFloat(row['Цена'] || row['Price'] || '0'),
             brand: row['Бренд'] || row['Brand'] || '',
@@ -55,11 +58,15 @@ export const OrdersImportButton: React.FC<OrdersImportButtonProps> = ({
             place_number: parseInt(row['Количество мест'] || row['Places'] || '1'),
             text_order: row['Дополнительная информация'] || row['Description'] || '',
             delivery_price_confirm: parseFloat(row['Цена доставки'] || row['Delivery Price'] || '0'),
-            order_number: parseInt(row['Номер заказа'] || row['Order Number'] || '0'),
             status: 'created' as const,
             order_created_type: 'free_order' as const,
             delivery_method: 'cargo_rf' as const,
           };
+
+          // Добавляем order_number только если это реальное значение (не 0)
+          if (excelOrderNumber > 0) {
+            orderData.order_number = excelOrderNumber;
+          }
 
           // Поиск продавца по opt_id или email
           let sellerId = null;
