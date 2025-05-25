@@ -126,28 +126,38 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     }
   }, [order, form]);
 
-  const handleImagesUpload = async (urls: string[]) => {
+  const handleImagesUpload = async (updatedUrls: string[]) => {
     if (!order?.id) return;
 
     try {
-      console.log('Uploading images to order:', { orderId: order.id, urls });
+      console.log('Updating order images:', { orderId: order.id, urls: updatedUrls });
       
-      // Update the images field in the orders table
+      // Update the images field in the orders table with the complete updated array
       const { error } = await supabase
         .from('orders')
-        .update({ images: urls })
+        .update({ images: updatedUrls })
         .eq('id', order.id);
 
       if (error) throw error;
 
       // Update local state
-      setOrderImages(urls);
+      setOrderImages(updatedUrls);
 
-      const newImagesCount = urls.length - orderImages.length;
-      if (newImagesCount > 0) {
+      // Calculate the difference for toast message
+      const previousCount = orderImages.length;
+      const newCount = updatedUrls.length;
+      
+      if (newCount > previousCount) {
+        const addedCount = newCount - previousCount;
         toast({
           title: "Успешно",
-          description: `Добавлено ${newImagesCount} фотографий`,
+          description: `Добавлено ${addedCount} фотографий`,
+        });
+      } else if (newCount < previousCount) {
+        const removedCount = previousCount - newCount;
+        toast({
+          title: "Успешно",
+          description: `Удалено ${removedCount} фотографий`,
         });
       }
 
