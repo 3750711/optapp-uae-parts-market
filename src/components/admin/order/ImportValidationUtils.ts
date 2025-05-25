@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface ValidationResult {
@@ -27,6 +28,16 @@ const COLUMN_MAPPINGS = {
   brand: ['Brand', 'Бренд', 'Марка', 'brand'],
   model: ['Model', 'Модель', 'model'],
   description: ['Description', 'Дополнительная информация', 'Info', 'Details', 'description']
+};
+
+// Функция для нормализации opt_id
+const normalizeOptId = (optId: string): string => {
+  return optId.toString().trim().toLowerCase();
+};
+
+// Функция для проверки является ли заказ долговым
+const isDebtOrder = (title: string): boolean => {
+  return title && title.toLowerCase().includes('(долг)');
 };
 
 export const validateExcelFile = (data: any[]): FileValidationResult => {
@@ -74,7 +85,7 @@ export const validateExcelFile = (data: any[]): FileValidationResult => {
   console.log('Создан mapping столбцов:', columnMapping);
 
   // Проверяем обязательные поля
-  const requiredFields = ['title', 'price', 'sellerId', 'buyerId'];
+  const requiredFields = ['title', 'sellerId', 'buyerId'];
   const missingFields = requiredFields.filter(field => !columnMapping[field]);
 
   if (missingFields.length > 0) {
@@ -83,7 +94,6 @@ export const validateExcelFile = (data: any[]): FileValidationResult => {
       return `${field} (ожидается: ${expectedNames.join(', ')})`;
     });
     
-    // Добавим дополнительную диагностику
     console.log('Отсутствующие поля:', missingFields);
     console.log('Доступные заголовки:', headers);
     console.log('Текущий mapping:', columnMapping);
@@ -123,10 +133,21 @@ export const validateImportRow = async (
     errors.push('Отсутствует название заказа');
   }
 
+  // Изменена валидация цены для поддержки долговых заказов
   const priceValue = row[columnMapping.price] || '0';
   const price = parseFloat(priceValue.toString().replace(/[^\d.,]/g, '').replace(',', '.'));
-  if (isNaN(price) || price <= 0) {
+  
+  // Проверяем является ли заказ долговым
+  const isDebt = isDebtOrder(title);
+  
+  if (isNaN(price)) {
     errors.push('Некорректная цена товара');
+  } else if (price <= 0 && !isDebt) {
+    // Для обычных заказов цена должна быть больше 0
+    errors.push('Цена товара должна быть больше 0');
+  } else if (price === 0 && isDebt) {
+    // Для долговых заказов нулевая цена допустима, добавляем предупреждение
+    warnings.push('Долговой заказ с нулевой ценой');
   }
 
   const sellerOptId = row[columnMapping.sellerId] || '';
@@ -135,10 +156,17 @@ export const validateImportRow = async (
   if (!sellerOptId || sellerOptId.toString().trim() === '') {
     errors.push('Отсутствует ID продавца');
   } else {
-    // Check if seller exists in cache
-    if (usersCache.has(`seller_${sellerOptId}`)) {
-      sellerId = usersCache.get(`seller_${sellerOptId}`);
+    // Нормализуем opt_id для поиска
+    const normalizedSellerOptId = normalizeOptId(sellerOptId);
+    const cacheKey = `seller_${normalizedSellerOptId}`;
+    
+    console.log(`Поиск продавца: исходный="${sellerOptId}", нормализованный="${normalizedSellerOptId}", ключ кэша="${cacheKey}"`);
+    
+    if (usersCache.has(cacheKey)) {
+      sellerId = usersCache.get(cacheKey);
+      console.log(`Продавец найден в кэше: ${sellerId}`);
     } else {
+      console.log(`Продавец не найден в кэше. Доступные ключи:`, Array.from(usersCache.keys()));
       errors.push(`Продавец с ID "${sellerOptId}" не найден`);
     }
   }
@@ -146,10 +174,17 @@ export const validateImportRow = async (
   if (!buyerOptId || buyerOptId.toString().trim() === '') {
     errors.push('Отсутствует ID покупателя');
   } else {
-    // Check if buyer exists in cache
-    if (usersCache.has(`buyer_${buyerOptId}`)) {
-      buyerId = usersCache.get(`buyer_${buyerOptId}`);
+    // Нормализуем opt_id для поиска
+    const normalizedBuyerOptId = normalizeOptId(buyerOptId);
+    const cacheKey = `buyer_${normalizedBuyerOptId}`;
+    
+    console.log(`Поиск покупателя: исходный="${buyerOptId}", нормализованный="${normalizedBuyerOptId}", ключ кэша="${cacheKey}"`);
+    
+    if (usersCache.has(cacheKey)) {
+      buyerId = usersCache.get(cacheKey);
+      console.log(`Покупатель найден в кэше: ${buyerId}`);
     } else {
+      console.log(`Покупатель не найден в кэше. Доступные ключи:`, Array.from(usersCache.keys()));
       errors.push(`Покупатель с ID "${buyerOptId}" не найден`);
     }
   }
@@ -201,42 +236,65 @@ export const buildUsersCache = async (data: any[], columnMapping: Record<string,
   const sellerOptIds = new Set<string>();
   const buyerOptIds = new Set<string>();
 
-  // Collect all unique opt_ids используя правильные названия столбцов
+  // Собираем все уникальные opt_ids с нормализацией
   data.forEach(row => {
     const sellerOptId = row[columnMapping.sellerId];
     const buyerOptId = row[columnMapping.buyerId];
     
     if (sellerOptId && sellerOptId.toString().trim()) {
-      sellerOptIds.add(sellerOptId.toString().trim());
+      const normalized = normalizeOptId(sellerOptId);
+      sellerOptIds.add(normalized);
     }
     if (buyerOptId && buyerOptId.toString().trim()) {
-      buyerOptIds.add(buyerOptId.toString().trim());
+      const normalized = normalizeOptId(buyerOptId);
+      buyerOptIds.add(normalized);
     }
   });
 
-  // Fetch all users at once
+  console.log('Собранные seller opt_ids:', Array.from(sellerOptIds));
+  console.log('Собранные buyer opt_ids:', Array.from(buyerOptIds));
+
+  // Получаем всех пользователей одним запросом
   const allOptIds = [...Array.from(sellerOptIds), ...Array.from(buyerOptIds)];
   
   if (allOptIds.length > 0) {
-    const { data: users } = await supabase
+    console.log('Поиск пользователей по opt_ids:', allOptIds);
+    
+    const { data: users, error } = await supabase
       .from('profiles')
       .select('id, opt_id')
-      .in('opt_id', allOptIds);
+      .not('opt_id', 'is', null);
 
-    // Build cache
+    if (error) {
+      console.error('Ошибка при получении пользователей:', error);
+    } else {
+      console.log('Найдено пользователей в БД:', users?.length || 0);
+      console.log('Первые 5 пользователей:', users?.slice(0, 5));
+    }
+
+    // Строим кэш с нормализованными opt_id
     users?.forEach(user => {
       if (user.opt_id) {
-        if (sellerOptIds.has(user.opt_id)) {
-          cache.set(`seller_${user.opt_id}`, user.id);
+        const normalizedOptId = normalizeOptId(user.opt_id);
+        console.log(`Обработка пользователя: исходный opt_id="${user.opt_id}", нормализованный="${normalizedOptId}"`);
+        
+        if (sellerOptIds.has(normalizedOptId)) {
+          const cacheKey = `seller_${normalizedOptId}`;
+          cache.set(cacheKey, user.id);
+          console.log(`Добавлен продавец в кэш: ${cacheKey} -> ${user.id}`);
         }
-        if (buyerOptIds.has(user.opt_id)) {
-          cache.set(`buyer_${user.opt_id}`, user.id);
+        if (buyerOptIds.has(normalizedOptId)) {
+          const cacheKey = `buyer_${normalizedOptId}`;
+          cache.set(cacheKey, user.id);
+          console.log(`Добавлен покупатель в кэш: ${cacheKey} -> ${user.id}`);
         }
       }
     });
   }
 
-  // Find missing users
+  console.log('Итоговый кэш пользователей:', Array.from(cache.entries()));
+
+  // Находим отсутствующих пользователей
   const foundSellerIds = new Set(
     Array.from(cache.keys())
       .filter(key => key.startsWith('seller_'))
@@ -251,6 +309,9 @@ export const buildUsersCache = async (data: any[], columnMapping: Record<string,
   const missingSellers = Array.from(sellerOptIds).filter(id => !foundSellerIds.has(id));
   const missingBuyers = Array.from(buyerOptIds).filter(id => !foundBuyerIds.has(id));
 
+  console.log('Отсутствующие продавцы:', missingSellers);
+  console.log('Отсутствующие покупатели:', missingBuyers);
+
   return {
     cache,
     missingUsers: {
@@ -262,12 +323,15 @@ export const buildUsersCache = async (data: any[], columnMapping: Record<string,
 
 export const createMissingUser = async (optId: string, userType: 'seller' | 'buyer'): Promise<string | null> => {
   try {
+    // Нормализуем opt_id при создании пользователя
+    const normalizedOptId = normalizeOptId(optId);
+    
     const { data, error } = await supabase
       .from('profiles')
       .insert({
-        opt_id: optId,
-        full_name: `Импорт ${userType} ${optId}`,
-        email: `import_${userType}_${optId}@temp.local`,
+        opt_id: normalizedOptId,
+        full_name: `Импорт ${userType} ${normalizedOptId}`,
+        email: `import_${userType}_${normalizedOptId}@temp.local`,
         user_type: userType,
         verification_status: 'pending'
       })
@@ -279,6 +343,7 @@ export const createMissingUser = async (optId: string, userType: 'seller' | 'buy
       return null;
     }
 
+    console.log(`Создан пользователь: opt_id="${normalizedOptId}", id="${data.id}"`);
     return data.id;
   } catch (error) {
     console.error('Exception creating user:', error);
