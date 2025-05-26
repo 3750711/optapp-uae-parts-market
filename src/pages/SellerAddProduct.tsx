@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -123,7 +122,7 @@ const SellerAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
-  const handleRealtimeImageUpload = (urls: string[]) => {
+  const handleMobileOptimizedImageUpload = (urls: string[]) => {
     setImageUrls(urls); // Replace with the complete list
     
     // Set default primary image if none is selected yet
@@ -353,7 +352,7 @@ const SellerAddProduct = () => {
                 setSearchModelTerm={setSearchModelTerm}
                 filteredBrands={filteredBrands}
                 filteredModels={filteredModels}
-                handleRealtimeImageUpload={handleRealtimeImageUpload}
+                handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
                 setVideoUrls={setVideoUrls}
                 primaryImage={primaryImage}
                 setPrimaryImage={setPrimaryImage}

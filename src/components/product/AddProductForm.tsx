@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import VideoUpload from "@/components/ui/video-upload";
-import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 
 // Product form schema with zod validation
 export const productSchema = z.object({
@@ -69,7 +69,7 @@ interface AddProductFormProps {
   setSearchModelTerm: (term: string) => void;
   filteredBrands: Array<{id: string, name: string}>;
   filteredModels: Array<{id: string, name: string, brand_id: string}>;
-  handleRealtimeImageUpload: (urls: string[]) => void;
+  handleMobileOptimizedImageUpload: (urls: string[]) => void;
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
@@ -92,7 +92,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   setSearchModelTerm,
   filteredBrands,
   filteredModels,
-  handleRealtimeImageUpload,
+  handleMobileOptimizedImageUpload,
   setVideoUrls,
   primaryImage,
   setPrimaryImage
@@ -279,11 +279,12 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         
         <div className="space-y-2">
           <Label htmlFor="images">Фотографии товара</Label>
-          <RealtimeImageUpload
-            onUploadComplete={handleRealtimeImageUpload}
+          <MobileOptimizedImageUpload
+            onUploadComplete={handleMobileOptimizedImageUpload}
             maxImages={30}
-            onPrimaryImageChange={setPrimaryImage}
-            primaryImage={primaryImage}
+            storageBucket="Product Images"
+            storagePath=""
+            existingImages={imageUrls}
           />
         </div>
         
