@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,7 +14,8 @@ import {
   Trash2,
   CheckCircle,
   XCircle,
-  Clock
+  Clock,
+  Check
 } from "lucide-react";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
@@ -26,6 +26,9 @@ interface MobileOptimizedImageUploadProps {
   storageBucket?: string;
   storagePath?: string;
   existingImages?: string[];
+  onImageDelete?: (url: string) => void;
+  onSetPrimaryImage?: (url: string) => void;
+  primaryImage?: string;
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
@@ -33,7 +36,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   maxImages = 25,
   storageBucket = "order-images",
   storagePath = "",
-  existingImages = []
+  existingImages = [],
+  onImageDelete,
+  onSetPrimaryImage,
+  primaryImage
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -131,6 +137,102 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 
   return (
     <div className="space-y-4">
+      {/* Existing Images Gallery */}
+      {existingImages.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">
+              Загруженные изображения ({existingImages.length}/{maxImages})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {existingImages.map((url, index) => (
+                <div 
+                  key={url} 
+                  className={`relative group rounded-md overflow-hidden border aspect-square ${
+                    primaryImage === url ? 'ring-2 ring-blue-500' : ''
+                  }`}
+                >
+                  <img 
+                    src={url} 
+                    alt={`Фото ${index + 1}`} 
+                    className="w-full h-full object-cover" 
+                  />
+                  
+                  {/* Mobile-friendly overlay controls */}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
+                    {onSetPrimaryImage && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        className="h-8 w-8 rounded-full p-0 touch-manipulation"
+                        onClick={() => onSetPrimaryImage(url)}
+                        disabled={primaryImage === url}
+                        title={primaryImage === url ? "Уже основное" : "Сделать основным"}
+                      >
+                        <Check className="h-4 w-4" />
+                      </Button>
+                    )}
+                    
+                    {onImageDelete && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="destructive"
+                        className="h-8 w-8 rounded-full p-0 touch-manipulation"
+                        onClick={() => onImageDelete(url)}
+                        disabled={existingImages.length <= 1}
+                        title="Удалить изображение"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  {/* Primary image indicator */}
+                  {primaryImage === url && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-80 p-1">
+                      <p className="text-white text-xs text-center font-medium">Основное</p>
+                    </div>
+                  )}
+                  
+                  {/* Mobile tap controls overlay for touch devices */}
+                  {isMobileDevice && (
+                    <div className="absolute top-1 right-1 flex gap-1">
+                      {onSetPrimaryImage && primaryImage !== url && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="h-6 w-6 rounded-full p-0 bg-white/90 hover:bg-white"
+                          onClick={() => onSetPrimaryImage(url)}
+                        >
+                          <Check className="h-3 w-3" />
+                        </Button>
+                      )}
+                      
+                      {onImageDelete && existingImages.length > 1 && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          className="h-6 w-6 rounded-full p-0 bg-red-500/90 hover:bg-red-500"
+                          onClick={() => onImageDelete(url)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Device Info Card */}
       {isMobileDevice && (
         <Card className="border-blue-200 bg-blue-50">
@@ -152,7 +254,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           type="button"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || existingImages.length >= maxImages}
           className="flex-1"
         >
           <ImagePlus className="mr-2 h-4 w-4" />
@@ -164,7 +266,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             type="button"
             variant="outline"
             onClick={() => cameraInputRef.current?.click()}
-            disabled={isUploading}
+            disabled={isUploading || existingImages.length >= maxImages}
           >
             <Camera className="h-4 w-4" />
           </Button>
