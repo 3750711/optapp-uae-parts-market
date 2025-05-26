@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -632,6 +632,54 @@ const AdminAddProduct = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="images">Фотографии товара</Label>
+                    
+                    {/* Display uploaded images */}
+                    {imageUrls.length > 0 && (
+                      <div className="mb-4">
+                        <div className="grid grid-cols-3 gap-2">
+                          {imageUrls.map((url, index) => (
+                            <div 
+                              key={url} 
+                              className={`relative group rounded-md overflow-hidden border aspect-square ${primaryImage === url ? 'ring-2 ring-blue-500' : ''}`}
+                            >
+                              <img 
+                                src={url} 
+                                alt={`Фото ${index + 1}`} 
+                                className="w-full h-full object-cover" 
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-7 w-7 rounded-full p-0"
+                                  onClick={() => setPrimaryImage(url)}
+                                  disabled={primaryImage === url}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="destructive"
+                                  className="h-7 w-7 rounded-full p-0"
+                                  onClick={() => removeImage(url)}
+                                  disabled={imageUrls.length <= 1}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                              {primaryImage === url && (
+                                <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-70 p-1">
+                                  <p className="text-white text-xs text-center">Основное</p>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     <MobileOptimizedImageUpload
                       onUploadComplete={handleMobileOptimizedImageUpload}
                       maxImages={30}
