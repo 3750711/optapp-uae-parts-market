@@ -143,12 +143,10 @@ export const CompactOrderInfo: React.FC<CompactOrderInfoProps> = ({ order }) => 
           </div>
         )}
         
-        {order.place_number && order.place_number > 1 && (
-          <div className="flex items-center justify-between text-sm">
-            <span>Мест для отправки:</span>
-            <Badge variant="secondary">{order.place_number}</Badge>
-          </div>
-        )}
+        <div className="flex items-center justify-between text-sm">
+          <span>Мест для отправки:</span>
+          <Badge variant="secondary">{order.place_number || 1}</Badge>
+        </div>
       </div>
     </div>
   );
