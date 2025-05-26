@@ -149,6 +149,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       {/* Upload Controls */}
       <div className="flex gap-2">
         <Button
+          type="button"
           variant="outline"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
@@ -160,6 +161,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         
         {isMobileDevice && (
           <Button
+            type="button"
             variant="outline"
             onClick={() => cameraInputRef.current?.click()}
             disabled={isUploading}
@@ -197,6 +199,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                 Готово к загрузке: {selectedFiles.length} файлов
               </CardTitle>
               <Button
+                type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => {
@@ -217,6 +220,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                   {[0.4, 0.6, 0.8].map(quality => (
                     <Button
                       key={quality}
+                      type="button"
                       variant={compressionQuality === quality ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCompressionQuality(quality)}
@@ -245,6 +249,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 
             {/* Upload Button */}
             <Button 
+              type="button"
               onClick={startUpload} 
               disabled={isUploading}
               className="w-full"
@@ -274,7 +279,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                 Загрузка файлов: {successCount + errorCount} / {uploadProgress.length}
               </CardTitle>
               {canCancel && (
-                <Button variant="outline" size="sm" onClick={cancelUpload}>
+                <Button type="button" variant="outline" size="sm" onClick={cancelUpload}>
                   <Pause className="h-4 w-4" />
                 </Button>
               )}
@@ -337,6 +342,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             {/* Retry Failed Button */}
             {errorCount > 0 && !isUploading && (
               <Button 
+                type="button"
                 variant="outline" 
                 onClick={() => retryFailedUploads({ storageBucket, storagePath })}
                 className="w-full"

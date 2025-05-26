@@ -558,172 +558,76 @@ export function RealtimeImageUpload({
         </div>
       )}
       
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-        {/* Загруженные изображения */}
-        {Object.entries(uploadedImages).map(([fileId, imageUrl]) => (
-          <div key={fileId} className={`aspect-square bg-gray-100 rounded-lg overflow-hidden relative group ${primaryImage === imageUrl ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}>
-            <img 
-              src={imageUrl} 
-              alt="Uploaded" 
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-2">
-              {onPrimaryImageChange && (
-                <Button 
-                  variant="secondary" 
-                  size="icon" 
-                  className="h-8 w-8"
-                  title="Сделать основным фото"
-                  onClick={() => setPrimaryImage(imageUrl)}
-                  disabled={primaryImage === imageUrl}
-                >
-                  <Check className={`h-4 w-4 ${primaryImage === imageUrl ? 'text-blue-500' : ''}`} />
-                </Button>
-              )}
+      {/* Загруженные изображения */}
+      {Object.entries(uploadedImages).map(([fileId, imageUrl]) => (
+        <div key={fileId} className={`aspect-square bg-gray-100 rounded-lg overflow-hidden relative group ${primaryImage === imageUrl ? 'ring-2 ring-offset-1 ring-blue-500' : ''}`}>
+          <img 
+            src={imageUrl} 
+            alt="Uploaded" 
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-2">
+            {onPrimaryImageChange && (
               <Button 
-                variant="destructive" 
+                variant="secondary" 
                 size="icon" 
-                className="h-8 w-8" 
-                onClick={() => handleRemoveImage(fileId, imageUrl)}
+                className="h-8 w-8"
+                title="Сделать основным фото"
+                onClick={() => setPrimaryImage(imageUrl)}
+                disabled={primaryImage === imageUrl}
               >
-                <Trash2 className="h-4 w-4" />
+                <Check className={`h-4 w-4 ${primaryImage === imageUrl ? 'text-blue-500' : ''}`} />
               </Button>
-            </div>
-            {primaryImage === imageUrl && (
-              <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-70 p-1">
-                <p className="text-white text-xs text-center">Основное фото</p>
-              </div>
             )}
+            <Button 
+              variant="destructive" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={() => handleRemoveImage(fileId, imageUrl)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
-        ))}
-        
-        {/* Индикаторы прогресса загрузки */}
-        {Object.entries(uploadProgress).map(([id, progress]) => (
-          progress !== 100 && progress !== -1 && (
-            <div key={id} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
-                <span className="text-xs text-gray-500 mt-1">{progress}%</span>
-              </div>
+          {primaryImage === imageUrl && (
+            <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-70 p-1">
+              <p className="text-white text-xs text-center">Основное фото</p>
             </div>
-          )
-        ))}
-        
-        {/* Отображение ошибок загрузки */}
-        {Object.entries(uploadErrors).map(([id, errorMessage]) => (
-          <div key={`error-${id}`} className="aspect-square bg-red-50 rounded-lg flex items-center justify-center p-2">
+          )}
+        </div>
+      ))}
+      
+      {/* Индикаторы прогресса загрузки */}
+      {Object.entries(uploadProgress).map(([id, progress]) => (
+        progress !== 100 && progress !== -1 && (
+          <div key={id} className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
             <div className="text-center">
-              <AlertCircle className="h-6 w-6 mx-auto text-red-500" />
-              <span className="text-xs text-red-500 mt-1 line-clamp-3">{errorMessage}</span>
+              <Loader2 className="h-6 w-6 animate-spin mx-auto text-gray-400" />
+              <span className="text-xs text-gray-500 mt-1">{progress}%</span>
             </div>
           </div>
-        ))}
-        
-        {/* Кнопки загрузки */}
-        {Object.keys(uploadedImages).length < maxImages && (
-          <div 
-            className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <ImagePlus className="h-6 w-6 text-gray-400" />
-            <p className="text-xs text-gray-500 mt-1">Загрузить</p>
+        )
+      ))}
+      
+      {/* Отображение ошибок загрузки */}
+      {Object.entries(uploadErrors).map(([id, errorMessage]) => (
+        <div key={`error-${id}`} className="aspect-square bg-red-50 rounded-lg flex items-center justify-center p-2">
+          <div className="text-center">
+            <AlertCircle className="h-6 w-6 mx-auto text-red-500" />
+            <span className="text-xs text-red-500 mt-1 line-clamp-3">{errorMessage}</span>
           </div>
-        )}
-      </div>
-
-      {/* Скрытые input для выбора файлов */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        multiple
-        accept="image/*"
-        className="hidden"
-        onChange={handleUpload}
-        disabled={isUploading}
-      />
+        </div>
+      ))}
       
-      {isMobile() && (
-        <input
-          type="file"
-          ref={cameraInputRef}
-          multiple
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={handleUpload}
-          disabled={isUploading}
-        />
-      )}
-      
-      {/* Кнопки действий */}
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={isUploading || Object.keys(uploadedImages).length >= maxImages || !userPermissions.canUpload}
-          className="flex items-center gap-1"
+      {/* Кнопки загрузки */}
+      {Object.keys(uploadedImages).length < maxImages && (
+        <div 
+          className="aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50"
           onClick={() => fileInputRef.current?.click()}
         >
-          {isUploading ? (
-            <>
-              <Loader2 className="h-3 w-3 animate-spin" />
-              <span>Загрузка...</span>
-            </>
-          ) : (
-            <>
-              <ImagePlus className="h-3 w-3" />
-              <span>Из галереи</span>
-            </>
-          )}
-        </Button>
-        
-        {isMobile() && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={isUploading || Object.keys(uploadedImages).length >= maxImages || !userPermissions.canUpload}
-            className="flex items-center gap-1"
-            onClick={() => cameraInputRef.current?.click()}
-          >
-            <Camera className="h-3 w-3" />
-            <span>Сделать фото</span>
-          </Button>
-        )}
-        
-        {retryQueue.length > 0 && (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={isUploading || !userPermissions.canUpload}
-            className="flex items-center gap-1"
-            onClick={handleRetryFailedUploads}
-          >
-            <RefreshCcw className="h-3 w-3" />
-            <span>Повторить ({retryQueue.length})</span>
-          </Button>
-        )}
-      </div>
-      
-      {deviceCapabilities.isLowEndDevice && (
-        <p className="text-xs text-amber-600">
-          Обнаружено устройство с ограниченной производительностью. Загрузка и обработка изображений может занять больше времени.
-        </p>
-      )}
-      
-      {primaryBucket !== storageBucket && storageBucket && (
-        <p className="text-xs text-gray-500">
-          Используется хранилище: {storageBucket}
-        </p>
-      )}
-      
-      {maxImages > 10 && (
-        <p className="text-xs text-gray-500">
-          Вы можете загрузить до {maxImages} изображений
-        </p>
+          <ImagePlus className="h-6 w-6 text-gray-400" />
+          <p className="text-xs text-gray-500 mt-1">Загрузить</p>
+        </div>
       )}
     </div>
   );
