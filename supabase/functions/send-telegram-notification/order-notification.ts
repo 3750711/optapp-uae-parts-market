@@ -1,3 +1,4 @@
+
 // ======================== IMPORTANT NOTICE ========================
 // This file contains critical notification functionality.
 // DO NOT EDIT unless absolutely necessary!
@@ -5,8 +6,9 @@
 // Any changes may affect the order notification system that sends
 // messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.0.0
-// Last Verified Working: 2025-05-22
+// Version: 1.1.0
+// Last Verified Working: 2025-05-26
+// Change: Updated notification format per requirements
 // ================================================================
 
 // Handler for order notifications
@@ -49,19 +51,23 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
     ];
     
     // Check if the current seller's telegram should be shown as-is
-    const telegramUrl = orderData.telegram_url_buyer || '';
+    const telegramUrl = orderData.telegram_url_order || '';
     const shouldShowAsIs = showTelegramAsIsUsers.includes(telegramUrl);
     
-    // Updated format with OPT IDs swapped and conditional Telegram display
-    // Added "Дополнительная информация" section after delivery method
-    // Removed link to order
+    // Format order number with leading zero
+    const formattedOrderNumber = orderData.order_number.toString().padStart(5, '0');
+    
+    // Updated format with requested changes:
+    // 1. Order number with leading zero
+    // 2. "Описание товара" changed to "Наименование"
+    // 3. Show seller's telegram after "Подтвержден продавцом"
     const messageText = [
-      `Номер заказа: ${orderData.order_number}`,
+      `Номер заказа: ${formattedOrderNumber}`,
       `Статус: ${statusText}`,
       shouldShowAsIs ? telegramUrl : (telegramUrl || ''),
       ``,
       `🟰🟰🟰🟰🟰🟰`,
-      `Описание товара: ${orderData.title}`,
+      `Наименование: ${orderData.title}`,
       `Бренд: ${orderData.brand || ''}`,
       `Модель: ${orderData.model || ''}`,
       `Количество мест для отправки: ${orderData.place_number || 1}`,
@@ -198,7 +204,7 @@ export async function handleOrderNotification(orderData: any, supabaseClient: an
       console.log(`Sending remaining ${remainingImages.length} images in additional message(s)`);
       
       // Caption for the remaining images
-      const remainingCaption = `К заказу номер ${orderData.order_number}`;
+      const remainingCaption = `К заказу номер ${formattedOrderNumber}`;
       
       // Split remaining images into chunks of MAX_IMAGES_PER_GROUP (10) for media groups
       const remainingChunks = [];
