@@ -9,25 +9,28 @@ interface CompressionResult {
   compressedSize?: number;
   compressionRatio?: number;
   quality?: number;
+  dimensions?: { width: number; height: number };
   error?: string;
 }
 
 export const useImageCompression = () => {
-  const compressOrderImage = async (
+  const compressImage = async (
     imageUrl: string,
-    orderId: string,
-    maxSizeKB: number = 250,
-    quality: number = 0.8
+    maxSizeKB: number = 400,
+    quality: number = 0.8,
+    maxWidth: number = 1920,
+    maxHeight: number = 1920
   ): Promise<CompressionResult> => {
     try {
-      console.log(`Compressing image for order ${orderId}:`, imageUrl);
+      console.log(`Compressing image: ${imageUrl}`);
       
-      const { data, error } = await supabase.functions.invoke('compress-order-images', {
+      const { data, error } = await supabase.functions.invoke('compress-image', {
         body: {
           imageUrl,
-          orderId,
           maxSizeKB,
-          quality
+          quality,
+          maxWidth,
+          maxHeight
         }
       });
 
@@ -44,7 +47,8 @@ export const useImageCompression = () => {
         originalSize: `${(data.originalSize / 1024).toFixed(2)} KB`,
         compressedSize: `${(data.compressedSize / 1024).toFixed(2)} KB`,
         ratio: `${data.compressionRatio}%`,
-        quality: data.quality.toFixed(2)
+        quality: data.quality.toFixed(2),
+        dimensions: `${data.dimensions.width}x${data.dimensions.height}`
       });
 
       toast({
@@ -71,12 +75,13 @@ export const useImageCompression = () => {
 
   const compressMultipleImages = async (
     imageUrls: string[],
-    orderId: string,
-    maxSizeKB: number = 250
+    maxSizeKB: number = 400,
+    maxWidth: number = 1920,
+    maxHeight: number = 1920
   ): Promise<(CompressionResult & { originalUrl: string })[]> => {
     const results = await Promise.allSettled(
       imageUrls.map(async (url) => {
-        const result = await compressOrderImage(url, orderId, maxSizeKB);
+        const result = await compressImage(url, maxSizeKB, 0.8, maxWidth, maxHeight);
         return { ...result, originalUrl: url };
       })
     );
@@ -95,7 +100,7 @@ export const useImageCompression = () => {
   };
 
   return {
-    compressOrderImage,
+    compressImage,
     compressMultipleImages
   };
 };
