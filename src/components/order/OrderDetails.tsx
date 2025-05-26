@@ -97,7 +97,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
         </div>
         <div>
           <Label className="text-sm text-gray-500">Количество мест</Label>
-          <p className="text-lg font-medium">{order.quantity}</p>
+          <p className="text-lg font-medium">{order.place_number}</p>
         </div>
         <div>
           <Label className="text-sm text-gray-500">Тип заказа</Label>
