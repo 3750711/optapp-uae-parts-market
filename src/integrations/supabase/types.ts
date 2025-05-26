@@ -914,9 +914,17 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
+      check_order_number_unique: {
+        Args: { p_order_number: number; p_order_id?: string }
+        Returns: boolean
+      }
       delete_user_account: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_next_order_number: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       is_admin: {
         Args: Record<PropertyKey, never>

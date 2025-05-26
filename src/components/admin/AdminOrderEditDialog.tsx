@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -54,6 +53,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   const form = useForm({
     defaultValues: {
+      order_number: order?.order_number?.toString() || '',
       title: order?.title || '',
       brand: order?.brand || '',
       model: order?.model || '',
@@ -132,6 +132,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (order) {
       console.log('Resetting form with order data:', order);
       form.reset({
+        order_number: order.order_number?.toString(),
         title: order.title,
         brand: order.brand,
         model: order.model,
@@ -346,6 +347,20 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     mutationFn: async (values: any) => {
       if (!order?.id) return null;
 
+      // Check if order number has changed and validate uniqueness
+      const newOrderNumber = Number(values.order_number);
+      if (newOrderNumber !== order.order_number) {
+        const { data: isUnique, error: checkError } = await supabase.rpc('check_order_number_unique', {
+          p_order_number: newOrderNumber,
+          p_order_id: order.id
+        });
+
+        if (checkError) throw checkError;
+        if (!isUnique) {
+          throw new Error('Номер заказа уже существует');
+        }
+      }
+
       // If onStatusChange is provided and the status has changed, use it
       const statusChanged = values.status !== order.status;
       if (statusChanged && onStatusChange) {
@@ -357,6 +372,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           .from('orders')
           .update({
             ...values,
+            order_number: newOrderNumber,
             price: Number(values.price),
             quantity: Number(values.place_number),
             place_number: Number(values.place_number),
@@ -403,11 +419,11 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       });
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error updating order:', error);
       toast({
         title: "Ошибка",
-        description: "Не удалось обновить заказ",
+        description: error.message || "Не удалось обновить заказ",
         variant: "destructive",
       });
     }

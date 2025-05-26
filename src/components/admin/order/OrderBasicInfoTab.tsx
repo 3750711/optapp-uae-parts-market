@@ -18,6 +18,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderBasicInfoTabProps {
   form: any;
@@ -27,6 +29,7 @@ interface OrderBasicInfoTabProps {
 export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, order }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
+  const [isCheckingOrderNumber, setIsCheckingOrderNumber] = React.useState(false);
 
   // Watch for form changes
   React.useEffect(() => {
@@ -36,11 +39,56 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
     return () => subscription.unsubscribe();
   }, [form]);
 
+  // Check order number uniqueness
+  const checkOrderNumberUnique = React.useCallback(async (orderNumber: number) => {
+    if (!orderNumber || orderNumber <= 0) return;
+    
+    setIsCheckingOrderNumber(true);
+    try {
+      const { data, error } = await supabase.rpc('check_order_number_unique', {
+        p_order_number: orderNumber,
+        p_order_id: order?.id
+      });
+
+      if (error) throw error;
+
+      if (!data) {
+        setValidationErrors(prev => ({ 
+          ...prev, 
+          order_number: 'Номер заказа уже существует' 
+        }));
+      } else {
+        setValidationErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.order_number;
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      console.error('Error checking order number:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось проверить уникальность номера заказа",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingOrderNumber(false);
+    }
+  }, [order?.id]);
+
   // Real-time validation
   const validateField = (name: string, value: any) => {
     const errors: Record<string, string> = {};
     
     switch (name) {
+      case 'order_number':
+        if (!value || Number(value) <= 0) {
+          errors.order_number = 'Номер заказа должен быть больше 0';
+        } else {
+          // Check uniqueness asynchronously
+          checkOrderNumberUnique(Number(value));
+        }
+        break;
       case 'price':
         if (!value || Number(value) <= 0) {
           errors.price = 'Цена должна быть больше 0';
@@ -94,6 +142,37 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
 
       {/* Basic Information */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="order_number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Номер заказа *</FormLabel>
+              <FormControl>
+                <div className="relative">
+                  <Input 
+                    {...field} 
+                    type="number"
+                    min="1"
+                    onBlur={() => validateField('order_number', field.value)}
+                    className={validationErrors.order_number ? 'border-red-500' : ''}
+                    disabled={isCheckingOrderNumber}
+                  />
+                  {isCheckingOrderNumber && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                      <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-600 rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              {validationErrors.order_number && (
+                <p className="text-sm text-red-600">{validationErrors.order_number}</p>
+              )}
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="title"
