@@ -2,7 +2,7 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
 import { VideoUpload } from "@/components/ui/video-upload";
-import { ImageUpload } from "@/components/ui/image-upload";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -59,6 +59,11 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
     }
   };
 
+  const handleNewImagesUpload = (newUrls: string[]) => {
+    const allImages = [...images, ...newUrls];
+    onImagesUpload(allImages);
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
@@ -97,12 +102,11 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           </div>
         )}
 
-        <ImageUpload
-          images={images}
-          onUpload={onImagesUpload}
-          onDelete={handleImageDelete}
+        <MobileOptimizedImageUpload
+          onUploadComplete={handleNewImagesUpload}
           maxImages={25}
           storageBucket="order-images"
+          existingImages={images}
         />
       </div>
 

@@ -215,13 +215,40 @@ export function RealtimeImageUpload({
     onUploadComplete(Object.values(newUploadedImages));
   };
 
+  // Enhanced mobile-friendly device capabilities detection
+  const getEnhancedDeviceCapabilities = useCallback(() => {
+    const memory = (navigator as any).deviceMemory || 4;
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isLowEndDevice = memory <= 2;
+    const isBudgetDevice = memory <= 4;
+
+    return {
+      memory,
+      isLowEndDevice,
+      isOlderIOS: /iPhone|iPad|iPod/.test(navigator.userAgent) && parseInt((navigator.userAgent.match(/OS (\d+)_/) || [])[1] || '15') < 14,
+      isOlderAndroid: /Android/.test(navigator.userAgent) && parseInt((navigator.userAgent.match(/Android (\d+)/) || [])[1] || '10') < 8,
+      isMobileDevice: isMobile,
+      isBudgetDevice,
+      hasWebWorkerIssues: isLowEndDevice || isMobile,
+      isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+      isMobileChromeWithLimits: isMobile && /Chrome/.test(navigator.userAgent),
+      isLimitedBrowser: isLowEndDevice || (isMobile && memory <= 3),
+      hasWeakConnection: (navigator as any).connection?.effectiveType?.includes('2g') || 
+                         (navigator as any).connection?.downlink < 1,
+      userAgent: navigator.userAgent.toLowerCase(),
+      connectionInfo: (navigator as any).connection ? 
+        `${(navigator as any).connection.effectiveType} - ${(navigator as any).connection.downlink}Mbps` : 
+        'not available'
+    };
+  }, []);
+
   const handleUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || isUploading) return;
     
     // Проверяем права пользователя
     if (!userPermissions.canUpload) {
       toast({
-        title: "Нет дос��упа",
+        title: "Нет доступа",
         description: userPermissions.message || "У вас нет прав для загрузки изображений",
         variant: "destructive",
       });
@@ -232,6 +259,7 @@ export function RealtimeImageUpload({
     
     try {
       const files = Array.from(event.target.files);
+      const enhancedCapabilities = getEnhancedDeviceCapabilities();
       
       const newUploadProgress: Record<string, number> = {};
       const newUploadErrors: Record<string, string> = {};
@@ -249,100 +277,244 @@ export function RealtimeImageUpload({
       logImageProcessing('RealtimeUploadStart', { 
         fileCount: files.length, 
         bucket: storageBucket || primaryBucket,
-        deviceInfo: deviceCapabilities
+        deviceInfo: enhancedCapabilities
       });
       
-      // Определяем максимальное число одновременно обрабатываемых файлов
-      // в зависимости от возможностей устройства
-      const maxConcurrent = deviceCapabilities.isLowEndDevice ? 1 : 
-                           (deviceCapabilities.isMobileDevice ? 2 : 3);
-      
-      for (let i = 0; i < files.length; i++) {
-        const fileId = fileIds[i];
-        const file = files[i];
-        
-        // Проверяем максимальное количество изображений
-        if (Object.keys(uploadedImages).length + Object.keys(newUploadedImages).length - Object.keys(uploadedImages).length >= maxImages) {
-          toast({
-            title: "Предупреждение",
-            description: `Достигнуто максимальное количество изображений (${maxImages})`,
-            variant: "default", // Changed from "warning" to "default"
-          });
-          break;
-        }
-        
-        // Обновляем прогресс
-        newUploadProgress[fileId] = 10;
-        setUploadProgress(prev => ({...prev, ...newUploadProgress}));
-        
-        // Проверяем файл на соответствие требованиям маркетплейса
-        const validation = validateImageForMarketplace(file);
-        if (!validation.isValid) {
-          toast({
-            title: "Ошибка",
-            description: validation.errorMessage,
-            variant: "destructive",
-          });
+      // Определяем стратегию загрузки на основе возможностей устройства
+      const uploadStrategy = {
+        sequential: enhancedCapabilities.isMobileDevice || enhancedCapabilities.isLowEndDevice,
+        batchSize: enhancedCapabilities.isLowEndDevice ? 1 : (enhancedCapabilities.isMobileDevice ? 2 : 3),
+        delay: enhancedCapabilities.isLowEndDevice ? 1200 : (enhancedCapabilities.isMobileDevice ? 800 : 300),
+        compressionQuality: enhancedCapabilities.isLowEndDevice ? 0.4 : (enhancedCapabilities.isMobileDevice ? 0.6 : 0.8),
+        maxResolution: enhancedCapabilities.isMobileDevice ? 1280 : 1920
+      };
+
+      // Сжатие изображений для мобильных устройств
+      const compressImageForMobile = async (file: File): Promise<File> => {
+        if (!enhancedCapabilities.isMobileDevice) return file;
+
+        return new Promise((resolve) => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          const img = new Image();
           
-          newUploadProgress[fileId] = -1; // Отмечаем как ошибку
-          newUploadErrors[fileId] = validation.errorMessage || "Ошибка проверки изображения";
+          img.onload = () => {
+            let { width, height } = img;
+            const maxDim = uploadStrategy.maxResolution;
+            
+            if (width > maxDim || height > maxDim) {
+              if (width > height) {
+                height = (height * maxDim) / width;
+                width = maxDim;
+              } else {
+                width = (width * maxDim) / height;
+                height = maxDim;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            ctx?.drawImage(img, 0, 0, width, height);
+            
+            canvas.toBlob((blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name, {
+                  type: 'image/jpeg',
+                  lastModified: Date.now()
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            }, 'image/jpeg', uploadStrategy.compressionQuality);
+          };
+          
+          img.src = URL.createObjectURL(file);
+        });
+      };
+
+      // Обработка файлов с учетом стратегии загрузки
+      if (uploadStrategy.sequential) {
+        // Последовательная загрузка для мобильных устройств
+        for (let i = 0; i < files.length; i++) {
+          const fileId = fileIds[i];
+          const file = files[i];
+          
+          // Проверяем максимальное количество изображений
+          if (Object.keys(uploadedImages).length + Object.keys(newUploadedImages).length - Object.keys(uploadedImages).length >= maxImages) {
+            toast({
+              title: "Предупреждение",
+              description: `Достигнуто максимальное количество изображений (${maxImages})`,
+              variant: "default",
+            });
+            break;
+          }
+          
+          try {
+            // Обновляем прогресс
+            newUploadProgress[fileId] = 10;
+            setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+            
+            // Проверяем файл на соответствие требованиям
+            const validation = validateImageForMarketplace(file);
+            if (!validation.isValid) {
+              throw new Error(validation.errorMessage || "Ошибка проверки изображения");
+            }
+            
+            // Сжимаем для мобильных
+            const processedFile = await compressImageForMobile(file);
+            
+            newUploadProgress[fileId] = 40;
+            setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+            
+            // Загружаем изображение
+            const imageUrl = await uploadImageToStorage(
+              processedFile, 
+              storageBucket || primaryBucket, 
+              storagePath
+            );
+            
+            newUploadProgress[fileId] = 100;
+            setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+            
+            newUploadedImages[fileId] = imageUrl;
+            
+            logImageProcessing('RealtimeUploadSuccess', { 
+              imageUrl,
+              originalSize: file.size,
+              compressedSize: processedFile.size,
+              compressionRatio: Math.round((1 - processedFile.size / file.size) * 100)
+            });
+            
+            // Задержка между файлами для освобождения памяти
+            if (i < files.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, uploadStrategy.delay));
+            }
+            
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            
+            logImageProcessing('RealtimeUploadError', {
+              fileName: file.name,
+              error: errorMessage
+            });
+            
+            newUploadProgress[fileId] = -1;
+            newUploadErrors[fileId] = errorMessage;
+            newRetryQueue.push({ fileId, file });
+            
+            toast({
+              title: "Ошибка загрузки",
+              description: `${file.name}: ${errorMessage}`,
+              variant: "destructive",
+            });
+          }
+          
+          // Обновляем состояние после каждого файла
           setUploadProgress(prev => ({...prev, ...newUploadProgress}));
           setUploadErrors(prev => ({...prev, ...newUploadErrors}));
-          continue;
         }
+      } else {
+        // Batch загрузка для десктопа (существующая логика)
+        const batchSize = 3;
+        const newUploadProgress: Record<string, number> = {};
+        const newUploadErrors: Record<string, string> = {};
+        const fileIds = files.map((_, idx) => `file-${Date.now()}-${idx}`);
         
-        try {
-          // Обновляем прогресс
-          newUploadProgress[fileId] = 25;
-          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+        fileIds.forEach(id => {
+          newUploadProgress[id] = 0;
+        });
+        
+        setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+        
+        const newUploadedImages: Record<string, string> = { ...uploadedImages };
+        const newRetryQueue: Array<{fileId: string, file: File}> = [];
+        
+        logImageProcessing('RealtimeUploadStart', { 
+          fileCount: files.length, 
+          bucket: storageBucket || primaryBucket,
+          deviceInfo: deviceCapabilities
+        });
+        
+        for (let i = 0; i < files.length; i += batchSize) {
+          const batch = files.slice(i, i + batchSize);
           
-          // Загружаем изображение с учетом выбранного хранилища
-          const imageUrl = await uploadImageToStorage(
-            file, 
-            storageBucket || primaryBucket, 
-            storagePath
-          );
-          
-          // Обновляем прогресс
-          newUploadProgress[fileId] = 100;
-          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
-          
-          // Сохраняем URL загруженного изображения
-          newUploadedImages[fileId] = imageUrl;
-          
-          // Логируем успех
-          logImageProcessing('RealtimeUploadSuccess', { imageUrl });
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          
-          logImageProcessing('RealtimeUploadError', {
-            fileName: file.name,
-            error: errorMessage
+          // Process each file in the batch
+          const uploadPromises = batch.map(async (file, index) => {
+            const fileId = fileIds[i + index];
+            
+            // Проверяем максимальное количество изображений
+            if (Object.keys(uploadedImages).length + Object.keys(newUploadedImages).length - Object.keys(uploadedImages).length >= maxImages) {
+              toast({
+                title: "Предупреждение",
+                description: `Достигнуто максимальное количество изображений (${maxImages})`,
+                variant: "default",
+              });
+              return;
+            }
+            
+            try {
+              // Обновляем прогресс
+              newUploadProgress[fileId] = 10;
+              setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+              
+              // Проверяем файл на соответствие требованиям
+              const validation = validateImageForMarketplace(file);
+              if (!validation.isValid) {
+                throw new Error(validation.errorMessage || "Ошибка проверки изображения");
+              }
+              
+              // Обновляем прогресс
+              newUploadProgress[fileId] = 25;
+              setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+              
+              // Загружаем изображение
+              const imageUrl = await uploadImageToStorage(
+                file, 
+                storageBucket || primaryBucket, 
+                storagePath
+              );
+              
+              // Обновляем прогресс
+              newUploadProgress[fileId] = 100;
+              setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+              
+              newUploadedImages[fileId] = imageUrl;
+              
+              logImageProcessing('RealtimeUploadSuccess', { imageUrl });
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              
+              logImageProcessing('RealtimeUploadError', {
+                fileName: file.name,
+                error: errorMessage
+              });
+              
+              newUploadProgress[fileId] = -1;
+              newUploadErrors[fileId] = errorMessage;
+              newRetryQueue.push({ fileId, file });
+              
+              toast({
+                title: "Ошибка загрузки",
+                description: `${file.name}: ${errorMessage}`,
+                variant: "destructive",
+              });
+            }
           });
           
-          newUploadProgress[fileId] = -1; // Отмечаем как ошибку
-          newUploadErrors[fileId] = errorMessage;
+          // Wait for all uploads in the batch to complete
+          await Promise.all(uploadPromises);
           
-          // Добавляем файл в очередь для повторной попытки
-          newRetryQueue.push({ fileId, file });
+          // Add a delay between batches to avoid overloading the server
+          await new Promise(resolve => setTimeout(resolve, 500));
           
-          toast({
-            title: "Ошибка загрузки",
-            description: `Не удалось загрузить ${file.name}: ${errorMessage}`,
-            variant: "destructive",
-          });
-        }
-        
-        // Для слабых устройств добавляем искусственную задержку между обработкой файлов,
-        // чтобы избежать перегрузки и зависания
-        if ((deviceCapabilities.isLowEndDevice || deviceCapabilities.isBudgetDevice) && i < files.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 800));
+          // Обновляем состояние после каждого пакета
+          setUploadProgress(prev => ({...prev, ...newUploadProgress}));
+          setUploadErrors(prev => ({...prev, ...newUploadErrors}));
         }
       }
 
-      // Обновляем состояния после обработки всех файлов
-      setUploadProgress(prev => ({...prev, ...newUploadProgress}));
-      setUploadErrors(prev => ({...prev, ...newUploadErrors}));
+      // Обновляем финальные состояния
       setUploadedImages(newUploadedImages);
       
       if (newRetryQueue.length > 0) {
@@ -355,7 +527,9 @@ export function RealtimeImageUpload({
         
         toast({
           title: "Успешно",
-          description: `Загружено ${successCount} из ${files.length} изображений`,
+          description: enhancedCapabilities.isMobileDevice 
+            ? `Загружено и оптимизировано ${successCount} из ${files.length} изображений`
+            : `Загружено ${successCount} из ${files.length} изображений`,
         });
       }
     } catch (error) {
@@ -371,7 +545,7 @@ export function RealtimeImageUpload({
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
-  }, [onUploadComplete, storageBucket, storagePath, uploadedImages, deviceCapabilities, maxImages, primaryBucket, userPermissions, onPrimaryImageChange, primaryImage]);
+  }, [onUploadComplete, storageBucket, storagePath, uploadedImages, maxImages, primaryBucket, userPermissions, onPrimaryImageChange, primaryImage, getEnhancedDeviceCapabilities]);
 
   return (
     <div className="space-y-4">
