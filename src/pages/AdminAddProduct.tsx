@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -38,7 +37,7 @@ import {
 import VideoUpload from "@/components/ui/video-upload";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import { RealtimeImageUpload } from "@/components/ui/real-time-image-upload";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { Progress } from "@/components/ui/progress";
 
 const productSchema = z.object({
@@ -203,7 +202,7 @@ const AdminAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
-  const handleRealtimeImageUpload = (urls: string[]) => {
+  const handleMobileOptimizedImageUpload = (urls: string[]) => {
     setImageUrls(urls); // Replace with the complete list instead of appending
     
     // Set default primary image if none is selected yet
@@ -411,6 +410,7 @@ const AdminAddProduct = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
+                  
                   <FormField
                     control={form.control}
                     name="sellerId"
@@ -599,12 +599,11 @@ const AdminAddProduct = () => {
                     name="placeNumber"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Количество мест для отправки</FormLabel>
+                        <FormLabel>Количество мест</FormLabel>
                         <FormControl>
                           <Input 
-                            type="number"
-                            min="1"
-                            placeholder="Укажите количество мест"
+                            type="number" 
+                            placeholder="1" 
                             {...field}
                           />
                         </FormControl>
@@ -618,11 +617,11 @@ const AdminAddProduct = () => {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Описание (необязательно)</FormLabel>
+                        <FormLabel>Описание товара (необязательно)</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Подробно опишите товар, его характеристики, состояние и т.д. (необязательно)" 
-                            rows={6}
+                            placeholder="Описание товара"
+                            className="min-h-[100px]"
                             {...field}
                           />
                         </FormControl>
@@ -632,30 +631,43 @@ const AdminAddProduct = () => {
                   />
                   
                   <div className="space-y-2">
-                    <Label>Фотографии товара</Label>
-                    <RealtimeImageUpload
-                      onUploadComplete={handleRealtimeImageUpload}
+                    <Label htmlFor="images">Фотографии товара</Label>
+                    <MobileOptimizedImageUpload
+                      onUploadComplete={handleMobileOptimizedImageUpload}
                       maxImages={30}
-                      storageBucket="product-images"
-                      storagePath="admin-uploads"
-                      onPrimaryImageChange={setPrimaryImage}
-                      primaryImage={primaryImage}
+                      storageBucket="Product Images"
+                      storagePath=""
+                      existingImages={imageUrls}
                     />
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Видео товара</Label>
-                    <VideoUpload 
+                    <Label htmlFor="videos">Видео товара (необязательно)</Label>
+                    <VideoUpload
                       videos={videoUrls}
-                      onUpload={(urls) => setVideoUrls((prev) => [...prev, ...urls])}
-                      onDelete={(url) => setVideoUrls((prev) => prev.filter(u => u !== url))}
+                      onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
+                      onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
                       maxVideos={2}
-                      storageBucket="product-videos"
-                      storagePrefix=""
+                      storageBucket="Product Images"
                     />
                   </div>
+                  
+                  <Button 
+                    type="submit" 
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Публикация...
+                      </>
+                    ) : (
+                      'Опубликовать'
+                    )}
+                  </Button>
                 </CardContent>
-
+                
                 {isSubmitting && (
                   <div className="px-6 pb-4">
                     <div className="mb-2 flex justify-between items-center">
@@ -665,32 +677,6 @@ const AdminAddProduct = () => {
                     <Progress value={progressStatus.progress} className="h-2" />
                   </div>
                 )}
-                
-                <CardFooter className="flex justify-end space-x-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="border-optapp-dark text-optapp-dark hover:bg-optapp-dark hover:text-white"
-                    onClick={() => navigate('/admin/products')}
-                    disabled={isSubmitting}
-                  >
-                    Отмена
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Публикация...
-                      </>
-                    ) : (
-                      'Опубликовать товар'
-                    )}
-                  </Button>
-                </CardFooter>
               </Card>
             </form>
           </Form>
