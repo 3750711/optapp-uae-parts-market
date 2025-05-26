@@ -1,5 +1,5 @@
 
--- Updated admin order creation function with gap-filling order number logic
+-- Updated admin order creation function with automatic sequence-based order numbering
 CREATE OR REPLACE FUNCTION public.admin_create_order(
   p_title text, 
   p_price numeric, 
@@ -25,7 +25,6 @@ SECURITY DEFINER
 AS $$
 DECLARE
   created_order_id UUID;
-  next_order_number INTEGER;
 BEGIN
   -- Verify the current user is an admin
   IF NOT EXISTS (
@@ -36,23 +35,8 @@ BEGIN
     RAISE EXCEPTION 'Only administrators can use this function';
   END IF;
 
-  -- Find the first missing order number in the sequence
-  -- This query finds the smallest positive integer not in the order_number column
-  WITH RECURSIVE number_series AS (
-    SELECT 1 as num
-    UNION ALL
-    SELECT num + 1
-    FROM number_series
-    WHERE num < (SELECT COALESCE(MAX(order_number), 0) + 1 FROM public.orders)
-  )
-  SELECT COALESCE(
-    (SELECT MIN(num) FROM number_series WHERE num NOT IN (SELECT order_number FROM public.orders)),
-    (SELECT COALESCE(MAX(order_number), 0) + 1 FROM public.orders)
-  ) INTO next_order_number;
-
-  -- Insert the order with the calculated order number
+  -- Insert the order without specifying order_number - let PostgreSQL sequence handle it
   INSERT INTO public.orders (
-    order_number,
     title,
     price,
     place_number,
@@ -71,7 +55,6 @@ BEGIN
     text_order,
     delivery_price_confirm
   ) VALUES (
-    next_order_number,
     p_title,
     p_price,
     p_place_number,
@@ -93,5 +76,28 @@ BEGIN
   RETURNING id INTO created_order_id;
   
   RETURN created_order_id;
+END;
+$$;
+
+-- Function to check and sync order sequence if needed
+CREATE OR REPLACE FUNCTION public.sync_order_sequence_if_needed()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  max_order_number INTEGER;
+  current_sequence_value INTEGER;
+BEGIN
+  -- Получаем максимальный номер заказа
+  SELECT COALESCE(MAX(order_number), 0) INTO max_order_number FROM orders;
+  
+  -- Получаем текущее значение последовательности
+  SELECT last_value INTO current_sequence_value FROM orders_order_number_seq;
+  
+  -- Если последовательность отстает от максимального номера, синхронизируем её
+  IF current_sequence_value <= max_order_number THEN
+    PERFORM setval('orders_order_number_seq', max_order_number + 1, false);
+  END IF;
 END;
 $$;

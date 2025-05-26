@@ -943,6 +943,10 @@ export type Database = {
           model_name: string
         }[]
       }
+      sync_order_sequence_if_needed: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       update_product_has_preview_flag: {
         Args: { p_product_id: string }
         Returns: undefined
