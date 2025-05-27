@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, Skip, Check } from "lucide-react";
+import { Loader2, Upload, SkipForward, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -90,7 +90,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}} onPointerDownOutside={(e) => e.preventDefault()}>
+    <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-2xl max-w-[95vw] p-4 sm:p-6">
         <DialogHeader className="space-y-2">
           <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
@@ -138,7 +138,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
               onClick={onSkip}
               className="flex items-center gap-2"
             >
-              <Skip className="h-4 w-4" />
+              <SkipForward className="h-4 w-4" />
               Пропустить
             </Button>
           </div>
