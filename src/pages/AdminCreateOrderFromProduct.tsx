@@ -297,6 +297,28 @@ const AdminCreateOrderFromProduct = () => {
         }
       }
 
+      // Отправляем прямое уведомление о продаже товара
+      try {
+        console.log("Sending product sold notification for:", selectedProduct.id);
+        
+        const { error: soldNotificationError } = await supabase.functions.invoke('send-telegram-notification', {
+          body: {
+            productId: selectedProduct.id,
+            notificationType: 'sold'
+          }
+        });
+
+        if (soldNotificationError) {
+          console.error("Error sending product sold notification:", soldNotificationError);
+          // Не прерываем процесс создания заказа при ошибке уведомления
+        } else {
+          console.log("Product sold notification sent successfully");
+        }
+      } catch (soldNotificationError) {
+        console.error("Exception while sending sold notification:", soldNotificationError);
+        // Не прерываем процесс создания заказа при ошибке уведомления
+      }
+
       // Обновляем статус товара на "sold"
       const { error: updateError } = await supabase
         .from('products')
