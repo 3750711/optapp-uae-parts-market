@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import { Badge } from "@/components/ui/badge";
 
 interface AdminOrderConfirmationDialogProps {
   open: boolean;
@@ -67,7 +68,34 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   const [deliveryPrice, setDeliveryPrice] = useState(product.delivery_price?.toString() || "0");
   const [deliveryMethod, setDeliveryMethod] = useState("cargo_rf");
   const [orderImages, setOrderImages] = useState<string[]>([]);
+  const [productImageUrls, setProductImageUrls] = useState<string[]>([]);
+  const [additionalImages, setAdditionalImages] = useState<string[]>([]);
   const [showImageUpload, setShowImageUpload] = useState(false);
+
+  // Автоматическое копирование изображений товара при открытии диалога
+  useEffect(() => {
+    if (open && product.product_images && product.product_images.length > 0) {
+      const imageUrls = product.product_images
+        .map(img => img.url)
+        .filter(url => url && url.trim() !== ''); // Валидация URLs
+      
+      console.log("Copying product images to order:", imageUrls);
+      setProductImageUrls(imageUrls);
+      setOrderImages(imageUrls);
+    } else if (open) {
+      // Сброс состояния если нет изображений
+      setProductImageUrls([]);
+      setOrderImages([]);
+    }
+  }, [open, product.product_images]);
+
+  // Сброс дополнительных изображений при закрытии диалога
+  useEffect(() => {
+    if (!open) {
+      setAdditionalImages([]);
+      setShowImageUpload(false);
+    }
+  }, [open]);
 
   const handleConfirm = () => {
     const numPrice = parseFloat(price);
@@ -81,32 +109,41 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       price: numPrice,
       deliveryPrice: numDeliveryPrice > 0 ? numDeliveryPrice : undefined,
       deliveryMethod,
-      orderImages
+      orderImages: [...productImageUrls, ...additionalImages]
     });
 
     onConfirm({
       price: numPrice,
       deliveryPrice: numDeliveryPrice > 0 ? numDeliveryPrice : undefined,
       deliveryMethod,
-      orderImages
+      orderImages: [...productImageUrls, ...additionalImages]
     });
   };
 
-  const handleImagesUpload = (urls: string[]) => {
-    console.log("Images uploaded:", urls);
-    setOrderImages(urls);
+  const handleAdditionalImagesUpload = (urls: string[]) => {
+    console.log("Additional images uploaded:", urls);
+    setAdditionalImages(urls);
+    // Обновляем общий массив изображений
+    setOrderImages([...productImageUrls, ...urls]);
   };
 
-  const handleImageDelete = (urlToDelete: string) => {
-    console.log("Deleting image:", urlToDelete);
-    setOrderImages(prev => prev.filter(url => url !== urlToDelete));
+  const handleProductImageDelete = (urlToDelete: string) => {
+    console.log("Deleting product image:", urlToDelete);
+    const updatedProductImages = productImageUrls.filter(url => url !== urlToDelete);
+    setProductImageUrls(updatedProductImages);
+    setOrderImages([...updatedProductImages, ...additionalImages]);
+  };
+
+  const handleAdditionalImageDelete = (urlToDelete: string) => {
+    console.log("Deleting additional image:", urlToDelete);
+    const updatedAdditionalImages = additionalImages.filter(url => url !== urlToDelete);
+    setAdditionalImages(updatedAdditionalImages);
+    setOrderImages([...productImageUrls, ...updatedAdditionalImages]);
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('ru-RU').format(price);
   };
-
-  const primaryImage = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,31 +164,34 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                 <h3 className="font-semibold text-blue-900">Информация о товаре</h3>
               </div>
               
-              {/* Фотографии товара */}
-              {product.product_images && product.product_images.length > 0 && (
+              {/* Исходные фотографии товара */}
+              {productImageUrls.length > 0 && (
                 <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="secondary" className="text-xs">
+                      Изображения из товара ({productImageUrls.length})
+                    </Badge>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {product.product_images.slice(0, 6).map((image, index) => (
-                      <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
+                    {productImageUrls.map((imageUrl, index) => (
+                      <div key={`product-${index}`} className="relative aspect-square rounded-lg overflow-hidden border group">
                         <OptimizedImage
-                          src={image.url}
+                          src={imageUrl}
                           alt={`Product image ${index + 1}`}
                           className="w-full h-full object-cover"
                           priority={index === 0}
                         />
-                        {image.is_primary && (
-                          <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded">
-                            Главное
-                          </div>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleProductImageDelete(imageUrl)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Удалить изображение"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
                       </div>
                     ))}
                   </div>
-                  {product.product_images.length > 6 && (
-                    <p className="text-xs text-gray-600 mt-2">
-                      +{product.product_images.length - 6} фото
-                    </p>
-                  )}
                 </div>
               )}
 
@@ -206,21 +246,26 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                 </Button>
               </div>
 
-              {/* Отображение загруженных дополнительных фотографий */}
-              {orderImages.length > 0 && (
+              {/* Отображение дополнительных фотографий */}
+              {additionalImages.length > 0 && (
                 <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="text-xs">
+                      Дополнительные изображения ({additionalImages.length})
+                    </Badge>
+                  </div>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {orderImages.map((imageUrl, index) => (
-                      <div key={imageUrl} className="relative aspect-square rounded-lg overflow-hidden border group">
+                    {additionalImages.map((imageUrl, index) => (
+                      <div key={`additional-${index}`} className="relative aspect-square rounded-lg overflow-hidden border group">
                         <img
                           src={imageUrl}
-                          alt={`Order image ${index + 1}`}
+                          alt={`Additional image ${index + 1}`}
                           className="w-full h-full object-cover"
                           loading="lazy"
                         />
                         <button
                           type="button"
-                          onClick={() => handleImageDelete(imageUrl)}
+                          onClick={() => handleAdditionalImageDelete(imageUrl)}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                           title="Удалить изображение"
                         >
@@ -229,9 +274,6 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                       </div>
                     ))}
                   </div>
-                  <p className="text-xs text-gray-600 mt-2">
-                    Дополнительных фотографий: {orderImages.length}
-                  </p>
                 </div>
               )}
 
@@ -239,12 +281,23 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               {showImageUpload && (
                 <div className="mt-3">
                   <MobileOptimizedImageUpload
-                    onUploadComplete={handleImagesUpload}
+                    onUploadComplete={handleAdditionalImagesUpload}
                     maxImages={15}
                     storageBucket="order-images"
-                    existingImages={orderImages}
-                    onImageDelete={handleImageDelete}
+                    existingImages={additionalImages}
+                    onImageDelete={handleAdditionalImageDelete}
                   />
+                </div>
+              )}
+
+              {/* Общий счетчик изображений */}
+              {(productImageUrls.length > 0 || additionalImages.length > 0) && (
+                <div className="mt-3 p-2 bg-gray-50 rounded-md border">
+                  <div className="text-xs text-gray-600">
+                    Всего изображений в заказе: {productImageUrls.length + additionalImages.length}
+                    {productImageUrls.length > 0 && ` (из товара: ${productImageUrls.length})`}
+                    {additionalImages.length > 0 && ` (дополнительных: ${additionalImages.length})`}
+                  </div>
                 </div>
               )}
             </div>
