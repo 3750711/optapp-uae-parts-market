@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, User, Package, UserCheck, ShoppingCart } from "lucide-react";
 import ProductSearchAndFilters, { SearchFilters } from "@/components/admin/ProductSearchAndFilters";
+import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
 
 interface SellerProfile {
   id: string;
@@ -48,6 +49,7 @@ const AdminCreateOrderFromProduct = () => {
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Загрузка продавцов
   useEffect(() => {
@@ -186,10 +188,14 @@ const AdminCreateOrderFromProduct = () => {
   const handleBuyerSelect = (buyerId: string) => {
     const buyer = buyers.find(b => b.id === buyerId);
     setSelectedBuyer(buyer || null);
-    setStep(4);
+    setShowConfirmDialog(true);
   };
 
-  const createOrder = async () => {
+  const createOrder = async (orderData: {
+    price: number;
+    deliveryPrice?: number;
+    deliveryMethod: string;
+  }) => {
     if (!selectedSeller || !selectedProduct || !selectedBuyer) {
       toast({
         title: "Ошибка",
@@ -206,7 +212,7 @@ const AdminCreateOrderFromProduct = () => {
       const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', {
           p_title: selectedProduct.title,
-          p_price: selectedProduct.price,
+          p_price: orderData.price,
           p_place_number: 1,
           p_seller_id: selectedSeller.id,
           p_order_seller_name: selectedSeller.full_name,
@@ -219,9 +225,9 @@ const AdminCreateOrderFromProduct = () => {
           p_telegram_url_order: selectedBuyer.telegram || null,
           p_images: [],
           p_product_id: selectedProduct.id,
-          p_delivery_method: 'self_pickup',
+          p_delivery_method: orderData.deliveryMethod as any,
           p_text_order: null,
-          p_delivery_price_confirm: selectedProduct.delivery_price || null
+          p_delivery_price_confirm: orderData.deliveryPrice || null
         });
 
       if (orderError) {
@@ -256,6 +262,7 @@ const AdminCreateOrderFromProduct = () => {
       setProducts([]);
       setFilteredProducts([]);
       setStep(1);
+      setShowConfirmDialog(false);
 
     } catch (error) {
       console.error("Error creating order:", error);
@@ -276,6 +283,7 @@ const AdminCreateOrderFromProduct = () => {
     setProducts([]);
     setFilteredProducts([]);
     setStep(1);
+    setShowConfirmDialog(false);
   };
 
   const getStepIcon = (stepNumber: number) => {
@@ -479,80 +487,18 @@ const AdminCreateOrderFromProduct = () => {
           </Card>
         )}
 
-        {/* Шаг 4: Подтверждение и создание заказа */}
-        {step === 4 && selectedSeller && selectedProduct && selectedBuyer && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Шаг 4: Подтверждение заказа</CardTitle>
-              <CardDescription>
-                Проверьте данные перед созданием заказа
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Информация о продавце */}
-              <div>
-                <h3 className="font-semibold mb-2">Продавец</h3>
-                <div className="bg-gray-50 p-3 rounded">
-                  <p><strong>Имя:</strong> {selectedSeller.full_name}</p>
-                  <p><strong>OPT ID:</strong> {selectedSeller.opt_id}</p>
-                  {selectedSeller.telegram && (
-                    <p><strong>Telegram:</strong> @{selectedSeller.telegram}</p>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Информация о товаре */}
-              <div>
-                <h3 className="font-semibold mb-2">Товар</h3>
-                <div className="bg-gray-50 p-3 rounded">
-                  <p><strong>Лот:</strong> {selectedProduct.lot_number || 'N/A'}</p>
-                  <p><strong>Название:</strong> {selectedProduct.title}</p>
-                  <p><strong>Цена:</strong> ${formatPrice(selectedProduct.price)}</p>
-                  {selectedProduct.brand && (
-                    <p><strong>Бренд:</strong> {selectedProduct.brand}</p>
-                  )}
-                  {selectedProduct.model && (
-                    <p><strong>Модель:</strong> {selectedProduct.model}</p>
-                  )}
-                  {selectedProduct.delivery_price && (
-                    <p><strong>Стоимость доставки:</strong> ${formatPrice(selectedProduct.delivery_price)}</p>
-                  )}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Информация о покупателе */}
-              <div>
-                <h3 className="font-semibold mb-2">Покупатель</h3>
-                <div className="bg-gray-50 p-3 rounded">
-                  <p><strong>Имя:</strong> {selectedBuyer.full_name}</p>
-                  <p><strong>OPT ID:</strong> {selectedBuyer.opt_id}</p>
-                  {selectedBuyer.telegram && (
-                    <p><strong>Telegram:</strong> @{selectedBuyer.telegram}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex space-x-2 pt-4">
-                <Button variant="outline" onClick={() => setStep(3)}>
-                  Назад
-                </Button>
-                <Button 
-                  onClick={createOrder} 
-                  disabled={isCreatingOrder}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isCreatingOrder ? "Создание..." : "Создать заказ"}
-                </Button>
-                <Button variant="outline" onClick={resetForm}>
-                  Начать заново
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Диалог подтверждения заказа */}
+        {showConfirmDialog && selectedSeller && selectedProduct && selectedBuyer && (
+          <AdminOrderConfirmationDialog
+            open={showConfirmDialog}
+            onOpenChange={setShowConfirmDialog}
+            onConfirm={createOrder}
+            isSubmitting={isCreatingOrder}
+            product={selectedProduct}
+            seller={selectedSeller}
+            buyer={selectedBuyer}
+            onCancel={resetForm}
+          />
         )}
       </div>
     </AdminLayout>
