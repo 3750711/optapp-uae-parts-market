@@ -90,6 +90,7 @@ function App() {
               <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
               <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
               <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
+              <Route path="/admin/orders/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
               <Route path="/admin/stores" element={<ProtectedRoute><AdminStores /></ProtectedRoute>} />
               <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
               <Route path="/admin/add-product" element={<ProtectedRoute><AdminAddProduct /></ProtectedRoute>} />
