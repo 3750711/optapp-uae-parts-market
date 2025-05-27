@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,9 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, User, Package, UserCheck, ShoppingCart } from "lucide-react";
 import ProductSearchAndFilters, { SearchFilters } from "@/components/admin/ProductSearchAndFilters";
 import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
+import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
+import { useNavigate } from "react-router-dom";
+import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 
 interface SellerProfile {
   id: string;
@@ -40,6 +42,7 @@ interface Product {
 }
 
 const AdminCreateOrderFromProduct = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
@@ -51,6 +54,8 @@ const AdminCreateOrderFromProduct = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
 
   // Загрузка продавцов
   useEffect(() => {
@@ -235,7 +240,7 @@ const AdminCreateOrderFromProduct = () => {
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
         p_status: 'seller_confirmed' as const,
-        p_order_created_type: 'product_order' as const, // Теперь это значение существует в enum
+        p_order_created_type: 'product_order' as const,
         p_telegram_url_order: selectedBuyer.telegram || '',
         p_images: orderData.orderImages,
         p_product_id: selectedProduct.id,
@@ -255,6 +260,7 @@ const AdminCreateOrderFromProduct = () => {
       }
 
       console.log("Order created with ID:", orderId);
+      setCreatedOrderId(orderId);
 
       // Обновляем статус товара на "sold"
       const { error: updateError } = await supabase
@@ -276,14 +282,9 @@ const AdminCreateOrderFromProduct = () => {
         description: `Заказ успешно создан`,
       });
 
-      // Сброс формы
-      setSelectedSeller(null);
-      setSelectedProduct(null);
-      setSelectedBuyer(null);
-      setProducts([]);
-      setFilteredProducts([]);
-      setStep(1);
+      // Закрываем диалог подтверждения и открываем диалог загрузки фото
       setShowConfirmDialog(false);
+      setShowConfirmImagesDialog(true);
 
     } catch (error) {
       console.error("Error creating order:", error);
@@ -298,6 +299,22 @@ const AdminCreateOrderFromProduct = () => {
     }
   };
 
+  const handleConfirmImagesComplete = () => {
+    // Закрываем диалог загрузки фото и переходим на страницу заказа
+    setShowConfirmImagesDialog(false);
+    if (createdOrderId) {
+      navigate(`/admin/orders/${createdOrderId}`);
+    }
+  };
+
+  const handleSkipConfirmImages = () => {
+    // Пропускаем загрузку фото и переходим на страницу заказа
+    setShowConfirmImagesDialog(false);
+    if (createdOrderId) {
+      navigate(`/admin/orders/${createdOrderId}`);
+    }
+  };
+
   const resetForm = () => {
     setSelectedSeller(null);
     setSelectedProduct(null);
@@ -306,6 +323,8 @@ const AdminCreateOrderFromProduct = () => {
     setFilteredProducts([]);
     setStep(1);
     setShowConfirmDialog(false);
+    setShowConfirmImagesDialog(false);
+    setCreatedOrderId(null);
   };
 
   const getStepIcon = (stepNumber: number) => {
@@ -520,6 +539,17 @@ const AdminCreateOrderFromProduct = () => {
             seller={selectedSeller}
             buyer={selectedBuyer}
             onCancel={resetForm}
+          />
+        )}
+
+        {/* Диалог загрузки фото подтверждения */}
+        {showConfirmImagesDialog && createdOrderId && (
+          <ConfirmationImagesUploadDialog
+            open={showConfirmImagesDialog}
+            orderId={createdOrderId}
+            onComplete={handleConfirmImagesComplete}
+            onSkip={handleSkipConfirmImages}
+            onCancel={() => setShowConfirmImagesDialog(false)}
           />
         )}
       </div>
