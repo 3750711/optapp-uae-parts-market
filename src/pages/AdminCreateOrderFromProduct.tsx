@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, User, Package, UserCheck, ShoppingCart } from "lucide-react";
+import ProductSearchAndFilters, { SearchFilters } from "@/components/admin/ProductSearchAndFilters";
 
 interface SellerProfile {
   id: string;
@@ -41,6 +42,7 @@ const AdminCreateOrderFromProduct = () => {
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [selectedSeller, setSelectedSeller] = useState<SellerProfile | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerProfile | null>(null);
@@ -118,6 +120,7 @@ const AdminCreateOrderFromProduct = () => {
           });
         } else {
           setProducts(data || []);
+          setFilteredProducts(data || []);
         }
         setIsLoading(false);
       };
@@ -125,6 +128,48 @@ const AdminCreateOrderFromProduct = () => {
       fetchProducts();
     }
   }, [selectedSeller]);
+
+  const handleSearchChange = (filters: SearchFilters) => {
+    let filtered = [...products];
+
+    // Фильтр по названию
+    if (filters.searchTerm.trim()) {
+      filtered = filtered.filter(product =>
+        product.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        product.brand?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        product.model?.toLowerCase().includes(filters.searchTerm.toLowerCase())
+      );
+    }
+
+    // Фильтр по номеру лота
+    if (filters.lotNumber.trim()) {
+      filtered = filtered.filter(product =>
+        product.lot_number.toString().includes(filters.lotNumber)
+      );
+    }
+
+    // Фильтр по цене от
+    if (filters.priceFrom.trim()) {
+      const priceFrom = parseFloat(filters.priceFrom);
+      if (!isNaN(priceFrom)) {
+        filtered = filtered.filter(product => product.price >= priceFrom);
+      }
+    }
+
+    // Фильтр по цене до
+    if (filters.priceTo.trim()) {
+      const priceTo = parseFloat(filters.priceTo);
+      if (!isNaN(priceTo)) {
+        filtered = filtered.filter(product => product.price <= priceTo);
+      }
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const handleClearFilters = () => {
+    setFilteredProducts(products);
+  };
 
   const handleSellerSelect = (sellerId: string) => {
     const seller = sellers.find(s => s.id === sellerId);
@@ -209,6 +254,7 @@ const AdminCreateOrderFromProduct = () => {
       setSelectedProduct(null);
       setSelectedBuyer(null);
       setProducts([]);
+      setFilteredProducts([]);
       setStep(1);
 
     } catch (error) {
@@ -228,6 +274,7 @@ const AdminCreateOrderFromProduct = () => {
     setSelectedProduct(null);
     setSelectedBuyer(null);
     setProducts([]);
+    setFilteredProducts([]);
     setStep(1);
   };
 
@@ -316,7 +363,7 @@ const AdminCreateOrderFromProduct = () => {
           </Card>
         )}
 
-        {/* Шаг 2: Выбор товара - список без фото */}
+        {/* Шаг 2: Выбор товара с поиском и фильтрами */}
         {step === 2 && selectedSeller && (
           <Card>
             <CardHeader>
@@ -326,15 +373,27 @@ const AdminCreateOrderFromProduct = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Компонент поиска и фильтров */}
+              <ProductSearchAndFilters
+                onSearchChange={handleSearchChange}
+                onClearFilters={handleClearFilters}
+              />
+              
               {isLoading ? (
                 <div className="text-center py-8">Загрузка товаров...</div>
-              ) : products.length === 0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  У данного продавца нет активных товаров
+                  {products.length === 0 
+                    ? "У данного продавца нет активных товаров"
+                    : "Товары не найдены по заданным критериям"
+                  }
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {products.map((product) => (
+                  <div className="text-sm text-gray-600 mb-3">
+                    Найдено товаров: {filteredProducts.length} из {products.length}
+                  </div>
+                  {filteredProducts.map((product) => (
                     <div
                       key={product.id}
                       className="border rounded-lg p-4 cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors"
