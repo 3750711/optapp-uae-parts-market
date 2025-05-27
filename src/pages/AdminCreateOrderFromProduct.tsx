@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import ProductCard from "@/components/product/ProductCard";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, User, Package, UserCheck, ShoppingCart } from "lucide-react";
 
@@ -242,6 +241,10 @@ const AdminCreateOrderFromProduct = () => {
     }
   };
 
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('ru-RU').format(price);
+  };
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -313,7 +316,7 @@ const AdminCreateOrderFromProduct = () => {
           </Card>
         )}
 
-        {/* Шаг 2: Выбор товара */}
+        {/* Шаг 2: Выбор товара - список без фото */}
         {step === 2 && selectedSeller && (
           <Card>
             <CardHeader>
@@ -330,30 +333,45 @@ const AdminCreateOrderFromProduct = () => {
                   У данного продавца нет активных товаров
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-3">
                   {products.map((product) => (
                     <div
                       key={product.id}
-                      className="border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors"
+                      className="border rounded-lg p-4 cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors"
                       onClick={() => handleProductSelect(product)}
                     >
-                      <div className="aspect-square mb-3 bg-gray-100 rounded overflow-hidden">
-                        {product.product_images?.[0] ? (
-                          <img
-                            src={product.product_images[0].url}
-                            alt={product.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-12 w-12 text-gray-400" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Badge variant="outline" className="text-xs">
+                              Лот: {product.lot_number || 'N/A'}
+                            </Badge>
+                            <Badge 
+                              variant={product.status === 'active' ? 'success' : 'secondary'}
+                              className="text-xs"
+                            >
+                              {product.status}
+                            </Badge>
                           </div>
-                        )}
-                      </div>
-                      <h3 className="font-medium text-sm mb-2 line-clamp-2">{product.title}</h3>
-                      <div className="flex justify-between items-center">
-                        <span className="text-lg font-bold">${product.price}</span>
-                        <Badge variant="secondary">{product.status}</Badge>
+                          <h3 className="font-medium text-sm mb-1 line-clamp-2">
+                            {product.title}
+                          </h3>
+                          {(product.brand || product.model) && (
+                            <p className="text-sm text-gray-600 mb-1">
+                              {[product.brand, product.model].filter(Boolean).join(' ')}
+                            </p>
+                          )}
+                          {product.delivery_price && (
+                            <p className="text-xs text-gray-500">
+                              Доставка: ${formatPrice(product.delivery_price)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right ml-4">
+                          <span className="text-lg font-bold text-primary">
+                            ${formatPrice(product.price)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -430,8 +448,9 @@ const AdminCreateOrderFromProduct = () => {
               <div>
                 <h3 className="font-semibold mb-2">Товар</h3>
                 <div className="bg-gray-50 p-3 rounded">
+                  <p><strong>Лот:</strong> {selectedProduct.lot_number || 'N/A'}</p>
                   <p><strong>Название:</strong> {selectedProduct.title}</p>
-                  <p><strong>Цена:</strong> ${selectedProduct.price}</p>
+                  <p><strong>Цена:</strong> ${formatPrice(selectedProduct.price)}</p>
                   {selectedProduct.brand && (
                     <p><strong>Бренд:</strong> {selectedProduct.brand}</p>
                   )}
@@ -439,7 +458,7 @@ const AdminCreateOrderFromProduct = () => {
                     <p><strong>Модель:</strong> {selectedProduct.model}</p>
                   )}
                   {selectedProduct.delivery_price && (
-                    <p><strong>Стоимость доставки:</strong> ${selectedProduct.delivery_price}</p>
+                    <p><strong>Стоимость доставки:</strong> ${formatPrice(selectedProduct.delivery_price)}</p>
                   )}
                 </div>
               </div>
