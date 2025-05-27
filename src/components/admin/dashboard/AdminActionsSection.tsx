@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Store, Activity, Plus, Car, FileText, ShoppingCart } from 'lucide-react';
 import ActionCard from './ActionCard';
@@ -46,7 +45,7 @@ const AdminActionsSection: React.FC = () => {
       subtitle: "Создать заказ на основе существующего товара",
       icon: ShoppingCart,
       link: "/admin/create-order-from-product",
-      bgColor: "bg-blue-500",
+      bgColor: "bg-pink-500",
       textColor: "text-white"
     }
   ];
