@@ -164,94 +164,59 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       const brandValue = product.brand || "Не указано";
       const modelValue = product.model || "Не указано";
 
-      const orderPayload = {
-        title: product.title,
-        quantity: 1,
-        brand: brandValue,
-        model: modelValue,
-        price: product.price,
-        description: product.description || null,
-        buyer_id: user?.id,
-        seller_id: product.seller_id,
-        seller_opt_id: product.optid_created,
-        buyer_opt_id: profile?.opt_id || null,
-        status: 'created' as OrderStatus,
-        order_seller_name: product.seller_name || "Unknown Seller",
-        order_created_type: 'ads_order' as OrderCreatedType,
-        telegram_url_order: profile?.telegram || null,
-        product_id: product.id,
-        lot_number_order: lotNumberOrder,
-        images: productImages,
-        delivery_method: deliveryMethod,
-        text_order: orderData.text_order || null,
-        delivery_price_confirm: currentProduct.delivery_price,
-      };
-
-      console.log('Order payload with delivery price:', orderPayload);
-
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert(orderPayload)
-        .select()
-        .single();
+      // Используем новую RPC функцию create_user_order для единообразной генерации номеров
+      const { data: orderId, error: orderError } = await supabase
+        .rpc('create_user_order', {
+          p_title: product.title,
+          p_price: product.price,
+          p_place_number: 1,
+          p_seller_id: product.seller_id,
+          p_order_seller_name: product.seller_name || "Unknown Seller",
+          p_seller_opt_id: product.optid_created || '',
+          p_buyer_id: user?.id,
+          p_brand: brandValue,
+          p_model: modelValue,
+          p_status: 'created' as OrderStatus,
+          p_order_created_type: 'ads_order' as OrderCreatedType,
+          p_telegram_url_order: profile?.telegram || '',
+          p_images: productImages,
+          p_product_id: product.id,
+          p_delivery_method: deliveryMethod,
+          p_text_order: orderData.text_order || null,
+          p_delivery_price_confirm: currentProduct.delivery_price,
+          p_quantity: 1,
+          p_description: product.description || null,
+          p_buyer_opt_id: profile?.opt_id || null,
+          p_lot_number_order: lotNumberOrder,
+          p_telegram_url_buyer: profile?.telegram || null
+        });
 
       if (orderError) {
         console.error('Error creating order:', orderError);
         throw orderError;
       }
 
-      console.log('Order created successfully:', order);
-      console.log('Saved delivery price:', order.delivery_price_confirm);
+      console.log('Order created successfully with ID:', orderId);
 
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ status: 'sold' })
-        .eq('id', product.id);
+      // Получаем данные созданного заказа для отображения номера
+      const { data: createdOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('order_number')
+        .eq('id', orderId)
+        .single();
 
-      if (updateError) {
-        console.error('Error updating product status:', updateError);
-        toast({
-          title: "Внимание",
-          description: "Заказ создан, но статус товара не обновился. Пожалуйста, сообщите администратору.",
-          variant: "destructive",
-        });
-      } else {
-        console.log('Product status updated to sold successfully');
-        
-        // Добавляем вызов edge-функции для отправки уведомления о проданном товаре
-        try {
-          console.log('Отправка уведомления о проданном товаре в Telegram:', product.id);
-          
-          const productSoldNotificationResult = await supabase.functions.invoke('send-product-sold-notification', {
-            body: { productId: product.id }
-          });
-          
-          console.log('Результат отправки уведомления о проданном товаре:', productSoldNotificationResult);
-        } catch (notifySoldError) {
-          console.error('Ошибка отправки уведомления о проданном товаре:', notifySoldError);
-          // Продолжаем выполнение даже при ошибке отправки уведомления
-        }
+      if (fetchError) {
+        console.error("Error fetching created order:", fetchError);
       }
 
-      // Добавляем вызов edge-функции для отправки уведомления о новом заказе
-      try {
-        console.log('Отправка уведомления о новом заказе в Telegram:', order.id);
-        
-        const notificationResult = await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            order: { ...order, images: productImages },
-            action: 'create'
-          }
-        });
-        
-        console.log('Результат отправки уведомления о заказе:', notificationResult);
-      } catch (notifyError) {
-        console.error('Ошибка отправки уведомления о новом заказе:', notifyError);
-        // Продолжаем выполнение даже при ошибке отправки уведомления
-      }
+      // Примечание: Обновление статуса товара на "sold" и отправка уведомлений 
+      // теперь обрабатываются автоматически через триггеры базы данных:
+      // - notify_on_order_product_status_changes: обновляет статус товара при создании заказа
+      // - notify_on_product_status_changes: отправляет уведомление о продаже товара
+      // - send-telegram-notification: отправляет уведомление о создании заказа
 
-      if (deliveryMethod === 'self_pickup') {
-        setOrderNumber(order.order_number);
+      if (deliveryMethod === 'self_pickup' && createdOrder) {
+        setOrderNumber(createdOrder.order_number);
         setShowSuccessDialog(true);
         setShowConfirmDialog(false);
       } else {
