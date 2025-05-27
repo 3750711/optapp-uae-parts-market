@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Package, User, UserCheck, DollarSign } from "lucide-react";
+import { Loader2, Package, User, UserCheck, DollarSign, Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 
 interface AdminOrderConfirmationDialogProps {
   open: boolean;
@@ -60,6 +61,8 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   const [price, setPrice] = useState(product.price.toString());
   const [deliveryPrice, setDeliveryPrice] = useState(product.delivery_price?.toString() || "0");
   const [deliveryMethod, setDeliveryMethod] = useState("cargo_rf");
+  const [orderImages, setOrderImages] = useState<string[]>([]);
+  const [showImageUpload, setShowImageUpload] = useState(false);
 
   const handleConfirm = () => {
     const numPrice = parseFloat(price);
@@ -74,6 +77,14 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       deliveryPrice: numDeliveryPrice > 0 ? numDeliveryPrice : undefined,
       deliveryMethod
     });
+  };
+
+  const handleImagesUpload = (urls: string[]) => {
+    setOrderImages(urls);
+  };
+
+  const handleImageDelete = (urlToDelete: string) => {
+    setOrderImages(prev => prev.filter(url => url !== urlToDelete));
   };
 
   const formatPrice = (price: number) => {
@@ -160,6 +171,67 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Дополнительные фотографии заказа */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-orange-600" />
+                  <h3 className="font-semibold text-orange-900">Дополнительные фотографии заказа</h3>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowImageUpload(!showImageUpload)}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {showImageUpload ? 'Скрыть' : 'Добавить фото'}
+                </Button>
+              </div>
+
+              {/* Отображение загруженных дополнительных фотографий */}
+              {orderImages.length > 0 && (
+                <div className="mb-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {orderImages.map((imageUrl, index) => (
+                      <div key={imageUrl} className="relative aspect-square rounded-lg overflow-hidden border">
+                        <img
+                          src={imageUrl}
+                          alt={`Order image ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleImageDelete(imageUrl)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                          title="Удалить изображение"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Дополнительных фотографий: {orderImages.length}
+                  </p>
+                </div>
+              )}
+
+              {/* Компонент загрузки изображений */}
+              {showImageUpload && (
+                <div className="mt-3">
+                  <MobileOptimizedImageUpload
+                    onUploadComplete={handleImagesUpload}
+                    maxImages={15}
+                    storageBucket="order-images"
+                    existingImages={orderImages}
+                    onImageDelete={handleImageDelete}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Способ доставки и стоимость */}
