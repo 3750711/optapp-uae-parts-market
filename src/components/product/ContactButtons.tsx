@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -97,6 +96,15 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const handleGoToLogin = () => {
     setShowAuthDialog(false);
     navigate('/login');
+  };
+
+  const getOrdersPageRoute = () => {
+    // Определяем правильный маршрут в зависимости от типа пользователя
+    if (profile?.user_type === 'seller') {
+      return '/seller/orders';
+    } else {
+      return '/buyer/orders';
+    }
   };
 
   const handleConfirmOrder = async (orderData: { text_order?: string }) => {
@@ -246,7 +254,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         setShowConfirmDialog(false);
         
         setTimeout(() => {
-          window.location.href = '/orders';
+          window.location.href = getOrdersPageRoute();
         }, 1500);
       }
     } catch (error) {
@@ -263,7 +271,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
   const handleSuccessDialogClose = () => {
     setShowSuccessDialog(false);
-    window.location.href = '/orders';
+    window.location.href = getOrdersPageRoute();
   };
 
   return (
