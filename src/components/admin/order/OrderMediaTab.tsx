@@ -213,7 +213,7 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
       {/* Media Upload Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm font-medium">Загрузка медиафайлов</CardTitle>
+          <CardTitle className="text-sm font-medium">Загрузка и управление медиафайлами</CardTitle>
         </CardHeader>
         <CardContent>
           <MediaUploadSection

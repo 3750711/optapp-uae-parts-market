@@ -59,9 +59,46 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
     }
   };
 
-  const handleNewImagesUpload = (newUrls: string[]) => {
-    const allImages = [...images, ...newUrls];
-    onImagesUpload(allImages);
+  const handleNewImagesUpload = async (newUrls: string[]) => {
+    if (!orderId) {
+      console.log("New images upload requested, but no order ID provided:", newUrls);
+      // Still update local state for preview
+      const allImages = [...images, ...newUrls];
+      onImagesUpload(allImages);
+      return;
+    }
+
+    try {
+      // Combine existing images with new ones
+      const allImages = [...images, ...newUrls];
+      
+      // Update the images field in the orders table
+      const { error } = await supabase
+        .from('orders')
+        .update({ images: allImages })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      // Update local state through parent component
+      onImagesUpload(allImages);
+
+      toast({
+        title: "Успешно",
+        description: `Загружено ${newUrls.length} изображений`,
+      });
+    } catch (error) {
+      console.error('Error uploading images:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить изображения заказа",
+        variant: "destructive",
+      });
+      
+      // Still update local state for preview even if DB update failed
+      const allImages = [...images, ...newUrls];
+      onImagesUpload(allImages);
+    }
   };
 
   return (
@@ -69,44 +106,12 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
       <div className="space-y-2">
         <Label>Фотографии заказа</Label>
         
-        {/* Отображение загруженных изображений */}
-        {images.length > 0 && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 mb-2">Загруженные изображения ({images.length}):</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {images.map((imageUrl, index) => (
-                <div key={imageUrl} className="relative group">
-                  <div className="aspect-square rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={imageUrl}
-                      alt={`Order image ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleImageDelete(imageUrl);
-                    }}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    title="Удалить изображение"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <MobileOptimizedImageUpload
           onUploadComplete={handleNewImagesUpload}
           maxImages={25}
           storageBucket="order-images"
           existingImages={images}
+          onImageDelete={handleImageDelete}
         />
       </div>
 
