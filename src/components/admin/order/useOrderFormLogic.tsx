@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -202,7 +203,7 @@ export const useOrderFormLogic = () => {
       brandId: "",
       modelId: "",
       sellerId: "",
-      deliveryMethod: 'cargo_rf', // Changed default from 'self_pickup' to 'cargo_rf' here too
+      deliveryMethod: 'cargo_rf',
       place_number: "1",
       text_order: "",
       delivery_price: "",
@@ -211,6 +212,21 @@ export const useOrderFormLogic = () => {
     setVideos([]);
     setCreationStage('');
     setCreationProgress(0);
+  };
+
+  // Helper function to get seller name with fallback logic
+  const getSellerName = (): string => {
+    // Сначала пытаемся взять из selectedSeller
+    let sellerName = selectedSeller?.full_name;
+
+    // Если не нашли, ищем в массиве sellerProfiles по sellerId
+    if (!sellerName && formData.sellerId) {
+      const seller = sellerProfiles.find(s => s.id === formData.sellerId);
+      sellerName = seller?.full_name;
+    }
+
+    // В крайнем случае используем fallback
+    return sellerName || 'Unknown Seller';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -284,13 +300,15 @@ export const useOrderFormLogic = () => {
       
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       
-      // Обновлено: добавляем префикс p_ к каждому параметру
+      // Get seller name using the robust fallback logic
+      const orderSellerName = getSellerName();
+      
       const orderPayload = {
         p_title: formData.title,
         p_price: parseFloat(formData.price),
         p_place_number: parseInt(formData.place_number),
         p_seller_id: formData.sellerId,
-        p_order_seller_name: selectedSeller?.full_name || 'Unknown',
+        p_order_seller_name: orderSellerName,
         p_seller_opt_id: selectedSeller?.opt_id || null,
         p_buyer_id: buyerData.id,
         p_brand: formData.brand,
@@ -306,6 +324,7 @@ export const useOrderFormLogic = () => {
       };
 
       console.log("Creating order with payload:", orderPayload);
+      console.log("Seller name resolved to:", orderSellerName);
 
       // Use RPC function call to bypass RLS for admin operations
       const { data: createdOrderData, error: orderError } = await supabase
@@ -342,15 +361,11 @@ export const useOrderFormLogic = () => {
 
       if (videos.length > 0 && createdOrderData) {
         console.log("Saving video references to database, order ID:", createdOrderData);
-        // Для видео по-прежнему используем прямую вставку
-        // Но в будущем можно модифицировать RPC функцию для видео
         const videoRecords = videos.map(url => ({
           order_id: createdOrderData,
           url
         }));
         
-        // Прямая вставка может работать если у админа есть права,
-        // в противном случае будет ошибка RLS
         const { error: videosError } = await supabase
           .from('order_videos')
           .insert(videoRecords);
@@ -369,7 +384,6 @@ export const useOrderFormLogic = () => {
       if (orderData.product_id) {
         try {
           console.log("Отправка уведомления о проданном товаре через новую функцию");
-          // Используем setTimeout, чтобы не блокировать UI
           setTimeout(async () => {
             try {
               await supabase.functions.invoke('send-product-sold-notification', {
@@ -414,7 +428,6 @@ export const useOrderFormLogic = () => {
     try {
       console.log("Sending Telegram notification for new order creation (async)");
       
-      // Use setTimeout to make this non-blocking
       setTimeout(async () => {
         try {
           await supabase.functions.invoke('send-telegram-notification', {
@@ -426,7 +439,6 @@ export const useOrderFormLogic = () => {
           console.log("Telegram notification sent for new order");
         } catch (notifyError) {
           console.error('Failed to send order notification:', notifyError);
-          // We don't show a toast here as the order is already created successfully
         }
       }, 100);
     } catch (error) {
@@ -461,7 +473,6 @@ export const useOrderFormLogic = () => {
     resetForm,
     navigate,
     parseTitleForBrand,
-    // Export new states to show progress
     creationStage,
     creationProgress
   };
