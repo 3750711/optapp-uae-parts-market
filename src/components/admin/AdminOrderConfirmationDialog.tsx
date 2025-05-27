@@ -21,7 +21,12 @@ import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImage
 interface AdminOrderConfirmationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onConfirm: (orderData: { price: number; deliveryPrice?: number; deliveryMethod: string }) => void;
+  onConfirm: (orderData: { 
+    price: number; 
+    deliveryPrice?: number; 
+    deliveryMethod: string;
+    orderImages: string[];
+  }) => void;
   isSubmitting: boolean;
   product: {
     id: string;
@@ -72,18 +77,28 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
       return;
     }
 
+    console.log("Order confirmation data:", {
+      price: numPrice,
+      deliveryPrice: numDeliveryPrice > 0 ? numDeliveryPrice : undefined,
+      deliveryMethod,
+      orderImages
+    });
+
     onConfirm({
       price: numPrice,
       deliveryPrice: numDeliveryPrice > 0 ? numDeliveryPrice : undefined,
-      deliveryMethod
+      deliveryMethod,
+      orderImages
     });
   };
 
   const handleImagesUpload = (urls: string[]) => {
+    console.log("Images uploaded:", urls);
     setOrderImages(urls);
   };
 
   const handleImageDelete = (urlToDelete: string) => {
+    console.log("Deleting image:", urlToDelete);
     setOrderImages(prev => prev.filter(url => url !== urlToDelete));
   };
 
@@ -196,7 +211,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                 <div className="mb-4">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {orderImages.map((imageUrl, index) => (
-                      <div key={imageUrl} className="relative aspect-square rounded-lg overflow-hidden border">
+                      <div key={imageUrl} className="relative aspect-square rounded-lg overflow-hidden border group">
                         <img
                           src={imageUrl}
                           alt={`Order image ${index + 1}`}

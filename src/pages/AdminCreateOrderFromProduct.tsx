@@ -195,6 +195,7 @@ const AdminCreateOrderFromProduct = () => {
     price: number;
     deliveryPrice?: number;
     deliveryMethod: string;
+    orderImages: string[];
   }) => {
     if (!selectedSeller || !selectedProduct || !selectedBuyer) {
       toast({
@@ -205,35 +206,54 @@ const AdminCreateOrderFromProduct = () => {
       return;
     }
 
+    console.log("Creating order with data:", {
+      seller: selectedSeller,
+      product: selectedProduct,
+      buyer: selectedBuyer,
+      orderData
+    });
+
     setIsCreatingOrder(true);
 
     try {
+      // Валидация delivery_method
+      const validDeliveryMethods = ['cargo_rf', 'cargo_kz', 'self_pickup'];
+      if (!validDeliveryMethods.includes(orderData.deliveryMethod)) {
+        throw new Error(`Invalid delivery method: ${orderData.deliveryMethod}`);
+      }
+
       // Используем RPC функцию для создания заказа администратором
+      const orderPayload = {
+        p_title: selectedProduct.title,
+        p_price: orderData.price,
+        p_place_number: 1,
+        p_seller_id: selectedSeller.id,
+        p_order_seller_name: selectedSeller.full_name,
+        p_seller_opt_id: selectedSeller.opt_id,
+        p_buyer_id: selectedBuyer.id,
+        p_brand: selectedProduct.brand || '',
+        p_model: selectedProduct.model || '',
+        p_status: 'seller_confirmed' as const,
+        p_order_created_type: 'product_order' as const,
+        p_telegram_url_order: selectedBuyer.telegram || null,
+        p_images: orderData.orderImages, // Передаем изображения заказа
+        p_product_id: selectedProduct.id,
+        p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
+        p_text_order: null,
+        p_delivery_price_confirm: orderData.deliveryPrice || null
+      };
+
+      console.log("RPC payload:", orderPayload);
+
       const { data: orderId, error: orderError } = await supabase
-        .rpc('admin_create_order', {
-          p_title: selectedProduct.title,
-          p_price: orderData.price,
-          p_place_number: 1,
-          p_seller_id: selectedSeller.id,
-          p_order_seller_name: selectedSeller.full_name,
-          p_seller_opt_id: selectedSeller.opt_id,
-          p_buyer_id: selectedBuyer.id,
-          p_brand: selectedProduct.brand || '',
-          p_model: selectedProduct.model || '',
-          p_status: 'seller_confirmed',
-          p_order_created_type: 'product_order',
-          p_telegram_url_order: selectedBuyer.telegram || null,
-          p_images: [],
-          p_product_id: selectedProduct.id,
-          p_delivery_method: orderData.deliveryMethod as any,
-          p_text_order: null,
-          p_delivery_price_confirm: orderData.deliveryPrice || null
-        });
+        .rpc('admin_create_order', orderPayload);
 
       if (orderError) {
         console.error("Error creating order:", orderError);
         throw orderError;
       }
+
+      console.log("Order created with ID:", orderId);
 
       // Обновляем статус товара на "sold"
       const { error: updateError } = await supabase
@@ -266,9 +286,10 @@ const AdminCreateOrderFromProduct = () => {
 
     } catch (error) {
       console.error("Error creating order:", error);
+      const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
       toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при создании заказа",
+        title: "Ошибка создания заказа",
+        description: `Детали: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
