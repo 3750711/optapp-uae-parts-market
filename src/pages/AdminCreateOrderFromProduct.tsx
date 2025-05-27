@@ -340,6 +340,11 @@ const AdminCreateOrderFromProduct = () => {
     }
   };
 
+  const handleCancelConfirmImages = () => {
+    // Просто закрываем диалог без перехода
+    setShowConfirmImagesDialog(false);
+  };
+
   const resetForm = () => {
     setSelectedSeller(null);
     setSelectedProduct(null);
@@ -574,7 +579,7 @@ const AdminCreateOrderFromProduct = () => {
             orderId={createdOrderId}
             onComplete={handleConfirmImagesComplete}
             onSkip={handleSkipConfirmImages}
-            onCancel={() => setShowConfirmImagesDialog(false)}
+            onCancel={handleCancelConfirmImages}
           />
         )}
       </div>
