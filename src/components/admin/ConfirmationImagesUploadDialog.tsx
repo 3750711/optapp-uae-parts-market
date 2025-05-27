@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, SkipForward, Check } from "lucide-react";
+import { Loader2, Upload, SkipForward, Check, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -31,10 +32,22 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 }) => {
   const [confirmImages, setConfirmImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleImagesUpload = async (urls: string[]) => {
     console.log("Confirmation images uploaded:", urls);
     setConfirmImages(urls);
+    setUploadError(null); // Очищаем ошибку при успешной загрузке
+  };
+
+  const handleUploadError = (error: string) => {
+    console.error("Upload error:", error);
+    setUploadError(error);
+    toast({
+      title: "Ошибка загрузки",
+      description: error,
+      variant: "destructive",
+    });
   };
 
   const handleSaveImages = async () => {
@@ -48,6 +61,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     }
 
     setIsUploading(true);
+    setUploadError(null);
 
     try {
       // Сохраняем фотографии подтверждения в базу данных
@@ -74,6 +88,8 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     } catch (error) {
       console.error("Error saving confirmation images:", error);
       const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
+      setUploadError(`Не удалось сохранить фотографии: ${errorMessage}`);
+      
       toast({
         title: "Ошибка",
         description: `Не удалось сохранить фотографии: ${errorMessage}`,
@@ -87,6 +103,11 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const handleImageDelete = (urlToDelete: string) => {
     console.log("Deleting confirmation image:", urlToDelete);
     setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
+  };
+
+  const handleReset = () => {
+    setConfirmImages([]);
+    setUploadError(null);
   };
 
   return (
@@ -104,6 +125,24 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Отображение ошибки загрузки */}
+          {uploadError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {uploadError}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleReset}
+                  className="ml-2 h-6 px-2 text-xs"
+                >
+                  Попробовать снова
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Компонент загрузки изображений */}
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
             <MobileOptimizedImageUpload
@@ -123,6 +162,26 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                 <span className="font-medium">
                   Загружено {confirmImages.length} фотографий подтверждения
                 </span>
+              </div>
+              <p className="text-sm text-green-600 mt-1">
+                Изображения готовы к сохранению в заказе
+              </p>
+            </div>
+          )}
+
+          {/* Подсказка для пользователя */}
+          {confirmImages.length === 0 && !uploadError && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-2 text-blue-700">
+                <Upload className="h-4 w-4 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">Рекомендации по фотографиям:</p>
+                  <ul className="mt-1 space-y-1 text-blue-600">
+                    <li>• Сфотографируйте товар после упаковки</li>
+                    <li>• Включите этикетки или документы</li>
+                    <li>• Убедитесь, что изображения четкие</li>
+                  </ul>
+                </div>
               </div>
             </div>
           )}
