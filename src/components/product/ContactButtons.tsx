@@ -198,15 +198,33 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       console.log('Order created successfully with ID:', orderId);
 
-      // Получаем данные созданного заказа для отображения номера
+      // Получаем данные созданного заказа для отправки уведомления и отображения номера
       const { data: createdOrder, error: fetchError } = await supabase
         .from('orders')
-        .select('order_number')
+        .select('*')
         .eq('id', orderId)
         .single();
 
       if (fetchError) {
         console.error("Error fetching created order:", fetchError);
+      } else {
+        // Отправляем уведомление о создании заказа в Telegram
+        try {
+          const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              order: createdOrder,
+              action: 'create'
+            }
+          });
+
+          if (notificationError) {
+            console.error('Error sending order notification:', notificationError);
+          } else {
+            console.log('Order notification sent successfully');
+          }
+        } catch (notificationError) {
+          console.error('Error calling notification function:', notificationError);
+        }
       }
 
       // Примечание: Обновление статуса товара на "sold" и отправка уведомлений 
