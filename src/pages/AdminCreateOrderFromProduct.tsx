@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,7 @@ interface Product {
   status: string;
   product_images?: { url: string; is_primary?: boolean }[];
   delivery_price?: number;
+  lot_number: number;
 }
 
 const AdminCreateOrderFromProduct = () => {
