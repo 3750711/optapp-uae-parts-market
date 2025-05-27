@@ -262,6 +262,41 @@ const AdminCreateOrderFromProduct = () => {
       console.log("Order created with ID:", orderId);
       setCreatedOrderId(orderId);
 
+      // Получаем данные созданного заказа для Telegram уведомления
+      const { data: createdOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError) {
+        console.error("Error fetching created order:", fetchError);
+      }
+
+      // Отправляем Telegram уведомление о создании заказа
+      if (createdOrder) {
+        try {
+          console.log("Sending Telegram notification for order creation:", createdOrder);
+          
+          const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
+            body: {
+              order: createdOrder,
+              action: 'create'
+            }
+          });
+
+          if (notificationError) {
+            console.error("Error sending order creation notification:", notificationError);
+            // Не прерываем процесс создания заказа при ошибке уведомления
+          } else {
+            console.log("Order creation notification sent successfully");
+          }
+        } catch (notificationError) {
+          console.error("Exception while sending order notification:", notificationError);
+          // Не прерываем процесс создания заказа при ошибке уведомления
+        }
+      }
+
       // Обновляем статус товара на "sold"
       const { error: updateError } = await supabase
         .from('products')
