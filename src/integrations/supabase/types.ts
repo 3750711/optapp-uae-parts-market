@@ -962,7 +962,7 @@ export type Database = {
         | "received"
       delivery_method: "self_pickup" | "cargo_rf" | "cargo_kz"
       opt_user_status: "free_user" | "opt_user"
-      order_created_type: "free_order" | "ads_order"
+      order_created_type: "free_order" | "ads_order" | "product_order"
       order_status:
         | "created"
         | "seller_confirmed"
@@ -1109,7 +1109,7 @@ export const Constants = {
       ],
       delivery_method: ["self_pickup", "cargo_rf", "cargo_kz"],
       opt_user_status: ["free_user", "opt_user"],
-      order_created_type: ["free_order", "ads_order"],
+      order_created_type: ["free_order", "ads_order", "product_order"],
       order_status: [
         "created",
         "seller_confirmed",

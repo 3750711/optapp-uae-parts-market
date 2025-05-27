@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -229,17 +230,17 @@ const AdminCreateOrderFromProduct = () => {
         p_place_number: 1,
         p_seller_id: selectedSeller.id,
         p_order_seller_name: selectedSeller.full_name,
-        p_seller_opt_id: selectedSeller.opt_id,
+        p_seller_opt_id: selectedSeller.opt_id || '',
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
         p_status: 'seller_confirmed' as const,
-        p_order_created_type: 'product_order' as const,
-        p_telegram_url_order: selectedBuyer.telegram || null,
-        p_images: orderData.orderImages, // Передаем изображения заказа
+        p_order_created_type: 'product_order' as const, // Теперь это значение существует в enum
+        p_telegram_url_order: selectedBuyer.telegram || '',
+        p_images: orderData.orderImages,
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
-        p_text_order: null,
+        p_text_order: '',
         p_delivery_price_confirm: orderData.deliveryPrice || null
       };
 
@@ -272,7 +273,7 @@ const AdminCreateOrderFromProduct = () => {
 
       toast({
         title: "Заказ создан",
-        description: `Заказ #${orderId} успешно создан`,
+        description: `Заказ успешно создан`,
       });
 
       // Сброс формы
