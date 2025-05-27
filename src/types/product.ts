@@ -50,7 +50,7 @@ export interface Product {
   optid_created?: string | null;
   product_location?: string | null;
   rating_seller?: number | null;
-  lot_number?: number;
+  lot_number: number;
   location?: string | null;
   last_notification_sent_at?: string | null;
   
