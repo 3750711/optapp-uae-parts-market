@@ -297,42 +297,10 @@ const AdminCreateOrderFromProduct = () => {
         }
       }
 
-      // Отправляем прямое уведомление о продаже товара
-      try {
-        console.log("Sending product sold notification for:", selectedProduct.id);
-        
-        const { error: soldNotificationError } = await supabase.functions.invoke('send-telegram-notification', {
-          body: {
-            productId: selectedProduct.id,
-            notificationType: 'sold'
-          }
-        });
-
-        if (soldNotificationError) {
-          console.error("Error sending product sold notification:", soldNotificationError);
-          // Не прерываем процесс создания заказа при ошибке уведомления
-        } else {
-          console.log("Product sold notification sent successfully");
-        }
-      } catch (soldNotificationError) {
-        console.error("Exception while sending sold notification:", soldNotificationError);
-        // Не прерываем процесс создания заказа при ошибке уведомления
-      }
-
-      // Обновляем статус товара на "sold"
-      const { error: updateError } = await supabase
-        .from('products')
-        .update({ status: 'sold' })
-        .eq('id', selectedProduct.id);
-
-      if (updateError) {
-        console.error("Error updating product status:", updateError);
-        toast({
-          title: "Предупреждение",
-          description: "Заказ создан, но статус товара не обновился",
-          variant: "destructive",
-        });
-      }
+      // Примечание: Обновление статуса товара на "sold" и отправка уведомления о продаже 
+      // теперь обрабатываются автоматически через триггеры базы данных:
+      // - notify_on_order_product_status_changes: обновляет статус товара при создании заказа
+      // - notify_on_product_status_changes: отправляет уведомление о продаже товара
 
       toast({
         title: "Заказ создан",
