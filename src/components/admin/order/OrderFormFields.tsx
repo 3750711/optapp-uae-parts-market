@@ -1,10 +1,13 @@
-
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
+import { Package } from "lucide-react";
+import SellerProductsDialog from "./SellerProductsDialog";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderFormFieldsProps {
   formData: OrderFormData;
@@ -24,6 +27,21 @@ interface OrderFormFieldsProps {
   filteredModels: { id: string; name: string; brand_id: string }[];
   // Add new prop for title parsing
   parseTitleForBrand: (title: string) => void;
+  // Add new props for handling images and data from product
+  onImagesUpload?: (urls: string[]) => void;
+  onDataFromProduct?: (data: any) => void;
+}
+
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  brand?: string;
+  model?: string;
+  lot_number: number;
+  delivery_price?: number;
+  place_number?: number;
+  product_images?: { url: string; is_primary?: boolean }[];
 }
 
 export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
@@ -44,11 +62,93 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   filteredModels,
   // Add new prop for title parsing
   parseTitleForBrand,
+  // Add new props for handling images and data from product
+  onImagesUpload,
+  onDataFromProduct,
 }) => {
+  const [showProductsDialog, setShowProductsDialog] = useState(false);
+
+  const handleAddDataFromProduct = () => {
+    if (!selectedSeller) {
+      toast({
+        title: "Внимание",
+        description: "Сначала выберите продавца",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowProductsDialog(true);
+  };
+
+  const handleProductSelect = (product: Product) => {
+    console.log("Selected product:", product);
+
+    // Обновляем поля формы данными из товара
+    handleInputChange('title', product.title);
+    handleInputChange('price', product.price.toString());
+    
+    if (product.brand) {
+      // Найти ID бренда по имени
+      const brandObj = brands.find(b => b.name.toLowerCase() === product.brand?.toLowerCase());
+      if (brandObj) {
+        handleInputChange('brandId', brandObj.id);
+      }
+    }
+    
+    if (product.model) {
+      // Найти ID модели по имени
+      const modelObj = brandModels.find(m => m.name.toLowerCase() === product.model?.toLowerCase());
+      if (modelObj) {
+        handleInputChange('modelId', modelObj.id);
+      }
+    }
+
+    if (product.delivery_price) {
+      handleInputChange('delivery_price', product.delivery_price.toString());
+    }
+
+    if (product.place_number) {
+      handleInputChange('place_number', product.place_number.toString());
+    }
+
+    // Копируем изображения товара
+    if (product.product_images && product.product_images.length > 0 && onImagesUpload) {
+      const imageUrls = product.product_images.map(img => img.url);
+      onImagesUpload(imageUrls);
+    }
+
+    // Вызываем парсинг названия для автозаполнения бренда/модели
+    parseTitleForBrand(product.title);
+
+    // Передаем данные в родительский компонент, если нужно
+    if (onDataFromProduct) {
+      onDataFromProduct(product);
+    }
+
+    toast({
+      title: "Данные скопированы",
+      description: `Данные из товара "${product.title}" успешно добавлены в форму`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="title">Наименование *</Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="title">Наименование *</Label>
+          {selectedSeller && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddDataFromProduct}
+              className="flex items-center gap-2"
+            >
+              <Package className="h-4 w-4" />
+              Добавить данные из объявления
+            </Button>
+          )}
+        </div>
         <Input 
           id="title" 
           value={formData.title}
@@ -270,6 +370,15 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
           onChange={(e) => handleInputChange('text_order', e.target.value)}
         />
       </div>
+
+      {/* Диалог выбора товаров продавца */}
+      <SellerProductsDialog
+        open={showProductsDialog}
+        onOpenChange={setShowProductsDialog}
+        sellerId={selectedSeller?.id || null}
+        sellerName={selectedSeller?.full_name || ""}
+        onProductSelect={handleProductSelect}
+      />
     </div>
   );
 };

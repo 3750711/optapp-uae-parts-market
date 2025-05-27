@@ -61,6 +61,12 @@ export const AdminFreeOrderForm = () => {
   const handleGoBack = () => {
     navigate('/admin/dashboard');
   };
+
+  // Обработчик для данных из товара
+  const handleDataFromProduct = (productData: any) => {
+    console.log("Product data received:", productData);
+    // Дополнительная обработка, если нужна
+  };
   
   // Get stage message based on current creation stage
   const getStageMessage = () => {
@@ -117,6 +123,8 @@ export const AdminFreeOrderForm = () => {
         filteredBrands={filteredBrands}
         filteredModels={filteredModels}
         parseTitleForBrand={parseTitleForBrand}
+        onImagesUpload={onImagesUpload}
+        onDataFromProduct={handleDataFromProduct}
       />
       
       <MediaUploadSection 
