@@ -61,22 +61,7 @@ const ProductStatusChangeDialog = ({
         console.error("Error logging product status change:", logError);
       }
       
-      // Explicitly send notification before updating status
-      try {
-        console.log("Sending notification before status change");
-        await supabase.functions.invoke('send-telegram-notification', {
-          body: { 
-            productId,
-            notificationType: 'sold'
-          }
-        });
-        console.log("Notification sent successfully");
-      } catch (notifyError) {
-        console.error("Error sending notification:", notifyError);
-        // Continue with status update even if notification fails
-      }
-      
-      // Update the product status
+      // Update the product status - the database trigger will handle the notification
       const { data, error } = await supabase
         .from("products")
         .update({ status: "sold" })
