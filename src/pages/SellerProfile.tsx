@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "@/components/ui/use-toast";
 import SellerPageSkeleton from "@/components/seller/SellerPageSkeleton";
-import SellerStats from "@/components/seller/SellerStats";
 import OptimizedSellerDashboard from "@/components/seller/OptimizedSellerDashboard";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -136,25 +135,6 @@ const SellerProfile = () => {
               </CardContent>
             </Card>
           ) : null}
-
-          {/* Statistics section with error boundary */}
-          <Suspense fallback={
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {[...Array(8)].map((_, i) => (
-                <Card key={i}>
-                  <CardHeader className="pb-2">
-                    <div className="animate-pulse bg-gray-200 h-5 w-5 rounded"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="animate-pulse bg-gray-200 h-8 w-16 rounded mb-2"></div>
-                    <div className="animate-pulse bg-gray-200 h-4 w-24 rounded"></div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          }>
-            <SellerStats />
-          </Suspense>
 
           {/* Dashboard section */}
           <OptimizedSellerDashboard />
