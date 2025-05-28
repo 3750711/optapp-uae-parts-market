@@ -7,17 +7,21 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, Package, UserCheck, ShoppingCart, ChevronLeft } from "lucide-react";
+import { ChevronRight, Package, UserCheck, ShoppingCart, ChevronLeft, Eye } from "lucide-react";
 import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
 import { useNavigate } from "react-router-dom";
 import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMobile } from "@/hooks/use-mobile";
 
 // Новые оптимизированные компоненты
 import OptimizedProductCard from "@/components/seller/OptimizedProductCard";
 import EnhancedProductSearch, { SearchFilters } from "@/components/seller/EnhancedProductSearch";
 import ProductBreadcrumbs from "@/components/seller/ProductBreadcrumbs";
 import { ProductGridSkeleton, StepSkeleton } from "@/components/ui/SkeletonLoader";
+import ProductQuickPreview from "@/components/seller/ProductQuickPreview";
+import MobileProductCard from "@/components/seller/MobileProductCard";
+import KeyboardShortcuts from "@/components/seller/KeyboardShortcuts";
 
 interface BuyerProfile {
   id: string;
@@ -36,11 +40,13 @@ interface Product {
   product_images?: { url: string; is_primary?: boolean }[];
   delivery_price?: number;
   lot_number: number;
+  description?: string;
 }
 
 const SellerSellProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const isMobile = useMobile();
   
   // State management
   const [step, setStep] = useState(1);
@@ -54,6 +60,11 @@ const SellerSellProduct = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  
+  // Новые состояния для улучшенного UX
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const [searchInputRef, setSearchInputRef] = useState<HTMLInputElement | null>(null);
 
   // Мемоизированные breadcrumbs
   const breadcrumbItems = useMemo(() => [
@@ -114,8 +125,7 @@ const SellerSellProduct = () => {
           .select("*, product_images(*)")
           .eq("seller_id", user.id)
           .eq("status", "active")
-          .order("created_at", { ascending: false })
-          .abortSignal(abortController.signal);
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
         
@@ -223,11 +233,35 @@ const SellerSellProduct = () => {
     setStep(2);
   }, []);
 
+  const handleProductPreview = useCallback((product: Product) => {
+    setPreviewProduct(product);
+    setShowPreview(true);
+  }, []);
+
   const handleBuyerSelect = useCallback((buyerId: string) => {
     const buyer = buyers.find(b => b.id === buyerId);
     setSelectedBuyer(buyer || null);
     setShowConfirmDialog(true);
   }, [buyers]);
+
+  // Обработчики горячих клавиш
+  const handleKeyboardCancel = useCallback(() => {
+    if (showConfirmDialog) {
+      setShowConfirmDialog(false);
+    } else if (showPreview) {
+      setShowPreview(false);
+    } else if (step > 1) {
+      setStep(step - 1);
+    } else {
+      navigate('/seller/profile');
+    }
+  }, [showConfirmDialog, showPreview, step, navigate]);
+
+  const handleKeyboardSearch = useCallback(() => {
+    if (searchInputRef) {
+      searchInputRef.focus();
+    }
+  }, [searchInputRef]);
 
   const createOrder = async (orderData: {
     price: number;
@@ -400,6 +434,13 @@ const SellerSellProduct = () => {
 
   return (
     <Layout>
+      {/* Горячие клавиши */}
+      <KeyboardShortcuts
+        onCancel={handleKeyboardCancel}
+        onSearch={handleKeyboardSearch}
+        disabled={isCreatingOrder || showConfirmDialog || showConfirmImagesDialog}
+      />
+
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Breadcrumbs */}
         <ProductBreadcrumbs items={breadcrumbItems} />
@@ -489,13 +530,22 @@ const SellerSellProduct = () => {
                   </p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className={isMobile ? "grid grid-cols-1 sm:grid-cols-2 gap-3" : "space-y-3"}>
                   {filteredProducts.map((product) => (
-                    <OptimizedProductCard
-                      key={product.id}
-                      product={product}
-                      onSelect={handleProductSelect}
-                    />
+                    isMobile ? (
+                      <MobileProductCard
+                        key={product.id}
+                        product={product}
+                        onSelect={handleProductSelect}
+                        onPreview={handleProductPreview}
+                      />
+                    ) : (
+                      <OptimizedProductCard
+                        key={product.id}
+                        product={product}
+                        onSelect={handleProductSelect}
+                      />
+                    )
                   ))}
                 </div>
               )}
@@ -536,6 +586,14 @@ const SellerSellProduct = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Диалог предварительного просмотра товара */}
+        <ProductQuickPreview
+          product={previewProduct}
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          onSelectProduct={handleProductSelect}
+        />
 
         {/* Диалог подтверждения заказа */}
         {showConfirmDialog && selectedProduct && selectedBuyer && profile && (

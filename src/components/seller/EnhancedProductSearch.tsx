@@ -1,13 +1,15 @@
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { X, Search, Filter, SortAsc, SortDesc } from "lucide-react";
+import { X, Search, Filter, SortAsc, SortDesc, RotateCcw, Save } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useDebounceSearch } from "@/hooks/useDebounceSearch";
+import { useLocalStorageFilters } from "@/hooks/useLocalStorageFilters";
+import { toast } from "@/components/ui/use-toast";
 
 export interface SearchFilters {
   searchTerm: string;
@@ -31,6 +33,8 @@ const EnhancedProductSearch = React.memo(({
   totalProducts,
   filteredCount 
 }: EnhancedProductSearchProps) => {
+  const { savedFilters, saveFilters, clearSavedFilters } = useLocalStorageFilters();
+  
   const [filters, setFilters] = useState<SearchFilters>({
     searchTerm: '',
     lotNumber: '',
@@ -41,8 +45,31 @@ const EnhancedProductSearch = React.memo(({
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const debouncedSearchTerm = useDebounceSearch(filters.searchTerm, 300);
+
+  // Загружаем сохраненные фильтры при инициализации
+  useEffect(() => {
+    if (savedFilters) {
+      setFilters(savedFilters);
+      // Показываем расширенные фильтры если есть сохраненные значения
+      if (savedFilters.lotNumber || savedFilters.priceFrom || savedFilters.priceTo) {
+        setShowAdvanced(true);
+      }
+    }
+  }, [savedFilters]);
+
+  // Проверяем наличие несохраненных изменений
+  useEffect(() => {
+    if (savedFilters) {
+      const hasChanges = JSON.stringify(filters) !== JSON.stringify(savedFilters);
+      setHasUnsavedChanges(hasChanges);
+    } else {
+      const hasAnyFilters = filters.searchTerm || filters.lotNumber || filters.priceFrom || filters.priceTo;
+      setHasUnsavedChanges(hasAnyFilters);
+    }
+  }, [filters, savedFilters]);
 
   const updateFilters = useCallback((newFilters: Partial<SearchFilters>) => {
     const updated = { ...filters, ...newFilters };
@@ -55,15 +82,43 @@ const EnhancedProductSearch = React.memo(({
   }, [debouncedSearchTerm]);
 
   const clearAllFilters = () => {
-    setFilters({
+    const defaultFilters = {
       searchTerm: '',
       lotNumber: '',
       priceFrom: '',
       priceTo: '',
       sortBy: 'created_at',
-      sortOrder: 'desc'
-    });
+      sortOrder: 'desc' as const
+    };
+    setFilters(defaultFilters);
     onClearFilters();
+    clearSavedFilters();
+    setHasUnsavedChanges(false);
+    toast({
+      title: "Фильтры очищены",
+      description: "Все фильтры были сброшены",
+    });
+  };
+
+  const saveCurrentFilters = () => {
+    saveFilters(filters);
+    setHasUnsavedChanges(false);
+    toast({
+      title: "Фильтры сохранены",
+      description: "Ваши настройки фильтров сохранены",
+    });
+  };
+
+  const restoreSavedFilters = () => {
+    if (savedFilters) {
+      setFilters(savedFilters);
+      onSearchChange(savedFilters);
+      setHasUnsavedChanges(false);
+      toast({
+        title: "Фильтры восстановлены",
+        description: "Применены сохраненные настройки",
+      });
+    }
   };
 
   const hasActiveFilters = filters.searchTerm || filters.lotNumber || filters.priceFrom || filters.priceTo;
@@ -71,8 +126,8 @@ const EnhancedProductSearch = React.memo(({
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        {/* Main Search */}
-        <div className="flex gap-2 mb-4">
+        {/* Главный поиск и управление */}
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
@@ -83,95 +138,127 @@ const EnhancedProductSearch = React.memo(({
             />
           </div>
           
-          <Button
-            variant="outline"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2"
-          >
-            <Filter className="h-4 w-4" />
-            Фильтры
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="flex items-center gap-2"
+              size="sm"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="hidden sm:inline">Фильтры</span>
+            </Button>
 
-          <Select value={filters.sortBy} onValueChange={(value) => updateFilters({ sortBy: value })}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="created_at">По дате</SelectItem>
-              <SelectItem value="price">По цене</SelectItem>
-              <SelectItem value="title">По названию</SelectItem>
-              <SelectItem value="lot_number">По лоту</SelectItem>
-            </SelectContent>
-          </Select>
+            <Select value={filters.sortBy} onValueChange={(value) => updateFilters({ sortBy: value })}>
+              <SelectTrigger className="w-32 sm:w-40">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="created_at">По дате</SelectItem>
+                <SelectItem value="price">По цене</SelectItem>
+                <SelectItem value="title">По названию</SelectItem>
+                <SelectItem value="lot_number">По лоту</SelectItem>
+              </SelectContent>
+            </Select>
 
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => updateFilters({ 
-              sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
-            })}
-          >
-            {filters.sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
-          </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => updateFilters({ 
+                sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
+              })}
+            >
+              {filters.sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
 
-        {/* Advanced Filters */}
+        {/* Расширенные фильтры */}
         {showAdvanced && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
-            <div>
-              <Label htmlFor="lotNumber" className="text-sm font-medium">
-                Номер лота
-              </Label>
-              <Input
-                id="lotNumber"
-                placeholder="Введите номер лота"
-                value={filters.lotNumber}
-                onChange={(e) => updateFilters({ lotNumber: e.target.value })}
-              />
+          <div className="space-y-4 pt-4 border-t">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="lotNumber" className="text-sm font-medium">
+                  Номер лота
+                </Label>
+                <Input
+                  id="lotNumber"
+                  placeholder="Введите номер лота"
+                  value={filters.lotNumber}
+                  onChange={(e) => updateFilters({ lotNumber: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="priceFrom" className="text-sm font-medium">
+                  Цена от ($)
+                </Label>
+                <Input
+                  id="priceFrom"
+                  type="number"
+                  placeholder="Мин. цена"
+                  value={filters.priceFrom}
+                  onChange={(e) => updateFilters({ priceFrom: e.target.value })}
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="priceTo" className="text-sm font-medium">
+                  Цена до ($)
+                </Label>
+                <Input
+                  id="priceTo"
+                  type="number"
+                  placeholder="Макс. цена"
+                  value={filters.priceTo}
+                  onChange={(e) => updateFilters({ priceTo: e.target.value })}
+                />
+              </div>
             </div>
-            
-            <div>
-              <Label htmlFor="priceFrom" className="text-sm font-medium">
-                Цена от ($)
-              </Label>
-              <Input
-                id="priceFrom"
-                type="number"
-                placeholder="Мин. цена"
-                value={filters.priceFrom}
-                onChange={(e) => updateFilters({ priceFrom: e.target.value })}
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="priceTo" className="text-sm font-medium">
-                Цена до ($)
-              </Label>
-              <Input
-                id="priceTo"
-                type="number"
-                placeholder="Макс. цена"
-                value={filters.priceTo}
-                onChange={(e) => updateFilters({ priceTo: e.target.value })}
-              />
+
+            {/* Управление сохранением фильтров */}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              {hasUnsavedChanges && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={saveCurrentFilters}
+                  className="flex items-center gap-1"
+                >
+                  <Save className="h-3 w-3" />
+                  Сохранить фильтры
+                </Button>
+              )}
+              
+              {savedFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={restoreSavedFilters}
+                  className="flex items-center gap-1"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Восстановить
+                </Button>
+              )}
             </div>
           </div>
         )}
 
-        {/* Active Filters & Results */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t">
+        {/* Активные фильтры и результаты */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mt-4 pt-4 border-t">
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-600">
               Показано: <span className="font-medium">{filteredCount}</span> из <span className="font-medium">{totalProducts}</span>
             </span>
             
             {hasActiveFilters && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 flex-wrap">
                 {filters.searchTerm && (
                   <Badge variant="secondary" className="text-xs">
                     Поиск: {filters.searchTerm}
                     <X 
-                      className="ml-1 h-3 w-3 cursor-pointer" 
+                      className="ml-1 h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => updateFilters({ searchTerm: '' })}
                     />
                   </Badge>
@@ -180,7 +267,7 @@ const EnhancedProductSearch = React.memo(({
                   <Badge variant="secondary" className="text-xs">
                     Лот: {filters.lotNumber}
                     <X 
-                      className="ml-1 h-3 w-3 cursor-pointer" 
+                      className="ml-1 h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => updateFilters({ lotNumber: '' })}
                     />
                   </Badge>
@@ -189,7 +276,7 @@ const EnhancedProductSearch = React.memo(({
                   <Badge variant="secondary" className="text-xs">
                     Цена: {filters.priceFrom || '0'} - {filters.priceTo || '∞'}
                     <X 
-                      className="ml-1 h-3 w-3 cursor-pointer" 
+                      className="ml-1 h-3 w-3 cursor-pointer hover:text-red-500" 
                       onClick={() => updateFilters({ priceFrom: '', priceTo: '' })}
                     />
                   </Badge>
