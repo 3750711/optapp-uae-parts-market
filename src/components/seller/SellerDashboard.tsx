@@ -1,6 +1,7 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
-import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText } from "lucide-react";
+import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -50,6 +51,20 @@ const SellerDashboard = () => {
               <CardTitle className="text-lg">Мой склад</CardTitle>
               <p className="text-sm text-muted-foreground mt-1">
                 Просмотр всех ваших товаров на складе
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/seller/sell-product">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <ShoppingCart className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Продать товар</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Создайте заказ из ваших товаров
               </p>
             </CardContent>
           </Card>

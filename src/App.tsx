@@ -31,6 +31,7 @@ import About from "./pages/About";
 import BuyerGuide from "./pages/BuyerGuide";
 import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 import SellerCreateOrder from "./pages/SellerCreateOrder";
+import SellerSellProduct from "./pages/SellerSellProduct";
 import NotFound from "./pages/NotFound";
 
 // Admin pages
@@ -72,6 +73,7 @@ function App() {
               <Route path="/seller/profile" element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />
               <Route path="/seller/dashboard" element={<Navigate to="/seller/profile" replace />} />
               <Route path="/seller/create-order" element={<ProtectedRoute><SellerCreateOrder /></ProtectedRoute>} />
+              <Route path="/seller/sell-product" element={<ProtectedRoute><SellerSellProduct /></ProtectedRoute>} />
               {/* Публичный профиль продавца - это должно быть в конце, чтобы не конфликтовать */}
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
               <Route path="/buyer/orders" element={<ProtectedRoute><BuyerOrders /></ProtectedRoute>} />
