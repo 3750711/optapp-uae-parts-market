@@ -114,20 +114,25 @@ const OptimizedSelect: React.FC<OptimizedSelectProps> = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
-        <Command shouldFilter={false}>
-          <div className="flex items-center border-b px-3">
+      <PopoverContent 
+        className="w-full p-0 bg-background border border-border shadow-lg z-50" 
+        align="start"
+        side="bottom"
+        sideOffset={4}
+      >
+        <Command shouldFilter={false} className="bg-background">
+          <div className="flex items-center border-b px-3 bg-background">
             <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
             <CommandInput
               placeholder={searchPlaceholder}
               value={searchTerm}
               onValueChange={setSearchTerm}
-              className="flex h-11 w-full rounded-md bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 w-full rounded-md bg-background py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-          <CommandList>
+          <CommandList className="bg-background">
             {filteredOptions.length === 0 ? (
-              <CommandEmpty>Ничего не найдено</CommandEmpty>
+              <CommandEmpty className="bg-background">Ничего не найдено</CommandEmpty>
             ) : (
               <List
                 ref={listRef}
@@ -135,7 +140,7 @@ const OptimizedSelect: React.FC<OptimizedSelectProps> = ({
                 width="100%"
                 itemCount={filteredOptions.length}
                 itemSize={itemHeight}
-                className="overflow-auto"
+                className="overflow-auto bg-background"
               >
                 {Item}
               </List>
