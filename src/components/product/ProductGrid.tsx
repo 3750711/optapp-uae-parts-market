@@ -7,12 +7,16 @@ interface ProductGridProps {
   products: ProductProps[];
   isLoading?: boolean;
   showAllStatuses?: boolean;
+  showSoldButton?: boolean;
+  onStatusChange?: () => void;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({ 
   products, 
   isLoading = false,
-  showAllStatuses = false 
+  showAllStatuses = false,
+  showSoldButton = false,
+  onStatusChange 
 }) => {
   // Display loading skeleton when data is loading
   if (isLoading) {
@@ -42,7 +46,11 @@ const ProductGrid: React.FC<ProductGridProps> = ({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 min-h-[200px] auto-rows-fr">
       {products.map((product) => (
         <div key={product.id} className="flex min-h-0">
-          <MemoizedProductCard product={product} />
+          <MemoizedProductCard 
+            product={product} 
+            showSoldButton={showSoldButton}
+            onStatusChange={onStatusChange}
+          />
         </div>
       ))}
     </div>
