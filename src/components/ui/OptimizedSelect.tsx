@@ -132,6 +132,7 @@ const OptimizedSelect: React.FC<OptimizedSelectProps> = ({
               <List
                 ref={listRef}
                 height={Math.min(maxHeight, filteredOptions.length * itemHeight)}
+                width="100%"
                 itemCount={filteredOptions.length}
                 itemSize={itemHeight}
                 className="overflow-auto"

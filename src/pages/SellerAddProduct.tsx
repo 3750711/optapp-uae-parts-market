@@ -79,7 +79,7 @@ const SellerAddProduct = () => {
 
   // Автосохранение формы
   const formData = form.watch();
-  const { loadFromStorage, clearStorage } = useFormAutosave({
+  const { loadSavedData, clearSavedData } = useFormAutosave({
     key: 'seller_add_product',
     data: formData,
     enabled: !isSubmitting
@@ -97,7 +97,7 @@ const SellerAddProduct = () => {
 
   // Загрузка сохраненного черновика при инициализации
   useEffect(() => {
-    const savedData = loadFromStorage();
+    const savedData = loadSavedData();
     if (savedData && Object.keys(savedData).length > 0) {
       // Проверяем, что форма пуста перед загрузкой черновика
       const currentFormIsEmpty = !formData.title && !formData.price && !formData.brandId;
@@ -113,7 +113,7 @@ const SellerAddProduct = () => {
         setTimeout(() => setShowDraftSaved(false), 5000);
       }
     }
-  }, [loadFromStorage, form]);
+  }, [loadSavedData, form]);
 
   // Мемоизированная функция для обработки изменений названия
   const handleTitleChange = useCallback((title: string) => {
@@ -309,7 +309,7 @@ const SellerAddProduct = () => {
       setProgressStatus({ step: "Завершение", progress: 100 });
 
       // Очищаем автосохраненный черновик после успешной публикации
-      clearStorage();
+      clearSavedData();
 
       toast({
         title: "Товар добавлен",
