@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +8,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Package, UserCheck, ShoppingCart, ChevronLeft } from "lucide-react";
-import ProductSearchAndFilters, { SearchFilters } from "@/components/admin/ProductSearchAndFilters";
 import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
 import { useNavigate } from "react-router-dom";
 import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Новые оптимизированные компоненты
+import OptimizedProductCard from "@/components/seller/OptimizedProductCard";
+import EnhancedProductSearch, { SearchFilters } from "@/components/seller/EnhancedProductSearch";
+import ProductBreadcrumbs from "@/components/seller/ProductBreadcrumbs";
+import { ProductGridSkeleton, StepSkeleton } from "@/components/ui/SkeletonLoader";
 
 interface BuyerProfile {
   id: string;
@@ -37,6 +41,8 @@ interface Product {
 const SellerSellProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  
+  // State management
   const [step, setStep] = useState(1);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -48,6 +54,11 @@ const SellerSellProduct = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+
+  // Мемоизированные breadcrumbs
+  const breadcrumbItems = useMemo(() => [
+    { label: "Продать товар" }
+  ], []);
 
   // Проверяем, что пользователь - продавец
   useEffect(() => {
@@ -62,70 +73,91 @@ const SellerSellProduct = () => {
     }
   }, [profile, navigate]);
 
-  // Загрузка покупателей
+  // Загрузка покупателей с обработкой ошибок
   useEffect(() => {
     const fetchBuyers = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, opt_id, telegram")
-        .eq("user_type", "buyer")
-        .not("opt_id", "is", null)
-        .order("full_name");
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, opt_id, telegram")
+          .eq("user_type", "buyer")
+          .not("opt_id", "is", null)
+          .order("full_name");
 
-      if (error) {
+        if (error) throw error;
+        setBuyers(data || []);
+      } catch (error) {
         console.error("Error fetching buyers:", error);
         toast({
           title: "Ошибка",
           description: "Не удалось загрузить список покупателей",
           variant: "destructive",
         });
-      } else {
-        setBuyers(data || []);
       }
     };
 
     fetchBuyers();
   }, []);
 
-  // Загрузка товаров текущего продавца
+  // Загрузка товаров с обработкой ошибок и cleanup
   useEffect(() => {
-    if (user) {
-      const fetchProducts = async () => {
-        setIsLoading(true);
+    if (!user) return;
+
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
         const { data, error } = await supabase
           .from("products")
           .select("*, product_images(*)")
           .eq("seller_id", user.id)
           .eq("status", "active")
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .abortSignal(abortController.signal);
 
-        if (error) {
+        if (error) throw error;
+        
+        if (isMounted) {
+          setProducts(data || []);
+          setFilteredProducts(data || []);
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError' && isMounted) {
           console.error("Error fetching products:", error);
           toast({
             title: "Ошибка",
             description: "Не удалось загрузить ваши товары",
             variant: "destructive",
           });
-        } else {
-          setProducts(data || []);
-          setFilteredProducts(data || []);
         }
-        setIsLoading(false);
-      };
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-      fetchProducts();
-    }
+    fetchProducts();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
   }, [user]);
 
-  const handleSearchChange = (filters: SearchFilters) => {
+  // Оптимизированная функция поиска с мемоизацией
+  const handleSearchChange = useCallback((filters: SearchFilters) => {
     let filtered = [...products];
 
     // Фильтр по названию
     if (filters.searchTerm.trim()) {
+      const searchLower = filters.searchTerm.toLowerCase();
       filtered = filtered.filter(product =>
-        product.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        product.brand?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        product.model?.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        product.title.toLowerCase().includes(searchLower) ||
+        product.brand?.toLowerCase().includes(searchLower) ||
+        product.model?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -136,7 +168,7 @@ const SellerSellProduct = () => {
       );
     }
 
-    // Фильтр по цене от
+    // Фильтр по цене
     if (filters.priceFrom.trim()) {
       const priceFrom = parseFloat(filters.priceFrom);
       if (!isNaN(priceFrom)) {
@@ -144,7 +176,6 @@ const SellerSellProduct = () => {
       }
     }
 
-    // Фильтр по цене до
     if (filters.priceTo.trim()) {
       const priceTo = parseFloat(filters.priceTo);
       if (!isNaN(priceTo)) {
@@ -152,23 +183,51 @@ const SellerSellProduct = () => {
       }
     }
 
+    // Сортировка
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (filters.sortBy) {
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        case 'title':
+          aValue = a.title.toLowerCase();
+          bValue = b.title.toLowerCase();
+          break;
+        case 'lot_number':
+          aValue = a.lot_number;
+          bValue = b.lot_number;
+          break;
+        default:
+          return 0;
+      }
+      
+      if (filters.sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
     setFilteredProducts(filtered);
-  };
+  }, [products]);
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     setFilteredProducts(products);
-  };
+  }, [products]);
 
-  const handleProductSelect = (product: Product) => {
+  const handleProductSelect = useCallback((product: Product) => {
     setSelectedProduct(product);
     setStep(2);
-  };
+  }, []);
 
-  const handleBuyerSelect = (buyerId: string) => {
+  const handleBuyerSelect = useCallback((buyerId: string) => {
     const buyer = buyers.find(b => b.id === buyerId);
     setSelectedBuyer(buyer || null);
     setShowConfirmDialog(true);
-  };
+  }, [buyers]);
 
   const createOrder = async (orderData: {
     price: number;
@@ -331,10 +390,6 @@ const SellerSellProduct = () => {
     }
   };
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU').format(price);
-  };
-
   const handleGoBack = () => {
     navigate('/seller/profile');
   };
@@ -346,6 +401,9 @@ const SellerSellProduct = () => {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {/* Breadcrumbs */}
+        <ProductBreadcrumbs items={breadcrumbItems} />
+
         <div className="mb-6">
           <div className="flex items-center mb-4">
             <Button 
@@ -394,7 +452,7 @@ const SellerSellProduct = () => {
           </div>
         </div>
 
-        {/* Шаг 1: Выбор товара с поиском и фильтрами */}
+        {/* Шаг 1: Выбор товара с улучшенным поиском */}
         {step === 1 && (
           <Card>
             <CardHeader>
@@ -404,66 +462,40 @@ const SellerSellProduct = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Компонент поиска и фильтров */}
-              <ProductSearchAndFilters
+              {/* Улучшенный компонент поиска */}
+              <EnhancedProductSearch
                 onSearchChange={handleSearchChange}
                 onClearFilters={handleClearFilters}
+                totalProducts={products.length}
+                filteredCount={filteredProducts.length}
               />
               
               {isLoading ? (
-                <div className="text-center py-8">Загрузка товаров...</div>
+                <ProductGridSkeleton count={6} />
               ) : filteredProducts.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  {products.length === 0 
-                    ? "У вас нет активных товаров на складе"
-                    : "Товары не найдены по заданным критериям"
-                  }
+                <div className="text-center py-12">
+                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {products.length === 0 
+                      ? "Нет товаров на складе"
+                      : "Товары не найдены"
+                    }
+                  </h3>
+                  <p className="text-gray-500">
+                    {products.length === 0 
+                      ? "Добавьте товары в ваш склад, чтобы начать продажи"
+                      : "Попробуйте изменить критерии поиска"
+                    }
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div className="text-sm text-gray-600 mb-3">
-                    Найдено товаров: {filteredProducts.length} из {products.length}
-                  </div>
                   {filteredProducts.map((product) => (
-                    <div
+                    <OptimizedProductCard
                       key={product.id}
-                      className="border rounded-lg p-4 cursor-pointer hover:border-primary hover:bg-gray-50 transition-colors"
-                      onClick={() => handleProductSelect(product)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-grow">
-                          <div className="flex items-center gap-3 mb-2">
-                            <Badge variant="outline" className="text-xs">
-                              Лот: {product.lot_number || 'N/A'}
-                            </Badge>
-                            <Badge 
-                              variant={product.status === 'active' ? 'success' : 'secondary'}
-                              className="text-xs"
-                            >
-                              {product.status}
-                            </Badge>
-                          </div>
-                          <h3 className="font-medium text-sm mb-1 line-clamp-2">
-                            {product.title}
-                          </h3>
-                          {(product.brand || product.model) && (
-                            <p className="text-sm text-gray-600 mb-1">
-                              {[product.brand, product.model].filter(Boolean).join(' ')}
-                            </p>
-                          )}
-                          {product.delivery_price && (
-                            <p className="text-xs text-gray-500">
-                              Доставка: ${formatPrice(product.delivery_price)}
-                            </p>
-                          )}
-                        </div>
-                        <div className="text-right ml-4">
-                          <span className="text-lg font-bold text-primary">
-                            ${formatPrice(product.price)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      product={product}
+                      onSelect={handleProductSelect}
+                    />
                   ))}
                 </div>
               )}
