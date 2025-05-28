@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { Database } from '@/integrations/supabase/types';
 import { useFormAutosave } from '@/hooks/useFormAutosave';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
-import { useRealTimeValidation } from '@/hooks/useRealTimeValidation';
 import { toast } from '@/hooks/use-toast';
 
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
@@ -47,38 +46,36 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
   const [videos, setVideos] = useState<string[]>([]);
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
-  // Validation rules
-  const validationRules = [
-    {
-      field: 'title' as const,
-      validator: (value: string) => {
+  // Simple validation functions
+  const validateField = (field: string, value: string): string | null => {
+    switch (field) {
+      case 'title':
         if (!value?.trim()) return 'Наименование обязательно';
         if (value.length < 3) return 'Минимум 3 символа';
         return null;
-      }
-    },
-    {
-      field: 'price' as const,
-      validator: (value: string) => {
+      case 'price':
         if (!value) return 'Укажите цену';
         const price = parseFloat(value);
         if (isNaN(price) || price <= 0) return 'Цена должна быть положительным числом';
         return null;
-      }
-    },
-    {
-      field: 'buyerOptId' as const,
-      validator: (value: string) => {
+      case 'buyerOptId':
         if (!value) return 'Выберите покупателя';
         return null;
-      }
+      default:
+        return null;
     }
-  ];
+  };
 
-  const { validationState, isFieldValid, getFieldError } = useRealTimeValidation(
-    { getValues: () => formData, setError: () => {}, clearErrors: () => {}, watch: () => {} } as any,
-    validationRules
-  );
+  const isFieldValid = (field: string): boolean => {
+    const value = formData[field as keyof OrderFormData];
+    return validateField(field, String(value)) === null;
+  };
+
+  const getFieldError = (field: string): string | null => {
+    if (!touchedFields.has(field)) return null;
+    const value = formData[field as keyof OrderFormData];
+    return validateField(field, String(value));
+  };
 
   // Auto-save functionality
   const { loadSavedData, clearSavedData, hasUnsavedChanges } = useFormAutosave({
