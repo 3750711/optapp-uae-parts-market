@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,8 +29,7 @@ import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
-import { Save, AlertCircle } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SellerAddProduct = () => {
@@ -137,8 +135,9 @@ const SellerAddProduct = () => {
     }
   }, [brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
-  // Оптимизированный useEffect для обработки изменений названия
+  // Объединенный и оптимизированный useEffect для обработки изменений
   useEffect(() => {
+    // Обработка изменений названия с debounce
     if (watchTitle) {
       const timeoutId = setTimeout(() => {
         handleTitleChange(watchTitle);
@@ -148,7 +147,7 @@ const SellerAddProduct = () => {
     }
   }, [watchTitle, handleTitleChange]);
 
-  // Объединенный useEffect для обработки изменений бренда и модели
+  // Отдельный useEffect для обработки изменений бренда и модели
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
