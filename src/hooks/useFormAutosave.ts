@@ -1,73 +1,91 @@
 
-import { useEffect, useCallback } from 'react';
-import { useDebounceSearch } from './useDebounceSearch';
+import { useEffect, useCallback, useRef } from 'react';
+import { debounce } from 'lodash';
 
-interface UseFormAutosaveOptions {
+interface AutosaveOptions {
   key: string;
   data: any;
-  enabled?: boolean;
   delay?: number;
+  enabled?: boolean;
 }
 
-export const useFormAutosave = ({ 
-  key, 
-  data, 
-  enabled = true, 
-  delay = 1000 
-}: UseFormAutosaveOptions) => {
-  const debouncedData = useDebounceSearch(JSON.stringify(data), delay);
+export const useFormAutosave = ({ key, data, delay = 30000, enabled = true }: AutosaveOptions) => {
+  const hasUnsavedChanges = useRef(false);
+  const lastSavedData = useRef<string>('');
 
-  const saveToStorage = useCallback((dataToSave: any) => {
-    try {
-      localStorage.setItem(`autosave_${key}`, JSON.stringify({
-        data: dataToSave,
-        timestamp: Date.now()
-      }));
-    } catch (error) {
-      console.error('Failed to save form data:', error);
+  // Debounced save function
+  const debouncedSave = useCallback(
+    debounce((dataToSave: any) => {
+      try {
+        const serializedData = JSON.stringify(dataToSave);
+        localStorage.setItem(`autosave_${key}`, serializedData);
+        localStorage.setItem(`autosave_${key}_timestamp`, Date.now().toString());
+        hasUnsavedChanges.current = false;
+        lastSavedData.current = serializedData;
+        console.log(`Form autosaved for key: ${key}`);
+      } catch (error) {
+        console.error('Error saving form data:', error);
+      }
+    }, delay),
+    [key, delay]
+  );
+
+  // Save data when it changes
+  useEffect(() => {
+    if (!enabled) return;
+
+    const currentData = JSON.stringify(data);
+    if (currentData !== lastSavedData.current) {
+      hasUnsavedChanges.current = true;
+      debouncedSave(data);
     }
-  }, [key]);
+  }, [data, debouncedSave, enabled]);
 
-  const loadFromStorage = useCallback(() => {
+  // Load saved data
+  const loadSavedData = useCallback(() => {
     try {
-      const saved = localStorage.getItem(`autosave_${key}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Проверяем, что данные не старше 24 часов
-        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-          return parsed.data;
+      const savedData = localStorage.getItem(`autosave_${key}`);
+      const timestamp = localStorage.getItem(`autosave_${key}_timestamp`);
+      
+      if (savedData && timestamp) {
+        const age = Date.now() - parseInt(timestamp);
+        // Only load data if it's less than 24 hours old
+        if (age < 24 * 60 * 60 * 1000) {
+          return JSON.parse(savedData);
         }
       }
+      return null;
     } catch (error) {
-      console.error('Failed to load form data:', error);
-    }
-    return null;
-  }, [key]);
-
-  const clearStorage = useCallback(() => {
-    try {
-      localStorage.removeItem(`autosave_${key}`);
-    } catch (error) {
-      console.error('Failed to clear form data:', error);
+      console.error('Error loading saved form data:', error);
+      return null;
     }
   }, [key]);
 
+  // Clear saved data
+  const clearSavedData = useCallback(() => {
+    localStorage.removeItem(`autosave_${key}`);
+    localStorage.removeItem(`autosave_${key}_timestamp`);
+    hasUnsavedChanges.current = false;
+  }, [key]);
+
+  // Warning before leaving page
   useEffect(() => {
-    if (enabled && debouncedData) {
-      const parsedData = JSON.parse(debouncedData);
-      // Не сохраняем пустые формы
-      const hasContent = Object.values(parsedData).some(value => 
-        typeof value === 'string' ? value.trim() : Boolean(value)
-      );
-      
-      if (hasContent) {
-        saveToStorage(parsedData);
+    if (!enabled) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges.current) {
+        event.preventDefault();
+        event.returnValue = 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?';
       }
-    }
-  }, [debouncedData, enabled, saveToStorage]);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [enabled]);
 
   return {
-    loadFromStorage,
-    clearStorage
+    loadSavedData,
+    clearSavedData,
+    hasUnsavedChanges: hasUnsavedChanges.current
   };
 };

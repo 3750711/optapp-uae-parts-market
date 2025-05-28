@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,12 @@ import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VideoUpload } from "@/components/ui/video-upload";
 import { Textarea } from "@/components/ui/textarea";
+import { useQuery } from "@tanstack/react-query";
+import { useFormAutosave } from "@/hooks/useFormAutosave";
+import OptimizedSelect from "@/components/ui/OptimizedSelect";
+import OptimizedProductImage from "@/components/ui/OptimizedProductImage";
+import { debounce } from "lodash";
+import { AlertCircle, Save } from "lucide-react";
 
 type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
 type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -33,7 +39,9 @@ const SellerCreateOrder = () => {
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const [createdOrder, setCreatedOrder] = useState<any>(null);
-  const [profiles, setProfiles] = useState<ProfileShort[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileSearchTerm, setProfileSearchTerm] = useState("");
+  
   const [formData, setFormData] = useState({
     title: "",
     price: "",
@@ -48,36 +56,79 @@ const SellerCreateOrder = () => {
     delivery_price: "",
   });
 
+  // Автосохранение формы
+  const { loadSavedData, clearSavedData, hasUnsavedChanges } = useFormAutosave({
+    key: `seller_order_${productId || 'new'}`,
+    data: { formData, images, videos },
+    delay: 30000,
+    enabled: !createdOrder
+  });
+
+  // Загрузка сохраненных данных при монтировании
   useEffect(() => {
-    const fetchProfiles = async () => {
-      try {
-        console.log("Fetching profiles with opt_id (buyers only)...");
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, opt_id, full_name")
-          .eq("user_type", "buyer")
-          .not("opt_id", "is", null);
-        
-        if (error) {
-          console.error("Ошибка загрузки списка OPT_ID:", error);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось загрузить список OPT_ID",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        console.log("Fetched profiles:", data?.length || 0);
-        setProfiles(data || []);
-      } catch (error) {
-        console.error("Unexpected error fetching profiles:", error);
+    const savedData = loadSavedData();
+    if (savedData && savedData.formData) {
+      setFormData(savedData.formData);
+      if (savedData.images) setImages(savedData.images);
+      if (savedData.videos) setVideos(savedData.videos);
+      toast({
+        title: "Восстановлены данные",
+        description: "Форма восстановлена из автосохранения",
+      });
+    }
+  }, [loadSavedData]);
+
+  // Debounced search for profiles
+  const debouncedSearchTerm = useMemo(
+    () => debounce((term: string) => setProfileSearchTerm(term), 300),
+    []
+  );
+
+  // Optimized profiles query with search and caching
+  const { data: profiles = [], isLoading: profilesLoading } = useQuery({
+    queryKey: ['buyer-profiles', profileSearchTerm],
+    queryFn: async () => {
+      console.log("Fetching profiles with optimized query...");
+      
+      let query = supabase
+        .from("profiles")
+        .select("id, opt_id, full_name")
+        .eq("user_type", "buyer")
+        .not("opt_id", "is", null);
+
+      // Add search filter if search term exists
+      if (profileSearchTerm) {
+        query = query.or(`opt_id.ilike.%${profileSearchTerm}%,full_name.ilike.%${profileSearchTerm}%`);
       }
-    };
 
-    fetchProfiles();
-  }, []);
+      const { data, error } = await query
+        .order('opt_id')
+        .limit(100); // Limit results for performance
 
+      if (error) {
+        console.error("Ошибка загрузки списка OPT_ID:", error);
+        throw error;
+      }
+      
+      console.log("Fetched profiles:", data?.length || 0);
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    enabled: true,
+  });
+
+  // Transform profiles for OptimizedSelect
+  const profileOptions = useMemo(() => 
+    profiles.map(p => ({
+      value: p.opt_id,
+      label: `${p.opt_id}${p.full_name ? ` - ${p.full_name}` : ''}`,
+      searchText: `${p.opt_id} ${p.full_name || ''}`
+    })), 
+    [profiles]
+  );
+
+  // Load product data when productId changes
   useEffect(() => {
     const fetchProductData = async () => {
       if (productId) {
@@ -121,6 +172,7 @@ const SellerCreateOrder = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     if (!user) {
       toast({
@@ -128,6 +180,7 @@ const SellerCreateOrder = () => {
         description: "Вы должны быть авторизованы для создания заказа",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
 
@@ -358,6 +411,8 @@ const SellerCreateOrder = () => {
         description: "Произошла ошибка при создании заказа",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -409,6 +464,7 @@ const SellerCreateOrder = () => {
                   delivery_price: "",
                 });
                 setImages([]);
+                clearSavedData();
               }}
             >
               Создать новый заказ
@@ -430,10 +486,20 @@ const SellerCreateOrder = () => {
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Информация о заказе</CardTitle>
-              <CardDescription>
-                Заполните необходимые поля для создания нового заказа
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Информация о заказе</CardTitle>
+                  <CardDescription>
+                    Заполните необходимые поля для создания нового заказа
+                  </CardDescription>
+                </div>
+                {hasUnsavedChanges && (
+                  <div className="flex items-center text-orange-600 text-sm">
+                    <Save className="h-4 w-4 mr-1" />
+                    Автосохранение активно
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-6">
@@ -497,30 +563,20 @@ const SellerCreateOrder = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
-                    <Select
-                      value={formData.buyerOptId}
-                      onValueChange={(value: string) => handleInputChange("buyerOptId", value)}
-                      required
-                    >
-                      <SelectTrigger id="buyerOptId" className="bg-white">
-                        <SelectValue placeholder="Выберите OPT_ID" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {profiles.length === 0 ? (
-                          <SelectItem value="no_data">Нет данных</SelectItem>
-                        ) : (
-                          profiles.map((p) => (
-                            <SelectItem key={p.opt_id} value={p.opt_id}>
-                              {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
+                  <OptimizedSelect
+                    options={profileOptions}
+                    value={formData.buyerOptId}
+                    onValueChange={(value) => handleInputChange("buyerOptId", value)}
+                    placeholder={profilesLoading ? "Загрузка..." : "Выберите OPT_ID"}
+                    searchPlaceholder="Поиск по OPT_ID или имени..."
+                    disabled={profilesLoading}
+                    className="w-full"
+                  />
+                  {profilesLoading && (
+                    <p className="text-sm text-muted-foreground">Загрузка профилей...</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -558,6 +614,20 @@ const SellerCreateOrder = () => {
                     onDelete={handleImageDelete}
                     maxImages={25}
                   />
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-4">
+                      {images.map((url, index) => (
+                        <div key={index} className="aspect-square rounded-md overflow-hidden">
+                          <OptimizedProductImage
+                            src={url}
+                            alt={`Изображение заказа ${index + 1}`}
+                            className="w-full h-full"
+                            sizes="(max-width: 768px) 33vw, 25vw"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -624,8 +694,9 @@ const SellerCreateOrder = () => {
                 <Button 
                   type="submit"
                   className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  disabled={isSubmitting}
                 >
-                  Создать заказ
+                  {isSubmitting ? "Создание..." : "Создать заказ"}
                 </Button>
               </CardFooter>
             </form>
