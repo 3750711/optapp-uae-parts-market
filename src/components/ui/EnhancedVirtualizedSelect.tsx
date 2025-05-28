@@ -9,7 +9,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Option {
@@ -29,6 +29,10 @@ interface EnhancedVirtualizedSelectProps {
   onSearchChange?: (term: string) => void;
   searchTerm?: string;
   showResultCount?: boolean;
+  isLoading?: boolean;
+  isEmpty?: boolean;
+  emptyMessage?: string;
+  loadingMessage?: string;
 }
 
 const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
@@ -42,7 +46,11 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
   popularOptions = [],
   onSearchChange,
   searchTerm: externalSearchTerm,
-  showResultCount = true
+  showResultCount = true,
+  isLoading = false,
+  isEmpty = false,
+  emptyMessage = "Ничего не найдено",
+  loadingMessage = "Поиск..."
 }) => {
   const [internalSearchTerm, setInternalSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -136,9 +144,47 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
-      setSearchTerm("");
       setFocusedIndex(-1);
+      // Не очищаем поиск при закрытии для сохранения состояния
     }
+  };
+
+  const ResultCountDisplay = () => {
+    if (!showResultCount) return null;
+
+    if (isLoading) {
+      return (
+        <div className="px-2 py-1 text-xs text-muted-foreground flex items-center">
+          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+          {loadingMessage}
+        </div>
+      );
+    }
+
+    if (isEmpty && searchTerm) {
+      return (
+        <div className="px-2 py-1 text-xs text-muted-foreground">
+          {emptyMessage}
+        </div>
+      );
+    }
+
+    if (searchTerm) {
+      return (
+        <div className="px-2 py-1 text-xs text-muted-foreground">
+          Найдено: {filteredOptions.length}
+        </div>
+      );
+    }
+
+    return (
+      <div className="px-2 py-1 text-xs text-muted-foreground">
+        Всего: {options.length}
+        {popularOptions.length > 0 && (
+          <span className="ml-2">★ популярные</span>
+        )}
+      </div>
+    );
   };
 
   const VirtualizedItem = ({ index, style }: { index: number; style: React.CSSProperties }) => {
@@ -194,34 +240,40 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
-              {showResultCount && (
-                <div className="px-2 py-1 text-xs text-muted-foreground">
-                  {filteredOptions.length === 0 ? "Ничего не найдено" : 
-                   `Найдено: ${filteredOptions.length}`}
-                </div>
-              )}
+              <ResultCountDisplay />
             </div>
-            {filteredOptions.map((option, index) => {
-              const isPopular = popularOptions.includes(option.id);
-              const isFocused = index === focusedIndex;
-              
-              return (
-                <SelectItem 
-                  key={option.id} 
-                  value={option.id}
-                  className={`
-                    ${isMobile ? "py-3 text-base" : ""} 
-                    ${isFocused ? "bg-accent" : ""}
-                    ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
-                  `}
-                >
-                  {option.name}
-                  {isPopular && !searchTerm && (
-                    <span className="ml-2 text-xs text-muted-foreground">★</span>
-                  )}
-                </SelectItem>
-              );
-            })}
+            {isLoading ? (
+              <div className="p-4 text-center text-muted-foreground">
+                <Loader2 className="w-4 h-4 mx-auto mb-2 animate-spin" />
+                {loadingMessage}
+              </div>
+            ) : isEmpty && searchTerm ? (
+              <div className="p-4 text-center text-muted-foreground">
+                {emptyMessage}
+              </div>
+            ) : (
+              filteredOptions.map((option, index) => {
+                const isPopular = popularOptions.includes(option.id);
+                const isFocused = index === focusedIndex;
+                
+                return (
+                  <SelectItem 
+                    key={option.id} 
+                    value={option.id}
+                    className={`
+                      ${isMobile ? "py-3 text-base" : ""} 
+                      ${isFocused ? "bg-accent" : ""}
+                      ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
+                    `}
+                  >
+                    {option.name}
+                    {isPopular && !searchTerm && (
+                      <span className="ml-2 text-xs text-muted-foreground">★</span>
+                    )}
+                  </SelectItem>
+                );
+              })
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -253,25 +305,31 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
-            {showResultCount && (
-              <div className="px-2 py-1 text-xs text-muted-foreground">
-                {filteredOptions.length === 0 ? "Ничего не найдено" : 
-                 `Найдено: ${filteredOptions.length}`}
-              </div>
-            )}
+            <ResultCountDisplay />
           </div>
-          <div style={{ height: Math.min(filteredOptions.length * itemHeight, maxHeight) }}>
-            <List
-              ref={listRef}
-              height={Math.min(filteredOptions.length * itemHeight, maxHeight)}
-              itemCount={filteredOptions.length}
-              itemSize={itemHeight}
-              width="100%"
-              className="scrollbar-thin scrollbar-thumb-gray-300"
-            >
-              {VirtualizedItem}
-            </List>
-          </div>
+          {isLoading ? (
+            <div className="p-4 text-center text-muted-foreground">
+              <Loader2 className="w-4 h-4 mx-auto mb-2 animate-spin" />
+              {loadingMessage}
+            </div>
+          ) : isEmpty && searchTerm ? (
+            <div className="p-4 text-center text-muted-foreground">
+              {emptyMessage}
+            </div>
+          ) : (
+            <div style={{ height: Math.min(filteredOptions.length * itemHeight, maxHeight) }}>
+              <List
+                ref={listRef}
+                height={Math.min(filteredOptions.length * itemHeight, maxHeight)}
+                itemCount={filteredOptions.length}
+                itemSize={itemHeight}
+                width="100%"
+                className="scrollbar-thin scrollbar-thumb-gray-300"
+              >
+                {VirtualizedItem}
+              </List>
+            </div>
+          )}
         </SelectContent>
       </Select>
     </div>

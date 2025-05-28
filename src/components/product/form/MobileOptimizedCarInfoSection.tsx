@@ -82,6 +82,10 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
                 searchTerm={searchBrandTerm}
                 onSearchChange={setSearchBrandTerm}
                 showResultCount={true}
+                isLoading={isLoadingCarData}
+                isEmpty={searchBrandTerm !== '' && filteredBrands.length === 0}
+                emptyMessage="Бренд не найден"
+                loadingMessage="Загрузка брендов..."
               />
             </FormControl>
             <FormMessage />
@@ -109,6 +113,10 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
                 searchTerm={searchModelTerm}
                 onSearchChange={setSearchModelTerm}
                 showResultCount={true}
+                isLoading={isLoadingCarData && !!watchBrandId}
+                isEmpty={searchModelTerm !== '' && filteredModels.length === 0 && !!watchBrandId}
+                emptyMessage={!watchBrandId ? "Сначала выберите марку" : "Модель не найдена"}
+                loadingMessage="Загрузка моделей..."
               />
             </FormControl>
             <FormMessage />
