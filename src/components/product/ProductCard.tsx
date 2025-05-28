@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import {
   CarouselPrevious,
   CarouselApi 
 } from "@/components/ui/carousel";
-import OptimizedImage from "@/components/ui/OptimizedImage";
+import OptimizedProductImage from "@/components/ui/OptimizedProductImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 
 export interface ProductProps {
@@ -71,19 +72,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Optimized image selection with preview_url priority
-  const getOptimizedImages = () => {
+  // Оптимизированное получение изображений с мемоизацией
+  const optimizedImages = React.useMemo(() => {
     const images = [];
     
-    // First, try to get preview images if available
+    // Приоритет preview_url для быстрой загрузки
     if (product.preview_image && !imageError) {
       images.push({ url: product.preview_image, isPreview: true });
     }
     
-    // Then add product_images with preview_url priority
+    // Добавляем изображения из product_images с приоритетом preview_url
     if (product.product_images && !imageError) {
       product.product_images.forEach(img => {
-        // Use preview_url if available, otherwise use original URL
         const imageUrl = img.preview_url || img.url;
         if (!images.find(existing => existing.url === imageUrl)) {
           images.push({ url: imageUrl, isPreview: !!img.preview_url });
@@ -91,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       });
     }
     
-    // Fallback to main image if no other images
+    // Fallback к основному изображению
     if (product.image && product.image !== product.preview_image && !imageError) {
       if (!images.find(existing => existing.url === product.image)) {
         images.push({ url: product.image, isPreview: false });
@@ -99,9 +99,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
 
     return images.length > 0 ? images : [{ url: "/placeholder.svg", isPreview: false }];
-  };
+  }, [product.preview_image, product.product_images, product.image, imageError]);
 
-  const optimizedImages = getOptimizedImages();
   const primaryImage = optimizedImages[0];
 
   const handleImageError = () => {
@@ -126,7 +125,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const renderImageContent = () => {
     if (isMobile && optimizedImages.length > 1) {
-      // Mobile carousel with optimized images
+      // Mobile carousel с оптимизированными изображениями
       return (
         <Carousel 
           className="w-full" 
@@ -140,27 +139,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <CarouselContent>
             {optimizedImages.map((imageData, index) => (
               <CarouselItem key={index} className="basis-full">
-                <div className="relative w-full h-full">
-                  <OptimizedImage
-                    src={imageData.url}
-                    alt={`${product.title} ${index + 1}`}
-                    className="w-full h-full object-contain"
-                    onError={handleImageError}
-                    onLoad={handleImageLoad}
-                    priority={index === 0}
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                  />
-                  {imageLoading && index === 0 && (
-                    <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
-                      <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-                    </div>
-                  )}
-                </div>
+                <OptimizedProductImage
+                  src={imageData.url}
+                  alt={`${product.title} ${index + 1}`}
+                  className="w-full h-full"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
               </CarouselItem>
             ))}
           </CarouselContent>
           
-          {/* Dots indicator for mobile */}
+          {/* Dots indicator для мобильных */}
           {optimizedImages.length > 1 && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
               {optimizedImages.map((_, index) => (
@@ -176,24 +168,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </Carousel>
       );
     } else {
-      // Desktop single image with loading state
+      // Desktop одиночное изображение с оптимизацией
       return (
-        <div className="relative w-full h-full">
-          <OptimizedImage
-            src={primaryImage.url}
-            alt={product.title}
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-            onError={handleImageError}
-            onLoad={handleImageLoad}
-            priority={false}
-            sizes="(max-width: 768px) 50vw, 25vw"
-          />
-          {imageLoading && !imageError && (
-            <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
-              <div className="w-6 h-6 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
-            </div>
-          )}
-        </div>
+        <OptimizedProductImage
+          src={primaryImage.url}
+          alt={product.title}
+          className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+          priority={false}
+          sizes="(max-width: 768px) 50vw, 25vw"
+        />
       );
     }
   };

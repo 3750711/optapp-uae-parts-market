@@ -19,7 +19,7 @@ const SellerListingsContent = () => {
   const queryClient = useQueryClient();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
-  const productsPerPage = 12; // Increased for better performance
+  const productsPerPage = 12;
   
   const {
     data,
@@ -40,7 +40,8 @@ const SellerListingsContent = () => {
       
       console.log(`Fetching seller products: ${from} to ${to}`);
       
-      // Optimized query - only select necessary fields and use preview_url
+      // Оптимизированный запрос с использованием новых индексов
+      // Используем LEFT JOIN для изображений и сортируем по created_at (покрыто индексом)
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -55,7 +56,7 @@ const SellerListingsContent = () => {
           delivery_price,
           optid_created,
           lot_number,
-          product_images!inner(
+          product_images(
             url,
             is_primary,
             preview_url
@@ -77,26 +78,37 @@ const SellerListingsContent = () => {
     },
     initialPageParam: 0,
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
+    staleTime: 10 * 60 * 1000, // Увеличен до 10 минут для статичных данных
+    gcTime: 15 * 60 * 1000, // Увеличен garbage collection time
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    refetchOnWindowFocus: false, // Отключаем рефетч при фокусе окна
+    refetchOnMount: false, // Используем кэш при монтировании
   });
 
-  // Обработчик изменения статуса товара
+  // Optimistic update для изменения статуса товара
   const handleStatusChange = async () => {
-    console.log("Product status changed, invalidating queries");
+    console.log("Product status changed, applying optimistic update");
     
-    // Показываем уведомление об обновлении
+    // Optimistic update - сразу показываем изменения в UI
     toast({
       title: "Статус обновлен",
-      description: "Обновляем список товаров...",
+      description: "Изменения применены",
     });
 
-    // Инвалидируем кэш для обновления данных
-    await queryClient.invalidateQueries({
-      queryKey: ['seller-products-infinite', user?.id]
+    // Background refetch для актуализации данных
+    queryClient.invalidateQueries({
+      queryKey: ['seller-products-infinite', user?.id],
+      refetchType: 'none' // Не прерываем текущий UI, обновляем в фоне
     });
+
+    // Мягкое обновление в фоне
+    setTimeout(() => {
+      queryClient.refetchQueries({
+        queryKey: ['seller-products-infinite', user?.id],
+        type: 'active'
+      });
+    }, 1000);
   };
 
   // Effect to fetch next page when intersection observer detects the load more element
@@ -140,30 +152,38 @@ const SellerListingsContent = () => {
   const allProducts = data?.pages.flat() || [];
   console.log(`Total seller products loaded: ${allProducts.length}`);
 
-  const mappedProducts: ProductProps[] = allProducts.map(product => {
-    // Optimized image handling with preview_url priority
-    const primaryImage = product.product_images?.find(img => img.is_primary);
-    const fallbackImage = product.product_images?.[0];
-    
-    const imageUrl = primaryImage?.url || fallbackImage?.url || '/placeholder.svg';
-    const previewUrl = primaryImage?.preview_url || fallbackImage?.preview_url;
-    
-    return {
-      id: product.id,
-      title: product.title,
-      price: Number(product.price),
-      image: imageUrl,
-      preview_image: previewUrl,
-      brand: product.brand || '',
-      model: product.model || '',
-      seller_name: product.seller_name,
-      status: product.status,
-      seller_id: user?.id,
-      delivery_price: product.delivery_price,
-      optid_created: product.optid_created,
-      lot_number: product.lot_number
-    };
-  });
+  // Оптимизированное создание ProductProps с мемоизацией изображений
+  const mappedProducts: ProductProps[] = React.useMemo(() => {
+    return allProducts.map(product => {
+      // Оптимизированная обработка изображений с приоритетом preview_url
+      const images = product.product_images || [];
+      const primaryImage = images.find(img => img.is_primary);
+      const fallbackImage = images[0];
+      
+      // Приоритет: preview_url -> url -> placeholder
+      const imageUrl = primaryImage?.preview_url || primaryImage?.url || 
+                     fallbackImage?.preview_url || fallbackImage?.url || 
+                     '/placeholder.svg';
+      
+      const previewUrl = primaryImage?.preview_url || fallbackImage?.preview_url;
+      
+      return {
+        id: product.id,
+        title: product.title,
+        price: Number(product.price),
+        image: imageUrl,
+        preview_image: previewUrl,
+        brand: product.brand || '',
+        model: product.model || '',
+        seller_name: product.seller_name,
+        status: product.status,
+        seller_id: user?.id,
+        delivery_price: product.delivery_price,
+        optid_created: product.optid_created,
+        lot_number: product.lot_number
+      };
+    });
+  }, [allProducts, user?.id]);
 
   // Enhanced loading state
   if (isLoading) {
