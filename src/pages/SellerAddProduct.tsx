@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -10,14 +11,19 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import AddProductForm, { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
+import { useFormAutosave } from "@/hooks/useFormAutosave";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Save, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -30,6 +36,7 @@ const SellerAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   const [primaryImage, setPrimaryImage] = useState<string>("");
+  const [showDraftSaved, setShowDraftSaved] = useState(false);
   
   // Use our custom hook for car brands and models
   const { 
@@ -40,24 +47,6 @@ const SellerAddProduct = () => {
     findModelIdByName, 
     isLoading: isLoadingCarData 
   } = useCarBrandsAndModels();
-
-  // Initialize our title parser
-  const { parseProductTitle } = useProductTitleParser(
-    brands,
-    brandModels,
-    findBrandIdByName,
-    findModelIdByName
-  );
-
-  // Filter brands based on search term
-  const filteredBrands = brands.filter(brand => 
-    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
-  );
-
-  // Filter models based on search term
-  const filteredModels = brandModels.filter(model => 
-    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
-  );
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -70,17 +59,59 @@ const SellerAddProduct = () => {
       description: "",
       deliveryPrice: "0",
     },
-    mode: "onChange", // Enable validation on change
+    mode: "onChange",
   });
+
+  // Initialize our title parser
+  const { parseProductTitle } = useProductTitleParser(
+    brands,
+    brandModels,
+    findBrandIdByName,
+    findModelIdByName
+  );
+
+  // Автосохранение формы
+  const formData = form.watch();
+  const { loadFromStorage, clearStorage } = useFormAutosave({
+    key: 'seller_add_product',
+    data: formData,
+    enabled: !isSubmitting
+  });
+
+  // Breadcrumbs навигация
+  const breadcrumbItems = useMemo(() => [
+    { label: "Профиль продавца", href: "/seller/profile" },
+    { label: "Добавить товар" }
+  ], []);
 
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
 
-  // When title changes, try to detect brand and model
+  // Загрузка сохраненного черновика при инициализации
   useEffect(() => {
-    if (watchTitle && brands.length > 0 && !watchBrandId) {
-      const { brandId, modelId } = parseProductTitle(watchTitle);
+    const savedData = loadFromStorage();
+    if (savedData && Object.keys(savedData).length > 0) {
+      // Проверяем, что форма пуста перед загрузкой черновика
+      const currentFormIsEmpty = !formData.title && !formData.price && !formData.brandId;
+      
+      if (currentFormIsEmpty) {
+        Object.entries(savedData).forEach(([key, value]) => {
+          if (value && key in formData) {
+            form.setValue(key as keyof ProductFormValues, value as any);
+          }
+        });
+        
+        setShowDraftSaved(true);
+        setTimeout(() => setShowDraftSaved(false), 5000);
+      }
+    }
+  }, [loadFromStorage, form]);
+
+  // Мемоизированная функция для обработки изменений названия
+  const handleTitleChange = useCallback((title: string) => {
+    if (title && brands.length > 0 && !watchBrandId) {
+      const { brandId, modelId } = parseProductTitle(title);
       
       if (brandId) {
         form.setValue("brandId", brandId);
@@ -95,48 +126,57 @@ const SellerAddProduct = () => {
         });
       }
     }
-  }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
+  }, [brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
-  // When brand changes, reset model selection and update models list
+  // Оптимизированный useEffect для обработки изменений названия
+  useEffect(() => {
+    if (watchTitle) {
+      const timeoutId = setTimeout(() => {
+        handleTitleChange(watchTitle);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [watchTitle, handleTitleChange]);
+
+  // Объединенный useEffect для обработки изменений бренда и модели
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
       
-      // Only reset model if the brand has changed and we have a selected model
+      // Reset model if it doesn't belong to the selected brand
       if (watchModelId) {
-        const modelBelongsToBrand = brandModels.some(model => model.id === watchModelId && model.brand_id === watchBrandId);
+        const modelBelongsToBrand = brandModels.some(model => 
+          model.id === watchModelId && model.brand_id === watchBrandId
+        );
         if (!modelBelongsToBrand) {
           form.setValue("modelId", "");
         }
       }
     }
-  }, [watchBrandId, selectBrand, form, brandModels, watchModelId]);
 
-  // Validate model when brandModels change (to handle async loading)
-  useEffect(() => {
+    // Validate model when brandModels change
     if (watchModelId && brandModels.length > 0) {
       const modelExists = brandModels.some(model => model.id === watchModelId);
       if (!modelExists) {
         form.setValue("modelId", "");
       }
     }
-  }, [brandModels, watchModelId, form]);
+  }, [watchBrandId, watchModelId, selectBrand, form, brandModels]);
 
-  const handleMobileOptimizedImageUpload = (urls: string[]) => {
-    setImageUrls(urls); // Replace with the complete list
+  const handleMobileOptimizedImageUpload = useCallback((urls: string[]) => {
+    setImageUrls(urls);
     
-    // Set default primary image if none is selected yet
     if (!primaryImage && urls.length > 0) {
       setPrimaryImage(urls[0]);
     } else if (primaryImage && !urls.includes(primaryImage)) {
-      // If primary image was deleted, select the first available
       if (urls.length > 0) {
         setPrimaryImage(urls[0]);
       } else {
         setPrimaryImage("");
       }
     }
-  };
+  }, [primaryImage]);
 
   const onSubmit = async (values: ProductFormValues) => {
     if (!user || !profile) {
@@ -164,7 +204,6 @@ const SellerAddProduct = () => {
       // Получаем имена бренда и модели для базы данных
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       
-      // Модель опциональна, обрабатываем соответственно
       let modelName = null;
       if (values.modelId) {
         const selectedModel = brandModels.find(model => model.id === values.modelId);
@@ -181,22 +220,9 @@ const SellerAddProduct = () => {
         return;
       }
 
-      // Устанавливаем имя продавца, убеждаясь, что оно никогда не будет null
       const sellerName = profile.full_name || user.email || "Unknown Seller";
 
       setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
-
-      // Логируем данные для отладки на мобильных устройствах
-      console.log("Preparing to insert product:", {
-        title: values.title,
-        price: parseFloat(values.price),
-        brand: selectedBrand.name,
-        model: modelName,
-        seller: sellerName,
-        imageCount: imageUrls.length,
-        videoCount: videoUrls.length,
-        deliveryPrice: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0
-      });
 
       const { data: product, error: productError } = await supabase
         .from('products')
@@ -205,7 +231,7 @@ const SellerAddProduct = () => {
           price: parseFloat(values.price),
           condition: "Новый",
           brand: selectedBrand.name,
-          model: modelName, // Может быть null
+          model: modelName,
           description: values.description || null,
           seller_id: user.id,
           seller_name: sellerName,
@@ -217,38 +243,28 @@ const SellerAddProduct = () => {
         .single();
 
       if (productError) {
-        console.error("Error creating product:", productError);
         throw new Error(`Ошибка создания товара: ${productError.message || 'Неизвестная ошибка'}`);
       }
       
-      console.log("Product created successfully:", product.id);
       setProgressStatus({ step: "Сохранение изображений", progress: 60 });
 
-      // Изображения уже загружены, нужно только связать их с продуктом
-      // Обновлено для правильной обработки основного изображения
       const productImages = imageUrls.map((url) => ({
         product_id: product.id,
         url: url,
         is_primary: url === primaryImage
       }));
-      
-      console.log("Associating images with product:", productImages.length);
 
       const { error: imagesError } = await supabase
         .from('product_images')
         .insert(productImages);
 
       if (imagesError) {
-        console.error("Error associating images:", imagesError);
         throw new Error(`Ошибка сохранения изображений: ${imagesError.message || 'Неизвестная ошибка'}`);
       }
       
-      console.log("Images associated successfully");
       setProgressStatus({ step: "Сохранение видео", progress: 80 });
 
       if (videoUrls.length > 0) {
-        console.log("Associating videos with product:", videoUrls.length);
-        
         const { error: videosError } = await supabase
           .from('product_videos')
           .insert(
@@ -259,17 +275,10 @@ const SellerAddProduct = () => {
           );
 
         if (videosError) {
-          console.error("Error associating videos:", videosError);
           throw new Error(`Ошибка сохранения видео: ${videosError.message || 'Неизвестная ошибка'}`);
         }
-        
-        console.log("Videos associated successfully");
       }
       
-      // Если товар был публикуется со статусом active, для доверенных продавцов
-      // (у которых в trigger_auto_approve_trusted_seller_products меняется статус на active),
-      // (у которых в trigger_auto_approve_trusted_seller_products меняется статус на active),
-      // отправляем уведомление явно после того как все изображения загружены
       const { data: currentProduct } = await supabase
         .from('products')
         .select('*')
@@ -279,26 +288,26 @@ const SellerAddProduct = () => {
       if (currentProduct && currentProduct.status === 'active') {
         setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 90 });
         try {
-          // Отправляем запрос на отправку уведомлений, но не ждем завершения
           supabase.functions.invoke('send-telegram-notification', {
             body: { productId: product.id }
-          }).catch(notifyError => {
-            console.error("Ошибка при отправке уведомления (не критично):", notifyError);
+          }).catch(notificationError => {
+            console.error("Error sending notification:", notificationError);
           });
-        } catch (notifyError) {
-          console.error("Ошибка при запуске отправки уведомления (не критично):", notifyError);
-          // Несмотря на ошибку, продолжаем процесс создания объявления
+        } catch (notificationError) {
+          console.error("Exception while sending notification:", notificationError);
         }
       }
       
       setProgressStatus({ step: "Завершение", progress: 100 });
+
+      // Очищаем автосохраненный черновик после успешной публикации
+      clearStorage();
 
       toast({
         title: "Товар добавлен",
         description: "Ваш товар успешно размещен на маркетплейсе",
       });
 
-      // Перенаправление на страницу товара
       navigate(`/product/${product.id}`);
     } catch (error) {
       console.error("Error adding product:", error);
@@ -315,63 +324,79 @@ const SellerAddProduct = () => {
     }
   };
 
+  // Cleanup function for memory management
   useEffect(() => {
     return () => {
-      imageUrls.forEach((url) => URL.revokeObjectURL(url));
+      imageUrls.forEach((url) => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     };
-  }, []);
+  }, [imageUrls]);
 
   return (
-    <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Информация о товаре</CardTitle>
-              <CardDescription>
-                Заполните все поля для размещения вашего товара на маркетплейсе
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AddProductForm
-                form={form}
-                onSubmit={onSubmit}
-                isSubmitting={isSubmitting}
-                imageUrls={imageUrls}
-                videoUrls={videoUrls}
-                userId={user?.id}
-                brands={brands}
-                brandModels={brandModels}
-                isLoadingCarData={isLoadingCarData}
-                watchBrandId={watchBrandId}
-                searchBrandTerm={searchBrandTerm}
-                setSearchBrandTerm={setSearchBrandTerm}
-                searchModelTerm={searchModelTerm}
-                setSearchModelTerm={setSearchModelTerm}
-                filteredBrands={filteredBrands}
-                filteredModels={filteredModels}
-                handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-                setVideoUrls={setVideoUrls}
-                primaryImage={primaryImage}
-                setPrimaryImage={setPrimaryImage}
-              />
-            </CardContent>
+    <ErrorBoundary>
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-3xl mx-auto">
+            <Breadcrumb items={breadcrumbItems} />
             
-            {isSubmitting && (
-              <div className="px-6 pb-4">
-                <div className="mb-2 flex justify-between items-center">
-                  <span className="text-sm font-medium">{progressStatus.step || "Публикация товара..."}</span>
-                  <span className="text-sm">{progressStatus.progress}%</span>
-                </div>
-                <Progress value={progressStatus.progress} className="h-2" />
-              </div>
+            <h1 className="text-3xl font-bold mb-6">Добавить товар</h1>
+            
+            {showDraftSaved && (
+              <Alert className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Загружен сохраненный черновик. Вы можете продолжить заполнение формы.
+                </AlertDescription>
+              </Alert>
             )}
-          </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle>Информация о товаре</CardTitle>
+                <CardDescription>
+                  Заполните все поля для размещения вашего товара на маркетплейсе.
+                  Ваш прогресс автоматически сохраняется.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <OptimizedAddProductForm
+                  form={form}
+                  onSubmit={onSubmit}
+                  isSubmitting={isSubmitting}
+                  imageUrls={imageUrls}
+                  videoUrls={videoUrls}
+                  brands={brands}
+                  brandModels={brandModels}
+                  isLoadingCarData={isLoadingCarData}
+                  watchBrandId={watchBrandId}
+                  searchBrandTerm={searchBrandTerm}
+                  setSearchBrandTerm={setSearchBrandTerm}
+                  searchModelTerm={searchModelTerm}
+                  setSearchModelTerm={setSearchModelTerm}
+                  handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+                  setVideoUrls={setVideoUrls}
+                  primaryImage={primaryImage}
+                  setPrimaryImage={setPrimaryImage}
+                />
+              </CardContent>
+              
+              {isSubmitting && (
+                <div className="px-6 pb-4">
+                  <div className="mb-2 flex justify-between items-center">
+                    <span className="text-sm font-medium">{progressStatus.step || "Публикация товара..."}</span>
+                    <span className="text-sm">{progressStatus.progress}%</span>
+                  </div>
+                  <Progress value={progressStatus.progress} className="h-2" />
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+    </ErrorBoundary>
   );
 };
 
