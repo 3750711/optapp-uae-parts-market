@@ -33,6 +33,7 @@ export interface ProductProps {
     id: string;
     url: string;
     is_primary: boolean;
+    preview_url?: string;
   }>;
 }
 
@@ -60,24 +61,38 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
     }
   };
 
-  // Get all available images with better fallback logic
-  const allImages = [];
-  if (product.preview_image && !imageError) {
-    allImages.push(product.preview_image);
-  }
-  if (product.image && product.image !== product.preview_image && !imageError) {
-    allImages.push(product.image);
-  }
-  if (product.product_images && !imageError) {
-    product.product_images.forEach(img => {
-      if (!allImages.includes(img.url)) {
-        allImages.push(img.url);
+  // Optimized image selection with preview_url priority
+  const getOptimizedImages = () => {
+    const images = [];
+    
+    // First, try to get preview images if available
+    if (product.preview_image && !imageError) {
+      images.push({ url: product.preview_image, isPreview: true });
+    }
+    
+    // Then add product_images with preview_url priority
+    if (product.product_images && !imageError) {
+      product.product_images.forEach(img => {
+        // Use preview_url if available, otherwise use original URL
+        const imageUrl = img.preview_url || img.url;
+        if (!images.find(existing => existing.url === imageUrl)) {
+          images.push({ url: imageUrl, isPreview: !!img.preview_url });
+        }
+      });
+    }
+    
+    // Fallback to main image if no other images
+    if (product.image && product.image !== product.preview_image && !imageError) {
+      if (!images.find(existing => existing.url === product.image)) {
+        images.push({ url: product.image, isPreview: false });
       }
-    });
-  }
+    }
 
-  // Fallback to placeholder if no images or error
-  const primaryImage = allImages.length > 0 ? allImages[0] : "/placeholder.svg";
+    return images.length > 0 ? images : [{ url: "/placeholder.svg", isPreview: false }];
+  };
+
+  const optimizedImages = getOptimizedImages();
+  const primaryImage = optimizedImages[0];
 
   const handleImageError = () => {
     console.log(`Image error for product ${product.id}`);
@@ -100,8 +115,8 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   }, [api]);
 
   const renderImageContent = () => {
-    if (isMobile && allImages.length > 1) {
-      // Mobile carousel with touch support for multiple images
+    if (isMobile && optimizedImages.length > 1) {
+      // Mobile carousel with optimized images
       return (
         <Carousel 
           className="w-full" 
@@ -113,19 +128,20 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
           }}
         >
           <CarouselContent>
-            {allImages.map((imageUrl, index) => (
+            {optimizedImages.map((imageData, index) => (
               <CarouselItem key={index} className="basis-full">
                 <div className="relative w-full h-full">
                   <OptimizedImage
-                    src={imageUrl}
+                    src={imageData.url}
                     alt={`${product.title} ${index + 1}`}
                     className="w-full h-full object-contain"
                     onError={handleImageError}
                     onLoad={handleImageLoad}
                     priority={index === 0}
                     sizes="(max-width: 768px) 100vw, 50vw"
+                    loading={index === 0 ? "eager" : "lazy"}
                   />
-                  {imageLoading && (
+                  {imageLoading && index === 0 && (
                     <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
                       <div className="w-8 h-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
                     </div>
@@ -136,9 +152,9 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
           </CarouselContent>
           
           {/* Dots indicator for mobile */}
-          {allImages.length > 1 && (
+          {optimizedImages.length > 1 && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
-              {allImages.map((_, index) => (
+              {optimizedImages.map((_, index) => (
                 <div
                   key={index}
                   className={`h-1.5 w-1.5 rounded-full transition-all ${
@@ -155,13 +171,14 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
       return (
         <div className="relative w-full h-full">
           <OptimizedImage
-            src={primaryImage}
+            src={primaryImage.url}
             alt={product.title}
             className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
             onError={handleImageError}
             onLoad={handleImageLoad}
             priority={false}
             sizes="(max-width: 768px) 50vw, 25vw"
+            loading="lazy"
           />
           {imageLoading && !imageError && (
             <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
