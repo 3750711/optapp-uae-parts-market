@@ -18,7 +18,16 @@ import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
+import { Home } from "lucide-react";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
@@ -340,7 +349,30 @@ const SellerAddProduct = () => {
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
-            <Breadcrumb items={breadcrumbItems} />
+            <Breadcrumb className="mb-6">
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/" className="flex items-center text-muted-foreground hover:text-foreground transition-colors">
+                      <Home className="h-4 w-4 mr-1" />
+                      Главная
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link to="/seller/profile" className="text-muted-foreground hover:text-foreground transition-colors">
+                      Профиль продавца
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator />
+                <BreadcrumbPage className="text-foreground">
+                  Добавить товар
+                </BreadcrumbPage>
+              </BreadcrumbList>
+            </Breadcrumb>
             
             <h1 className="text-3xl font-bold mb-6">Добавить товар</h1>
             
