@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -201,14 +200,12 @@ const SellerSellProduct = () => {
         throw new Error(`Invalid delivery method: ${orderData.deliveryMethod}`);
       }
 
-      // Используем RPC функцию для создания заказа администратором
+      // Используем RPC функцию для создания заказа продавцом
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
         p_place_number: 1,
-        p_seller_id: profile.id,
         p_order_seller_name: profile.full_name || '',
-        p_seller_opt_id: profile.opt_id || '',
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
@@ -225,7 +222,7 @@ const SellerSellProduct = () => {
       console.log("RPC payload:", orderPayload);
 
       const { data: orderId, error: orderError } = await supabase
-        .rpc('admin_create_order', orderPayload);
+        .rpc('seller_create_order', orderPayload);
 
       if (orderError) {
         console.error("Error creating order:", orderError);

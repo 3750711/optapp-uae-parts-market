@@ -970,6 +970,26 @@ export type Database = {
           model_name: string
         }[]
       }
+      seller_create_order: {
+        Args: {
+          p_title: string
+          p_price: number
+          p_place_number: number
+          p_order_seller_name: string
+          p_buyer_id: string
+          p_brand: string
+          p_model: string
+          p_status: Database["public"]["Enums"]["order_status"]
+          p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+          p_telegram_url_order: string
+          p_images: string[]
+          p_product_id: string
+          p_delivery_method: Database["public"]["Enums"]["delivery_method"]
+          p_text_order: string
+          p_delivery_price_confirm: number
+        }
+        Returns: string
+      }
       update_product_has_preview_flag: {
         Args: { p_product_id: string }
         Returns: undefined
