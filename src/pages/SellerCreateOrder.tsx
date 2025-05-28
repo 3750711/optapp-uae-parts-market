@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -525,15 +526,6 @@ const SellerCreateOrder = () => {
 
   const handleImageDelete = (urlToDelete: string) => {
     setImages(prev => prev.filter(url => url !== urlToDelete))
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-    
-    setTouchedFields(prev => new Set(prev).add(field));
   };
 
   const handleOrderUpdate = (updatedOrder: any) => {
