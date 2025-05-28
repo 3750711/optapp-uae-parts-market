@@ -1,7 +1,6 @@
 
 import { useMemo } from 'react';
 import { useEnhancedSearch } from './useEnhancedSearch';
-import { usePersistedSearch } from './usePersistedSearch';
 
 interface Brand {
   id: string;
@@ -17,27 +16,14 @@ interface Model {
 export const useOptimizedBrandSearch = (
   brands: Brand[],
   brandModels: Model[],
-  externalBrandTerm?: string,
-  externalModelTerm?: string,
-  watchBrandId?: string
+  searchBrandTerm: string,
+  searchModelTerm: string,
+  watchBrandId: string
 ) => {
-  // Используем персистентный поиск, но позволяем внешнее управление
-  const { searchTerm: persistedBrandTerm, setSearchTerm: setPersistentBrandTerm } = usePersistedSearch({ 
-    key: 'brand_search' 
-  });
-  const { searchTerm: persistedModelTerm, setSearchTerm: setPersistentModelTerm } = usePersistedSearch({ 
-    key: 'model_search' 
-  });
-
-  // Используем внешние значения если они переданы, иначе персистентные
-  const brandSearchTerm = externalBrandTerm !== undefined ? externalBrandTerm : persistedBrandTerm;
-  const modelSearchTerm = externalModelTerm !== undefined ? externalModelTerm : persistedModelTerm;
-
-  // Популярные бренды с улучшенной группировкой
+  // Популярные бренды
   const popularBrands = [
     "toyota", "honda", "ford", "chevrolet", "nissan", 
-    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz",
-    "audi", "lexus", "mazda", "subaru", "mitsubishi"
+    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
   ];
 
   const popularBrandIds = brands
@@ -46,9 +32,8 @@ export const useOptimizedBrandSearch = (
 
   const brandSearch = useEnhancedSearch({
     items: brands,
-    searchTerm: brandSearchTerm,
-    popularItems: popularBrandIds,
-    cacheKey: 'brands'
+    searchTerm: searchBrandTerm,
+    popularItems: popularBrandIds
   });
 
   // Модели для выбранного бренда
@@ -58,8 +43,7 @@ export const useOptimizedBrandSearch = (
 
   const modelSearch = useEnhancedSearch({
     items: brandFilteredModels,
-    searchTerm: modelSearchTerm,
-    cacheKey: watchBrandId ? `models_${watchBrandId}` : 'models'
+    searchTerm: searchModelTerm
   });
 
   return {
@@ -70,13 +54,6 @@ export const useOptimizedBrandSearch = (
     debouncedBrandSearch: brandSearch.debouncedSearch,
     debouncedModelSearch: modelSearch.debouncedSearch,
     isBrandSearching: brandSearch.isSearching,
-    isModelSearching: modelSearch.isSearching,
-    isBrandLoading: brandSearch.isLoading,
-    isModelLoading: modelSearch.isLoading,
-    isBrandEmpty: brandSearch.isEmpty,
-    isModelEmpty: modelSearch.isEmpty,
-    // Функции для управления персистентным поиском
-    setBrandSearchTerm: setPersistentBrandTerm,
-    setModelSearchTerm: setPersistentModelTerm
+    isModelSearching: modelSearch.isSearching
   };
 };
