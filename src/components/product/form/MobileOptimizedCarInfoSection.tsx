@@ -9,7 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import VirtualizedSelect from "@/components/ui/VirtualizedSelect";
+import EnhancedVirtualizedSelect from "@/components/ui/EnhancedVirtualizedSelect";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Brand {
@@ -35,6 +35,12 @@ interface MobileOptimizedCarInfoSectionProps {
   isLoadingCarData: boolean;
 }
 
+// Популярные бренды (можно вынести в конфиг)
+const POPULAR_BRANDS = [
+  "toyota", "honda", "ford", "chevrolet", "nissan", 
+  "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
+];
+
 const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionProps>(({ 
   form,
   filteredBrands,
@@ -48,6 +54,11 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
 }) => {
   const isMobile = useIsMobile();
 
+  // Определяем популярные бренды из доступных
+  const popularBrandIds = filteredBrands
+    .filter(brand => POPULAR_BRANDS.includes(brand.name.toLowerCase()))
+    .map(brand => brand.id);
+
   return (
     <div className={`grid grid-cols-1 ${isMobile ? "gap-6" : "md:grid-cols-2 gap-4"}`}>
       <FormField
@@ -59,7 +70,7 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
               Марка автомобиля
             </FormLabel>
             <FormControl>
-              <VirtualizedSelect
+              <EnhancedVirtualizedSelect
                 options={filteredBrands}
                 value={field.value}
                 onValueChange={field.onChange}
@@ -67,6 +78,10 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
                 searchPlaceholder="Поиск бренда..."
                 disabled={isLoadingCarData}
                 className={isMobile ? "h-12" : ""}
+                popularOptions={popularBrandIds}
+                searchTerm={searchBrandTerm}
+                onSearchChange={setSearchBrandTerm}
+                showResultCount={true}
               />
             </FormControl>
             <FormMessage />
@@ -83,7 +98,7 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
               Модель (необязательно)
             </FormLabel>
             <FormControl>
-              <VirtualizedSelect
+              <EnhancedVirtualizedSelect
                 options={filteredModels}
                 value={field.value}
                 onValueChange={field.onChange}
@@ -91,6 +106,9 @@ const MobileOptimizedCarInfoSection = React.memo<MobileOptimizedCarInfoSectionPr
                 searchPlaceholder="Поиск модели..."
                 disabled={!watchBrandId || isLoadingCarData}
                 className={isMobile ? "h-12" : ""}
+                searchTerm={searchModelTerm}
+                onSearchChange={setSearchModelTerm}
+                showResultCount={true}
               />
             </FormControl>
             <FormMessage />

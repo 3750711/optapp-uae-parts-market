@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { useDebounceSearch } from './useDebounceSearch';
+import { useEnhancedSearch } from './useEnhancedSearch';
 
 interface Brand {
   id: string;
@@ -20,33 +20,40 @@ export const useOptimizedBrandSearch = (
   searchModelTerm: string,
   watchBrandId: string
 ) => {
-  const debouncedBrandSearch = useDebounceSearch(searchBrandTerm, 300);
-  const debouncedModelSearch = useDebounceSearch(searchModelTerm, 300);
+  // Популярные бренды
+  const popularBrands = [
+    "toyota", "honda", "ford", "chevrolet", "nissan", 
+    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
+  ];
 
-  const filteredBrands = useMemo(() => {
-    if (!debouncedBrandSearch) return brands;
-    return brands.filter((brand) =>
-      brand.name.toLowerCase().includes(debouncedBrandSearch.toLowerCase())
-    );
-  }, [brands, debouncedBrandSearch]);
+  const popularBrandIds = brands
+    .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
+    .map(brand => brand.id);
 
-  const filteredModels = useMemo(() => {
-    // Сначала фильтруем модели по выбранному бренду
-    const brandFilteredModels = brandModels.filter(
-      (model) => model.brand_id === watchBrandId
-    );
+  const brandSearch = useEnhancedSearch({
+    items: brands,
+    searchTerm: searchBrandTerm,
+    popularItems: popularBrandIds
+  });
 
-    // Затем применяем поиск
-    if (!debouncedModelSearch) return brandFilteredModels;
-    return brandFilteredModels.filter((model) =>
-      model.name.toLowerCase().includes(debouncedModelSearch.toLowerCase())
-    );
-  }, [brandModels, watchBrandId, debouncedModelSearch]);
+  // Модели для выбранного бренда
+  const brandFilteredModels = useMemo(() => {
+    return brandModels.filter(model => model.brand_id === watchBrandId);
+  }, [brandModels, watchBrandId]);
+
+  const modelSearch = useEnhancedSearch({
+    items: brandFilteredModels,
+    searchTerm: searchModelTerm
+  });
 
   return {
-    filteredBrands,
-    filteredModels,
-    debouncedBrandSearch,
-    debouncedModelSearch
+    filteredBrands: brandSearch.filteredItems,
+    filteredModels: modelSearch.filteredItems,
+    brandResultCount: brandSearch.resultCount,
+    modelResultCount: modelSearch.resultCount,
+    debouncedBrandSearch: brandSearch.debouncedSearch,
+    debouncedModelSearch: modelSearch.debouncedSearch,
+    isBrandSearching: brandSearch.isSearching,
+    isModelSearching: modelSearch.isSearching
   };
 };
