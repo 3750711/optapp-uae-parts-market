@@ -66,7 +66,7 @@ const EnhancedProductSearch = React.memo(({
       const hasChanges = JSON.stringify(filters) !== JSON.stringify(savedFilters);
       setHasUnsavedChanges(hasChanges);
     } else {
-      const hasAnyFilters = filters.searchTerm || filters.lotNumber || filters.priceFrom || filters.priceTo;
+      const hasAnyFilters = Boolean(filters.searchTerm || filters.lotNumber || filters.priceFrom || filters.priceTo);
       setHasUnsavedChanges(hasAnyFilters);
     }
   }, [filters, savedFilters]);

@@ -12,7 +12,7 @@ import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmat
 import { useNavigate } from "react-router-dom";
 import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Новые оптимизированные компоненты
 import OptimizedProductCard from "@/components/seller/OptimizedProductCard";
@@ -46,7 +46,7 @@ interface Product {
 const SellerSellProduct = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   
   // State management
   const [step, setStep] = useState(1);
