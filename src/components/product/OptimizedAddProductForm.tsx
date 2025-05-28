@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -6,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { useOptimizedBrandSearch } from "@/hooks/useOptimizedBrandSearch";
-import FormSectionWrapper from "./form/FormSectionWrapper";
-import BasicInfoSection from "./form/BasicInfoSection";
-import CarInfoSection from "./form/CarInfoSection";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileOptimizedForm from "@/components/ui/MobileOptimizedForm";
+import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSection";
+import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
 import MediaSection from "./form/MediaSection";
+import StickyMobileActions from "@/components/ui/StickyMobileActions";
 
 // Product form schema with zod validation
 export const productSchema = z.object({
@@ -56,6 +57,7 @@ interface OptimizedAddProductFormProps {
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
+  progressStatus?: { step: string; progress: number };
 }
 
 const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
@@ -73,8 +75,10 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   searchModelTerm,
   setSearchModelTerm,
   handleMobileOptimizedImageUpload,
-  setVideoUrls
+  setVideoUrls,
+  progressStatus = { step: "", progress: 0 }
 }) => {
+  const isMobile = useIsMobile();
   const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
     brands,
     brandModels,
@@ -87,52 +91,66 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     onSubmit(values);
   }, [onSubmit]);
 
+  const handleFormSubmit = useCallback(() => {
+    form.handleSubmit(handleSubmit)();
+  }, [form, handleSubmit]);
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <FormSectionWrapper title="Основная информация">
-          <BasicInfoSection form={form} />
-        </FormSectionWrapper>
-        
-        <FormSectionWrapper title="Информация об автомобиле">
-          <CarInfoSection
-            form={form}
-            filteredBrands={filteredBrands}
-            filteredModels={filteredModels}
-            searchBrandTerm={searchBrandTerm}
-            setSearchBrandTerm={setSearchBrandTerm}
-            searchModelTerm={searchModelTerm}
-            setSearchModelTerm={setSearchModelTerm}
-            watchBrandId={watchBrandId}
-            isLoadingCarData={isLoadingCarData}
-          />
-        </FormSectionWrapper>
-        
-        <FormSectionWrapper title="Медиа файлы">
-          <MediaSection
-            imageUrls={imageUrls}
-            videoUrls={videoUrls}
-            handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-            setVideoUrls={setVideoUrls}
-          />
-        </FormSectionWrapper>
-        
-        <Button 
-          type="submit" 
-          className="w-full"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Публикация...
-            </>
-          ) : (
-            'Опубликовать'
+    <>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
+          <MobileOptimizedForm title="Основная информация" defaultOpen={true}>
+            <MobileOptimizedBasicInfoSection form={form} />
+          </MobileOptimizedForm>
+          
+          <MobileOptimizedForm title="Информация об автомобиле" defaultOpen={!isMobile}>
+            <MobileOptimizedCarInfoSection
+              form={form}
+              filteredBrands={filteredBrands}
+              filteredModels={filteredModels}
+              searchBrandTerm={searchBrandTerm}
+              setSearchBrandTerm={setSearchBrandTerm}
+              searchModelTerm={searchModelTerm}
+              setSearchModelTerm={setSearchModelTerm}
+              watchBrandId={watchBrandId}
+              isLoadingCarData={isLoadingCarData}
+            />
+          </MobileOptimizedForm>
+          
+          <MobileOptimizedForm title="Медиа файлы" defaultOpen={!isMobile}>
+            <MediaSection
+              imageUrls={imageUrls}
+              videoUrls={videoUrls}
+              handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+              setVideoUrls={setVideoUrls}
+            />
+          </MobileOptimizedForm>
+          
+          {!isMobile && (
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Публикация...
+                </>
+              ) : (
+                'Опубликовать'
+              )}
+            </Button>
           )}
-        </Button>
-      </form>
-    </Form>
+        </form>
+      </Form>
+
+      <StickyMobileActions
+        isSubmitting={isSubmitting}
+        progressStatus={progressStatus}
+        onSubmit={handleFormSubmit}
+      />
+    </>
   );
 });
 

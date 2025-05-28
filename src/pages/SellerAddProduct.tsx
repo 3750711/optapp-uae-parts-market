@@ -411,6 +411,7 @@ const SellerAddProduct = () => {
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
+                  progressStatus={progressStatus}
                 />
               </CardContent>
               
