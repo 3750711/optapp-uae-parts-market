@@ -1,7 +1,7 @@
 
 import React, { useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ProductGrid from "@/components/product/ProductGrid";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerLi
 
 const SellerListingsContent = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
   const productsPerPage = 12; // Increased for better performance
@@ -81,6 +82,22 @@ const SellerListingsContent = () => {
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Обработчик изменения статуса товара
+  const handleStatusChange = async () => {
+    console.log("Product status changed, invalidating queries");
+    
+    // Показываем уведомление об обновлении
+    toast({
+      title: "Статус обновлен",
+      description: "Обновляем список товаров...",
+    });
+
+    // Инвалидируем кэш для обновления данных
+    await queryClient.invalidateQueries({
+      queryKey: ['seller-products-infinite', user?.id]
+    });
+  };
 
   // Effect to fetch next page when intersection observer detects the load more element
   useEffect(() => {
@@ -196,7 +213,12 @@ const SellerListingsContent = () => {
       
       {mappedProducts.length > 0 ? (
         <>
-          <ProductGrid products={mappedProducts} showAllStatuses={true} />
+          <ProductGrid 
+            products={mappedProducts} 
+            showAllStatuses={true}
+            showSoldButton={true}
+            onStatusChange={handleStatusChange}
+          />
           
           {/* Enhanced load more with error handling */}
           {(hasNextPage || isFetchingNextPage) && (

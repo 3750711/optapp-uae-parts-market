@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +12,7 @@ import {
   CarouselApi 
 } from "@/components/ui/carousel";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 
 export interface ProductProps {
   id: string;
@@ -37,7 +37,17 @@ export interface ProductProps {
   }>;
 }
 
-const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
+interface ProductCardProps {
+  product: ProductProps;
+  showSoldButton?: boolean;
+  onStatusChange?: () => void;
+}
+
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  showSoldButton = false, 
+  onStatusChange 
+}) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
   const [api, setApi] = useState<CarouselApi>();
@@ -189,46 +199,59 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
   };
 
   return (
-    <Link
-      to={`/product/${product.id}`}
-      className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col"
-    >
-      <div className="relative flex-shrink-0">
-        <AspectRatio ratio={16 / 9} className="bg-gray-50">
-          {renderImageContent()}
-        </AspectRatio>
-        {getStatusBadge(product.status)}
-        {product.lot_number && (
-          <Badge variant="outline" className="absolute top-2 left-2 text-xs">
-            Лот: {product.lot_number}
-          </Badge>
-        )}
-      </div>
-      
-      <div className="p-4 flex-grow flex flex-col">
-        <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors flex-grow">
-          {product.title}
-        </h3>
-        
-        {(product.brand || product.model) && (
-          <p className="text-sm text-gray-600 mb-2">
-            {[product.brand, product.model].filter(Boolean).join(' ')}
-          </p>
-        )}
-        
-        <div className="flex items-center justify-between mt-auto">
-          <span className="text-lg font-bold text-primary">
-            {formatPrice(product.price)} $
-          </span>
-          
-          {product.seller_name && (
-            <span className="text-xs text-gray-500 truncate ml-2">
-              {product.seller_name}
-            </span>
+    <div className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col">
+      <Link
+        to={`/product/${product.id}`}
+        className="flex-1 flex flex-col"
+      >
+        <div className="relative flex-shrink-0">
+          <AspectRatio ratio={16 / 9} className="bg-gray-50">
+            {renderImageContent()}
+          </AspectRatio>
+          {getStatusBadge(product.status)}
+          {product.lot_number && (
+            <Badge variant="outline" className="absolute top-2 left-2 text-xs">
+              Лот: {product.lot_number}
+            </Badge>
           )}
         </div>
-      </div>
-    </Link>
+        
+        <div className="p-4 flex-grow flex flex-col">
+          <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors flex-grow">
+            {product.title}
+          </h3>
+          
+          {(product.brand || product.model) && (
+            <p className="text-sm text-gray-600 mb-2">
+              {[product.brand, product.model].filter(Boolean).join(' ')}
+            </p>
+          )}
+          
+          <div className="flex items-center justify-between mt-auto">
+            <span className="text-lg font-bold text-primary">
+              {formatPrice(product.price)} $
+            </span>
+            
+            {product.seller_name && (
+              <span className="text-xs text-gray-500 truncate ml-2">
+                {product.seller_name}
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+      
+      {/* Кнопка "Отметить как проданный" */}
+      {showSoldButton && product.status === 'active' && (
+        <div className="p-4 pt-0">
+          <ProductStatusChangeDialog
+            productId={product.id}
+            productName={product.title}
+            onStatusChange={onStatusChange || (() => {})}
+          />
+        </div>
+      )}
+    </div>
   );
 };
 
