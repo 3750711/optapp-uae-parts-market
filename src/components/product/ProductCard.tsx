@@ -139,7 +139,6 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
                     onLoad={handleImageLoad}
                     priority={index === 0}
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    loading={index === 0 ? "eager" : "lazy"}
                   />
                   {imageLoading && index === 0 && (
                     <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
@@ -178,7 +177,6 @@ const ProductCard: React.FC<{ product: ProductProps }> = ({ product }) => {
             onLoad={handleImageLoad}
             priority={false}
             sizes="(max-width: 768px) 50vw, 25vw"
-            loading="lazy"
           />
           {imageLoading && !imageError && (
             <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
