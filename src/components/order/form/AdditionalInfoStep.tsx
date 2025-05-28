@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -33,6 +32,14 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   setVideos
 }) => {
   const { profile } = useAuth();
+
+  const handleVideoUpload = (urls: string[]) => {
+    setVideos([...videos, ...urls]);
+  };
+
+  const handleVideoDelete = (url: string) => {
+    setVideos(videos.filter(u => u !== url));
+  };
 
   return (
     <div className="space-y-6">
@@ -91,8 +98,8 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         <Label>Видео заказа</Label>
         <VideoUpload
           videos={videos}
-          onUpload={(urls) => setVideos((prev) => [...prev, ...urls])}
-          onDelete={(url) => setVideos((prev) => prev.filter(u => u !== url))}
+          onUpload={handleVideoUpload}
+          onDelete={handleVideoDelete}
           maxVideos={2}
           storageBucket="order-videos"
           storagePrefix=""

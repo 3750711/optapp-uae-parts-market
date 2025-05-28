@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from 'react';
-import { DeliveryMethod } from '@/integrations/supabase/types';
+import { Database } from '@/integrations/supabase/types';
 import { useFormAutosave } from '@/hooks/useFormAutosave';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { useRealTimeValidation } from '@/hooks/useRealTimeValidation';
 import { toast } from '@/hooks/use-toast';
+
+type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 export interface OrderFormData {
   title: string;
