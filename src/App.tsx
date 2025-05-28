@@ -68,8 +68,11 @@ function App() {
               <Route path="/seller/add-product" element={<ProtectedRoute><SellerAddProduct /></ProtectedRoute>} />
               <Route path="/seller/listings" element={<ProtectedRoute><SellerListings /></ProtectedRoute>} />
               <Route path="/seller/orders" element={<ProtectedRoute><SellerOrders /></ProtectedRoute>} />
+              {/* Изменяем маршрут с dashboard на profile */}
               <Route path="/seller/profile" element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />
+              <Route path="/seller/dashboard" element={<Navigate to="/seller/profile" replace />} />
               <Route path="/seller/create-order" element={<ProtectedRoute><SellerCreateOrder /></ProtectedRoute>} />
+              {/* Публичный профиль продавца - это должно быть в конце, чтобы не конфликтовать */}
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
               <Route path="/buyer/orders" element={<ProtectedRoute><BuyerOrders /></ProtectedRoute>} />
               <Route path="/buyer/create-order" element={<ProtectedRoute><BuyerCreateOrder /></ProtectedRoute>} />

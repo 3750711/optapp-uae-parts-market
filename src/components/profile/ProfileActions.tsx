@@ -81,7 +81,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
             {profile.user_type === 'seller' && (
               <Button 
                 className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                onClick={() => navigate('/seller/dashboard')}
+                onClick={() => navigate('/seller/profile')}
               >
                 <UserCog className="h-4 w-4 mr-2" /> Панель продавца
               </Button>
