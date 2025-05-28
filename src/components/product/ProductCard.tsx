@@ -195,7 +195,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </AspectRatio>
           {getStatusBadge(product.status)}
           {product.lot_number && (
-            <Badge variant="outline" className="absolute top-2 left-2 text-xs">
+            <Badge 
+              variant="outline" 
+              className="absolute top-2 left-2 text-xs bg-white/95 text-gray-800 border-gray-300 backdrop-blur-sm font-medium shadow-sm"
+            >
               Лот: {product.lot_number}
             </Badge>
           )}
