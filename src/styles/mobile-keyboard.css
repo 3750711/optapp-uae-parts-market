@@ -1,0 +1,115 @@
+
+/* Оптимизация для виртуальной клавиатуры */
+@media (max-width: 768px) {
+  /* Предотвращаем зум при фокусе на input */
+  input[type="text"], 
+  input[type="number"], 
+  input[type="email"], 
+  input[type="tel"], 
+  input[type="password"], 
+  select, 
+  textarea {
+    font-size: 16px !important;
+    transform-origin: left top;
+    transition: transform 0.2s ease;
+  }
+
+  /* Оптимизация для keyboard появления */
+  .keyboard-active {
+    padding-bottom: env(keyboard-inset-height, 0px);
+  }
+
+  /* Sticky кнопки внизу экрана */
+  .mobile-sticky-bottom {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    padding: 1rem;
+    z-index: 50;
+    transform: translateY(0);
+    transition: transform 0.3s ease;
+  }
+
+  .mobile-sticky-bottom.keyboard-hidden {
+    transform: translateY(100%);
+  }
+
+  /* Увеличенные touch targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Оптимизация свайпов */
+  .swipe-container {
+    touch-action: pan-x;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  /* Анимации для мобильных переходов */
+  .mobile-slide-enter {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  .mobile-slide-enter-active {
+    transform: translateX(0);
+    opacity: 1;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+
+  .mobile-slide-exit {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  .mobile-slide-exit-active {
+    transform: translateX(-100%);
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+}
+
+/* Планшетная оптимизация */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .tablet-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 2rem;
+  }
+
+  .tablet-form-section {
+    padding: 1.5rem;
+  }
+
+  .tablet-sidebar {
+    position: sticky;
+    top: 2rem;
+    height: fit-content;
+  }
+}
+
+/* Улучшения для touch устройств */
+@media (hover: none) and (pointer: coarse) {
+  .hover-only {
+    display: none;
+  }
+
+  button, .clickable {
+    cursor: default;
+  }
+
+  /* Увеличенные отступы для лучшего UX */
+  .form-section {
+    padding: 1.5rem 1rem;
+  }
+
+  .form-field {
+    margin-bottom: 1.5rem;
+  }
+}
