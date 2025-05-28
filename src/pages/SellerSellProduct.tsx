@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -200,7 +201,7 @@ const SellerSellProduct = () => {
         throw new Error(`Invalid delivery method: ${orderData.deliveryMethod}`);
       }
 
-      // Используем RPC функцию для создания заказа продавцом
+      // Используем RPC функцию для создания заказов продавцами
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
