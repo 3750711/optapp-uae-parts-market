@@ -56,6 +56,7 @@ const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
   const shouldVirtualize = filteredOptions.length > 50;
   const itemHeight = isMobile ? 48 : 36;
   const maxHeight = isMobile ? 280 : 300;
+  const listWidth = "100%";
 
   const VirtualizedItem = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const option = filteredOptions[index];
@@ -93,11 +94,19 @@ const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
         </SelectTrigger>
         <SelectContent 
           className={`max-h-[${maxHeight}px]`}
-          searchPlaceholder={searchPlaceholder}
-          onSearchChange={setSearchTerm}
-          searchValue={searchTerm}
-          showSearch={true}
         >
+          <div className="sticky top-0 px-1 pt-1 pb-0 z-10 bg-white border-b">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+              <Input
+                placeholder={searchPlaceholder}
+                className={`pl-8 ${isMobile ? "text-base py-2.5" : ""}`}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
           {filteredOptions.map((option) => (
             <SelectItem 
               key={option.id} 
@@ -142,6 +151,7 @@ const VirtualizedSelect: React.FC<VirtualizedSelectProps> = ({
             height={Math.min(filteredOptions.length * itemHeight, maxHeight)}
             itemCount={filteredOptions.length}
             itemSize={itemHeight}
+            width={listWidth}
             className="scrollbar-thin scrollbar-thumb-gray-300"
           >
             {VirtualizedItem}
