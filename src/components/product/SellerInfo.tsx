@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { HelpCircle, Star, User, Store, Copy, CheckCheck, Wrench } from "lucide-react";
@@ -11,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CommunicationRatingBadge } from "@/components/admin/CommunicationRatingBadge";
 
 interface SellerInfoProps {
   sellerProfile?: SellerProfile | null; // Make it optional and nullable
@@ -121,6 +121,17 @@ const SellerInfo: React.FC<SellerInfoProps> = ({
               </Button>
             </div>}
         </div>
+
+        {/* Communication Rating */}
+        {sellerProfile?.communication_ability && (
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">Сложность коммуникации:</span>
+            <CommunicationRatingBadge 
+              rating={sellerProfile.communication_ability} 
+              size="md"
+            />
+          </div>
+        )}
         
         {storeInfo ? (
           <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-3 border border-blue-200 flex justify-between items-center">
