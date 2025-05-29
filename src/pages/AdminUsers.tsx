@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -232,6 +231,7 @@ const AdminUsers = () => {
                     onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
                     onEdit={handleEditUser}
                     onRating={setRatingUser}
+                    onOptStatusChange={handleOptStatusChange}
                   />
                 ))}
               </div>

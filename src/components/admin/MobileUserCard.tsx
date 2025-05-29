@@ -23,6 +23,7 @@ interface MobileUserCardProps {
   onOpenProfile: (userId: string) => void;
   onEdit: (user: ProfileType) => void;
   onRating: (user: ProfileType) => void;
+  onOptStatusChange?: (userId: string, newStatus: 'free_user' | 'opt_user') => void;
 }
 
 export const MobileUserCard: React.FC<MobileUserCardProps> = ({
@@ -32,7 +33,8 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
   onQuickAction,
   onOpenProfile,
   onEdit,
-  onRating
+  onRating,
+  onOptStatusChange
 }) => {
   const handleEdit = () => {
     console.log("Mobile card edit clicked for user:", user.id);
@@ -42,6 +44,13 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
   const handleRating = () => {
     console.log("Mobile card rating clicked for user:", user.id);
     onRating(user);
+  };
+
+  const handleOptStatusToggle = () => {
+    if (onOptStatusChange) {
+      const newStatus = user.opt_status === 'opt_user' ? 'free_user' : 'opt_user';
+      onOptStatusChange(user.id, newStatus);
+    }
   };
 
   return (
@@ -97,6 +106,11 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                   <DropdownMenuItem onClick={handleRating}>
                     Изменить рейтинг
                   </DropdownMenuItem>
+                  {onOptStatusChange && (
+                    <DropdownMenuItem onClick={handleOptStatusToggle}>
+                      Переключить OPT статус
+                    </DropdownMenuItem>
+                  )}
                   {user.verification_status !== 'verified' && (
                     <DropdownMenuItem onClick={() => onQuickAction(user.id, 'verify')}>
                       Подтвердить
