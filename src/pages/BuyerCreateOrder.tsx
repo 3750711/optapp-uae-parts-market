@@ -247,7 +247,8 @@ const BuyerCreateOrder = () => {
       return;
     }
 
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+    // Updated price validation to allow 0 and negative prices
+    if (!formData.price || isNaN(parseFloat(formData.price))) {
       toast({
         title: "Ошибка",
         description: "Укажите корректную цену",
@@ -565,7 +566,6 @@ const BuyerCreateOrder = () => {
                       onChange={(e) => handleInputChange('price', e.target.value)}
                       required 
                       placeholder="0.00"
-                      min="0"
                       step="0.01"
                     />
                   </div>
@@ -577,7 +577,6 @@ const BuyerCreateOrder = () => {
                       value={formData.delivery_price}
                       onChange={(e) => handleInputChange('delivery_price', e.target.value)}
                       placeholder="0.00"
-                      min="0"
                       step="0.01"
                     />
                   </div>

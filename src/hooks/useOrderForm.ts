@@ -56,7 +56,8 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
       case 'price':
         if (!value) return 'Укажите цену';
         const price = parseFloat(value);
-        if (isNaN(price) || price <= 0) return 'Цена должна быть положительным числом';
+        // Updated validation to allow 0 and negative prices
+        if (isNaN(price)) return 'Цена должна быть числом';
         return null;
       case 'buyerOptId':
         if (!value) return 'Выберите покупателя';

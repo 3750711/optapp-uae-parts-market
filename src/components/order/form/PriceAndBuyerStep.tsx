@@ -81,6 +81,16 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
           type: 'trend' as const,
           text: 'Высокая цена. Убедитесь, что она корректна'
         });
+      } else if (price === 0) {
+        hints.push({
+          type: 'info' as const,
+          text: 'Цена равна нулю - подходит для бесплатных товаров'
+        });
+      } else if (price < 0) {
+        hints.push({
+          type: 'warning' as const,
+          text: 'Отрицательная цена - используйте для корректировок'
+        });
       }
     }
     
@@ -101,7 +111,6 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
             onChange={(e) => onInputChange('price', e.target.value)}
             required 
             placeholder="0.00"
-            min="0"
             step="0.01"
             inputMode="decimal"
             touched={touchedFields.has('price')}
@@ -124,7 +133,6 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
             value={formData.delivery_price}
             onChange={(e) => onInputChange('delivery_price', e.target.value)}
             placeholder="0.00"
-            min="0"
             step="0.01"
             inputMode="decimal"
           />

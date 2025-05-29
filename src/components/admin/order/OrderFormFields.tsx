@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -232,7 +233,6 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
             onChange={(e) => handleInputChange('price', e.target.value)}
             required 
             placeholder="0.00"
-            min="0"
             step="0.01"
           />
         </div>
@@ -244,7 +244,6 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
             value={formData.delivery_price}
             onChange={(e) => handleInputChange('delivery_price', e.target.value)}
             placeholder="0.00"
-            min="0"
             step="0.01"
           />
         </div>

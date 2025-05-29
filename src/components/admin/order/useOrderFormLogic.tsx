@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -258,7 +257,8 @@ export const useOrderFormLogic = () => {
       errors.push('Наименование обязательно для заполнения');
     }
 
-    if (!formData.price || parseFloat(formData.price) <= 0) {
+    // Updated price validation to allow 0 and negative prices
+    if (!formData.price || isNaN(parseFloat(formData.price))) {
       errors.push('Укажите корректную цену');
     }
 
