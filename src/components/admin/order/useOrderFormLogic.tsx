@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -290,6 +291,70 @@ export const useOrderFormLogic = () => {
     return true;
   };
 
+  // New fallback function for direct order creation
+  const createOrderDirect = async (orderSellerName: string, buyerData: any, deliveryPrice: number | null) => {
+    console.log("=== Using fallback direct order creation ===");
+    
+    // Get next order number
+    const { data: existingOrders, error: ordersError } = await supabase
+      .from('orders')
+      .select('order_number')
+      .order('order_number', { ascending: false })
+      .limit(1);
+
+    if (ordersError) {
+      console.error("Error getting order numbers:", ordersError);
+      throw new Error("Failed to get next order number");
+    }
+
+    const nextOrderNumber = existingOrders && existingOrders.length > 0 
+      ? existingOrders[0].order_number + 1 
+      : 1;
+
+    console.log("Next order number (fallback):", nextOrderNumber);
+
+    const orderPayload = {
+      order_number: nextOrderNumber,
+      title: formData.title,
+      price: parseFloat(formData.price),
+      place_number: parseInt(formData.place_number),
+      seller_id: formData.sellerId,
+      order_seller_name: orderSellerName,
+      seller_opt_id: selectedSeller?.opt_id || null,
+      buyer_id: buyerData.id,
+      brand: formData.brand || '',
+      model: formData.model || '',
+      status: 'seller_confirmed' as OrderStatus,
+      order_created_type: 'free_order' as OrderCreatedType,
+      telegram_url_order: selectedSeller?.telegram || null,
+      images: images,
+      product_id: null,
+      delivery_method: formData.deliveryMethod as DeliveryMethod,
+      text_order: formData.text_order || null,
+      delivery_price_confirm: deliveryPrice,
+    };
+
+    console.log("=== Direct order payload ===");
+    console.log("Order payload:", orderPayload);
+
+    const { data: createdOrderData, error: orderError } = await supabase
+      .from('orders')
+      .insert(orderPayload)
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error("=== Direct Insert Error ===");
+      console.error("Error details:", orderError);
+      throw orderError;
+    }
+
+    console.log("=== Direct order created successfully ===");
+    console.log("Created order:", createdOrderData);
+    
+    return createdOrderData.id;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -357,46 +422,59 @@ export const useOrderFormLogic = () => {
         throw new Error('Не удалось определить имя продавца для создания заказа');
       }
       
-      const orderPayload = {
-        p_title: formData.title,
-        p_price: parseFloat(formData.price),
-        p_place_number: parseInt(formData.place_number),
-        p_seller_id: formData.sellerId,
-        p_order_seller_name: orderSellerName,
-        p_seller_opt_id: selectedSeller?.opt_id || null,
-        p_buyer_id: buyerData.id,
-        p_brand: formData.brand || '',
-        p_model: formData.model || '',
-        p_status: 'seller_confirmed' as OrderStatus,
-        p_order_created_type: 'free_order' as OrderCreatedType,
-        p_telegram_url_order: selectedSeller?.telegram || null,
-        p_images: images,
-        p_product_id: null,
-        p_delivery_method: formData.deliveryMethod as DeliveryMethod,
-        p_text_order: formData.text_order || null,
-        p_delivery_price_confirm: deliveryPrice,
-      };
+      let createdOrderId: string;
 
-      console.log("=== Creating order with RPC ===");
-      console.log("Order payload:", orderPayload);
+      try {
+        // First try using RPC function
+        const orderPayload = {
+          p_title: formData.title,
+          p_price: parseFloat(formData.price),
+          p_place_number: parseInt(formData.place_number),
+          p_seller_id: formData.sellerId,
+          p_order_seller_name: orderSellerName,
+          p_seller_opt_id: selectedSeller?.opt_id || null,
+          p_buyer_id: buyerData.id,
+          p_brand: formData.brand || '',
+          p_model: formData.model || '',
+          p_status: 'seller_confirmed' as OrderStatus,
+          p_order_created_type: 'free_order' as OrderCreatedType,
+          p_telegram_url_order: selectedSeller?.telegram || null,
+          p_images: images,
+          p_product_id: null,
+          p_delivery_method: formData.deliveryMethod as DeliveryMethod,
+          p_text_order: formData.text_order || null,
+          p_delivery_price_confirm: deliveryPrice,
+        };
 
-      // Use RPC function call to bypass RLS for admin operations
-      const { data: createdOrderData, error: orderError } = await supabase
-        .rpc('admin_create_order', orderPayload);
+        console.log("=== Creating order with RPC ===");
+        console.log("Order payload:", orderPayload);
 
-      if (orderError) {
-        console.error("=== RPC Error Details ===");
-        console.error("Error code:", orderError.code);
-        console.error("Error message:", orderError.message);
-        console.error("Error details:", orderError.details);
-        console.error("Error hint:", orderError.hint);
-        throw orderError;
+        // Use RPC function call to bypass RLS for admin operations
+        const { data: rpcOrderId, error: orderError } = await supabase
+          .rpc('admin_create_order', orderPayload);
+
+        if (orderError) {
+          console.error("=== RPC Error Details ===");
+          console.error("Error code:", orderError.code);
+          console.error("Error message:", orderError.message);
+          console.error("Error details:", orderError.details);
+          console.error("Error hint:", orderError.hint);
+          
+          // If RPC fails, try fallback method
+          console.log("=== RPC failed, trying fallback method ===");
+          createdOrderId = await createOrderDirect(orderSellerName, buyerData, deliveryPrice);
+        } else {
+          console.log("=== RPC Order created successfully ===");
+          console.log("Created order ID:", rpcOrderId);
+          createdOrderId = rpcOrderId;
+        }
+      } catch (rpcError) {
+        console.error("=== RPC Exception, using fallback ===");
+        console.error("RPC error:", rpcError);
+        createdOrderId = await createOrderDirect(orderSellerName, buyerData, deliveryPrice);
       }
 
-      console.log("=== Order created successfully ===");
-      console.log("Created order ID:", createdOrderData);
-
-      if (!createdOrderData) {
+      if (!createdOrderId) {
         throw new Error("Order was created but no data was returned");
       }
 
@@ -407,7 +485,7 @@ export const useOrderFormLogic = () => {
       const { data: orderData, error: fetchError } = await supabase
         .from('orders')
         .select('*')
-        .eq('id', createdOrderData)
+        .eq('id', createdOrderId)
         .single();
         
       if (fetchError) {
@@ -421,10 +499,10 @@ export const useOrderFormLogic = () => {
       setCreationStage('saving_videos');
       setCreationProgress(75);
 
-      if (videos.length > 0 && createdOrderData) {
-        console.log("Saving video references to database, order ID:", createdOrderData);
+      if (videos.length > 0 && createdOrderId) {
+        console.log("Saving video references to database, order ID:", createdOrderId);
         const videoRecords = videos.map(url => ({
-          order_id: createdOrderData,
+          order_id: createdOrderId,
           url
         }));
         
