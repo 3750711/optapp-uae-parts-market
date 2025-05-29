@@ -15,13 +15,9 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   lotNumber,
   contactType
 }) => {
-  const createSimpleMessage = () => {
-    return `Мне нужно помощь с товаром (Лот ${lotNumber || 'N/A'}, ${productTitle}, ${productPrice} USD)`;
-  };
-
   const handleAssistantContact = () => {
-    const message = createSimpleMessage();
-    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${message}`;
+    const currentUrl = window.location.href;
+    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(currentUrl)}`;
     
     try {
       window.open(telegramUrl, '_blank');
