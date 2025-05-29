@@ -59,7 +59,7 @@ const ProductSEO: React.FC<ProductSEOProps> = ({
     return keywords.join(', ');
   };
 
-  // Главное изображение для Open Graph
+  // Главное изображение для Open Graph - используем полные URL
   const primaryImage = images.length > 0 ? images[0] : '/placeholder.svg';
 
   // Canonical URL
@@ -115,6 +115,9 @@ const ProductSEO: React.FC<ProductSEOProps> = ({
       } : null
     ].filter(Boolean)
   };
+
+  console.log('ProductSEO: Using image:', primaryImage);
+  console.log('ProductSEO: Product data:', { title: buildTitle(), description: buildDescription() });
 
   return (
     <SEOHead

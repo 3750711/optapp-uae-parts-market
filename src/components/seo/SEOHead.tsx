@@ -19,6 +19,8 @@ const SEOHead: React.FC<SEOHeadProps> = ({
   structuredData
 }) => {
   useEffect(() => {
+    console.log('SEOHead: Setting meta tags', { title, description, ogImage });
+    
     // Устанавливаем title
     document.title = title;
 
@@ -32,6 +34,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
         document.head.appendChild(meta);
       }
       meta.setAttribute('content', content);
+      console.log(`SEOHead: Set ${attribute}="${name}" content="${content}"`);
     };
 
     // Основные meta теги
@@ -40,18 +43,27 @@ const SEOHead: React.FC<SEOHeadProps> = ({
     setMetaTag('robots', 'index, follow');
     setMetaTag('author', 'PartsBay.ae');
     
+    // Получаем полный URL для изображения
+    const fullImageUrl = ogImage.startsWith('http') 
+      ? ogImage 
+      : `${window.location.origin}${ogImage}`;
+    
+    console.log('SEOHead: Full image URL:', fullImageUrl);
+    
     // Open Graph теги
     setMetaTag('og:title', title, true);
     setMetaTag('og:description', description, true);
-    setMetaTag('og:image', ogImage, true);
+    setMetaTag('og:image', fullImageUrl, true);
     setMetaTag('og:type', 'website', true);
     setMetaTag('og:site_name', 'PartsBay.ae', true);
+    setMetaTag('og:url', canonicalUrl || window.location.href, true);
     
     // Twitter Card теги
     setMetaTag('twitter:card', 'summary_large_image');
     setMetaTag('twitter:title', title);
     setMetaTag('twitter:description', description);
-    setMetaTag('twitter:image', ogImage);
+    setMetaTag('twitter:image', fullImageUrl);
+    setMetaTag('twitter:site', '@partsbayae');
 
     // Canonical URL
     if (canonicalUrl) {
