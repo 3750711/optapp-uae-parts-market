@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { MobileCommunicationDialog } from "./communication/MobileCommunicationDialog";
@@ -23,7 +22,8 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       .replace(/\s+/g, ' ') // Убираем лишние пробелы
       .trim();
     
-    return `Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD`;
+    // Полное сообщение с вежливым обращением
+    return `Dobryj den menya interesuet tovar Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD, svyazhites pozhalujsta s prodavcom uznayte v nalichii li on i kakaya budet cena so skidkoj`;
   };
 
   const copyToClipboard = async (text: string) => {
