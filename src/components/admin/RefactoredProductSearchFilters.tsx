@@ -70,7 +70,14 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   // Handle seller selection
   const handleSellerChange = (sellerId: string) => {
     console.log('Seller filter changed to:', sellerId);
-    setSelectedSellerId(sellerId);
+    // Convert "all" back to empty string for the actual filter
+    const actualSellerId = sellerId === "all" ? "" : sellerId;
+    setSelectedSellerId(actualSellerId);
+  };
+
+  // Get the display value for seller selector
+  const getSellerDisplayValue = () => {
+    return selectedSellerId === "" ? "all" : selectedSellerId;
   };
 
   return (
@@ -86,14 +93,14 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
         
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select 
-            value={selectedSellerId} 
+            value={getSellerDisplayValue()} 
             onValueChange={handleSellerChange}
           >
             <SelectTrigger className="w-full sm:w-[200px] h-10">
               <SelectValue placeholder="Все продавцы" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Все продавцы</SelectItem>
+              <SelectItem value="all">Все продавцы</SelectItem>
               {sellers.length > 0 ? (
                 sellers.map((seller) => (
                   <SelectItem key={seller.id} value={seller.id}>
@@ -101,7 +108,7 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
                   </SelectItem>
                 ))
               ) : (
-                <SelectItem value="" disabled>
+                <SelectItem value="loading" disabled>
                   Загрузка продавцов...
                 </SelectItem>
               )}
