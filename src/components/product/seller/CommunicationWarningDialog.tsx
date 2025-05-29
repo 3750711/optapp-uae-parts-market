@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { MobileCommunicationDialog } from "./communication/MobileCommunicationDialog";
@@ -16,13 +15,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   contactType
 }) => {
   const handleRepresentativeContact = () => {
-    const message = `Лот ${lotNumber || 'не указан'}\n${productTitle}\nЦена: ${productPrice} ₽`;
+    const message = `Лот ${lotNumber || 'не указан'} - ${productTitle} - Цена: ${productPrice} ₽`;
     window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${message}`, '_blank');
     onOpenChange(false);
   };
 
   const handleAssistantContact = () => {
-    const message = `Лот ${lotNumber || 'не указан'}\n${productTitle}\nЦена: ${productPrice} ₽`;
+    const message = `Лот ${lotNumber || 'не указан'} - ${productTitle} - Цена: ${productPrice} ₽`;
     window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${message}`, '_blank');
     onOpenChange(false);
   };
