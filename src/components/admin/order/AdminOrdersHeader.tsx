@@ -86,7 +86,8 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
               <SelectItem value="created">Создан</SelectItem>
               <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
               <SelectItem value="admin_confirmed">Подтвержден админом</SelectItem>
-              <SelectItem value="in_transit">В пути</SelectItem>
+              <SelectItem value="processed">Зарегистрирован</SelectItem>
+              <SelectItem value="shipped">Отправлен</SelectItem>
               <SelectItem value="delivered">Доставлен</SelectItem>
               <SelectItem value="cancelled">Отменен</SelectItem>
             </SelectContent>
