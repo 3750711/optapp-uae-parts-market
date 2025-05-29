@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 
 // Define the FiltersState interface that was missing
@@ -32,7 +33,7 @@ export const useProductFilters = (
     const savedSortField = localStorage.getItem('admin_products_sort_field');
     const savedSortOrder = localStorage.getItem('admin_products_sort_order');
     
-    // Only allow valid sort fields (status and price)
+    // Only allow valid sort fields (status and price only)
     const validSortField = savedSortField === 'status' || savedSortField === 'price' 
       ? savedSortField 
       : defaultSortField;

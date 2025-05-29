@@ -17,6 +17,9 @@ interface RefactoredProductSearchFiltersProps {
   setSortField: (field: string) => void;
   setSortOrder: (order: 'asc' | 'desc') => void;
   resetAllFilters: () => void;
+  selectedSellerId: string;
+  setSelectedSellerId: (sellerId: string) => void;
+  sellers: Array<{ id: string; name: string; }>;
 }
 
 const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersProps> = ({
@@ -31,6 +34,9 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
   setSortField,
   setSortOrder,
   resetAllFilters,
+  selectedSellerId,
+  setSelectedSellerId,
+  sellers,
 }) => {
   // Calculate the current sort value from the individual sort field and order
   const [sortValue, setSortValue] = useState(`${sortField}-${sortOrder}`);
@@ -59,9 +65,15 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
     setSortValue(newValue);
   };
 
+  // Handle seller selection
+  const handleSellerChange = (sellerId: string) => {
+    console.log('Seller filter changed to:', sellerId);
+    setSelectedSellerId(sellerId);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow p-3">
-      <div className="grid gap-3 grid-cols-1 sm:grid-cols-[1fr,auto] items-start">
+      <div className="grid gap-3 grid-cols-1 sm:grid-cols-[1fr,auto,auto] items-start">
         <SearchBar 
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -69,6 +81,25 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           onClear={onClearSearch}
           activeSearchTerm={activeSearchTerm}
         />
+        
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select 
+            value={selectedSellerId} 
+            onValueChange={handleSellerChange}
+          >
+            <SelectTrigger className="w-full sm:w-[200px] h-10">
+              <SelectValue placeholder="Все продавцы" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Все продавцы</SelectItem>
+              {sellers.map((seller) => (
+                <SelectItem key={seller.id} value={seller.id}>
+                  {seller.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select 
@@ -83,8 +114,6 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
               <SelectItem value="status-desc">Статус (Архивные в начале)</SelectItem>
               <SelectItem value="price-asc">Цена (по возрастанию)</SelectItem>
               <SelectItem value="price-desc">Цена (по убыванию)</SelectItem>
-              <SelectItem value="seller_name-asc">Продавец (А-Я)</SelectItem>
-              <SelectItem value="seller_name-desc">Продавец (Я-А)</SelectItem>
             </SelectContent>
           </Select>
         </div>
