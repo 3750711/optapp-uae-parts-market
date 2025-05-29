@@ -56,7 +56,7 @@ export const MobileCommunicationDialog: React.FC<MobileCommunicationDialogProps>
       </div>
       
       {/* Фиксированный футер с кнопками для мобильных */}
-      <DialogFooter asChild>
+      <DialogFooter>
         <DialogButtons 
           onAssistantContact={onAssistantContact}
           onProceed={onProceed}

@@ -53,7 +53,7 @@ export const DesktopCommunicationDialog: React.FC<DesktopCommunicationDialogProp
       </DialogDescription>
       
       {/* Футер для десктопа */}
-      <DialogFooter asChild>
+      <DialogFooter>
         <DialogButtons 
           onAssistantContact={onAssistantContact}
           onProceed={onProceed}
