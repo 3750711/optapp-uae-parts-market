@@ -16,14 +16,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   contactType
 }) => {
   const createMessage = () => {
-    // Полностью латинизированное сообщение без спецсимволов
+    // Оставляем название товара как есть для точности
     const cleanTitle = productTitle
-      .replace(/[^\w\s-]/g, '') // Убираем все спецсимволы кроме букв, цифр, пробелов и дефисов
       .replace(/\s+/g, ' ') // Убираем лишние пробелы
       .trim();
     
-    // Полное сообщение с вежливым обращением
-    return `Dobryj den menya interesuet tovar Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD, svyazhites pozhalujsta s prodavcom uznayte v nalichii li on i kakaya budet cena so skidkoj`;
+    // Полное сообщение на русском языке
+    return `Добрый день меня интересует товар Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD, свяжитесь пожалуйста с продавцем узнайте в наличии ли он и какая будет цена со скидкой`;
   };
 
   const copyToClipboard = async (text: string) => {
