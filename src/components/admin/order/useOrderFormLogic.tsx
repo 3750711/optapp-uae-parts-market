@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -255,7 +254,7 @@ export const useOrderFormLogic = () => {
       validatedName = 'Unknown Seller';
     }
     
-    console.log("=== Финальное валидированное имя:", `"${validatedName}"` ===);
+    console.log("=== Финальное валидированное имя:", `"${validatedName}"`);
     
     // Дополнительная проверка на NULL/undefined
     if (validatedName === null || validatedName === undefined) {
