@@ -6,7 +6,7 @@ import { MobileOrderCard } from './MobileOrderCard';
 import { CompactMobileOrderCard } from './CompactMobileOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { Button } from '@/components/ui/button';
-import { Grid, List } from 'lucide-react';
+import { Grid, List, Eye } from 'lucide-react';
 import { useState } from 'react';
 
 interface ResponsiveOrdersViewProps {
@@ -31,7 +31,7 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
   containerHeight = 600
 }) => {
   const isMobile = useIsMobile();
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>(isMobile ? 'compact' : 'grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>(isMobile ? 'list' : 'grid');
 
   if (orders.length === 0) {
     return (
@@ -47,7 +47,7 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* View Mode Toggle */}
+      {/* Desktop View Mode Toggle */}
       {!isMobile && (
         <div className="flex items-center justify-end">
           <div className="flex items-center bg-muted rounded-lg p-1">
@@ -71,25 +71,33 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
         </div>
       )}
 
-      {/* Mobile View Mode Toggle */}
+      {/* Mobile Actions Bar */}
       {isMobile && (
-        <div className="flex items-center justify-end">
-          <div className="flex items-center bg-muted rounded-lg p-1">
+        <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">
+              Найдено: {orders.length}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2">
             <Button
-              variant={viewMode === 'compact' ? 'default' : 'ghost'}
+              variant="outline"
               size="sm"
-              onClick={() => setViewMode('compact')}
-              className="h-8 text-xs px-2"
+              onClick={() => setViewMode(viewMode === 'list' ? 'compact' : 'list')}
+              className="h-8 text-xs px-3"
             >
-              Компактно
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-              className="h-8 text-xs px-2"
-            >
-              Подробно
+              {viewMode === 'list' ? (
+                <>
+                  <Grid className="h-3 w-3 mr-1" />
+                  Компактно
+                </>
+              ) : (
+                <>
+                  <List className="h-3 w-3 mr-1" />
+                  Подробно
+                </>
+              )}
             </Button>
           </div>
         </div>

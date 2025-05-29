@@ -65,25 +65,15 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
     const isRightSwipe = distance < -minSwipeDistance;
 
     if (isLeftSwipe) {
-      // Swipe left - show delete action
-      handleSwipeAction('delete');
-    } else if (isRightSwipe) {
-      // Swipe right - show confirm action
-      handleSwipeAction('confirm');
+      onDelete(order);
+    } else if (isRightSwipe && onQuickAction) {
+      onQuickAction(order.id, 'confirm');
     }
 
     setTimeout(() => {
       setIsSwipeActive(false);
       setSwipeDirection(null);
     }, 200);
-  };
-
-  const handleSwipeAction = (action: string) => {
-    if (action === 'delete') {
-      onDelete(order);
-    } else if (action === 'confirm' && onQuickAction) {
-      onQuickAction(order.id, 'confirm');
-    }
   };
 
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
@@ -113,17 +103,17 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
         </>
       )}
 
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between mb-3">
+      <CardContent className="p-4 space-y-4">
+        {/* Header Block */}
+        <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <Checkbox
               checked={isSelected}
               onCheckedChange={() => onSelect(order.id)}
-              className="mt-1"
             />
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs font-mono">
                   №{order.order_number}
                 </Badge>
                 <OrderPriorityIndicator
@@ -147,10 +137,6 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => onViewDetails(order.id)}>
-                  <Eye className="h-4 w-4 mr-2" />
-                  Детали
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(order)}>
                   <Edit2 className="h-4 w-4 mr-2" />
                   Редактировать
@@ -173,8 +159,9 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="font-medium text-sm line-clamp-2">
+        {/* Product Info Block */}
+        <div className="bg-muted/30 rounded-lg p-3">
+          <div className="font-medium text-sm line-clamp-2 mb-2">
             {order.title || 'Без названия'}
           </div>
           
@@ -183,53 +170,69 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
               {[order.brand, order.model].filter(Boolean).join(' ')}
             </div>
           )}
+        </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Продавец:</div>
-              <div className="font-medium">
-                {order.seller?.full_name || 'Не указан'}
-              </div>
-              {order.seller?.opt_id && (
-                <div className="text-xs text-muted-foreground">
-                  ID: {order.seller.opt_id}
-                </div>
-              )}
+        {/* Users Block */}
+        <div className="grid grid-cols-2 gap-3 bg-blue-50 rounded-lg p-3">
+          <div>
+            <div className="text-xs text-muted-foreground mb-1 font-medium">Продавец</div>
+            <div className="font-medium text-sm">
+              {order.seller?.full_name || 'Не указан'}
             </div>
-            
-            <div className="text-right space-y-1">
-              <div className="text-xs text-muted-foreground">Покупатель:</div>
-              <div className="font-medium">
-                {order.buyer?.full_name || 'Не указан'}
+            {order.seller?.opt_id && (
+              <div className="text-xs text-muted-foreground font-mono">
+                {order.seller.opt_id}
               </div>
-              {order.buyer?.opt_id && (
-                <div className="text-xs text-muted-foreground">
-                  ID: {order.buyer.opt_id}
-                </div>
-              )}
-            </div>
+            )}
           </div>
+          
+          <div>
+            <div className="text-xs text-muted-foreground mb-1 font-medium">Покупатель</div>
+            <div className="font-medium text-sm">
+              {order.buyer?.full_name || 'Не указан'}
+            </div>
+            {order.buyer?.opt_id && (
+              <div className="text-xs text-muted-foreground font-mono">
+                {order.buyer.opt_id}
+              </div>
+            )}
+          </div>
+        </div>
 
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="space-y-1">
-              <div className="text-xs text-muted-foreground">Цена товара:</div>
-              <div className="font-semibold text-primary">
+        {/* Price Block */}
+        <div className="bg-gradient-to-r from-primary/10 to-transparent rounded-lg p-3">
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Цена товара</div>
+              <div className="font-bold text-primary">
                 ${order.price?.toLocaleString() || '0'}
               </div>
             </div>
-            <div className="text-right space-y-1">
-              <div className="text-xs text-muted-foreground">Доставка:</div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Доставка</div>
               <div className="font-semibold">
                 ${order.delivery_price_confirm?.toLocaleString() || '0'}
               </div>
             </div>
-            <div className="text-right space-y-1">
-              <div className="text-xs text-muted-foreground">Мест:</div>
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Мест</div>
               <div className="font-semibold">
                 {order.place_number || 0}
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Action Block */}
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={() => onViewDetails(order.id)}
+            className="flex-1"
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            Просмотр заказа
+          </Button>
         </div>
       </CardContent>
     </Card>
