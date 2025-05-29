@@ -214,19 +214,67 @@ export const useOrderFormLogic = () => {
     setCreationProgress(0);
   };
 
-  // Helper function to get seller name with fallback logic
+  // Enhanced function to get seller name with robust validation
   const getSellerName = (): string => {
-    // Сначала пытаемся взять из selectedSeller
-    let sellerName = selectedSeller?.full_name;
-
-    // Если не нашли, ищем в массиве sellerProfiles по sellerId
-    if (!sellerName && formData.sellerId) {
-      const seller = sellerProfiles.find(s => s.id === formData.sellerId);
-      sellerName = seller?.full_name;
+    console.log("Getting seller name...");
+    console.log("Selected seller:", selectedSeller);
+    console.log("Form data sellerId:", formData.sellerId);
+    
+    // First try from selectedSeller
+    if (selectedSeller?.full_name) {
+      console.log("Using selectedSeller full_name:", selectedSeller.full_name);
+      return selectedSeller.full_name;
     }
 
-    // В крайнем случае используем fallback
-    return sellerName || 'Unknown Seller';
+    // Then try to find in sellerProfiles by sellerId
+    if (formData.sellerId) {
+      const seller = sellerProfiles.find(s => s.id === formData.sellerId);
+      if (seller?.full_name) {
+        console.log("Found seller in profiles:", seller.full_name);
+        return seller.full_name;
+      }
+    }
+
+    // Last resort - use a default
+    console.warn("Could not determine seller name, using default");
+    return 'Неизвестный продавец';
+  };
+
+  const validateFormData = (): boolean => {
+    const errors = [];
+
+    if (!formData.title.trim()) {
+      errors.push('Наименование обязательно для заполнения');
+    }
+
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      errors.push('Укажите корректную цену');
+    }
+
+    if (!formData.sellerId) {
+      errors.push('Выберите продавца');
+    }
+
+    if (!formData.buyerOptId) {
+      errors.push('Выберите покупателя');
+    }
+
+    // Check if seller name can be determined
+    const sellerName = getSellerName();
+    if (!sellerName || sellerName === 'Неизвестный продавец') {
+      errors.push('Не удалось определить имя продавца');
+    }
+
+    if (errors.length > 0) {
+      toast({
+        title: "Ошибки в форме",
+        description: errors.join(', '),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -235,36 +283,12 @@ export const useOrderFormLogic = () => {
     setCreationStage('validating');
     setCreationProgress(10);
 
-    if (!formData.title.trim()) {
-      toast({
-        title: "Ошибка",
-        description: "Наименование обязательно для заполнения",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      setCreationStage('');
-      setCreationProgress(0);
-      return;
-    }
+    console.log("Starting order submission...");
+    console.log("Form data:", formData);
+    console.log("Selected seller:", selectedSeller);
 
-    if (!formData.price || parseFloat(formData.price) <= 0) {
-      toast({
-        title: "Ошибка",
-        description: "Укажите корректную цену",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      setCreationStage('');
-      setCreationProgress(0);
-      return;
-    }
-
-    if (!formData.sellerId) {
-      toast({
-        title: "Ошибка",
-        description: "Выберите продавца",
-        variant: "destructive",
-      });
+    // Enhanced validation
+    if (!validateFormData()) {
       setIsLoading(false);
       setCreationStage('');
       setCreationProgress(0);
@@ -281,7 +305,10 @@ export const useOrderFormLogic = () => {
         .eq('opt_id', formData.buyerOptId)
         .maybeSingle();
 
-      if (buyerError) throw buyerError;
+      if (buyerError) {
+        console.error("Buyer fetch error:", buyerError);
+        throw buyerError;
+      }
 
       if (!buyerData?.id) {
         toast({
@@ -300,8 +327,15 @@ export const useOrderFormLogic = () => {
       
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       
-      // Get seller name using the robust fallback logic
+      // Get seller name using the robust validation logic
       const orderSellerName = getSellerName();
+      
+      console.log("Final order seller name:", orderSellerName);
+      
+      // Double-check that we have a valid seller name
+      if (!orderSellerName || orderSellerName === 'Неизвестный продавец') {
+        throw new Error('Не удалось определить имя продавца для создания заказа');
+      }
       
       const orderPayload = {
         p_title: formData.title,
@@ -311,8 +345,8 @@ export const useOrderFormLogic = () => {
         p_order_seller_name: orderSellerName,
         p_seller_opt_id: selectedSeller?.opt_id || null,
         p_buyer_id: buyerData.id,
-        p_brand: formData.brand,
-        p_model: formData.model,
+        p_brand: formData.brand || '',
+        p_model: formData.model || '',
         p_status: 'seller_confirmed' as OrderStatus,
         p_order_created_type: 'free_order' as OrderCreatedType,
         p_telegram_url_order: selectedSeller?.telegram || null,
@@ -324,7 +358,6 @@ export const useOrderFormLogic = () => {
       };
 
       console.log("Creating order with payload:", orderPayload);
-      console.log("Seller name resolved to:", orderSellerName);
 
       // Use RPC function call to bypass RLS for admin operations
       const { data: createdOrderData, error: orderError } = await supabase
@@ -335,7 +368,7 @@ export const useOrderFormLogic = () => {
         throw orderError;
       }
 
-      console.log("Created order:", createdOrderData);
+      console.log("Created order ID:", createdOrderData);
 
       if (!createdOrderData) {
         throw new Error("Order was created but no data was returned");
@@ -413,9 +446,15 @@ export const useOrderFormLogic = () => {
       
     } catch (error) {
       console.error("Error creating order:", error);
+      let errorMessage = "Произошла ошибка при создании заказа";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Ошибка",
-        description: "Произошла ошибка при создании заказа",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
