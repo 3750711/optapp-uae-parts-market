@@ -1,7 +1,8 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Phone, User } from "lucide-react";
+import { MessageSquare, Phone, User, Copy } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface DialogButtonsProps {
   onAssistantContact: () => void;
@@ -10,6 +11,9 @@ interface DialogButtonsProps {
   communicationRating?: number | null;
   contactType: 'telegram' | 'whatsapp';
   isMobile?: boolean;
+  productTitle?: string;
+  productPrice?: number;
+  lotNumber?: number | null;
 }
 
 export const DialogButtons: React.FC<DialogButtonsProps> = ({
@@ -18,7 +22,10 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   onCancel,
   communicationRating,
   contactType,
-  isMobile = false
+  isMobile = false,
+  productTitle = "",
+  productPrice = 0,
+  lotNumber
 }) => {
   const isVeryDifficult = communicationRating === 1 || communicationRating === 2;
   const isProfessional = communicationRating === 5;
@@ -26,6 +33,32 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
 
   const buttonHeight = isMobile ? "h-10" : "h-11";
   const cancelHeight = isMobile ? "h-9" : "h-11";
+
+  const createMessage = () => {
+    const cleanTitle = productTitle
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    return `Добрый день меня интересует товар Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD, свяжитесь пожалуйста с продавцом узнайте в наличии ли он и какая будет цена со скидкой`;
+  };
+
+  const handleCopyMessage = async () => {
+    const message = createMessage();
+    try {
+      await navigator.clipboard.writeText(message);
+      toast({
+        title: "Скопировано",
+        description: "Сообщение скопировано. Откройте Telegram и найдите @Nastya_PostingLots_OptCargo",
+      });
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось скопировать сообщение",
+        variant: "destructive",
+      });
+    }
+  };
 
   if (isMobile) {
     return (
@@ -40,12 +73,23 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           <span>{isVeryDifficult ? 'Связаться через помощника' : 'Помощник partsbay.ae'}</span>
         </Button>
         
+        {/* Кнопка копирования сообщения */}
+        <Button 
+          onClick={handleCopyMessage}
+          variant="outline"
+          className={`w-full ${buttonHeight} font-medium order-2`}
+          size="default"
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          <span>Скопировать сообщение</span>
+        </Button>
+        
         {/* Прямая связь - блокируем для рейтинга 1 */}
         {!isProfessional && !isDirectContactBlocked && (
           <Button 
             onClick={onProceed} 
             variant={isVeryDifficult ? "outline" : "default"}
-            className={`w-full ${buttonHeight} font-medium order-${isVeryDifficult ? '3' : '2'}`}
+            className={`w-full ${buttonHeight} font-medium order-3`}
             size="default"
           >
             {contactType === 'telegram' ? (
@@ -63,7 +107,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {isProfessional && (
           <Button 
             onClick={onProceed} 
-            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium order-2`}
+            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium order-3`}
             size="default"
           >
             {contactType === 'telegram' ? (
@@ -100,6 +144,17 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       >
         <User className="h-4 w-4 mr-2" />
         <span>{isVeryDifficult ? 'Связаться через помощника' : 'Помощник partsbay.ae'}</span>
+      </Button>
+      
+      {/* Кнопка копирования сообщения */}
+      <Button 
+        onClick={handleCopyMessage}
+        variant="outline"
+        className={`flex-1 ${buttonHeight} font-medium`}
+        size="default"
+      >
+        <Copy className="h-4 w-4 mr-2" />
+        <span>Скопировать сообщение</span>
       </Button>
       
       {/* Прямая связь - блокируем для рейтинга 1 */}

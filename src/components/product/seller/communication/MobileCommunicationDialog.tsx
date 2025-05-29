@@ -1,4 +1,3 @@
-
 import React from "react";
 import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MessageSquare } from "lucide-react";
@@ -63,6 +62,9 @@ export const MobileCommunicationDialog: React.FC<MobileCommunicationDialogProps>
           onCancel={() => onOpenChange(false)}
           communicationRating={communicationRating}
           contactType={contactType}
+          productTitle={productTitle}
+          productPrice={productPrice}
+          lotNumber={lotNumber}
           isMobile={true}
         />
       </DialogFooter>
