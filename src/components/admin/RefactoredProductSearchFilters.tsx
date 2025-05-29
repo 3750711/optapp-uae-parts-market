@@ -83,6 +83,8 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
               <SelectItem value="status-desc">Статус (Архивные в начале)</SelectItem>
               <SelectItem value="price-asc">Цена (по возрастанию)</SelectItem>
               <SelectItem value="price-desc">Цена (по убыванию)</SelectItem>
+              <SelectItem value="seller_name-asc">Продавец (А-Я)</SelectItem>
+              <SelectItem value="seller_name-desc">Продавец (Я-А)</SelectItem>
             </SelectContent>
           </Select>
         </div>

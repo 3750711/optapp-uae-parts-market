@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -109,7 +110,7 @@ const AdminProducts = () => {
   const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder, activeSearchTerm], 
     [sortField, sortOrder, activeSearchTerm]);
 
-  // Формирование функции запроса с правильной сортировкой - обновлена для работы только с status и price
+  // Формирование функции запроса с правильной сортировкой - обновлена для работы с seller_name
   const queryFn = useCallback(async ({ pageParam = 1 }) => {
     try {
       console.log('Executing query with parameters:', { 
@@ -135,7 +136,7 @@ const AdminProducts = () => {
         query = query.or(`title.ilike.%${activeSearchTerm}%,description.ilike.%${activeSearchTerm}%,brand.ilike.%${activeSearchTerm}%,model.ilike.%${activeSearchTerm}%,optid_created.ilike.%${activeSearchTerm}%,lot_number.eq.${!isNaN(parseInt(activeSearchTerm)) ? parseInt(activeSearchTerm) : 0}`);
       }
 
-      // Updated sorting logic - only for status and price
+      // Updated sorting logic for status, price and seller_name
       if (sortField === 'status') {
         console.log('Applying special status sorting, order:', sortOrder);
         
@@ -183,7 +184,41 @@ const AdminProducts = () => {
           products: paginatedData,
           nextPage: hasMore ? pageParam + 1 : undefined
         };
-      } 
+      }
+      else if (sortField === 'seller_name') {
+        console.log(`Applying seller_name sorting, order: ${sortOrder}`);
+        
+        // For seller_name, get all data first to handle case-insensitive sorting
+        const { data, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching products:', error);
+          throw new Error(error.message);
+        }
+        
+        // Sort by seller_name case-insensitive
+        const sortedData = data ? [...data].sort((a, b) => {
+          const nameA = (a.seller_name || '').toLowerCase();
+          const nameB = (b.seller_name || '').toLowerCase();
+          
+          if (sortOrder === 'asc') {
+            return nameA.localeCompare(nameB, 'ru');
+          } else {
+            return nameB.localeCompare(nameA, 'ru');
+          }
+        }) : [];
+        
+        console.log(`Sorted by seller_name - First item seller: ${sortedData[0]?.seller_name}`);
+        
+        // Take only the slice we need for pagination
+        const paginatedData = sortedData.slice(from, to + 1);
+        const hasMore = from + PRODUCTS_PER_PAGE < sortedData.length;
+        
+        return {
+          products: paginatedData,
+          nextPage: hasMore ? pageParam + 1 : undefined
+        };
+      }
       else if (sortField === 'price') {
         // For price, we can use server-side sorting which is more efficient
         console.log(`Applying price sorting, order: ${sortOrder}`);
