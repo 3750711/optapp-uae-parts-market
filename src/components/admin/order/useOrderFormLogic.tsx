@@ -214,24 +214,32 @@ export const useOrderFormLogic = () => {
     setCreationProgress(0);
   };
 
-  // Enhanced function to get seller name with robust validation
+  // Enhanced function to get seller name with robust validation and trimming
   const getSellerName = (): string => {
-    console.log("Getting seller name...");
+    console.log("=== Getting seller name debug ===");
     console.log("Selected seller:", selectedSeller);
     console.log("Form data sellerId:", formData.sellerId);
     
     // First try from selectedSeller
     if (selectedSeller?.full_name) {
-      console.log("Using selectedSeller full_name:", selectedSeller.full_name);
-      return selectedSeller.full_name;
+      const trimmedName = selectedSeller.full_name.trim();
+      console.log("Using selectedSeller full_name (original):", selectedSeller.full_name);
+      console.log("Using selectedSeller full_name (trimmed):", trimmedName);
+      if (trimmedName) {
+        return trimmedName;
+      }
     }
 
     // Then try to find in sellerProfiles by sellerId
     if (formData.sellerId) {
       const seller = sellerProfiles.find(s => s.id === formData.sellerId);
       if (seller?.full_name) {
-        console.log("Found seller in profiles:", seller.full_name);
-        return seller.full_name;
+        const trimmedName = seller.full_name.trim();
+        console.log("Found seller in profiles (original):", seller.full_name);
+        console.log("Found seller in profiles (trimmed):", trimmedName);
+        if (trimmedName) {
+          return trimmedName;
+        }
       }
     }
 
@@ -242,6 +250,9 @@ export const useOrderFormLogic = () => {
 
   const validateFormData = (): boolean => {
     const errors = [];
+
+    console.log("=== Validating form data ===");
+    console.log("Form data:", formData);
 
     if (!formData.title.trim()) {
       errors.push('Наименование обязательно для заполнения');
@@ -261,11 +272,13 @@ export const useOrderFormLogic = () => {
 
     // Check if seller name can be determined
     const sellerName = getSellerName();
+    console.log("Validated seller name:", sellerName);
     if (!sellerName || sellerName === 'Неизвестный продавец') {
       errors.push('Не удалось определить имя продавца');
     }
 
     if (errors.length > 0) {
+      console.error("Validation errors:", errors);
       toast({
         title: "Ошибки в форме",
         description: errors.join(', '),
@@ -283,7 +296,7 @@ export const useOrderFormLogic = () => {
     setCreationStage('validating');
     setCreationProgress(10);
 
-    console.log("Starting order submission...");
+    console.log("=== Starting order submission ===");
     console.log("Form data:", formData);
     console.log("Selected seller:", selectedSeller);
 
@@ -299,6 +312,9 @@ export const useOrderFormLogic = () => {
       setCreationStage('fetching_buyer');
       setCreationProgress(20);
       
+      console.log("=== Fetching buyer data ===");
+      console.log("Buyer OPT ID:", formData.buyerOptId);
+
       const { data: buyerData, error: buyerError } = await supabase
         .from('profiles')
         .select('id, full_name, telegram')
@@ -309,6 +325,8 @@ export const useOrderFormLogic = () => {
         console.error("Buyer fetch error:", buyerError);
         throw buyerError;
       }
+
+      console.log("Buyer data found:", buyerData);
 
       if (!buyerData?.id) {
         toast({
@@ -330,7 +348,9 @@ export const useOrderFormLogic = () => {
       // Get seller name using the robust validation logic
       const orderSellerName = getSellerName();
       
+      console.log("=== Final order data preparation ===");
       console.log("Final order seller name:", orderSellerName);
+      console.log("Delivery price:", deliveryPrice);
       
       // Double-check that we have a valid seller name
       if (!orderSellerName || orderSellerName === 'Неизвестный продавец') {
@@ -357,17 +377,23 @@ export const useOrderFormLogic = () => {
         p_delivery_price_confirm: deliveryPrice,
       };
 
-      console.log("Creating order with payload:", orderPayload);
+      console.log("=== Creating order with RPC ===");
+      console.log("Order payload:", orderPayload);
 
       // Use RPC function call to bypass RLS for admin operations
       const { data: createdOrderData, error: orderError } = await supabase
         .rpc('admin_create_order', orderPayload);
 
       if (orderError) {
-        console.error("Error creating order:", orderError);
+        console.error("=== RPC Error Details ===");
+        console.error("Error code:", orderError.code);
+        console.error("Error message:", orderError.message);
+        console.error("Error details:", orderError.details);
+        console.error("Error hint:", orderError.hint);
         throw orderError;
       }
 
+      console.log("=== Order created successfully ===");
       console.log("Created order ID:", createdOrderData);
 
       if (!createdOrderData) {
@@ -388,6 +414,9 @@ export const useOrderFormLogic = () => {
         console.error("Error fetching created order:", fetchError);
         throw fetchError;
       }
+
+      console.log("=== Order fetched successfully ===");
+      console.log("Order data:", orderData);
 
       setCreationStage('saving_videos');
       setCreationProgress(75);
@@ -445,11 +474,23 @@ export const useOrderFormLogic = () => {
       sendTelegramNotification(orderData, images);
       
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error("=== Order creation error ===");
+      console.error("Error type:", typeof error);
+      console.error("Error object:", error);
+      
       let errorMessage = "Произошла ошибка при создании заказа";
       
       if (error instanceof Error) {
         errorMessage = error.message;
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+      }
+      
+      // Additional error details for PostgreSQL errors
+      if (error && typeof error === 'object' && 'code' in error) {
+        console.error("PostgreSQL error code:", (error as any).code);
+        console.error("PostgreSQL error details:", (error as any).details);
+        console.error("PostgreSQL error hint:", (error as any).hint);
       }
       
       toast({
