@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,6 +59,7 @@ const AdminProducts = () => {
   useEffect(() => {
     const fetchSellers = async () => {
       try {
+        console.log('Fetching sellers...');
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name')
@@ -69,22 +69,35 @@ const AdminProducts = () => {
 
         if (error) {
           console.error('Error fetching sellers:', error);
+          toast({
+            variant: "destructive",
+            title: "Ошибка",
+            description: "Не удалось загрузить список продавцов"
+          });
           return;
         }
+
+        console.log('Raw sellers data:', data);
 
         const sellersData = data?.map(seller => ({
           id: seller.id,
           name: seller.full_name || 'Неизвестный продавец'
         })) || [];
 
+        console.log('Processed sellers data:', sellersData);
         setSellers(sellersData);
       } catch (error) {
         console.error('Error fetching sellers:', error);
+        toast({
+          variant: "destructive",
+          title: "Ошибка",
+          description: "Произошла ошибка при загрузке продавцов"
+        });
       }
     };
 
     fetchSellers();
-  }, []);
+  }, [toast]);
   
   // Удаление товара - оптимизировано с useCallback
   const handleDeleteProduct = useCallback(async (productId: string) => {

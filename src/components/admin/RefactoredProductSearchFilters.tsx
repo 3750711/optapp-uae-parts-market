@@ -46,10 +46,12 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
     setSortValue(`${sortField}-${sortOrder}`);
   }, [sortField, sortOrder]);
 
-  // Log the current sort state
+  // Log the current sort state and sellers data
   useEffect(() => {
     console.log('Current sort state in filters component:', { sortField, sortOrder, sortValue });
-  }, [sortField, sortOrder, sortValue]);
+    console.log('Sellers data:', sellers);
+    console.log('Selected seller ID:', selectedSellerId);
+  }, [sortField, sortOrder, sortValue, sellers, selectedSellerId]);
 
   // Handle sort change
   const handleSortChange = (newValue: string) => {
@@ -92,11 +94,17 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="">Все продавцы</SelectItem>
-              {sellers.map((seller) => (
-                <SelectItem key={seller.id} value={seller.id}>
-                  {seller.name}
+              {sellers.length > 0 ? (
+                sellers.map((seller) => (
+                  <SelectItem key={seller.id} value={seller.id}>
+                    {seller.name}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="" disabled>
+                  Загрузка продавцов...
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -118,6 +126,13 @@ const RefactoredProductSearchFilters: React.FC<RefactoredProductSearchFiltersPro
           </Select>
         </div>
       </div>
+      
+      {/* Debug info - remove this after testing */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-2 text-xs text-gray-500">
+          Debug: {sellers.length} продавцов загружено, выбран: {selectedSellerId || 'не выбран'}
+        </div>
+      )}
     </div>
   );
 };
