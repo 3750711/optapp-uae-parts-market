@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, CheckCircle, Eye, MoreVertical } from "lucide-react";
@@ -34,75 +34,16 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
   onViewDetails,
   onQuickAction
 }) => {
-  const [touchStart, setTouchStart] = useState<number>(0);
-  const [touchEnd, setTouchEnd] = useState<number>(0);
-  const [isSwipeActive, setIsSwipeActive] = useState(false);
-  const [swipeDirection, setSwipeDirection] = useState<'left' | 'right' | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  const minSwipeDistance = 50;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(0);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-    const distance = touchStart - e.targetTouches[0].clientX;
-    
-    if (Math.abs(distance) > 10) {
-      setIsSwipeActive(true);
-      setSwipeDirection(distance > 0 ? 'left' : 'right');
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-
-    if (isLeftSwipe) {
-      onDelete(order);
-    } else if (isRightSwipe && onQuickAction) {
-      onQuickAction(order.id, 'confirm');
-    }
-
-    setTimeout(() => {
-      setIsSwipeActive(false);
-      setSwipeDirection(null);
-    }, 200);
-  };
-
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
 
   return (
     <Card 
-      ref={cardRef}
       className={`
         relative overflow-hidden transition-all duration-200 
         ${isSelected ? 'ring-2 ring-primary ring-opacity-50 bg-primary/5' : 'hover:shadow-md'}
-        ${isSwipeActive ? 'scale-95' : ''}
       `}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
     >
-      {/* Swipe Indicators */}
-      {isSwipeActive && (
-        <>
-          <div className={`absolute left-0 top-0 h-full w-16 bg-green-500 flex items-center justify-center transition-opacity duration-200 ${swipeDirection === 'right' ? 'opacity-80' : 'opacity-20'}`}>
-            <CheckCircle className="h-6 w-6 text-white" />
-          </div>
-          <div className={`absolute right-0 top-0 h-full w-16 bg-red-500 flex items-center justify-center transition-opacity duration-200 ${swipeDirection === 'left' ? 'opacity-80' : 'opacity-20'}`}>
-            <Trash2 className="h-6 w-6 text-white" />
-          </div>
-        </>
-      )}
-
       <CardContent className="p-3 space-y-3">
         {/* Header Block - Компактный заголовок */}
         <div className="flex items-start justify-between gap-2">
