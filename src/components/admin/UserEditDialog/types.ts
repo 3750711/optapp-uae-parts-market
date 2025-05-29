@@ -9,6 +9,7 @@ export type UserFormValues = {
   opt_id: string | null;
   user_type: 'buyer' | 'seller' | 'admin';
   verification_status: 'pending' | 'verified' | 'blocked';
+  communication_ability: number | null;
 };
 
 export type Profile = Database['public']['Tables']['profiles']['Row'];

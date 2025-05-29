@@ -38,6 +38,7 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
       opt_id: user.opt_id || "",
       user_type: user.user_type,
       verification_status: user.verification_status,
+      communication_ability: user.communication_ability || 3,
     },
   });
 
@@ -139,6 +140,34 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
                     className={isMobile ? "h-12 text-base" : ""}
                   />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="communication_ability"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Способность к коммуникации</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                  defaultValue={field.value?.toString() || "3"}
+                >
+                  <FormControl>
+                    <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
+                      <SelectValue placeholder="Выберите рейтинг" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="1">1 - Очень сложно договориться</SelectItem>
+                    <SelectItem value="2">2 - Сложно договориться</SelectItem>
+                    <SelectItem value="3">3 - Средне</SelectItem>
+                    <SelectItem value="4">4 - Легко договориться</SelectItem>
+                    <SelectItem value="5">5 - Очень легко договориться</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

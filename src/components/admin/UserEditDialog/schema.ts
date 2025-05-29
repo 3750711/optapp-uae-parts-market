@@ -1,17 +1,13 @@
 
-import * as z from "zod";
+import { z } from "zod";
 
 export const userFormSchema = z.object({
-  full_name: z.string().min(2, "Минимум 2 символа").optional(),
-  company_name: z.string().optional(),
-  phone: z.string().optional(),
-  telegram: z.string()
-    .optional()
-    .refine((value) => {
-      if (!value) return true;
-      return /^@[^@]+$/.test(value);
-    }, { message: "Telegram должен начинаться с @" }),
-  opt_id: z.string().optional(),
-  user_type: z.enum(["buyer", "seller", "admin"]),
-  verification_status: z.enum(["verified", "pending", "blocked"]),
+  full_name: z.string().nullable(),
+  company_name: z.string().nullable(),
+  phone: z.string().nullable(),
+  telegram: z.string().nullable(),
+  opt_id: z.string().nullable(),
+  user_type: z.enum(['buyer', 'seller', 'admin']),
+  verification_status: z.enum(['pending', 'verified', 'blocked']),
+  communication_ability: z.number().min(1).max(5).nullable(),
 });

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { UserCheck, UserX, Edit, Star, ExternalLink, Ban, UserCog, ChevronDown, ChevronUp, Keyboard } from "lucide-react";
+import { UserCheck, UserX, Edit, Star, ExternalLink, Ban, UserCog, ChevronDown, ChevronUp, Keyboard, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { UserRatingDialog } from '@/components/admin/UserRatingDialog';
@@ -43,10 +44,11 @@ import { MobileUserCard } from '@/components/admin/MobileUserCard';
 import { BulkUserActions } from '@/components/admin/BulkUserActions';
 import { EnhancedUserFilters } from '@/components/admin/EnhancedUserFilters';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { CommunicationRatingBadge } from '@/components/admin/CommunicationRatingBadge';
 import * as XLSX from 'xlsx';
 
 // Sorting types
-type SortField = 'full_name' | 'email' | 'user_type' | 'verification_status' | 'opt_status' | 'created_at' | 'rating' | 'opt_id';
+type SortField = 'full_name' | 'email' | 'user_type' | 'verification_status' | 'opt_status' | 'created_at' | 'rating' | 'opt_id' | 'communication_ability';
 type SortDirection = 'asc' | 'desc';
 
 // Filter state type
@@ -555,6 +557,14 @@ const AdminUsers = () => {
                       </TableHead>
                       <TableHead 
                         className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                        onClick={() => handleSort('communication_ability')}
+                      >
+                        <div className="flex items-center">
+                          Коммуникация {renderSortIcon('communication_ability')}
+                        </div>
+                      </TableHead>
+                      <TableHead 
+                        className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
                         onClick={() => handleSort('created_at')}
                       >
                         <div className="flex items-center">
@@ -649,6 +659,12 @@ const AdminUsers = () => {
                                 <span className="text-muted-foreground">N/A</span>
                               )}
                             </div>
+                          </TableCell>
+                          <TableCell className={isCompactMode ? 'py-2' : ''}>
+                            <CommunicationRatingBadge 
+                              rating={user.communication_ability} 
+                              size={isCompactMode ? 'sm' : 'md'}
+                            />
                           </TableCell>
                           <TableCell className={`${isCompactMode ? 'py-2' : ''} text-sm text-muted-foreground`}>
                             {new Date(user.created_at).toLocaleDateString('ru-RU')}
