@@ -29,6 +29,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   const isHighDifficulty = communicationRating && communicationRating >= 4;
   const isVeryDifficult = communicationRating === 1 || communicationRating === 2;
   const isProfessional = communicationRating === 5;
+  const isDirectContactBlocked = communicationRating === 1;
   
   const handleRepresentativeContact = () => {
     const message = `Лот ${lotNumber || 'не указан'}\n${productTitle}\nЦена: ${productPrice} ₽`;
@@ -59,7 +60,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       case 1:
         return {
           title: "Невозможно договориться напрямую",
-          description: "Не возможно договориться с продавцем напрямую, только через помощника partsbay",
+          description: "Не возможно договориться с продавцом напрямую, только через помощника partsbay",
           icon: AlertCircle,
           color: "red",
           bgColor: "bg-red-50",
@@ -248,8 +249,8 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
             <span>{isVeryDifficult ? 'Связаться через помощника' : 'Помощник partsbay.ae'}</span>
           </Button>
           
-          {/* Прямая связь - изменяем приоритет в зависимости от сложности */}
-          {!isProfessional && (
+          {/* Прямая связь - блокируем для рейтинга 1 */}
+          {!isProfessional && !isDirectContactBlocked && (
             <Button 
               onClick={onProceed} 
               variant={isVeryDifficult ? "outline" : "default"}
@@ -408,8 +409,8 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
             <span>{isVeryDifficult ? 'Связаться через помощника' : 'Помощник partsbay.ae'}</span>
           </Button>
           
-          {/* Прямая связь - адаптируем под уровень сложности */}
-          {!isProfessional && (
+          {/* Прямая связь - блокируем для рейтинга 1 */}
+          {!isProfessional && !isDirectContactBlocked && (
             <Button 
               onClick={onProceed} 
               variant={isVeryDifficult ? "outline" : "default"}
