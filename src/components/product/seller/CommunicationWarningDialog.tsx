@@ -16,8 +16,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   contactType
 }) => {
   const handleAssistantContact = () => {
+    // Получаем текущий URL и заменяем домен на основной
     const currentUrl = window.location.href;
-    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(currentUrl)}`;
+    const productUrl = currentUrl.replace(
+      /https:\/\/[^\/]+/,
+      'https://partsbay.ae'
+    );
+    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(productUrl)}`;
     
     try {
       window.open(telegramUrl, '_blank');
