@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   FormControl,
@@ -90,8 +89,8 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
         }
         break;
       case 'price':
-        if (!value || Number(value) <= 0) {
-          errors.price = 'Цена должна быть больше 0';
+        if (!value || isNaN(Number(value))) {
+          errors.price = 'Цена должна быть числом';
         }
         break;
       case 'place_number':
