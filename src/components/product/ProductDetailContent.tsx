@@ -80,6 +80,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
           }}
           deliveryMethod={deliveryMethod}
           onDeliveryMethodChange={onDeliveryMethodChange}
+          sellerCommunicationRating={sellerProfile?.communication_ability}
         />
         
         <SellerInfo 
@@ -93,7 +94,8 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
             telegram: sellerProfile?.telegram,
             phone: sellerProfile?.phone,
             location: sellerProfile?.location,
-            avatar_url: sellerProfile?.avatar_url
+            avatar_url: sellerProfile?.avatar_url,
+            communication_ability: sellerProfile?.communication_ability
           }}
           seller_name={sellerName}
           seller_id={product.seller_id}

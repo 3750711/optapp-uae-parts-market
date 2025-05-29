@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import ProfileWarningDialog from "./ProfileWarningDialog";
 import SuccessOrderDialog from "./SuccessOrderDialog";
+import { CommunicationWarningDialog } from "./seller/CommunicationWarningDialog";
 import { Database } from "@/integrations/supabase/types";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -35,6 +36,7 @@ interface ContactButtonsProps {
   };
   deliveryMethod: DeliveryMethod;
   onDeliveryMethodChange: (method: DeliveryMethod) => void;
+  sellerCommunicationRating?: number | null;
 }
 
 const ContactButtons: React.FC<ContactButtonsProps> = ({
@@ -44,6 +46,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   product,
   deliveryMethod,
   onDeliveryMethodChange,
+  sellerCommunicationRating,
 }) => {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -53,6 +56,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [orderNumber, setOrderNumber] = useState<number | null>(null);
   const [showAuthDialog, setShowAuthDialog] = useState(false);
+  const [showCommunicationWarning, setShowCommunicationWarning] = useState(false);
+  const [pendingContactType, setPendingContactType] = useState<'telegram' | 'whatsapp' | null>(null);
 
   const isSeller = profile?.user_type === 'seller';
   const isProductSold = product.status === 'sold';
@@ -80,12 +85,27 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setShowConfirmDialog(true);
   };
 
-  const handleContactAction = (action: () => void) => {
+  const handleContactAction = (type: 'telegram' | 'whatsapp', action: () => void) => {
     if (!user) {
       setShowAuthDialog(true);
       return;
     }
-    action();
+    
+    // Показываем предупреждение о коммуникации
+    setPendingContactType(type);
+    setShowCommunicationWarning(true);
+  };
+
+  const handleCommunicationProceed = () => {
+    setShowCommunicationWarning(false);
+    
+    if (pendingContactType === 'telegram') {
+      onContactTelegram();
+    } else if (pendingContactType === 'whatsapp') {
+      onContactWhatsApp();
+    }
+    
+    setPendingContactType(null);
   };
 
   const handleGoToProfile = () => {
@@ -297,7 +317,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           variant="outline"
           className="border-primary border-2"
           size="lg"
-          onClick={() => handleContactAction(onContactTelegram)}
+          onClick={() => handleContactAction('telegram', onContactTelegram)}
         >
           <MessageSquare className="mr-2 h-5 w-5" /> Telegram
         </Button>
@@ -305,7 +325,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         <Button 
           className="bg-[#25d366] hover:bg-[#20bd5c] text-white shadow-lg"
           size="lg"
-          onClick={() => handleContactAction(onContactWhatsApp)}
+          onClick={() => handleContactAction('whatsapp', onContactWhatsApp)}
         >
           <MessageSquare className="mr-2 h-5 w-5" /> WhatsApp
         </Button>
@@ -332,6 +352,17 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         open={showSuccessDialog}
         onClose={handleSuccessDialogClose}
         orderNumber={orderNumber || 0}
+      />
+
+      <CommunicationWarningDialog
+        open={showCommunicationWarning}
+        onOpenChange={setShowCommunicationWarning}
+        onProceed={handleCommunicationProceed}
+        communicationRating={sellerCommunicationRating}
+        productTitle={product.title}
+        productPrice={product.price}
+        lotNumber={typeof product.lot_number === 'number' ? product.lot_number : null}
+        contactType={pendingContactType || 'telegram'}
       />
 
       {/* Authentication Dialog */}
