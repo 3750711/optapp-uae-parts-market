@@ -7,10 +7,22 @@ import {
   Trash2, 
   CheckCircle, 
   XCircle,
-  FileText 
+  FileText,
+  Clock,
+  Package,
+  Truck,
+  AlertCircle,
+  MoreHorizontal
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface BulkActionsBarProps {
   selectedOrders: string[];
@@ -21,6 +33,16 @@ interface BulkActionsBarProps {
   onBulkDelete: () => void;
   onExport: () => void;
 }
+
+const statusOptions = [
+  { value: 'created', label: 'Создан', icon: Clock, color: 'text-blue-600' },
+  { value: 'seller_confirmed', label: 'Подтвержден продавцом', icon: CheckCircle, color: 'text-orange-600' },
+  { value: 'admin_confirmed', label: 'Подтвержден администратором', icon: CheckCircle, color: 'text-green-600' },
+  { value: 'in_delivery', label: 'В доставке', icon: Truck, color: 'text-purple-600' },
+  { value: 'delivered', label: 'Доставлен', icon: Package, color: 'text-emerald-600' },
+  { value: 'cancelled', label: 'Отменен', icon: XCircle, color: 'text-red-600' },
+  { value: 'rejected', label: 'Отклонен', icon: AlertCircle, color: 'text-gray-600' },
+];
 
 export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
   selectedOrders,
@@ -62,25 +84,33 @@ export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onBulkStatusChange('admin_confirmed')}
-            className="hover:bg-green-50 hover:border-green-300"
-          >
-            <CheckCircle className="h-4 w-4 mr-1 text-green-600" />
-            Подтвердить
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onBulkStatusChange('cancelled')}
-            className="hover:bg-red-50 hover:border-red-300"
-          >
-            <XCircle className="h-4 w-4 mr-1 text-red-600" />
-            Отменить
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="hover:bg-blue-50 hover:border-blue-300"
+              >
+                <MoreHorizontal className="h-4 w-4 mr-1" />
+                Изменить статус
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              {statusOptions.map((status, index) => {
+                const Icon = status.icon;
+                return (
+                  <DropdownMenuItem
+                    key={status.value}
+                    onClick={() => onBulkStatusChange(status.value)}
+                    className="cursor-pointer"
+                  >
+                    <Icon className={`h-4 w-4 mr-2 ${status.color}`} />
+                    {status.label}
+                  </DropdownMenuItem>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button 
             variant="outline" 

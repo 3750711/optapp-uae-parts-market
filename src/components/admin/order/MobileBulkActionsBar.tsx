@@ -7,7 +7,11 @@ import {
   XCircle,
   FileText,
   MoreHorizontal,
-  X
+  X,
+  Clock,
+  Package,
+  Truck,
+  AlertCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
@@ -29,6 +33,16 @@ interface MobileBulkActionsBarProps {
   onBulkDelete: () => void;
   onExport: () => void;
 }
+
+const statusOptions = [
+  { value: 'created', label: 'Создан', icon: Clock, color: 'text-blue-600', description: 'Заказ только что создан' },
+  { value: 'seller_confirmed', label: 'Подтвержден продавцом', icon: CheckCircle, color: 'text-orange-600', description: 'Продавец подтвердил заказ' },
+  { value: 'admin_confirmed', label: 'Подтвержден администратором', icon: CheckCircle, color: 'text-green-600', description: 'Администратор подтвердил заказ' },
+  { value: 'in_delivery', label: 'В доставке', icon: Truck, color: 'text-purple-600', description: 'Заказ находится в доставке' },
+  { value: 'delivered', label: 'Доставлен', icon: Package, color: 'text-emerald-600', description: 'Заказ успешно доставлен' },
+  { value: 'cancelled', label: 'Отменен', icon: XCircle, color: 'text-red-600', description: 'Заказ отменен' },
+  { value: 'rejected', label: 'Отклонен', icon: AlertCircle, color: 'text-gray-600', description: 'Заказ отклонен' },
+];
 
 export const MobileBulkActionsBar: React.FC<MobileBulkActionsBarProps> = ({
   selectedOrders,
@@ -93,47 +107,44 @@ export const MobileBulkActionsBar: React.FC<MobileBulkActionsBarProps> = ({
               </SheetHeader>
 
               <div className="space-y-3">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  onClick={() => onBulkStatusChange('admin_confirmed')}
-                >
-                  <CheckCircle className="h-5 w-5 mr-3 text-green-600" />
-                  <div className="text-left">
-                    <div className="font-medium">Подтвердить заказы</div>
-                    <div className="text-xs text-muted-foreground">
-                      Изменить статус на "Подтвержден администратором"
-                    </div>
-                  </div>
-                </Button>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground mb-3">Изменить статус заказов</h3>
+                  {statusOptions.map((status) => {
+                    const Icon = status.icon;
+                    return (
+                      <Button
+                        key={status.value}
+                        variant="outline"
+                        className="w-full justify-start h-14"
+                        onClick={() => onBulkStatusChange(status.value)}
+                      >
+                        <Icon className={`h-5 w-5 mr-3 ${status.color}`} />
+                        <div className="text-left">
+                          <div className="font-medium">{status.label}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {status.description}
+                          </div>
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  onClick={() => onBulkStatusChange('cancelled')}
-                >
-                  <XCircle className="h-5 w-5 mr-3 text-red-600" />
-                  <div className="text-left">
-                    <div className="font-medium">Отменить заказы</div>
-                    <div className="text-xs text-muted-foreground">
-                      Изменить статус на "Отменен"
+                <div className="pt-3 border-t space-y-3">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12"
+                    onClick={onExport}
+                  >
+                    <FileText className="h-5 w-5 mr-3 text-blue-600" />
+                    <div className="text-left">
+                      <div className="font-medium">Экспорт в Excel</div>
+                      <div className="text-xs text-muted-foreground">
+                        Скачать выбранные заказы
+                      </div>
                     </div>
-                  </div>
-                </Button>
-
-                <Button
-                  variant="outline"
-                  className="w-full justify-start h-12"
-                  onClick={onExport}
-                >
-                  <FileText className="h-5 w-5 mr-3 text-blue-600" />
-                  <div className="text-left">
-                    <div className="font-medium">Экспорт в Excel</div>
-                    <div className="text-xs text-muted-foreground">
-                      Скачать выбранные заказы
-                    </div>
-                  </div>
-                </Button>
+                  </Button>
+                </div>
 
                 <div className="pt-3 border-t">
                   <Button
