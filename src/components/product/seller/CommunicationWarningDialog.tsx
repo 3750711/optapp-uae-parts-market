@@ -17,8 +17,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   contactType
 }) => {
   const createMessage = () => {
-    // Упрощенный формат с латинскими символами
-    return `Lot ${lotNumber || 'N/A'} - ${productTitle} - Price: ${productPrice} rub`;
+    // Полностью латинизированное сообщение без спецсимволов
+    const cleanTitle = productTitle
+      .replace(/[^\w\s-]/g, '') // Убираем все спецсимволы кроме букв, цифр, пробелов и дефисов
+      .replace(/\s+/g, ' ') // Убираем лишние пробелы
+      .trim();
+    
+    return `Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD`;
   };
 
   const copyToClipboard = async (text: string) => {
@@ -41,24 +46,19 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   const handleRepresentativeContact = () => {
     const message = createMessage();
     
-    // Попробуем несколько вариантов
+    // Используем правильное кодирование для Telegram
+    const encodedMessage = encodeURIComponent(message);
+    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodedMessage}`;
+    
     try {
-      // Вариант 1: tg:// протокол
-      const tgUrl = `tg://resolve?domain=Nastya_PostingLots_OptCargo&text=${message}`;
-      window.open(tgUrl, '_blank');
+      window.open(telegramUrl, '_blank');
     } catch (error) {
-      try {
-        // Вариант 2: обычный https без encodeURIComponent
-        const httpsUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${message}`;
-        window.open(httpsUrl, '_blank');
-      } catch (error2) {
-        // Fallback: копируем в буфер обмена
-        copyToClipboard(message);
-        toast({
-          title: "Откройте Telegram",
-          description: "Сообщение скопировано. Вставьте его в чат с @Nastya_PostingLots_OptCargo",
-        });
-      }
+      // Fallback: копируем в буфер обмена
+      copyToClipboard(message);
+      toast({
+        title: "Откройте Telegram",
+        description: "Сообщение скопировано. Вставьте его в чат с @Nastya_PostingLots_OptCargo",
+      });
     }
     
     onOpenChange(false);
@@ -68,20 +68,18 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     const message = createMessage();
     
     // Аналогичная логика для помощника
+    const encodedMessage = encodeURIComponent(message);
+    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodedMessage}`;
+    
     try {
-      const tgUrl = `tg://resolve?domain=Nastya_PostingLots_OptCargo&text=${message}`;
-      window.open(tgUrl, '_blank');
+      window.open(telegramUrl, '_blank');
     } catch (error) {
-      try {
-        const httpsUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${message}`;
-        window.open(httpsUrl, '_blank');
-      } catch (error2) {
-        copyToClipboard(message);
-        toast({
-          title: "Откройте Telegram",
-          description: "Сообщение скопировано. Вставьте его в чат с @Nastya_PostingLots_OptCargo",
-        });
-      }
+      // Fallback: копируем в буфер обмена
+      copyToClipboard(message);
+      toast({
+        title: "Откройте Telegram",
+        description: "Сообщение скопировано. Вставьте его в чат с @Nastya_PostingLots_OptCargo",
+      });
     }
     
     onOpenChange(false);
