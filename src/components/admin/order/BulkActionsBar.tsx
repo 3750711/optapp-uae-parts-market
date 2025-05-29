@@ -12,7 +12,8 @@ import {
   Package,
   Truck,
   AlertCircle,
-  MoreHorizontal
+  MoreHorizontal,
+  FileCheck
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
@@ -38,10 +39,10 @@ const statusOptions = [
   { value: 'created', label: 'Создан', icon: Clock, color: 'text-blue-600' },
   { value: 'seller_confirmed', label: 'Подтвержден продавцом', icon: CheckCircle, color: 'text-orange-600' },
   { value: 'admin_confirmed', label: 'Подтвержден администратором', icon: CheckCircle, color: 'text-green-600' },
-  { value: 'in_delivery', label: 'В доставке', icon: Truck, color: 'text-purple-600' },
+  { value: 'processed', label: 'Зарегистрирован', icon: FileCheck, color: 'text-yellow-600' },
+  { value: 'shipped', label: 'Отправлен', icon: Truck, color: 'text-purple-600' },
   { value: 'delivered', label: 'Доставлен', icon: Package, color: 'text-emerald-600' },
   { value: 'cancelled', label: 'Отменен', icon: XCircle, color: 'text-red-600' },
-  { value: 'rejected', label: 'Отклонен', icon: AlertCircle, color: 'text-gray-600' },
 ];
 
 export const BulkActionsBar: React.FC<BulkActionsBarProps> = ({

@@ -11,7 +11,8 @@ import {
   Clock,
   Package,
   Truck,
-  AlertCircle
+  AlertCircle,
+  FileCheck
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
@@ -38,10 +39,10 @@ const statusOptions = [
   { value: 'created', label: 'Создан', icon: Clock, color: 'text-blue-600', description: 'Заказ только что создан' },
   { value: 'seller_confirmed', label: 'Подтвержден продавцом', icon: CheckCircle, color: 'text-orange-600', description: 'Продавец подтвердил заказ' },
   { value: 'admin_confirmed', label: 'Подтвержден администратором', icon: CheckCircle, color: 'text-green-600', description: 'Администратор подтвердил заказ' },
-  { value: 'in_delivery', label: 'В доставке', icon: Truck, color: 'text-purple-600', description: 'Заказ находится в доставке' },
+  { value: 'processed', label: 'Зарегистрирован', icon: FileCheck, color: 'text-yellow-600', description: 'Заказ зарегистрирован в системе' },
+  { value: 'shipped', label: 'Отправлен', icon: Truck, color: 'text-purple-600', description: 'Заказ отправлен к покупателю' },
   { value: 'delivered', label: 'Доставлен', icon: Package, color: 'text-emerald-600', description: 'Заказ успешно доставлен' },
   { value: 'cancelled', label: 'Отменен', icon: XCircle, color: 'text-red-600', description: 'Заказ отменен' },
-  { value: 'rejected', label: 'Отклонен', icon: AlertCircle, color: 'text-gray-600', description: 'Заказ отклонен' },
 ];
 
 export const MobileBulkActionsBar: React.FC<MobileBulkActionsBarProps> = ({
