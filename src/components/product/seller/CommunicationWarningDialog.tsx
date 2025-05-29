@@ -2,7 +2,7 @@
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, AlertTriangle } from "lucide-react";
+import { MessageSquare, AlertTriangle, User } from "lucide-react";
 import { CommunicationRatingBadge } from "@/components/admin/CommunicationRatingBadge";
 
 interface CommunicationWarningDialogProps {
@@ -29,6 +29,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   const isHighDifficulty = communicationRating && communicationRating >= 4;
   
   const handleRepresentativeContact = () => {
+    const message = `Лот ${lotNumber || 'не указан'}\n${productTitle}\nЦена: ${productPrice} ₽`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${encodedMessage}`, '_blank');
+    onOpenChange(false);
+  };
+
+  const handleAssistantContact = () => {
     const message = `Лот ${lotNumber || 'не указан'}\n${productTitle}\nЦена: ${productPrice} ₽`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${encodedMessage}`, '_blank');
@@ -76,6 +83,14 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
         </DialogHeader>
         
         <DialogFooter className="flex flex-col gap-2 sm:gap-2">
+          <Button 
+            onClick={handleAssistantContact}
+            className="w-full bg-blue-600 hover:bg-blue-700"
+          >
+            <User className="mr-2 h-4 w-4" />
+            Связаться через помощника partsbay.ae
+          </Button>
+          
           {isHighDifficulty && (
             <Button 
               onClick={handleRepresentativeContact}
