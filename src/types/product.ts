@@ -1,4 +1,3 @@
-
 export interface ProductImage {
   id: string;
   product_id: string;
@@ -24,6 +23,7 @@ export interface SellerProfile {
   telegram?: string | null;
   phone?: string | null;
   location?: string | null;
+  communication_ability?: number | null;
 }
 
 export type ProductStatus = 'pending' | 'active' | 'sold' | 'archived';
