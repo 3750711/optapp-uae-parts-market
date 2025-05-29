@@ -1,4 +1,5 @@
 
+
 import React from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { MobileCommunicationDialog } from "./communication/MobileCommunicationDialog";
@@ -23,7 +24,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       .trim();
     
     // Полное сообщение на русском языке
-    return `Добрый день меня интересует товар Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD, свяжитесь пожалуйста с продавцем узнайте в наличии ли он и какая будет цена со скидкой`;
+    return `Добрый день меня интересует товар Lot ${lotNumber || 'N/A'} - ${cleanTitle} - Price ${productPrice} USD, свяжитесь пожалуйста с продавцом узнайте в наличии ли он и какая будет цена со скидкой`;
   };
 
   const copyToClipboard = async (text: string) => {
@@ -46,29 +47,21 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   const handleRepresentativeContact = () => {
     const message = createMessage();
     
-    // Пробуем разные подходы к открытию Telegram
+    // Правильно кодируем сообщение для URL
     try {
-      // Попытка 1: Прямая ссылка без кодирования
-      const directUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${message}`;
+      const encodedMessage = encodeURIComponent(message);
+      const directUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodedMessage}`;
       window.open(directUrl, '_blank');
     } catch (error) {
-      console.error('Direct link failed:', error);
+      console.error('Telegram link failed:', error);
       
-      try {
-        // Попытка 2: Протокол tg://
-        const tgUrl = `tg://resolve?domain=Nastya_PostingLots_OptCargo&text=${message}`;
-        window.open(tgUrl, '_blank');
-      } catch (tgError) {
-        console.error('TG protocol failed:', tgError);
-        
-        // Fallback: копируем в буфер обмена и показываем инструкцию
-        copyToClipboard(message);
-        toast({
-          title: "Откройте Telegram вручную",
-          description: "Сообщение скопировано. Найдите @Nastya_PostingLots_OptCargo и вставьте сообщение",
-          duration: 5000,
-        });
-      }
+      // Fallback: копируем в буфер обмена
+      copyToClipboard(message);
+      toast({
+        title: "Откройте Telegram вручную",
+        description: "Сообщение скопировано. Найдите @Nastya_PostingLots_OptCargo и вставьте сообщение",
+        duration: 5000,
+      });
     }
     
     onOpenChange(false);
@@ -79,24 +72,18 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     
     // Аналогичная логика для помощника
     try {
-      const directUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${message}`;
+      const encodedMessage = encodeURIComponent(message);
+      const directUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodedMessage}`;
       window.open(directUrl, '_blank');
     } catch (error) {
-      console.error('Direct link failed:', error);
+      console.error('Telegram link failed:', error);
       
-      try {
-        const tgUrl = `tg://resolve?domain=Nastya_PostingLots_OptCargo&text=${message}`;
-        window.open(tgUrl, '_blank');
-      } catch (tgError) {
-        console.error('TG protocol failed:', tgError);
-        
-        copyToClipboard(message);
-        toast({
-          title: "Откройте Telegram вручную",
-          description: "Сообщение скопировано. Найдите @Nastya_PostingLots_OptCargo и вставьте сообщение",
-          duration: 5000,
-        });
-      }
+      copyToClipboard(message);
+      toast({
+        title: "Откройте Telegram вручную",
+        description: "Сообщение скопировано. Найдите @Nastya_PostingLots_OptCargo и вставьте сообщение",
+        duration: 5000,
+      });
     }
     
     onOpenChange(false);
@@ -132,3 +119,4 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     </Dialog>
   );
 };
+
