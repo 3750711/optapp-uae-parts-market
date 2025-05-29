@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Info } from "lucide-react";
 import { CommunicationRatingBadge } from "@/components/admin/CommunicationRatingBadge";
 
 interface SellerCommunicationRatingProps {
@@ -18,9 +19,12 @@ export const SellerCommunicationRating: React.FC<SellerCommunicationRatingProps>
           size="md"
         />
       ) : (
-        <span className="text-sm text-gray-400 italic">
-          не известно, на сколько сложно контактировать с продавцем - собираем информацию
-        </span>
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-100 rounded-md">
+          <Info className="h-3.5 w-3.5 text-blue-500" />
+          <span className="text-xs text-blue-700 font-medium">
+            Собираем отзывы
+          </span>
+        </div>
       )}
     </div>
   );
