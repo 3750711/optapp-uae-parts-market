@@ -16,13 +16,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
 }) => {
   const handleRepresentativeContact = () => {
     const message = `Лот ${lotNumber || 'не указан'} - ${productTitle} - Цена: ${productPrice} ₽`;
-    window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${message}`, '_blank');
+    window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(message)}`, '_blank');
     onOpenChange(false);
   };
 
   const handleAssistantContact = () => {
     const message = `Лот ${lotNumber || 'не указан'} - ${productTitle} - Цена: ${productPrice} ₽`;
-    window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${message}`, '_blank');
+    window.open(`https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(message)}`, '_blank');
     onOpenChange(false);
   };
 
