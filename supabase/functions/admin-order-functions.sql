@@ -40,33 +40,47 @@ BEGIN
   -- Log input parameters for debugging
   RAISE LOG 'admin_create_order called with seller_id: %, seller_name: "%"', p_seller_id, p_order_seller_name;
 
-  -- Validate and ensure seller name is not null or empty
-  validated_seller_name := COALESCE(TRIM(p_order_seller_name), '');
+  -- КРИТИЧЕСКАЯ ВАЛИДАЦИЯ: Проверяем что p_order_seller_name не NULL и не пустая
+  IF p_order_seller_name IS NULL THEN
+    RAISE LOG 'КРИТИЧЕСКАЯ ОШИБКА: p_order_seller_name IS NULL!';
+    RAISE EXCEPTION 'Seller name cannot be NULL';
+  END IF;
+
+  IF TRIM(p_order_seller_name) = '' THEN
+    RAISE LOG 'КРИТИЧЕСКАЯ ОШИБКА: p_order_seller_name пустая после TRIM!';
+    RAISE EXCEPTION 'Seller name cannot be empty';
+  END IF;
+
+  -- Валидируем и обеспечиваем корректность имени продавца
+  validated_seller_name := TRIM(p_order_seller_name);
   
-  IF validated_seller_name = '' THEN
-    -- Try to get seller name from profiles if not provided or empty
+  -- Дополнительная проверка после TRIM
+  IF validated_seller_name IS NULL OR validated_seller_name = '' THEN
+    RAISE LOG 'Попытка восстановить имя продавца из профиля для seller_id: %', p_seller_id;
+    
+    -- Пытаемся получить имя продавца из профиля
     SELECT COALESCE(TRIM(full_name), 'Unknown Seller')
     INTO validated_seller_name
     FROM profiles
     WHERE id = p_seller_id;
     
-    RAISE LOG 'Retrieved seller name from profiles: "%"', validated_seller_name;
+    RAISE LOG 'Имя из профиля: "%"', validated_seller_name;
+    
+    -- Если и это не помогло, используем fallback
+    IF validated_seller_name IS NULL OR validated_seller_name = '' THEN
+      validated_seller_name := 'Unknown Seller';
+      RAISE LOG 'Используем fallback имя: "%"', validated_seller_name;
+    END IF;
   END IF;
 
-  -- Final validation to ensure we have a seller name
-  IF validated_seller_name IS NULL OR validated_seller_name = '' THEN
-    validated_seller_name := 'Unknown Seller';
-    RAISE LOG 'Using fallback seller name: "%"', validated_seller_name;
-  END IF;
-
-  -- Log the validated seller name
-  RAISE LOG 'Final validated seller name: "%"', validated_seller_name;
+  -- Финальная проверка валидированного имени
+  RAISE LOG 'Финальное валидированное имя продавца: "%"', validated_seller_name;
 
   -- Получаем следующий номер заказа (максимальный + 1)
   SELECT get_next_order_number() INTO next_order_number;
 
   -- Log before insert
-  RAISE LOG 'About to insert order with seller_name: "%"', validated_seller_name;
+  RAISE LOG 'Готовимся к вставке заказа с seller_name: "%"', validated_seller_name;
 
   -- Вставляем заказ с явно указанным номером и валидированным именем продавца
   INSERT INTO public.orders (
@@ -94,7 +108,7 @@ BEGIN
     p_price,
     p_place_number,
     p_seller_id,
-    validated_seller_name, -- Use validated seller name
+    validated_seller_name, -- Используем строго валидированное имя
     p_seller_opt_id,
     p_buyer_id,
     p_brand,
@@ -111,13 +125,13 @@ BEGIN
   RETURNING id INTO created_order_id;
   
   -- Log successful creation
-  RAISE LOG 'Order created successfully with id: %, seller_name: "%"', created_order_id, validated_seller_name;
+  RAISE LOG 'Заказ создан успешно с id: %, seller_name: "%"', created_order_id, validated_seller_name;
   
   RETURN created_order_id;
 EXCEPTION
   WHEN OTHERS THEN
     -- Log the error with context
-    RAISE LOG 'Error in admin_create_order: %, seller_name was: "%"', SQLERRM, validated_seller_name;
+    RAISE LOG 'Ошибка в admin_create_order: %, seller_name был: "%"', SQLERRM, validated_seller_name;
     -- Re-raise the error
     RAISE;
 END;

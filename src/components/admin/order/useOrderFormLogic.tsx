@@ -214,51 +214,68 @@ export const useOrderFormLogic = () => {
     setCreationProgress(0);
   };
 
-  // Enhanced function to get seller name with robust validation and trimming
-  const getSellerName = (): string => {
-    console.log("=== Getting seller name debug ===");
-    console.log("Selected seller:", selectedSeller);
-    console.log("Form data sellerId:", formData.sellerId);
+  // Строгая валидация имени продавца
+  const validateAndGetSellerName = (): string => {
+    console.log("=== Строгая валидация имени продавца ===");
+    console.log("selectedSeller:", selectedSeller);
+    console.log("formData.sellerId:", formData.sellerId);
     
-    // First try from selectedSeller
+    let validatedName = '';
+    
+    // Шаг 1: Проверяем selectedSeller
     if (selectedSeller?.full_name) {
       const trimmedName = selectedSeller.full_name.trim();
-      console.log("Using selectedSeller full_name (original):", selectedSeller.full_name);
-      console.log("Using selectedSeller full_name (trimmed):", trimmedName);
-      if (trimmedName) {
-        return trimmedName;
+      console.log("Имя из selectedSeller (до trim):", selectedSeller.full_name);
+      console.log("Имя из selectedSeller (после trim):", trimmedName);
+      
+      if (trimmedName && trimmedName !== '') {
+        validatedName = trimmedName;
+        console.log("✅ Используем имя из selectedSeller:", validatedName);
       }
     }
-
-    // Then try to find in sellerProfiles by sellerId
-    if (formData.sellerId) {
+    
+    // Шаг 2: Если не нашли в selectedSeller, ищем в sellerProfiles
+    if (!validatedName && formData.sellerId) {
       const seller = sellerProfiles.find(s => s.id === formData.sellerId);
       if (seller?.full_name) {
         const trimmedName = seller.full_name.trim();
-        console.log("Found seller in profiles (original):", seller.full_name);
-        console.log("Found seller in profiles (trimmed):", trimmedName);
-        if (trimmedName) {
-          return trimmedName;
+        console.log("Имя из sellerProfiles (до trim):", seller.full_name);
+        console.log("Имя из sellerProfiles (после trim):", trimmedName);
+        
+        if (trimmedName && trimmedName !== '') {
+          validatedName = trimmedName;
+          console.log("✅ Используем имя из sellerProfiles:", validatedName);
         }
       }
     }
-
-    // Last resort - use a default
-    console.warn("Could not determine seller name, using default");
-    return 'Неизвестный продавец';
+    
+    // Шаг 3: Последняя проверка и fallback
+    if (!validatedName || validatedName === '') {
+      console.warn("⚠️ Не удалось найти валидное имя продавца");
+      validatedName = 'Unknown Seller';
+    }
+    
+    console.log("=== Финальное валидированное имя:", `"${validatedName}"` ===);
+    
+    // Дополнительная проверка на NULL/undefined
+    if (validatedName === null || validatedName === undefined) {
+      console.error("🚨 КРИТИЧЕСКАЯ ОШИБКА: validatedName is null/undefined!");
+      validatedName = 'Unknown Seller';
+    }
+    
+    return validatedName;
   };
 
   const validateFormData = (): boolean => {
     const errors = [];
 
-    console.log("=== Validating form data ===");
+    console.log("=== Валидация данных формы ===");
     console.log("Form data:", formData);
 
     if (!formData.title.trim()) {
       errors.push('Наименование обязательно для заполнения');
     }
 
-    // Updated price validation to allow 0 and negative prices
     if (!formData.price || isNaN(parseFloat(formData.price))) {
       errors.push('Укажите корректную цену');
     }
@@ -271,15 +288,14 @@ export const useOrderFormLogic = () => {
       errors.push('Выберите покупателя');
     }
 
-    // Check if seller name can be determined
-    const sellerName = getSellerName();
-    console.log("Validated seller name:", sellerName);
-    if (!sellerName || sellerName === 'Неизвестный продавец') {
-      errors.push('Не удалось определить имя продавца');
+    // Строгая проверка имени продавца
+    const sellerName = validateAndGetSellerName();
+    if (!sellerName || sellerName === 'Unknown Seller') {
+      errors.push('Не удалось определить корректное имя продавца');
     }
 
     if (errors.length > 0) {
-      console.error("Validation errors:", errors);
+      console.error("❌ Ошибки валидации:", errors);
       toast({
         title: "Ошибки в форме",
         description: errors.join(', '),
@@ -288,12 +304,22 @@ export const useOrderFormLogic = () => {
       return false;
     }
 
+    console.log("✅ Валидация пройдена успешно");
     return true;
   };
 
-  // New fallback function for direct order creation
+  // Улучшенная функция для прямого создания заказа
   const createOrderDirect = async (orderSellerName: string, buyerData: any, deliveryPrice: number | null) => {
-    console.log("=== Using fallback direct order creation ===");
+    console.log("=== Прямое создание заказа ===");
+    console.log("orderSellerName:", `"${orderSellerName}"`);
+    
+    // Дополнительная валидация перед созданием
+    if (!orderSellerName || orderSellerName.trim() === '') {
+      throw new Error("orderSellerName не может быть пустым");
+    }
+    
+    const finalSellerName = orderSellerName.trim();
+    console.log("finalSellerName после trim:", `"${finalSellerName}"`);
     
     // Get next order number
     const { data: existingOrders, error: ordersError } = await supabase
@@ -319,7 +345,7 @@ export const useOrderFormLogic = () => {
       price: parseFloat(formData.price),
       place_number: parseInt(formData.place_number),
       seller_id: formData.sellerId,
-      order_seller_name: orderSellerName,
+      order_seller_name: finalSellerName, // Используем строго валидированное имя
       seller_opt_id: selectedSeller?.opt_id || null,
       buyer_id: buyerData.id,
       brand: formData.brand || '',
@@ -334,8 +360,9 @@ export const useOrderFormLogic = () => {
       delivery_price_confirm: deliveryPrice,
     };
 
-    console.log("=== Direct order payload ===");
+    console.log("=== Payload для прямого создания ===");
     console.log("Order payload:", orderPayload);
+    console.log("order_seller_name в payload:", `"${orderPayload.order_seller_name}"`);
 
     const { data: createdOrderData, error: orderError } = await supabase
       .from('orders')
@@ -344,12 +371,12 @@ export const useOrderFormLogic = () => {
       .single();
 
     if (orderError) {
-      console.error("=== Direct Insert Error ===");
+      console.error("=== Ошибка прямого создания ===");
       console.error("Error details:", orderError);
       throw orderError;
     }
 
-    console.log("=== Direct order created successfully ===");
+    console.log("=== Заказ создан успешно (прямое создание) ===");
     console.log("Created order:", createdOrderData);
     
     return createdOrderData.id;
@@ -361,11 +388,11 @@ export const useOrderFormLogic = () => {
     setCreationStage('validating');
     setCreationProgress(10);
 
-    console.log("=== Starting order submission ===");
+    console.log("=== Начало создания заказа ===");
     console.log("Form data:", formData);
     console.log("Selected seller:", selectedSeller);
 
-    // Enhanced validation
+    // Строгая валидация
     if (!validateFormData()) {
       setIsLoading(false);
       setCreationStage('');
@@ -377,7 +404,7 @@ export const useOrderFormLogic = () => {
       setCreationStage('fetching_buyer');
       setCreationProgress(20);
       
-      console.log("=== Fetching buyer data ===");
+      console.log("=== Получение данных покупателя ===");
       console.log("Buyer OPT ID:", formData.buyerOptId);
 
       const { data: buyerData, error: buyerError } = await supabase
@@ -410,22 +437,22 @@ export const useOrderFormLogic = () => {
       
       const deliveryPrice = formData.delivery_price ? parseFloat(formData.delivery_price) : null;
       
-      // Get seller name using the robust validation logic
-      const orderSellerName = getSellerName();
+      // Получаем строго валидированное имя продавца
+      const orderSellerName = validateAndGetSellerName();
       
-      console.log("=== Final order data preparation ===");
-      console.log("Final order seller name:", orderSellerName);
+      console.log("=== Финальная подготовка заказа ===");
+      console.log("Final order seller name:", `"${orderSellerName}"`);
       console.log("Delivery price:", deliveryPrice);
       
-      // Double-check that we have a valid seller name
-      if (!orderSellerName || orderSellerName === 'Неизвестный продавец') {
-        throw new Error('Не удалось определить имя продавца для создания заказа');
+      // Критическая проверка перед созданием
+      if (!orderSellerName || orderSellerName === 'Unknown Seller' || orderSellerName.trim() === '') {
+        throw new Error('Критическая ошибка: не удалось получить валидное имя продавца');
       }
       
       let createdOrderId: string;
 
       try {
-        // First try using RPC function
+        // Сначала пробуем RPC функцию
         const orderPayload = {
           p_title: formData.title,
           p_price: parseFloat(formData.price),
@@ -446,42 +473,40 @@ export const useOrderFormLogic = () => {
           p_delivery_price_confirm: deliveryPrice,
         };
 
-        console.log("=== Creating order with RPC ===");
-        console.log("Order payload:", orderPayload);
+        console.log("=== Создание заказа через RPC ===");
+        console.log("RPC payload:", orderPayload);
+        console.log("p_order_seller_name в RPC:", `"${orderPayload.p_order_seller_name}"`);
 
-        // Use RPC function call to bypass RLS for admin operations
+        // Использование RPC функции для обхода RLS
         const { data: rpcOrderId, error: orderError } = await supabase
           .rpc('admin_create_order', orderPayload);
 
         if (orderError) {
-          console.error("=== RPC Error Details ===");
-          console.error("Error code:", orderError.code);
-          console.error("Error message:", orderError.message);
-          console.error("Error details:", orderError.details);
-          console.error("Error hint:", orderError.hint);
+          console.error("=== Ошибка RPC ===");
+          console.error("RPC Error details:", orderError);
           
-          // If RPC fails, try fallback method
-          console.log("=== RPC failed, trying fallback method ===");
+          // Переход на fallback метод
+          console.log("=== Переход на fallback метод ===");
           createdOrderId = await createOrderDirect(orderSellerName, buyerData, deliveryPrice);
         } else {
-          console.log("=== RPC Order created successfully ===");
-          console.log("Created order ID:", rpcOrderId);
+          console.log("=== RPC успешно ===");
+          console.log("Created order ID via RPC:", rpcOrderId);
           createdOrderId = rpcOrderId;
         }
       } catch (rpcError) {
-        console.error("=== RPC Exception, using fallback ===");
+        console.error("=== RPC Exception ===");
         console.error("RPC error:", rpcError);
         createdOrderId = await createOrderDirect(orderSellerName, buyerData, deliveryPrice);
       }
 
       if (!createdOrderId) {
-        throw new Error("Order was created but no data was returned");
+        throw new Error("Order creation failed: no ID returned");
       }
 
       setCreationStage('fetching_order');
       setCreationProgress(60);
 
-      // Fetch the newly created order
+      // Получение созданного заказа
       const { data: orderData, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -493,7 +518,7 @@ export const useOrderFormLogic = () => {
         throw fetchError;
       }
 
-      console.log("=== Order fetched successfully ===");
+      console.log("=== Заказ получен успешно ===");
       console.log("Order data:", orderData);
 
       setCreationStage('saving_videos');
@@ -552,7 +577,7 @@ export const useOrderFormLogic = () => {
       sendTelegramNotification(orderData, images);
       
     } catch (error) {
-      console.error("=== Order creation error ===");
+      console.error("=== Критическая ошибка создания заказа ===");
       console.error("Error type:", typeof error);
       console.error("Error object:", error);
       
@@ -564,7 +589,7 @@ export const useOrderFormLogic = () => {
         console.error("Error stack:", error.stack);
       }
       
-      // Additional error details for PostgreSQL errors
+      // Дополнительная информация об ошибках PostgreSQL
       if (error && typeof error === 'object' && 'code' in error) {
         console.error("PostgreSQL error code:", (error as any).code);
         console.error("PostgreSQL error details:", (error as any).details);
