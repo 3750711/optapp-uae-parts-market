@@ -56,11 +56,11 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-md mx-auto max-h-[90vh] p-0 gap-0 overflow-hidden rounded-lg border bg-white shadow-lg">
+      <DialogContent className="w-[95vw] sm:w-auto max-w-md sm:max-w-lg mx-auto max-h-[85vh] sm:max-h-[80vh] p-0 sm:p-6 gap-0 sm:gap-4 overflow-hidden rounded-lg border bg-white shadow-lg">
         {/* Прокручиваемый контент */}
-        <div className="overflow-y-auto max-h-[calc(90vh-120px)] min-h-0">
-          <DialogHeader className="p-4 pb-3 space-y-3 border-b bg-gray-50/50">
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+        <div className="overflow-y-auto max-h-[calc(85vh-120px)] sm:max-h-[calc(80vh-100px)] min-h-0">
+          <DialogHeader className="p-4 sm:p-0 pb-3 sm:pb-6 space-y-3 border-b sm:border-b-0 bg-gray-50/50 sm:bg-transparent">
+            <DialogTitle className="flex items-center gap-2 text-base sm:text-lg font-semibold">
               <MessageSquare className="h-5 w-5 text-primary flex-shrink-0" />
               <span className="truncate">Связь с продавцом</span>
             </DialogTitle>
@@ -78,7 +78,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
           </DialogHeader>
           
           <DialogDescription asChild>
-            <div className="p-4 space-y-4">
+            <div className="p-4 sm:p-0 space-y-4">
               {/* Рейтинг коммуникации */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
@@ -126,11 +126,11 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
         </div>
         
         {/* Фиксированный футер с кнопками */}
-        <DialogFooter className="flex flex-col gap-2 p-4 pt-3 border-t bg-white sticky bottom-0">
+        <DialogFooter className="flex flex-col gap-2 sm:flex-row sm:gap-2 p-4 sm:p-0 pt-3 sm:pt-4 border-t sm:border-t-0 bg-white sticky bottom-0">
           {/* Кнопка помощника */}
           <Button 
             onClick={handleAssistantContact}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 font-medium"
+            className="w-full sm:flex-1 bg-blue-600 hover:bg-blue-700 text-white h-10 font-medium order-1"
             size="default"
           >
             <User className="h-4 w-4 mr-2" />
@@ -141,7 +141,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
           {isHighDifficulty && (
             <Button 
               onClick={handleRepresentativeContact}
-              className="w-full bg-green-600 hover:bg-green-700 text-white h-10 font-medium"
+              className="w-full sm:flex-1 bg-green-600 hover:bg-green-700 text-white h-10 font-medium order-2"
               size="default"
             >
               <CheckCircle className="h-4 w-4 mr-2" />
@@ -153,7 +153,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
           <Button 
             onClick={onProceed} 
             variant={isHighDifficulty ? "outline" : "default"}
-            className="w-full h-10 font-medium"
+            className="w-full sm:flex-1 h-10 font-medium order-3"
             size="default"
           >
             {contactType === 'telegram' ? (
@@ -170,7 +170,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
           <Button 
             variant="ghost" 
             onClick={() => onOpenChange(false)}
-            className="w-full text-gray-600 hover:text-gray-800 h-9 font-medium"
+            className="w-full sm:w-auto text-gray-600 hover:text-gray-800 h-9 font-medium order-4 sm:order-last"
             size="default"
           >
             <span>Отмена</span>
