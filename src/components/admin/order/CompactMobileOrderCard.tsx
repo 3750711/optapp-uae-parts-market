@@ -49,9 +49,9 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
       transition-all duration-200 
       ${isSelected ? 'ring-2 ring-primary ring-opacity-50 bg-primary/5' : 'hover:shadow-md'}
     `}>
-      <CardContent className="p-3">
-        {/* Header Block */}
-        <div className="flex items-start justify-between mb-3">
+      <CardContent className="p-2">
+        {/* Компактный заголовок */}
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Checkbox
               checked={isSelected}
@@ -60,7 +60,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             />
             
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-1 mb-1 flex-wrap">
                 <Badge variant="outline" className="text-xs shrink-0 font-mono">
                   №{order.order_number}
                 </Badge>
@@ -71,26 +71,16 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 />
               </div>
               
-              <h3 className="font-medium text-sm line-clamp-2 leading-tight mb-1">
+              <div className="text-xs font-medium line-clamp-1 mb-1">
                 {order.title || 'Без названия'}
-              </h3>
-              
-              <div className="flex items-center justify-between">
-                <EnhancedOrderStatusBadge status={order.status} />
-                <span className="text-xs text-muted-foreground">
-                  {new Date(order.created_at).toLocaleDateString('ru-RU', {
-                    day: '2-digit',
-                    month: '2-digit'
-                  })}
-                </span>
               </div>
             </div>
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 shrink-0">
-                <MoreVertical className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0 shrink-0">
+                <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -115,50 +105,61 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
           </DropdownMenu>
         </div>
 
-        {/* Info Block */}
-        <div className="space-y-3">
-          {/* Product Info */}
+        {/* Статус и дата в одной строке */}
+        <div className="flex items-center justify-between mb-2">
+          <EnhancedOrderStatusBadge status={order.status} size="sm" />
+          <span className="text-xs text-muted-foreground">
+            {new Date(order.created_at).toLocaleDateString('ru-RU', {
+              day: '2-digit',
+              month: '2-digit'
+            })}
+          </span>
+        </div>
+
+        {/* Основная информация */}
+        <div className="space-y-2">
+          {/* Информация о товаре */}
           {(order.brand || order.model) && (
             <div className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
               {[order.brand, order.model].filter(Boolean).join(' ')}
             </div>
           )}
 
-          {/* Price Block */}
-          <div className="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-3">
-            <div className="grid grid-cols-3 gap-3 text-center">
+          {/* Ценовой блок */}
+          <div className="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-2">
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Цена</div>
-                <div className="font-bold text-primary text-sm">
+                <div className="text-muted-foreground mb-1">Цена</div>
+                <div className="font-bold text-primary">
                   ${order.price?.toLocaleString() || '0'}
                 </div>
               </div>
               
               {order.delivery_price_confirm && order.delivery_price_confirm > 0 && (
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">Доставка</div>
-                  <div className="font-semibold text-sm">
+                  <div className="text-muted-foreground mb-1">Доставка</div>
+                  <div className="font-semibold">
                     ${order.delivery_price_confirm.toLocaleString()}
                   </div>
                 </div>
               )}
               
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Мест</div>
-                <div className="font-semibold text-sm">
+                <div className="text-muted-foreground mb-1">Мест</div>
+                <div className="font-semibold">
                   {order.place_number || 0}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Action Block */}
+          {/* Действия */}
           <div className="flex gap-2">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => onViewDetails(order.id)}
-              className="flex-1 h-9 text-xs font-medium"
+              className="flex-1 h-7 text-xs font-medium"
             >
               <Eye className="h-3 w-3 mr-1" />
               Просмотр
@@ -169,7 +170,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-9 px-3 text-xs"
+                  className="h-7 px-2 text-xs"
                 >
                   {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </Button>
@@ -177,14 +178,14 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
             </Collapsible>
           </div>
 
-          {/* Expandable Details */}
+          {/* Расширяемые детали */}
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleContent className="space-y-3">
-              {/* Users Block */}
-              <div className="grid grid-cols-2 gap-3 text-xs bg-muted/20 rounded-lg p-3">
+            <CollapsibleContent className="space-y-2">
+              {/* Блок пользователей */}
+              <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
                 <div>
                   <div className="text-muted-foreground mb-1 font-medium">Продавец</div>
-                  <div className="font-medium">
+                  <div className="font-medium truncate">
                     {order.seller?.full_name || 'Не указан'}
                   </div>
                   {order.seller?.opt_id && (
@@ -196,7 +197,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 
                 <div>
                   <div className="text-muted-foreground mb-1 font-medium">Покупатель</div>
-                  <div className="font-medium">
+                  <div className="font-medium truncate">
                     {order.buyer?.full_name || 'Не указан'}
                   </div>
                   {order.buyer?.opt_id && (
@@ -207,9 +208,9 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 </div>
               </div>
 
-              {/* Additional Info Block */}
+              {/* Дополнительная информация */}
               {order.text_order && order.text_order.trim() && (
-                <div className="bg-blue-50 rounded-lg p-3">
+                <div className="bg-blue-50 rounded-lg p-2">
                   <div className="text-xs text-muted-foreground mb-1 font-medium">
                     Дополнительная информация
                   </div>
@@ -219,7 +220,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 </div>
               )}
 
-              {/* Timestamp Block */}
+              {/* Временная метка */}
               <div className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1 text-center">
                 Создан: {new Date(order.created_at).toLocaleDateString('ru-RU', {
                   day: '2-digit',

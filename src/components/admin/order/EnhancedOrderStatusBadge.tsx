@@ -74,9 +74,9 @@ export const EnhancedOrderStatusBadge: React.FC<EnhancedOrderStatusBadgeProps> =
   const Icon = config.icon;
   
   const sizeClasses = {
-    sm: 'text-xs px-2 py-1',
-    md: 'text-sm px-3 py-1.5',
-    lg: 'text-base px-4 py-2'
+    sm: 'text-xs px-2 py-0.5 max-w-[120px]',
+    md: 'text-sm px-3 py-1.5 max-w-[150px]',
+    lg: 'text-base px-4 py-2 max-w-[200px]'
   };
 
   const iconSizes = {
@@ -87,10 +87,11 @@ export const EnhancedOrderStatusBadge: React.FC<EnhancedOrderStatusBadgeProps> =
 
   return (
     <Badge 
-      className={`${config.className} ${sizeClasses[size]} flex items-center gap-1.5 font-medium transition-all duration-200 border`}
+      className={`${config.className} ${sizeClasses[size]} flex items-center gap-1 font-medium transition-all duration-200 border truncate`}
+      title={config.label}
     >
-      {showIcon && <Icon className={iconSizes[size]} />}
-      {config.label}
+      {showIcon && <Icon className={`${iconSizes[size]} shrink-0`} />}
+      <span className="truncate">{config.label}</span>
     </Badge>
   );
 };
