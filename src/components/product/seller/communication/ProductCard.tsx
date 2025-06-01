@@ -26,7 +26,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         </h4>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">Лот: {lotNumber || '—'}</span>
-          <span className="font-semibold text-primary text-base">{productPrice} ₽</span>
+          <span className="font-semibold text-primary text-base">{productPrice} $</span>
         </div>
       </div>
     );
@@ -39,7 +39,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
       </h4>
       <div className="flex items-center justify-between text-sm">
         <span className="text-gray-600">Лот: {lotNumber || '—'}</span>
-        <span className="font-semibold text-primary text-lg">{productPrice} ₽</span>
+        <span className="font-semibold text-primary text-lg">{productPrice} $</span>
       </div>
     </div>
   );
