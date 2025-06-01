@@ -53,14 +53,14 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${
         isMobile 
-          ? "w-[95vw] max-w-sm mx-auto max-h-[90vh] overflow-hidden rounded-lg border bg-white shadow-lg"
-          : "w-auto max-w-lg mx-auto max-h-[85vh] overflow-hidden rounded-lg border bg-white shadow-lg"
+          ? "w-[96vw] max-w-sm mx-auto max-h-[95vh] overflow-hidden rounded-lg border bg-white shadow-lg"
+          : "w-auto max-w-md mx-auto max-h-[90vh] overflow-hidden rounded-lg border bg-white shadow-lg"
       }`}>
         {/* Заголовок */}
-        <DialogHeader className={`${isMobile ? 'p-4 pb-2' : 'p-6 pb-3'} border-b bg-gray-50/50 flex-shrink-0`}>
-          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-            <MessageSquare className="h-5 w-5 text-primary flex-shrink-0" />
-            <span className={isMobile ? 'text-sm' : 'text-base'}>{getDialogTitle()}</span>
+        <DialogHeader className={`${isMobile ? 'p-3 pb-2' : 'p-4 pb-2'} border-b bg-gray-50/50 flex-shrink-0`}>
+          <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
+            <MessageSquare className="h-4 w-4 text-primary flex-shrink-0" />
+            <span>{getDialogTitle()}</span>
           </DialogTitle>
           
           {/* Карточка товара в заголовке для экономии места */}
@@ -73,9 +73,9 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
         </DialogHeader>
         
         {/* Прокручиваемый контент */}
-        <div className={`overflow-y-auto flex-1 ${isMobile ? 'px-4 py-2' : 'px-6 py-4'}`}>
+        <div className={`overflow-y-auto flex-1 ${isMobile ? 'px-3 py-1' : 'px-4 py-2'}`}>
           <DialogDescription asChild>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Рейтинг коммуникации */}
               <CommunicationRatingSection 
                 communicationRating={communicationRating}
@@ -89,7 +89,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
         </div>
         
         {/* Фиксированный футер с кнопками */}
-        <DialogFooter className="flex-shrink-0 border-t bg-white">
+        <DialogFooter className="flex-shrink-0 border-t bg-white p-0">
           <DialogButtons 
             onAssistantContact={handleAssistantContact}
             onProceed={onProceed}

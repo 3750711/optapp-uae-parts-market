@@ -31,7 +31,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const isProfessional = communicationRating === 5;
   const isDirectContactBlocked = communicationRating === 1;
 
-  const buttonHeight = isMobile ? "h-9" : "h-10";
+  const buttonHeight = isMobile ? "h-8" : "h-9";
 
   // Определяем тексты кнопок
   const getAssistantButtonText = () => {
@@ -54,14 +54,14 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-2 p-3 w-full">
+      <div className="flex flex-col gap-1.5 p-2 w-full">
         {/* Кнопка помощника - показываем всегда */}
         <Button 
           onClick={onAssistantContact}
-          className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-sm`}
+          className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-xs`}
           size="sm"
         >
-          <HeadphonesIcon className="h-4 w-4 mr-2" />
+          <HeadphonesIcon className="h-3 w-3 mr-1.5" />
           <span>{getAssistantButtonText()}</span>
         </Button>
         
@@ -70,13 +70,13 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           <Button 
             onClick={onProceed} 
             variant={isVeryDifficult ? "outline" : "default"}
-            className={`w-full ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium text-sm`}
+            className={`w-full ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium text-xs`}
             size="sm"
           >
             {contactType === 'telegram' ? (
-              <MessageSquare className="h-4 w-4 mr-2" />
+              <MessageSquare className="h-3 w-3 mr-1.5" />
             ) : (
-              <Phone className="h-4 w-4 mr-2" />
+              <Phone className="h-3 w-3 mr-1.5" />
             )}
             <span>{getDirectContactButtonText()}</span>
           </Button>
@@ -86,13 +86,13 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {isProfessional && (
           <Button 
             onClick={onProceed} 
-            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium text-sm`}
+            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium text-xs`}
             size="sm"
           >
             {contactType === 'telegram' ? (
-              <MessageSquare className="h-4 w-4 mr-2" />
+              <MessageSquare className="h-3 w-3 mr-1.5" />
             ) : (
-              <Phone className="h-4 w-4 mr-2" />
+              <Phone className="h-3 w-3 mr-1.5" />
             )}
             <span>{getDirectContactButtonText()}</span>
           </Button>
@@ -102,7 +102,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-8 font-medium text-sm`}
+          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-7 font-medium text-xs`}
           size="sm"
         >
           <span>Отмена</span>
@@ -112,14 +112,14 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   }
 
   return (
-    <div className="flex flex-row gap-3 p-4">
+    <div className="flex flex-row gap-2 p-3">
       {/* Кнопка помощника - приоритет для сложных случаев */}
       <Button 
         onClick={onAssistantContact}
-        className={`flex-1 ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium`}
-        size="default"
+        className={`flex-1 ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-xs`}
+        size="sm"
       >
-        <HeadphonesIcon className="h-4 w-4 mr-2" />
+        <HeadphonesIcon className="h-3 w-3 mr-1.5" />
         <span>{getAssistantButtonText()}</span>
       </Button>
       
@@ -128,13 +128,13 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           onClick={onProceed} 
           variant={isVeryDifficult ? "outline" : "default"}
-          className={`flex-1 ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium`}
-          size="default"
+          className={`flex-1 ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium text-xs`}
+          size="sm"
         >
           {contactType === 'telegram' ? (
-            <MessageSquare className="h-4 w-4 mr-2" />
+            <MessageSquare className="h-3 w-3 mr-1.5" />
           ) : (
-            <Phone className="h-4 w-4 mr-2" />
+            <Phone className="h-3 w-3 mr-1.5" />
           )}
           <span>{getDirectContactButtonText()}</span>
         </Button>
@@ -144,13 +144,13 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       {isProfessional && (
         <Button 
           onClick={onProceed} 
-          className={`flex-1 bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium`}
-          size="default"
+          className={`flex-1 bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium text-xs`}
+          size="sm"
         >
           {contactType === 'telegram' ? (
-            <MessageSquare className="h-4 w-4 mr-2" />
+            <MessageSquare className="h-3 w-3 mr-1.5" />
           ) : (
-            <Phone className="h-4 w-4 mr-2" />
+            <Phone className="h-3 w-3 mr-1.5" />
           )}
           <span>{getDirectContactButtonText()}</span>
         </Button>
@@ -160,8 +160,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       <Button 
         variant="ghost" 
         onClick={onCancel}
-        className={`w-auto text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${buttonHeight} font-medium px-6`}
-        size="default"
+        className={`w-auto text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${buttonHeight} font-medium px-4 text-xs`}
+        size="sm"
       >
         <span>Отмена</span>
       </Button>

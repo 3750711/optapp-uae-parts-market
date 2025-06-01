@@ -12,9 +12,9 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
   communicationRating,
   isMobile = false
 }) => {
-  const iconSize = isMobile ? "h-4 w-4" : "h-5 w-5";
-  const spacing = isMobile ? "gap-2" : "gap-3";
-  const textSize = isMobile ? "text-sm" : "text-base";
+  const iconSize = isMobile ? "h-3 w-3" : "h-4 w-4";
+  const spacing = isMobile ? "gap-1.5" : "gap-2";
+  const textSize = isMobile ? "text-xs" : "text-sm";
 
   // Упрощенная информация о коммуникации
   const getCommunicationInfo = () => {
@@ -104,27 +104,27 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
   const commInfo = getCommunicationInfo();
 
   return (
-    <div className={`${commInfo.bgColor} border ${commInfo.borderColor} rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
-      <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
-        <div className="flex items-center gap-2">
+    <div className={`${commInfo.bgColor} border ${commInfo.borderColor} rounded-md ${isMobile ? 'p-2' : 'p-3'}`}>
+      <div className={`flex items-center justify-between ${isMobile ? 'mb-1' : 'mb-2'}`}>
+        <div className="flex items-center gap-1.5">
           <Shield className={`${iconSize} text-gray-600`} />
           <span className={`${textSize} font-medium text-gray-700`}>Сложность общения</span>
         </div>
         {communicationRating ? (
-          <CommunicationRatingBadge rating={communicationRating} size="md" />
+          <CommunicationRatingBadge rating={communicationRating} size="sm" />
         ) : (
-          <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-blue-700 bg-blue-50 ${isMobile ? 'px-2 py-1' : 'px-3 py-1'} rounded-md border border-blue-200 font-medium`}>
+          <span className={`text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-medium`}>
             Собираем отзывы
           </span>
         )}
       </div>
       
-      <div className={`space-y-${isMobile ? '2' : '3'}`}>
+      <div className={`space-y-${isMobile ? '1' : '1.5'}`}>
         {/* Заголовок */}
         <div className={`flex items-center ${spacing}`}>
-          <span className="text-lg">{commInfo.flag}</span>
+          <span className="text-sm">{commInfo.flag}</span>
           <div>
-            <p className={`${commInfo.color} font-medium ${isMobile ? 'text-sm' : ''}`}>
+            <p className={`${commInfo.color} font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
               {commInfo.title}
             </p>
           </div>
@@ -133,7 +133,7 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         {/* Язык общения */}
         <div className={`flex items-center ${spacing}`}>
           <Globe className={`${iconSize} ${commInfo.color} flex-shrink-0`} />
-          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
+          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-600`}>
             {commInfo.language}
           </p>
         </div>
@@ -141,14 +141,14 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         {/* Уровень сложности */}
         <div className={`flex items-center ${spacing}`}>
           <Star className={`${iconSize} ${commInfo.color} flex-shrink-0`} />
-          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>
+          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-600`}>
             {commInfo.level}
           </p>
         </div>
 
         {/* Рекомендация */}
-        <div className={`${isMobile ? 'mt-2' : 'mt-3'} p-2 bg-white/50 rounded border border-gray-200`}>
-          <p className={`${isMobile ? 'text-xs' : 'text-sm'} ${commInfo.color} font-medium`}>
+        <div className={`${isMobile ? 'mt-1' : 'mt-1.5'} p-1.5 bg-white/50 rounded border border-gray-200`}>
+          <p className={`${isMobile ? 'text-xs' : 'text-xs'} ${commInfo.color} font-medium`}>
             💡 {commInfo.recommendation}
           </p>
         </div>
