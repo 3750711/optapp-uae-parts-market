@@ -31,36 +31,35 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const isProfessional = communicationRating === 5;
   const isDirectContactBlocked = communicationRating === 1;
 
-  const buttonHeight = isMobile ? "h-10" : "h-11";
-  const cancelHeight = isMobile ? "h-9" : "h-11";
+  const buttonHeight = isMobile ? "h-9" : "h-10";
 
   // Определяем тексты кнопок
   const getAssistantButtonText = () => {
     if (isVeryDifficult) {
-      return isMobile ? 'Помощник partsbay.ae' : 'Связаться через помощника сайта';
+      return isMobile ? 'Помощник сайта' : 'Задать вопрос помощнику сайта';
     }
-    return isMobile ? 'Помощник partsbay.ae' : 'Задать вопрос помощнику сайта';
+    return isMobile ? 'Помощник сайта' : 'Задать вопрос помощнику сайта';
   };
 
   const getDirectContactButtonText = () => {
     if (isProfessional) {
       return isMobile 
-        ? `Связаться с профи ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
+        ? `${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
         : `Написать профессионалу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
     }
     return isMobile
-      ? `Прямая связь ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
+      ? `${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
       : `Написать продавцу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
   };
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-2 p-4 pt-3 border-t bg-white sticky bottom-0">
+      <div className="flex flex-col gap-2 p-3 w-full">
         {/* Кнопка помощника - показываем всегда */}
         <Button 
           onClick={onAssistantContact}
-          className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium order-1`}
-          size="default"
+          className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-sm`}
+          size="sm"
         >
           <HeadphonesIcon className="h-4 w-4 mr-2" />
           <span>{getAssistantButtonText()}</span>
@@ -71,8 +70,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           <Button 
             onClick={onProceed} 
             variant={isVeryDifficult ? "outline" : "default"}
-            className={`w-full ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium order-2`}
-            size="default"
+            className={`w-full ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium text-sm`}
+            size="sm"
           >
             {contactType === 'telegram' ? (
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -87,8 +86,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {isProfessional && (
           <Button 
             onClick={onProceed} 
-            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium order-2`}
-            size="default"
+            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium text-sm`}
+            size="sm"
           >
             {contactType === 'telegram' ? (
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -103,8 +102,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${cancelHeight} font-medium order-3`}
-          size="default"
+          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-8 font-medium text-sm`}
+          size="sm"
         >
           <span>Отмена</span>
         </Button>
@@ -113,7 +112,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   }
 
   return (
-    <div className="flex flex-row gap-3 pt-6">
+    <div className="flex flex-row gap-3 p-4">
       {/* Кнопка помощника - приоритет для сложных случаев */}
       <Button 
         onClick={onAssistantContact}

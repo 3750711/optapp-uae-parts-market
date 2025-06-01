@@ -53,104 +53,55 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${
         isMobile 
-          ? "w-[95vw] max-w-md mx-auto max-h-[85vh] overflow-hidden rounded-lg border bg-white shadow-lg"
-          : "w-auto max-w-2xl mx-auto max-h-[90vh] overflow-hidden rounded-lg border bg-white shadow-lg"
+          ? "w-[95vw] max-w-sm mx-auto max-h-[90vh] overflow-hidden rounded-lg border bg-white shadow-lg"
+          : "w-auto max-w-lg mx-auto max-h-[85vh] overflow-hidden rounded-lg border bg-white shadow-lg"
       }`}>
-        {isMobile ? (
-          <>
-            {/* Мобильная версия с прокруткой */}
-            <div className="overflow-y-auto max-h-[calc(85vh-120px)] min-h-0">
-              <DialogHeader className="p-4 pb-3 space-y-3 border-b bg-gray-50/50">
-                <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-                  <MessageSquare className="h-5 w-5 text-primary flex-shrink-0" />
-                  <span className="truncate">{getDialogTitle()}</span>
-                </DialogTitle>
-                
-                {/* Компактная карточка товара */}
-                <ProductCard 
-                  productTitle={productTitle}
-                  productPrice={productPrice}
-                  lotNumber={lotNumber}
-                  isMobile={true}
-                />
-              </DialogHeader>
-              
-              <DialogDescription asChild>
-                <div className="p-4 space-y-4">
-                  {/* Рейтинг коммуникации с подробной информацией */}
-                  <CommunicationRatingSection 
-                    communicationRating={communicationRating}
-                    isMobile={true}
-                  />
+        {/* Заголовок */}
+        <DialogHeader className={`${isMobile ? 'p-4 pb-2' : 'p-6 pb-3'} border-b bg-gray-50/50 flex-shrink-0`}>
+          <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+            <MessageSquare className="h-5 w-5 text-primary flex-shrink-0" />
+            <span className={isMobile ? 'text-sm' : 'text-base'}>{getDialogTitle()}</span>
+          </DialogTitle>
+          
+          {/* Карточка товара в заголовке для экономии места */}
+          <ProductCard 
+            productTitle={productTitle}
+            productPrice={productPrice}
+            lotNumber={lotNumber}
+            isMobile={isMobile}
+          />
+        </DialogHeader>
+        
+        {/* Прокручиваемый контент */}
+        <div className={`overflow-y-auto flex-1 ${isMobile ? 'px-4 py-2' : 'px-6 py-4'}`}>
+          <DialogDescription asChild>
+            <div className="space-y-3">
+              {/* Рейтинг коммуникации */}
+              <CommunicationRatingSection 
+                communicationRating={communicationRating}
+                isMobile={isMobile}
+              />
 
-                  {/* Информация о времени работы */}
-                  <WorkingHoursInfo isMobile={true} />
-                </div>
-              </DialogDescription>
+              {/* Информация о времени работы */}
+              <WorkingHoursInfo isMobile={isMobile} />
             </div>
-            
-            {/* Фиксированный футер с кнопками для мобильных */}
-            <DialogFooter>
-              <DialogButtons 
-                onAssistantContact={handleAssistantContact}
-                onProceed={onProceed}
-                onCancel={() => onOpenChange(false)}
-                communicationRating={communicationRating}
-                contactType={contactType}
-                productTitle={productTitle}
-                productPrice={productPrice}
-                lotNumber={lotNumber}
-                isMobile={true}
-              />
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            {/* Десктопная версия */}
-            <DialogHeader className="space-y-4">
-              <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-                <MessageSquare className="h-5 w-5 text-primary flex-shrink-0" />
-                <span>{getDialogTitle()}</span>
-              </DialogTitle>
-              
-              {/* Карточка товара для десктопа */}
-              <ProductCard 
-                productTitle={productTitle}
-                productPrice={productPrice}
-                lotNumber={lotNumber}
-                isMobile={false}
-              />
-            </DialogHeader>
-            
-            <DialogDescription asChild>
-              <div className="space-y-4">
-                {/* Рейтинг коммуникации с подробной информацией */}
-                <CommunicationRatingSection 
-                  communicationRating={communicationRating}
-                  isMobile={false}
-                />
-
-                {/* Информация о времени работы */}
-                <WorkingHoursInfo isMobile={false} />
-              </div>
-            </DialogDescription>
-            
-            {/* Футер для десктопа */}
-            <DialogFooter>
-              <DialogButtons 
-                onAssistantContact={handleAssistantContact}
-                onProceed={onProceed}
-                onCancel={() => onOpenChange(false)}
-                communicationRating={communicationRating}
-                contactType={contactType}
-                productTitle={productTitle}
-                productPrice={productPrice}
-                lotNumber={lotNumber}
-                isMobile={false}
-              />
-            </DialogFooter>
-          </>
-        )}
+          </DialogDescription>
+        </div>
+        
+        {/* Фиксированный футер с кнопками */}
+        <DialogFooter className="flex-shrink-0 border-t bg-white">
+          <DialogButtons 
+            onAssistantContact={handleAssistantContact}
+            onProceed={onProceed}
+            onCancel={() => onOpenChange(false)}
+            communicationRating={communicationRating}
+            contactType={contactType}
+            productTitle={productTitle}
+            productPrice={productPrice}
+            lotNumber={lotNumber}
+            isMobile={isMobile}
+          />
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
