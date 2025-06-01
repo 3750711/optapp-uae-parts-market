@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Phone, User } from "lucide-react";
+import { MessageSquare, Phone, User, HeadphonesIcon } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface DialogButtonsProps {
@@ -34,17 +34,36 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const buttonHeight = isMobile ? "h-10" : "h-11";
   const cancelHeight = isMobile ? "h-9" : "h-11";
 
+  // Определяем тексты кнопок
+  const getAssistantButtonText = () => {
+    if (isVeryDifficult) {
+      return isMobile ? 'Помощник partsbay.ae' : 'Связаться через помощника сайта';
+    }
+    return isMobile ? 'Помощник partsbay.ae' : 'Задать вопрос помощнику сайта';
+  };
+
+  const getDirectContactButtonText = () => {
+    if (isProfessional) {
+      return isMobile 
+        ? `Связаться с профи ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
+        : `Написать профессионалу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+    }
+    return isMobile
+      ? `Прямая связь ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
+      : `Написать продавцу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+  };
+
   if (isMobile) {
     return (
       <div className="flex flex-col gap-2 p-4 pt-3 border-t bg-white sticky bottom-0">
         {/* Кнопка помощника - показываем всегда */}
         <Button 
           onClick={onAssistantContact}
-          className={`w-full ${isVeryDifficult ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium order-1`}
+          className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium order-1`}
           size="default"
         >
-          <User className="h-4 w-4 mr-2" />
-          <span>{isVeryDifficult ? 'Связаться через помощника' : 'Помощник partsbay.ae'}</span>
+          <HeadphonesIcon className="h-4 w-4 mr-2" />
+          <span>{getAssistantButtonText()}</span>
         </Button>
         
         {/* Прямая связь - блокируем для рейтинга 1 */}
@@ -52,7 +71,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           <Button 
             onClick={onProceed} 
             variant={isVeryDifficult ? "outline" : "default"}
-            className={`w-full ${buttonHeight} font-medium order-2`}
+            className={`w-full ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium order-2`}
             size="default"
           >
             {contactType === 'telegram' ? (
@@ -60,9 +79,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
             ) : (
               <Phone className="h-4 w-4 mr-2" />
             )}
-            <span>
-              Прямая связь {contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}
-            </span>
+            <span>{getDirectContactButtonText()}</span>
           </Button>
         )}
 
@@ -78,9 +95,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
             ) : (
               <Phone className="h-4 w-4 mr-2" />
             )}
-            <span>
-              Связаться с профи {contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}
-            </span>
+            <span>{getDirectContactButtonText()}</span>
           </Button>
         )}
         
@@ -88,7 +103,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className={`w-full text-gray-600 hover:text-gray-800 ${cancelHeight} font-medium order-3`}
+          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${cancelHeight} font-medium order-3`}
           size="default"
         >
           <span>Отмена</span>
@@ -102,11 +117,11 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       {/* Кнопка помощника - приоритет для сложных случаев */}
       <Button 
         onClick={onAssistantContact}
-        className={`flex-1 ${isVeryDifficult ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium`}
+        className={`flex-1 ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium`}
         size="default"
       >
-        <User className="h-4 w-4 mr-2" />
-        <span>{isVeryDifficult ? 'Связаться через помощника' : 'Помощник partsbay.ae'}</span>
+        <HeadphonesIcon className="h-4 w-4 mr-2" />
+        <span>{getAssistantButtonText()}</span>
       </Button>
       
       {/* Прямая связь - блокируем для рейтинга 1 */}
@@ -114,7 +129,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           onClick={onProceed} 
           variant={isVeryDifficult ? "outline" : "default"}
-          className={`flex-1 ${buttonHeight} font-medium`}
+          className={`flex-1 ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium`}
           size="default"
         >
           {contactType === 'telegram' ? (
@@ -122,9 +137,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           ) : (
             <Phone className="h-4 w-4 mr-2" />
           )}
-          <span>
-            Прямая связь {contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}
-          </span>
+          <span>{getDirectContactButtonText()}</span>
         </Button>
       )}
 
@@ -140,9 +153,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
           ) : (
             <Phone className="h-4 w-4 mr-2" />
           )}
-          <span>
-            Связаться с профи {contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}
-          </span>
+          <span>{getDirectContactButtonText()}</span>
         </Button>
       )}
       
@@ -150,7 +161,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       <Button 
         variant="ghost" 
         onClick={onCancel}
-        className={`w-auto text-gray-600 hover:text-gray-800 ${buttonHeight} font-medium px-6`}
+        className={`w-auto text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${buttonHeight} font-medium px-6`}
         size="default"
       >
         <span>Отмена</span>
