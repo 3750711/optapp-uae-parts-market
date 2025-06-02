@@ -36,7 +36,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   const handleTelegramContact = (message?: string) => {
     if (message) {
       // Если передано сообщение, открываем Telegram с предзаполненным текстом
-      const telegramUrl = `https://t.me/${product.telegram_url}?text=${message}`;
+      const telegramUrl = `https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}`;
       window.open(telegramUrl, '_blank');
     } else {
       // Иначе просто открываем профиль
