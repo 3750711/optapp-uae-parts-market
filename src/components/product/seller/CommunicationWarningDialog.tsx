@@ -53,13 +53,13 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${
         isMobile 
-          ? "w-[96vw] max-w-sm mx-auto max-h-[95vh] overflow-hidden rounded-lg border bg-white shadow-lg"
+          ? "w-[88vw] max-w-[calc(100vw-16px)] mx-auto max-h-[85vh] overflow-hidden rounded-lg border bg-white shadow-lg"
           : "w-auto max-w-md mx-auto max-h-[90vh] overflow-hidden rounded-lg border bg-white shadow-lg"
       }`}>
         {/* Заголовок */}
-        <DialogHeader className={`${isMobile ? 'p-3 pb-2' : 'p-4 pb-2'} border-b bg-gray-50/50 flex-shrink-0`}>
-          <DialogTitle className="flex items-center gap-2 text-sm font-semibold">
-            <MessageSquare className="h-4 w-4 text-primary flex-shrink-0" />
+        <DialogHeader className={`${isMobile ? 'p-2 pb-1' : 'p-4 pb-2'} border-b bg-gray-50/50 flex-shrink-0`}>
+          <DialogTitle className="flex items-center gap-1.5 text-xs font-semibold">
+            <MessageSquare className="h-3 w-3 text-primary flex-shrink-0" />
             <span>{getDialogTitle()}</span>
           </DialogTitle>
           
@@ -73,9 +73,9 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
         </DialogHeader>
         
         {/* Прокручиваемый контент */}
-        <div className={`overflow-y-auto flex-1 ${isMobile ? 'px-3 py-1' : 'px-4 py-2'}`}>
+        <div className={`overflow-y-auto flex-1 ${isMobile ? 'px-2 py-1' : 'px-4 py-2'}`}>
           <DialogDescription asChild>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {/* Рейтинг коммуникации */}
               <CommunicationRatingSection 
                 communicationRating={communicationRating}

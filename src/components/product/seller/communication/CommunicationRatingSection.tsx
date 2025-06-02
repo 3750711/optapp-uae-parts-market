@@ -12,8 +12,8 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
   communicationRating,
   isMobile = false
 }) => {
-  const iconSize = isMobile ? "h-3 w-3" : "h-4 w-4";
-  const spacing = isMobile ? "gap-1.5" : "gap-2";
+  const iconSize = isMobile ? "h-2.5 w-2.5" : "h-4 w-4";
+  const spacing = isMobile ? "gap-1" : "gap-2";
   const textSize = isMobile ? "text-xs" : "text-sm";
 
   // Упрощенная информация о коммуникации
@@ -104,28 +104,30 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
   const commInfo = getCommunicationInfo();
 
   return (
-    <div className={`${commInfo.bgColor} border ${commInfo.borderColor} rounded-md ${isMobile ? 'p-2' : 'p-3'}`}>
-      <div className={`flex items-center justify-between ${isMobile ? 'mb-1' : 'mb-2'}`}>
-        <div className="flex items-center gap-1.5">
+    <div className={`${commInfo.bgColor} border ${commInfo.borderColor} rounded ${isMobile ? 'p-1.5' : 'p-3'}`}>
+      <div className={`flex items-center justify-between ${isMobile ? 'mb-0.5' : 'mb-2'}`}>
+        <div className="flex items-center gap-1">
           <Shield className={`${iconSize} text-gray-600`} />
-          <span className={`${textSize} font-medium text-gray-700`}>Сложность общения</span>
+          <span className={`${textSize} font-medium text-gray-700`}>
+            {isMobile ? 'Сложность' : 'Сложность общения'}
+          </span>
         </div>
         {communicationRating ? (
           <CommunicationRatingBadge rating={communicationRating} size="sm" />
         ) : (
-          <span className={`text-xs text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-medium`}>
-            Собираем отзывы
+          <span className={`text-xs text-blue-700 bg-blue-50 px-1 py-0.5 rounded border border-blue-200 font-medium`}>
+            {isMobile ? 'Сбор отзывов' : 'Собираем отзывы'}
           </span>
         )}
       </div>
       
-      <div className={`space-y-${isMobile ? '1' : '1.5'}`}>
+      <div className={`space-y-${isMobile ? '0.5' : '1.5'}`}>
         {/* Заголовок */}
         <div className={`flex items-center ${spacing}`}>
-          <span className="text-sm">{commInfo.flag}</span>
+          <span className="text-xs">{commInfo.flag}</span>
           <div>
             <p className={`${commInfo.color} font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
-              {commInfo.title}
+              {isMobile && commInfo.title.length > 20 ? commInfo.title.substring(0, 20) + '...' : commInfo.title}
             </p>
           </div>
         </div>
@@ -134,7 +136,7 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         <div className={`flex items-center ${spacing}`}>
           <Globe className={`${iconSize} ${commInfo.color} flex-shrink-0`} />
           <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-600`}>
-            {commInfo.language}
+            {isMobile ? (commInfo.language.includes('🇬🇧') ? '🇬🇧 Английский' : '🇷🇺 Русский') : commInfo.language}
           </p>
         </div>
 
@@ -142,14 +144,14 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         <div className={`flex items-center ${spacing}`}>
           <Star className={`${iconSize} ${commInfo.color} flex-shrink-0`} />
           <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-600`}>
-            {commInfo.level}
+            {isMobile ? `Уровень: ${communicationRating || '?'}/5` : commInfo.level}
           </p>
         </div>
 
         {/* Рекомендация */}
-        <div className={`${isMobile ? 'mt-1' : 'mt-1.5'} p-1.5 bg-white/50 rounded border border-gray-200`}>
+        <div className={`${isMobile ? 'mt-0.5' : 'mt-1.5'} p-1 bg-white/50 rounded border border-gray-200`}>
           <p className={`${isMobile ? 'text-xs' : 'text-xs'} ${commInfo.color} font-medium`}>
-            💡 {commInfo.recommendation}
+            💡 {isMobile && commInfo.recommendation.length > 30 ? commInfo.recommendation.substring(0, 30) + '...' : commInfo.recommendation}
           </p>
         </div>
       </div>

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Phone, User, HeadphonesIcon } from "lucide-react";
@@ -31,37 +30,34 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const isProfessional = communicationRating === 5;
   const isDirectContactBlocked = communicationRating === 1;
 
-  const buttonHeight = isMobile ? "h-8" : "h-9";
+  const buttonHeight = isMobile ? "h-7" : "h-9";
 
   // Определяем тексты кнопок
   const getAssistantButtonText = () => {
-    if (isVeryDifficult) {
-      return isMobile ? 'Помощник сайта' : 'Задать вопрос помощнику сайта';
-    }
-    return isMobile ? 'Помощник сайта' : 'Задать вопрос помощнику сайта';
+    return isMobile ? 'Помощник' : 'Задать вопрос помощнику сайта';
   };
 
   const getDirectContactButtonText = () => {
-    if (isProfessional) {
-      return isMobile 
-        ? `${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
-        : `Написать профессионалу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+    if (isMobile) {
+      return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
     }
-    return isMobile
-      ? `${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`
-      : `Написать продавцу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+    
+    if (isProfessional) {
+      return `Написать профессионалу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+    }
+    return `Написать продавцу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
   };
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-1.5 p-2 w-full">
+      <div className="flex flex-col gap-1 p-1.5 w-full">
         {/* Кнопка помощника - показываем всегда */}
         <Button 
           onClick={onAssistantContact}
           className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-xs`}
           size="sm"
         >
-          <HeadphonesIcon className="h-3 w-3 mr-1.5" />
+          <HeadphonesIcon className="h-3 w-3 mr-1" />
           <span>{getAssistantButtonText()}</span>
         </Button>
         
@@ -74,9 +70,9 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
             size="sm"
           >
             {contactType === 'telegram' ? (
-              <MessageSquare className="h-3 w-3 mr-1.5" />
+              <MessageSquare className="h-3 w-3 mr-1" />
             ) : (
-              <Phone className="h-3 w-3 mr-1.5" />
+              <Phone className="h-3 w-3 mr-1" />
             )}
             <span>{getDirectContactButtonText()}</span>
           </Button>
@@ -90,9 +86,9 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
             size="sm"
           >
             {contactType === 'telegram' ? (
-              <MessageSquare className="h-3 w-3 mr-1.5" />
+              <MessageSquare className="h-3 w-3 mr-1" />
             ) : (
-              <Phone className="h-3 w-3 mr-1.5" />
+              <Phone className="h-3 w-3 mr-1" />
             )}
             <span>{getDirectContactButtonText()}</span>
           </Button>
@@ -102,7 +98,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-7 font-medium text-xs`}
+          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-6 font-medium text-xs`}
           size="sm"
         >
           <span>Отмена</span>
