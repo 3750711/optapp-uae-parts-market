@@ -35,37 +35,17 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
     if (isMobile) {
       return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
     }
-    
-    if (isProfessional) {
-      return `Написать в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
-    }
     return `Написать в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
-  };
-
-  const getAssistantButtonStyle = () => {
-    if (isVeryDifficult) {
-      return "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
-    }
-    return "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
-  };
-
-  const getDirectContactButtonStyle = () => {
-    if (isProfessional) {
-      return "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
-    }
-    if (isVeryDifficult) {
-      return "bg-white border-2 border-green-500 text-green-700 hover:bg-green-50 shadow-md transform transition-all duration-200 hover:scale-105 active:scale-95";
-    }
-    return "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
   };
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-3 p-4">
+      <div className="flex flex-col gap-2 p-3">
         {/* Кнопка помощника */}
         <Button 
           onClick={onAssistantContact}
-          className={`w-full h-12 font-semibold text-sm rounded-xl ${getAssistantButtonStyle()}`}
+          className="w-full h-11 font-semibold text-sm rounded-lg"
+          variant={isVeryDifficult ? "destructive" : "default"}
           size="lg"
         >
           <HeadphonesIcon className="h-4 w-4 mr-2" />
@@ -76,7 +56,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {!isProfessional && !isDirectContactBlocked && (
           <Button 
             onClick={onProceed} 
-            className={`w-full h-12 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+            className="w-full h-11 font-semibold text-sm rounded-lg"
+            variant={isVeryDifficult ? "outline" : "secondary"}
             size="lg"
           >
             {contactType === 'telegram' ? (
@@ -92,7 +73,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         {isProfessional && (
           <Button 
             onClick={onProceed} 
-            className={`w-full h-12 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+            className="w-full h-11 font-semibold text-sm rounded-lg"
+            variant="secondary"
             size="lg"
           >
             {contactType === 'telegram' ? (
@@ -108,7 +90,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className="w-full h-10 font-medium text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all duration-200"
+          className="w-full h-9 font-medium text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
           size="sm"
         >
           Отмена
@@ -118,11 +100,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   }
 
   return (
-    <div className="flex flex-row gap-3 p-5">
+    <div className="flex flex-row gap-2 p-4">
       {/* Кнопка помощника */}
       <Button 
         onClick={onAssistantContact}
-        className={`flex-1 h-11 font-semibold text-sm rounded-xl ${getAssistantButtonStyle()}`}
+        className="flex-1 h-10 font-semibold text-sm rounded-lg"
+        variant={isVeryDifficult ? "destructive" : "default"}
         size="lg"
       >
         <HeadphonesIcon className="h-4 w-4 mr-2" />
@@ -133,7 +116,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       {!isProfessional && !isDirectContactBlocked && (
         <Button 
           onClick={onProceed} 
-          className={`flex-1 h-11 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+          className="flex-1 h-10 font-semibold text-sm rounded-lg"
+          variant={isVeryDifficult ? "outline" : "secondary"}
           size="lg"
         >
           {contactType === 'telegram' ? (
@@ -149,7 +133,8 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       {isProfessional && (
         <Button 
           onClick={onProceed} 
-          className={`flex-1 h-11 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+          className="flex-1 h-10 font-semibold text-sm rounded-lg"
+          variant="secondary"
           size="lg"
         >
           {contactType === 'telegram' ? (
@@ -165,7 +150,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       <Button 
         variant="ghost" 
         onClick={onCancel}
-        className="w-auto h-11 font-medium px-6 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all duration-200"
+        className="w-auto h-10 font-medium px-4 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
         size="lg"
       >
         Отмена
