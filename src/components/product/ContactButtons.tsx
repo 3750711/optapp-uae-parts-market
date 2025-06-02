@@ -1,5 +1,3 @@
-
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -102,7 +100,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setShowCommunicationWarning(false);
     
     if (pendingContactType === 'telegram') {
-      // Формируем шаблон сообщения для Telegram
+      // Формируем шаблон сообщения для Telegram на английском
       const currentUrl = window.location.href;
       const productUrl = currentUrl.replace(
         /https:\/\/[^\/]+/,
