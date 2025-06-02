@@ -28,14 +28,14 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const isDirectContactBlocked = communicationRating === 1;
 
   const getAssistantButtonText = () => {
-    return isMobile ? 'Помощник' : 'Помощник сайта';
+    return isMobile ? 'Помощник' : 'Помощник - менеджер поможет договориться';
   };
 
   const getDirectContactButtonText = () => {
     if (isMobile) {
       return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
     }
-    return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
+    return contactType === 'telegram' ? 'Telegram - Напрямую с продавцем' : 'WhatsApp - Напрямую с продавцем';
   };
 
   if (isMobile) {
