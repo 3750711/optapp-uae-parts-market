@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageSquare, X } from "lucide-react";
+import { X } from "lucide-react";
 import { ProductCard } from "./communication/ProductCard";
 import { CommunicationRatingSection } from "./communication/CommunicationRatingSection";
 import { WorkingHoursInfo } from "./communication/WorkingHoursInfo";
@@ -47,46 +47,35 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     return "Связь с продавцом";
   };
 
-  const getDialogIcon = () => {
-    if (communicationRating === 1) {
-      return "🆘";
-    } else if (communicationRating === 5) {
-      return "⭐";
-    }
-    return "💬";
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`
         ${isMobile 
-          ? "w-[88vw] max-w-[calc(100vw-16px)] h-auto max-h-[90vh]" 
-          : "w-full max-w-md h-auto max-h-[85vh]"
+          ? "w-[90vw] max-w-[calc(100vw-32px)] h-auto max-h-[85vh]" 
+          : "w-full max-w-md h-auto"
         } 
-        mx-auto overflow-hidden rounded-xl border border-border bg-background 
-        shadow-elevation p-0 gap-0
+        mx-auto overflow-hidden rounded-lg bg-white shadow-lg border p-0 gap-0
       `}>
         
         {/* Кнопка закрытия */}
         <button
           onClick={() => onOpenChange(false)}
-          className="absolute right-3 top-3 z-50 flex h-8 w-8 items-center justify-center rounded-full bg-background/90 backdrop-blur-sm border border-border transition-all hover:bg-muted hover:scale-110 active:scale-95 shadow-sm"
+          className="absolute right-2 top-2 z-50 flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
         >
-          <X className="h-4 w-4 text-foreground" />
+          <X className="h-4 w-4 text-gray-600" />
         </button>
 
         {/* Заголовок */}
-        <DialogHeader className="relative overflow-hidden rounded-t-xl bg-primary p-4 text-primary-foreground">
-          <DialogTitle className="flex items-center gap-2 text-lg font-bold">
-            <span className="text-2xl">{getDialogIcon()}</span>
-            <span>{getDialogTitle()}</span>
+        <DialogHeader className="bg-gray-50 border-b px-4 py-3">
+          <DialogTitle className="text-lg font-semibold text-gray-900">
+            {getDialogTitle()}
           </DialogTitle>
         </DialogHeader>
         
         {/* Основной контент */}
-        <div className={`flex-1 overflow-y-auto ${isMobile ? 'px-3 py-3' : 'px-4 py-4'} space-y-3`}>
+        <div className="p-4 space-y-4">
           <DialogDescription asChild>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Карточка товара */}
               <ProductCard 
                 productTitle={productTitle}
@@ -107,8 +96,8 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
           </DialogDescription>
         </div>
         
-        {/* Нижние кнопки */}
-        <div className="relative overflow-hidden rounded-b-xl bg-muted/30 border-t border-border p-0">
+        {/* Кнопки */}
+        <div className="border-t bg-gray-50">
           <DialogButtons 
             onAssistantContact={handleAssistantContact}
             onProceed={onProceed}

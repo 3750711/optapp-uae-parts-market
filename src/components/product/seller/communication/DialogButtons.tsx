@@ -28,61 +28,42 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const isDirectContactBlocked = communicationRating === 1;
 
   const getAssistantButtonText = () => {
-    return isMobile ? 'Помощник' : 'Задать вопрос помощнику';
+    return isMobile ? 'Помощник' : 'Помощник сайта';
   };
 
   const getDirectContactButtonText = () => {
     if (isMobile) {
       return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
     }
-    return `Написать в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+    return contactType === 'telegram' ? 'Telegram' : 'WhatsApp';
   };
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-2 p-3">
+      <div className="p-3 space-y-2">
         {/* Кнопка помощника */}
         <Button 
           onClick={onAssistantContact}
-          className="w-full h-11 font-semibold text-sm rounded-lg"
+          className="w-full h-10"
           variant={isVeryDifficult ? "destructive" : "default"}
-          size="lg"
         >
           <HeadphonesIcon className="h-4 w-4 mr-2" />
-          <span>{getAssistantButtonText()}</span>
+          {getAssistantButtonText()}
         </Button>
         
         {/* Прямая связь */}
-        {!isProfessional && !isDirectContactBlocked && (
+        {!isDirectContactBlocked && (
           <Button 
             onClick={onProceed} 
-            className="w-full h-11 font-semibold text-sm rounded-lg"
-            variant={isVeryDifficult ? "outline" : "secondary"}
-            size="lg"
+            className="w-full h-10"
+            variant="outline"
           >
             {contactType === 'telegram' ? (
               <MessageSquare className="h-4 w-4 mr-2" />
             ) : (
               <Phone className="h-4 w-4 mr-2" />
             )}
-            <span>{getDirectContactButtonText()}</span>
-          </Button>
-        )}
-
-        {/* Для профессионалов */}
-        {isProfessional && (
-          <Button 
-            onClick={onProceed} 
-            className="w-full h-11 font-semibold text-sm rounded-lg"
-            variant="secondary"
-            size="lg"
-          >
-            {contactType === 'telegram' ? (
-              <MessageSquare className="h-4 w-4 mr-2" />
-            ) : (
-              <Phone className="h-4 w-4 mr-2" />
-            )}
-            <span>{getDirectContactButtonText()}</span>
+            {getDirectContactButtonText()}
           </Button>
         )}
         
@@ -90,7 +71,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className="w-full h-9 font-medium text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
+          className="w-full h-8 text-gray-500"
           size="sm"
         >
           Отмена
@@ -100,49 +81,30 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   }
 
   return (
-    <div className="flex flex-row gap-2 p-4">
+    <div className="p-3 flex gap-2">
       {/* Кнопка помощника */}
       <Button 
         onClick={onAssistantContact}
-        className="flex-1 h-10 font-semibold text-sm rounded-lg"
+        className="flex-1 h-10"
         variant={isVeryDifficult ? "destructive" : "default"}
-        size="lg"
       >
         <HeadphonesIcon className="h-4 w-4 mr-2" />
-        <span>{getAssistantButtonText()}</span>
+        {getAssistantButtonText()}
       </Button>
       
       {/* Прямая связь */}
-      {!isProfessional && !isDirectContactBlocked && (
+      {!isDirectContactBlocked && (
         <Button 
           onClick={onProceed} 
-          className="flex-1 h-10 font-semibold text-sm rounded-lg"
-          variant={isVeryDifficult ? "outline" : "secondary"}
-          size="lg"
+          className="flex-1 h-10"
+          variant="outline"
         >
           {contactType === 'telegram' ? (
             <MessageSquare className="h-4 w-4 mr-2" />
           ) : (
             <Phone className="h-4 w-4 mr-2" />
           )}
-          <span>{getDirectContactButtonText()}</span>
-        </Button>
-      )}
-
-      {/* Для профессионалов */}
-      {isProfessional && (
-        <Button 
-          onClick={onProceed} 
-          className="flex-1 h-10 font-semibold text-sm rounded-lg"
-          variant="secondary"
-          size="lg"
-        >
-          {contactType === 'telegram' ? (
-            <MessageSquare className="h-4 w-4 mr-2" />
-          ) : (
-            <Phone className="h-4 w-4 mr-2" />
-          )}
-          <span>{getDirectContactButtonText()}</span>
+          {getDirectContactButtonText()}
         </Button>
       )}
       
@@ -150,8 +112,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       <Button 
         variant="ghost" 
         onClick={onCancel}
-        className="w-auto h-10 font-medium px-4 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition-all duration-200"
-        size="lg"
+        className="px-4 h-10 text-gray-500"
       >
         Отмена
       </Button>
