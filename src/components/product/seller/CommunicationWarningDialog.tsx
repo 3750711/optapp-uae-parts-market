@@ -27,7 +27,8 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       /https:\/\/[^\/]+/,
       'https://partsbay.ae'
     );
-    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(productUrl)}`;
+    const message = `Здравствуйте! Прошу помочь с переговорами по этому объявлению: ${productUrl}`;
+    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(message)}`;
     
     try {
       window.open(telegramUrl, '_blank');
