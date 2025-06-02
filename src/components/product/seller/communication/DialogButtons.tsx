@@ -38,7 +38,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
 
   if (isMobile) {
     return (
-      <TooltipProvider>
+      <TooltipProvider delayDuration={0}>
         <div className="p-3 space-y-2">
           {/* Кнопка помощника с подсказкой */}
           <Tooltip>
@@ -52,7 +52,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
                 {getAssistantButtonText()}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent 
+              side="top" 
+              align="center"
+              className="text-xs max-w-[200px] text-center"
+              sideOffset={8}
+            >
               <p>Менеджер поможет договориться</p>
             </TooltipContent>
           </Tooltip>
@@ -74,7 +79,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
                   {getDirectContactButtonText()}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent 
+                side="top" 
+                align="center"
+                className="text-xs max-w-[200px] text-center"
+                sideOffset={8}
+              >
                 <p>Напрямую с продавцем</p>
               </TooltipContent>
             </Tooltip>
@@ -95,7 +105,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   }
 
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={200}>
       <div className="p-3 flex gap-2">
         {/* Кнопка помощника с подсказкой */}
         <Tooltip>
@@ -109,7 +119,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
               {getAssistantButtonText()}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>
+          <TooltipContent 
+            side="top" 
+            align="center"
+            className="text-sm"
+            sideOffset={5}
+          >
             <p>Менеджер поможет договориться</p>
           </TooltipContent>
         </Tooltip>
@@ -131,7 +146,12 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
                 {getDirectContactButtonText()}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent 
+              side="top" 
+              align="center"
+              className="text-sm"
+              sideOffset={5}
+            >
               <p>Напрямую с продавцем</p>
             </TooltipContent>
           </Tooltip>
