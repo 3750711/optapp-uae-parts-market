@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { X } from "lucide-react";
@@ -27,8 +26,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
       /https:\/\/[^\/]+/,
       'https://partsbay.ae'
     );
-    const message = `Здравствуйте! Прошу помочь с переговорами по этому объявлению: ${productUrl}`;
-    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(message)}`;
+    const telegramUrl = `https://t.me/Nastya_PostingLots_OptCargo?text=${encodeURIComponent(productUrl)}`;
     
     try {
       window.open(telegramUrl, '_blank');
