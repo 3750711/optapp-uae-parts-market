@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageSquare } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageSquare, X } from "lucide-react";
 import { ProductCard } from "./communication/ProductCard";
 import { CommunicationRatingSection } from "./communication/CommunicationRatingSection";
 import { WorkingHoursInfo } from "./communication/WorkingHoursInfo";
@@ -22,7 +22,6 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
   const isMobile = useIsMobile();
 
   const handleAssistantContact = () => {
-    // Получаем текущий URL и заменяем домен на основной
     const currentUrl = window.location.href;
     const productUrl = currentUrl.replace(
       /https:\/\/[^\/]+/,
@@ -39,57 +38,92 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
     onOpenChange(false);
   };
 
-  // Определяем заголовок в зависимости от рейтинга
   const getDialogTitle = () => {
     if (communicationRating === 1) {
-      return "Связаться через помощника";
+      return "Связь через помощника";
     } else if (communicationRating === 5) {
-      return "Связаться с профессионалом";
+      return "Связь с профессионалом";
     }
-    return "Уточнить детали у продавца";
+    return "Связь с продавцом";
+  };
+
+  const getDialogIcon = () => {
+    if (communicationRating === 1) {
+      return "🆘";
+    } else if (communicationRating === 5) {
+      return "⭐";
+    }
+    return "💬";
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${
-        isMobile 
-          ? "w-[88vw] max-w-[calc(100vw-16px)] mx-auto max-h-[85vh] overflow-hidden rounded-lg border bg-white shadow-lg"
-          : "w-auto max-w-md mx-auto max-h-[90vh] overflow-hidden rounded-lg border bg-white shadow-lg"
-      }`}>
-        {/* Заголовок */}
-        <DialogHeader className={`${isMobile ? 'p-2 pb-1' : 'p-4 pb-2'} border-b bg-gray-50/50 flex-shrink-0`}>
-          <DialogTitle className="flex items-center gap-1.5 text-xs font-semibold">
-            <MessageSquare className="h-3 w-3 text-primary flex-shrink-0" />
+      <DialogContent className={`
+        ${isMobile 
+          ? "w-[90vw] max-w-[calc(100vw-24px)] h-[90vh] max-h-[90vh]" 
+          : "w-full max-w-md h-auto max-h-[85vh]"
+        } 
+        mx-auto overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-white via-blue-50/30 to-green-50/30 
+        shadow-2xl backdrop-blur-sm p-0 gap-0
+      `}>
+        
+        {/* Кастомная кнопка закрытия */}
+        <button
+          onClick={() => onOpenChange(false)}
+          className="absolute right-3 top-3 z-50 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm transition-all hover:bg-white hover:scale-110 active:scale-95"
+        >
+          <X className="h-4 w-4 text-gray-600" />
+        </button>
+
+        {/* Заголовок с градиентом */}
+        <DialogHeader className="relative overflow-hidden rounded-t-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-green-600 p-4 text-white">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <DialogTitle className="relative z-10 flex items-center gap-2 text-lg font-bold">
+            <span className="text-2xl">{getDialogIcon()}</span>
             <span>{getDialogTitle()}</span>
           </DialogTitle>
           
-          {/* Карточка товара в заголовке для экономии места */}
-          <ProductCard 
-            productTitle={productTitle}
-            productPrice={productPrice}
-            lotNumber={lotNumber}
-            isMobile={isMobile}
-          />
+          {/* Волны в заголовке */}
+          <div className="absolute bottom-0 left-0 right-0 h-4">
+            <svg viewBox="0 0 400 40" className="h-full w-full">
+              <path d="M0,20 Q100,0 200,20 T400,20 L400,40 L0,40 Z" fill="rgba(255,255,255,0.1)" />
+            </svg>
+          </div>
         </DialogHeader>
         
-        {/* Прокручиваемый контент */}
-        <div className={`overflow-y-auto flex-1 ${isMobile ? 'px-2 py-1' : 'px-4 py-2'}`}>
+        {/* Основной контент */}
+        <div className={`flex-1 overflow-y-auto ${isMobile ? 'px-3 py-4' : 'px-5 py-4'} space-y-4`}>
           <DialogDescription asChild>
-            <div className="space-y-1.5">
+            <div className="space-y-4">
+              {/* Карточка товара */}
+              <div className="transform transition-all duration-300 hover:scale-[1.02]">
+                <ProductCard 
+                  productTitle={productTitle}
+                  productPrice={productPrice}
+                  lotNumber={lotNumber}
+                  isMobile={isMobile}
+                />
+              </div>
+
               {/* Рейтинг коммуникации */}
-              <CommunicationRatingSection 
-                communicationRating={communicationRating}
-                isMobile={isMobile}
-              />
+              <div className="transform transition-all duration-300 hover:scale-[1.01]">
+                <CommunicationRatingSection 
+                  communicationRating={communicationRating}
+                  isMobile={isMobile}
+                />
+              </div>
 
               {/* Информация о времени работы */}
-              <WorkingHoursInfo isMobile={isMobile} />
+              <div className="transform transition-all duration-300 hover:scale-[1.01]">
+                <WorkingHoursInfo isMobile={isMobile} />
+              </div>
             </div>
           </DialogDescription>
         </div>
         
-        {/* Фиксированный футер с кнопками */}
-        <DialogFooter className="flex-shrink-0 border-t bg-white p-0">
+        {/* Нижние кнопки с градиентом */}
+        <div className="relative overflow-hidden rounded-b-2xl bg-gradient-to-r from-gray-50 to-blue-50/50 p-0">
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent"></div>
           <DialogButtons 
             onAssistantContact={handleAssistantContact}
             onProceed={onProceed}
@@ -101,7 +135,7 @@ export const CommunicationWarningDialog: React.FC<CommunicationWarningDialogProp
             lotNumber={lotNumber}
             isMobile={isMobile}
           />
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

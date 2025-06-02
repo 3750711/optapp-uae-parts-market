@@ -1,7 +1,7 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Phone, User, HeadphonesIcon } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { MessageSquare, Phone, HeadphonesIcon } from "lucide-react";
 
 interface DialogButtonsProps {
   onAssistantContact: () => void;
@@ -21,20 +21,14 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   onCancel,
   communicationRating,
   contactType,
-  isMobile = false,
-  productTitle = "",
-  productPrice = 0,
-  lotNumber
+  isMobile = false
 }) => {
-  const isVeryDifficult = communicationRating === 1 || communicationRating === 2;
   const isProfessional = communicationRating === 5;
+  const isVeryDifficult = communicationRating === 1 || communicationRating === 2;
   const isDirectContactBlocked = communicationRating === 1;
 
-  const buttonHeight = isMobile ? "h-7" : "h-9";
-
-  // Определяем тексты кнопок
   const getAssistantButtonText = () => {
-    return isMobile ? 'Помощник' : 'Задать вопрос помощнику сайта';
+    return isMobile ? 'Помощник' : 'Задать вопрос помощнику';
   };
 
   const getDirectContactButtonText = () => {
@@ -43,52 +37,68 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
     }
     
     if (isProfessional) {
-      return `Написать профессионалу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+      return `Написать в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
     }
-    return `Написать продавцу в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+    return `Написать в ${contactType === 'telegram' ? 'Telegram' : 'WhatsApp'}`;
+  };
+
+  const getAssistantButtonStyle = () => {
+    if (isVeryDifficult) {
+      return "bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
+    }
+    return "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
+  };
+
+  const getDirectContactButtonStyle = () => {
+    if (isProfessional) {
+      return "bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
+    }
+    if (isVeryDifficult) {
+      return "bg-white border-2 border-green-500 text-green-700 hover:bg-green-50 shadow-md transform transition-all duration-200 hover:scale-105 active:scale-95";
+    }
+    return "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transform transition-all duration-200 hover:scale-105 active:scale-95";
   };
 
   if (isMobile) {
     return (
-      <div className="flex flex-col gap-1 p-1.5 w-full">
-        {/* Кнопка помощника - показываем всегда */}
+      <div className="flex flex-col gap-3 p-4">
+        {/* Кнопка помощника */}
         <Button 
           onClick={onAssistantContact}
-          className={`w-full ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-xs`}
-          size="sm"
+          className={`w-full h-12 font-semibold text-sm rounded-xl ${getAssistantButtonStyle()}`}
+          size="lg"
         >
-          <HeadphonesIcon className="h-3 w-3 mr-1" />
+          <HeadphonesIcon className="h-4 w-4 mr-2" />
           <span>{getAssistantButtonText()}</span>
         </Button>
         
-        {/* Прямая связь - блокируем для рейтинга 1 */}
+        {/* Прямая связь */}
         {!isProfessional && !isDirectContactBlocked && (
           <Button 
             onClick={onProceed} 
-            variant={isVeryDifficult ? "outline" : "default"}
-            className={`w-full ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium text-xs`}
-            size="sm"
+            className={`w-full h-12 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+            size="lg"
           >
             {contactType === 'telegram' ? (
-              <MessageSquare className="h-3 w-3 mr-1" />
+              <MessageSquare className="h-4 w-4 mr-2" />
             ) : (
-              <Phone className="h-3 w-3 mr-1" />
+              <Phone className="h-4 w-4 mr-2" />
             )}
             <span>{getDirectContactButtonText()}</span>
           </Button>
         )}
 
-        {/* Для профессионалов - прямая связь как основная кнопка */}
+        {/* Для профессионалов */}
         {isProfessional && (
           <Button 
             onClick={onProceed} 
-            className={`w-full bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium text-xs`}
-            size="sm"
+            className={`w-full h-12 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+            size="lg"
           >
             {contactType === 'telegram' ? (
-              <MessageSquare className="h-3 w-3 mr-1" />
+              <MessageSquare className="h-4 w-4 mr-2" />
             ) : (
-              <Phone className="h-3 w-3 mr-1" />
+              <Phone className="h-4 w-4 mr-2" />
             )}
             <span>{getDirectContactButtonText()}</span>
           </Button>
@@ -98,55 +108,54 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
         <Button 
           variant="ghost" 
           onClick={onCancel}
-          className={`w-full text-gray-600 hover:text-gray-800 hover:bg-gray-100 h-6 font-medium text-xs`}
+          className="w-full h-10 font-medium text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all duration-200"
           size="sm"
         >
-          <span>Отмена</span>
+          Отмена
         </Button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-row gap-2 p-3">
-      {/* Кнопка помощника - приоритет для сложных случаев */}
+    <div className="flex flex-row gap-3 p-5">
+      {/* Кнопка помощника */}
       <Button 
         onClick={onAssistantContact}
-        className={`flex-1 ${isVeryDifficult ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white ${buttonHeight} font-medium text-xs`}
-        size="sm"
+        className={`flex-1 h-11 font-semibold text-sm rounded-xl ${getAssistantButtonStyle()}`}
+        size="lg"
       >
-        <HeadphonesIcon className="h-3 w-3 mr-1.5" />
+        <HeadphonesIcon className="h-4 w-4 mr-2" />
         <span>{getAssistantButtonText()}</span>
       </Button>
       
-      {/* Прямая связь - блокируем для рейтинга 1 */}
+      {/* Прямая связь */}
       {!isProfessional && !isDirectContactBlocked && (
         <Button 
           onClick={onProceed} 
-          variant={isVeryDifficult ? "outline" : "default"}
-          className={`flex-1 ${isVeryDifficult ? 'border-green-600 text-green-700 hover:bg-green-50' : 'bg-green-600 hover:bg-green-700 text-white'} ${buttonHeight} font-medium text-xs`}
-          size="sm"
+          className={`flex-1 h-11 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+          size="lg"
         >
           {contactType === 'telegram' ? (
-            <MessageSquare className="h-3 w-3 mr-1.5" />
+            <MessageSquare className="h-4 w-4 mr-2" />
           ) : (
-            <Phone className="h-3 w-3 mr-1.5" />
+            <Phone className="h-4 w-4 mr-2" />
           )}
           <span>{getDirectContactButtonText()}</span>
         </Button>
       )}
 
-      {/* Для профессионалов - прямая связь как основная кнопка */}
+      {/* Для профессионалов */}
       {isProfessional && (
         <Button 
           onClick={onProceed} 
-          className={`flex-1 bg-emerald-600 hover:bg-emerald-700 text-white ${buttonHeight} font-medium text-xs`}
-          size="sm"
+          className={`flex-1 h-11 font-semibold text-sm rounded-xl ${getDirectContactButtonStyle()}`}
+          size="lg"
         >
           {contactType === 'telegram' ? (
-            <MessageSquare className="h-3 w-3 mr-1.5" />
+            <MessageSquare className="h-4 w-4 mr-2" />
           ) : (
-            <Phone className="h-3 w-3 mr-1.5" />
+            <Phone className="h-4 w-4 mr-2" />
           )}
           <span>{getDirectContactButtonText()}</span>
         </Button>
@@ -156,10 +165,10 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
       <Button 
         variant="ghost" 
         onClick={onCancel}
-        className={`w-auto text-gray-600 hover:text-gray-800 hover:bg-gray-100 ${buttonHeight} font-medium px-4 text-xs`}
-        size="sm"
+        className="w-auto h-11 font-medium px-6 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-all duration-200"
+        size="lg"
       >
-        <span>Отмена</span>
+        Отмена
       </Button>
     </div>
   );
