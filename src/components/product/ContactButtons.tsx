@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -17,7 +18,7 @@ type OrderStatus = Database["public"]["Enums"]["order_status"];
 type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 interface ContactButtonsProps {
-  onContactTelegram: () => void;
+  onContactTelegram: (message?: string) => void;
   onContactWhatsApp: () => void;
   telegramUrl?: string;
   product: {
@@ -100,7 +101,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     setShowCommunicationWarning(false);
     
     if (pendingContactType === 'telegram') {
-      onContactTelegram();
+      // Формируем шаблон сообщения для Telegram
+      const currentUrl = window.location.href;
+      const productUrl = currentUrl.replace(
+        /https:\/\/[^\/]+/,
+        'https://partsbay.ae'
+      );
+      const message = `I'm interested in ${productUrl}`;
+      onContactTelegram(message);
     } else if (pendingContactType === 'whatsapp') {
       onContactWhatsApp();
     }

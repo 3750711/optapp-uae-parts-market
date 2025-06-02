@@ -34,6 +34,17 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
 }) => {
+  const handleTelegramContact = (message?: string) => {
+    if (message) {
+      // Если передано сообщение, открываем Telegram с предзаполненным текстом
+      const telegramUrl = `https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}`;
+      window.open(telegramUrl, '_blank');
+    } else {
+      // Иначе просто открываем профиль
+      window.open(`https://t.me/${product.telegram_url}`, '_blank');
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       {/* Gallery section */}
@@ -61,7 +72,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
         />
         
         <ContactButtons 
-          onContactTelegram={() => window.open(`https://t.me/${product.telegram_url}`, '_blank')}
+          onContactTelegram={handleTelegramContact}
           onContactWhatsApp={() => window.open(`https://wa.me/${product.phone_url}`, '_blank')}
           telegramUrl={product.telegram_url}
           product={{
