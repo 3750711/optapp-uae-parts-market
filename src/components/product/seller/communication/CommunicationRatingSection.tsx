@@ -1,7 +1,6 @@
 
 import React from "react";
-import { MessageCircle } from "lucide-react";
-import { CommunicationRatingBadge } from "@/components/admin/CommunicationRatingBadge";
+import { AlertTriangle, MessageCircle, CheckCircle, Clock } from "lucide-react";
 
 interface CommunicationRatingSectionProps {
   communicationRating?: number | null;
@@ -10,83 +9,89 @@ interface CommunicationRatingSectionProps {
 
 export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProps> = ({
   communicationRating,
-  isMobile = false
+  isMobile
 }) => {
-  const getCommunicationInfo = () => {
+  const getRatingInfo = () => {
     if (!communicationRating) {
       return {
-        title: "Собираем отзывы",
-        description: "Рекомендуем помощника",
-        color: "text-gray-600"
+        icon: <MessageCircle className="w-5 h-5 text-blue-500" />,
+        title: "Собираем отзывы о коммуникации",
+        description: "Пока недостаточно данных для оценки",
+        bgColor: "bg-blue-50",
+        borderColor: "border-blue-200"
       };
     }
 
     switch (communicationRating) {
       case 1:
         return {
-          title: "Очень сложно",
-          description: "Только через помощника",
-          color: "text-red-600"
+          icon: <AlertTriangle className="w-5 h-5 text-red-500" />,
+          title: "Сложная коммуникация",
+          description: "По статистике partsbay договориться напрямую с этим продавцем очень сложно, пожалуйста обратитесь к нашему менеджеру он поможет уточнить необходимую информацию и оформить заказ",
+          bgColor: "bg-red-50",
+          borderColor: "border-red-200"
         };
       case 2:
         return {
-          title: "Сложно",
-          description: "Лучше через помощника",
-          color: "text-orange-600"
+          icon: <Clock className="w-5 h-5 text-orange-500" />,
+          title: "Требует терпения",
+          description: "Продавец может отвечать с задержкой или требовать дополнительных уточнений",
+          bgColor: "bg-orange-50",
+          borderColor: "border-orange-200"
         };
       case 3:
         return {
-          title: "Умеренно",
-          description: "Нужен английский",
-          color: "text-yellow-600"
+          icon: <MessageCircle className="w-5 h-5 text-yellow-500" />,
+          title: "Средняя коммуникация",
+          description: "Продавец обычно отвечает, но могут быть небольшие задержки",
+          bgColor: "bg-yellow-50",
+          borderColor: "border-yellow-200"
         };
       case 4:
         return {
-          title: "Легко",
-          description: "Можно писать по-русски",
-          color: "text-green-600"
+          icon: <CheckCircle className="w-5 h-5 text-green-500" />,
+          title: "Хорошая коммуникация",
+          description: "Продавец отвечает быстро и понятно",
+          bgColor: "bg-green-50",
+          borderColor: "border-green-200"
         };
       case 5:
         return {
-          title: "Профессионал",
-          description: "Отличный продавец",
-          color: "text-blue-600"
+          icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
+          title: "Отличная коммуникация",
+          description: "Продавец очень отзывчив и профессионален",
+          bgColor: "bg-emerald-50",
+          borderColor: "border-emerald-200"
         };
       default:
         return {
-          title: "Неизвестно",
-          description: "Рекомендуем помощника",
-          color: "text-gray-600"
+          icon: <MessageCircle className="w-5 h-5 text-gray-500" />,
+          title: "Оценка недоступна",
+          description: "Недостаточно данных для оценки",
+          bgColor: "bg-gray-50",
+          borderColor: "border-gray-200"
         };
     }
   };
 
-  const commInfo = getCommunicationInfo();
+  const ratingInfo = getRatingInfo();
 
   return (
-    <div className="border rounded-lg p-3 bg-white">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <MessageCircle className="h-4 w-4 text-gray-500" />
-          <span className="text-sm font-medium text-gray-900">Сложность общения</span>
-        </div>
-        {communicationRating ? (
-          <CommunicationRatingBadge rating={communicationRating} size="sm" />
-        ) : (
-          <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
-            Сбор отзывов
-          </span>
-        )}
+    <div className={`
+      ${ratingInfo.bgColor} ${ratingInfo.borderColor} 
+      border rounded-lg p-4 space-y-2
+    `}>
+      <div className="flex items-center gap-2">
+        {ratingInfo.icon}
+        <span className="font-medium text-gray-900">
+          {ratingInfo.title}
+        </span>
       </div>
-      
-      <div className="space-y-1">
-        <h3 className={`font-semibold text-sm ${commInfo.color}`}>
-          {commInfo.title}
-        </h3>
-        <p className="text-xs text-gray-600">
-          💡 {commInfo.description}
-        </p>
-      </div>
+      <p className={`text-sm text-gray-700 leading-relaxed ${
+        communicationRating === 1 ? 'font-medium' : ''
+      }`}>
+        {ratingInfo.description}
+      </p>
     </div>
   );
 };
