@@ -1,4 +1,5 @@
 
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -107,7 +108,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         /https:\/\/[^\/]+/,
         'https://partsbay.ae'
       );
-      const message = `I'm interested in ${productUrl}`;
+      const message = `Hello, I saw your advertise on partsbay, can you please send more details about ${productUrl}`;
       onContactTelegram(message);
     } else if (pendingContactType === 'whatsapp') {
       onContactWhatsApp();

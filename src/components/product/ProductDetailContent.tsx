@@ -1,4 +1,3 @@
-
 import React from "react";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductVideos from "@/components/product/ProductVideos";
@@ -37,7 +36,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   const handleTelegramContact = (message?: string) => {
     if (message) {
       // Если передано сообщение, открываем Telegram с предзаполненным текстом
-      const telegramUrl = `https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}`;
+      const telegramUrl = `https://t.me/${product.telegram_url}?text=${message}`;
       window.open(telegramUrl, '_blank');
     } else {
       // Иначе просто открываем профиль
