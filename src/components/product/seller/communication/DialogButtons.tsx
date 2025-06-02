@@ -29,7 +29,7 @@ export const DialogButtons: React.FC<DialogButtonsProps> = ({
   const isDirectContactBlocked = communicationRating === 1;
 
   const getAssistantButtonText = () => {
-    return 'Помощник';
+    return 'Менеджер';
   };
 
   const getDirectContactButtonText = () => {
