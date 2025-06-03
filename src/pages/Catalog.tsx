@@ -10,6 +10,7 @@ import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
 import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting";
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
+import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { SearchHistoryItem } from "@/hooks/useSearchHistory";
@@ -17,7 +18,8 @@ import { SearchHistoryItem } from "@/hooks/useSearchHistory";
 const Catalog: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const productsPerPage = 8;
+  const [viewMode, setViewMode] = useState<ViewMode>('list'); // Default to list view for better performance
+  const productsPerPage = viewMode === 'list' ? 16 : 8; // More products in list view
   
   // Car brands and models
   const {
@@ -62,8 +64,8 @@ const Catalog: React.FC = () => {
   const productImages = mappedProducts.map(product => product.preview_image || product.image).filter(Boolean);
   useImagePreloader(productImages, {
     enabled: !isLoading,
-    preloadDistance: 15,
-    maxConcurrent: 4
+    preloadDistance: viewMode === 'list' ? 20 : 15,
+    maxConcurrent: 6
   });
 
   // Update brand and model names when IDs change
@@ -201,13 +203,20 @@ const Catalog: React.FC = () => {
                 onClearAll={handleClearSearch}
               />
 
-              {/* Results summary and sorting */}
+              {/* Results summary, view toggle and sorting */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                {allProducts.length > 0 && (
-                  <div className="text-sm text-gray-600">
-                    Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-4">
+                  {allProducts.length > 0 && (
+                    <div className="text-sm text-gray-600">
+                      Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
+                    </div>
+                  )}
+                  
+                  <ViewToggle
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                  />
+                </div>
                 
                 <ProductSorting
                   sortBy={sortBy}
@@ -230,6 +239,7 @@ const Catalog: React.FC = () => {
               isFetchingNextPage={isFetchingNextPage}
               fetchNextPage={fetchNextPage}
               refetch={refetch}
+              viewMode={viewMode}
             />
           </div>
         </div>

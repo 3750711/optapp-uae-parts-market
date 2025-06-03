@@ -1,7 +1,7 @@
 
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import ProductGrid from '@/components/product/ProductGrid';
+import ProductGrid, { ViewMode } from '@/components/product/ProductGrid';
 import RequestPartsPromo from '@/components/catalog/RequestPartsPromo';
 import ProductSkeleton from '@/components/catalog/ProductSkeleton';
 import { useIntersection } from '@/hooks/useIntersection';
@@ -20,6 +20,7 @@ interface ProductsSectionProps {
   isFetchingNextPage: boolean;
   fetchNextPage: () => void;
   refetch: () => void;
+  viewMode?: ViewMode;
 }
 
 const ProductsSection: React.FC<ProductsSectionProps> = ({
@@ -34,7 +35,8 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
   hasNextPage,
   isFetchingNextPage,
   fetchNextPage,
-  refetch
+  refetch,
+  viewMode = 'grid'
 }) => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "300px");
@@ -53,6 +55,29 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
 
   // Loading skeleton
   if (isLoading) {
+    if (viewMode === 'list') {
+      return (
+        <div className="space-y-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-100 rounded-lg p-4 animate-pulse">
+              <div className="flex gap-4">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-200 rounded-lg" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                  <div className="h-3 bg-gray-200 rounded w-2/3" />
+                  <div className="flex justify-between pt-2">
+                    <div className="h-6 bg-gray-200 rounded w-1/4" />
+                    <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     return (
       <div className="animate-pulse">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -96,12 +121,16 @@ const ProductsSection: React.FC<ProductsSectionProps> = ({
     );
   }
   
-  // Products grid
+  // Products grid/list
   if (!isLoading && allProducts.length > 0) {
     return (
       <div className="animate-fade-in space-y-12">
         {productChunks.map((chunk, chunkIndex) => (
-          <ProductGrid key={`chunk-${chunkIndex}`} products={chunk} />
+          <ProductGrid 
+            key={`chunk-${chunkIndex}`} 
+            products={chunk} 
+            viewMode={viewMode}
+          />
         ))}
         
         {/* Show RequestPartsPromo after products when search was performed */}
