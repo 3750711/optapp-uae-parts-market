@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Package, PackageCheck, PackageX, Truck, CalendarClock, Check } from 'lucide-react';
@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { OrderConfirmButton } from '@/components/order/OrderConfirmButton';
 import { OrderConfirmImagesDialog } from '@/components/order/OrderConfirmImagesDialog';
+import OrdersSearchBar from '@/components/orders/OrdersSearchBar';
+import { useOrdersSearch } from '@/hooks/useOrdersSearch';
 
 const statusColors = {
   created: 'bg-gray-100 text-gray-800',
@@ -49,6 +51,7 @@ const BuyerOrders = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const isSeller = profile?.user_type === 'seller';
+  const [searchTerm, setSearchTerm] = useState('');
 
   console.log('🔍 BuyerOrders component render:', {
     userId: user?.id,
@@ -142,15 +145,20 @@ const BuyerOrders = () => {
     retryDelay: 1000
   });
 
-  // Убираем проблемный useEffect с refetch
-  // useEffect(() => {
-  //   refetch();
-  // }, [refetch]);
+  // Используем хук поиска
+  const { filteredOrders, hasActiveSearch } = useOrdersSearch(orders || [], searchTerm);
+
+  const handleClearSearch = () => {
+    setSearchTerm('');
+  };
 
   console.log('🔍 Query result:', {
     isLoading,
     error: error?.message,
-    ordersCount: orders?.length
+    ordersCount: orders?.length,
+    filteredCount: filteredOrders?.length,
+    searchTerm,
+    hasActiveSearch
   });
 
   if (isLoading) {
@@ -186,7 +194,7 @@ const BuyerOrders = () => {
     );
   }
 
-  console.log('✅ Rendering orders page with orders:', orders?.length || 0);
+  console.log('✅ Rendering orders page with orders:', filteredOrders?.length || 0);
 
   return (
     <Layout>
@@ -205,9 +213,23 @@ const BuyerOrders = () => {
           </h1>
         </div>
 
-        {orders && orders.length > 0 ? (
+        {/* Поиск */}
+        <OrdersSearchBar
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onClear={handleClearSearch}
+        />
+
+        {/* Результаты поиска */}
+        {hasActiveSearch && (
+          <div className="mb-4 text-sm text-gray-600">
+            Найдено: {filteredOrders?.length || 0} из {orders?.length || 0} заказов
+          </div>
+        )}
+
+        {filteredOrders && filteredOrders.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {orders.map((order) => (
+            {filteredOrders.map((order) => (
               <div
                 key={order.id}
                 className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all flex flex-col
@@ -294,13 +316,28 @@ const BuyerOrders = () => {
           </div>
         ) : (
           <div className="text-center py-8">
-            <p className="text-gray-500">У вас пока нет заказов</p>
-            <Button
-              className="mt-4 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-              onClick={() => navigate('/catalog')}
-            >
-              Перейти в каталог
-            </Button>
+            {hasActiveSearch ? (
+              <>
+                <p className="text-gray-500 mb-4">По вашему запросу "{searchTerm}" ничего не найдено</p>
+                <Button
+                  variant="outline"
+                  onClick={handleClearSearch}
+                  className="mr-4"
+                >
+                  Очистить поиск
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-500">У вас пока нет заказов</p>
+                <Button
+                  className="mt-4 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                  onClick={() => navigate('/catalog')}
+                >
+                  Перейти в каталог
+                </Button>
+              </>
+            )}
           </div>
         )}
       </div>
