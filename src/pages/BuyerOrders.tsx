@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -276,12 +275,16 @@ const BuyerOrders = () => {
                   </div>
                 )}
                 <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
-                  <Link
-                    to={`/product/${order.product_id}`}
-                    className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-                  >
-                    Подробнее
-                  </Link>
+                  {order.id ? (
+                    <Link
+                      to={`/order/${order.id}`}
+                      className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+                    >
+                      Подробнее
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-gray-400">Недоступно</span>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
                   </span>
