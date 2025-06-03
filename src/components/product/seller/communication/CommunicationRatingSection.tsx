@@ -34,8 +34,8 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
       case 2:
         return {
           icon: <Clock className="w-5 h-5 text-orange-500" />,
-          title: "Требует терпения",
-          description: "Продавец может отвечать с задержкой или требовать дополнительных уточнений",
+          title: "Могут быть сложности в общении",
+          description: "Продавец слабо владеет английским, могут быть сложности в переводе. Старайтесь использовать более простые слова или обратитесь за помощью к менеджеру partsbay",
           bgColor: "bg-orange-50",
           borderColor: "border-orange-200"
         };
