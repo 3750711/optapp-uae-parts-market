@@ -21,6 +21,7 @@ export interface OrderSearchResult {
   order_created_type?: string;
   text_order?: string;
   delivery_method?: string;
+  container_number?: string;
   products?: {
     lot_number: string;
   };
