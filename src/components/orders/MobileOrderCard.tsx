@@ -126,15 +126,12 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           {order.buyer_opt_id || 'ID не указан'}
         </Badge>
 
-        {/* Показываем доставку или контейнер */}
+        {/* Показываем доставку или контейнер с логотипом OPTCargo */}
         {order.container_number ? (
           <>
             <Badge variant="outline" className="bg-yellow-50 border-yellow-400 text-yellow-700 text-xs">
               Контейнер: {order.container_number}
             </Badge>
-            <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-2 py-1 rounded text-white text-xs font-bold shadow-sm">
-              OPTCargo
-            </div>
           </>
         ) : (
           order.delivery_method && (
@@ -144,6 +141,15 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           )
         )}
       </div>
+
+      {/* Логотип OPTCargo отдельным блоком, если есть контейнер */}
+      {order.container_number && (
+        <div className="flex justify-center mb-3">
+          <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-4 py-2 rounded-lg text-white text-sm font-bold shadow-md">
+            OPTCargo
+          </div>
+        </div>
+      )}
 
       {/* Дополнительная информация */}
       {order.text_order && order.text_order.trim() !== "" && (
