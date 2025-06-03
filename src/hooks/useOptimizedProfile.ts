@@ -20,11 +20,11 @@ interface OptimizedProfileData {
 }
 
 export const useOptimizedProfile = () => {
-  const { user, profile } = useAuth();
+  const { user, profile, isLoading: authLoading } = useAuth();
 
   const { 
     data, 
-    isLoading, 
+    isLoading: queryLoading, 
     error, 
     refetch 
   } = useQuery({
@@ -110,11 +110,14 @@ export const useOptimizedProfile = () => {
         throw error;
       }
     },
-    enabled: !!user?.id && !!profile,
+    enabled: !!user?.id && !!profile && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 минут
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  // Возвращаем isLoading как true если либо auth загружается, либо query загружается
+  const isLoading = authLoading || queryLoading;
 
   return {
     data: data || { profile, orderStats: null, storeInfo: null },

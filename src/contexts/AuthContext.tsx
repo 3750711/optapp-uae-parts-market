@@ -58,14 +58,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     const setupAuth = async () => {
       try {
-        setIsLoading(true);
         console.log("AuthContext: Setting up authentication");
         
-        // First, set up the auth state change listener
+        // Set up the auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
+            if (!mounted) return;
+            
             console.log("AuthContext: Auth state changed:", event, currentSession?.user?.id);
             
             // Update local session state
@@ -75,21 +78,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             // Handle profile fetch after session change
             if (currentSession?.user) {
               console.log("AuthContext: User authenticated, fetching profile");
-              // Use setTimeout to avoid potential auth deadlocks
               setTimeout(() => {
-                fetchUserProfile(currentSession.user.id);
+                if (mounted) {
+                  fetchUserProfile(currentSession.user.id);
+                }
               }, 100);
             } else {
               console.log("AuthContext: User not authenticated, clearing profile");
               setProfile(null);
             }
             
-            // Only set isLoading to false after we've handled the auth state change
-            setIsLoading(false);
+            // Set loading to false after handling auth state change
+            if (mounted) {
+              setIsLoading(false);
+            }
           }
         );
 
-        // Then check for existing session
+        // Check for existing session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -98,19 +104,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log("AuthContext: Initial session check:", currentSession?.user?.id);
         }
         
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        if (currentSession?.user) {
-          console.log("AuthContext: Initial user found, fetching profile");
-          // Fetch user profile with delay to avoid potential auth conflicts
-          setTimeout(() => {
-            fetchUserProfile(currentSession.user.id);
-          }, 100);
+        if (mounted) {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          
+          if (currentSession?.user) {
+            console.log("AuthContext: Initial user found, fetching profile");
+            setTimeout(() => {
+              if (mounted) {
+                fetchUserProfile(currentSession.user.id);
+              }
+            }, 100);
+          } else {
+            // No user found, set loading to false immediately
+            setIsLoading(false);
+          }
         }
-        
-        // Set loading to false after initial session check
-        setIsLoading(false);
         
         return () => {
           console.log("AuthContext: Cleaning up auth subscription");
@@ -118,12 +127,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
       } catch (error) {
         console.error("AuthContext: Error setting up auth:", error);
-        // Ensure we set loading to false even if there's an error
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
     
     setupAuth();
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const signOut = async () => {

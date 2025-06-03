@@ -12,8 +12,17 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, profile, isLoading } = useAuth();
   const location = useLocation();
   
+  console.log("ProtectedRoute: Auth state:", { 
+    user: !!user, 
+    profile: !!profile, 
+    isLoading,
+    userType: profile?.user_type,
+    pathname: location.pathname 
+  });
+  
   // Show loading state while checking authentication
   if (isLoading) {
+    console.log("ProtectedRoute: Showing loading state");
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-optapp-yellow"></div>
@@ -23,12 +32,13 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   
   // Redirect to login if not authenticated
   if (!user) {
-    // Store the current location so we can redirect back after login
+    console.log("ProtectedRoute: User not authenticated, redirecting to login");
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
   
   // Check if user is blocked
   if (profile?.verification_status === 'blocked') {
+    console.log("ProtectedRoute: User is blocked");
     toast({
       title: "Доступ ограничен",
       description: "Ваш аккаунт заблокирован. Вы можете только просматривать сайт.",
@@ -39,10 +49,11 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   
   // Check for role restrictions if provided
   if (allowedRoles && profile && !allowedRoles.includes(profile.user_type)) {
+    console.log("ProtectedRoute: User doesn't have required role");
     return <Navigate to="/" replace />;
   }
   
-  // If authenticated and authorized, render the children
+  console.log("ProtectedRoute: User authenticated and authorized, rendering children");
   return <>{children}</>;
 };
 
