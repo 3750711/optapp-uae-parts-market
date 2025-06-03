@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -115,14 +114,6 @@ const BuyerOrders = () => {
 
         // Добавляем информацию о изображениях подтверждения
         const ordersWithConfirmations = await Promise.all((ordersData || []).map(async (order) => {
-          // Добавляем отладочную информацию о методе доставки
-          console.log('📦 Order delivery info:', {
-            orderId: order.id,
-            orderNumber: order.order_number,
-            deliveryMethod: order.delivery_method,
-            deliveryMethodType: typeof order.delivery_method
-          });
-
           try {
             const { data: confirmImages, error: confirmError } = await supabase
               .from('confirm_images')
@@ -258,8 +249,8 @@ const BuyerOrders = () => {
                   }
                 `}
               >
-                {/* Логотип OPTCargo в правом верхнем углу - улучшенная версия */}
-                {order.delivery_method === 'cargo_russia' && (
+                {/* Логотип OPTCargo только если есть номер контейнера */}
+                {order.container_number && (
                   <div className="absolute top-4 right-4 z-10">
                     <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-4 py-2 rounded-lg shadow-lg border border-yellow-300">
                       <span className="text-white font-bold text-sm tracking-wider drop-shadow-sm">
@@ -314,15 +305,16 @@ const BuyerOrders = () => {
                     <Badge variant="outline">
                       {order.buyer_opt_id || 'Не указан'}
                     </Badge>
-                    {/* Отображение типа доставки - улучшенная версия с отладкой */}
+                    {/* Всегда показываем тип доставки */}
                     {order.delivery_method && (
-                      <Badge 
-                        variant="outline" 
-                        className={`text-gray-600 ${order.delivery_method === 'cargo_russia' ? 'border-yellow-400 text-yellow-700' : ''}`}
-                      >
+                      <Badge variant="outline" className="text-gray-600">
                         {deliveryMethodLabels[order.delivery_method] || order.delivery_method}
-                        {/* Временная отладочная информация */}
-                        <span className="ml-1 text-xs opacity-50">({order.delivery_method})</span>
+                      </Badge>
+                    )}
+                    {/* Показываем номер контейнера если есть */}
+                    {order.container_number && (
+                      <Badge variant="outline" className="bg-yellow-50 border-yellow-400 text-yellow-700">
+                        Контейнер: {order.container_number}
                       </Badge>
                     )}
                   </div>
