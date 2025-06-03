@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
@@ -11,7 +10,6 @@ import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting"
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
-import SmartImageOptimizer from "@/components/catalog/SmartImageOptimizer";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { SearchHistoryItem } from "@/hooks/useSearchHistory";
@@ -19,10 +17,9 @@ import { SearchHistoryItem } from "@/hooks/useSearchHistory";
 const Catalog: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('list'); // Оставляем list по умолчанию
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   
-  // Увеличиваем количество товаров на странице для списочного режима
-  const productsPerPage = viewMode === 'list' ? 30 : 8; // Еще больше товаров благодаря оптимизации
+  const productsPerPage = viewMode === 'list' ? 30 : 8;
   
   // Car brands and models
   const {
@@ -148,7 +145,6 @@ const Catalog: React.FC = () => {
         totalProducts={allProducts.length}
       />
       
-      {/* Sticky фильтры для мобильных */}
       <StickyFilters
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -163,23 +159,13 @@ const Catalog: React.FC = () => {
       <Layout>
         <div className="bg-lightGray min-h-screen py-0">
           <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-            {/* Breadcrumb Navigation */}
             <CatalogBreadcrumb
               searchQuery={debouncedSearchQuery}
               selectedBrandName={selectedBrandName}
               selectedModelName={selectedModelName}
             />
 
-            {/* Smart Image Optimizer */}
-            <SmartImageOptimizer 
-              autoStart={true}
-              batchSize={20}
-              showProgress={true}
-            />
-
-            {/* Search and filters section */}
             <div className="mb-6 flex flex-col gap-4">
-              {/* Search Bar Component */}
               <SearchBar 
                 searchQuery={searchQuery}
                 setSearchQuery={setSearchQuery}
@@ -189,7 +175,6 @@ const Catalog: React.FC = () => {
                 onSelectFromHistory={handleSelectFromHistory}
               />
               
-              {/* Filters Panel Component */}
               <FiltersPanel
                 showFilters={showFilters}
                 setShowFilters={setShowFilters}
@@ -206,7 +191,6 @@ const Catalog: React.FC = () => {
                 isActiveFilters={isActiveFilters}
               />
 
-              {/* Active Filters Display */}
               <ActiveFilters
                 searchQuery={debouncedSearchQuery}
                 selectedBrandName={selectedBrandName}
@@ -219,17 +203,11 @@ const Catalog: React.FC = () => {
                 onClearAll={handleClearSearch}
               />
 
-              {/* Results summary, view toggle and sorting */}
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex items-center gap-4">
                   {allProducts.length > 0 && (
                     <div className="text-sm text-gray-600">
                       Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
-                      {viewMode === 'list' && (
-                        <span className="ml-2 text-xs text-green-600">
-                          (быстрая загрузка с оптимизацией)
-                        </span>
-                      )}
                     </div>
                   )}
                   
@@ -246,7 +224,6 @@ const Catalog: React.FC = () => {
               </div>
             </div>
             
-            {/* Products Section Component */}
             <ProductsSection
               isLoading={isLoading}
               isError={isError}

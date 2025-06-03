@@ -40,14 +40,31 @@ serve(async (req) => {
 
     console.log(`Original image size: ${(originalSize / 1024).toFixed(2)} KB`)
 
-    // Создаем canvas для обработки
-    const imageBlob = new Blob([imageBuffer])
-    const imageBitmap = await createImageBitmap(imageBlob)
+    // Проверяем тип содержимого
+    const contentType = imageResponse.headers.get('content-type') || ''
+    if (!contentType.startsWith('image/')) {
+      throw new Error(`Invalid content type: ${contentType}`)
+    }
+
+    // Создаем Blob с правильным типом
+    const imageBlob = new Blob([imageBuffer], { type: contentType })
+    
+    // Создаем ImageBitmap из Blob
+    let imageBitmap: ImageBitmap
+    try {
+      imageBitmap = await createImageBitmap(imageBlob)
+    } catch (error) {
+      throw new Error(`Failed to create image bitmap: ${error.message}`)
+    }
     
     // Вычисляем размеры для мини-превью (квадратное обрезание)
     const size = Math.min(imageBitmap.width, imageBitmap.height)
     const canvas = new OffscreenCanvas(thumbnailSize, thumbnailSize)
-    const ctx = canvas.getContext('2d')!
+    const ctx = canvas.getContext('2d')
+    
+    if (!ctx) {
+      throw new Error('Failed to get canvas context')
+    }
 
     // Обрезаем до квадрата и уменьшаем
     const offsetX = (imageBitmap.width - size) / 2
@@ -59,7 +76,10 @@ serve(async (req) => {
       0, 0, thumbnailSize, thumbnailSize
     )
 
-    // Функция для сжатия с заданным качеством
+    // Освобождаем ресурсы
+    imageBitmap.close()
+
+    // Функция для сжатия с заданным качеством в WebP
     const compressWithQuality = async (targetQuality: number): Promise<Blob> => {
       return await canvas.convertToBlob({
         type: 'image/webp',
@@ -67,21 +87,23 @@ serve(async (req) => {
       })
     }
 
-    // Начинаем с низкого качества и итеративно уменьшаем до достижения целевого размера
-    let currentQuality = 0.4 // Начинаем с 40%
+    // Начинаем с умеренного качества и итеративно уменьшаем до достижения целевого размера
+    let currentQuality = 0.6 // Начинаем с 60%
     let compressedBlob = await compressWithQuality(currentQuality)
     let attempts = 0
-    const maxAttempts = 8
+    const maxAttempts = 10
 
     while (compressedBlob.size > maxSizeKB * 1024 && attempts < maxAttempts && currentQuality > 0.1) {
-      currentQuality *= 0.85 // Уменьшаем качество на 15%
+      currentQuality *= 0.8 // Уменьшаем качество на 20%
       compressedBlob = await compressWithQuality(currentQuality)
       attempts++
       console.log(`Attempt ${attempts}: quality ${currentQuality.toFixed(2)}, size ${(compressedBlob.size / 1024).toFixed(2)} KB`)
     }
 
     const finalSize = compressedBlob.size
-    console.log(`Final thumbnail size: ${(finalSize / 1024).toFixed(2)} KB`)
+    const compressionRatio = Math.round((1 - finalSize / originalSize) * 100)
+    
+    console.log(`Final thumbnail size: ${(finalSize / 1024).toFixed(2)} KB, compression: ${compressionRatio}%`)
 
     // Генерируем уникальное имя файла для каталожного превью
     const timestamp = Date.now()
@@ -113,8 +135,9 @@ serve(async (req) => {
         thumbnailUrl: publicUrl,
         originalSize: originalSize,
         thumbnailSize: finalSize,
-        compressionRatio: Math.round((1 - finalSize / originalSize) * 100),
-        quality: currentQuality
+        compressionRatio: compressionRatio,
+        quality: currentQuality,
+        format: 'webp'
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
