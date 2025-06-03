@@ -291,7 +291,14 @@ const BuyerOrders = () => {
                   </div>
 
                   <div className="text-sm text-gray-500 mb-2">
-                    Продавец: <span className="font-medium">{order.order_seller_name}</span>
+                    <div className="flex items-center justify-between">
+                      <span>Продавец: <span className="font-medium">{order.order_seller_name}</span></span>
+                      {(order.seller?.opt_id || order.seller_opt_id) && (
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                          OPT ID: {order.seller?.opt_id || order.seller_opt_id}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
                   {order.text_order && order.text_order.trim() !== "" && (
