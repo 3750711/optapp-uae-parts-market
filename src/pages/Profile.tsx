@@ -12,8 +12,6 @@ import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
 import ProfileStats from "@/components/profile/ProfileStats";
 import ProfileProgress from "@/components/profile/ProfileProgress";
-import QuickActions from "@/components/profile/QuickActions";
-import ContactCard from "@/components/profile/ContactCard";
 import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { UserType } from "@/components/profile/types";
@@ -190,8 +188,6 @@ const Profile = () => {
             />
             <ProfileStats profile={profile} />
             <ProfileProgress profile={profile} />
-            <QuickActions profile={profile} />
-            <ContactCard profile={profile} />
             <ProfileForm
               profile={profile}
               onSubmit={handleSubmit}
@@ -213,15 +209,11 @@ const Profile = () => {
                 onAvatarUpdate={handleAvatarUpdate}
               />
               <ProfileStats profile={profile} />
-              <ContactCard profile={profile} />
             </div>
 
             {/* Right Column - Main Content */}
             <div className="lg:col-span-8 space-y-6">
-              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <ProfileProgress profile={profile} />
-                <QuickActions profile={profile} />
-              </div>
+              <ProfileProgress profile={profile} />
               
               <ProfileForm
                 profile={profile}

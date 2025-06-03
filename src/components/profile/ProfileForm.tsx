@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -60,6 +61,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
   const canEditOptId = (user?.id === profile.id) || isAdmin;
+  const isSeller = profile.user_type === 'seller';
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -117,12 +119,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               placeholder="+971 XX XXX XXXX"
               type="tel"
             />
-            <ProfileTextField
-              name="companyName"
-              control={form.control}
-              label="Название компании"
-              placeholder="Введите название вашей компании"
-            />
+            {isSeller && (
+              <ProfileTextField
+                name="companyName"
+                control={form.control}
+                label="Название компании"
+                placeholder="Введите название вашей компании"
+              />
+            )}
             <TelegramField 
               control={form.control} 
               telegram_edit_count={profile.telegram_edit_count || 0}
