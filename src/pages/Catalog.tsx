@@ -11,7 +11,6 @@ import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting"
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
-import SmartImageOptimizer from "@/components/catalog/SmartImageOptimizer";
 import useCatalogProducts from "@/hooks/useCatalogProducts";
 import { useImagePreloader } from "@/hooks/useImagePreloader";
 import { SearchHistoryItem } from "@/hooks/useSearchHistory";
@@ -19,10 +18,9 @@ import { SearchHistoryItem } from "@/hooks/useSearchHistory";
 const Catalog: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('list'); // Оставляем list по умолчанию
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   
-  // Увеличиваем количество товаров на странице для списочного режима
-  const productsPerPage = viewMode === 'list' ? 30 : 8; // Еще больше товаров благодаря оптимизации
+  const productsPerPage = viewMode === 'list' ? 30 : 8;
   
   // Car brands and models
   const {
@@ -63,7 +61,7 @@ const Catalog: React.FC = () => {
     isActiveFilters
   } = useCatalogProducts(productsPerPage, sortBy);
 
-  // Предзагрузка изображений следующих товаров (оптимизировано для списка)
+  // Предзагрузка изображений следующих товаров
   const productImages = mappedProducts.map(product => 
     product.product_images?.find(img => img.preview_url)?.preview_url || 
     product.preview_image || 
@@ -72,9 +70,9 @@ const Catalog: React.FC = () => {
   
   useImagePreloader(productImages, {
     enabled: !isLoading,
-    preloadDistance: viewMode === 'list' ? 40 : 15, // Больше предзагрузки благодаря маленьким превью
-    maxConcurrent: viewMode === 'list' ? 12 : 6, // Больше параллельных загрузок
-    catalogMode: true // Включаем каталожный режим
+    preloadDistance: viewMode === 'list' ? 40 : 15,
+    maxConcurrent: viewMode === 'list' ? 12 : 6,
+    catalogMode: true
   });
 
   // Update brand and model names when IDs change
@@ -170,13 +168,6 @@ const Catalog: React.FC = () => {
               selectedModelName={selectedModelName}
             />
 
-            {/* Smart Image Optimizer */}
-            <SmartImageOptimizer 
-              autoStart={true}
-              batchSize={20}
-              showProgress={true}
-            />
-
             {/* Search and filters section */}
             <div className="mb-6 flex flex-col gap-4">
               {/* Search Bar Component */}
@@ -225,11 +216,6 @@ const Catalog: React.FC = () => {
                   {allProducts.length > 0 && (
                     <div className="text-sm text-gray-600">
                       Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
-                      {viewMode === 'list' && (
-                        <span className="ml-2 text-xs text-green-600">
-                          (быстрая загрузка с оптимизацией)
-                        </span>
-                      )}
                     </div>
                   )}
                   

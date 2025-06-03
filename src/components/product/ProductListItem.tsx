@@ -2,7 +2,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import SmartCatalogImage from "@/components/ui/SmartCatalogImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import { ProductProps } from "./ProductCard";
 
@@ -34,10 +33,9 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  // Получаем основное изображение и его данные
+  // Получаем основное изображение
   const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-  const primaryImageUrl = primaryImageData?.preview_url || // Приоритет каталожному превью
-                         primaryImageData?.url || 
+  const primaryImageUrl = primaryImageData?.url || 
                          product.preview_image || 
                          product.image || 
                          "/placeholder.svg";
@@ -45,15 +43,13 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Smart catalog image with auto-optimization */}
+        {/* Изображение товара */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
-          <SmartCatalogImage
+          <img
             src={primaryImageUrl}
             alt={product.title}
-            productId={product.id}
-            imageId={primaryImageData?.id}
-            className="w-full h-full"
-            lazy={true}
+            className="w-full h-full object-cover"
+            loading="lazy"
           />
           {product.lot_number && (
             <Badge 
