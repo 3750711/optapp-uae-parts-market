@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import MobileOrderCard from './MobileOrderCard';
@@ -51,22 +52,11 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, isSeller }) => {
     return <MobileOrderCard order={order} isSeller={isSeller} />;
   }
 
-  // Десктопная версия остается прежней
+  // Десктопная версия
   return (
     <div className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all p-4 relative
         ${order.status === 'delivered' ? 'border-green-200' : order.status === 'cancelled' ? 'border-red-200' : order.status === 'seller_confirmed' ? 'border-blue-200' : order.status === 'admin_confirmed' ? 'border-purple-200' : order.status === 'shipped' ? 'border-orange-200' : order.status === 'processed' ? 'border-yellow-200' : 'border-gray-100'}
       `}>
-      
-      {/* Логотип OPTCargo только если есть номер контейнера */}
-      {order.container_number && (
-        <div className="absolute top-4 right-4 z-10">
-          <div className="bg-gradient-to-r from-yellow-400 via-yellow-400 to-yellow-400 px-4 py-2 rounded-lg shadow-lg border border-yellow-300 bg-[#f3c83c]">
-            <span className="text-white font-bold text-sm tracking-wider drop-shadow-sm">
-              OPTCargo
-            </span>
-          </div>
-        </div>
-      )}
 
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -151,16 +141,27 @@ const OrderCard: React.FC<OrderCardProps> = ({ order, isSeller }) => {
       )}
 
       <div className="flex items-center justify-between pt-3 border-t bg-gray-50 -mx-4 px-4 py-3 rounded-b-xl">
-        {order.id ? (
-          <Link 
-            to={`/order/${order.id}`} 
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-          >
-            Подробнее
-          </Link>
-        ) : (
-          <span className="text-sm text-gray-400">Недоступно</span>
-        )}
+        <div className="flex items-center gap-3">
+          {order.id ? (
+            <Link 
+              to={`/order/${order.id}`} 
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
+            >
+              Подробнее
+            </Link>
+          ) : (
+            <span className="text-sm text-gray-400">Недоступно</span>
+          )}
+          
+          {/* Логотип OPTCargo в нижней части только если есть номер контейнера */}
+          {order.container_number && (
+            <div className="bg-gradient-to-r from-yellow-400 via-yellow-400 to-yellow-400 px-3 py-1 rounded-lg shadow-lg border border-yellow-300 bg-[#f3c83c]">
+              <span className="text-white font-bold text-xs tracking-wider drop-shadow-sm">
+                OPTCargo
+              </span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
