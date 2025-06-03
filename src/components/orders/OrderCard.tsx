@@ -44,7 +44,7 @@ const OrderCard: React.FC<OrderCardProps> = ({
       `}>
       {/* Логотип OPTCargo только если есть номер контейнера */}
       {order.container_number && <div className="absolute top-4 right-4 z-10">
-          <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-4 py-2 rounded-lg shadow-lg border border-yellow-300 bg-amber-300">
+          <div className="bg-gradient-to-r from-yellow-400 via-yellow-400 to-yellow-400 px-4 py-2 rounded-lg shadow-lg border border-yellow-300 bg-[#f3c83c]">
             <span className="text-white font-bold text-sm tracking-wider drop-shadow-sm">
               OPTCargo
             </span>
