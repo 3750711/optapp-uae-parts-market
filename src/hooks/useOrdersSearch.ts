@@ -16,6 +16,10 @@ export interface OrderSearchResult {
   lot_number_order?: number;
   buyer_opt_id?: string;
   hasConfirmImages?: boolean;
+  place_number?: number;
+  delivery_price_confirm?: number;
+  order_created_type?: string;
+  text_order?: string;
   products?: {
     lot_number: string;
   };

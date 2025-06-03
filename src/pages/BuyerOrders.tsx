@@ -228,11 +228,11 @@ const BuyerOrders = () => {
         )}
 
         {filteredOrders && filteredOrders.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-4">
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all flex flex-col
+                className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all p-4
                   ${order.status === 'delivered' ? 'border-green-200' :
                     order.status === 'cancelled' ? 'border-red-200' :
                     order.status === 'seller_confirmed' ? 'border-blue-200' :
@@ -243,60 +243,72 @@ const BuyerOrders = () => {
                   }
                 `}
               >
-                <div className="flex items-center justify-between gap-2 px-4 pt-4">
-                  {statusIcons[order.status] || statusIcons['created']}
-                  <Badge className={`text-base px-3 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
-                    {statusLabels[order.status] || order.status}
-                  </Badge>
-                  {order.hasConfirmImages && (
-                    <OrderConfirmImagesDialog orderId={order.id} />
-                  )}
-                </div>
-                <div className="flex-1 flex flex-col px-4 py-2">
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="font-semibold text-lg">Заказ № {order.order_number}</span>
-                    <span className="text-sm text-muted-foreground">Лот: {order.products?.lot_number || "Н/Д"}</span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="font-medium text-base truncate">{order.title}</div>
-                    <div className="text-sm text-muted-foreground">{order.brand} {order.model}</div>
-                  </div>
-                  <div className="mt-2 space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-optapp-dark">{order.price} $</span>
-                      <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
-                    </div>
-                    
-                    {order.delivery_price_confirm && (
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="text-gray-600">Стоимость доставки:</span>
-                        <span className="font-medium text-optapp-dark">{order.delivery_price_confirm} $</span>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {statusIcons[order.status] || statusIcons['created']}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold text-lg">Заказ № {order.order_number}</span>
+                        <Badge className={`text-sm px-2 py-1 ${statusColors[order.status] || statusColors["created"]}`}>
+                          {statusLabels[order.status] || order.status}
+                        </Badge>
                       </div>
-                    )}
+                      <div className="text-sm text-muted-foreground">Лот: {order.products?.lot_number || "Н/Д"}</div>
+                    </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant="outline">{orderTypeLabels[order.order_created_type]}</Badge>
+                  
+                  <div className="flex items-center gap-2">
+                    {order.hasConfirmImages && (
+                      <OrderConfirmImagesDialog orderId={order.id} />
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <div className="font-medium text-base mb-1">{order.title}</div>
+                  <div className="text-sm text-muted-foreground mb-2">{order.brand} {order.model}</div>
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-lg text-optapp-dark">{order.price} $</span>
+                    <span className="text-xs text-gray-500">{order.place_number ? `Мест: ${order.place_number}` : null}</span>
+                  </div>
+                  
+                  {order.delivery_price_confirm && (
+                    <div className="flex justify-between items-center text-sm mb-2">
+                      <span className="text-gray-600">Стоимость доставки:</span>
+                      <span className="font-medium text-optapp-dark">{order.delivery_price_confirm} $</span>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    <Badge variant="outline">{orderTypeLabels[order.order_created_type] || order.order_created_type}</Badge>
                     <Badge variant="outline">
                       {order.buyer_opt_id || 'Не указан'}
                     </Badge>
                   </div>
-                  <div className="text-sm text-gray-500 mb-1">
+
+                  <div className="text-sm text-gray-500 mb-2">
                     Продавец: <span className="font-medium">{order.order_seller_name}</span>
                   </div>
                   
                   {order.text_order && order.text_order.trim() !== "" && (
-                    <div className="text-sm text-gray-600 mt-2 border-t pt-2">
+                    <div className="text-sm text-gray-600 mb-3 border-t pt-2">
                       <span className="font-medium">Доп. информация:</span>
                       <p className="mt-1 whitespace-pre-wrap">{order.text_order}</p>
                     </div>
                   )}
                 </div>
+
                 {order.status === 'admin_confirmed' && isSeller && (
-                  <div className="mt-2 space-y-2">
+                  <div className="mb-3">
                     <OrderConfirmButton orderId={order.id} />
                   </div>
                 )}
-                <div className="flex items-center justify-between px-4 py-3 border-t bg-gray-50 rounded-b-xl">
+
+                <div className="flex items-center justify-between pt-3 border-t bg-gray-50 -mx-4 px-4 py-3 rounded-b-xl">
                   {order.id ? (
                     <Link
                       to={`/order/${order.id}`}
@@ -307,9 +319,6 @@ const BuyerOrders = () => {
                   ) : (
                     <span className="text-sm text-gray-400">Недоступно</span>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    {order.created_at && new Date(order.created_at).toLocaleDateString('ru-RU')}
-                  </span>
                 </div>
               </div>
             ))}
