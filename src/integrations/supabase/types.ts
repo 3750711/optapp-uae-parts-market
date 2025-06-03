@@ -956,6 +956,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_products_needing_previews: {
+        Args: { p_limit?: number }
+        Returns: {
+          product_id: string
+          image_id: string
+          image_url: string
+          is_primary: boolean
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -996,6 +1005,10 @@ export type Database = {
       update_product_has_preview_flag: {
         Args: { p_product_id: string }
         Returns: undefined
+      }
+      update_product_image_preview: {
+        Args: { p_image_id: string; p_preview_url: string }
+        Returns: boolean
       }
     }
     Enums: {

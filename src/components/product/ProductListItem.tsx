@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import CatalogProductImage from "@/components/ui/CatalogProductImage";
+import SmartCatalogImage from "@/components/ui/SmartCatalogImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import { ProductProps } from "./ProductCard";
 
@@ -34,26 +34,24 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  const primaryImage = product.preview_image || 
-    product.product_images?.find(img => img.is_primary)?.preview_url ||
-    product.product_images?.[0]?.preview_url ||
-    product.product_images?.[0]?.url ||
-    product.image ||
-    "/placeholder.svg";
-
-  // Получаем каталожное превью если доступно
-  const catalogThumbnail = product.product_images?.find(img => img.is_primary)?.preview_url ||
-    product.product_images?.[0]?.preview_url;
+  // Получаем основное изображение и его данные
+  const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+  const primaryImageUrl = primaryImageData?.preview_url || // Приоритет каталожному превью
+                         primaryImageData?.url || 
+                         product.preview_image || 
+                         product.image || 
+                         "/placeholder.svg";
 
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Optimized catalog image */}
+        {/* Smart catalog image with auto-optimization */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
-          <CatalogProductImage
-            src={primaryImage}
+          <SmartCatalogImage
+            src={primaryImageUrl}
             alt={product.title}
-            thumbnailUrl={catalogThumbnail}
+            productId={product.id}
+            imageId={primaryImageData?.id}
             className="w-full h-full"
             lazy={true}
           />
