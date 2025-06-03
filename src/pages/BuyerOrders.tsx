@@ -115,6 +115,14 @@ const BuyerOrders = () => {
 
         // Добавляем информацию о изображениях подтверждения
         const ordersWithConfirmations = await Promise.all((ordersData || []).map(async (order) => {
+          // Добавляем отладочную информацию о методе доставки
+          console.log('📦 Order delivery info:', {
+            orderId: order.id,
+            orderNumber: order.order_number,
+            deliveryMethod: order.delivery_method,
+            deliveryMethodType: typeof order.delivery_method
+          });
+
           try {
             const { data: confirmImages, error: confirmError } = await supabase
               .from('confirm_images')
@@ -250,11 +258,13 @@ const BuyerOrders = () => {
                   }
                 `}
               >
-                {/* Логотип OPTCargo в правом верхнем углу */}
+                {/* Логотип OPTCargo в правом верхнем углу - улучшенная версия */}
                 {order.delivery_method === 'cargo_russia' && (
-                  <div className="absolute top-4 right-4">
-                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-3 py-1 rounded-full shadow-lg">
-                      <span className="text-white font-bold text-sm tracking-wider">OPTCargo</span>
+                  <div className="absolute top-4 right-4 z-10">
+                    <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 px-4 py-2 rounded-lg shadow-lg border border-yellow-300">
+                      <span className="text-white font-bold text-sm tracking-wider drop-shadow-sm">
+                        OPTCargo
+                      </span>
                     </div>
                   </div>
                 )}
@@ -304,10 +314,15 @@ const BuyerOrders = () => {
                     <Badge variant="outline">
                       {order.buyer_opt_id || 'Не указан'}
                     </Badge>
-                    {/* Отображение типа доставки для cargo_kazakhstan и self_pickup */}
-                    {order.delivery_method && order.delivery_method !== 'cargo_russia' && (
-                      <Badge variant="outline" className="text-gray-600">
+                    {/* Отображение типа доставки - улучшенная версия с отладкой */}
+                    {order.delivery_method && (
+                      <Badge 
+                        variant="outline" 
+                        className={`text-gray-600 ${order.delivery_method === 'cargo_russia' ? 'border-yellow-400 text-yellow-700' : ''}`}
+                      >
                         {deliveryMethodLabels[order.delivery_method] || order.delivery_method}
+                        {/* Временная отладочная информация */}
+                        <span className="ml-1 text-xs opacity-50">({order.delivery_method})</span>
                       </Badge>
                     )}
                   </div>
