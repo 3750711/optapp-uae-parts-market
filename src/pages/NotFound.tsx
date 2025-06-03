@@ -4,7 +4,7 @@ import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShoppingBag, LayoutDashboard, MessageCircle } from "lucide-react";
+import { ArrowLeft, ShoppingBag, LayoutDashboard, MessageCircle, Send } from "lucide-react";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 
 const NotFound = () => {
@@ -18,6 +18,9 @@ const NotFound = () => {
     );
   }, [location.pathname]);
 
+  // Создаем ссылку на Telegram с предзаполненным сообщением
+  const telegramLink = `https://t.me/your_manager_username?text=Здравствуйте! Обнаружена проблема на странице: ${window.location.href}%0A%0AОписание проблемы: страница не найдена (404)%0A%0AПожалуйста, проверьте и исправьте данную ошибку.`;
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-16 text-center">
@@ -30,9 +33,20 @@ const NotFound = () => {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
             <div className="flex items-start gap-3">
               <MessageCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-blue-800 text-left">
-                <strong>Пожалуйста, если страница не работает, отправьте сообщение нашему администратору, чтобы мы знали и исправили.</strong> Это поможет нам создать лучшую платформу для закупки запчастей из ОАЭ!
-              </p>
+              <div className="flex-1 text-left">
+                <p className="text-sm text-blue-800 mb-3">
+                  <strong>Пожалуйста, если страница не работает, отправьте сообщение нашему администратору, чтобы мы знали и исправили.</strong> Это поможет нам создать лучшую платформу для закупки запчастей из ОАЭ!
+                </p>
+                <a
+                  href={telegramLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                  Отправить ошибку администратору
+                </a>
+              </div>
             </div>
           </div>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
