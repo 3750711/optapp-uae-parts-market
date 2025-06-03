@@ -12,12 +12,15 @@ interface ProfileProgressProps {
 
 const ProfileProgress: React.FC<ProfileProgressProps> = ({ profile }) => {
   const calculateProgress = () => {
+    const isSeller = profile.user_type === 'seller';
+    
     const fields = [
       { name: 'Имя', value: profile.full_name, weight: 15 },
       { name: 'Телефон', value: profile.phone, weight: 15 },
       { name: 'Telegram', value: profile.telegram, weight: 20 },
       { name: 'OPT ID', value: profile.opt_id, weight: 25 },
-      { name: 'Название компании', value: profile.company_name, weight: 15 },
+      // Название компании только для продавцов
+      ...(isSeller ? [{ name: 'Название компании', value: profile.company_name, weight: 15 }] : []),
       { name: 'Описание', value: profile.description_user, weight: 10 }
     ];
 
