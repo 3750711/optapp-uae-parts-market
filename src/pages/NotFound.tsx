@@ -19,7 +19,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   // Создаем ссылку на Telegram с предзаполненным сообщением
-  const telegramLink = `https://t.me/your_manager_username?text=Здравствуйте! Обнаружена проблема на странице: ${window.location.href}%0A%0AОписание проблемы: страница не найдена (404)%0A%0AПожалуйста, проверьте и исправьте данную ошибку.`;
+  const telegramLink = `https://t.me/Nastya_PostingLots_OptCargo?text=Здравствуйте! Обнаружена проблема на странице: ${window.location.href}%0A%0AОписание проблемы: страница не найдена (404)%0A%0AПожалуйста, проверьте и исправьте данную ошибку.`;
 
   return (
     <Layout>
@@ -35,7 +35,7 @@ const NotFound = () => {
               <MessageCircle className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1 text-left">
                 <p className="text-sm text-blue-800 mb-3">
-                  <strong>Пожалуйста, если страница не работает, отправьте сообщение нашему администратору, чтобы мы знали и исправили.</strong> Это поможет нам создать лучшую платформу для закупки запчастей из ОАЭ!
+                  <strong>Пожалуйста, если страница не работает, отправьте сообщение нашему администратору, чтобы мы знали и исправили.</strong>
                 </p>
                 <a
                   href={telegramLink}
