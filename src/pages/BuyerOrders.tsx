@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -50,64 +51,111 @@ const BuyerOrders = () => {
   const navigate = useNavigate();
   const isSeller = profile?.user_type === 'seller';
 
-  const { data: orders, isLoading, refetch } = useQuery({
-    queryKey: ['buyer-orders', user?.id],
+  console.log('🔍 BuyerOrders component render:', {
+    userId: user?.id,
+    userType: profile?.user_type,
+    isSeller
+  });
+
+  const { data: orders, isLoading, error, refetch } = useQuery({
+    queryKey: ['buyer-orders', user?.id, isSeller],
     queryFn: async () => {
-      if (!user?.id) return [];
-      console.log("Fetching orders with user ID:", user.id);
-      const query = supabase
-        .from('orders')
-        .select(`
-          *,
-          product_id,
-          products (
-            lot_number
-          ),
-          seller:profiles!orders_seller_id_fkey (
-            phone,
-            telegram,
-            opt_id
-          )
-        `);
-
-      if (isSeller) {
-        query.or(`seller_id.eq.${user.id},order_created_type.eq.ads_order`);
-      } else {
-        query.eq('buyer_id', user.id);
+      if (!user?.id) {
+        console.log('❌ No user ID found');
+        return [];
       }
-      const { data: ordersData, error } = await query.order('created_at', { ascending: false });
+
+      console.log('🔍 Starting orders fetch for user:', user.id);
       
-      if (error) {
-        console.error("Error fetching orders:", error);
-        throw error;
-      }
+      try {
+        // Упрощенный запрос без сложной логики
+        let query = supabase
+          .from('orders')
+          .select(`
+            *,
+            products (
+              lot_number
+            ),
+            seller:profiles!orders_seller_id_fkey (
+              phone,
+              telegram,
+              opt_id
+            )
+          `);
 
-      const ordersWithConfirmations = await Promise.all(ordersData.map(async (order) => {
-        const { data: confirmImages, error: confirmError } = await supabase
-          .from('confirm_images')
-          .select('url')
-          .eq('order_id', order.id);
-
-        if (confirmError) console.error("Error fetching confirm images:", confirmError);
+        // Простая логика фильтрации
+        if (isSeller) {
+          console.log('🔍 Fetching orders for seller:', user.id);
+          query = query.eq('seller_id', user.id);
+        } else {
+          console.log('🔍 Fetching orders for buyer:', user.id);
+          query = query.eq('buyer_id', user.id);
+        }
         
-        return {
-          ...order,
-          hasConfirmImages: confirmImages && confirmImages.length > 0
-        };
-      }));
+        const { data: ordersData, error } = await query.order('created_at', { ascending: false });
+        
+        if (error) {
+          console.error('❌ Error fetching orders:', error);
+          throw error;
+        }
 
-      console.log("Fetched orders:", ordersWithConfirmations);
-      return ordersWithConfirmations || [];
+        console.log('✅ Orders fetched successfully:', {
+          count: ordersData?.length || 0,
+          orders: ordersData
+        });
+
+        // Добавляем информацию о изображениях подтверждения
+        const ordersWithConfirmations = await Promise.all((ordersData || []).map(async (order) => {
+          try {
+            const { data: confirmImages, error: confirmError } = await supabase
+              .from('confirm_images')
+              .select('url')
+              .eq('order_id', order.id);
+
+            if (confirmError) {
+              console.error('⚠️ Error fetching confirm images for order:', order.id, confirmError);
+            }
+            
+            return {
+              ...order,
+              hasConfirmImages: confirmImages && confirmImages.length > 0
+            };
+          } catch (err) {
+            console.error('⚠️ Error processing order:', order.id, err);
+            return {
+              ...order,
+              hasConfirmImages: false
+            };
+          }
+        }));
+
+        console.log('✅ Orders with confirmations processed:', ordersWithConfirmations.length);
+        return ordersWithConfirmations;
+        
+      } catch (err) {
+        console.error('❌ Critical error in orders fetch:', err);
+        throw err;
+      }
     },
     enabled: !!user,
     staleTime: 15000,
+    retry: 2,
+    retryDelay: 1000
   });
 
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  // Убираем проблемный useEffect с refetch
+  // useEffect(() => {
+  //   refetch();
+  // }, [refetch]);
+
+  console.log('🔍 Query result:', {
+    isLoading,
+    error: error?.message,
+    ordersCount: orders?.length
+  });
 
   if (isLoading) {
+    console.log('⏳ Loading orders...');
     return (
       <Layout>
         <div className="flex justify-center items-center min-h-[60vh]">
@@ -119,6 +167,27 @@ const BuyerOrders = () => {
       </Layout>
     );
   }
+
+  if (error) {
+    console.error('❌ Component error state:', error);
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-8">
+            <p className="text-red-500 mb-4">Ошибка загрузки заказов: {error.message}</p>
+            <Button
+              onClick={() => refetch()}
+              className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+            >
+              Попробовать снова
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  console.log('✅ Rendering orders page with orders:', orders?.length || 0);
 
   return (
     <Layout>
