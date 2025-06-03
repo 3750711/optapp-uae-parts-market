@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+import React, { useState } from "react";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
-import { Package } from "lucide-react";
 import SellerProductsDialog from "./SellerProductsDialog";
 import { toast } from "@/hooks/use-toast";
+import { ProductInfoSection } from "./sections/ProductInfoSection";
+import { CarBrandModelSection } from "./sections/CarBrandModelSection";
+import { PricingSection } from "./sections/PricingSection";
+import { ParticipantsSection } from "./sections/ParticipantsSection";
+import { SellerInfoSection } from "./sections/SellerInfoSection";
+import { OrderDetailsSection } from "./sections/OrderDetailsSection";
 
 interface OrderFormFieldsProps {
   formData: OrderFormData;
@@ -50,7 +51,6 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   buyerProfiles,
   sellerProfiles,
   selectedSeller,
-  // Car brand and model props
   brands,
   brandModels,
   isLoadingCarData,
@@ -60,27 +60,11 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   setSearchModelTerm,
   filteredBrands,
   filteredModels,
-  // Add new prop for title parsing
   parseTitleForBrand,
-  // Add new props for handling images and data from product
   onImagesUpload,
   onDataFromProduct,
 }) => {
   const [showProductsDialog, setShowProductsDialog] = useState(false);
-
-  // Sort buyer profiles by opt_id alphabetically
-  const sortedBuyerProfiles = [...buyerProfiles].sort((a, b) => {
-    const optIdA = a.opt_id || '';
-    const optIdB = b.opt_id || '';
-    return optIdA.localeCompare(optIdB);
-  });
-
-  // Sort seller profiles by opt_id alphabetically
-  const sortedSellerProfiles = [...sellerProfiles].sort((a, b) => {
-    const optIdA = a.opt_id || '';
-    const optIdB = b.opt_id || '';
-    return optIdA.localeCompare(optIdB);
-  });
 
   const handleAddDataFromProduct = () => {
     if (!selectedSeller) {
@@ -147,241 +131,55 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="title">Наименование *</Label>
-          {selectedSeller && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleAddDataFromProduct}
-              className="flex items-center gap-2"
-            >
-              <Package className="h-4 w-4" />
-              Добавить данные из объявления
-            </Button>
-          )}
-        </div>
-        <Input 
-          id="title" 
-          value={formData.title}
-          onChange={(e) => {
-            handleInputChange('title', e.target.value);
-            // Call the parse function when title changes
-            parseTitleForBrand(e.target.value);
-          }}
-          required 
-          placeholder="Введите наименование"
-        />
-      </div>
+      <ProductInfoSection
+        title={formData.title}
+        onTitleChange={(value) => handleInputChange('title', value)}
+        selectedSeller={selectedSeller}
+        onAddDataFromProduct={handleAddDataFromProduct}
+        onTitleBlur={parseTitleForBrand}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="brandId">Бренд</Label>
-          <Select
-            value={formData.brandId}
-            onValueChange={(value) => handleInputChange('brandId', value)}
-            disabled={isLoadingCarData}
-          >
-            <SelectTrigger id="brandId" className="bg-white">
-              <SelectValue placeholder="Выберите бренд" />
-            </SelectTrigger>
-            <SelectContent
-              showSearch={true}
-              searchPlaceholder="Поиск бренда..."
-              onSearchChange={setSearchBrandTerm}
-              searchValue={searchBrandTerm}
-            >
-              {filteredBrands.length === 0 ? (
-                <SelectItem value="no_data">Нет данных</SelectItem>
-              ) : (
-                filteredBrands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="modelId">Модель</Label>
-          <Select
-            value={formData.modelId}
-            onValueChange={(value) => handleInputChange('modelId', value)}
-            disabled={!formData.brandId || isLoadingCarData}
-          >
-            <SelectTrigger id="modelId" className="bg-white">
-              <SelectValue placeholder="Выберите модель" />
-            </SelectTrigger>
-            <SelectContent
-              showSearch={true}
-              searchPlaceholder="Поиск модели..."
-              onSearchChange={setSearchModelTerm}
-              searchValue={searchModelTerm}
-            >
-              {filteredModels.length === 0 ? (
-                <SelectItem value="no_data">Нет данных</SelectItem>
-              ) : (
-                filteredModels.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <CarBrandModelSection
+        brandId={formData.brandId}
+        modelId={formData.modelId}
+        onBrandChange={(value) => handleInputChange('brandId', value)}
+        onModelChange={(value) => handleInputChange('modelId', value)}
+        brands={brands}
+        filteredModels={filteredModels}
+        isLoadingCarData={isLoadingCarData}
+        searchBrandTerm={searchBrandTerm}
+        setSearchBrandTerm={setSearchBrandTerm}
+        searchModelTerm={searchModelTerm}
+        setSearchModelTerm={setSearchModelTerm}
+        filteredBrands={filteredBrands}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="price">Цена ($) *</Label>
-          <Input 
-            id="price" 
-            type="number" 
-            value={formData.price}
-            onChange={(e) => handleInputChange('price', e.target.value)}
-            required 
-            placeholder="0.00"
-            step="0.01"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="delivery_price">Стоимость доставки ($)</Label>
-          <Input 
-            id="delivery_price"
-            type="number"
-            value={formData.delivery_price}
-            onChange={(e) => handleInputChange('delivery_price', e.target.value)}
-            placeholder="0.00"
-            step="0.01"
-          />
-        </div>
-      </div>
+      <PricingSection
+        price={formData.price}
+        deliveryPrice={formData.delivery_price}
+        onPriceChange={(value) => handleInputChange('price', value)}
+        onDeliveryPriceChange={(value) => handleInputChange('delivery_price', value)}
+      />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
-          <Select
-            value={formData.buyerOptId}
-            onValueChange={(value: string) => handleInputChange("buyerOptId", value)}
-            required
-          >
-            <SelectTrigger id="buyerOptId" className="bg-white">
-              <SelectValue placeholder="Выберите OPT_ID покупателя" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedBuyerProfiles.length === 0 ? (
-                <SelectItem value="no_data">Нет данных</SelectItem>
-              ) : (
-                sortedBuyerProfiles.map((p) => (
-                  <SelectItem key={p.opt_id} value={p.opt_id}>
-                    {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="sellerId">Продавец *</Label>
-          <Select
-            value={formData.sellerId}
-            onValueChange={(value: string) => handleInputChange("sellerId", value)}
-            required
-          >
-            <SelectTrigger id="sellerId" className="bg-white">
-              <SelectValue placeholder="Выберите продавца" />
-            </SelectTrigger>
-            <SelectContent>
-              {sortedSellerProfiles.length === 0 ? (
-                <SelectItem value="no_data">Нет данных</SelectItem>
-              ) : (
-                sortedSellerProfiles.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.opt_id || "Без OPT_ID"} {p.full_name ? `- ${p.full_name}` : ""}
-                  </SelectItem>
-                ))
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <ParticipantsSection
+        buyerOptId={formData.buyerOptId}
+        sellerId={formData.sellerId}
+        onBuyerOptIdChange={(value) => handleInputChange("buyerOptId", value)}
+        onSellerIdChange={(value) => handleInputChange("sellerId", value)}
+        buyerProfiles={buyerProfiles}
+        sellerProfiles={sellerProfiles}
+      />
 
-      {selectedSeller && (
-        <>
-          <div className="space-y-2">
-            <Label>Имя продавца</Label>
-            <Input 
-              value={selectedSeller.full_name || 'Неизвестный продавец'} 
-              readOnly 
-              className="bg-gray-100"
-            />
-          </div>
+      <SellerInfoSection selectedSeller={selectedSeller} />
 
-          <div className="space-y-2">
-            <Label>OPT_ID продавца</Label>
-            <Input 
-              value={selectedSeller.opt_id || ''} 
-              readOnly 
-              className="bg-gray-100"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label>Телеграм продавца</Label>
-            <Input 
-              value={selectedSeller.telegram || ''} 
-              readOnly 
-              className="bg-gray-100"
-            />
-          </div>
-        </>
-      )}
-
-      <div className="space-y-2">
-        <Label>Способ доставки</Label>
-        <Select
-          value={formData.deliveryMethod}
-          onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Выберите способ доставки" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="self_pickup">Самовывоз</SelectItem>
-            <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-            <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="place_number">Количество мест для отправки</Label>
-        <Input 
-          id="place_number" 
-          type="number"
-          value={formData.place_number}
-          onChange={(e) => handleInputChange('place_number', e.target.value)}
-          required 
-          min="1"
-          placeholder="Укажите количество мест"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Дополнительная информация</Label>
-        <Textarea 
-          placeholder="Укажите дополнительную информацию по заказу (необязательно)"
-          className="resize-none"
-          rows={3}
-          value={formData.text_order}
-          onChange={(e) => handleInputChange('text_order', e.target.value)}
-        />
-      </div>
+      <OrderDetailsSection
+        deliveryMethod={formData.deliveryMethod}
+        placeNumber={formData.place_number}
+        textOrder={formData.text_order}
+        onDeliveryMethodChange={(value) => handleInputChange('deliveryMethod', value)}
+        onPlaceNumberChange={(value) => handleInputChange('place_number', value)}
+        onTextOrderChange={(value) => handleInputChange('text_order', value)}
+      />
 
       {/* Диалог выбора товаров продавца */}
       <SellerProductsDialog
