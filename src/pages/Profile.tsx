@@ -7,15 +7,16 @@ import Layout from "@/components/layout/Layout";
 import { Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/components/ui/use-toast";
-import ProfileSidebar from "@/components/profile/ProfileSidebar";
+import { toast } from "@/hooks/use-toast";
+import OptimizedProfileSidebar from "@/components/profile/OptimizedProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
-import ProfileStats from "@/components/profile/ProfileStats";
+import OptimizedProfileStats from "@/components/profile/OptimizedProfileStats";
 import ProfileProgress from "@/components/profile/ProfileProgress";
+import ProfileErrorBoundary from "@/components/profile/ErrorBoundary";
 import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
-import { UserType } from "@/components/profile/types";
 import { DeleteAccountButton } from "@/components/profile/DeleteAccountButton";
+import { useOptimizedProfile } from "@/hooks/useOptimizedProfile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,33 +41,43 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Profile = () => {
-  const { user, profile, signOut, refreshProfile } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, signOut, refreshProfile } = useAuth();
+  const [isFormLoading, setIsFormLoading] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const navigate = useNavigate();
+  
+  // Используем оптимизированный хук
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch, 
+    profile, 
+    orderStats, 
+    storeInfo 
+  } = useOptimizedProfile();
   
   useEffect(() => {
     if (!user) {
       navigate("/login");
     }
-    console.log("Current profile in Profile page:", profile);
-  }, [user, navigate, profile]);
+  }, [user, navigate]);
 
-  const handleSubmit = async (data: FormData) => {
+  const handleSubmit = async (formData: FormData) => {
     if (!user) return;
     
-    setIsLoading(true);
+    setIsFormLoading(true);
     
     try {
       const { error } = await supabase
         .from('profiles')
         .update({
-          full_name: data.fullName,
-          phone: data.phone,
-          company_name: data.companyName,
-          telegram: data.telegram,
-          opt_id: data.optId === "" ? null : data.optId,
-          description_user: data.description,
+          full_name: formData.fullName,
+          phone: formData.phone,
+          company_name: formData.companyName,
+          telegram: formData.telegram,
+          opt_id: formData.optId === "" ? null : formData.optId,
+          description_user: formData.description,
         })
         .eq('id', user.id);
 
@@ -75,6 +86,7 @@ const Profile = () => {
       }
 
       await refreshProfile();
+      await refetch(); // Обновляем кэш оптимизированного хука
 
       toast({
         title: "Профиль обновлен",
@@ -99,7 +111,7 @@ const Profile = () => {
       
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsFormLoading(false);
     }
   };
 
@@ -117,6 +129,7 @@ const Profile = () => {
       if (error) throw error;
       
       await refreshProfile();
+      await refetch(); // Обновляем кэш
     } catch (error: any) {
       console.error("Avatar update error:", error);
       toast({
@@ -150,11 +163,27 @@ const Profile = () => {
     }
   };
 
-  if (!profile) {
+  // Показываем лоадер только при первоначальной загрузке
+  if (isLoading && !profile) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center items-center">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">Не удалось загрузить профиль</p>
+            <Button onClick={() => refetch()}>
+              Попробовать снова
+            </Button>
+          </div>
         </div>
       </Layout>
     );
@@ -180,54 +209,64 @@ const Profile = () => {
             </h1>
           </div>
 
-          {/* Mobile Layout */}
-          <div className="block lg:hidden space-y-6">
-            <ProfileSidebar 
-              profile={profile}
-              isLoading={isLoading}
-              onAvatarUpdate={handleAvatarUpdate}
-            />
-            <ProfileStats profile={profile} />
-            <ProfileProgress profile={profile} />
-            <ProfileForm
-              profile={profile}
-              onSubmit={handleSubmit}
-              isLoading={isLoading}
-              readOnlyUserType={true}
-            />
-            {isSeller && user && (
-              <StoreEditForm sellerId={user.id} />
-            )}
-          </div>
-
-          {/* Desktop Layout */}
-          <div className="hidden lg:grid lg:grid-cols-12 gap-8">
-            {/* Left Column - Profile Sidebar */}
-            <div className="lg:col-span-4 space-y-6">
-              <ProfileSidebar 
+          <ProfileErrorBoundary>
+            {/* Mobile Layout */}
+            <div className="block lg:hidden space-y-6">
+              <OptimizedProfileSidebar 
                 profile={profile}
                 isLoading={isLoading}
                 onAvatarUpdate={handleAvatarUpdate}
               />
-              <ProfileStats profile={profile} />
-            </div>
-
-            {/* Right Column - Main Content */}
-            <div className="lg:col-span-8 space-y-6">
+              <OptimizedProfileStats 
+                profile={profile} 
+                orderStats={orderStats}
+                isLoading={isLoading}
+              />
               <ProfileProgress profile={profile} />
-              
               <ProfileForm
                 profile={profile}
                 onSubmit={handleSubmit}
-                isLoading={isLoading}
+                isLoading={isFormLoading}
                 readOnlyUserType={true}
               />
-              
               {isSeller && user && (
                 <StoreEditForm sellerId={user.id} />
               )}
             </div>
-          </div>
+
+            {/* Desktop Layout */}
+            <div className="hidden lg:grid lg:grid-cols-12 gap-8">
+              {/* Left Column - Profile Sidebar */}
+              <div className="lg:col-span-4 space-y-6">
+                <OptimizedProfileSidebar 
+                  profile={profile}
+                  isLoading={isLoading}
+                  onAvatarUpdate={handleAvatarUpdate}
+                />
+                <OptimizedProfileStats 
+                  profile={profile} 
+                  orderStats={orderStats}
+                  isLoading={isLoading}
+                />
+              </div>
+
+              {/* Right Column - Main Content */}
+              <div className="lg:col-span-8 space-y-6">
+                <ProfileProgress profile={profile} />
+                
+                <ProfileForm
+                  profile={profile}
+                  onSubmit={handleSubmit}
+                  isLoading={isFormLoading}
+                  readOnlyUserType={true}
+                />
+                
+                {isSeller && user && (
+                  <StoreEditForm sellerId={user.id} />
+                )}
+              </div>
+            </div>
+          </ProfileErrorBoundary>
 
           {/* Logout Button */}
           <div className="mt-8 flex justify-center">
