@@ -51,7 +51,7 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         return {
           icon: <CheckCircle className="w-5 h-5 text-green-500" />,
           title: "Хорошая коммуникация",
-          description: "Продавец отвечает быстро и понятно",
+          description: "Продавец отвечает быстро и понятно на английском, умеет пользоваться переводчиком, часто сам показывает скрытые дефекты и возможные нюансы, согласовывает заказы по состоянию и цене",
           bgColor: "bg-green-50",
           borderColor: "border-green-200"
         };
