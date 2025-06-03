@@ -59,7 +59,7 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         return {
           icon: <CheckCircle className="w-5 h-5 text-emerald-500" />,
           title: "Отличная коммуникация",
-          description: "Продавец очень отзывчив и профессионален",
+          description: "Продавец очень отзывчив и профессионален, легко общается на русском, советуем связываться напрямую с продавцем",
           bgColor: "bg-emerald-50",
           borderColor: "border-emerald-200"
         };
