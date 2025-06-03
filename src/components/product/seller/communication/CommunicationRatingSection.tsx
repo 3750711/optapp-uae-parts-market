@@ -43,7 +43,7 @@ export const CommunicationRatingSection: React.FC<CommunicationRatingSectionProp
         return {
           icon: <MessageCircle className="w-5 h-5 text-yellow-500" />,
           title: "Средняя коммуникация",
-          description: "Продавец обычно отвечает, но могут быть небольшие задержки",
+          description: "Продавец активно общается на английском, присылает дополнительную информацию, может подсказать и посоветовать",
           bgColor: "bg-yellow-50",
           borderColor: "border-yellow-200"
         };
