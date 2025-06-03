@@ -1,5 +1,6 @@
+
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -74,6 +75,10 @@ function App() {
               <Route path="/seller/sell-product" element={<ProtectedRoute><SellerSellProduct /></ProtectedRoute>} />
               {/* Публичный профиль продавца - это должно быть в конце, чтобы не конфликтовать */}
               <Route path="/seller/:id" element={<PublicSellerProfile />} />
+              
+              {/* Редирект с /orders на /buyer/orders */}
+              <Route path="/orders" element={<Navigate to="/buyer/orders" replace />} />
+              
               <Route path="/buyer/orders" element={<ProtectedRoute><BuyerOrders /></ProtectedRoute>} />
               <Route path="/buyer/create-order" element={<ProtectedRoute><BuyerCreateOrder /></ProtectedRoute>} />
               <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
