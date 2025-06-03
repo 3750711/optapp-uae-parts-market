@@ -9,14 +9,50 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import EnhancedSuccessOrderDialog from "./EnhancedSuccessOrderDialog";
 
 interface SuccessOrderDialogProps {
   open: boolean;
   onClose: () => void;
   orderNumber: number;
+  // Новые опциональные props для расширенной функциональности
+  orderInfo?: {
+    orderNumber: number;
+    title: string;
+    brand?: string;
+    model?: string;
+    price: number;
+    deliveryMethod: string;
+  };
+  sellerInfo?: {
+    name: string;
+    optId?: string;
+    telegram?: string;
+  };
+  enhanced?: boolean;
 }
 
-const SuccessOrderDialog = ({ open, onClose, orderNumber }: SuccessOrderDialogProps) => {
+const SuccessOrderDialog = ({ 
+  open, 
+  onClose, 
+  orderNumber, 
+  orderInfo,
+  sellerInfo,
+  enhanced = false 
+}: SuccessOrderDialogProps) => {
+  // Если передана расширенная информация, используем новый компонент
+  if (enhanced && orderInfo && sellerInfo) {
+    return (
+      <EnhancedSuccessOrderDialog
+        open={open}
+        onClose={onClose}
+        orderInfo={orderInfo}
+        sellerInfo={sellerInfo}
+      />
+    );
+  }
+
+  // Оригинальный простой диалог для обратной совместимости
   return (
     <AlertDialog open={open}>
       <AlertDialogContent className="max-w-[500px]">
