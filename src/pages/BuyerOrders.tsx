@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -45,6 +46,12 @@ const statusLabels = {
 const orderTypeLabels = {
   free_order: 'Свободный заказ',
   ads_order: 'Заказ по объявлению',
+};
+
+const deliveryMethodLabels = {
+  self_pickup: 'Самовывоз',
+  cargo_russia: 'Cargo РФ',
+  cargo_kazakhstan: 'Cargo КЗ',
 };
 
 const BuyerOrders = () => {
@@ -232,7 +239,7 @@ const BuyerOrders = () => {
             {filteredOrders.map((order) => (
               <div
                 key={order.id}
-                className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all p-4
+                className={`bg-white rounded-xl shadow-md border hover:shadow-xl transition-all p-4 relative
                   ${order.status === 'delivered' ? 'border-green-200' :
                     order.status === 'cancelled' ? 'border-red-200' :
                     order.status === 'seller_confirmed' ? 'border-blue-200' :
@@ -243,6 +250,15 @@ const BuyerOrders = () => {
                   }
                 `}
               >
+                {/* Логотип OPTCargo в правом верхнем углу */}
+                {order.delivery_method === 'cargo_russia' && (
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-3 py-1 rounded-full shadow-lg">
+                      <span className="text-white font-bold text-sm tracking-wider">OPTCargo</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
                     {statusIcons[order.status] || statusIcons['created']}
@@ -288,6 +304,12 @@ const BuyerOrders = () => {
                     <Badge variant="outline">
                       {order.buyer_opt_id || 'Не указан'}
                     </Badge>
+                    {/* Отображение типа доставки для cargo_kazakhstan и self_pickup */}
+                    {order.delivery_method && order.delivery_method !== 'cargo_russia' && (
+                      <Badge variant="outline" className="text-gray-600">
+                        {deliveryMethodLabels[order.delivery_method] || order.delivery_method}
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="text-sm text-gray-500 mb-2">
