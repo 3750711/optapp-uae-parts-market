@@ -28,7 +28,7 @@ const NotFound = () => {
           <h1 className="text-9xl font-bold text-optapp-yellow">404</h1>
           <h2 className="text-3xl font-bold mt-6 mb-4">Страница не найдена</h2>
           <p className="text-lg text-gray-600 mb-4">
-            Извините, но страница, которую вы искали, не существует или вы не имеете к ней доступа.
+            Мы работаем над созданием лучшей платформы для закупа запчастей из ОАЭ, но возможно эту страницу мы еще не доделали.
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
             <div className="flex items-start gap-3">
