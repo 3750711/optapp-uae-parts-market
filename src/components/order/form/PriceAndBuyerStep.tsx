@@ -62,13 +62,23 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
     enabled: true,
   });
 
+  // Sort profiles by opt_id alphabetically
+  const sortedProfiles = useMemo(() => 
+    [...profiles].sort((a, b) => {
+      const optIdA = a.opt_id || '';
+      const optIdB = b.opt_id || '';
+      return optIdA.localeCompare(optIdB);
+    }), 
+    [profiles]
+  );
+
   const profileOptions = useMemo(() => 
-    profiles.map(p => ({
+    sortedProfiles.map(p => ({
       value: p.opt_id,
       label: `${p.opt_id}${p.full_name ? ` - ${p.full_name}` : ''}`,
       searchText: `${p.opt_id} ${p.full_name || ''}`
     })), 
-    [profiles]
+    [sortedProfiles]
   );
 
   const getSmartHints = (fieldName: string, value: string) => {

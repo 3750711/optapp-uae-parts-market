@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,6 +67,20 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   onDataFromProduct,
 }) => {
   const [showProductsDialog, setShowProductsDialog] = useState(false);
+
+  // Sort buyer profiles by opt_id alphabetically
+  const sortedBuyerProfiles = [...buyerProfiles].sort((a, b) => {
+    const optIdA = a.opt_id || '';
+    const optIdB = b.opt_id || '';
+    return optIdA.localeCompare(optIdB);
+  });
+
+  // Sort seller profiles by opt_id alphabetically
+  const sortedSellerProfiles = [...sellerProfiles].sort((a, b) => {
+    const optIdA = a.opt_id || '';
+    const optIdB = b.opt_id || '';
+    return optIdA.localeCompare(optIdB);
+  });
 
   const handleAddDataFromProduct = () => {
     if (!selectedSeller) {
@@ -261,10 +274,10 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
               <SelectValue placeholder="Выберите OPT_ID покупателя" />
             </SelectTrigger>
             <SelectContent>
-              {buyerProfiles.length === 0 ? (
+              {sortedBuyerProfiles.length === 0 ? (
                 <SelectItem value="no_data">Нет данных</SelectItem>
               ) : (
-                buyerProfiles.map((p) => (
+                sortedBuyerProfiles.map((p) => (
                   <SelectItem key={p.opt_id} value={p.opt_id}>
                     {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
                   </SelectItem>
@@ -284,12 +297,12 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
               <SelectValue placeholder="Выберите продавца" />
             </SelectTrigger>
             <SelectContent>
-              {sellerProfiles.length === 0 ? (
+              {sortedSellerProfiles.length === 0 ? (
                 <SelectItem value="no_data">Нет данных</SelectItem>
               ) : (
-                sellerProfiles.map((p) => (
+                sortedSellerProfiles.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.full_name || "Без имени"} {p.opt_id ? `(OPT_ID: ${p.opt_id})` : ""}
+                    {p.opt_id || "Без OPT_ID"} {p.full_name ? `- ${p.full_name}` : ""}
                   </SelectItem>
                 ))
               )}
