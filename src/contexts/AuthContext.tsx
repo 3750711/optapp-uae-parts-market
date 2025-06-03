@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchUserProfile(userId: string) {
     try {
-      console.log("Attempting to fetch profile for user:", userId);
+      console.log("AuthContext: Attempting to fetch profile for user:", userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -34,24 +34,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       if (error) {
-        console.error('Error fetching user profile:', error);
+        console.error('AuthContext: Error fetching user profile:', error);
         return;
       }
       
-      console.log("Fetched profile data:", data);
+      console.log("AuthContext: Fetched profile data:", data);
       
       if (data) {
         setProfile(data);
       } else {
-        console.error('No profile data found for user:', userId);
+        console.error('AuthContext: No profile data found for user:', userId);
       }
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('AuthContext: Exception while fetching profile:', error);
     }
   }
 
   const refreshProfile = async () => {
     if (user) {
+      console.log("AuthContext: Refreshing profile for user:", user.id);
       await fetchUserProfile(user.id);
     }
   };
@@ -60,11 +61,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const setupAuth = async () => {
       try {
         setIsLoading(true);
+        console.log("AuthContext: Setting up authentication");
         
         // First, set up the auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
-            console.log("Auth state changed:", event);
+            console.log("AuthContext: Auth state changed:", event, currentSession?.user?.id);
             
             // Update local session state
             setSession(currentSession);
@@ -72,11 +74,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             // Handle profile fetch after session change
             if (currentSession?.user) {
+              console.log("AuthContext: User authenticated, fetching profile");
               // Use setTimeout to avoid potential auth deadlocks
               setTimeout(() => {
                 fetchUserProfile(currentSession.user.id);
               }, 100);
             } else {
+              console.log("AuthContext: User not authenticated, clearing profile");
               setProfile(null);
             }
             
@@ -86,12 +90,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
 
         // Then check for existing session
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("AuthContext: Error getting session:", error);
+        } else {
+          console.log("AuthContext: Initial session check:", currentSession?.user?.id);
+        }
         
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         if (currentSession?.user) {
+          console.log("AuthContext: Initial user found, fetching profile");
           // Fetch user profile with delay to avoid potential auth conflicts
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
@@ -101,9 +112,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Set loading to false after initial session check
         setIsLoading(false);
         
-        return () => subscription.unsubscribe();
+        return () => {
+          console.log("AuthContext: Cleaning up auth subscription");
+          subscription.unsubscribe();
+        };
       } catch (error) {
-        console.error("Error setting up auth:", error);
+        console.error("AuthContext: Error setting up auth:", error);
         // Ensure we set loading to false even if there's an error
         setIsLoading(false);
       }
@@ -116,14 +130,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     
     try {
+      console.log("AuthContext: Signing out user");
       await supabase.auth.signOut();
       
       // Clear all states after logout
       setUser(null);
       setSession(null);
       setProfile(null);
+      console.log("AuthContext: Sign out successful");
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('AuthContext: Error during sign out:', error);
     } finally {
       setIsLoading(false);
     }

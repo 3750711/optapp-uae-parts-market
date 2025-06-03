@@ -59,32 +59,57 @@ const Profile = () => {
   
   useEffect(() => {
     if (!user) {
+      console.log("Profile: No user found, redirecting to login");
       navigate("/login");
+    } else {
+      console.log("Profile: User found:", user.id);
     }
   }, [user, navigate]);
 
   const handleSubmit = async (formData: FormData) => {
-    if (!user) return;
+    if (!user) {
+      console.error("Profile: No user found for form submission");
+      return;
+    }
     
+    console.log("Profile: Starting form submission", formData);
     setIsFormLoading(true);
     
     try {
+      // Проверяем, есть ли изменения в данных
+      const hasChanges = profile && (
+        profile.full_name !== formData.fullName ||
+        profile.phone !== formData.phone ||
+        profile.company_name !== formData.companyName ||
+        profile.description_user !== formData.description
+      );
+
+      if (!hasChanges) {
+        console.log("Profile: No changes detected, skipping update");
+        toast({
+          title: "Без изменений",
+          description: "Нет изменений для сохранения",
+        });
+        return;
+      }
+
+      console.log("Profile: Submitting profile update to Supabase");
       const { error } = await supabase
         .from('profiles')
         .update({
           full_name: formData.fullName,
           phone: formData.phone,
           company_name: formData.companyName,
-          telegram: formData.telegram,
-          opt_id: formData.optId === "" ? null : formData.optId,
           description_user: formData.description,
         })
         .eq('id', user.id);
 
       if (error) {
+        console.error("Profile: Supabase update error:", error);
         throw error;
       }
 
+      console.log("Profile: Profile updated successfully");
       await refreshProfile();
       await refetch(); // Обновляем кэш оптимизированного хука
 
@@ -93,7 +118,7 @@ const Profile = () => {
         description: "Ваши данные успешно сохранены",
       });
     } catch (error: any) {
-      console.error("Profile update error:", error);
+      console.error("Profile: Profile update error:", error);
       
       if (error.message.includes("profiles_opt_id_key")) {
         toast({
@@ -116,9 +141,13 @@ const Profile = () => {
   };
 
   const handleAvatarUpdate = async (avatarUrl: string) => {
-    if (!user) return;
+    if (!user) {
+      console.error("Profile: No user found for avatar update");
+      return;
+    }
     
     try {
+      console.log("Profile: Updating avatar", avatarUrl);
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -126,12 +155,16 @@ const Profile = () => {
         })
         .eq('id', user.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Profile: Avatar update error:", error);
+        throw error;
+      }
       
+      console.log("Profile: Avatar updated successfully");
       await refreshProfile();
       await refetch(); // Обновляем кэш
     } catch (error: any) {
-      console.error("Avatar update error:", error);
+      console.error("Profile: Avatar update error:", error);
       toast({
         variant: "destructive",
         title: "Ошибка обновления аватара",
@@ -147,6 +180,7 @@ const Profile = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log("Profile: Signing out user");
       await signOut();
       toast({
         title: "Вы вышли из аккаунта",
@@ -154,7 +188,7 @@ const Profile = () => {
       });
       navigate("/");
     } catch (error) {
-      console.error("Ошибка при выходе:", error);
+      console.error("Profile: Ошибка при выходе:", error);
       toast({
         title: "Ошибка выхода",
         description: "Не удалось выйти из аккаунта. Пожалуйста, попробуйте снова.",
@@ -165,6 +199,7 @@ const Profile = () => {
 
   // Показываем лоадер только при первоначальной загрузке
   if (isLoading && !profile) {
+    console.log("Profile: Showing loading state");
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center">
@@ -175,6 +210,7 @@ const Profile = () => {
   }
 
   if (!profile) {
+    console.log("Profile: No profile found, showing error state");
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center">
@@ -190,6 +226,7 @@ const Profile = () => {
   }
 
   const isSeller = profile.user_type === 'seller';
+  console.log("Profile: Rendering profile page for user type:", profile.user_type);
 
   return (
     <Layout>
