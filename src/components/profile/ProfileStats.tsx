@@ -1,8 +1,11 @@
 
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Package, Star, Clock, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ShoppingBag, Package, Star, Clock, TrendingUp, MessageCircle } from 'lucide-react';
 import { ProfileType } from './types';
 
 interface ProfileStatsProps {
@@ -11,6 +14,40 @@ interface ProfileStatsProps {
 
 const ProfileStats: React.FC<ProfileStatsProps> = ({ profile }) => {
   const isSeller = profile.user_type === 'seller';
+  
+  // Получаем статистику заказов для текущего пользователя
+  const { data: orderStats } = useQuery({
+    queryKey: ['user-orders', profile.id],
+    queryFn: async () => {
+      const [buyerOrdersData, sellerOrdersData] = await Promise.all([
+        // Заказы как покупатель
+        supabase
+          .from('orders')
+          .select('status, created_at')
+          .eq('buyer_id', profile.id),
+        
+        // Заказы как продавец (если применимо)
+        isSeller ? supabase
+          .from('orders')
+          .select('status, created_at')
+          .eq('seller_id', profile.id) : Promise.resolve({ data: [], error: null })
+      ]);
+
+      if (buyerOrdersData.error) throw buyerOrdersData.error;
+      if (sellerOrdersData.error) throw sellerOrdersData.error;
+
+      const buyerOrders = buyerOrdersData.data || [];
+      const sellerOrders = sellerOrdersData.data || [];
+      const allOrders = [...buyerOrders, ...sellerOrders];
+
+      return {
+        totalOrders: allOrders.length,
+        completedOrders: allOrders.filter(o => o.status === 'completed').length,
+        pendingOrders: allOrders.filter(o => ['created', 'confirmed'].includes(o.status)).length
+      };
+    },
+    enabled: !!profile.id,
+  });
   
   const stats = [
     {
@@ -22,7 +59,7 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ profile }) => {
     },
     {
       title: 'Всего заказов',
-      value: 0, // Will be implemented later with actual data
+      value: orderStats?.totalOrders || 0,
       icon: <ShoppingBag className="h-5 w-5 text-green-600" />,
       color: 'bg-green-50 border-green-200',
       visible: true
@@ -45,12 +82,27 @@ const ProfileStats: React.FC<ProfileStatsProps> = ({ profile }) => {
 
   const visibleStats = stats.filter(stat => stat.visible);
 
+  const handleContactAdmin = () => {
+    window.open('https://t.me/Nastya_PostingLots_OptCargo', '_blank');
+  };
+
   return (
     <Card className="bg-gradient-to-br from-white to-gray-50 border shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-optapp-yellow" />
-          <CardTitle className="text-lg font-semibold">Статистика профиля</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-optapp-yellow" />
+            <CardTitle className="text-lg font-semibold">Статистика профиля</CardTitle>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleContactAdmin}
+            className="text-optapp-yellow hover:text-optapp-dark transition-colors"
+          >
+            <MessageCircle className="h-4 w-4 mr-1" />
+            Связаться с админом
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
