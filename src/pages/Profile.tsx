@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -9,6 +10,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/components/ui/use-toast";
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
+import ProfileStats from "@/components/profile/ProfileStats";
+import ProfileProgress from "@/components/profile/ProfileProgress";
+import QuickActions from "@/components/profile/QuickActions";
+import ContactCard from "@/components/profile/ContactCard";
 import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { UserType } from "@/components/profile/types";
@@ -160,63 +165,104 @@ const Profile = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="mr-4" 
-            onClick={() => navigate(-1)}
-          >
-            <ChevronLeft className="h-5 w-5 mr-1" /> Назад
-          </Button>
-          <h1 className="text-2xl font-bold">Мой профиль</h1>
-        </div>
-        <div className="flex flex-col md:flex-row gap-8">
-          <ProfileSidebar 
-            profile={profile}
-            isLoading={isLoading}
-            onAvatarUpdate={handleAvatarUpdate}
-          />
-          <div className="w-full md:w-2/3 space-y-8">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center mb-8">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="mr-4 hover:bg-gray-100" 
+              onClick={() => navigate(-1)}
+            >
+              <ChevronLeft className="h-5 w-5 mr-1" /> Назад
+            </Button>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-optapp-dark to-gray-700 bg-clip-text text-transparent">
+              Мой профиль
+            </h1>
+          </div>
+
+          {/* Mobile Layout */}
+          <div className="block lg:hidden space-y-6">
+            <ProfileSidebar 
+              profile={profile}
+              isLoading={isLoading}
+              onAvatarUpdate={handleAvatarUpdate}
+            />
+            <ProfileStats profile={profile} />
+            <ProfileProgress profile={profile} />
+            <QuickActions profile={profile} />
+            <ContactCard profile={profile} />
             <ProfileForm
               profile={profile}
               onSubmit={handleSubmit}
               isLoading={isLoading}
               readOnlyUserType={true}
             />
-            
             {isSeller && user && (
-              <div className="mt-8">
-                <StoreEditForm sellerId={user.id} />
-              </div>
+              <StoreEditForm sellerId={user.id} />
             )}
-            
+          </div>
+
+          {/* Desktop Layout */}
+          <div className="hidden lg:grid lg:grid-cols-12 gap-8">
+            {/* Left Column - Profile Sidebar */}
+            <div className="lg:col-span-4 space-y-6">
+              <ProfileSidebar 
+                profile={profile}
+                isLoading={isLoading}
+                onAvatarUpdate={handleAvatarUpdate}
+              />
+              <ProfileStats profile={profile} />
+              <ContactCard profile={profile} />
+            </div>
+
+            {/* Right Column - Main Content */}
+            <div className="lg:col-span-8 space-y-6">
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <ProfileProgress profile={profile} />
+                <QuickActions profile={profile} />
+              </div>
+              
+              <ProfileForm
+                profile={profile}
+                onSubmit={handleSubmit}
+                isLoading={isLoading}
+                readOnlyUserType={true}
+              />
+              
+              {isSeller && user && (
+                <StoreEditForm sellerId={user.id} />
+              )}
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <div className="mt-8 flex justify-center">
             <Button 
               variant="ghost" 
               size="sm"
-              className="mt-4 text-gray-400 hover:text-gray-500 text-xs flex items-center opacity-60"
+              className="text-gray-400 hover:text-gray-500 text-xs flex items-center opacity-60 hover:opacity-80 transition-opacity"
               onClick={handleSignOutClick}
             >
               <LogOut className="mr-1 h-3 w-3" />
               Выйти из аккаунта
             </Button>
-            
-            <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Выйти из аккаунта</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Вы уверены, что хотите выйти из аккаунта?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleSignOut}>Выйти</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
+          
+          <AlertDialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Выйти из аккаунта</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Вы уверены, что хотите выйти из аккаунта?
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                <AlertDialogAction onClick={handleSignOut}>Выйти</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </Layout>

@@ -17,16 +17,18 @@ const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   onAvatarUpdate,
 }) => {
   return (
-    <div className="w-full md:w-1/3 space-y-6">
+    <div className="w-full space-y-6">
       <ProfileHeader 
         profile={profile} 
         onAvatarUpdate={onAvatarUpdate}
       />
-      <ProfileActions 
-        profile={profile}
-        isLoading={isLoading}
-      />
-      <ProfileInfo profile={profile} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-6">
+        <ProfileActions 
+          profile={profile}
+          isLoading={isLoading}
+        />
+        <ProfileInfo profile={profile} />
+      </div>
     </div>
   );
 };
