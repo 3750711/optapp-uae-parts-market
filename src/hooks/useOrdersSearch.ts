@@ -20,6 +20,7 @@ export interface OrderSearchResult {
   delivery_price_confirm?: number;
   order_created_type?: string;
   text_order?: string;
+  delivery_method?: string;
   products?: {
     lot_number: string;
   };
