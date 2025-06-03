@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -46,7 +45,6 @@ import AdminFreeOrder from "./pages/AdminFreeOrder";
 import AdminCreateOrderFromProduct from "./pages/AdminCreateOrderFromProduct";
 import AdminCarCatalog from "./pages/AdminCarCatalog";
 import AdminLogistics from "./pages/AdminLogistics";
-import AdminImageOptimizer from "./pages/AdminImageOptimizer";
 
 const queryClient = new QueryClient();
 
@@ -103,7 +101,6 @@ function App() {
               <Route path="/admin/create-order-from-product" element={<ProtectedRoute><AdminCreateOrderFromProduct /></ProtectedRoute>} />
               <Route path="/admin/car-catalog" element={<ProtectedRoute><AdminCarCatalog /></ProtectedRoute>} />
               <Route path="/admin/logistics" element={<ProtectedRoute><AdminLogistics /></ProtectedRoute>} />
-              <Route path="/admin/image-optimizer" element={<ProtectedRoute><AdminImageOptimizer /></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>
