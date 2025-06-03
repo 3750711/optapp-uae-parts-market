@@ -21,24 +21,24 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   showAllStatuses = false,
   showSoldButton = false,
   onStatusChange,
-  viewMode = 'grid'
+  viewMode = 'list' // Изменили по умолчанию на list
 }) => {
   // Display loading skeleton when data is loading
   if (isLoading) {
     if (viewMode === 'list') {
       return (
-        <div className="space-y-4">
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div key={`skeleton-${index}`} className="bg-white border border-gray-100 rounded-lg p-4">
-              <div className="flex gap-4">
-                <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gray-200 rounded-lg animate-pulse" />
+        <div className="space-y-3"> {/* Уменьшили отступы для списка */}
+          {Array.from({ length: 12 }).map((_, index) => ( /* Увеличили количество скелетонов */
+            <div key={`skeleton-${index}`} className="bg-white border border-gray-100 rounded-lg p-3"> {/* Уменьшили отступы */}
+              <div className="flex gap-3"> {/* Уменьшили отступы */}
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-200 rounded-lg animate-pulse" /> {/* Меньшие изображения */}
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
                   <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
                   <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
-                  <div className="flex justify-between pt-2">
-                    <div className="h-6 bg-gray-200 rounded animate-pulse w-1/4" />
-                    <div className="h-4 bg-gray-200 rounded animate-pulse w-1/3" />
+                  <div className="flex justify-between pt-1"> {/* Уменьшили отступ */}
+                    <div className="h-5 bg-gray-200 rounded animate-pulse w-1/4" /> {/* Меньшая высота */}
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-1/3" />
                   </div>
                 </div>
               </div>
@@ -69,7 +69,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
 
   if (viewMode === 'list') {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3"> {/* Уменьшили отступы между элементами */}
         {products.map((product) => (
           <MemoizedProductListItem
             key={product.id}

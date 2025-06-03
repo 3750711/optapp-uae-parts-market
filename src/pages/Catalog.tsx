@@ -18,8 +18,10 @@ import { SearchHistoryItem } from "@/hooks/useSearchHistory";
 const Catalog: React.FC = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('list'); // Default to list view for better performance
-  const productsPerPage = viewMode === 'list' ? 16 : 8; // More products in list view
+  const [viewMode, setViewMode] = useState<ViewMode>('list'); // Оставляем list по умолчанию
+  
+  // Увеличиваем количество товаров на странице для списочного режима
+  const productsPerPage = viewMode === 'list' ? 24 : 8; // Больше товаров в списочном режиме
   
   // Car brands and models
   const {
@@ -60,12 +62,12 @@ const Catalog: React.FC = () => {
     isActiveFilters
   } = useCatalogProducts(productsPerPage, sortBy);
 
-  // Предзагрузка изображений следующих товаров
+  // Предзагрузка изображений следующих товаров (оптимизировано для списка)
   const productImages = mappedProducts.map(product => product.preview_image || product.image).filter(Boolean);
   useImagePreloader(productImages, {
     enabled: !isLoading,
-    preloadDistance: viewMode === 'list' ? 20 : 15,
-    maxConcurrent: 6
+    preloadDistance: viewMode === 'list' ? 30 : 15, // Больше предзагрузки для списка
+    maxConcurrent: viewMode === 'list' ? 8 : 6 // Больше параллельных загрузок для списка
   });
 
   // Update brand and model names when IDs change
@@ -209,6 +211,11 @@ const Catalog: React.FC = () => {
                   {allProducts.length > 0 && (
                     <div className="text-sm text-gray-600">
                       Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
+                      {viewMode === 'list' && (
+                        <span className="ml-2 text-xs text-gray-500">
+                          (быстрая загрузка)
+                        </span>
+                      )}
                     </div>
                   )}
                   

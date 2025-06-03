@@ -10,6 +10,8 @@ interface OptimizedProductImageProps {
   priority?: boolean;
   onLoad?: () => void;
   onError?: () => void;
+  catalogMode?: boolean; // Новый режим для каталога
+  thumbnailUrl?: string; // URL каталожного превью
 }
 
 const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
@@ -19,7 +21,9 @@ const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
   sizes = "25vw",
   priority = false,
   onLoad,
-  onError
+  onError,
+  catalogMode = false,
+  thumbnailUrl
 }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
@@ -27,24 +31,41 @@ const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
   const imgRef = useRef<HTMLImageElement>(null);
 
   // Создаем оптимизированные URL для изображений
-  const createOptimizedUrl = (originalUrl: string, width?: number) => {
+  const createOptimizedUrl = (originalUrl: string, width?: number, quality?: number) => {
     if (originalUrl.includes('placeholder.svg')) return originalUrl;
+    
+    // Для каталожного режима используем каталожное превью если доступно
+    if (catalogMode && thumbnailUrl) {
+      return thumbnailUrl;
+    }
     
     // Если это Supabase URL, добавляем параметры трансформации
     if (originalUrl.includes('supabase')) {
       const url = new URL(originalUrl);
-      if (width) {
-        url.searchParams.set('width', width.toString());
+      
+      if (catalogMode) {
+        // Для каталога: маленькие превью до 20KB
+        url.searchParams.set('width', '150');
+        url.searchParams.set('height', '150');
+        url.searchParams.set('quality', '45');
+        url.searchParams.set('format', 'webp');
+        url.searchParams.set('resize', 'cover');
+      } else {
+        // Для детальных страниц: сжатие до 400KB
+        if (width) {
+          url.searchParams.set('width', width.toString());
+        }
+        url.searchParams.set('quality', (quality || 80).toString());
+        url.searchParams.set('format', 'webp');
       }
-      url.searchParams.set('quality', '80');
-      url.searchParams.set('format', 'webp');
+      
       return url.toString();
     }
     
     return originalUrl;
   };
 
-  // Progressive loading: сначала загружаем низкое качество, потом высокое
+  // Загрузка изображения
   useEffect(() => {
     let isMounted = true;
 
@@ -52,26 +73,54 @@ const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
       if (!src) return;
 
       try {
-        // Сначала пытаемся загрузить превью (низкое качество)
-        const previewUrl = createOptimizedUrl(src, 200);
+        let imageUrl;
         
-        const img = new Image();
-        img.onload = () => {
-          if (isMounted) {
-            setImageSrc(previewUrl);
-            setIsLoading(false);
-            onLoad?.();
-            
-            // Затем загружаем полное изображение в фоне
-            if (previewUrl !== src) {
+        if (catalogMode) {
+          // Для каталога загружаем только каталожное превью
+          imageUrl = createOptimizedUrl(src, 150, 45);
+        } else {
+          // Для детальных страниц используем прогрессивную загрузку
+          // Сначала превью, потом полное изображение
+          const previewUrl = createOptimizedUrl(src, 400, 60);
+          
+          const img = new Image();
+          img.onload = () => {
+            if (isMounted) {
+              setImageSrc(previewUrl);
+              setIsLoading(false);
+              onLoad?.();
+              
+              // Затем загружаем полное изображение в фоне (до 400KB)
               const fullImg = new Image();
               fullImg.onload = () => {
                 if (isMounted) {
-                  setImageSrc(createOptimizedUrl(src, 800));
+                  setImageSrc(createOptimizedUrl(src, 800, 80));
                 }
               };
-              fullImg.src = createOptimizedUrl(src, 800);
+              fullImg.src = createOptimizedUrl(src, 800, 80);
             }
+          };
+          
+          img.onerror = () => {
+            if (isMounted) {
+              setHasError(true);
+              setIsLoading(false);
+              setImageSrc('/placeholder.svg');
+              onError?.();
+            }
+          };
+          
+          img.src = previewUrl;
+          return;
+        }
+        
+        // Простая загрузка для каталожного режима
+        const img = new Image();
+        img.onload = () => {
+          if (isMounted) {
+            setImageSrc(imageUrl);
+            setIsLoading(false);
+            onLoad?.();
           }
         };
         
@@ -84,7 +133,7 @@ const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
           }
         };
         
-        img.src = previewUrl;
+        img.src = imageUrl;
       } catch (error) {
         if (isMounted) {
           setHasError(true);
@@ -100,7 +149,7 @@ const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [src, onLoad, onError]);
+  }, [src, onLoad, onError, catalogMode, thumbnailUrl]);
 
   return (
     <div className={cn("relative overflow-hidden", className)}>
@@ -126,7 +175,7 @@ const OptimizedProductImage: React.FC<OptimizedProductImageProps> = ({
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'contain'
+          objectFit: 'cover'
         }}
       />
       

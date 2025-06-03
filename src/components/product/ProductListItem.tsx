@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import OptimizedProductImage from "@/components/ui/OptimizedProductImage";
+import CatalogProductImage from "@/components/ui/CatalogProductImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import { ProductProps } from "./ProductCard";
 
@@ -41,16 +41,21 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     product.image ||
     "/placeholder.svg";
 
+  // Получаем каталожное превью если доступно
+  const catalogThumbnail = product.product_images?.find(img => img.is_primary)?.preview_url ||
+    product.product_images?.[0]?.preview_url;
+
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Image */}
-        <div className="flex-shrink-0 w-24 h-24 sm:w-32 sm:h-32 relative bg-gray-50 rounded-lg overflow-hidden">
-          <OptimizedProductImage
+        {/* Optimized catalog image */}
+        <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
+          <CatalogProductImage
             src={primaryImage}
             alt={product.title}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 640px) 96px, 128px"
+            thumbnailUrl={catalogThumbnail}
+            className="w-full h-full"
+            lazy={true}
           />
           {product.lot_number && (
             <Badge 
