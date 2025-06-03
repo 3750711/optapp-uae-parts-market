@@ -15,6 +15,7 @@ import ProfileProgress from "@/components/profile/ProfileProgress";
 import { Button } from "@/components/ui/button";
 import StoreEditForm from "@/components/store/StoreEditForm";
 import { UserType } from "@/components/profile/types";
+import { DeleteAccountButton } from "@/components/profile/DeleteAccountButton";
 import {
   AlertDialog,
   AlertDialogAction,
