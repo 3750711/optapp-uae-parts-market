@@ -1,77 +1,68 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  Store,
-  Image,
-  Settings
-} from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, ShoppingCart } from 'lucide-react';
+import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
   const actions = [
     {
-      title: 'Управление пользователями',
-      description: 'Просмотр и редактирование профилей пользователей',
-      icon: Users,
-      href: '/admin/users',
-      color: 'text-blue-600'
+      title: "Добавить объявление",
+      subtitle: "Создать новое объявление",
+      icon: Plus,
+      link: "/admin/add-product",
+      bgColor: "bg-primary",
+      textColor: "text-primary-foreground"
     },
     {
-      title: 'Управление товарами',
-      description: 'Модерация и редактирование товаров',
-      icon: Package,
-      href: '/admin/products',
-      color: 'text-green-600'
-    },
-    {
-      title: 'Управление заказами',
-      description: 'Просмотр и обработка заказов',
-      icon: ShoppingCart,
-      href: '/admin/orders',
-      color: 'text-purple-600'
-    },
-    {
-      title: 'Управление магазинами',
-      description: 'Просмотр и редактирование магазинов',
+      title: "Магазины",
+      subtitle: "Управление магазинами",
       icon: Store,
-      href: '/admin/stores',
-      color: 'text-orange-600'
+      link: "/admin/stores",
     },
     {
-      title: 'Оптимизация изображений',
-      description: 'Создание превью для изображений товаров',
-      icon: Image,
-      href: '/admin/image-optimizer',
-      color: 'text-indigo-600'
+      title: "Журнал событий",
+      subtitle: "Просмотр журнала системных событий",
+      icon: Activity,
+      link: "/admin/events",
+    },
+    {
+      title: "Марки и модели",
+      subtitle: "Управление каталогом автомобилей",
+      icon: Car,
+      link: "/admin/car-catalog",
+      bgColor: "bg-optapp-yellow",
+      textColor: "text-optapp-dark"
+    },
+    {
+      title: "Создать свободный заказ",
+      subtitle: "Создать заказ без привязки к объявлению",
+      icon: FileText,
+      link: "/admin/free-order",
+      bgColor: "bg-green-500",
+      textColor: "text-white"
+    },
+    {
+      title: "Создать заказ из товара",
+      subtitle: "Создать заказ на основе существующего товара",
+      icon: ShoppingCart,
+      link: "/admin/create-order-from-product",
+      bgColor: "bg-pink-500",
+      textColor: "text-white"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {actions.map((action) => {
-        const IconComponent = action.icon;
-        return (
-          <Card key={action.href} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <IconComponent className={`h-6 w-6 ${action.color}`} />
-                <CardTitle className="text-lg">{action.title}</CardTitle>
-              </div>
-              <CardDescription>{action.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link to={action.href}>Перейти</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        );
-      })}
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-6">
+      {actions.map((action, index) => (
+        <ActionCard
+          key={index}
+          title={action.title}
+          subtitle={action.subtitle}
+          icon={action.icon}
+          link={action.link}
+          bgColor={action.bgColor}
+          textColor={action.textColor}
+        />
+      ))}
     </div>
   );
 };
