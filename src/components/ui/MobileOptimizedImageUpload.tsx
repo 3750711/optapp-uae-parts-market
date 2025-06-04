@@ -51,7 +51,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [compressionQuality, setCompressionQuality] = useState<number | null>(null);
-  const [lastGeneratedPreview, setLastGeneratedPreview] = useState<string | null>(null);
 
   const {
     isUploading,
@@ -95,45 +94,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     setShowPreview(true);
   }, [existingImages.length, maxImages]);
 
-  // Generate preview for uploaded image
-  const generatePreviewForImage = async (imageUrl: string) => {
-    if (!productId) {
-      console.log('No productId provided, skipping preview generation');
-      return;
-    }
-
-    try {
-      console.log('Generating preview for uploaded image:', imageUrl, 'productId:', productId);
-      const previewResult = await generateProductPreview(imageUrl, productId);
-      
-      if (previewResult.success && previewResult.previewUrl) {
-        await updateProductPreview(productId, previewResult.previewUrl);
-        console.log('Preview generated and saved for product:', productId);
-        
-        setLastGeneratedPreview(previewResult.previewUrl);
-        
-        toast({
-          title: "Превью создано",
-          description: `Превью создано (${Math.round((previewResult.previewSize || 0) / 1024)}KB)`,
-        });
-      } else {
-        console.error('Failed to generate preview:', previewResult.error);
-        toast({
-          title: "Ошибка превью",
-          description: "Не удалось создать превью изображения",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error('Error generating preview:', error);
-      toast({
-        title: "Ошибка превью",
-        description: "Произошла ошибка при создании превью",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Start upload
   const startUpload = useCallback(async () => {
     if (selectedFiles.length === 0) return;
@@ -153,11 +113,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       if (urls.length > 0) {
         onUploadComplete(urls);
         
-        // Generate preview for the first uploaded image if productId is provided
-        if (productId && urls.length > 0) {
-          await generatePreviewForImage(urls[0]);
-        }
-        
         setSelectedFiles([]);
         setShowPreview(false);
         clearProgress();
@@ -165,17 +120,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     } catch (error) {
       console.error('Upload failed:', error);
     }
-  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress, productId]);
+  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress]);
 
-  // Handle setting primary image with preview generation
+  // Handle setting primary image
   const handleSetPrimaryImage = async (url: string) => {
     if (onSetPrimaryImage) {
       onSetPrimaryImage(url);
-      
-      // Generate preview for the new primary image if productId is provided
-      if (productId) {
-        await generatePreviewForImage(url);
-      }
     }
   };
 
@@ -200,33 +150,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 
   return (
     <div className="space-y-4">
-      {/* Preview URL Display */}
-      {lastGeneratedPreview && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm text-green-700">
-                <CheckCircle className="h-4 w-4" />
-                <span>Превью создано успешно</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => window.open(lastGeneratedPreview, '_blank')}
-                className="flex items-center gap-1 text-xs"
-              >
-                <ExternalLink className="h-3 w-3" />
-                Посмотреть
-              </Button>
-            </div>
-            <div className="mt-2 text-xs text-green-600 break-all">
-              URL: {lastGeneratedPreview}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Existing Images Gallery */}
       {existingImages.length > 0 && (
         <Card>
@@ -553,9 +476,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         {isMobileDevice && (
           <div>💡 Совет: для экономии трафика изображения сжимаются автоматически</div>
         )}
-        {productId && (
-          <div>🖼️ Превью создаётся автоматически при загрузке изображений</div>
-        )}
+        <div>🖼️ Превью создаётся автоматически после публикации товара</div>
       </div>
     </div>
   );

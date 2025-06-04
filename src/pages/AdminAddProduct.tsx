@@ -305,10 +305,44 @@ const AdminAddProduct = () => {
         throw new Error("Failed to get product ID");
       }
 
-      // Сохраняем productId для использования в компоненте загрузки изображений
+      // Устанавливаем productId для использования в компоненте загрузки изображений
       setCreatedProductId(productId);
       
-      setProgressStatus({ step: "Сохранение изображений", progress: 60 });
+      setProgressStatus({ step: "Генерация превью", progress: 50 });
+      
+      // Генерируем превью для основного изображения после создания продукта
+      if (primaryImage) {
+        try {
+          const { generateProductPreview, updateProductPreview } = await import("@/utils/previewGenerator");
+          
+          console.log('Generating preview for primary image:', primaryImage, 'productId:', productId);
+          const previewResult = await generateProductPreview(primaryImage, productId);
+          
+          if (previewResult.success && previewResult.previewUrl) {
+            await updateProductPreview(productId, previewResult.previewUrl);
+            console.log('Preview generated and saved for product:', productId);
+            
+            toast({
+              title: "Превью создано",
+              description: `Превью создано (${Math.round((previewResult.previewSize || 0) / 1024)}KB)`,
+            });
+          } else {
+            console.error('Failed to generate preview:', previewResult.error);
+            toast({
+              title: "Предупреждение",
+              description: "Не удалось создать превью изображения",
+            });
+          }
+        } catch (error) {
+          console.error('Error generating preview:', error);
+          toast({
+            title: "Предупреждение", 
+            description: "Произошла ошибка при создании превью",
+          });
+        }
+      }
+      
+      setProgressStatus({ step: "Сохранение изображений", progress: 70 });
       
       // Images are already uploaded, we just need to associate them with the product
       for (const url of imageUrls) {
@@ -322,7 +356,7 @@ const AdminAddProduct = () => {
         if (imageError) throw imageError;
       }
       
-      setProgressStatus({ step: "Сохранение видео", progress: 80 });
+      setProgressStatus({ step: "Сохранение видео", progress: 85 });
 
       if (videoUrls.length > 0) {
         // Use RPC to insert videos as admin
@@ -349,7 +383,7 @@ const AdminAddProduct = () => {
         // Не выбрасываем ошибку, продолжаем
       }
       
-      setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 90 });
+      setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 95 });
       
       // Отправляем уведомление в Telegram асинхронно
       // Не ждем завершения и не блокируем основной поток
