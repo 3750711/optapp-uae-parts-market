@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +28,7 @@ export interface ProductProps {
   lot_number?: number;
   status?: 'active' | 'sold' | 'pending' | 'archived';
   delivery_price?: number;
+  preview_image_url?: string | null;
   product_images?: Array<{
     id: string;
     url: string;
@@ -70,7 +70,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Упрощенное получение изображений - только из product_images
+  // Упрощенное получение изображений - используем preview для каталога
   const images = React.useMemo(() => {
     const productImages = product.product_images || [];
     
@@ -89,7 +89,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return ["/placeholder.svg"];
   }, [product.product_images, product.image]);
 
-  const primaryImage = images[0];
+  // Используем превью для каталога, fallback на основное изображение
+  const catalogImage = product.preview_image_url || images[0];
 
   const handleImageError = () => {
     setImageError(true);
@@ -112,7 +113,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const renderImageContent = () => {
     if (isMobile && images.length > 1) {
-      // Mobile carousel
+      // Mobile carousel - используем превью только для первого изображения
       return (
         <Carousel 
           className="w-full" 
@@ -127,7 +128,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {images.map((imageUrl, index) => (
               <CarouselItem key={index} className="basis-full">
                 <OptimizedImage
-                  src={imageUrl}
+                  src={index === 0 ? catalogImage : imageUrl}
                   alt={`${product.title} ${index + 1}`}
                   className="w-full h-full"
                   onError={handleImageError}
@@ -154,10 +155,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </Carousel>
       );
     } else {
-      // Desktop одиночное изображение
+      // Desktop одиночное изображение - используем превью
       return (
         <OptimizedImage
-          src={primaryImage}
+          src={catalogImage}
           alt={product.title}
           className="w-full h-full transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}

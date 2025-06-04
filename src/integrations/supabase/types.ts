@@ -397,6 +397,7 @@ export type Database = {
           optid_created: string | null
           phone_url: string | null
           place_number: number | null
+          preview_image_url: string | null
           price: number
           product_location: string | null
           product_url: string | null
@@ -422,6 +423,7 @@ export type Database = {
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
+          preview_image_url?: string | null
           price: number
           product_location?: string | null
           product_url?: string | null
@@ -447,6 +449,7 @@ export type Database = {
           optid_created?: string | null
           phone_url?: string | null
           place_number?: number | null
+          preview_image_url?: string | null
           price?: number
           product_location?: string | null
           product_url?: string | null

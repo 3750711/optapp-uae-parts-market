@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -33,16 +32,17 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  // Получаем основное изображение из product_images
+  // Получаем изображение для отображения - превью или основное
   const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-  const primaryImageUrl = primaryImageData?.url || 
+  const primaryImageUrl = product.preview_image_url || 
+                         primaryImageData?.url || 
                          product.image || 
                          "/placeholder.svg";
 
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Изображение товара */}
+        {/* Изображение товара - используем превью */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
           <img
             src={primaryImageUrl}
@@ -91,7 +91,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         </div>
       </Link>
       
-      {/* Sold button */}
       {showSoldButton && product.status === 'active' && (
         <div className="mt-3 pt-3 border-t border-gray-100">
           <ProductStatusChangeDialog
