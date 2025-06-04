@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer?: {
@@ -53,6 +54,36 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
     }
   };
 
+  const getContainerStatusLabel = (status: string) => {
+    switch (status) {
+      case 'waiting':
+        return 'Ожидание';
+      case 'in_transit':
+        return 'В пути';
+      case 'delivered':
+        return 'Доставлен';
+      case 'customs':
+        return 'На таможне';
+      default:
+        return status;
+    }
+  };
+
+  const getContainerStatusColor = (status: string) => {
+    switch (status) {
+      case 'waiting':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'in_transit':
+        return 'bg-blue-100 text-blue-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'customs':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   const handleDeliveryMethodChange = async (newMethod: Database['public']['Enums']['delivery_method']) => {
     try {
       const { error } = await supabase
@@ -95,6 +126,12 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
           <Label className="text-sm text-gray-500">Цена</Label>
           <p className="text-lg font-medium">{order.price} $</p>
         </div>
+        {order.delivery_price_confirm && (
+          <div>
+            <Label className="text-sm text-gray-500">Стоимость доставки</Label>
+            <p className="text-lg font-medium text-green-600">{order.delivery_price_confirm} $</p>
+          </div>
+        )}
         <div>
           <Label className="text-sm text-gray-500">Мест для отправки</Label>
           <p className="text-lg font-medium">{order.place_number || 1}</p>
@@ -172,6 +209,33 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
             </p>
           )}
         </div>
+        
+        {/* Информация о контейнере */}
+        {order.container_number && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-3 py-1 rounded text-white text-sm font-bold">
+                OPTCargo
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-sm text-gray-500">Номер контейнера</Label>
+              <p className="text-lg font-medium text-yellow-800">{order.container_number}</p>
+            </div>
+            
+            {order.container_status && (
+              <div>
+                <Label className="text-sm text-gray-500">Статус контейнера</Label>
+                <div className="mt-1">
+                  <Badge className={`${getContainerStatusColor(order.container_status)} text-sm px-3 py-1`}>
+                    {getContainerStatusLabel(order.container_status)}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
