@@ -50,6 +50,7 @@ const Stores = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const isMobile = useIsMobile();
 
+  // Изменяем тип ref на HTMLDivElement для совместимости
   const loadMoreRef = React.useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
 
@@ -248,11 +249,16 @@ const Stores = () => {
           </div>
         )}
 
-        {hasNextPage && !isFetchingNextPage && (
+        {hasNextPage && (
           <div className="text-center">
-            <Button onClick={handleLoadMore} ref={loadMoreRef}>
-              Загрузить еще
-            </Button>
+            {/* Используем div для ref вместо button */}
+            <div ref={loadMoreRef} className="w-full flex justify-center">
+              {!isFetchingNextPage && (
+                <Button onClick={handleLoadMore}>
+                  Загрузить еще
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

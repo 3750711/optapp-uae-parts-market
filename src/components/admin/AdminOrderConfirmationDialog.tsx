@@ -35,22 +35,67 @@ interface OrderData {
   };
 }
 
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  brand?: string;
+  model?: string;
+  status: string;
+  product_images?: { url: string; is_primary?: boolean }[];
+  delivery_price?: number;
+  lot_number: number;
+}
+
+interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+interface BuyerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
 interface AdminOrderConfirmationDialogProps {
-  orderId: string;
+  orderId?: string;
   open: boolean;
-  setOpen: (open: boolean) => void;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
+  onClose?: () => void;
+  onConfirm?: (orderData: {
+    price: number;
+    deliveryPrice?: number;
+    deliveryMethod: string;
+    orderImages: string[];
+  }) => Promise<void>;
+  isSubmitting?: boolean;
+  product?: Product;
+  seller?: SellerProfile;
+  buyer?: BuyerProfile;
+  onCancel?: () => void;
 }
 
 const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> = ({
   orderId,
   open,
-  setOpen,
+  onOpenChange,
   onClose,
+  onConfirm,
+  isSubmitting,
+  product,
+  seller,
+  buyer,
+  onCancel,
 }) => {
   const { data: order, isLoading, isError } = useQuery({
     queryKey: ["order", orderId],
     queryFn: async () => {
+      if (!orderId) return null;
+      
       const { data, error } = await supabase
         .from("orders")
         .select(
@@ -76,12 +121,51 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
 
       return data as OrderData;
     },
-    enabled: open,
+    enabled: open && !!orderId,
   });
+
+  // If we have direct props (product, seller, buyer), use them instead of fetching
+  const displayData = orderId ? order : {
+    id: product?.id || '',
+    created_at: new Date().toISOString(),
+    deliveryMethod: 'self_pickup',
+    place_number: 1,
+    total_sum: product?.price || 0,
+    text_order: product?.title || '',
+    images: product?.product_images?.map(img => img.url) || [],
+    videos: [],
+    profiles: seller ? {
+      full_name: seller.full_name,
+      email: '',
+      phone: '',
+      opt_id: seller.opt_id,
+      location: '',
+      telegram: seller.telegram || ''
+    } : undefined
+  };
+
+  const handleConfirm = async () => {
+    if (onConfirm && product) {
+      await onConfirm({
+        price: product.price,
+        deliveryPrice: product.delivery_price,
+        deliveryMethod: 'self_pickup',
+        orderImages: product.product_images?.map(img => img.url) || []
+      });
+    }
+  };
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    } else {
+      onOpenChange(false);
+    }
+  };
 
   if (isLoading) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Загрузка заказа...</DialogTitle>
@@ -92,9 +176,9 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     );
   }
 
-  if (isError || !order) {
+  if (isError || (!displayData && orderId)) {
     return (
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ошибка</DialogTitle>
@@ -106,7 +190,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Подтверждение заказа</DialogTitle>
@@ -122,51 +206,67 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                   <Calendar className="h-4 w-4 text-gray-500" />
                   <span>
                     Дата создания:{" "}
-                    {new Date(order.created_at).toLocaleDateString()}
+                    {displayData ? new Date(displayData.created_at).toLocaleDateString() : 'N/A'}
                   </span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Truck className="h-4 w-4 text-gray-500" />
-                  <span>Способ доставки: {order.deliveryMethod}</span>
+                  <span>Способ доставки: {displayData?.deliveryMethod || 'self_pickup'}</span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <Package className="h-4 w-4 text-gray-500" />
-                  <span>Количество мест: {order.place_number}</span>
+                  <span>Количество мест: {displayData?.place_number || 1}</span>
                 </div>
-                {order.profiles && (
+                {(displayData?.profiles || seller) && (
                   <div className="flex items-center space-x-4">
                     <User className="h-4 w-4 text-gray-500" />
-                    <span>Продавец: {order.profiles.full_name}</span>
+                    <span>Продавец: {displayData?.profiles?.full_name || seller?.full_name}</span>
                   </div>
                 )}
                 <div className="flex items-center space-x-4">
                   <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span>Сумма заказа: {order.total_sum}</span>
+                  <span>Сумма заказа: {displayData?.total_sum || product?.price}</span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <MessageSquare className="h-4 w-4 text-gray-500" />
-                  <span>Дополнительная информация: {order.text_order}</span>
+                  <span>Дополнительная информация: {displayData?.text_order || product?.title}</span>
                 </div>
-                {order.profiles && (
+                {(displayData?.profiles || seller) && (
                   <>
                     <Separator />
                     <div className="space-y-2">
                       <div className="text-sm font-bold">Информация о продавце:</div>
                       <div className="flex items-center space-x-2">
                         <User className="h-4 w-4 text-gray-500" />
-                        <span>{order.profiles.full_name}</span>
+                        <span>{displayData?.profiles?.full_name || seller?.full_name}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
-                        <span>{order.profiles.location}</span>
+                        <span>{displayData?.profiles?.location || 'Dubai'}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Phone className="h-4 w-4 text-gray-500" />
-                        <span>{order.profiles.phone}</span>
+                        <span>{displayData?.profiles?.phone || 'N/A'}</span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <MessageSquare className="h-4 w-4 text-gray-500" />
-                        <span>{order.profiles.telegram}</span>
+                        <span>{displayData?.profiles?.telegram || seller?.telegram}</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+                {buyer && (
+                  <>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="text-sm font-bold">Информация о покупателе:</div>
+                      <div className="flex items-center space-x-2">
+                        <User className="h-4 w-4 text-gray-500" />
+                        <span>{buyer.full_name}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <MessageSquare className="h-4 w-4 text-gray-500" />
+                        <span>{buyer.telegram}</span>
                       </div>
                     </div>
                   </>
@@ -174,11 +274,11 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               </CardContent>
             </Card>
 
-            {order.images && order.images.length > 0 && (
+            {displayData?.images && displayData.images.length > 0 && (
               <Card>
                 <CardContent>
                   <div className="grid grid-cols-3 gap-4">
-                    {order.images.map((image, index) => (
+                    {displayData.images.map((image, index) => (
                       <div key={index} className="aspect-w-1 aspect-h-1">
                         <OptimizedImage
                           src={image}
@@ -192,11 +292,11 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               </Card>
             )}
 
-            {order.videos && order.videos.length > 0 && (
+            {displayData?.videos && displayData.videos.length > 0 && (
               <Card>
                 <CardContent>
                   <div className="grid grid-cols-1 gap-4">
-                    {order.videos.map((video, index) => (
+                    {displayData.videos.map((video, index) => (
                       <video key={index} src={video} controls className="rounded-md" />
                     ))}
                   </div>
@@ -206,12 +306,14 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
           </div>
         </ScrollArea>
         <div className="flex justify-end space-x-2 mt-4">
-          <Button variant="secondary" onClick={onClose}>
+          <Button variant="secondary" onClick={onCancel || handleClose}>
             Отменить
           </Button>
-          <Button onClick={() => alert("Order confirmed!")}>
-            Подтвердить заказ
-          </Button>
+          {onConfirm && (
+            <Button onClick={handleConfirm} disabled={isSubmitting}>
+              {isSubmitting ? 'Создание...' : 'Подтвердить заказ'}
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
