@@ -10,7 +10,7 @@ export type ProductType = {
   id: string;
   title: string;
   price: number | string;
-  product_images?: { url: string; is_primary?: boolean; preview_url?: string }[];
+  product_images?: { url: string; is_primary?: boolean }[];
   profiles?: { location?: string; opt_id?: string; rating?: number; opt_status?: string; verification_status?: string };
   condition?: string;
   location?: string;
@@ -23,7 +23,6 @@ export type ProductType = {
   seller_id: string;
   created_at: string;
   delivery_price?: number | null;
-  has_preview?: boolean;
 };
 
 export interface CatalogFilters {
@@ -117,7 +116,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
       
       let query = supabase
         .from('products')
-        .select('*, product_images(url, is_primary, preview_url), profiles:seller_id(*)');
+        .select('*, product_images(url, is_primary), profiles:seller_id(*)');
 
       // Apply sorting
       query = buildSortQuery(query, sortBy);
@@ -229,17 +228,8 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
       const typedProduct = product as unknown as ProductType;
       
       let imageUrl = "/placeholder.svg";
-      let previewUrl = null;
       
       if (typedProduct.product_images && typedProduct.product_images.length > 0) {
-        // Find preview for optimized display
-        for (const img of typedProduct.product_images) {
-          if (img.preview_url) {
-            previewUrl = img.preview_url;
-            if (img.is_primary) break;
-          }
-        }
-        
         // Find primary image
         const primaryImage = typedProduct.product_images.find(img => img.is_primary);
         if (primaryImage) {
@@ -254,7 +244,6 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         title: typedProduct.title,
         price: Number(typedProduct.price),
         image: imageUrl,
-        preview_image: previewUrl,
         brand: typedProduct.brand || "",
         model: typedProduct.model || "",
         seller_name: typedProduct.seller_name,
