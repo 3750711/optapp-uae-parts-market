@@ -18,6 +18,7 @@ import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import Layout from "@/components/layout/Layout";
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -129,7 +130,7 @@ const Catalog: React.FC = () => {
   const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
 
   return (
-    <>
+    <Layout>
       <Helmet>
         <title>Каталог товаров</title>
         <meta name="description" content="Browse our wide selection of products." />
@@ -301,7 +302,7 @@ const Catalog: React.FC = () => {
           </>
         )}
       </div>
-    </>
+    </Layout>
   );
 };
 
