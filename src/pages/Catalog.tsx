@@ -5,7 +5,6 @@ import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import ProductGrid from "@/components/product/ProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
 import CatalogFilters from "@/components/catalog/CatalogFilters";
-import { FilterState } from "@/components/catalog/CatalogFilters";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
 import { AlertTriangle, RefreshCw } from "lucide-react";
@@ -13,12 +12,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 
 const Catalog: React.FC = () => {
-  const [filterState, setFilterState] = useState<FilterState>({
-    brands: [],
-    models: [],
-    priceRange: { min: 0, max: 10000 },
-    condition: [],
-  });
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
 
@@ -26,14 +19,6 @@ const Catalog: React.FC = () => {
     searchQuery,
     setSearchQuery,
     hasSearched,
-    selectedBrand,
-    setSelectedBrand,
-    selectedModel,
-    setSelectedModel,
-    selectedBrandName,
-    setSelectedBrandName,
-    selectedModelName,
-    setSelectedModelName,
     hideSoldProducts,
     setHideSoldProducts,
     mappedProducts,
@@ -84,14 +69,6 @@ const Catalog: React.FC = () => {
             <CatalogFilters
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              selectedBrand={selectedBrand}
-              setSelectedBrand={setSelectedBrand}
-              selectedModel={selectedModel}
-              setSelectedModel={setSelectedModel}
-              selectedBrandName={selectedBrandName}
-              setSelectedBrandName={setSelectedBrandName}
-              selectedModelName={selectedModelName}
-              setSelectedModelName={setSelectedModelName}
               hideSoldProducts={hideSoldProducts}
               setHideSoldProducts={setHideSoldProducts}
               handleClearSearch={handleClearSearch}

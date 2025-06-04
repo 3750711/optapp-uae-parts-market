@@ -6,24 +6,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Search, X } from "lucide-react";
 
-export interface FilterState {
-  brands: string[];
-  models: string[];
-  priceRange: { min: number; max: number };
-  condition: string[];
-}
-
 interface CatalogFiltersProps {
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  selectedBrand: string | null;
-  setSelectedBrand: (brand: string | null) => void;
-  selectedModel: string | null;
-  setSelectedModel: (model: string | null) => void;
-  selectedBrandName: string | null;
-  setSelectedBrandName: (brandName: string | null) => void;
-  selectedModelName: string | null;
-  setSelectedModelName: (modelName: string | null) => void;
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
   handleClearSearch: () => void;

@@ -33,10 +33,9 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  // Получаем основное изображение
+  // Получаем основное изображение из product_images
   const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
   const primaryImageUrl = primaryImageData?.url || 
-                         product.preview_image || 
                          product.image || 
                          "/placeholder.svg";
 

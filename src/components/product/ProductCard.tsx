@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,6 @@ export interface ProductProps {
   id: string;
   title: string;
   price: number;
-  preview_image?: string;
   image?: string;
   brand?: string;
   model?: string;
@@ -33,7 +33,6 @@ export interface ProductProps {
     id: string;
     url: string;
     is_primary: boolean;
-    preview_url?: string;
   }>;
 }
 
@@ -71,39 +70,28 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Оптимизированное получение изображений с мемоизацией
-  const optimizedImages = React.useMemo(() => {
-    const images = [];
+  // Упрощенное получение изображений - только из product_images
+  const images = React.useMemo(() => {
+    const productImages = product.product_images || [];
     
-    // Приоритет preview_url для быстрой загрузки
-    if (product.preview_image && !imageError) {
-      images.push({ url: product.preview_image, isPreview: true });
+    if (productImages.length > 0) {
+      // Сортируем по приоритету primary изображения
+      return productImages
+        .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
+        .map(img => img.url);
     }
     
-    // Добавляем изображения из product_images с приоритетом preview_url
-    if (product.product_images && !imageError) {
-      product.product_images.forEach(img => {
-        const imageUrl = img.preview_url || img.url;
-        if (!images.find(existing => existing.url === imageUrl)) {
-          images.push({ url: imageUrl, isPreview: !!img.preview_url });
-        }
-      });
+    // Fallback к основному изображению если нет product_images
+    if (product.image) {
+      return [product.image];
     }
     
-    // Fallback к основному изображению
-    if (product.image && product.image !== product.preview_image && !imageError) {
-      if (!images.find(existing => existing.url === product.image)) {
-        images.push({ url: product.image, isPreview: false });
-      }
-    }
+    return ["/placeholder.svg"];
+  }, [product.product_images, product.image]);
 
-    return images.length > 0 ? images : [{ url: "/placeholder.svg", isPreview: false }];
-  }, [product.preview_image, product.product_images, product.image, imageError]);
-
-  const primaryImage = optimizedImages[0];
+  const primaryImage = images[0];
 
   const handleImageError = () => {
-    console.log(`Image error for product ${product.id}`);
     setImageError(true);
     setImageLoading(false);
   };
@@ -123,8 +111,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   }, [api]);
 
   const renderImageContent = () => {
-    if (isMobile && optimizedImages.length > 1) {
-      // Mobile carousel с оптимизированными изображениями
+    if (isMobile && images.length > 1) {
+      // Mobile carousel
       return (
         <Carousel 
           className="w-full" 
@@ -136,10 +124,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
           }}
         >
           <CarouselContent>
-            {optimizedImages.map((imageData, index) => (
+            {images.map((imageUrl, index) => (
               <CarouselItem key={index} className="basis-full">
                 <OptimizedImage
-                  src={imageData.url}
+                  src={imageUrl}
                   alt={`${product.title} ${index + 1}`}
                   className="w-full h-full"
                   onError={handleImageError}
@@ -151,10 +139,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
             ))}
           </CarouselContent>
           
-          {/* Dots indicator для мобильных */}
-          {optimizedImages.length > 1 && (
+          {images.length > 1 && (
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
-              {optimizedImages.map((_, index) => (
+              {images.map((_, index) => (
                 <div
                   key={index}
                   className={`h-1.5 w-1.5 rounded-full transition-all ${
@@ -167,10 +154,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </Carousel>
       );
     } else {
-      // Desktop одиночное изображение с оптимизацией
+      // Desktop одиночное изображение
       return (
         <OptimizedImage
-          src={primaryImage.url}
+          src={primaryImage}
           alt={product.title}
           className="w-full h-full transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
@@ -228,7 +215,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </div>
       </Link>
       
-      {/* Кнопка "Отметить как проданный" */}
       {showSoldButton && product.status === 'active' && (
         <div className="p-4 pt-0">
           <ProductStatusChangeDialog
