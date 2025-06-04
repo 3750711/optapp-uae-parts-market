@@ -102,7 +102,7 @@ export const useMobileOptimizedUpload = () => {
     });
   }, [getDeviceCapabilities]);
 
-  // Generate preview for uploaded image with enhanced debugging
+  // Generate preview for uploaded image with CRITICAL FIX
   const generatePreviewForImage = useCallback(async (
     imageUrl: string,
     fileId: string,
@@ -113,23 +113,43 @@ export const useMobileOptimizedUpload = () => {
         imageUrl,
         fileId,
         productId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        functionCall: 'generatePreviewForImage'
       });
       
+      // CRITICAL: Update UI immediately to show preview generation status
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'generating-preview', progress: 90 }
+          ? { ...p, status: 'generating-preview', progress: 85 }
           : p
       ));
 
-      console.log('📞 Calling generateProductPreview function...');
+      console.log('📞 About to call generateProductPreview...');
+      console.log('📋 Function parameters:', {
+        imageUrl,
+        productId,
+        isValidUrl: imageUrl.startsWith('http'),
+        isValidProductId: productId && productId.length > 0
+      });
+      
+      // CRITICAL FIX: Call the function and wait for result
       const previewResult = await generateProductPreview(imageUrl, productId);
       
-      console.log('📥 Preview result received:', previewResult);
+      console.log('📥 Preview result received:', {
+        success: previewResult.success,
+        previewUrl: previewResult.previewUrl,
+        error: previewResult.error,
+        timestamp: new Date().toISOString()
+      });
       
       if (previewResult.success && previewResult.previewUrl) {
-        console.log('✅ Preview generated successfully:', previewResult.previewUrl);
+        console.log('✅ Preview generation SUCCESS:', {
+          previewUrl: previewResult.previewUrl,
+          fileId,
+          productId
+        });
         
+        // Update UI with success status and preview URL
         setUploadProgress(prev => prev.map(p => 
           p.fileId === fileId 
             ? { 
@@ -144,16 +164,53 @@ export const useMobileOptimizedUpload = () => {
 
         return previewResult.previewUrl;
       } else {
-        console.error('❌ Failed to generate preview:', previewResult.error);
+        console.error('❌ Preview generation FAILED:', {
+          error: previewResult.error,
+          fileId,
+          productId,
+          imageUrl
+        });
+        
+        // Update UI to show preview generation failed but upload succeeded
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { 
+                ...p, 
+                hasPreview: false,
+                progress: 100,
+                status: 'success'
+              }
+            : p
+        ));
+        
         return null;
       }
     } catch (error) {
-      console.error('💥 Error in generatePreviewForImage:', error);
+      console.error('💥 EXCEPTION in generatePreviewForImage:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace',
+        fileId,
+        productId,
+        imageUrl
+      });
+      
+      // Update UI to show preview generation failed
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { 
+              ...p, 
+              hasPreview: false,
+              progress: 100,
+              status: 'success'
+            }
+          : p
+      ));
+      
       return null;
     }
   }, []);
 
-  // Upload single file with enhanced preview generation logic
+  // Upload single file with CRITICAL FIXES
   const uploadSingleFile = useCallback(async (
     file: File, 
     fileId: string, 
@@ -167,7 +224,9 @@ export const useMobileOptimizedUpload = () => {
         fileName: file.name,
         fileId,
         productId: options.productId,
-        autoGeneratePreview: options.autoGeneratePreview
+        autoGeneratePreview: options.autoGeneratePreview,
+        hasProductId: !!options.productId,
+        shouldGeneratePreview: !!options.productId && options.autoGeneratePreview !== false
       });
 
       // Update progress
@@ -203,37 +262,71 @@ export const useMobileOptimizedUpload = () => {
         options.storagePath || ''
       );
 
-      console.log('✅ Upload completed:', imageUrl);
-
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 70 } : p
-      ));
-
-      // CRITICAL: Enhanced preview generation logic
-      let previewUrl: string | null = null;
-      
-      console.log('🔍 Checking preview generation conditions:', {
-        hasProductId: !!options.productId,
-        autoGeneratePreview: options.autoGeneratePreview,
-        shouldGenerate: !!options.productId && options.autoGeneratePreview !== false
+      console.log('✅ Upload completed:', {
+        imageUrl,
+        fileId,
+        fileName: file.name
       });
 
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId ? { ...p, progress: 70, url: imageUrl } : p
+      ));
+
+      // CRITICAL: Preview generation logic with detailed logging
+      let previewUrl: string | null = null;
+      
+      console.log('🔍 PREVIEW GENERATION CHECK:', {
+        hasProductId: !!options.productId,
+        productId: options.productId,
+        autoGeneratePreview: options.autoGeneratePreview,
+        autoGeneratePreviewDefault: options.autoGeneratePreview !== false,
+        shouldGenerate: !!options.productId && options.autoGeneratePreview !== false,
+        imageUrl
+      });
+
+      // CRITICAL FIX: Always attempt preview generation if productId exists
       if (options.productId && options.autoGeneratePreview !== false) {
-        console.log('🎨 Generating preview for uploaded image...');
-        previewUrl = await generatePreviewForImage(imageUrl, fileId, options.productId);
+        console.log('🎨 ATTEMPTING PREVIEW GENERATION:', {
+          productId: options.productId,
+          imageUrl,
+          fileId,
+          timestamp: new Date().toISOString()
+        });
         
-        if (previewUrl) {
-          console.log('✅ Preview successfully created:', previewUrl);
-        } else {
-          console.warn('⚠️ Preview generation failed for:', imageUrl);
+        try {
+          previewUrl = await generatePreviewForImage(imageUrl, fileId, options.productId);
+          
+          if (previewUrl) {
+            console.log('✅ PREVIEW GENERATION SUCCESS:', {
+              previewUrl,
+              productId: options.productId,
+              imageUrl,
+              fileId
+            });
+          } else {
+            console.warn('⚠️ PREVIEW GENERATION RETURNED NULL:', {
+              productId: options.productId,
+              imageUrl,
+              fileId
+            });
+          }
+        } catch (previewError) {
+          console.error('💥 PREVIEW GENERATION EXCEPTION:', {
+            error: previewError instanceof Error ? previewError.message : 'Unknown error',
+            productId: options.productId,
+            imageUrl,
+            fileId
+          });
         }
       } else {
-        console.log('⏭️ Skipping preview generation:', {
-          reason: !options.productId ? 'No productId' : 'autoGeneratePreview disabled'
+        console.log('⏭️ SKIPPING PREVIEW GENERATION:', {
+          reason: !options.productId ? 'No productId provided' : 'autoGeneratePreview disabled',
+          productId: options.productId,
+          autoGeneratePreview: options.autoGeneratePreview
         });
       }
 
-      // Success
+      // Final success update
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
           ? { 
@@ -253,7 +346,9 @@ export const useMobileOptimizedUpload = () => {
         compressedSize: compressedFile.size,
         retryCount,
         previewGenerated: !!previewUrl,
-        productId: options.productId
+        productId: options.productId,
+        imageUrl,
+        previewUrl
       });
 
       return imageUrl;
@@ -264,7 +359,8 @@ export const useMobileOptimizedUpload = () => {
         fileName: file.name,
         error: errorMessage,
         retryCount,
-        productId: options.productId
+        productId: options.productId,
+        fileId
       });
 
       logImageProcessing('MobileUploadError', {
@@ -303,11 +399,12 @@ export const useMobileOptimizedUpload = () => {
     const batchSize = options.batchSize || capabilities.batchSize;
     const batchDelay = options.batchDelay || (capabilities.isLowEnd ? 1500 : 500);
     
-    console.log('📦 Starting batch upload:', {
+    console.log('📦 STARTING BATCH UPLOAD:', {
       fileCount: files.length,
       productId: options.productId,
       autoGeneratePreview: options.autoGeneratePreview,
-      batchSize
+      batchSize,
+      shouldGeneratePreview: !!options.productId && options.autoGeneratePreview !== false
     });
 
     setIsUploading(true);
@@ -337,7 +434,8 @@ export const useMobileOptimizedUpload = () => {
 
         console.log(`📋 Processing batch ${Math.floor(i / batchSize) + 1}:`, {
           batchFiles: batch.map(f => f.name),
-          productId: options.productId
+          productId: options.productId,
+          autoGeneratePreview: options.autoGeneratePreview
         });
 
         // Process batch sequentially for mobile, parallel for desktop
@@ -376,14 +474,15 @@ export const useMobileOptimizedUpload = () => {
         }
       }
 
-      // Show results
+      // Show results with enhanced preview information
       const previewsGenerated = uploadProgress.filter(p => p.hasPreview).length;
       
-      console.log('🎉 Batch upload completed:', {
+      console.log('🎉 BATCH UPLOAD COMPLETED:', {
         uploaded: uploadedUrls.length,
         total: files.length,
         previewsGenerated,
-        errors: errors.length
+        errors: errors.length,
+        productId: options.productId
       });
 
       if (uploadedUrls.length > 0) {

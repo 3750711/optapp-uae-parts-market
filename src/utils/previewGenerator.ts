@@ -16,11 +16,36 @@ export const generateProductPreview = async (imageUrl: string, productId: string
       imageUrl,
       productId,
       timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent.substring(0, 50) + '...'
+      caller: 'generateProductPreview'
+    });
+
+    // CRITICAL: Validate input parameters
+    if (!imageUrl || !productId) {
+      const errorMsg = `Invalid parameters: imageUrl=${!!imageUrl}, productId=${!!productId}`;
+      console.error('❌ Validation failed:', errorMsg);
+      return {
+        success: false,
+        error: errorMsg
+      };
+    }
+
+    if (!imageUrl.startsWith('http')) {
+      const errorMsg = `Invalid imageUrl format: ${imageUrl}`;
+      console.error('❌ URL validation failed:', errorMsg);
+      return {
+        success: false,
+        error: errorMsg
+      };
+    }
+    
+    console.log('📞 INVOKING Supabase Edge Function: generate-product-preview');
+    console.log('📋 Request payload:', {
+      imageUrl,
+      productId,
+      functionName: 'generate-product-preview'
     });
     
-    console.log('📞 Invoking Supabase Edge Function: generate-product-preview');
-    
+    // CRITICAL: Make the actual function call
     const { data, error } = await supabase.functions.invoke('generate-product-preview', {
       body: { 
         imageUrl,
@@ -28,14 +53,22 @@ export const generateProductPreview = async (imageUrl: string, productId: string
       }
     });
 
-    console.log('📥 Edge Function response:', {
+    console.log('📥 Edge Function response received:', {
       data,
       error,
+      hasData: !!data,
+      hasError: !!error,
       timestamp: new Date().toISOString()
     });
 
     if (error) {
-      console.error('❌ Error calling preview function:', error);
+      console.error('❌ Edge Function error:', {
+        error,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       return {
         success: false,
         error: error.message || 'Failed to generate preview'
@@ -43,11 +76,13 @@ export const generateProductPreview = async (imageUrl: string, productId: string
     }
 
     if (data?.success) {
-      console.log('✅ Preview generation successful:', {
+      console.log('✅ Preview generation SUCCESS:', {
         previewUrl: data.previewUrl,
         previewSize: data.previewSize,
         originalSize: data.originalSize,
-        compressionRatio: data.compressionRatio
+        compressionRatio: data.compressionRatio,
+        productId,
+        imageUrl
       });
       
       return {
@@ -58,14 +93,25 @@ export const generateProductPreview = async (imageUrl: string, productId: string
         compressionRatio: data.compressionRatio
       };
     } else {
-      console.error('❌ Preview generation failed:', data?.error);
+      console.error('❌ Preview generation failed:', {
+        error: data?.error,
+        data,
+        productId,
+        imageUrl
+      });
       return {
         success: false,
         error: data?.error || 'Unknown error occurred'
       };
     }
   } catch (error) {
-    console.error('💥 Exception in generateProductPreview:', error);
+    console.error('💥 EXCEPTION in generateProductPreview:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      productId,
+      imageUrl,
+      timestamp: new Date().toISOString()
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
