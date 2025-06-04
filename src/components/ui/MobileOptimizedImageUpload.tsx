@@ -1,3 +1,4 @@
+
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
+import { STORAGE_BUCKETS } from "@/constants/storage";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -34,7 +36,7 @@ interface MobileOptimizedImageUploadProps {
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
   onUploadComplete,
   maxImages = 25,
-  storageBucket = "order-images",
+  storageBucket = STORAGE_BUCKETS.PRODUCT_IMAGES, // Используем константу
   storagePath = "",
   existingImages = [],
   onImageDelete,

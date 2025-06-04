@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProductImagesGallery } from "./ProductImagesGallery";
 import { generateProductPreview, updateProductPreview } from "@/utils/previewGenerator";
+import { STORAGE_BUCKETS } from "@/constants/storage";
 
 interface ProductImagesManagerProps {
   productId: string;
@@ -25,7 +27,7 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
   onPrimaryImageChange,
   primaryImage,
   maxImages = 25,
-  storageBucket = "Product Images"
+  storageBucket = STORAGE_BUCKETS.PRODUCT_IMAGES // Используем константу
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();

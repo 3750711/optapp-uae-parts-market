@@ -39,6 +39,7 @@ import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { Progress } from "@/components/ui/progress";
+import { STORAGE_BUCKETS } from "@/constants/storage";
 
 const productSchema = z.object({
   title: z.string().min(3, {
@@ -646,7 +647,7 @@ const AdminAddProduct = () => {
                     <MobileOptimizedImageUpload
                       onUploadComplete={handleMobileOptimizedImageUpload}
                       maxImages={30}
-                      storageBucket="Product Images"
+                      storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
                       storagePath=""
                       existingImages={imageUrls}
                       onImageDelete={removeImage}
@@ -662,7 +663,7 @@ const AdminAddProduct = () => {
                       onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
                       onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
                       maxVideos={2}
-                      storageBucket="Product Images"
+                      storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
                     />
                   </div>
                   
