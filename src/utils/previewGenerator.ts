@@ -1,53 +1,50 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-interface PreviewGenerationResult {
+interface PreviewResult {
   success: boolean;
   previewUrl?: string;
-  error?: string;
   previewSize?: number;
+  originalSize?: number;
+  compressionRatio?: number;
+  error?: string;
 }
 
-export const generateProductPreview = async (
-  imageUrl: string,
-  productId?: string
-): Promise<PreviewGenerationResult> => {
+export const generateProductPreview = async (imageUrl: string, productId: string): Promise<PreviewResult> => {
   try {
-    console.log('Generating preview for image:', imageUrl, 'productId:', productId);
+    console.log('Calling preview generation for:', imageUrl);
     
     const { data, error } = await supabase.functions.invoke('generate-product-preview', {
-      body: {
+      body: { 
         imageUrl,
-        productId
+        productId 
       }
     });
 
     if (error) {
-      console.error('Error invoking preview generation function:', error);
+      console.error('Error calling preview function:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message || 'Failed to generate preview'
       };
     }
 
-    if (!data.previewUrl) {
-      console.error('No preview URL returned from function');
+    if (data?.success) {
+      return {
+        success: true,
+        previewUrl: data.previewUrl,
+        previewSize: data.previewSize,
+        originalSize: data.originalSize,
+        compressionRatio: data.compressionRatio
+      };
+    } else {
       return {
         success: false,
-        error: 'No preview URL returned'
+        error: data?.error || 'Unknown error occurred'
       };
     }
-
-    console.log('Preview generated successfully:', data.previewUrl, 'Size:', data.previewSize, 'bytes');
-    
-    return {
-      success: true,
-      previewUrl: data.previewUrl,
-      previewSize: data.previewSize
-    };
-
   } catch (error) {
-    console.error('Error generating preview:', error);
+    console.error('Error in generateProductPreview:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -55,10 +52,7 @@ export const generateProductPreview = async (
   }
 };
 
-export const updateProductPreview = async (
-  productId: string,
-  previewUrl: string
-): Promise<boolean> => {
+export const updateProductPreview = async (productId: string, previewUrl: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from('products')
@@ -70,11 +64,9 @@ export const updateProductPreview = async (
       return false;
     }
 
-    console.log('Product preview URL updated successfully for product:', productId);
     return true;
-
   } catch (error) {
-    console.error('Error updating product preview:', error);
+    console.error('Error in updateProductPreview:', error);
     return false;
   }
 };

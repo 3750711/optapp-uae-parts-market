@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadImageToStorage, validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
@@ -20,6 +19,7 @@ interface BatchUploadOptions {
   maxResolution?: number;
   storageBucket?: string;
   storagePath?: string;
+  productId?: string; // Добавляем productId для автоматической генерации превью
 }
 
 export const useMobileOptimizedUpload = () => {

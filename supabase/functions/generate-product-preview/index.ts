@@ -7,23 +7,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Функция для реального сжатия изображения с использованием Canvas API
-async function compressImageToWebP(imageBuffer: ArrayBuffer, targetSizeKB: number = 20): Promise<Uint8Array> {
+// Функция для создания превью изображения 20KB
+async function createPreviewImage(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
   try {
-    // Создаем Blob из ArrayBuffer
     const blob = new Blob([imageBuffer]);
+    const imageBitmap = await createImageBitmap(blob);
     
-    // Создаем Image объект
-    const img = new Image();
-    const canvas = new OffscreenCanvas(200, 200); // Размер превью 200x200
+    // Размер превью 150x150 для каталога
+    const canvas = new OffscreenCanvas(150, 150);
     const ctx = canvas.getContext('2d');
     
     if (!ctx) {
       throw new Error('Cannot get canvas context');
     }
-    
-    // Загружаем изображение
-    const imageBitmap = await createImageBitmap(blob);
     
     // Вычисляем размеры с сохранением пропорций
     const { width, height } = imageBitmap;
@@ -31,62 +27,54 @@ async function compressImageToWebP(imageBuffer: ArrayBuffer, targetSizeKB: numbe
     
     let newWidth, newHeight;
     if (aspectRatio > 1) {
-      newWidth = 200;
-      newHeight = 200 / aspectRatio;
+      newWidth = 150;
+      newHeight = 150 / aspectRatio;
     } else {
-      newWidth = 200 * aspectRatio;
-      newHeight = 200;
+      newWidth = 150 * aspectRatio;
+      newHeight = 150;
     }
     
-    // Обновляем размер canvas
-    canvas.width = newWidth;
-    canvas.height = newHeight;
+    // Центрируем изображение на canvas
+    const offsetX = (150 - newWidth) / 2;
+    const offsetY = (150 - newHeight) / 2;
     
-    // Рисуем изображение на canvas
-    ctx.drawImage(imageBitmap, 0, 0, newWidth, newHeight);
+    // Заливаем фон белым цветом
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 150, 150);
     
-    // Начинаем с высокого качества и уменьшаем до достижения целевого размера
-    let quality = 0.8;
-    let blob2: Blob;
+    // Рисуем изображение
+    ctx.drawImage(imageBitmap, offsetX, offsetY, newWidth, newHeight);
+    
+    // Создаем превью с максимальным сжатием для достижения 20KB
+    let quality = 0.3;
+    let previewBlob: Blob;
     
     do {
-      blob2 = await canvas.convertToBlob({
+      previewBlob = await canvas.convertToBlob({
         type: 'image/webp',
         quality: quality
       });
       
-      if (blob2.size <= targetSizeKB * 1024) {
+      if (previewBlob.size <= 20 * 1024) { // 20KB
         break;
       }
       
-      quality -= 0.1;
+      quality -= 0.05;
     } while (quality > 0.1);
     
-    // Конвертируем Blob в Uint8Array
-    const arrayBuffer = await blob2.arrayBuffer();
+    const arrayBuffer = await previewBlob.arrayBuffer();
     
-    console.log(`Image compressed from ${imageBuffer.byteLength} bytes to ${arrayBuffer.byteLength} bytes (${Math.round(arrayBuffer.byteLength / 1024)}KB) with quality ${quality}`);
+    console.log(`Preview created: ${Math.round(arrayBuffer.byteLength / 1024)}KB with quality ${quality}`);
     
     return new Uint8Array(arrayBuffer);
     
   } catch (error) {
-    console.error('Error in compressImageToWebP:', error);
-    // Fallback: простое уменьшение размера данных
-    const targetSize = targetSizeKB * 1024;
-    const compressionRatio = Math.min(targetSize / imageBuffer.byteLength, 1);
-    const samplingRate = Math.max(1, Math.floor(1 / Math.sqrt(compressionRatio)));
-    const compressedData = new Uint8Array(Math.floor(imageBuffer.byteLength / samplingRate));
-    
-    for (let i = 0, j = 0; i < imageBuffer.byteLength && j < compressedData.length; i += samplingRate, j++) {
-      compressedData[j] = new Uint8Array(imageBuffer)[i];
-    }
-    
-    return compressedData;
+    console.error('Error creating preview:', error);
+    throw error;
   }
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -104,9 +92,8 @@ serve(async (req) => {
       );
     }
 
-    console.log('Generating preview for image:', imageUrl, 'productId:', productId);
+    console.log('Generating 20KB preview for:', imageUrl, 'productId:', productId);
 
-    // Создаем Supabase клиент с service role key для обхода RLS
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
@@ -117,83 +104,64 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl!, supabaseServiceKey);
 
-    try {
-      // Загружаем оригинальное изображение
-      const response = await fetch(imageUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.statusText}`);
-      }
-
-      const imageBuffer = await response.arrayBuffer();
-      console.log('Original image size:', imageBuffer.byteLength, 'bytes');
-      
-      // Создаем сжатую WebP версию до 20KB
-      const compressedData = await compressImageToWebP(imageBuffer, 20);
-      
-      // Генерируем уникальное имя файла для превью
-      const timestamp = Date.now();
-      const fileName = `preview_${productId || timestamp}_${Math.random().toString(36).substring(7)}.webp`;
-      const filePath = `previews/${fileName}`;
-
-      // Загружаем превью в Supabase Storage используя service role
-      const { data, error } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, compressedData, {
-          contentType: 'image/webp',
-          cacheControl: '31536000', // Кеш на 1 год
-          upsert: false
-        });
-
-      if (error) {
-        console.error('Error uploading preview:', error);
-        throw new Error(`Failed to upload preview: ${error.message}`);
-      }
-
-      // Получаем публичный URL превью
-      const { data: urlData } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      const previewUrl = urlData.publicUrl;
-      console.log('Preview uploaded successfully:', previewUrl, 'Size:', compressedData.length, 'bytes');
-
-      return new Response(
-        JSON.stringify({ 
-          previewUrl,
-          originalSize: imageBuffer.byteLength,
-          previewSize: compressedData.length,
-          method: 'webp_compression'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-
-    } catch (serverCompressionError) {
-      console.warn('WebP compression failed, trying URL-based approach:', serverCompressionError);
-      
-      // Fallback: URL-based preview
-      const previewUrl = `${imageUrl}?width=200&height=200&quality=70&format=webp`;
-      
-      console.log('Created URL-based preview:', previewUrl);
-      
-      return new Response(
-        JSON.stringify({ 
-          previewUrl,
-          originalSize: null,
-          previewSize: null,
-          method: 'url_parameters'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
+    // Загружаем оригинальное изображение
+    const response = await fetch(imageUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
+
+    const imageBuffer = await response.arrayBuffer();
+    console.log('Original image size:', Math.round(imageBuffer.byteLength / 1024), 'KB');
+    
+    // Создаем превью 20KB
+    const previewData = await createPreviewImage(imageBuffer);
+    
+    // Генерируем имя файла для превью
+    const timestamp = Date.now();
+    const fileName = `preview_${productId || timestamp}_${Math.random().toString(36).substring(7)}.webp`;
+    const filePath = `previews/${fileName}`;
+
+    // Загружаем превью в Storage
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, previewData, {
+        contentType: 'image/webp',
+        cacheControl: '31536000',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Error uploading preview:', error);
+      throw new Error(`Failed to upload preview: ${error.message}`);
+    }
+
+    // Получаем публичный URL превью
+    const { data: urlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    const previewUrl = urlData.publicUrl;
+    
+    console.log('Preview uploaded successfully:', previewUrl, 'Size:', Math.round(previewData.length / 1024), 'KB');
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        previewUrl,
+        originalSize: imageBuffer.byteLength,
+        previewSize: previewData.length,
+        compressionRatio: Math.round((previewData.length / imageBuffer.byteLength) * 100)
+      }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
 
   } catch (error) {
     console.error('Error generating preview:', error);
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: 'Failed to generate preview',
         details: error.message 
       }),

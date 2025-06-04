@@ -205,7 +205,7 @@ const AdminAddProduct = () => {
   }, [brandModels, watchModelId, form]);
 
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
-    setImageUrls(prevUrls => [...prevUrls, ...urls]); // Изменяем на добавление, а не замену
+    setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
     // Set default primary image if none is selected yet
     if (!primaryImage && urls.length > 0) {
@@ -683,8 +683,13 @@ const AdminAddProduct = () => {
                       onImageDelete={removeImage}
                       onSetPrimaryImage={setPrimaryImage}
                       primaryImage={primaryImage}
-                      productId={createdProductId} // Передаём productId для генерации превью
+                      productId={createdProductId} // Передаём productId для автоматической генерации превью
                     />
+                    
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <div>📸 Изображения автоматически сжимаются до 400KB</div>
+                      <div>🖼️ Превью 20KB создаётся автоматически для каталога</div>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
