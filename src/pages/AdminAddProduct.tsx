@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -81,6 +82,7 @@ const AdminAddProduct = () => {
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
+  const [productCreated, setProductCreated] = useState(false);
   
   // Use our custom hook for car brands and models
   const { 
@@ -204,6 +206,100 @@ const AdminAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
+  // NEW: Create product FIRST, before image upload
+  const createProductFirst = async (values: z.infer<typeof productSchema>) => {
+    if (productCreated) {
+      toast({
+        title: "Товар уже создан",
+        description: "Товар уже был создан. Добавляйте изображения или завершите публикацию.",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setProgressStatus({ step: "Создание товара", progress: 10 });
+
+    try {
+      // Get brand and model names for the database
+      const selectedBrand = brands.find(brand => brand.id === values.brandId);
+      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+      
+      // Model is optional, handle it accordingly
+      let modelName = null;
+      if (values.modelId) {
+        const selectedModel = brandModels.find(model => model.id === values.modelId);
+        modelName = selectedModel?.name || null;
+      }
+
+      if (!selectedBrand || !selectedSeller) {
+        toast({
+          title: "Ошибка",
+          description: "Выбранная марка или продавец не найдены",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
+      
+      console.log('🏭 Creating product with RPC...', {
+        title: values.title,
+        sellerId: values.sellerId,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Using RPC to create the product using admin permissions
+      const { data: productId, error: productError } = await supabase
+        .rpc('admin_create_product', {
+          p_title: values.title,
+          p_price: parseFloat(values.price),
+          p_condition: "Новый",
+          p_brand: selectedBrand.name,
+          p_model: modelName,
+          p_description: values.description || null,
+          p_seller_id: values.sellerId,
+          p_seller_name: selectedSeller.full_name || "Unknown Seller",
+          p_status: 'active',
+          p_place_number: parseInt(values.placeNumber),
+          p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+        });
+
+      if (productError) {
+        console.error("Error creating product via RPC:", productError);
+        throw productError;
+      }
+
+      if (!productId) {
+        throw new Error("Failed to get product ID");
+      }
+
+      console.log('✅ Product created successfully:', {
+        productId,
+        title: values.title,
+        timestamp: new Date().toISOString()
+      });
+
+      setCreatedProductId(productId);
+      setProductCreated(true);
+      setProgressStatus({ step: "Товар создан! Теперь добавьте изображения", progress: 50 });
+      
+      toast({
+        title: "Товар создан",
+        description: "Товар успешно создан. Теперь добавьте изображения и видео, затем завершите публикацию.",
+      });
+
+    } catch (error) {
+      console.error("Error creating product:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать товар. Попробуйте позже.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
     console.log('📷 New images uploaded:', {
       urls,
@@ -250,7 +346,17 @@ const AdminAddProduct = () => {
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof productSchema>) => {
+  // MODIFIED: Final publish (associate images and videos, send notification)
+  const finalizePublication = async () => {
+    if (!createdProductId) {
+      toast({
+        title: "Ошибка",
+        description: "Сначала создайте товар",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (imageUrls.length === 0) {
       toast({
         title: "Ошибка",
@@ -261,74 +367,14 @@ const AdminAddProduct = () => {
     }
 
     setIsSubmitting(true);
-    setProgressStatus({ step: "Создание товара", progress: 10 });
+    setProgressStatus({ step: "Сохранение изображений", progress: 70 });
 
     try {
-      // Get brand and model names for the database
-      const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
-      
-      // Model is optional, handle it accordingly
-      let modelName = null;
-      if (values.modelId) {
-        const selectedModel = brandModels.find(model => model.id === values.modelId);
-        modelName = selectedModel?.name || null;
-      }
-
-      if (!selectedBrand || !selectedSeller) {
-        toast({
-          title: "Ошибка",
-          description: "Выбранная марка или продавец не найдены",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-        return;
-      }
-
-      setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
-      
-      console.log('🏭 Creating product with RPC...');
-      
-      // Using RPC to create the product using admin permissions
-      const { data: productId, error: productError } = await supabase
-        .rpc('admin_create_product', {
-          p_title: values.title,
-          p_price: parseFloat(values.price),
-          p_condition: "Новый",
-          p_brand: selectedBrand.name,
-          p_model: modelName,
-          p_description: values.description || null,
-          p_seller_id: values.sellerId,
-          p_seller_name: selectedSeller.full_name || "Unknown Seller",
-          p_status: 'active',
-          p_place_number: parseInt(values.placeNumber),
-          p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
-        });
-
-      if (productError) {
-        console.error("Error creating product via RPC:", productError);
-        throw productError;
-      }
-
-      if (!productId) {
-        throw new Error("Failed to get product ID");
-      }
-
-      console.log('✅ Product created successfully:', {
-        productId,
-        title: values.title,
-        timestamp: new Date().toISOString()
-      });
-
-      setCreatedProductId(productId);
-      
-      setProgressStatus({ step: "Сохранение изображений", progress: 70 });
-      
       // Images are already uploaded, we just need to associate them with the product
       for (const url of imageUrls) {
         const { error: imageError } = await supabase
           .rpc('admin_insert_product_image', {
-            p_product_id: productId,
+            p_product_id: createdProductId,
             p_url: url,
             p_is_primary: url === primaryImage
           });
@@ -343,7 +389,7 @@ const AdminAddProduct = () => {
         for (const videoUrl of videoUrls) {
           const { error: videoError } = await supabase
             .rpc('admin_insert_product_video', {
-              p_product_id: productId,
+              p_product_id: createdProductId,
               p_url: videoUrl
             });
             
@@ -355,7 +401,7 @@ const AdminAddProduct = () => {
       const { data: fullProduct, error: fetchError } = await supabase
         .from('products')
         .select(`*, product_images(*)`)
-        .eq('id', productId)
+        .eq('id', createdProductId)
         .single();
       
       if (fetchError) {
@@ -372,7 +418,7 @@ const AdminAddProduct = () => {
           });
         } else {
           supabase.functions.invoke('send-telegram-notification', {
-            body: { productId }
+            body: { productId: createdProductId }
           }).catch(notifyError => {
             console.error("Ошибка прямого вызова функции отправки уведомления:", notifyError);
           });
@@ -384,16 +430,16 @@ const AdminAddProduct = () => {
       setProgressStatus({ step: "Завершение", progress: 100 });
 
       toast({
-        title: "Товар добавлен",
-        description: "Товар успешно опубликован на маркетплейсе", 
+        title: "Товар опубликован",
+        description: "Товар успешно опубликован на маркетплейсе с автоматической генерацией превью", 
       });
 
-      navigate(`/product/${productId}`);
+      navigate(`/product/${createdProductId}`);
     } catch (error) {
-      console.error("Error adding product:", error);
+      console.error("Error finalizing publication:", error);
       toast({
         title: "Ошибка",
-        description: "Не удалось добавить товар. Попробуйте позже.",
+        description: "Не удалось завершить публикацию товара. Попробуйте позже.",
         variant: "destructive",
       });
     } finally {
@@ -415,12 +461,15 @@ const AdminAddProduct = () => {
           <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+            <form onSubmit={form.handleSubmit(createProductFirst)}>
               <Card>
                 <CardHeader>
                   <CardTitle>Информация о товаре</CardTitle>
                   <CardDescription>
-                    Заполните все поля для размещения товара на маркетплейсе
+                    {!productCreated 
+                      ? "Заполните все поля и создайте товар, затем добавьте изображения"
+                      : "Товар создан! Теперь добавьте изображения и завершите публикацию"
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
@@ -434,6 +483,7 @@ const AdminAddProduct = () => {
                         <Select 
                           onValueChange={field.onChange} 
                           value={field.value}
+                          disabled={productCreated}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -475,6 +525,7 @@ const AdminAddProduct = () => {
                           <FormControl>
                             <Input 
                               placeholder="Например: Передний бампер BMW X5 F15"
+                              disabled={productCreated}
                               {...field}
                             />
                           </FormControl>
@@ -493,7 +544,8 @@ const AdminAddProduct = () => {
                             <FormControl>
                               <Input 
                                 type="number" 
-                                placeholder="0.00" 
+                                placeholder="0.00"
+                                disabled={productCreated}
                                 {...field}
                               />
                             </FormControl>
@@ -511,7 +563,8 @@ const AdminAddProduct = () => {
                             <FormControl>
                               <Input 
                                 type="number" 
-                                placeholder="0.00" 
+                                placeholder="0.00"
+                                disabled={productCreated}
                                 {...field}
                               />
                             </FormControl>
@@ -535,7 +588,7 @@ const AdminAddProduct = () => {
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value}
-                              disabled={isLoadingCarData}
+                              disabled={isLoadingCarData || productCreated}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -574,7 +627,7 @@ const AdminAddProduct = () => {
                             <Select 
                               onValueChange={field.onChange} 
                               value={field.value || ""}
-                              disabled={!watchBrandId || isLoadingCarData || brandModels.length === 0}
+                              disabled={!watchBrandId || isLoadingCarData || brandModels.length === 0 || productCreated}
                             >
                               <FormControl>
                                 <SelectTrigger>
@@ -617,7 +670,8 @@ const AdminAddProduct = () => {
                         <FormControl>
                           <Input 
                             type="number" 
-                            placeholder="1" 
+                            placeholder="1"
+                            disabled={productCreated}
                             {...field}
                           />
                         </FormControl>
@@ -636,6 +690,7 @@ const AdminAddProduct = () => {
                           <Textarea 
                             placeholder="Описание товара"
                             className="min-h-[100px]"
+                            disabled={productCreated}
                             {...field}
                           />
                         </FormControl>
@@ -644,63 +699,91 @@ const AdminAddProduct = () => {
                     )}
                   />
                   
-                  <div className="space-y-2">
-                    <Label htmlFor="images">Фотографии товара</Label>
-                    
-                    <MobileOptimizedImageUpload
-                      onUploadComplete={handleMobileOptimizedImageUpload}
-                      maxImages={30}
-                      storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
-                      storagePath=""
-                      existingImages={imageUrls}
-                      onImageDelete={removeImage}
-                      onSetPrimaryImage={setPrimaryImage}
-                      primaryImage={primaryImage}
-                      productId={createdProductId}
-                      autoGeneratePreview={true}
-                    />
-                    
-                    <div className="text-xs text-gray-500 space-y-1">
-                      <div>📸 Изображения автоматически сжимаются до 400KB</div>
-                      {createdProductId ? (
-                        <div className="text-green-600">🖼️ Превью 20KB создаётся автоматически для каждого изображения (ID: {createdProductId})</div>
+                  {!productCreated && (
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Создание товара...
+                        </>
                       ) : (
-                        <div>🖼️ Превью будет создано автоматически после создания товара</div>
+                        'Создать товар'
                       )}
+                    </Button>
+                  )}
+                  
+                  {productCreated && (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-md">
+                        <div className="flex items-center gap-2 text-green-800">
+                          <Check className="h-4 w-4" />
+                          <span className="font-medium">Товар создан успешно!</span>
+                        </div>
+                        <p className="text-green-700 text-sm mt-1">
+                          ID товара: {createdProductId}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="images">Фотографии товара</Label>
+                        
+                        <MobileOptimizedImageUpload
+                          onUploadComplete={handleMobileOptimizedImageUpload}
+                          maxImages={30}
+                          storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
+                          storagePath=""
+                          existingImages={imageUrls}
+                          onImageDelete={removeImage}
+                          onSetPrimaryImage={setPrimaryImage}
+                          primaryImage={primaryImage}
+                          productId={createdProductId}
+                          autoGeneratePreview={true}
+                        />
+                        
+                        <div className="text-xs text-green-600 space-y-1">
+                          <div>📸 Изображения автоматически сжимаются до 400KB</div>
+                          <div className="font-medium">🖼️ Превью 20KB создаётся автоматически для каждого изображения (ID: {createdProductId})</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="videos">Видео товара (необязательно)</Label>
+                        <VideoUpload
+                          videos={videoUrls}
+                          onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
+                          onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
+                          maxVideos={2}
+                          storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
+                        />
+                      </div>
+                      
+                      <Button 
+                        type="button"
+                        onClick={finalizePublication}
+                        className="w-full"
+                        disabled={isSubmitting || imageUrls.length === 0}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Завершение публикации...
+                          </>
+                        ) : (
+                          'Завершить публикацию'
+                        )}
+                      </Button>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="videos">Видео товара (необязательно)</Label>
-                    <VideoUpload
-                      videos={videoUrls}
-                      onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
-                      onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
-                      maxVideos={2}
-                      storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
-                    />
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Публикация...
-                      </>
-                    ) : (
-                      'Опубликовать'
-                    )}
-                  </Button>
+                  )}
                 </CardContent>
                 
                 {isSubmitting && (
                   <div className="px-6 pb-4">
                     <div className="mb-2 flex justify-between items-center">
-                      <span className="text-sm font-medium">{progressStatus.step || "Публикация товара..."}</span>
+                      <span className="text-sm font-medium">{progressStatus.step || "Обработка..."}</span>
                       <span className="text-sm">{progressStatus.progress}%</span>
                     </div>
                     <Progress value={progressStatus.progress} className="h-2" />
