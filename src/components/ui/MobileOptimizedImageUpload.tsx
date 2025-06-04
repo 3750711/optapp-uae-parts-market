@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -16,7 +15,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Check
+  Check,
+  ExternalLink
 } from "lucide-react";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
@@ -32,7 +32,7 @@ interface MobileOptimizedImageUploadProps {
   onImageDelete?: (url: string) => void;
   onSetPrimaryImage?: (url: string) => void;
   primaryImage?: string;
-  productId?: string; // Добавляем productId для генерации превью
+  productId?: string;
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
@@ -44,13 +44,14 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   onImageDelete,
   onSetPrimaryImage,
   primaryImage,
-  productId // Добавляем productId
+  productId
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [compressionQuality, setCompressionQuality] = useState<number | null>(null);
+  const [lastGeneratedPreview, setLastGeneratedPreview] = useState<string | null>(null);
 
   const {
     isUploading,
@@ -109,15 +110,27 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         await updateProductPreview(productId, previewResult.previewUrl);
         console.log('Preview generated and saved for product:', productId);
         
+        setLastGeneratedPreview(previewResult.previewUrl);
+        
         toast({
           title: "Превью создано",
           description: `Превью создано (${Math.round((previewResult.previewSize || 0) / 1024)}KB)`,
         });
       } else {
         console.error('Failed to generate preview:', previewResult.error);
+        toast({
+          title: "Ошибка превью",
+          description: "Не удалось создать превью изображения",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error generating preview:', error);
+      toast({
+        title: "Ошибка превью",
+        description: "Произошла ошибка при создании превью",
+        variant: "destructive",
+      });
     }
   };
 
@@ -187,6 +200,33 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 
   return (
     <div className="space-y-4">
+      {/* Preview URL Display */}
+      {lastGeneratedPreview && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                <span>Превью создано успешно</span>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(lastGeneratedPreview, '_blank')}
+                className="flex items-center gap-1 text-xs"
+              >
+                <ExternalLink className="h-3 w-3" />
+                Посмотреть
+              </Button>
+            </div>
+            <div className="mt-2 text-xs text-green-600 break-all">
+              URL: {lastGeneratedPreview}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Existing Images Gallery */}
       {existingImages.length > 0 && (
         <Card>
