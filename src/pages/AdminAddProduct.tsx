@@ -80,6 +80,7 @@ const AdminAddProduct = () => {
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   const [primaryImage, setPrimaryImage] = useState<string>("");
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null); // Добавляем состояние для productId
   
   // Use our custom hook for car brands and models
   const { 
@@ -204,18 +205,11 @@ const AdminAddProduct = () => {
   }, [brandModels, watchModelId, form]);
 
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
-    setImageUrls(urls); // Replace with the complete list instead of appending
+    setImageUrls(prevUrls => [...prevUrls, ...urls]); // Изменяем на добавление, а не замену
     
     // Set default primary image if none is selected yet
     if (!primaryImage && urls.length > 0) {
       setPrimaryImage(urls[0]);
-    } else if (primaryImage && !urls.includes(primaryImage)) {
-      // If primary image was deleted, select the first available
-      if (urls.length > 0) {
-        setPrimaryImage(urls[0]);
-      } else {
-        setPrimaryImage("");
-      }
     }
   };
 
@@ -310,11 +304,13 @@ const AdminAddProduct = () => {
       if (!productId) {
         throw new Error("Failed to get product ID");
       }
+
+      // Сохраняем productId для использования в компоненте загрузки изображений
+      setCreatedProductId(productId);
       
       setProgressStatus({ step: "Сохранение изображений", progress: 60 });
       
       // Images are already uploaded, we just need to associate them with the product
-      // Reworked to ensure primary image is marked correctly
       for (const url of imageUrls) {
         const { error: imageError } = await supabase
           .rpc('admin_insert_product_image', {
@@ -653,6 +649,7 @@ const AdminAddProduct = () => {
                       onImageDelete={removeImage}
                       onSetPrimaryImage={setPrimaryImage}
                       primaryImage={primaryImage}
+                      productId={createdProductId} // Передаём productId для генерации превью
                     />
                   </div>
                   

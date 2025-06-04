@@ -21,6 +21,7 @@ import {
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
 import { STORAGE_BUCKETS } from "@/constants/storage";
+import { generateProductPreview, updateProductPreview } from "@/utils/previewGenerator";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -31,17 +32,19 @@ interface MobileOptimizedImageUploadProps {
   onImageDelete?: (url: string) => void;
   onSetPrimaryImage?: (url: string) => void;
   primaryImage?: string;
+  productId?: string; // Добавляем productId для генерации превью
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
   onUploadComplete,
   maxImages = 25,
-  storageBucket = STORAGE_BUCKETS.PRODUCT_IMAGES, // Используем константу
+  storageBucket = STORAGE_BUCKETS.PRODUCT_IMAGES,
   storagePath = "",
   existingImages = [],
   onImageDelete,
   onSetPrimaryImage,
-  primaryImage
+  primaryImage,
+  productId // Добавляем productId
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -91,6 +94,33 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     setShowPreview(true);
   }, [existingImages.length, maxImages]);
 
+  // Generate preview for uploaded image
+  const generatePreviewForImage = async (imageUrl: string) => {
+    if (!productId) {
+      console.log('No productId provided, skipping preview generation');
+      return;
+    }
+
+    try {
+      console.log('Generating preview for uploaded image:', imageUrl, 'productId:', productId);
+      const previewResult = await generateProductPreview(imageUrl, productId);
+      
+      if (previewResult.success && previewResult.previewUrl) {
+        await updateProductPreview(productId, previewResult.previewUrl);
+        console.log('Preview generated and saved for product:', productId);
+        
+        toast({
+          title: "Превью создано",
+          description: `Превью создано (${Math.round((previewResult.previewSize || 0) / 1024)}KB)`,
+        });
+      } else {
+        console.error('Failed to generate preview:', previewResult.error);
+      }
+    } catch (error) {
+      console.error('Error generating preview:', error);
+    }
+  };
+
   // Start upload
   const startUpload = useCallback(async () => {
     if (selectedFiles.length === 0) return;
@@ -109,6 +139,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       
       if (urls.length > 0) {
         onUploadComplete(urls);
+        
+        // Generate preview for the first uploaded image if productId is provided
+        if (productId && urls.length > 0) {
+          await generatePreviewForImage(urls[0]);
+        }
+        
         setSelectedFiles([]);
         setShowPreview(false);
         clearProgress();
@@ -116,7 +152,19 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     } catch (error) {
       console.error('Upload failed:', error);
     }
-  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress]);
+  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress, productId]);
+
+  // Handle setting primary image with preview generation
+  const handleSetPrimaryImage = async (url: string) => {
+    if (onSetPrimaryImage) {
+      onSetPrimaryImage(url);
+      
+      // Generate preview for the new primary image if productId is provided
+      if (productId) {
+        await generatePreviewForImage(url);
+      }
+    }
+  };
 
   // Calculate overall progress
   const overallProgress = uploadProgress.length > 0 
@@ -170,7 +218,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                         size="sm"
                         variant="secondary"
                         className="h-8 w-8 rounded-full p-0 touch-manipulation"
-                        onClick={() => onSetPrimaryImage(url)}
+                        onClick={() => handleSetPrimaryImage(url)}
                         disabled={primaryImage === url}
                         title={primaryImage === url ? "Уже основное" : "Сделать основным"}
                       >
@@ -209,7 +257,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                           size="sm"
                           variant="secondary"
                           className="h-6 w-6 rounded-full p-0 bg-white/90 hover:bg-white"
-                          onClick={() => onSetPrimaryImage(url)}
+                          onClick={() => handleSetPrimaryImage(url)}
                         >
                           <Check className="h-3 w-3" />
                         </Button>
@@ -464,6 +512,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         <div>Загружено: {existingImages.length} / {maxImages} изображений</div>
         {isMobileDevice && (
           <div>💡 Совет: для экономии трафика изображения сжимаются автоматически</div>
+        )}
+        {productId && (
+          <div>🖼️ Превью создаётся автоматически при загрузке изображений</div>
         )}
       </div>
     </div>
