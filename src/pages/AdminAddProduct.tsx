@@ -80,7 +80,7 @@ const AdminAddProduct = () => {
   const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   const [primaryImage, setPrimaryImage] = useState<string>("");
-  const [createdProductId, setCreatedProductId] = useState<string | null>(null); // Добавляем состояние для productId
+  const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   
   // Use our custom hook for car brands and models
   const { 
@@ -205,10 +205,18 @@ const AdminAddProduct = () => {
   }, [brandModels, watchModelId, form]);
 
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
+    console.log('📷 New images uploaded:', {
+      urls,
+      existingCount: imageUrls.length,
+      productId: createdProductId,
+      timestamp: new Date().toISOString()
+    });
+    
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
     // Set default primary image if none is selected yet
     if (!primaryImage && urls.length > 0) {
+      console.log('🎯 Setting primary image:', urls[0]);
       setPrimaryImage(urls[0]);
     }
   };
@@ -279,6 +287,8 @@ const AdminAddProduct = () => {
 
       setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
       
+      console.log('🏭 Creating product with RPC...');
+      
       // Using RPC to create the product using admin permissions
       const { data: productId, error: productError } = await supabase
         .rpc('admin_create_product', {
@@ -303,6 +313,12 @@ const AdminAddProduct = () => {
       if (!productId) {
         throw new Error("Failed to get product ID");
       }
+
+      console.log('✅ Product created successfully:', {
+        productId,
+        title: values.title,
+        timestamp: new Date().toISOString()
+      });
 
       setCreatedProductId(productId);
       
@@ -641,13 +657,13 @@ const AdminAddProduct = () => {
                       onSetPrimaryImage={setPrimaryImage}
                       primaryImage={primaryImage}
                       productId={createdProductId}
-                      autoGeneratePreview={!!createdProductId}
+                      autoGeneratePreview={true}
                     />
                     
                     <div className="text-xs text-gray-500 space-y-1">
                       <div>📸 Изображения автоматически сжимаются до 400KB</div>
                       {createdProductId ? (
-                        <div>🖼️ Превью 20KB создаётся автоматически для каждого изображения</div>
+                        <div className="text-green-600">🖼️ Превью 20KB создаётся автоматически для каждого изображения (ID: {createdProductId})</div>
                       ) : (
                         <div>🖼️ Превью будет создано автоматически после создания товара</div>
                       )}
