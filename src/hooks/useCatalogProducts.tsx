@@ -29,6 +29,8 @@ export type ProductType = {
 export interface CatalogFilters {
   searchQuery: string;
   hideSoldProducts: boolean;
+  selectedBrand?: string | null;
+  selectedModel?: string | null;
 }
 
 export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'newest') => {
@@ -36,6 +38,8 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
 
@@ -78,9 +82,11 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
   const filters = useMemo(() => ({
     debouncedSearchQuery,
     hideSoldProducts,
+    selectedBrand,
+    selectedModel,
     sortBy,
     isAdmin
-  }), [debouncedSearchQuery, hideSoldProducts, sortBy, isAdmin]);
+  }), [debouncedSearchQuery, hideSoldProducts, selectedBrand, selectedModel, sortBy, isAdmin]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -120,6 +126,16 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         if (filters.debouncedSearchQuery) {
           const searchTerm = filters.debouncedSearchQuery.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+        }
+
+        // Apply brand filter
+        if (filters.selectedBrand) {
+          query = query.eq('brand', filters.selectedBrand);
+        }
+
+        // Apply model filter
+        if (filters.selectedModel) {
+          query = query.eq('model', filters.selectedModel);
         }
 
         const { data, error } = await query.range(from, to);
@@ -171,7 +187,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     });
   }, [allProducts]);
 
-  // Simplified chunking logic
+  // Chunking logic for better performance
   const productChunks = useMemo(() => {
     const chunkSize = 12;
     const chunks = [];
@@ -186,6 +202,8 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setHasSearched(false);
+    setSelectedBrand(null);
+    setSelectedModel(null);
   }, []);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
@@ -201,6 +219,10 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     hasSearched,
     hideSoldProducts,
     setHideSoldProducts,
+    selectedBrand,
+    setSelectedBrand,
+    selectedModel,
+    setSelectedModel,
     allProducts: mappedProducts,
     mappedProducts,
     productChunks,
@@ -212,7 +234,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     refetch,
     handleClearSearch,
     handleSearchSubmit,
-    isActiveFilters: !!(searchQuery || hideSoldProducts)
+    isActiveFilters: !!(searchQuery || hideSoldProducts || selectedBrand || selectedModel)
   };
 };
 

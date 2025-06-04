@@ -4,16 +4,45 @@ import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import ProductGrid from "@/components/product/ProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
-import CatalogFilters from "@/components/catalog/CatalogFilters";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
+import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
+import EnhancedSearchBar from "@/components/catalog/EnhancedSearchBar";
+import FiltersPanel from "@/components/catalog/FiltersPanel";
+import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting";
+import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
+import ActiveFilters from "@/components/catalog/ActiveFilters";
+import StickyFilters from "@/components/catalog/StickyFilters";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
+
+  // View and sorting state
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Car brands and models
+  const {
+    brands,
+    brandModels,
+    selectedBrand,
+    selectBrand,
+    findBrandNameById,
+    findModelNameById
+  } = useCarBrandsAndModels();
+
+  // Selected model state
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+
+  // Search history
+  const { addToHistory } = useSearchHistory();
 
   const {
     searchQuery,
@@ -32,7 +61,7 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearchSubmit,
     isActiveFilters
-  } = useCatalogProducts();
+  } = useCatalogProducts(8, sortBy);
 
   // Load more when the loadMoreRef is visible
   React.useEffect(() => {
@@ -53,6 +82,50 @@ const Catalog: React.FC = () => {
     fetchNextPage();
   };
 
+  // Enhanced search handlers
+  const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      const selectedBrandName = findBrandNameById(selectedBrand);
+      const selectedModelName = findModelNameById(selectedModel);
+      addToHistory(searchQuery, selectedBrandName || undefined, selectedModelName || undefined);
+    }
+    handleSearchSubmit(e);
+  }, [searchQuery, selectedBrand, selectedModel, findBrandNameById, findModelNameById, addToHistory, handleSearchSubmit]);
+
+  // Clear handlers
+  const handleClearBrand = useCallback(() => {
+    selectBrand(null);
+    setSelectedModel(null);
+  }, [selectBrand]);
+
+  const handleClearModel = useCallback(() => {
+    setSelectedModel(null);
+  }, []);
+
+  const handleClearSoldFilter = useCallback(() => {
+    setHideSoldProducts(false);
+  }, [setHideSoldProducts]);
+
+  const handleClearAll = useCallback(() => {
+    handleClearSearch();
+    selectBrand(null);
+    setSelectedModel(null);
+    setHideSoldProducts(false);
+  }, [handleClearSearch, selectBrand, setHideSoldProducts]);
+
+  // Get brand and model names for display
+  const selectedBrandName = findBrandNameById(selectedBrand);
+  const selectedModelName = findModelNameById(selectedModel);
+
+  // Check if we have any active filters
+  const hasAnyFilters = !!(
+    searchQuery || 
+    selectedBrandName || 
+    selectedModelName || 
+    hideSoldProducts
+  );
+
   const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
 
   return (
@@ -63,20 +136,90 @@ const Catalog: React.FC = () => {
       </Helmet>
 
       <div className="container mx-auto py-8 space-y-6">
-        {/* Search and Filters */}
+        {/* Breadcrumb */}
+        <CatalogBreadcrumb
+          searchQuery={searchQuery}
+          selectedBrandName={selectedBrandName}
+          selectedModelName={selectedModelName}
+        />
+
+        {/* Enhanced Search Bar */}
         <Card className="mb-4">
           <div className="p-4">
-            <CatalogFilters
+            <EnhancedSearchBar
               searchQuery={searchQuery}
               setSearchQuery={setSearchQuery}
-              hideSoldProducts={hideSoldProducts}
-              setHideSoldProducts={setHideSoldProducts}
-              handleClearSearch={handleClearSearch}
-              handleSearchSubmit={handleSearchSubmit}
-              isActiveFilters={isActiveFilters}
+              handleSearchSubmit={handleEnhancedSearchSubmit}
+              selectedBrandName={selectedBrandName}
+              selectedModelName={selectedModelName}
             />
           </div>
         </Card>
+
+        {/* Controls Row */}
+        <Card className="mb-4">
+          <div className="p-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Filters Panel */}
+              <div className="flex-1">
+                <FiltersPanel
+                  showFilters={showFilters}
+                  setShowFilters={setShowFilters}
+                  selectedBrand={selectedBrand}
+                  selectBrand={selectBrand}
+                  selectedModel={selectedModel}
+                  setSelectedModel={setSelectedModel}
+                  brands={brands}
+                  brandModels={brandModels}
+                  hideSoldProducts={hideSoldProducts}
+                  setHideSoldProducts={setHideSoldProducts}
+                  handleSearchSubmit={handleEnhancedSearchSubmit}
+                  handleClearSearch={handleClearAll}
+                  isActiveFilters={hasAnyFilters}
+                />
+              </div>
+
+              {/* Sorting and View Controls */}
+              <div className="flex items-center gap-4">
+                <ProductSorting
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                />
+                <ViewToggle
+                  viewMode={viewMode}
+                  onViewModeChange={setViewMode}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        {/* Active Filters */}
+        {hasAnyFilters && (
+          <ActiveFilters
+            searchQuery={searchQuery}
+            selectedBrandName={selectedBrandName}
+            selectedModelName={selectedModelName}
+            hideSoldProducts={hideSoldProducts}
+            onClearSearch={handleClearSearch}
+            onClearBrand={handleClearBrand}
+            onClearModel={handleClearModel}
+            onClearSoldFilter={handleClearSoldFilter}
+            onClearAll={handleClearAll}
+          />
+        )}
+
+        {/* Sticky Filters for Mobile */}
+        <StickyFilters
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          selectedBrandName={selectedBrandName}
+          selectedModelName={selectedModelName}
+          onClearSearch={handleClearSearch}
+          onOpenFilters={() => setShowFilters(true)}
+          hasActiveFilters={hasAnyFilters}
+          handleSearchSubmit={handleEnhancedSearchSubmit}
+        />
 
         {/* Product Grid or Skeleton */}
         {isLoading ? (
@@ -102,7 +245,11 @@ const Catalog: React.FC = () => {
             {mappedProducts.length > 0 ? (
               <>
                 {productChunks.map((chunk, index) => (
-                  <ProductGrid key={index} products={chunk} />
+                  <ProductGrid 
+                    key={index} 
+                    products={chunk} 
+                    viewMode={viewMode}
+                  />
                 ))}
 
                 {(hasNextPage || isFetchingNextPage) && (
@@ -139,7 +286,7 @@ const Catalog: React.FC = () => {
                   <p className="text-gray-500 mb-6">
                     Попробуйте изменить параметры поиска или фильтры
                   </p>
-                  <Button onClick={handleClearSearch}>
+                  <Button onClick={handleClearAll}>
                     Сбросить фильтры
                   </Button>
                 </div>
