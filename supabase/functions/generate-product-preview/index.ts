@@ -29,9 +29,9 @@ serve(async (req) => {
     console.log('Generating preview for image:', imageUrl, 'productId:', productId);
 
     // Создаем Supabase клиент
-    const supabaseUrl = 'https://vfiylfljiixqkjfqubyq.supabase.co';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
-    const supabase = createClient(supabaseUrl, supabaseKey!);
+    const supabase = createClient(supabaseUrl!, supabaseKey!);
 
     // Загружаем оригинальное изображение
     const response = await fetch(imageUrl);
