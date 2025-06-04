@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -6,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
 import { VideoUpload } from '@/components/ui/video-upload';
-import OptimizedProductImage from '@/components/ui/OptimizedProductImage';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import { Database } from '@/integrations/supabase/types';
@@ -83,7 +82,7 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
           <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-4">
             {images.map((url, index) => (
               <div key={index} className="aspect-square rounded-md overflow-hidden">
-                <OptimizedProductImage
+                <OptimizedImage
                   src={url}
                   alt={`Изображение заказа ${index + 1}`}
                   className="w-full h-full"

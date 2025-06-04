@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,7 @@ import {
   CarouselPrevious,
   CarouselApi 
 } from "@/components/ui/carousel";
-import OptimizedProductImage from "@/components/ui/OptimizedProductImage";
+import OptimizedImage from "@/components/ui/OptimizedImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 
 export interface ProductProps {
@@ -139,7 +138,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <CarouselContent>
             {optimizedImages.map((imageData, index) => (
               <CarouselItem key={index} className="basis-full">
-                <OptimizedProductImage
+                <OptimizedImage
                   src={imageData.url}
                   alt={`${product.title} ${index + 1}`}
                   className="w-full h-full"
@@ -170,7 +169,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     } else {
       // Desktop одиночное изображение с оптимизацией
       return (
-        <OptimizedProductImage
+        <OptimizedImage
           src={primaryImage.url}
           alt={product.title}
           className="w-full h-full transition-transform duration-300 group-hover:scale-105"

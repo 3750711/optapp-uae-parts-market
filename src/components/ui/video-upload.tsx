@@ -1,11 +1,8 @@
-
-import React, { useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { X, Loader2, Upload } from "lucide-react";
-import { useToast } from "@/components/ui/use-toast";
-import { isVideo } from "@/utils/imageCompression";
-import { logImageProcessing, optimizeImageForMarketplace, getDeviceCapabilities } from "@/utils/imageProcessingUtils";
+import React, { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Video, Upload, X, Loader2, Play } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VideoUploadProps {
   videos: string[];
@@ -28,7 +25,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const { toast } = useToast();
-  const deviceCapabilities = getDeviceCapabilities();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || uploading) return;
@@ -41,13 +37,13 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
       });
       return;
     }
-    
+
     setUploading(true);
     setUploadProgress(0);
-    
+
     try {
       const uploadedUrls: string[] = [];
-      
+
       // Сначала проверяем, аутентифицирован ли пользователь
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -59,130 +55,38 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         setUploading(false);
         return;
       }
-      
-      logImageProcessing('VideoUploadStart', { 
-        fileCount: files.length,
-        userId: user.id,
-        deviceCapabilities
-      });
-      
-      let completedFiles = 0;
-      
-      // Исправленное имя bucket - используем "Product Images" вместо original
-      const correctedStorageBucket = "Product Images";
-      
-      // Определяем максимальный размер видео в зависимости от устройства
-      const maxVideoSizeMB = deviceCapabilities.isLowEndDevice ? 50 : 100;
-      
-      for (const file of files) {
-        // Проверяем размер файла
-        const fileSizeMB = file.size / (1024 * 1024);
-        if (fileSizeMB > maxVideoSizeMB) {
-          toast({
-            title: "Ошибка",
-            description: `Файл слишком большой. Максимальный размер ${maxVideoSizeMB}МБ для вашего устройства`,
-            variant: "destructive"
-          });
-          logImageProcessing('FileSizeError', { 
-            fileName: file.name, 
-            fileSize: `${fileSizeMB.toFixed(2)}MB`,
-            maxSize: `${maxVideoSizeMB}MB`
-          });
-          continue;
-        }
 
-        // Обрабатываем файл в зависимости от типа
-        let processedFile = file;
-        
-        // Для изображений выполняем оптимизацию
-        if (file.type.startsWith('image/')) {
-          try {
-            processedFile = await optimizeImageForMarketplace(file);
-          } catch (error) {
-            logImageProcessing('ProcessingError', { 
-              fileName: file.name,
-              error: error instanceof Error ? error.message : String(error)
-            });
-            // Если оптимизация не удалась, продолжаем с оригинальным файлом
-            toast({
-              title: "Предупреждение",
-              description: `Не удалось оптимизировать изображение ${file.name}. Используется оригинальный файл.`
-            });
-          }
-        } else if (isVideo(file)) {
-          // Логируем информацию о видео файле
-          logImageProcessing('VideoFile', { 
-            fileName: file.name,
-            fileSize: `${fileSizeMB.toFixed(2)}MB`,
-            fileType: file.type
-          });
-        }
-        
-        // Генерируем уникальное имя файла
+      for (const file of files) {
         const ext = file.name.split('.').pop();
         const fileName = `${storagePrefix}${user.id}/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`;
-        
-        logImageProcessing('Uploading', { 
-          bucket: correctedStorageBucket, 
-          fileName,
-          fileSize: `${(processedFile.size / 1024 / 1024).toFixed(2)}MB`
-        });
-        
-        // Загружаем файл в исправленный bucket
         const { data, error } = await supabase.storage
-          .from(correctedStorageBucket)
-          .upload(fileName, processedFile, {
+          .from(storageBucket)
+          .upload(fileName, file, {
             cacheControl: '3600',
             upsert: false
           });
-          
+
         if (error) {
-          logImageProcessing('UploadError', {
-            fileName: file.name,
-            error: error.message,
-            code: error.code,
-            details: error.details
-          });
           toast({
             title: "Ошибка загрузки",
-            description: `${error.message}. Попробуйте файл меньшего размера или другой формат.`,
+            description: error.message,
             variant: "destructive"
           });
         } else {
-          logImageProcessing('UploadSuccess', { fileName });
           const { data: { publicUrl } } = supabase.storage
-            .from(correctedStorageBucket)
+            .from(storageBucket)
             .getPublicUrl(fileName);
           uploadedUrls.push(publicUrl);
         }
-        
-        // Обновляем прогресс
-        completedFiles++;
-        const progressValue = Math.round((completedFiles / files.length) * 100);
-        setUploadProgress(progressValue);
-        logImageProcessing('UploadProgress', { progress: `${progressValue}%` });
-        
-        // Для слабых устройств добавляем искусственную задержку между файлами
-        if (deviceCapabilities.isLowEndDevice && completedFiles < files.length) {
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
+        setUploadProgress(Math.round((uploadedUrls.length / files.length) * 100));
       }
-      
-      if (uploadedUrls.length > 0) {
-        onUpload(uploadedUrls);
-        toast({ 
-          title: "Видео загружено",
-          description: `Успешно загружено: ${uploadedUrls.length} из ${files.length}` 
-        });
-      }
+
+      onUpload(uploadedUrls);
+      toast({ title: "Видео загружено", description: "Видео успешно загружено" });
     } catch (error) {
-      logImageProcessing('UnexpectedError', { 
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
       toast({
         title: "Ошибка загрузки",
-        description: "Возникла непредвиденная ошибка при загрузке. Попробуйте позже или используйте файл меньшего размера.",
+        description: "Возникла ошибка при загрузке видео",
         variant: "destructive"
       });
     } finally {
@@ -194,47 +98,15 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
 
   const handleDelete = async (url: string) => {
     try {
-      logImageProcessing('DeleteStart', { url });
       // Извлекаем путь файла из URL
       const fileUrl = new URL(url);
-      const pathParts = fileUrl.pathname.split('/');
-      
-      // Исправленное имя bucket - используем "Product Images" вместо storageBucket
-      const correctedBucketName = "Product Images";
-      
-      // Находим индекс bucket в пути URL
-      // Последний сегмент после имени bucket должен быть именем файла
-      const bucketIndex = pathParts.findIndex(part => 
-        part.toLowerCase() === correctedBucketName.toLowerCase() || 
-        part.toLowerCase() === storageBucket.toLowerCase()
-      );
-      const filePath = bucketIndex >= 0 ? pathParts.slice(bucketIndex + 1).join('/') : '';
-      
-      if (!filePath) {
-        logImageProcessing('DeletePathError', { url });
-        toast({
-          title: "Ошибка",
-          description: "Не удалось определить путь к файлу для удаления",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      logImageProcessing('DeleteFile', { 
-        bucket: correctedBucketName,
-        filePath
-      });
-      
+      const filePath = fileUrl.pathname.slice(1); // Remove leading slash
+
       const { error } = await supabase.storage
-        .from(correctedBucketName)
+        .from(storageBucket)
         .remove([filePath]);
-        
+
       if (error) {
-        logImageProcessing('DeleteError', { 
-          error: error.message,
-          code: error.code,
-          details: error.details
-        });
         toast({
           title: "Ошибка",
           description: `Не удалось удалить видео: ${error.message}`,
@@ -242,18 +114,13 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         });
         return;
       }
-      
+
       onDelete(url);
-      logImageProcessing('DeleteSuccess', { url });
       toast({
         title: "Видео удалено",
         description: "Видео было успешно удалено",
       });
     } catch (error) {
-      logImageProcessing('DeleteException', { 
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      });
       toast({
         title: "Ошибка",
         description: "Не удалось удалить видео. Попробуйте позже.",
@@ -301,7 +168,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             }
             <input
               type="file"
-              accept="video/*,image/*"
+              accept="video/*"
               multiple
               className="hidden"
               ref={fileInputRef}
@@ -312,7 +179,7 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
         )}
       </div>
       <p className="text-xs text-gray-500">
-        ДО {maxVideos} роликов, до {deviceCapabilities.isLowEndDevice ? "50" : "100"} МБ каждый. Поддержка: mp4, mov, avi. Первое видео будет основным.
+        ДО {maxVideos} роликов. Поддержка: mp4, mov, avi. Первое видео будет основным.
       </p>
       
       {videos.length < maxVideos && (
@@ -335,12 +202,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
             </>
           )}
         </Button>
-      )}
-      
-      {deviceCapabilities.isLowEndDevice && (
-        <p className="text-xs text-amber-600">
-          Обнаружено устройство с ограниченной производительностью. Максимальный размер видео ограничен до 50МБ.
-        </p>
       )}
     </div>
   );

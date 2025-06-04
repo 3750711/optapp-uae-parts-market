@@ -40,8 +40,6 @@ const SellerListingsContent = () => {
       
       console.log(`Fetching seller products: ${from} to ${to}`);
       
-      // Оптимизированный запрос с использованием новых индексов
-      // Используем LEFT JOIN для изображений и сортируем по created_at (покрыто индексом)
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -58,8 +56,7 @@ const SellerListingsContent = () => {
           lot_number,
           product_images(
             url,
-            is_primary,
-            preview_url
+            is_primary
           )
         `)
         .eq('seller_id', user.id)
@@ -78,31 +75,27 @@ const SellerListingsContent = () => {
     },
     initialPageParam: 0,
     enabled: !!user?.id,
-    staleTime: 10 * 60 * 1000, // Увеличен до 10 минут для статичных данных
-    gcTime: 15 * 60 * 1000, // Увеличен garbage collection time
+    staleTime: 10 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
     retry: 3,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-    refetchOnWindowFocus: false, // Отключаем рефетч при фокусе окна
-    refetchOnMount: false, // Используем кэш при монтировании
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
-  // Optimistic update для изменения статуса товара
   const handleStatusChange = async () => {
     console.log("Product status changed, applying optimistic update");
     
-    // Optimistic update - сразу показываем изменения в UI
     toast({
       title: "Статус обновлен",
       description: "Изменения применены",
     });
 
-    // Background refetch для актуализации данных
     queryClient.invalidateQueries({
       queryKey: ['seller-products-infinite', user?.id],
-      refetchType: 'none' // Не прерываем текущий UI, обновляем в фоне
+      refetchType: 'none'
     });
 
-    // Мягкое обновление в фоне
     setTimeout(() => {
       queryClient.refetchQueries({
         queryKey: ['seller-products-infinite', user?.id],
@@ -111,7 +104,6 @@ const SellerListingsContent = () => {
     }, 1000);
   };
 
-  // Effect to fetch next page when intersection observer detects the load more element
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage && !isError) {
       console.log("Load more element is visible, fetching next page");
@@ -119,7 +111,6 @@ const SellerListingsContent = () => {
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage, isError]);
 
-  // Manual load more function with error handling
   const handleLoadMore = async () => {
     if (hasNextPage && !isFetchingNextPage) {
       try {
@@ -148,31 +139,22 @@ const SellerListingsContent = () => {
     }
   };
 
-  // Flatten the pages into a single array of products
   const allProducts = data?.pages.flat() || [];
   console.log(`Total seller products loaded: ${allProducts.length}`);
 
-  // Оптимизированное создание ProductProps с мемоизацией изображений
   const mappedProducts: ProductProps[] = React.useMemo(() => {
     return allProducts.map(product => {
-      // Оптимизированная обработка изображений с приоритетом preview_url
       const images = product.product_images || [];
       const primaryImage = images.find(img => img.is_primary);
       const fallbackImage = images[0];
       
-      // Приоритет: preview_url -> url -> placeholder
-      const imageUrl = primaryImage?.preview_url || primaryImage?.url || 
-                     fallbackImage?.preview_url || fallbackImage?.url || 
-                     '/placeholder.svg';
-      
-      const previewUrl = primaryImage?.preview_url || fallbackImage?.preview_url;
+      const imageUrl = primaryImage?.url || fallbackImage?.url || '/placeholder.svg';
       
       return {
         id: product.id,
         title: product.title,
         price: Number(product.price),
         image: imageUrl,
-        preview_image: previewUrl,
         brand: product.brand || '',
         model: product.model || '',
         seller_name: product.seller_name,
@@ -185,12 +167,10 @@ const SellerListingsContent = () => {
     });
   }, [allProducts, user?.id]);
 
-  // Enhanced loading state
   if (isLoading) {
     return <EnhancedSellerListingsSkeleton />;
   }
 
-  // Enhanced error state with retry
   if (isError) {
     return (
       <div className="space-y-6">
@@ -240,7 +220,6 @@ const SellerListingsContent = () => {
             onStatusChange={handleStatusChange}
           />
           
-          {/* Enhanced load more with error handling */}
           {(hasNextPage || isFetchingNextPage) && (
             <div className="mt-8 flex flex-col items-center justify-center">
               <div 
@@ -279,17 +258,12 @@ const SellerListingsContent = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
               У вас пока нет объявлений
             </h3>
-            <p className="text-gray-600 mb-6">
-              Начните продавать, создав свое первое объявление
+            <p className="text-gray-500 mb-6">
+              Создайте свое первое объявление, чтобы начать продавать
             </p>
-            <Button asChild>
-              <a href="/seller/add-product">
-                Добавить товар
-              </a>
-            </Button>
           </div>
         </div>
       )}

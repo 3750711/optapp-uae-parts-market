@@ -1,44 +1,34 @@
-
-import React, { useState, useEffect } from "react";
-import Layout from "@/components/layout/Layout";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
-import SearchBar from "@/components/catalog/SearchBar";
-import FiltersPanel from "@/components/catalog/FiltersPanel";
-import ProductsSection from "@/components/catalog/ProductsSection";
-import CatalogSEO from "@/components/catalog/CatalogSEO";
-import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
-import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting";
-import ActiveFilters from "@/components/catalog/ActiveFilters";
-import StickyFilters from "@/components/catalog/StickyFilters";
-import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
-import useCatalogProducts from "@/hooks/useCatalogProducts";
-import { useImagePreloader } from "@/hooks/useImagePreloader";
-import { SearchHistoryItem } from "@/hooks/useSearchHistory";
+import React, { useState, useCallback, useMemo, useRef } from "react";
+import { Helmet } from "react-helmet-async";
+import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import ProductGrid from "@/components/product/ProductGrid";
+import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
+import CatalogFilters from "@/components/catalog/CatalogFilters";
+import { FilterState } from "@/components/catalog/CatalogFilters";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useIntersection } from "@/hooks/useIntersection";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card } from "@/components/ui/card";
+import { ProductProps } from "@/components/product/ProductCard";
 
 const Catalog: React.FC = () => {
-  const [showFilters, setShowFilters] = useState(false);
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  
-  const productsPerPage = viewMode === 'list' ? 30 : 8;
-  
-  // Car brands and models
-  const {
-    brands,
-    brandModels,
-    selectedBrand,
-    selectBrand,
-    isLoading: isLoadingBrands,
-    findBrandNameById,
-    findModelNameById
-  } = useCarBrandsAndModels();
+  const [filterState, setFilterState] = useState<FilterState>({
+    brands: [],
+    models: [],
+    priceRange: { min: 0, max: 10000 },
+    condition: [],
+  });
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
 
-  // Products data and filter logic
   const {
     searchQuery,
     setSearchQuery,
-    debouncedSearchQuery,
     hasSearched,
+    selectedBrand,
+    setSelectedBrand,
     selectedModel,
     setSelectedModel,
     selectedBrandName,
@@ -47,7 +37,6 @@ const Catalog: React.FC = () => {
     setSelectedModelName,
     hideSoldProducts,
     setHideSoldProducts,
-    allProducts,
     mappedProducts,
     productChunks,
     fetchNextPage,
@@ -59,198 +48,132 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearchSubmit,
     isActiveFilters
-  } = useCatalogProducts(productsPerPage, sortBy);
+  } = useCatalogProducts();
 
-  // Предзагрузка изображений следующих товаров
-  const productImages = mappedProducts.map(product => 
-    product.product_images?.find(img => img.preview_url)?.preview_url || 
-    product.preview_image || 
-    product.image
-  ).filter(Boolean);
-  
-  useImagePreloader(productImages, {
-    enabled: !isLoading,
-    preloadDistance: viewMode === 'list' ? 40 : 15,
-    maxConcurrent: viewMode === 'list' ? 12 : 6,
-    catalogMode: true
-  });
-
-  // Update brand and model names when IDs change
-  useEffect(() => {
-    if (selectedBrand) {
-      const brandName = findBrandNameById(selectedBrand);
-      console.log('Selected brand ID:', selectedBrand, 'Brand name:', brandName);
-      setSelectedBrandName(brandName);
-    } else {
-      setSelectedBrandName(null);
+  // Load more when the loadMoreRef is visible
+  React.useEffect(() => {
+    if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
     }
-  }, [selectedBrand, findBrandNameById, setSelectedBrandName]);
+  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  useEffect(() => {
-    if (selectedModel) {
-      const modelName = findModelNameById(selectedModel);
-      console.log('Selected model ID:', selectedModel, 'Model name:', modelName);
-      setSelectedModelName(modelName);
-    } else {
-      setSelectedModelName(null);
+  const handleRetry = async () => {
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Retry failed:', error);
     }
-  }, [selectedModel, findModelNameById, setSelectedModelName]);
-
-  // Handlers for clearing individual filters
-  const handleClearBrand = () => {
-    selectBrand(null);
-    setSelectedModel(null);
   };
 
-  const handleClearModel = () => {
-    setSelectedModel(null);
-  };
-
-  const handleClearSoldFilter = () => {
-    setHideSoldProducts(false);
-  };
-
-  const handleClearSearchQuery = () => {
-    setSearchQuery('');
-  };
-
-  // Обработка выбора из истории поиска
-  const handleSelectFromHistory = (item: SearchHistoryItem) => {
-    // Если в истории есть бренд/модель, устанавливаем их
-    if (item.brand) {
-      const brand = brands.find(b => b.name === item.brand);
-      if (brand) {
-        selectBrand(brand.id);
-      }
-    }
-    
-    if (item.model) {
-      const model = brandModels.find(m => m.name === item.model);
-      if (model) {
-        setSelectedModel(model.id);
-      }
-    }
-    
-    // Принудительно обновляем результаты
-    setTimeout(() => {
-      refetch();
-    }, 100);
-  };
+  const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
 
   return (
     <>
-      <CatalogSEO
-        searchQuery={debouncedSearchQuery}
-        selectedBrandName={selectedBrandName}
-        selectedModelName={selectedModelName}
-        totalProducts={allProducts.length}
-      />
-      
-      {/* Sticky фильтры для мобильных */}
-      <StickyFilters
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        selectedBrandName={selectedBrandName}
-        selectedModelName={selectedModelName}
-        onClearSearch={handleClearSearch}
-        onOpenFilters={() => setShowFilters(true)}
-        hasActiveFilters={isActiveFilters}
-        handleSearchSubmit={handleSearchSubmit}
-      />
-      
-      <Layout>
-        <div className="bg-lightGray min-h-screen py-0">
-          <div className="container mx-auto px-3 pb-20 pt-8 sm:pt-14">
-            {/* Breadcrumb Navigation */}
-            <CatalogBreadcrumb
-              searchQuery={debouncedSearchQuery}
-              selectedBrandName={selectedBrandName}
-              selectedModelName={selectedModelName}
-            />
+      <Helmet>
+        <title>Каталог товаров</title>
+        <meta name="description" content="Browse our wide selection of products." />
+      </Helmet>
 
-            {/* Search and filters section */}
-            <div className="mb-6 flex flex-col gap-4">
-              {/* Search Bar Component */}
-              <SearchBar 
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                handleSearchSubmit={handleSearchSubmit}
-                selectedBrandName={selectedBrandName}
-                selectedModelName={selectedModelName}
-                onSelectFromHistory={handleSelectFromHistory}
-              />
-              
-              {/* Filters Panel Component */}
-              <FiltersPanel
-                showFilters={showFilters}
-                setShowFilters={setShowFilters}
-                selectedBrand={selectedBrand}
-                selectBrand={selectBrand}
-                selectedModel={selectedModel}
-                setSelectedModel={setSelectedModel}
-                brands={brands}
-                brandModels={brandModels}
-                hideSoldProducts={hideSoldProducts}
-                setHideSoldProducts={setHideSoldProducts}
-                handleSearchSubmit={handleSearchSubmit}
-                handleClearSearch={handleClearSearch}
-                isActiveFilters={isActiveFilters}
-              />
-
-              {/* Active Filters Display */}
-              <ActiveFilters
-                searchQuery={debouncedSearchQuery}
-                selectedBrandName={selectedBrandName}
-                selectedModelName={selectedModelName}
-                hideSoldProducts={hideSoldProducts}
-                onClearSearch={handleClearSearchQuery}
-                onClearBrand={handleClearBrand}
-                onClearModel={handleClearModel}
-                onClearSoldFilter={handleClearSoldFilter}
-                onClearAll={handleClearSearch}
-              />
-
-              {/* Results summary, view toggle and sorting */}
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="flex items-center gap-4">
-                  {allProducts.length > 0 && (
-                    <div className="text-sm text-gray-600">
-                      Найдено товаров: <span className="font-semibold">{allProducts.length}</span>
-                    </div>
-                  )}
-                  
-                  <ViewToggle
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                  />
-                </div>
-                
-                <ProductSorting
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                />
-              </div>
-            </div>
-            
-            {/* Products Section Component */}
-            <ProductsSection
-              isLoading={isLoading}
-              isError={isError}
-              hasSearched={hasSearched}
-              debouncedSearchQuery={debouncedSearchQuery}
+      <div className="container mx-auto py-8 space-y-6">
+        {/* Search and Filters */}
+        <Card className="mb-4">
+          <div className="p-4">
+            <CatalogFilters
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
               selectedBrand={selectedBrand}
+              setSelectedBrand={setSelectedBrand}
               selectedModel={selectedModel}
-              allProducts={allProducts}
-              productChunks={productChunks}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
-              refetch={refetch}
-              viewMode={viewMode}
+              setSelectedModel={setSelectedModel}
+              selectedBrandName={selectedBrandName}
+              setSelectedBrandName={setSelectedBrandName}
+              selectedModelName={selectedModelName}
+              setSelectedModelName={setSelectedModelName}
+              hideSoldProducts={hideSoldProducts}
+              setHideSoldProducts={setHideSoldProducts}
+              handleClearSearch={handleClearSearch}
+              handleSearchSubmit={handleSearchSubmit}
+              isActiveFilters={isActiveFilters}
             />
           </div>
-        </div>
-      </Layout>
+        </Card>
+
+        {/* Product Grid or Skeleton */}
+        {isLoading ? (
+          <CatalogSkeleton />
+        ) : isError ? (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <div>
+                <div className="font-medium mb-1">Ошибка загрузки товаров</div>
+                <div className="text-sm">
+                  Не удалось загрузить товары. Пожалуйста, попробуйте еще раз.
+                </div>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleRetry}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Повторить
+              </Button>
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <>
+            {mappedProducts.length > 0 ? (
+              <>
+                {productChunks.map((chunk, index) => (
+                  <ProductGrid key={index} products={chunk} />
+                ))}
+
+                {(hasNextPage || isFetchingNextPage) && (
+                  <div className="mt-8 flex flex-col items-center justify-center">
+                    <div
+                      ref={loadMoreRef}
+                      className="h-20 w-full flex items-center justify-center"
+                    >
+                      {isFetchingNextPage ? (
+                        <div className="flex items-center justify-center">
+                          <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
+                          <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
+                        </div>
+                      ) : (
+                        <Button onClick={fetchNextPage} className="bg-primary hover:bg-primary/90">
+                          Загрузить ещё
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                <div className="max-w-md mx-auto">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="mx-auto h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-medium text-gray-900 mb-2">
+                    Ничего не найдено
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    Попробуйте изменить параметры поиска или фильтры
+                  </p>
+                  <Button onClick={handleClearSearch}>
+                    Сбросить фильтры
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {allProductsLoaded && (
+              <div className="text-center py-6 text-gray-500">
+                Вы просмотрели все товары
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </>
   );
 };
