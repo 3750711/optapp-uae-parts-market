@@ -1,14 +1,18 @@
+
 import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadImageToStorage, validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
+import { generateProductPreview, updateProductPreview } from "@/utils/previewGenerator";
 
 interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'generating-preview';
   error?: string;
   url?: string;
+  previewUrl?: string;
+  hasPreview?: boolean;
 }
 
 interface BatchUploadOptions {
@@ -19,7 +23,8 @@ interface BatchUploadOptions {
   maxResolution?: number;
   storageBucket?: string;
   storagePath?: string;
-  productId?: string; // Добавляем productId для автоматической генерации превью
+  productId?: string;
+  autoGeneratePreview?: boolean;
 }
 
 export const useMobileOptimizedUpload = () => {
@@ -98,7 +103,49 @@ export const useMobileOptimizedUpload = () => {
     });
   }, [getDeviceCapabilities]);
 
-  // Upload single file with retry mechanism
+  // Generate preview for uploaded image
+  const generatePreviewForImage = useCallback(async (
+    imageUrl: string,
+    fileId: string,
+    productId: string
+  ): Promise<string | null> => {
+    try {
+      console.log('Generating preview for:', imageUrl, 'productId:', productId);
+      
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { ...p, status: 'generating-preview', progress: 90 }
+          : p
+      ));
+
+      const previewResult = await generateProductPreview(imageUrl, productId);
+      
+      if (previewResult.success && previewResult.previewUrl) {
+        console.log('Preview generated successfully:', previewResult.previewUrl);
+        
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { 
+                ...p, 
+                previewUrl: previewResult.previewUrl,
+                hasPreview: true,
+                progress: 100 
+              }
+            : p
+        ));
+
+        return previewResult.previewUrl;
+      } else {
+        console.error('Failed to generate preview:', previewResult.error);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error generating preview:', error);
+      return null;
+    }
+  }, []);
+
+  // Upload single file with retry mechanism and automatic preview generation
   const uploadSingleFile = useCallback(async (
     file: File, 
     fileId: string, 
@@ -136,14 +183,31 @@ export const useMobileOptimizedUpload = () => {
       // Upload to storage
       const imageUrl = await uploadImageToStorage(
         compressedFile,
-        options.storageBucket || 'order-images',
+        options.storageBucket || 'product-images',
         options.storagePath || ''
       );
+
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId ? { ...p, progress: 70 } : p
+      ));
+
+      // Generate preview automatically if productId is provided
+      let previewUrl: string | null = null;
+      if (options.productId && options.autoGeneratePreview !== false) {
+        previewUrl = await generatePreviewForImage(imageUrl, fileId, options.productId);
+      }
 
       // Success
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'success', progress: 100, url: imageUrl }
+          ? { 
+              ...p, 
+              status: 'success', 
+              progress: 100, 
+              url: imageUrl,
+              previewUrl: previewUrl || undefined,
+              hasPreview: !!previewUrl
+            }
           : p
       ));
 
@@ -151,7 +215,8 @@ export const useMobileOptimizedUpload = () => {
         fileName: file.name,
         originalSize: file.size,
         compressedSize: compressedFile.size,
-        retryCount
+        retryCount,
+        previewGenerated: !!previewUrl
       });
 
       return imageUrl;
@@ -181,7 +246,7 @@ export const useMobileOptimizedUpload = () => {
         throw error;
       }
     }
-  }, [compressImageForDevice]);
+  }, [compressImageForDevice, generatePreviewForImage]);
 
   // Process files in batches
   const uploadFilesBatch = useCallback(async (
@@ -254,10 +319,16 @@ export const useMobileOptimizedUpload = () => {
       }
 
       // Show results
+      const previewsGenerated = uploadProgress.filter(p => p.hasPreview).length;
+      
       if (uploadedUrls.length > 0) {
+        const message = options.productId && previewsGenerated > 0 
+          ? `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов. Создано ${previewsGenerated} превью.`
+          : `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов`;
+          
         toast({
           title: "Загрузка завершена",
-          description: `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов`,
+          description: message,
         });
       }
 

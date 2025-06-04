@@ -280,18 +280,17 @@ const AdminAddProduct = () => {
       setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
       
       // Using RPC to create the product using admin permissions
-      // Changed product status from 'pending' to 'active' when admin creates it
       const { data: productId, error: productError } = await supabase
         .rpc('admin_create_product', {
           p_title: values.title,
           p_price: parseFloat(values.price),
           p_condition: "Новый",
           p_brand: selectedBrand.name,
-          p_model: modelName, // This can be null now
+          p_model: modelName,
           p_description: values.description || null,
           p_seller_id: values.sellerId,
           p_seller_name: selectedSeller.full_name || "Unknown Seller",
-          p_status: 'active', // Changed from 'pending' to 'active'
+          p_status: 'active',
           p_place_number: parseInt(values.placeNumber),
           p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
         });
@@ -305,42 +304,7 @@ const AdminAddProduct = () => {
         throw new Error("Failed to get product ID");
       }
 
-      // Устанавливаем productId для использования в компоненте загрузки изображений
       setCreatedProductId(productId);
-      
-      setProgressStatus({ step: "Генерация превью", progress: 50 });
-      
-      // Генерируем превью для основного изображения после создания продукта
-      if (primaryImage) {
-        try {
-          const { generateProductPreview, updateProductPreview } = await import("@/utils/previewGenerator");
-          
-          console.log('Generating preview for primary image:', primaryImage, 'productId:', productId);
-          const previewResult = await generateProductPreview(primaryImage, productId);
-          
-          if (previewResult.success && previewResult.previewUrl) {
-            await updateProductPreview(productId, previewResult.previewUrl);
-            console.log('Preview generated and saved for product:', productId);
-            
-            toast({
-              title: "Превью создано",
-              description: `Превью создано (${Math.round((previewResult.previewSize || 0) / 1024)}KB)`,
-            });
-          } else {
-            console.error('Failed to generate preview:', previewResult.error);
-            toast({
-              title: "Предупреждение",
-              description: "Не удалось создать превью изображения",
-            });
-          }
-        } catch (error) {
-          console.error('Error generating preview:', error);
-          toast({
-            title: "Предупреждение", 
-            description: "Произошла ошибка при создании превью",
-          });
-        }
-      }
       
       setProgressStatus({ step: "Сохранение изображений", progress: 70 });
       
@@ -380,22 +344,17 @@ const AdminAddProduct = () => {
       
       if (fetchError) {
         console.warn("Ошибка при получении полных данных о продукте:", fetchError);
-        // Не выбрасываем ошибку, продолжаем
       }
       
       setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 95 });
       
       // Отправляем уведомление в Telegram асинхронно
-      // Не ждем завершения и не блокируем основной поток
       try {
-        // Попытаемся отправить уведомление с полученными данными о продукте
         if (fullProduct) {
-          // Запускаем асинхронно, не дожидаясь завершения
           sendNotificationWithRetry(fullProduct).catch(notifyError => {
             console.error("Ошибка асинхронной отправки уведомления:", notifyError);
           });
         } else {
-          // Если у нас нет полных данных, отправляем просто ID продукта через прямой вызов edge-функции
           supabase.functions.invoke('send-telegram-notification', {
             body: { productId }
           }).catch(notifyError => {
@@ -404,7 +363,6 @@ const AdminAddProduct = () => {
         }
       } catch (notifyError) {
         console.warn("Ошибка при запуске отправки уведомления (не критично):", notifyError);
-        // Продолжаем процесс, так как отправка уведомлений не критична
       }
       
       setProgressStatus({ step: "Завершение", progress: 100 });
@@ -414,7 +372,6 @@ const AdminAddProduct = () => {
         description: "Товар успешно опубликован на маркетплейсе", 
       });
 
-      // Redirect to product page instead of admin products list
       navigate(`/product/${productId}`);
     } catch (error) {
       console.error("Error adding product:", error);
@@ -683,12 +640,17 @@ const AdminAddProduct = () => {
                       onImageDelete={removeImage}
                       onSetPrimaryImage={setPrimaryImage}
                       primaryImage={primaryImage}
-                      productId={createdProductId} // Передаём productId для автоматической генерации превью
+                      productId={createdProductId}
+                      autoGeneratePreview={!!createdProductId}
                     />
                     
                     <div className="text-xs text-gray-500 space-y-1">
                       <div>📸 Изображения автоматически сжимаются до 400KB</div>
-                      <div>🖼️ Превью 20KB создаётся автоматически для каталога</div>
+                      {createdProductId ? (
+                        <div>🖼️ Превью 20KB создаётся автоматически для каждого изображения</div>
+                      ) : (
+                        <div>🖼️ Превью будет создано автоматически после создания товара</div>
+                      )}
                     </div>
                   </div>
                   

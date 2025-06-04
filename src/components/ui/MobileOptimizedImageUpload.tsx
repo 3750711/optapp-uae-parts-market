@@ -16,7 +16,8 @@ import {
   XCircle,
   Clock,
   Check,
-  ExternalLink
+  ExternalLink,
+  Sparkles
 } from "lucide-react";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ interface MobileOptimizedImageUploadProps {
   onSetPrimaryImage?: (url: string) => void;
   primaryImage?: string;
   productId?: string;
+  autoGeneratePreview?: boolean;
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
@@ -44,7 +46,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   onImageDelete,
   onSetPrimaryImage,
   primaryImage,
-  productId
+  productId,
+  autoGeneratePreview = true
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -94,7 +97,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     setShowPreview(true);
   }, [existingImages.length, maxImages]);
 
-  // Start upload
+  // Start upload with automatic preview generation
   const startUpload = useCallback(async () => {
     if (selectedFiles.length === 0) return;
 
@@ -105,7 +108,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         compressionQuality: compressionQuality || deviceCapabilities.compressionQuality,
         maxRetries: 3,
         batchSize: deviceCapabilities.batchSize,
-        batchDelay: deviceCapabilities.isLowEnd ? 1500 : 500
+        batchDelay: deviceCapabilities.isLowEnd ? 1500 : 500,
+        productId: productId,
+        autoGeneratePreview: autoGeneratePreview && !!productId
       };
 
       const urls = await uploadFilesBatch(selectedFiles, options);
@@ -120,7 +125,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     } catch (error) {
       console.error('Upload failed:', error);
     }
-  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress]);
+  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress, productId, autoGeneratePreview]);
 
   // Handle setting primary image
   const handleSetPrimaryImage = async (url: string) => {
@@ -138,6 +143,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   const errorCount = uploadProgress.filter(p => p.status === 'error').length;
   const pendingCount = uploadProgress.filter(p => p.status === 'pending').length;
   const uploadingCount = uploadProgress.filter(p => p.status === 'uploading' || p.status === 'retrying').length;
+  const generatingPreviewCount = uploadProgress.filter(p => p.status === 'generating-preview').length;
+  const previewsGenerated = uploadProgress.filter(p => p.hasPreview).length;
 
   // Format file size
   const formatFileSize = (bytes: number) => {
@@ -246,7 +253,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         </Card>
       )}
 
-      {/* Device Info Card */}
+      {/* Device Info Card - добавим информацию о превью */}
       {isMobileDevice && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="pt-4">
@@ -257,6 +264,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             <div className="mt-2 text-xs text-blue-600">
               Пакеты по {deviceCapabilities.batchSize} файлов, качество {Math.round(deviceCapabilities.compressionQuality * 100)}%
             </div>
+            {productId && autoGeneratePreview && (
+              <div className="mt-1 text-xs text-blue-600 flex items-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                Автоматическая генерация превью включена
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -410,8 +423,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               <Progress value={overallProgress} className="h-2" />
             </div>
 
-            {/* Status Summary */}
-            <div className="flex gap-4 text-sm">
+            {/* Status Summary - добавим статус генерации превью */}
+            <div className="flex gap-4 text-sm flex-wrap">
               {successCount > 0 && (
                 <div className="flex items-center gap-1 text-green-600">
                   <CheckCircle className="h-3 w-3" />
@@ -422,6 +435,18 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                 <div className="flex items-center gap-1 text-blue-600">
                   <Clock className="h-3 w-3" />
                   <span>{uploadingCount} загружается</span>
+                </div>
+              )}
+              {generatingPreviewCount > 0 && (
+                <div className="flex items-center gap-1 text-purple-600">
+                  <Sparkles className="h-3 w-3 animate-pulse" />
+                  <span>{generatingPreviewCount} превью</span>
+                </div>
+              )}
+              {previewsGenerated > 0 && (
+                <div className="flex items-center gap-1 text-green-600">
+                  <Sparkles className="h-3 w-3" />
+                  <span>{previewsGenerated} превью готово</span>
                 </div>
               )}
               {errorCount > 0 && (
@@ -443,12 +468,19 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                       {progress.status === 'error' && <XCircle className="h-3 w-3 text-red-600" />}
                       {progress.status === 'uploading' && <Clock className="h-3 w-3 text-blue-600 animate-spin" />}
                       {progress.status === 'retrying' && <RefreshCw className="h-3 w-3 text-amber-600 animate-spin" />}
+                      {progress.status === 'generating-preview' && <Sparkles className="h-3 w-3 text-purple-600 animate-pulse" />}
                       <span>{progress.progress}%</span>
                     </div>
                   </div>
                   <Progress value={progress.progress} className="h-1" />
                   {progress.error && (
                     <div className="text-xs text-red-600">{progress.error}</div>
+                  )}
+                  {progress.hasPreview && (
+                    <div className="text-xs text-green-600 flex items-center gap-1">
+                      <Sparkles className="h-3 w-3" />
+                      Превью создано
+                    </div>
                   )}
                 </div>
               ))}
@@ -470,13 +502,18 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         </Card>
       )}
 
-      {/* Usage Info */}
+      {/* Usage Info - обновим информацию */}
       <div className="text-xs text-gray-500 space-y-1">
         <div>Загружено: {existingImages.length} / {maxImages} изображений</div>
+        <div>📸 Изображения автоматически сжимаются до 400KB</div>
+        {productId && autoGeneratePreview ? (
+          <div>🖼️ Превью 20KB создаётся автоматически для каждого изображения</div>
+        ) : (
+          <div>🖼️ Превью создаётся автоматически после публикации товара</div>
+        )}
         {isMobileDevice && (
           <div>💡 Совет: для экономии трафика изображения сжимаются автоматически</div>
         )}
-        <div>🖼️ Превью создаётся автоматически после публикации товара</div>
       </div>
     </div>
   );
