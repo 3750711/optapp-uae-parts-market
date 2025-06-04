@@ -1,9 +1,9 @@
+
 export interface ProductImage {
   id: string;
   product_id: string;
   url: string;
   is_primary: boolean;
-  preview_url?: string | null;
 }
 
 export interface ProductVideo {
@@ -43,7 +43,6 @@ export interface Product {
   updated_at: string;
   place_number?: number | null;
   delivery_price?: number | null;
-  has_preview?: boolean | null;
   telegram_url?: string | null;
   phone_url?: string | null;
   product_url?: string | null;

@@ -28,14 +28,6 @@ const ProductMediaManager: React.FC<ProductMediaManagerProps> = ({
   maxImages = 25,
   storageBucket = "product-images"
 }) => {
-  console.log("ProductMediaManager props:", {
-    productId,
-    imagesCount: images.length,
-    primaryImage,
-    onPrimaryImageChange: !!onPrimaryImageChange,
-    storageBucket
-  });
-
   return (
     <div className="flex flex-col gap-4">
       <div>

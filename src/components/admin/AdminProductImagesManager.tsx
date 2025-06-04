@@ -30,8 +30,6 @@ export const AdminProductImagesManager = ({
   // Handle image upload
   const handleImageUpload = async (newUrls: string[]) => {
     try {
-      console.log("Uploading new images:", newUrls);
-      
       const imageInserts = newUrls.map(url => ({
         product_id: productId,
         url: url,
@@ -82,7 +80,6 @@ export const AdminProductImagesManager = ({
 
     try {
       setDeletingImage(urlToDelete);
-      console.log("Deleting image:", urlToDelete);
 
       // First delete the image record from the database
       const { error } = await supabase
@@ -92,13 +89,11 @@ export const AdminProductImagesManager = ({
         .eq('url', urlToDelete);
 
       if (error) throw error;
-      console.log("Successfully deleted image from database");
 
       // If this was the primary image, set another image as primary
       if (primaryImage === urlToDelete && images.length > 1 && onPrimaryImageChange) {
         const newPrimaryUrl = images.find(img => img !== urlToDelete);
         if (newPrimaryUrl) {
-          console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
           await handleSetPrimaryImage(newPrimaryUrl);
         }
       }
@@ -132,7 +127,6 @@ export const AdminProductImagesManager = ({
     
     try {
       setSettingPrimary(imageUrl);
-      console.log("Setting primary image:", imageUrl);
       
       // First reset all images for this product to not primary
       const { error: resetError } = await supabase
@@ -150,7 +144,6 @@ export const AdminProductImagesManager = ({
         .eq('url', imageUrl);
       
       if (error) throw error;
-      console.log("Database updated successfully for primary image");
       
       // Update parent state
       onPrimaryImageChange(imageUrl);

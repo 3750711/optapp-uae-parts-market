@@ -29,14 +29,6 @@ export const UnifiedProductImagesManager: React.FC<UnifiedProductImagesManagerPr
   storageBucket = "product-images",
   showUpload = true
 }) => {
-  console.log("UnifiedProductImagesManager rendered with:", {
-    productId,
-    imagesCount: images.length,
-    primaryImage,
-    onPrimaryImageChange: !!onPrimaryImageChange,
-    storageBucket
-  });
-
   const { handleImageDelete, deletingImage } = useImageDeletion({
     productId,
     images,

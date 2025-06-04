@@ -32,13 +32,6 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
 
-  console.log("ProductImagesManager props:", {
-    productId,
-    imagesCount: images.length,
-    primaryImage,
-    onPrimaryImageChange: !!onPrimaryImageChange
-  });
-
   // Function to handle image deletion
   const handleImageDelete = async (imageUrl: string) => {
     if (images.length <= 1) {
@@ -52,7 +45,6 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
 
     try {
       setDeletingImage(imageUrl);
-      console.log("Deleting image:", imageUrl);
 
       // First, delete the image record from the database
       const { error: dbError } = await supabase
@@ -62,13 +54,11 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
         .eq('url', imageUrl);
 
       if (dbError) throw dbError;
-      console.log("Successfully deleted from database");
 
       // If this was the primary image, set another image as primary
       if (primaryImage === imageUrl && images.length > 1 && onPrimaryImageChange) {
         const newPrimaryUrl = images.find(img => img !== imageUrl);
         if (newPrimaryUrl) {
-          console.log("Primary image deleted, setting new primary:", newPrimaryUrl);
           await handleSetPrimaryImage(newPrimaryUrl);
         }
       }
@@ -79,7 +69,6 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
       // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
-      console.log("Cache invalidated after image deletion");
 
       toast({
         title: "Успешно",
@@ -100,13 +89,11 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
   // Function to set an image as primary
   const handleSetPrimaryImage = async (imageUrl: string) => {
     if (!onPrimaryImageChange) {
-      console.log("onPrimaryImageChange not provided");
       return;
     }
     
     try {
       setSettingPrimary(imageUrl);
-      console.log("Setting primary image:", imageUrl);
       
       // First, reset all images for this product to not primary
       const { error: resetError } = await supabase
@@ -115,10 +102,8 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
         .eq('product_id', productId);
       
       if (resetError) {
-        console.error("Error resetting primary status:", resetError);
         throw resetError;
       }
-      console.log("Reset all images to non-primary successfully");
       
       // Then set the selected image as primary
       const { error } = await supabase
@@ -128,10 +113,8 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
         .eq('url', imageUrl);
       
       if (error) {
-        console.error("Error setting image as primary:", error);
         throw error;
       }
-      console.log("Database updated successfully for primary image");
       
       // Update state in the parent component immediately
       onPrimaryImageChange(imageUrl);
@@ -140,7 +123,6 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       queryClient.invalidateQueries({ queryKey: ['product', productId] });
       queryClient.invalidateQueries({ queryKey: ['sellerProfile'] });
-      console.log("Cache invalidated after primary image change");
       
       toast({
         title: "Успешно",
@@ -161,8 +143,6 @@ export const ProductImagesManager: React.FC<ProductImagesManagerProps> = ({
   // Handle image upload
   const handleImageUpload = async (newUrls: string[]) => {
     try {
-      console.log("Uploading new images:", newUrls);
-      
       const imageInserts = newUrls.map(url => ({
         product_id: productId,
         url: url,

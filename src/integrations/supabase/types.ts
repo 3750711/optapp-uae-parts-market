@@ -326,7 +326,6 @@ export type Database = {
           created_at: string
           id: string
           is_primary: boolean | null
-          preview_url: string | null
           product_id: string
           url: string
         }
@@ -334,7 +333,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean | null
-          preview_url?: string | null
           product_id: string
           url: string
         }
@@ -342,7 +340,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_primary?: boolean | null
-          preview_url?: string | null
           product_id?: string
           url?: string
         }
@@ -392,7 +389,6 @@ export type Database = {
           created_at: string
           delivery_price: number | null
           description: string | null
-          has_preview: boolean | null
           id: string
           last_notification_sent_at: string | null
           location: string | null
@@ -418,7 +414,6 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
-          has_preview?: boolean | null
           id?: string
           last_notification_sent_at?: string | null
           location?: string | null
@@ -444,7 +439,6 @@ export type Database = {
           created_at?: string
           delivery_price?: number | null
           description?: string | null
-          has_preview?: boolean | null
           id?: string
           last_notification_sent_at?: string | null
           location?: string | null
@@ -956,15 +950,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
-      get_products_needing_previews: {
-        Args: { p_limit?: number }
-        Returns: {
-          product_id: string
-          image_id: string
-          image_url: string
-          is_primary: boolean
-        }[]
-      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1001,14 +986,6 @@ export type Database = {
           p_delivery_price_confirm: number
         }
         Returns: string
-      }
-      update_product_has_preview_flag: {
-        Args: { p_product_id: string }
-        Returns: undefined
-      }
-      update_product_image_preview: {
-        Args: { p_image_id: string; p_preview_url: string }
-        Returns: boolean
       }
     }
     Enums: {

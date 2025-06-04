@@ -84,10 +84,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     if (brands.length > 0 && product.brand) {
       const brandId = findBrandIdByName(product.brand);
       if (brandId) {
-        console.log(`Found brand ID ${brandId} for brand name ${product.brand}`);
         selectBrand(brandId);
-      } else {
-        console.log(`Brand ID not found for name: ${product.brand}`);
       }
     }
   }, [brands, product.brand, findBrandIdByName, selectBrand]);
@@ -97,10 +94,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     if (selectedBrand && brandModels.length > 0 && product.model) {
       const modelId = findModelIdByName(product.model, selectedBrand);
       if (modelId) {
-        console.log(`Found model ID ${modelId} for model name ${product.model} and brand ID ${selectedBrand}`);
         setSelectedModelId(modelId);
-      } else {
-        console.log(`Model ID not found for name: ${product.model} and brand ID: ${selectedBrand}`);
       }
     }
   }, [brandModels, product.model, selectedBrand, findModelIdByName]);
@@ -125,7 +119,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setSelectedModelId(null);
     
     const brandName = findBrandNameById(brandId);
-    console.log(`Selected brand ID ${brandId} with name ${brandName}`);
     
     if (brandName) {
       setFormData({
@@ -141,7 +134,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     setSelectedModelId(modelId);
     
     const modelName = findModelNameById(modelId);
-    console.log(`Selected model ID ${modelId} with name ${modelName}`);
     
     if (modelName) {
       setFormData({
