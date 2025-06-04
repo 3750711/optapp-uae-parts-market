@@ -1,8 +1,8 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Calendar, Truck, Package, User, DollarSign, MessageSquare, MapPin, Phone } from "lucide-react";
 import {
   Dialog,
@@ -15,6 +15,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+
+interface OrderData {
+  id: string;
+  created_at: string;
+  deliveryMethod: string;
+  place_number: number;
+  total_sum: number;
+  text_order: string;
+  images?: string[];
+  videos?: string[];
+  profiles?: {
+    full_name: string;
+    email: string;
+    phone: string;
+    opt_id: string;
+    location: string;
+    telegram: string;
+  };
+}
 
 interface AdminOrderConfirmationDialogProps {
   orderId: string;
@@ -29,9 +48,9 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   setOpen,
   onClose,
 }) => {
-  const { data: order, isLoading, isError } = useQuery(
-    ["order", orderId],
-    async () => {
+  const { data: order, isLoading, isError } = useQuery({
+    queryKey: ["order", orderId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from("orders")
         .select(
@@ -55,12 +74,10 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
         throw new Error("Failed to fetch order");
       }
 
-      return data;
+      return data as OrderData;
     },
-    {
-      enabled: open,
-    }
-  );
+    enabled: open,
+  });
 
   if (isLoading) {
     return (

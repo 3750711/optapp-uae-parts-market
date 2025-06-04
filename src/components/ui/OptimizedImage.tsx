@@ -10,6 +10,7 @@ interface OptimizedImageProps {
   onError?: () => void;
   onLoad?: () => void;
   placeholder?: boolean;
+  onClick?: () => void;
 }
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -18,6 +19,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   className = '',
   onError,
   onLoad,
+  onClick,
   ...props
 }) => {
   return (
@@ -27,7 +29,9 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
       className={className}
       onError={onError}
       onLoad={onLoad}
+      onClick={onClick}
       loading="lazy"
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
     />
   );
 };

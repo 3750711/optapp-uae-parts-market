@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -5,13 +6,11 @@ import ProductGrid from "@/components/product/ProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
 import CatalogFilters from "@/components/catalog/CatalogFilters";
 import { FilterState } from "@/components/catalog/CatalogFilters";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
-import { ProductProps } from "@/components/product/ProductCard";
 
 const Catalog: React.FC = () => {
   const [filterState, setFilterState] = useState<FilterState>({
@@ -63,6 +62,10 @@ const Catalog: React.FC = () => {
     } catch (error) {
       console.error('Retry failed:', error);
     }
+  };
+
+  const handleLoadMore = () => {
+    fetchNextPage();
   };
 
   const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
@@ -137,7 +140,7 @@ const Catalog: React.FC = () => {
                           <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                         </div>
                       ) : (
-                        <Button onClick={fetchNextPage} className="bg-primary hover:bg-primary/90">
+                        <Button onClick={handleLoadMore} className="bg-primary hover:bg-primary/90">
                           Загрузить ещё
                         </Button>
                       )}

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
 import { useInfiniteQuery } from "@tanstack/react-query";
@@ -19,7 +20,26 @@ import OptimizedImage from "@/components/ui/OptimizedImage";
 import StoreCardMobile from "@/components/stores/StoreCardMobile";
 import { StoreWithImages } from "@/types/store";
 
-interface StoreWithProductCount extends StoreWithImages {
+interface StoreData {
+  id: string;
+  name: string;
+  tags?: string[];
+  rating?: number;
+  address: string;
+  created_at: string;
+  description?: string;
+  location?: string;
+  owner_name?: string;
+  phone?: string;
+  seller_id?: string;
+  telegram?: string;
+  updated_at?: string;
+  verified: boolean;
+  store_images?: Array<{
+    id: string;
+    url: string;
+    is_primary?: boolean;
+  }>;
   product_count?: number;
 }
 
@@ -43,9 +63,9 @@ const Stores = () => {
     isLoading,
     isError,
     error,
-  } = useInfiniteQuery(
-    ["stores-infinite", searchTerm, sortBy, selectedTags],
-    async ({ pageParam = 0 }) => {
+  } = useInfiniteQuery({
+    queryKey: ["stores-infinite", searchTerm, sortBy, selectedTags],
+    queryFn: async ({ pageParam = 0 }) => {
       const from = pageParam * storesPerPage;
       const to = from + storesPerPage - 1;
 
@@ -72,17 +92,15 @@ const Stores = () => {
         throw new Error("Failed to fetch stores");
       }
 
-      return data as StoreWithProductCount[];
+      return data as StoreData[];
     },
-    {
-      getNextPageParam: (lastPage, allPages) => {
-        return lastPage.length === storesPerPage ? allPages.length : undefined;
-      },
-      initialPageParam: 0,
-      staleTime: 60 * 60 * 1000, // 1 hour
-      refetchOnWindowFocus: false,
-    }
-  );
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === storesPerPage ? allPages.length : undefined;
+    },
+    initialPageParam: 0,
+    staleTime: 60 * 60 * 1000, // 1 hour
+    refetchOnWindowFocus: false,
+  });
 
   React.useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage && !isError) {
@@ -123,6 +141,10 @@ const Stores = () => {
       return true;
     });
   }, [allStores, searchTerm, selectedTags]);
+
+  const handleLoadMore = () => {
+    fetchNextPage();
+  };
 
   return (
     <>
@@ -221,14 +243,14 @@ const Stores = () => {
             } gap-4`}
           >
             {filteredStores.map((store) => (
-              <StoreCardMobile key={store.id} store={store} />
+              <StoreCardMobile key={store.id} store={store as StoreWithImages} />
             ))}
           </div>
         )}
 
         {hasNextPage && !isFetchingNextPage && (
           <div className="text-center">
-            <Button onClick={() => fetchNextPage()} ref={loadMoreRef}>
+            <Button onClick={handleLoadMore} ref={loadMoreRef}>
               Загрузить еще
             </Button>
           </div>
@@ -240,7 +262,7 @@ const Stores = () => {
 
         {isError && (
           <div className="text-center text-red-500">
-            Error: {error.message}
+            Error: {error?.message}
           </div>
         )}
       </div>
