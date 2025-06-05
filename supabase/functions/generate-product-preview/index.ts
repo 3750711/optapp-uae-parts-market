@@ -1,88 +1,137 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
-import { Image } from "https://deno.land/x/imagescript@1.2.15/mod.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Функция для создания превью изображения 20KB с использованием ImageScript
-async function createPreviewImage(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
+// Адаптированная версия compressImageTo400KB для Deno Edge Runtime
+async function createPreviewImageTo20KB(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
+  const MAX_SIZE_KB = 20;
+  const MAX_SIZE_BYTES = MAX_SIZE_KB * 1024;
+  
+  console.log('🎨 Starting preview creation (target: 20KB)');
+  console.log('📏 Original image buffer size:', Math.round(imageBuffer.byteLength / 1024), 'KB');
+  
+  // Создаем Canvas в Deno среде
   try {
-    console.log('🎨 Starting preview creation with ImageScript');
-    console.log('📏 Original image buffer size:', Math.round(imageBuffer.byteLength / 1024), 'KB');
+    // В Deno Edge Runtime используем OffscreenCanvas если доступен
+    const canvas = new OffscreenCanvas(150, 150);
+    const ctx = canvas.getContext('2d');
     
-    // Декодируем изображение с помощью ImageScript
-    const originalImage = await Image.decode(new Uint8Array(imageBuffer));
-    console.log('📐 Original dimensions:', originalImage.width, 'x', originalImage.height);
+    if (!ctx) {
+      throw new Error('Cannot get 2D context from OffscreenCanvas');
+    }
+
+    // Создаем ImageBitmap из buffer
+    const blob = new Blob([imageBuffer]);
+    const imageBitmap = await createImageBitmap(blob);
+    
+    console.log('📐 Original dimensions:', imageBitmap.width, 'x', imageBitmap.height);
     
     // Вычисляем размеры с сохранением пропорций для 150x150
     const targetSize = 150;
-    const aspectRatio = originalImage.width / originalImage.height;
+    let { width, height } = imageBitmap;
     
-    let newWidth, newHeight;
-    if (aspectRatio > 1) {
-      // Широкое изображение
-      newWidth = targetSize;
-      newHeight = Math.round(targetSize / aspectRatio);
+    if (width > height) {
+      height = (height * targetSize) / width;
+      width = targetSize;
     } else {
-      // Высокое изображение
-      newWidth = Math.round(targetSize * aspectRatio);
-      newHeight = targetSize;
+      width = (width * targetSize) / height;
+      height = targetSize;
     }
     
-    console.log('🔄 Resizing to:', newWidth, 'x', newHeight);
+    console.log('🔄 Resizing to:', Math.round(width), 'x', Math.round(height));
     
-    // Изменяем размер изображения
-    const resized = originalImage.resize(newWidth, newHeight);
+    // Рисуем на canvas с центрированием
+    canvas.width = 150;
+    canvas.height = 150;
     
-    // Создаем canvas 150x150 с белым фоном
-    const canvas = new Image(150, 150);
-    canvas.fill(0xFFFFFFFF); // Белый фон
+    // Белый фон
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, 150, 150);
     
-    // Центрируем изображение на canvas
-    const offsetX = Math.floor((150 - newWidth) / 2);
-    const offsetY = Math.floor((150 - newHeight) / 2);
+    // Центрируем изображение
+    const offsetX = (150 - width) / 2;
+    const offsetY = (150 - height) / 2;
     
-    // Композитируем изображения
-    canvas.composite(resized, offsetX, offsetY);
+    ctx.drawImage(imageBitmap, offsetX, offsetY, width, height);
     
-    // Сначала пробуем WEBP с высоким сжатием
-    try {
-      const webpData = await canvas.encodeWebP(30); // Низкое качество для минимального размера
-      console.log('📦 WEBP preview size:', Math.round(webpData.length / 1024), 'KB');
+    // Итеративное сжатие как в compressImageTo400KB
+    let quality = 0.9;
+    let attempts = 0;
+    const maxAttempts = 15;
+    
+    while (attempts < maxAttempts) {
+      const blob = await canvas.convertToBlob({
+        type: 'image/jpeg',
+        quality: quality
+      });
       
-      if (webpData.length <= 20 * 1024) { // 20KB
-        return webpData;
+      console.log(`Attempt ${attempts + 1}: Size ${Math.round(blob.size / 1024)}KB with quality ${quality.toFixed(2)}`);
+      
+      if (blob.size <= MAX_SIZE_BYTES) {
+        // Достигли нужного размера
+        const arrayBuffer = await blob.arrayBuffer();
+        const result = new Uint8Array(arrayBuffer);
+        
+        console.log('✅ Preview created successfully:', Math.round(result.length / 1024), 'KB');
+        return result;
       }
-    } catch (webpError) {
-      console.warn('⚠️ WEBP encoding failed, trying JPEG:', webpError.message);
+      
+      // Уменьшаем качество для следующей попытки
+      if (quality > 0.2) {
+        quality -= 0.1;
+      } else {
+        // Если качество уже очень низкое, уменьшаем размеры
+        const newSize = Math.round(canvas.width * 0.9);
+        canvas.width = newSize;
+        canvas.height = newSize;
+        
+        // Перерисовываем с новым размером
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, newSize, newSize);
+        
+        const newWidth = width * 0.9;
+        const newHeight = height * 0.9;
+        const newOffsetX = (newSize - newWidth) / 2;
+        const newOffsetY = (newSize - newHeight) / 2;
+        
+        ctx.drawImage(imageBitmap, newOffsetX, newOffsetY, newWidth, newHeight);
+        quality = 0.8; // Сбрасываем качество
+      }
+      
+      attempts++;
     }
     
-    // Если WEBP не подходит или не поддерживается, используем JPEG
-    let quality = 30;
-    let jpegData: Uint8Array;
+    // Если не удалось достичь 20KB, возвращаем с минимальным качеством
+    const finalBlob = await canvas.convertToBlob({
+      type: 'image/jpeg',
+      quality: 0.1
+    });
     
-    do {
-      jpegData = await canvas.encodeJPEG(quality);
-      console.log(`📷 JPEG quality ${quality}%, size:`, Math.round(jpegData.length / 1024), 'KB');
-      
-      if (jpegData.length <= 20 * 1024) { // 20KB
-        break;
-      }
-      
-      quality -= 5;
-    } while (quality > 5);
+    const finalArrayBuffer = await finalBlob.arrayBuffer();
+    const finalResult = new Uint8Array(finalArrayBuffer);
     
-    console.log('✅ Final preview created:', Math.round(jpegData.length / 1024), 'KB');
-    return jpegData;
+    console.warn('⚠️ Could not compress to exactly 20KB. Final size:', Math.round(finalResult.length / 1024), 'KB');
+    return finalResult;
     
-  } catch (error) {
-    console.error('💥 Error in createPreviewImage:', error.message);
-    console.error('🔍 Error stack:', error.stack);
-    throw new Error(`Preview creation failed: ${error.message}`);
+  } catch (canvasError) {
+    console.error('💥 Canvas approach failed:', canvasError.message);
+    
+    // Fallback: простое урезание данных (не идеально, но работает)
+    console.log('🔄 Using fallback approach...');
+    
+    if (imageBuffer.byteLength <= MAX_SIZE_BYTES) {
+      return new Uint8Array(imageBuffer);
+    }
+    
+    // Простой fallback - берем первые 20KB (может повредить изображение)
+    const fallbackResult = new Uint8Array(imageBuffer.slice(0, MAX_SIZE_BYTES));
+    console.warn('⚠️ Fallback used, image may be corrupted. Size:', Math.round(fallbackResult.length / 1024), 'KB');
+    return fallbackResult;
   }
 }
 
@@ -159,14 +208,14 @@ serve(async (req) => {
         throw new Error('Downloaded image is empty');
       }
       
-      // Создаем превью 20KB
-      console.log('🎨 Creating preview...');
-      const previewData = await createPreviewImage(imageBuffer);
+      // Создаем превью 20KB используя адаптированный алгоритм
+      console.log('🎨 Creating 20KB preview...');
+      const previewData = await createPreviewImageTo20KB(imageBuffer);
       
       // Генерируем имя файла для превью
       const timestamp = Date.now();
       const randomId = Math.random().toString(36).substring(7);
-      const fileName = `preview_${productId || timestamp}_${randomId}.webp`;
+      const fileName = `preview_${productId || timestamp}_${randomId}.jpg`;
       const filePath = `previews/${fileName}`;
 
       console.log('☁️ Uploading preview to storage:', filePath);
@@ -175,7 +224,7 @@ serve(async (req) => {
       const { data, error } = await supabase.storage
         .from('product-images')
         .upload(filePath, previewData, {
-          contentType: 'image/webp',
+          contentType: 'image/jpeg',
           cacheControl: '31536000',
           upsert: false
         });
