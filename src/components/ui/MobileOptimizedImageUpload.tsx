@@ -17,12 +17,12 @@ import {
   Clock,
   Check,
   ExternalLink,
-  Sparkles
+  Sparkles,
+  Star
 } from "lucide-react";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
 import { STORAGE_BUCKETS } from "@/constants/storage";
-import { generateProductPreview, updateProductPreview } from "@/utils/previewGenerator";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -97,7 +97,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     setShowPreview(true);
   }, [existingImages.length, maxImages]);
 
-  // Start upload with automatic preview generation
+  // Start upload with automatic preview generation for primary image only
   const startUpload = useCallback(async () => {
     if (selectedFiles.length === 0) return;
 
@@ -192,7 +192,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                         disabled={primaryImage === url}
                         title={primaryImage === url ? "Уже основное" : "Сделать основным"}
                       >
-                        <Check className="h-4 w-4" />
+                        <Star className="h-4 w-4" />
                       </Button>
                     )}
                     
@@ -214,7 +214,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                   {/* Primary image indicator */}
                   {primaryImage === url && (
                     <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-80 p-1">
-                      <p className="text-white text-xs text-center font-medium">Основное</p>
+                      <p className="text-white text-xs text-center font-medium flex items-center justify-center gap-1">
+                        <Star className="h-3 w-3" />
+                        Основное
+                      </p>
                     </div>
                   )}
                   
@@ -229,7 +232,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                           className="h-6 w-6 rounded-full p-0 bg-white/90 hover:bg-white"
                           onClick={() => handleSetPrimaryImage(url)}
                         >
-                          <Check className="h-3 w-3" />
+                          <Star className="h-3 w-3" />
                         </Button>
                       )}
                       
@@ -253,7 +256,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         </Card>
       )}
 
-      {/* Device Info Card - добавим информацию о превью */}
+      {/* Device Info Card - обновим информацию о превью */}
       {isMobileDevice && (
         <Card className="border-blue-200 bg-blue-50">
           <CardContent className="pt-4">
@@ -267,7 +270,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             {productId && autoGeneratePreview && (
               <div className="mt-1 text-xs text-blue-600 flex items-center gap-1">
                 <Sparkles className="h-3 w-3" />
-                Автоматическая генерация превью включена
+                <Star className="h-3 w-3" />
+                Превью создается только для основного изображения
               </div>
             )}
           </CardContent>
@@ -325,6 +329,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm">
                 Готово к загрузке: {selectedFiles.length} файлов
+                {selectedFiles.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    <Star className="h-3 w-3 mr-1" />
+                    1-е = основное
+                  </Badge>
+                )}
               </CardTitle>
               <Button
                 type="button"
@@ -365,6 +375,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               {selectedFiles.map((file, index) => (
                 <div key={index} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                   <div className="flex items-center gap-2">
+                    {index === 0 && (
+                      <Star className="h-4 w-4 text-yellow-500" title="Основное изображение" />
+                    )}
                     <span className="truncate">{file.name}</span>
                     <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
                   </div>
@@ -423,7 +436,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               <Progress value={overallProgress} className="h-2" />
             </div>
 
-            {/* Status Summary - добавим статус генерации превью */}
+            {/* Status Summary - обновим статус генерации превью */}
             <div className="flex gap-4 text-sm flex-wrap">
               {successCount > 0 && (
                 <div className="flex items-center gap-1 text-green-600">
@@ -440,13 +453,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               {generatingPreviewCount > 0 && (
                 <div className="flex items-center gap-1 text-purple-600">
                   <Sparkles className="h-3 w-3 animate-pulse" />
-                  <span>{generatingPreviewCount} превью</span>
+                  <Star className="h-3 w-3" />
+                  <span>{generatingPreviewCount} превью основного</span>
                 </div>
               )}
               {previewsGenerated > 0 && (
                 <div className="flex items-center gap-1 text-green-600">
                   <Sparkles className="h-3 w-3" />
-                  <span>{previewsGenerated} превью готово</span>
+                  <Star className="h-3 w-3" />
+                  <span>Превью основного готово</span>
                 </div>
               )}
               {errorCount > 0 && (
@@ -462,7 +477,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               {uploadProgress.map((progress) => (
                 <div key={progress.fileId} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="truncate flex-1">{progress.fileName}</span>
+                    <div className="flex items-center gap-1 truncate flex-1">
+                      {progress.isPrimary && <Star className="h-3 w-3 text-yellow-500" />}
+                      <span className="truncate">{progress.fileName}</span>
+                    </div>
                     <div className="flex items-center gap-1">
                       {progress.status === 'success' && <CheckCircle className="h-3 w-3 text-green-600" />}
                       {progress.status === 'error' && <XCircle className="h-3 w-3 text-red-600" />}
@@ -479,7 +497,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                   {progress.hasPreview && (
                     <div className="text-xs text-green-600 flex items-center gap-1">
                       <Sparkles className="h-3 w-3" />
-                      Превью создано
+                      <Star className="h-3 w-3" />
+                      Превью основного создано
                     </div>
                   )}
                 </div>
@@ -507,9 +526,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         <div>Загружено: {existingImages.length} / {maxImages} изображений</div>
         <div>📸 Изображения автоматически сжимаются до 400KB</div>
         {productId && autoGeneratePreview ? (
-          <div>🖼️ Превью 20KB создаётся автоматически для каждого изображения</div>
+          <div className="flex items-center gap-1">
+            <Star className="h-3 w-3 text-yellow-500" />
+            🖼️ Превью 20KB создается только для основного изображения
+          </div>
         ) : (
-          <div>🖼️ Превью создаётся автоматически после публикации товара</div>
+          <div>🖼️ Превью создается автоматически после публикации товара</div>
         )}
         {isMobileDevice && (
           <div>💡 Совет: для экономии трафика изображения сжимаются автоматически</div>
