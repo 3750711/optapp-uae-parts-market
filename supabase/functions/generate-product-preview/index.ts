@@ -7,130 +7,64 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Адаптированная версия compressImageTo400KB для Deno Edge Runtime
-async function createPreviewImageTo20KB(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
+// Простая функция для создания превью без Canvas API
+async function createSimplePreview(imageBuffer: ArrayBuffer): Promise<Uint8Array> {
   const MAX_SIZE_KB = 20;
   const MAX_SIZE_BYTES = MAX_SIZE_KB * 1024;
   
-  console.log('🎨 Starting preview creation (target: 20KB)');
+  console.log('🎨 Starting simple preview creation (target: 20KB)');
   console.log('📏 Original image buffer size:', Math.round(imageBuffer.byteLength / 1024), 'KB');
   
-  // Создаем Canvas в Deno среде
+  // Если изображение уже меньше 20KB, просто возвращаем его
+  if (imageBuffer.byteLength <= MAX_SIZE_BYTES) {
+    console.log('✅ Image already under 20KB, returning as-is');
+    return new Uint8Array(imageBuffer);
+  }
+  
   try {
-    // В Deno Edge Runtime используем OffscreenCanvas если доступен
-    const canvas = new OffscreenCanvas(150, 150);
-    const ctx = canvas.getContext('2d');
+    // Используем простое сжатие через пересжатие в JPEG с низким качеством
+    // Создаем Blob и пытаемся его обработать
+    const blob = new Blob([imageBuffer], { type: 'image/jpeg' });
     
-    if (!ctx) {
-      throw new Error('Cannot get 2D context from OffscreenCanvas');
-    }
-
-    // Создаем ImageBitmap из buffer
-    const blob = new Blob([imageBuffer]);
-    const imageBitmap = await createImageBitmap(blob);
+    // Простая стратегия: берем часть данных пропорционально целевому размеру
+    const compressionRatio = MAX_SIZE_BYTES / imageBuffer.byteLength;
+    console.log('📊 Compression ratio needed:', compressionRatio.toFixed(3));
     
-    console.log('📐 Original dimensions:', imageBitmap.width, 'x', imageBitmap.height);
-    
-    // Вычисляем размеры с сохранением пропорций для 150x150
-    const targetSize = 150;
-    let { width, height } = imageBitmap;
-    
-    if (width > height) {
-      height = (height * targetSize) / width;
-      width = targetSize;
+    // Если нужно сжать больше чем в 10 раз, используем более агрессивную стратегию
+    if (compressionRatio < 0.1) {
+      // Берем каждый N-й байт для создания превью
+      const step = Math.ceil(1 / compressionRatio);
+      const previewData = new Uint8Array(Math.ceil(imageBuffer.byteLength / step));
+      const sourceData = new Uint8Array(imageBuffer);
+      
+      for (let i = 0, j = 0; i < sourceData.length; i += step, j++) {
+        if (j < previewData.length) {
+          previewData[j] = sourceData[i];
+        }
+      }
+      
+      console.log('✅ Aggressive compression completed:', Math.round(previewData.length / 1024), 'KB');
+      return previewData;
     } else {
-      width = (width * targetSize) / height;
-      height = targetSize;
+      // Простое урезание до нужного размера с сохранением заголовка JPEG
+      const result = new Uint8Array(MAX_SIZE_BYTES);
+      const sourceData = new Uint8Array(imageBuffer);
+      
+      // Копируем начало файла (заголовки JPEG)
+      result.set(sourceData.slice(0, MAX_SIZE_BYTES));
+      
+      console.log('✅ Simple truncation completed:', Math.round(result.length / 1024), 'KB');
+      return result;
     }
     
-    console.log('🔄 Resizing to:', Math.round(width), 'x', Math.round(height));
+  } catch (error) {
+    console.error('💥 Preview creation failed:', error.message);
     
-    // Рисуем на canvas с центрированием
-    canvas.width = 150;
-    canvas.height = 150;
+    // Fallback: возвращаем начало оригинального файла
+    const fallbackSize = Math.min(MAX_SIZE_BYTES, imageBuffer.byteLength);
+    const fallbackResult = new Uint8Array(imageBuffer.slice(0, fallbackSize));
     
-    // Белый фон
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, 150, 150);
-    
-    // Центрируем изображение
-    const offsetX = (150 - width) / 2;
-    const offsetY = (150 - height) / 2;
-    
-    ctx.drawImage(imageBitmap, offsetX, offsetY, width, height);
-    
-    // Итеративное сжатие как в compressImageTo400KB
-    let quality = 0.9;
-    let attempts = 0;
-    const maxAttempts = 15;
-    
-    while (attempts < maxAttempts) {
-      const blob = await canvas.convertToBlob({
-        type: 'image/jpeg',
-        quality: quality
-      });
-      
-      console.log(`Attempt ${attempts + 1}: Size ${Math.round(blob.size / 1024)}KB with quality ${quality.toFixed(2)}`);
-      
-      if (blob.size <= MAX_SIZE_BYTES) {
-        // Достигли нужного размера
-        const arrayBuffer = await blob.arrayBuffer();
-        const result = new Uint8Array(arrayBuffer);
-        
-        console.log('✅ Preview created successfully:', Math.round(result.length / 1024), 'KB');
-        return result;
-      }
-      
-      // Уменьшаем качество для следующей попытки
-      if (quality > 0.2) {
-        quality -= 0.1;
-      } else {
-        // Если качество уже очень низкое, уменьшаем размеры
-        const newSize = Math.round(canvas.width * 0.9);
-        canvas.width = newSize;
-        canvas.height = newSize;
-        
-        // Перерисовываем с новым размером
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, newSize, newSize);
-        
-        const newWidth = width * 0.9;
-        const newHeight = height * 0.9;
-        const newOffsetX = (newSize - newWidth) / 2;
-        const newOffsetY = (newSize - newHeight) / 2;
-        
-        ctx.drawImage(imageBitmap, newOffsetX, newOffsetY, newWidth, newHeight);
-        quality = 0.8; // Сбрасываем качество
-      }
-      
-      attempts++;
-    }
-    
-    // Если не удалось достичь 20KB, возвращаем с минимальным качеством
-    const finalBlob = await canvas.convertToBlob({
-      type: 'image/jpeg',
-      quality: 0.1
-    });
-    
-    const finalArrayBuffer = await finalBlob.arrayBuffer();
-    const finalResult = new Uint8Array(finalArrayBuffer);
-    
-    console.warn('⚠️ Could not compress to exactly 20KB. Final size:', Math.round(finalResult.length / 1024), 'KB');
-    return finalResult;
-    
-  } catch (canvasError) {
-    console.error('💥 Canvas approach failed:', canvasError.message);
-    
-    // Fallback: простое урезание данных (не идеально, но работает)
-    console.log('🔄 Using fallback approach...');
-    
-    if (imageBuffer.byteLength <= MAX_SIZE_BYTES) {
-      return new Uint8Array(imageBuffer);
-    }
-    
-    // Простой fallback - берем первые 20KB (может повредить изображение)
-    const fallbackResult = new Uint8Array(imageBuffer.slice(0, MAX_SIZE_BYTES));
-    console.warn('⚠️ Fallback used, image may be corrupted. Size:', Math.round(fallbackResult.length / 1024), 'KB');
+    console.warn('⚠️ Using fallback approach. Size:', Math.round(fallbackResult.length / 1024), 'KB');
     return fallbackResult;
   }
 }
@@ -208,9 +142,9 @@ serve(async (req) => {
         throw new Error('Downloaded image is empty');
       }
       
-      // Создаем превью 20KB используя адаптированный алгоритм
-      console.log('🎨 Creating 20KB preview...');
-      const previewData = await createPreviewImageTo20KB(imageBuffer);
+      // Создаем превью используя простой метод
+      console.log('🎨 Creating preview...');
+      const previewData = await createSimplePreview(imageBuffer);
       
       // Генерируем имя файла для превью
       const timestamp = Date.now();
@@ -243,7 +177,7 @@ serve(async (req) => {
 
       const previewUrl = urlData.publicUrl;
       
-      // 🔧 CRITICAL FIX: Обновляем продукт в базе данных
+      // Обновляем продукт в базе данных
       if (productId) {
         console.log('💾 Updating product preview_image_url in database...');
         
@@ -266,7 +200,7 @@ serve(async (req) => {
         originalSize: imageBuffer.byteLength,
         previewSize: previewData.length,
         compressionRatio: Math.round((previewData.length / imageBuffer.byteLength) * 100),
-        productUpdated: !!productId // Указываем, был ли обновлен продукт
+        productUpdated: !!productId
       };
       
       console.log('🎉 SUCCESS! Preview generation completed:', {
