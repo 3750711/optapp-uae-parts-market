@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface AdminProductCardProps {
   product: Product;
@@ -57,15 +59,18 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     }
   };
 
-  // Format creation date
   const formattedCreationDate = product.created_at 
     ? format(new Date(product.created_at), 'dd.MM.yyyy HH:mm')
     : 'Н/Д';
 
-  // Format brand and model for display
   const brandModelText = [product.brand, product.model]
     .filter(Boolean)
     .join(' • ');
+
+  // Get image with Cloudinary support
+  const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
+                      product.product_images?.[0]?.url || 
+                      '/placeholder.svg';
 
   return (
     <div 
@@ -73,15 +78,12 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     >
       <div className="relative p-2">
         <AspectRatio ratio={1/1} className="bg-white rounded-md overflow-hidden">
-          <img 
-            src={
-              product.product_images?.find(img => img.is_primary)?.url || 
-              product.product_images?.[0]?.url || 
-              '/placeholder.svg'
-            } 
-            alt={product.title} 
-            className="object-contain w-full h-full"
-            loading="lazy"
+          <OptimizedImage
+            src={primaryImage}
+            alt={product.title}
+            className="w-full h-full object-contain"
+            cloudinaryPublicId={product.cloudinary_public_id || undefined}
+            size="thumbnail"
           />
         </AspectRatio>
         <Badge 

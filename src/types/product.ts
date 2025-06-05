@@ -53,6 +53,11 @@ export interface Product {
   location?: string | null;
   last_notification_sent_at?: string | null;
   
+  // Cloudinary fields
+  cloudinary_public_id?: string | null;
+  cloudinary_url?: string | null;
+  preview_image_url?: string | null;
+  
   // Joined relationships
   product_images?: ProductImage[];
   product_videos?: ProductVideo[];

@@ -1,5 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import CloudinaryImage from './CloudinaryImage';
 
 interface OptimizedImageProps {
   src: string;
@@ -7,31 +8,56 @@ interface OptimizedImageProps {
   className?: string;
   priority?: boolean;
   sizes?: string;
-  onError?: () => void;
   onLoad?: () => void;
-  placeholder?: boolean;
-  onClick?: () => void;
+  onError?: () => void;
+  cloudinaryPublicId?: string;
+  size?: 'thumbnail' | 'card' | 'detail' | 'preview';
 }
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
   src,
   alt,
   className = '',
-  onError,
+  priority = false,
+  sizes,
   onLoad,
-  onClick,
-  ...props
+  onError,
+  cloudinaryPublicId,
+  size = 'card'
 }) => {
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageError = () => {
+    setImageError(true);
+    onError?.();
+  };
+
+  // Use Cloudinary if publicId is available and no error occurred
+  if (cloudinaryPublicId && !imageError) {
+    return (
+      <CloudinaryImage
+        publicId={cloudinaryPublicId}
+        alt={alt}
+        size={size}
+        className={className}
+        priority={priority}
+        onLoad={onLoad}
+        onError={handleImageError}
+        fallbackSrc={src}
+      />
+    );
+  }
+
+  // Fallback to regular image
   return (
     <img
       src={src}
       alt={alt}
       className={className}
-      onError={onError}
       onLoad={onLoad}
-      onClick={onClick}
-      loading="lazy"
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      onError={handleImageError}
+      loading={priority ? 'eager' : 'lazy'}
+      sizes={sizes}
     />
   );
 };

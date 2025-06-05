@@ -385,6 +385,8 @@ export type Database = {
       products: {
         Row: {
           brand: string
+          cloudinary_public_id: string | null
+          cloudinary_url: string | null
           condition: string
           created_at: string
           delivery_price: number | null
@@ -411,6 +413,8 @@ export type Database = {
         }
         Insert: {
           brand: string
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
           condition: string
           created_at?: string
           delivery_price?: number | null
@@ -437,6 +441,8 @@ export type Database = {
         }
         Update: {
           brand?: string
+          cloudinary_public_id?: string | null
+          cloudinary_url?: string | null
           condition?: string
           created_at?: string
           delivery_price?: number | null

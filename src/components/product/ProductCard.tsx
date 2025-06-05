@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/carousel";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
+import { getPreviewImageUrl } from "@/utils/cloudinaryUtils";
 
 export interface ProductProps {
   id: string;
@@ -29,6 +31,8 @@ export interface ProductProps {
   status?: 'active' | 'sold' | 'pending' | 'archived';
   delivery_price?: number;
   preview_image_url?: string | null;
+  cloudinary_public_id?: string | null;
+  cloudinary_url?: string | null;
   product_images?: Array<{
     id: string;
     url: string;
@@ -70,18 +74,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
-  // Упрощенное получение изображений - используем preview для каталога
+  // Get images with Cloudinary support
   const images = React.useMemo(() => {
     const productImages = product.product_images || [];
     
     if (productImages.length > 0) {
-      // Сортируем по приоритету primary изображения
       return productImages
         .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
         .map(img => img.url);
     }
     
-    // Fallback к основному изображению если нет product_images
     if (product.image) {
       return [product.image];
     }
@@ -89,8 +91,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return ["/placeholder.svg"];
   }, [product.product_images, product.image]);
 
-  // Используем превью для каталога, fallback на основное изображение
-  const catalogImage = product.preview_image_url || images[0];
+  // Get catalog image with Cloudinary optimization
+  const catalogImage = React.useMemo(() => {
+    // Use Cloudinary preview if available
+    if (product.cloudinary_public_id) {
+      return getPreviewImageUrl(product.cloudinary_public_id);
+    }
+    
+    // Fallback to preview_image_url or first image
+    return product.preview_image_url || images[0];
+  }, [product.cloudinary_public_id, product.preview_image_url, images]);
 
   const handleImageError = () => {
     setImageError(true);
@@ -113,7 +123,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   const renderImageContent = () => {
     if (isMobile && images.length > 1) {
-      // Mobile carousel - используем превью только для первого изображения
       return (
         <Carousel 
           className="w-full" 
@@ -130,11 +139,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <OptimizedImage
                   src={index === 0 ? catalogImage : imageUrl}
                   alt={`${product.title} ${index + 1}`}
-                  className="w-full h-full"
+                  className="w-full h-full object-cover"
                   onError={handleImageError}
                   onLoad={handleImageLoad}
                   priority={index === 0}
                   sizes="(max-width: 768px) 100vw, 50vw"
+                  cloudinaryPublicId={index === 0 && product.cloudinary_public_id ? product.cloudinary_public_id : undefined}
+                  size="card"
                 />
               </CarouselItem>
             ))}
@@ -155,16 +166,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
         </Carousel>
       );
     } else {
-      // Desktop одиночное изображение - используем превью
       return (
         <OptimizedImage
           src={catalogImage}
           alt={product.title}
-          className="w-full h-full transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full transition-transform duration-300 group-hover:scale-105 object-cover"
           onError={handleImageError}
           onLoad={handleImageLoad}
           priority={false}
           sizes="(max-width: 768px) 50vw, 25vw"
+          cloudinaryPublicId={product.cloudinary_public_id || undefined}
+          size="card"
         />
       );
     }
