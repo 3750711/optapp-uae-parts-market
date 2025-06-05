@@ -243,19 +243,38 @@ serve(async (req) => {
 
       const previewUrl = urlData.publicUrl;
       
+      // 🔧 CRITICAL FIX: Обновляем продукт в базе данных
+      if (productId) {
+        console.log('💾 Updating product preview_image_url in database...');
+        
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ preview_image_url: previewUrl })
+          .eq('id', productId);
+
+        if (updateError) {
+          console.error('❌ Database update error:', updateError);
+          // Не прерываем выполнение, но логируем ошибку
+        } else {
+          console.log('✅ Product preview_image_url updated successfully!');
+        }
+      }
+      
       const result = {
         success: true,
         previewUrl,
         originalSize: imageBuffer.byteLength,
         previewSize: previewData.length,
-        compressionRatio: Math.round((previewData.length / imageBuffer.byteLength) * 100)
+        compressionRatio: Math.round((previewData.length / imageBuffer.byteLength) * 100),
+        productUpdated: !!productId // Указываем, был ли обновлен продукт
       };
       
       console.log('🎉 SUCCESS! Preview generation completed:', {
         previewUrl: previewUrl.substring(previewUrl.lastIndexOf('/') + 1),
         originalKB: Math.round(result.originalSize / 1024),
         previewKB: Math.round(result.previewSize / 1024),
-        compressionRatio: result.compressionRatio + '%'
+        compressionRatio: result.compressionRatio + '%',
+        productUpdated: result.productUpdated
       });
 
       return new Response(

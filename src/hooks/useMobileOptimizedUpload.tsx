@@ -102,7 +102,7 @@ export const useMobileOptimizedUpload = () => {
     });
   }, [getDeviceCapabilities]);
 
-  // Generate preview for uploaded image with CRITICAL FIX
+  // Generate preview for uploaded image with ENHANCED SUCCESS HANDLING
   const generatePreviewForImage = useCallback(async (
     imageUrl: string,
     fileId: string,
@@ -138,6 +138,7 @@ export const useMobileOptimizedUpload = () => {
       console.log('📥 Preview result received:', {
         success: previewResult.success,
         previewUrl: previewResult.previewUrl,
+        productUpdated: previewResult.productUpdated,
         error: previewResult.error,
         timestamp: new Date().toISOString()
       });
@@ -145,6 +146,7 @@ export const useMobileOptimizedUpload = () => {
       if (previewResult.success && previewResult.previewUrl) {
         console.log('✅ Preview generation SUCCESS:', {
           previewUrl: previewResult.previewUrl,
+          productUpdated: previewResult.productUpdated,
           fileId,
           productId
         });
@@ -487,9 +489,9 @@ export const useMobileOptimizedUpload = () => {
 
       if (uploadedUrls.length > 0) {
         const message = options.productId && previewsGenerated > 0 
-          ? `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов. Создано ${previewsGenerated} превью.`
+          ? `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов. Создано ${previewsGenerated} превью (автообновление БД).`
           : `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов`;
-          
+        
         toast({
           title: "Загрузка завершена",
           description: message,

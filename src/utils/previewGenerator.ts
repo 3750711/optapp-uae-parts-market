@@ -7,6 +7,7 @@ interface PreviewResult {
   previewSize?: number;
   originalSize?: number;
   compressionRatio?: number;
+  productUpdated?: boolean;
   error?: string;
 }
 
@@ -81,6 +82,7 @@ export const generateProductPreview = async (imageUrl: string, productId: string
         previewSize: data.previewSize,
         originalSize: data.originalSize,
         compressionRatio: data.compressionRatio,
+        productUpdated: data.productUpdated,
         productId,
         imageUrl
       });
@@ -90,7 +92,8 @@ export const generateProductPreview = async (imageUrl: string, productId: string
         previewUrl: data.previewUrl,
         previewSize: data.previewSize,
         originalSize: data.originalSize,
-        compressionRatio: data.compressionRatio
+        compressionRatio: data.compressionRatio,
+        productUpdated: data.productUpdated
       };
     } else {
       console.error('❌ Preview generation failed:', {
@@ -119,9 +122,10 @@ export const generateProductPreview = async (imageUrl: string, productId: string
   }
 };
 
+// Функция больше не нужна, так как Edge функция сама обновляет базу данных
 export const updateProductPreview = async (productId: string, previewUrl: string): Promise<boolean> => {
   try {
-    console.log('📝 Updating product preview URL:', {
+    console.log('📝 Updating product preview URL (backup method):', {
       productId,
       previewUrl,
       timestamp: new Date().toISOString()
@@ -137,7 +141,7 @@ export const updateProductPreview = async (productId: string, previewUrl: string
       return false;
     }
 
-    console.log('✅ Product preview URL updated successfully');
+    console.log('✅ Product preview URL updated successfully (backup method)');
     return true;
   } catch (error) {
     console.error('💥 Exception in updateProductPreview:', error);
