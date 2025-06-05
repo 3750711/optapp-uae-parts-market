@@ -190,7 +190,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                         className="h-8 w-8 rounded-full p-0 touch-manipulation"
                         onClick={() => handleSetPrimaryImage(url)}
                         disabled={primaryImage === url}
-                        title={primaryImage === url ? "Уже основное" : "Сделать основным"}
                       >
                         <Star className="h-4 w-4" />
                       </Button>
@@ -204,7 +203,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                         className="h-8 w-8 rounded-full p-0 touch-manipulation"
                         onClick={() => onImageDelete(url)}
                         disabled={existingImages.length <= 1}
-                        title="Удалить изображение"
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -376,7 +374,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                 <div key={index} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                   <div className="flex items-center gap-2">
                     {index === 0 && (
-                      <Star className="h-4 w-4 text-yellow-500" title="Основное изображение" />
+                      <Star className="h-4 w-4 text-yellow-500" />
                     )}
                     <span className="truncate">{file.name}</span>
                     <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
