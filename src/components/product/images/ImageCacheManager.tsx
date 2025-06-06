@@ -5,7 +5,7 @@ export const useImageCacheManager = () => {
   const queryClient = useQueryClient();
 
   const invalidateAllCaches = (productId: string) => {
-    console.log("Invalidating all product caches for:", productId);
+    console.log("🗑️ Invalidating all product caches for:", productId);
     
     // Invalidate all related cache keys
     queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
@@ -15,6 +15,7 @@ export const useImageCacheManager = () => {
     
     // Also refetch specific product data to ensure immediate updates
     queryClient.refetchQueries({ queryKey: ['product', productId] });
+    queryClient.refetchQueries({ queryKey: ['admin', 'products'] });
   };
 
   const invalidateOrderCaches = (orderId: string) => {
@@ -31,7 +32,7 @@ export const useImageCacheManager = () => {
   };
 
   const optimisticUpdateCache = (productId: string, imageUrl: string) => {
-    console.log("Optimistic update for product:", productId, "new primary image:", imageUrl);
+    console.log("🔄 Optimistic update for product:", productId, "new primary image:", imageUrl);
     
     // Helper function to update product in any data structure
     const updateProduct = (product: any) => {

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Button } from "@/components/ui/button";
@@ -30,9 +31,11 @@ export const AdminProductImagesManager = ({
   // Initialize preview sync hook
   const { syncPreviewImage } = usePreviewImageSync({
     productId,
-    onSyncComplete: () => {
+    onSyncComplete: (previewUrl) => {
+      console.log('🎯 Admin preview sync completed:', previewUrl);
       // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
     }
   });
 
@@ -136,6 +139,7 @@ export const AdminProductImagesManager = ({
     
     try {
       setSettingPrimary(imageUrl);
+      console.log('🔄 Admin setting primary image:', imageUrl, 'for product:', productId);
       
       // First reset all images for this product to not primary
       const { error: resetError } = await supabase
@@ -154,14 +158,17 @@ export const AdminProductImagesManager = ({
       
       if (error) throw error;
       
-      // Update parent state
+      console.log('✅ Database updated, now syncing preview...');
+      
+      // Update parent state immediately
       onPrimaryImageChange(imageUrl);
       
-      // 🔄 NEW: Automatically sync preview image after setting primary
+      // 🔄 Sync preview image after database update
       await syncPreviewImage(imageUrl);
       
-      // Invalidate React Query cache to refresh the data
+      // Force invalidate cache after sync
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       
       toast({
         title: "Успех",
