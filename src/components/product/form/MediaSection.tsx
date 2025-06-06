@@ -9,6 +9,9 @@ interface MediaSectionProps {
   videoUrls: string[];
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
+  onImageDelete?: (url: string) => void;
+  onSetPrimaryImage?: (url: string) => void;
+  primaryImage?: string;
   productId?: string;
 }
 
@@ -17,6 +20,9 @@ const MediaSection = React.memo<MediaSectionProps>(({
   videoUrls,
   handleMobileOptimizedImageUpload,
   setVideoUrls,
+  onImageDelete,
+  onSetPrimaryImage,
+  primaryImage,
   productId
 }) => {
   return (
@@ -27,6 +33,9 @@ const MediaSection = React.memo<MediaSectionProps>(({
           onUploadComplete={handleMobileOptimizedImageUpload}
           maxImages={30}
           existingImages={imageUrls}
+          onImageDelete={onImageDelete}
+          onSetPrimaryImage={onSetPrimaryImage}
+          primaryImage={primaryImage}
           productId={productId}
         />
       </div>

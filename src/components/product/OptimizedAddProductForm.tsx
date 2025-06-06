@@ -1,3 +1,4 @@
+
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -57,7 +58,7 @@ interface OptimizedAddProductFormProps {
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
-  progressStatus?: { step: string; progress: number };
+  onImageDelete?: (url: string) => void;
 }
 
 const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
@@ -76,7 +77,9 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   setSearchModelTerm,
   handleMobileOptimizedImageUpload,
   setVideoUrls,
-  progressStatus = { step: "", progress: 0 }
+  primaryImage,
+  setPrimaryImage,
+  onImageDelete
 }) => {
   const isMobile = useIsMobile();
   const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
@@ -95,50 +98,102 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     form.handleSubmit(handleSubmit)();
   }, [form, handleSubmit]);
 
+  const hasImages = imageUrls.length > 0;
+
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
-          <MobileOptimizedForm title="Основная информация" defaultOpen={true}>
-            <MobileOptimizedBasicInfoSection form={form} />
+          
+          {/* МЕДИА ФАЙЛЫ - ПЕРВАЯ СЕКЦИЯ */}
+          <MobileOptimizedForm title="Фотографии товара" defaultOpen={true}>
+            <div className="space-y-4">
+              {!hasImages && (
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-blue-800 font-medium text-center">
+                    📸 Сначала добавьте фотографии товара
+                  </p>
+                  <p className="text-blue-600 text-sm text-center mt-1">
+                    Минимум 1 фото, максимум 30 фото
+                  </p>
+                </div>
+              )}
+              
+              {hasImages && (
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-green-800 font-medium text-center">
+                    ✅ Загружено {imageUrls.length} фото
+                  </p>
+                </div>
+              )}
+              
+              <MediaSection
+                imageUrls={imageUrls}
+                videoUrls={videoUrls}
+                handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+                setVideoUrls={setVideoUrls}
+                onImageDelete={onImageDelete}
+                onSetPrimaryImage={setPrimaryImage}
+                primaryImage={primaryImage}
+              />
+            </div>
           </MobileOptimizedForm>
           
-          <MobileOptimizedForm title="Информация об автомобиле" defaultOpen={!isMobile}>
-            <MobileOptimizedCarInfoSection
-              form={form}
-              filteredBrands={filteredBrands}
-              filteredModels={filteredModels}
-              searchBrandTerm={searchBrandTerm}
-              setSearchBrandTerm={setSearchBrandTerm}
-              searchModelTerm={searchModelTerm}
-              setSearchModelTerm={setSearchModelTerm}
-              watchBrandId={watchBrandId}
-              isLoadingCarData={isLoadingCarData}
-            />
+          {/* ОСНОВНАЯ ИНФОРМАЦИЯ */}
+          <MobileOptimizedForm 
+            title="Основная информация" 
+            defaultOpen={hasImages}
+            disabled={!hasImages}
+          >
+            {!hasImages ? (
+              <div className="p-4 text-center text-gray-500">
+                <p>Сначала загрузите фотографии товара</p>
+              </div>
+            ) : (
+              <MobileOptimizedBasicInfoSection form={form} />
+            )}
           </MobileOptimizedForm>
           
-          <MobileOptimizedForm title="Медиа файлы" defaultOpen={!isMobile}>
-            <MediaSection
-              imageUrls={imageUrls}
-              videoUrls={videoUrls}
-              handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-              setVideoUrls={setVideoUrls}
-            />
+          {/* ИНФОРМАЦИЯ ОБ АВТОМОБИЛЕ */}
+          <MobileOptimizedForm 
+            title="Информация об автомобиле" 
+            defaultOpen={false}
+            disabled={!hasImages}
+          >
+            {!hasImages ? (
+              <div className="p-4 text-center text-gray-500">
+                <p>Сначала загрузите фотографии товара</p>
+              </div>
+            ) : (
+              <MobileOptimizedCarInfoSection
+                form={form}
+                filteredBrands={filteredBrands}
+                filteredModels={filteredModels}
+                searchBrandTerm={searchBrandTerm}
+                setSearchBrandTerm={setSearchBrandTerm}
+                searchModelTerm={searchModelTerm}
+                setSearchModelTerm={setSearchModelTerm}
+                watchBrandId={watchBrandId}
+                isLoadingCarData={isLoadingCarData}
+              />
+            )}
           </MobileOptimizedForm>
           
           {!isMobile && (
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !hasImages}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Публикация...
+                  Создание товара...
                 </>
+              ) : !hasImages ? (
+                'Сначала добавьте фотографии'
               ) : (
-                'Опубликовать'
+                'Создать товар'
               )}
             </Button>
           )}
@@ -147,8 +202,9 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
 
       <StickyMobileActions
         isSubmitting={isSubmitting}
-        progressStatus={progressStatus}
         onSubmit={handleFormSubmit}
+        disabled={!hasImages}
+        submitText={!hasImages ? 'Добавьте фотографии' : 'Создать товар'}
       />
     </>
   );
