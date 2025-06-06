@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,7 +29,6 @@ import {
 import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
-import { Progress } from "@/components/ui/progress";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -174,7 +174,7 @@ const SellerAddProduct = () => {
   }, [watchBrandId, watchModelId, selectBrand, form, brandModels]);
 
   const handleMobileOptimizedImageUpload = useCallback((urls: string[]) => {
-    setImageUrls(urls);
+    setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
     if (!primaryImage && urls.length > 0) {
       setPrimaryImage(urls[0]);
@@ -185,6 +185,23 @@ const SellerAddProduct = () => {
         setPrimaryImage("");
       }
     }
+  }, [primaryImage]);
+
+  const removeImage = useCallback((url: string) => {
+    setImageUrls(prevUrls => {
+      const newUrls = prevUrls.filter(item => item !== url);
+      
+      // If deleted image was primary, set new primary
+      if (primaryImage === url) {
+        if (newUrls.length > 0) {
+          setPrimaryImage(newUrls[0]);
+        } else {
+          setPrimaryImage("");
+        }
+      }
+      
+      return newUrls;
+    });
   }, [primaryImage]);
 
   const onSubmit = async (values: ProductFormValues) => {
@@ -429,7 +446,7 @@ const SellerAddProduct = () => {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Заполните все поля для размещения вашего товара на маркетплейсе.
+                  Заполните все поля и добавьте фотографии для размещения вашего товара на маркетплейсе.
                   Изображения автоматически обрабатываются через Cloudinary для оптимальной производительности.
                 </CardDescription>
               </CardHeader>
@@ -452,6 +469,7 @@ const SellerAddProduct = () => {
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
+                  onImageDelete={removeImage}
                 />
               </CardContent>
             </Card>

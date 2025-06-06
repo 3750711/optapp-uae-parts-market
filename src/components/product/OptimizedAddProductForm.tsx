@@ -9,8 +9,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSection";
 import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
-import MediaSection from "./form/MediaSection";
 import StickyMobileActions from "@/components/ui/StickyMobileActions";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import VideoUpload from "@/components/ui/video-upload";
 
 // Product form schema with zod validation
 export const productSchema = z.object({
@@ -104,31 +105,33 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
           
-          {/* МЕДИА ФАЙЛЫ */}
+          {/* ОСНОВНАЯ ИНФОРМАЦИЯ + ФОТОГРАФИИ */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Фотографии и видео товара</CardTitle>
+              <CardTitle className="text-lg">Основная информация и фотографии</CardTitle>
             </CardHeader>
-            <CardContent>
-              <MediaSection
-                imageUrls={imageUrls}
-                videoUrls={videoUrls}
-                handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-                setVideoUrls={setVideoUrls}
-                onImageDelete={onImageDelete}
-                onSetPrimaryImage={setPrimaryImage}
-                primaryImage={primaryImage}
-              />
-            </CardContent>
-          </Card>
-          
-          {/* ОСНОВНАЯ ИНФОРМАЦИЯ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Основная информация</CardTitle>
-            </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Основные поля формы */}
               <MobileOptimizedBasicInfoSection form={form} />
+              
+              {/* Загрузка фотографий */}
+              <div className="space-y-4">
+                <h3 className="text-base font-medium">Фотографии товара</h3>
+                <MobileOptimizedImageUpload
+                  onUploadComplete={handleMobileOptimizedImageUpload}
+                  maxImages={30}
+                  existingImages={imageUrls}
+                  onImageDelete={onImageDelete}
+                  onSetPrimaryImage={setPrimaryImage}
+                  primaryImage={primaryImage}
+                  buttonText="Добавить фотографии"
+                />
+                {imageUrls.length === 0 && (
+                  <p className="text-sm text-muted-foreground">
+                    Добавьте хотя бы одну фотографию для создания товара
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
           
@@ -151,6 +154,24 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
               />
             </CardContent>
           </Card>
+          
+          {/* ДОПОЛНИТЕЛЬНО: ВИДЕО */}
+          {videoUrls.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Видео товара</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <VideoUpload
+                  videos={videoUrls}
+                  onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
+                  onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
+                  maxVideos={2}
+                  storageBucket="Product Images"
+                />
+              </CardContent>
+            </Card>
+          )}
           
           {!isMobile && (
             <Button 
