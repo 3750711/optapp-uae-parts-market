@@ -1,19 +1,24 @@
 
-import React from 'react';
-import { ImageUpload } from "@/components/ui/image-upload";
+import React, { useState } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import { useToast } from "@/hooks/use-toast";
 
 interface OrderConfirmationImagesProps {
   orderId: string;
-  canEdit: boolean;
+  canEdit?: boolean;
 }
 
-export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationImagesProps) => {
+export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = ({
+  orderId,
+  canEdit = false
+}) => {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isUploading, setIsUploading] = useState(false);
 
-  const { data: images, isLoading } = useQuery({
+  const { data: images = [] } = useQuery({
     queryKey: ['confirm-images', orderId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -21,45 +26,35 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
         .select('url')
         .eq('order_id', orderId);
 
-      if (error) {
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить фотографии подтверждения",
-          variant: "destructive",
-        });
-        throw error;
-      }
-
+      if (error) throw error;
       return data?.map(img => img.url) || [];
     }
   });
 
-  const handleUpload = async (updatedUrls: string[]) => {
+  const handleImageUpload = async (urls: string[]) => {
+    if (!canEdit) return;
+
+    setIsUploading(true);
     try {
-      // Find only the new URLs that need to be inserted
-      const currentUrls = images || [];
-      const newUrls = updatedUrls.filter(url => !currentUrls.includes(url));
-      
-      if (newUrls.length === 0) return;
+      // Save new images to confirm_images table
+      const imageInserts = urls.map(url => ({
+        order_id: orderId,
+        url
+      }));
 
       const { error } = await supabase
         .from('confirm_images')
-        .insert(
-          newUrls.map(url => ({
-            order_id: orderId,
-            url
-          }))
-        );
+        .insert(imageInserts);
 
       if (error) throw error;
 
-      // Invalidate and refetch the query
-      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-
       toast({
-        title: "Успешно",
-        description: `Загружено ${newUrls.length} фотографий подтверждения`,
+        title: "Успех",
+        description: `Загружено ${urls.length} подтверждающих фотографий`,
       });
+
+      // Refetch images
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
     } catch (error) {
       console.error('Error uploading confirmation images:', error);
       toast({
@@ -67,26 +62,30 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
         description: "Не удалось загрузить фотографии",
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const handleDelete = async (url: string) => {
+  const handleImageDelete = async (url: string) => {
+    if (!canEdit) return;
+
     try {
       const { error } = await supabase
         .from('confirm_images')
         .delete()
-        .eq('url', url)
-        .eq('order_id', orderId);
+        .eq('order_id', orderId)
+        .eq('url', url);
 
       if (error) throw error;
 
-      // Invalidate and refetch the query
-      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-
       toast({
-        title: "Успешно",
+        title: "Успех",
         description: "Фотография удалена",
       });
+
+      // Refetch images
+      queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
     } catch (error) {
       console.error('Error deleting confirmation image:', error);
       toast({
@@ -97,48 +96,33 @@ export const OrderConfirmationImages = ({ orderId, canEdit }: OrderConfirmationI
     }
   };
 
-  if (isLoading) return null;
+  if (!canEdit && images.length === 0) {
+    return (
+      <div className="text-center p-4 text-muted-foreground">
+        Подтверждающие фотографии не загружены
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Display existing confirmation images */}
-      {images && images.length > 0 && (
-        <div className="mb-4">
-          <p className="text-sm text-gray-600 mb-2">Загруженные фотографии подтверждения ({images.length}):</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {images.map((imageUrl, index) => (
-              <div key={imageUrl} className="relative group">
-                <div className="aspect-square rounded-lg overflow-hidden border border-green-200 bg-green-50">
-                  <img
-                    src={imageUrl}
-                    alt={`Confirmation image ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-                {canEdit && (
-                  <button
-                    onClick={() => handleDelete(imageUrl)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                    title="Удалить фотографию подтверждения"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {canEdit && (
-        <ImageUpload
-          images={images || []}
-          onUpload={handleUpload}
-          onDelete={handleDelete}
+      {canEdit ? (
+        <MobileOptimizedImageUpload
+          onUploadComplete={handleImageUpload}
           maxImages={10}
-          storageBucket="order-images"
-          filePrefix="confirm" // Add prefix for confirmation images
+          existingImages={images}
+          onImageDelete={handleImageDelete}
+          productId={orderId}
+          buttonText="Загрузить подтверждающие фото"
+          showOnlyButton={false}
+        />
+      ) : (
+        <MobileOptimizedImageUpload
+          onUploadComplete={() => {}}
+          maxImages={10}
+          existingImages={images}
+          productId={orderId}
+          showGalleryOnly={true}
         />
       )}
     </div>

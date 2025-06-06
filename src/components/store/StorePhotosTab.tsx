@@ -1,178 +1,131 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import OptimizedImage from '@/components/ui/OptimizedImage';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-
-interface StoreImage {
-  id: string;
-  url: string;
-  is_primary?: boolean;
-}
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import { useToast } from "@/hooks/use-toast";
 
 interface StorePhotosTabProps {
-  storeImages?: StoreImage[];
-  storeName: string;
+  storeId: string;
+  canEdit?: boolean;
 }
 
-const StorePhotosTab: React.FC<StorePhotosTabProps> = ({
-  storeImages,
-  storeName
+export const StorePhotosTab: React.FC<StorePhotosTabProps> = ({
+  storeId,
+  canEdit = false
 }) => {
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isUploading, setIsUploading] = useState(false);
 
-  const openModal = (index: number) => {
-    setSelectedImageIndex(index);
-  };
+  const { data: storeImages = [] } = useQuery({
+    queryKey: ['store-images', storeId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('store_images')
+        .select('url')
+        .eq('store_id', storeId)
+        .order('created_at');
 
-  const closeModal = () => {
-    setSelectedImageIndex(null);
-  };
+      if (error) throw error;
+      return data?.map(img => img.url) || [];
+    }
+  });
 
-  const goToPrevious = () => {
-    if (selectedImageIndex !== null) {
-      setSelectedImageIndex(
-        selectedImageIndex > 0 ? selectedImageIndex - 1 : storeImages!.length - 1
-      );
+  const handleImageUpload = async (urls: string[]) => {
+    if (!canEdit) return;
+
+    setIsUploading(true);
+    try {
+      // Save new images to store_images table
+      const imageInserts = urls.map(url => ({
+        store_id: storeId,
+        url
+      }));
+
+      const { error } = await supabase
+        .from('store_images')
+        .insert(imageInserts);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успех",
+        description: `Загружено ${urls.length} фотографий магазина`,
+      });
+
+      // Refetch images
+      queryClient.invalidateQueries({ queryKey: ['store-images', storeId] });
+    } catch (error) {
+      console.error('Error uploading store images:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось загрузить фотографии",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const goToNext = () => {
-    if (selectedImageIndex !== null) {
-      setSelectedImageIndex(
-        selectedImageIndex < storeImages!.length - 1 ? selectedImageIndex + 1 : 0
-      );
+  const handleImageDelete = async (url: string) => {
+    if (!canEdit) return;
+
+    try {
+      const { error } = await supabase
+        .from('store_images')
+        .delete()
+        .eq('store_id', storeId)
+        .eq('url', url);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успех",
+        description: "Фотография удалена",
+      });
+
+      // Refetch images
+      queryClient.invalidateQueries({ queryKey: ['store-images', storeId] });
+    } catch (error) {
+      console.error('Error deleting store image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить фотографию",
+        variant: "destructive",
+      });
     }
   };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'ArrowLeft') goToPrevious();
-    if (e.key === 'ArrowRight') goToNext();
-    if (e.key === 'Escape') closeModal();
-  };
-
-  if (!storeImages || storeImages.length === 0) {
-    return (
-      <Card className="animate-fade-in">
-        <CardContent className="pt-6">
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
-              <div className="text-2xl text-muted-foreground">🏪</div>
-            </div>
-            <p className="text-muted-foreground text-lg">У этого магазина пока нет фотографий</p>
-            <p className="text-sm text-muted-foreground mt-2">Фотографии помогают покупателям лучше понять ваш магазин</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
-    <>
-      <div className="animate-fade-in">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {storeImages.map((image, index) => (
-            <div 
-              key={image.id} 
-              className="group aspect-square overflow-hidden rounded-lg cursor-pointer border border-border hover:border-primary/50 transition-all duration-300 hover:shadow-lg"
-              onClick={() => openModal(index)}
-            >
-              <OptimizedImage 
-                src={image.url} 
-                alt={`${storeName} - фото ${index + 1}`} 
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                priority={index < 4}
-                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white font-medium">
-                  Просмотреть
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+    <div className="space-y-4">
+      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+        <h3 className="font-medium text-blue-900 mb-2">Фотографии магазина</h3>
+        <p className="text-sm text-blue-700">
+          Добавьте фотографии вашего магазина, чтобы покупатели могли лучше представить ваш бизнес.
+          Рекомендуется загружать фото витрины, интерьера и ассортимента.
+        </p>
       </div>
 
-      {/* Modal for full-size images */}
-      <Dialog open={selectedImageIndex !== null} onOpenChange={closeModal}>
-        <DialogContent 
-          className="max-w-5xl w-full p-0 border-0 bg-black/95"
-          onKeyDown={handleKeyDown}
-        >
-          {selectedImageIndex !== null && (
-            <div className="relative">
-              {/* Close button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute top-4 right-4 z-10 text-white hover:bg-white/20 rounded-full"
-                onClick={closeModal}
-              >
-                <X className="h-5 w-5" />
-              </Button>
-
-              {/* Navigation buttons */}
-              {storeImages && storeImages.length > 1 && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-white hover:bg-white/20 rounded-full"
-                    onClick={goToPrevious}
-                  >
-                    <ChevronLeft className="h-6 w-6" />
-                  </Button>
-                  
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 z-10 text-white hover:bg-white/20 rounded-full"
-                    onClick={goToNext}
-                  >
-                    <ChevronRight className="h-6 w-6" />
-                  </Button>
-                </>
-              )}
-
-              {/* Image */}
-              <div className="flex items-center justify-center min-h-[60vh] max-h-[85vh] p-4">
-                <OptimizedImage
-                  src={storeImages[selectedImageIndex].url}
-                  alt={`${storeName} - фото ${selectedImageIndex + 1}`}
-                  className="max-w-full max-h-full object-contain rounded-lg"
-                  priority
-                />
-              </div>
-
-              {/* Image counter and navigation dots */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
-                <div className="bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                  {selectedImageIndex + 1} / {storeImages.length}
-                </div>
-                
-                {storeImages.length > 1 && (
-                  <div className="flex gap-2">
-                    {storeImages.map((_, index) => (
-                      <button
-                        key={index}
-                        className={`w-2 h-2 rounded-full transition-colors ${
-                          index === selectedImageIndex ? 'bg-white' : 'bg-white/50'
-                        }`}
-                        onClick={() => setSelectedImageIndex(index)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
+      {canEdit ? (
+        <MobileOptimizedImageUpload
+          onUploadComplete={handleImageUpload}
+          maxImages={20}
+          existingImages={storeImages}
+          onImageDelete={handleImageDelete}
+          productId={storeId}
+          buttonText="Добавить фотографии магазина"
+          showOnlyButton={false}
+        />
+      ) : (
+        <MobileOptimizedImageUpload
+          onUploadComplete={() => {}}
+          maxImages={20}
+          existingImages={storeImages}
+          productId={storeId}
+          showGalleryOnly={true}
+        />
+      )}
+    </div>
   );
 };
-
-export default StorePhotosTab;
