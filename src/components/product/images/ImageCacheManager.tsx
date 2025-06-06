@@ -1,4 +1,3 @@
-
 import { useQueryClient } from "@tanstack/react-query";
 
 export const useImageCacheManager = () => {
@@ -16,6 +15,7 @@ export const useImageCacheManager = () => {
     // Also refetch specific product data to ensure immediate updates
     queryClient.refetchQueries({ queryKey: ['product', productId] });
     queryClient.refetchQueries({ queryKey: ['admin', 'products'] });
+    queryClient.refetchQueries({ queryKey: ['products-infinite'] });
   };
 
   const invalidateOrderCaches = (orderId: string) => {
@@ -42,7 +42,9 @@ export const useImageCacheManager = () => {
           product_images: product.product_images?.map((img: any) => ({
             ...img,
             is_primary: img.url === imageUrl
-          })) || []
+          })) || [],
+          // Also update preview_image_url optimistically
+          preview_image_url: imageUrl
         };
       }
       return product;
@@ -72,7 +74,7 @@ export const useImageCacheManager = () => {
       return oldData;
     });
 
-    // Update products-infinite cache (for catalog)
+    // Update products-infinite cache (for catalog) - THIS IS CRITICAL
     queryClient.setQueryData(['products-infinite'], (oldData: any) => {
       if (!oldData?.pages) return oldData;
       
@@ -83,6 +85,22 @@ export const useImageCacheManager = () => {
           products: page.products?.map(updateProduct) || []
         }))
       };
+    });
+
+    // Also update any other products-infinite caches with filters
+    queryClient.getQueryCache().findAll(['products-infinite']).forEach((query) => {
+      queryClient.setQueryData(query.queryKey, (oldData: any) => {
+        if (!oldData?.pages) return oldData;
+        
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            map: page.map ? page.map(updateProduct) : page,
+            products: page.products?.map(updateProduct) || []
+          }))
+        };
+      });
     });
 
     // Update specific product cache

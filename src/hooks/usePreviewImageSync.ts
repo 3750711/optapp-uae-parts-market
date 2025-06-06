@@ -3,6 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { extractPublicIdFromUrl, getPreviewImageUrl } from '@/utils/cloudinaryUtils';
 import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UsePreviewImageSyncProps {
   productId: string;
@@ -14,6 +15,7 @@ export const usePreviewImageSync = ({
   onSyncComplete 
 }: UsePreviewImageSyncProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const syncPreviewImage = useCallback(async (primaryImageUrl: string) => {
     if (!primaryImageUrl || !productId) {
@@ -53,6 +55,14 @@ export const usePreviewImageSync = ({
 
       console.log('✅ Preview URL updated successfully for product:', productId);
       
+      // Force invalidate all relevant caches to ensure fresh data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
+      queryClient.invalidateQueries({ queryKey: ['product', productId] });
+      
+      // Force refetch catalog data to ensure immediate update
+      queryClient.refetchQueries({ queryKey: ['products-infinite'] });
+      
       // Call completion callback if provided
       onSyncComplete?.(newPreviewUrl);
 
@@ -64,7 +74,7 @@ export const usePreviewImageSync = ({
         variant: "destructive",
       });
     }
-  }, [productId, onSyncComplete, toast]);
+  }, [productId, onSyncComplete, toast, queryClient]);
 
   return { syncPreviewImage };
 };
