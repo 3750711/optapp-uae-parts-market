@@ -452,7 +452,6 @@ const SellerAddProduct = () => {
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
-                  showSellerSelect={false}
                 />
               </CardContent>
             </Card>
