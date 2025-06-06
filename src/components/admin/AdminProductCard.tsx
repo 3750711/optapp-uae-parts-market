@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -30,6 +29,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
   const getProductCardBackground = (status: string) => {
     switch (status) {
@@ -72,149 +72,170 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                       product.product_images?.[0]?.url || 
                       '/placeholder.svg';
 
+  const handleEditSuccess = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    setIsEditDialogOpen(false);
+  };
+
   return (
-    <div 
-      className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
-    >
-      <div className="relative p-2">
-        <AspectRatio ratio={1/1} className="bg-white rounded-md overflow-hidden">
-          <OptimizedImage
-            src={primaryImage}
-            alt={product.title}
-            className="w-full h-full object-contain"
-            cloudinaryPublicId={product.cloudinary_public_id || undefined}
-            size="thumbnail"
-          />
-        </AspectRatio>
-        <Badge 
-          className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
-        >
-          {getStatusLabel(product.status)}
-        </Badge>
-      </div>
-      
-      <div className="p-3 flex-grow flex flex-col">
-        <div className="mb-1">
-          <h3 className="font-medium text-sm line-clamp-1">{product.title}</h3>
+    <>
+      <div 
+        className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
+      >
+        <div className="relative p-2">
+          <AspectRatio ratio={1/1} className="bg-white rounded-md overflow-hidden">
+            <OptimizedImage
+              src={primaryImage}
+              alt={product.title}
+              className="w-full h-full object-contain"
+              cloudinaryPublicId={product.cloudinary_public_id || undefined}
+              size="thumbnail"
+            />
+          </AspectRatio>
+          <Badge 
+            className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
+          >
+            {getStatusLabel(product.status)}
+          </Badge>
+        </div>
+        
+        <div className="p-3 flex-grow flex flex-col">
+          <div className="mb-1">
+            <h3 className="font-medium text-sm line-clamp-1">{product.title}</h3>
+            
+            {brandModelText && (
+              <p className="text-xs text-muted-foreground truncate">
+                {brandModelText}
+              </p>
+            )}
+          </div>
           
-          {brandModelText && (
-            <p className="text-xs text-muted-foreground truncate">
-              {brandModelText}
+          <div className="flex items-center gap-1 mb-1">
+            <Hash className="w-3 h-3 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              Лот: {product.lot_number || 'Не указан'}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-1 mb-1">
+            <Calendar className="w-3 h-3 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              Создан: {formattedCreationDate}
+            </p>
+          </div>
+          
+          <p className="text-sm font-semibold mb-1">
+            {product.price} $
+          </p>
+          
+          {product.delivery_price !== null && product.delivery_price !== undefined && (
+            <p className="text-xs text-muted-foreground mb-1">
+              Доставка: {product.delivery_price} $
             </p>
           )}
-        </div>
-        
-        <div className="flex items-center gap-1 mb-1">
-          <Hash className="w-3 h-3 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">
-            Лот: {product.lot_number || 'Не указан'}
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-1 mb-1">
-          <Calendar className="w-3 h-3 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">
-            Создан: {formattedCreationDate}
-          </p>
-        </div>
-        
-        <p className="text-sm font-semibold mb-1">
-          {product.price} $
-        </p>
-        
-        {product.delivery_price !== null && product.delivery_price !== undefined && (
-          <p className="text-xs text-muted-foreground mb-1">
-            Доставка: {product.delivery_price} $
-          </p>
-        )}
-        
-        <div className="flex items-center gap-1 text-xs text-muted-foreground mb-auto">
-          <span className="truncate max-w-[100px]">{product.seller_name}</span>
-          {product.optid_created && (
-            <Badge variant="outline" className="text-[10px] py-0 px-1 h-4">
-              {product.optid_created}
-            </Badge>
-          )}
-        </div>
+          
+          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-auto">
+            <span className="truncate max-w-[100px]">{product.seller_name}</span>
+            {product.optid_created && (
+              <Badge variant="outline" className="text-[10px] py-0 px-1 h-4">
+                {product.optid_created}
+              </Badge>
+            )}
+          </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-1 mt-2 border-t pt-2">
-          <div className="flex items-center flex-wrap gap-1">
-            <ProductEditDialog product={product} />
-            
-            <ProductStatusDialog
-              product={product}
-              trigger={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                </Button>
-              }
-              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
-            />
-            
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-red-600"
-                  disabled={isDeleting}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Удаление товара</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => onDelete(product.id)} 
-                    className="bg-red-600 hover:bg-red-700"
-                    disabled={isDeleting}
-                  >
-                    Удалить
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-            
-            {product.status === 'pending' && (
-              <ProductPublishDialog
+          <div className="flex flex-wrap items-center justify-between gap-1 mt-2 border-t pt-2">
+            <div className="flex items-center flex-wrap gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                onClick={() => setIsEditDialogOpen(true)}
+              >
+                <Edit className="h-3.5 w-3.5" />
+              </Button>
+              
+              <ProductStatusDialog
                 product={product}
                 trigger={
                   <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs ml-1"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
                   >
-                    Опубликовать
+                    <Eye className="h-3.5 w-3.5" />
                   </Button>
                 }
                 onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
               />
-            )}
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-red-600"
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Удаление товара</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Вы уверены, что хотите удалить этот товар? Это действие нельзя отменить.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Отмена</AlertDialogCancel>
+                    <AlertDialogAction 
+                      onClick={() => onDelete(product.id)} 
+                      className="bg-red-600 hover:bg-red-700"
+                      disabled={isDeleting}
+                    >
+                      Удалить
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              
+              {product.status === 'pending' && (
+                <ProductPublishDialog
+                  product={product}
+                  trigger={
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs ml-1"
+                    >
+                      Опубликовать
+                    </Button>
+                  }
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
+                />
+              )}
+            </div>
+            
+            <Link to={`/product/${product.id}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+              >
+                Просмотр
+              </Button>
+            </Link>
           </div>
-          
-          <Link to={`/product/${product.id}`}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs"
-            >
-              Просмотр
-            </Button>
-          </Link>
         </div>
       </div>
-    </div>
+
+      <ProductEditDialog
+        product={product}
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onUpdate={handleEditSuccess}
+      />
+    </>
   );
 };
 

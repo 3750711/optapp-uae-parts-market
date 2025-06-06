@@ -82,8 +82,8 @@ const StoreDetailTabs: React.FC<StoreDetailTabsProps> = memo(({
         <TabsContent value="photos" className="mt-6">
           <div className="animate-fade-in animation-delay-100">
             <StorePhotosTab 
-              storeImages={store.store_images}
-              storeName={store.name}
+              storeId={store.id}
+              canEdit={false}
             />
           </div>
         </TabsContent>
