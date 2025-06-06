@@ -1,31 +1,15 @@
 
 import React, { useCallback, useRef, useState } from 'react';
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-  ImagePlus, 
-  X, 
-  Camera, 
-  AlertTriangle, 
-  RefreshCw, 
-  Pause,
-  Play,
-  Trash2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Check,
-  ExternalLink,
-  Sparkles,
-  Star,
-  Cloud
-} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { STORAGE_BUCKETS } from "@/constants/storage";
 import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
 import { getPreviewImageUrl, getBatchImageUrls } from "@/utils/cloudinaryUtils";
+import { ExistingImagesGallery } from "./image-upload/ExistingImagesGallery";
+import { CloudinaryIntegrationInfo } from "./image-upload/CloudinaryIntegrationInfo";
+import { UploadControls } from "./image-upload/UploadControls";
+import { FilePreviewCard } from "./image-upload/FilePreviewCard";
+import { UploadProgressCard } from "./image-upload/UploadProgressCard";
+import { UsageInfo } from "./image-upload/UsageInfo";
 
 interface UploadProgress {
   fileId: string;
@@ -78,6 +62,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   // Detect mobile device
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
                          window.innerWidth <= 768;
+
+  // Format file size helper
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   // Handle file selection
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -250,178 +243,38 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     setIsUploading(false);
   }, [selectedFiles, uploadSingleFile, onUploadComplete]);
 
-  // Handle setting primary image
-  const handleSetPrimaryImage = async (url: string) => {
-    if (onSetPrimaryImage) {
-      onSetPrimaryImage(url);
-    }
-  };
+  // Clear files and preview
+  const clearFiles = useCallback(() => {
+    setSelectedFiles([]);
+    setShowPreview(false);
+  }, []);
 
-  // Format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  // Calculate overall progress
-  const overallProgress = uploadProgress.length > 0 
-    ? uploadProgress.reduce((sum, p) => sum + p.progress, 0) / uploadProgress.length
-    : 0;
-
-  const successCount = uploadProgress.filter(p => p.status === 'success').length;
-  const errorCount = uploadProgress.filter(p => p.status === 'error').length;
-  const uploadingCount = uploadProgress.filter(p => p.status === 'uploading' || p.status === 'processing').length;
+  // Clear progress
+  const clearProgress = useCallback(() => {
+    setUploadProgress([]);
+  }, []);
 
   return (
     <div className="space-y-4">
-      {/* Existing Images Gallery */}
-      {existingImages.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              Загруженные изображения ({existingImages.length}/{maxImages})
-              <Badge variant="secondary" className="text-xs">
-                <Cloud className="h-3 w-3 mr-1" />
-                Cloudinary
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {existingImages.map((url, index) => (
-                <div 
-                  key={url} 
-                  className={`relative group rounded-md overflow-hidden border aspect-square ${
-                    primaryImage === url ? 'ring-2 ring-blue-500' : ''
-                  }`}
-                >
-                  <img 
-                    src={url} 
-                    alt={`Фото ${index + 1}`} 
-                    className="w-full h-full object-cover" 
-                  />
-                  
-                  {/* Mobile-friendly overlay controls */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-1">
-                    {onSetPrimaryImage && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="h-8 w-8 rounded-full p-0 touch-manipulation"
-                        onClick={() => handleSetPrimaryImage(url)}
-                        disabled={primaryImage === url}
-                      >
-                        <Star className="h-4 w-4" />
-                      </Button>
-                    )}
-                    
-                    {onImageDelete && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="destructive"
-                        className="h-8 w-8 rounded-full p-0 touch-manipulation"
-                        onClick={() => onImageDelete(url)}
-                        disabled={existingImages.length <= 1}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  
-                  {/* Primary image indicator */}
-                  {primaryImage === url && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-blue-500 bg-opacity-80 p-1">
-                      <p className="text-white text-xs text-center font-medium flex items-center justify-center gap-1">
-                        <Star className="h-3 w-3" />
-                        Основное
-                      </p>
-                    </div>
-                  )}
-                  
-                  {/* Mobile tap controls overlay for touch devices */}
-                  {isMobileDevice && (
-                    <div className="absolute top-1 right-1 flex gap-1">
-                      {onSetPrimaryImage && primaryImage !== url && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          className="h-6 w-6 rounded-full p-0 bg-white/90 hover:bg-white"
-                          onClick={() => handleSetPrimaryImage(url)}
-                        >
-                          <Star className="h-3 w-3" />
-                        </Button>
-                      )}
-                      
-                      {onImageDelete && existingImages.length > 1 && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="destructive"
-                          className="h-6 w-6 rounded-full p-0 bg-red-500/90 hover:bg-red-500"
-                          onClick={() => onImageDelete(url)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <ExistingImagesGallery
+        existingImages={existingImages}
+        maxImages={maxImages}
+        primaryImage={primaryImage}
+        onSetPrimaryImage={onSetPrimaryImage}
+        onImageDelete={onImageDelete}
+        isMobileDevice={isMobileDevice}
+      />
 
-      {/* Cloudinary Integration Info */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-2 text-sm text-blue-700">
-            <Cloud className="h-4 w-4" />
-            <Sparkles className="h-4 w-4" />
-            <span>Полная интеграция с Cloudinary: автоматическое сжатие до 400KB</span>
-          </div>
-          <div className="mt-2 text-xs text-blue-600">
-            • Основные изображения: сжатие с q_auto:low и f_auto
-          </div>
-          <div className="text-xs text-blue-600">
-            • Превью: автоматическое создание версий 20KB в формате WebP
-          </div>
-          <div className="text-xs text-blue-600">
-            • Без промежуточной загрузки в Supabase Storage
-          </div>
-        </CardContent>
-      </Card>
+      <CloudinaryIntegrationInfo />
 
-      {/* Upload Controls */}
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading || existingImages.length >= maxImages}
-          className="flex-1"
-        >
-          <Cloud className="mr-2 h-4 w-4" />
-          Загрузить в Cloudinary
-        </Button>
-        
-        {isMobileDevice && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => cameraInputRef.current?.click()}
-            disabled={isUploading || existingImages.length >= maxImages}
-          >
-            <Camera className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
+      <UploadControls
+        isUploading={isUploading}
+        existingImagesCount={existingImages.length}
+        maxImages={maxImages}
+        isMobileDevice={isMobileDevice}
+        onFileSelect={() => fileInputRef.current?.click()}
+        onCameraSelect={() => cameraInputRef.current?.click()}
+      />
 
       {/* Hidden file inputs */}
       <input
@@ -442,192 +295,25 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         className="hidden"
       />
 
-      {/* File Preview and Settings */}
-      {showPreview && selectedFiles.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm flex items-center gap-2">
-                Готово к загрузке в Cloudinary: {selectedFiles.length} файлов
-                {selectedFiles.length > 0 && (
-                  <Badge variant="secondary" className="ml-2">
-                    <Star className="h-3 w-3 mr-1" />
-                    1-е = основное
-                  </Badge>
-                )}
-                <Badge variant="outline" className="ml-2">
-                  <Cloud className="h-3 w-3 mr-1" />
-                  400KB + 20KB превью
-                </Badge>
-              </CardTitle>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setSelectedFiles([]);
-                  setShowPreview(false);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* File List */}
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {selectedFiles.map((file, index) => (
-                <div key={index} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
-                  <div className="flex items-center gap-2">
-                    {index === 0 && (
-                      <Star className="h-4 w-4 text-yellow-500" />
-                    )}
-                    <span className="truncate">{file.name}</span>
-                    <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
-                    <Badge variant="outline" className="text-xs">
-                      <Cloud className="h-3 w-3 mr-1" />
-                      →400KB
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+      <FilePreviewCard
+        selectedFiles={selectedFiles}
+        isUploading={isUploading}
+        onClearFiles={clearFiles}
+        onStartUpload={startUpload}
+        formatFileSize={formatFileSize}
+      />
 
-            {/* Upload Button */}
-            <Button
-              onClick={startUpload}
-              disabled={isUploading}
-              className="w-full"
-            >
-              {isUploading ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Загрузка в Cloudinary...
-                </>
-              ) : (
-                <>
-                  <Cloud className="mr-2 h-4 w-4" />
-                  Загрузить {selectedFiles.length} файлов в Cloudinary
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+      <UploadProgressCard
+        uploadProgress={uploadProgress}
+        isUploading={isUploading}
+        onClearProgress={clearProgress}
+        formatFileSize={formatFileSize}
+      />
 
-      {/* Upload Progress */}
-      {uploadProgress.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
-              Прогресс загрузки в Cloudinary
-              <Badge variant="outline" className="text-xs">
-                <Cloud className="h-3 w-3 mr-1" />
-                Автоматическое сжатие
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Overall Progress */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Общий прогресс</span>
-                <span>{Math.round(overallProgress)}%</span>
-              </div>
-              <Progress value={overallProgress} className="h-2" />
-              
-              {/* Status Summary */}
-              <div className="flex flex-wrap gap-2 text-xs">
-                {successCount > 0 && (
-                  <Badge variant="default" className="flex items-center gap-1 bg-green-500">
-                    <CheckCircle className="h-3 w-3" />
-                    {successCount} успешно
-                  </Badge>
-                )}
-                {uploadingCount > 0 && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    <RefreshCw className="h-3 w-3 animate-spin" />
-                    {uploadingCount} загружается
-                  </Badge>
-                )}
-                {errorCount > 0 && (
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <XCircle className="h-3 w-3" />
-                    {errorCount} ошибок
-                  </Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Individual File Progress */}
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {uploadProgress.map((progress) => (
-                <div key={progress.fileId} className="border rounded p-2 space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="truncate flex-1 mr-2">{progress.fileName}</span>
-                    <div className="flex items-center gap-2">
-                      {progress.isPrimary && (
-                        <Badge variant="outline" className="text-xs">
-                          <Star className="h-3 w-3 mr-1" />
-                          Основное
-                        </Badge>
-                      )}
-                      {progress.cloudinaryUrl && (
-                        <Badge variant="default" className="text-xs bg-green-500">
-                          <Cloud className="h-3 w-3 mr-1" />
-                          Cloudinary
-                        </Badge>
-                      )}
-                      <span className="text-xs">{progress.progress}%</span>
-                    </div>
-                  </div>
-                  
-                  <Progress value={progress.progress} className="h-1" />
-                  
-                  {progress.status === 'error' && progress.error && (
-                    <div className="text-xs text-red-600 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3" />
-                      {progress.error}
-                    </div>
-                  )}
-                  
-                  {progress.fileSize && (
-                    <div className="text-xs text-gray-500">
-                      Оригинал: {formatFileSize(progress.fileSize)} → ~400KB + 20KB превью
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Clear Progress Button */}
-            {!isUploading && uploadProgress.every(p => p.status === 'success' || p.status === 'error') && (
-              <Button
-                variant="outline"
-                onClick={() => setUploadProgress([])}
-                className="w-full"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Очистить прогресс
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Usage Info */}
-      <div className="text-xs text-gray-500 space-y-1">
-        <div>Загружено: {existingImages.length} / {maxImages} изображений</div>
-        <div className="flex items-center gap-1">
-          <Cloud className="h-3 w-3 text-blue-500" />
-          🎯 Все изображения автоматически сжимаются до ~400KB через Cloudinary
-        </div>
-        <div className="flex items-center gap-1">
-          <Sparkles className="h-3 w-3 text-yellow-500" />
-          🖼️ Превью 20KB создается автоматически в формате WebP
-        </div>
-        <div>💡 Никаких промежуточных загрузок - сразу в Cloudinary с оптимизацией</div>
-      </div>
+      <UsageInfo
+        existingImagesCount={existingImages.length}
+        maxImages={maxImages}
+      />
     </div>
   );
 };
