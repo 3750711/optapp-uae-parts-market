@@ -29,7 +29,7 @@ export const generateProductPreview = async (
       .single();
 
     if (product?.cloudinary_public_id) {
-      // Generate preview URL using Cloudinary transformations
+      // Generate preview URL using Cloudinary transformations (теперь каталожное качество)
       const previewUrl = getPreviewImageUrl(product.cloudinary_public_id);
       
       console.log('✅ Generated Cloudinary preview URL:', {
@@ -55,7 +55,7 @@ export const generateProductPreview = async (
       return {
         success: true,
         previewUrl,
-        previewSize: 15000, // Estimated size for Cloudinary optimized preview
+        previewSize: 22500, // Estimated size for new catalog quality (20-25KB)
         productUpdated: true
       };
     } else {
@@ -81,7 +81,7 @@ export const generateProductPreview = async (
         return {
           success: true,
           previewUrl,
-          previewSize: cloudinaryResult.originalSize || 15000,
+          previewSize: cloudinaryResult.originalSize || 22500,
           productUpdated: true
         };
       } else {

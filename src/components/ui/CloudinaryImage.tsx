@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { getProductImageUrl, getResponsiveImageUrls, getCatalogImageUrl } from '@/utils/cloudinaryUtils';
+import { getProductImageUrl, getResponsiveImageUrls, getPreviewImageUrl } from '@/utils/cloudinaryUtils';
 
 interface CloudinaryImageProps {
   publicId: string;
@@ -70,9 +70,9 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     );
   }
 
-  // Use new catalog function for 'card' size, old function for others
+  // Use preview for 'card' size (каталожное качество), old function for others
   const imageUrl = size === 'card' 
-    ? getCatalogImageUrl(publicId)
+    ? getPreviewImageUrl(publicId)
     : getProductImageUrl(publicId, size);
 
   return (

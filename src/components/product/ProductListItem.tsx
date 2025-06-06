@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -35,20 +34,19 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  // Get catalog image with improved Cloudinary optimization (20-25KB)
+  // Use preview_image_url for catalog display (20-25KB)
   const catalogImage = React.useMemo(() => {
-    // Always use Cloudinary catalog quality if available
-    if (product.cloudinary_public_id) {
-      return getCatalogImageUrl(product.cloudinary_public_id);
+    // Приоритет preview_image_url если есть
+    if (product.preview_image_url) {
+      return product.preview_image_url;
     }
     
-    // Fallback only if no Cloudinary public_id
+    // Fallback только если нет preview_image_url
     const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
     return primaryImageData?.url || 
            product.image || 
-           product.preview_image_url ||
            "/placeholder.svg";
-  }, [product.cloudinary_public_id, product.product_images, product.image, product.preview_image_url]);
+  }, [product.preview_image_url, product.product_images, product.image]);
 
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">

@@ -36,15 +36,6 @@ export const buildCloudinaryUrl = (publicId: string, transformations: Cloudinary
 // Predefined transformations for different use cases (all optimized for file size)
 export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'preview' | 'compressed' = 'card'): string => {
   const transformations: Record<string, CloudinaryTransformation> = {
-    // ~20KB preview
-    preview: {
-      width: 200,
-      height: 150,
-      crop: 'fill',
-      gravity: 'auto',
-      quality: 60,
-      format: 'webp'
-    },
     // ~50KB thumbnail
     thumbnail: {
       width: 150,
@@ -75,6 +66,16 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       format: 'auto',
       dpr: 'auto'
     },
+    // ~20-25KB preview (каталожное качество)
+    preview: {
+      width: 400,
+      height: 300,
+      crop: 'fill',
+      gravity: 'auto',
+      quality: 'auto:good',
+      format: 'webp',
+      dpr: 'auto'
+    },
     // ~400KB compressed (main storage format)
     compressed: {
       crop: 'fill',
@@ -85,19 +86,6 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
   };
   
   return buildCloudinaryUrl(publicId, transformations[size]);
-};
-
-// NEW: Optimized catalog image URL (20-25KB, better quality than preview)
-export const getCatalogImageUrl = (publicId: string): string => {
-  return buildCloudinaryUrl(publicId, {
-    width: 400,
-    height: 300,
-    crop: 'fill',
-    gravity: 'auto',
-    quality: 'auto:good',
-    format: 'webp',
-    dpr: 'auto'
-  });
 };
 
 // Generate responsive image URLs for different screen sizes
@@ -133,14 +121,14 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// Generate preview URL (small, optimized for fast loading - 5-10KB, для миниатюр)
+// Updated preview URL (теперь каталожное качество 20-25KB)
 export const getPreviewImageUrl = (publicId: string): string => {
   return buildCloudinaryUrl(publicId, {
-    width: 200,
-    height: 150,
+    width: 400,
+    height: 300,
     crop: 'fill',
     gravity: 'auto',
-    quality: 60,
+    quality: 'auto:good',
     format: 'webp'
   });
 };
@@ -159,7 +147,6 @@ export const getCompressedImageUrl = (publicId: string): string => {
 export const getBatchImageUrls = (publicId: string) => {
   return {
     preview: getPreviewImageUrl(publicId),
-    catalog: getCatalogImageUrl(publicId), // NEW: catalog size
     thumbnail: getProductImageUrl(publicId, 'thumbnail'),
     card: getProductImageUrl(publicId, 'card'),
     detail: getProductImageUrl(publicId, 'detail'),
