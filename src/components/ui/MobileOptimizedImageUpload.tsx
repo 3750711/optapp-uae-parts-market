@@ -1,8 +1,6 @@
-
 import React, { useCallback, useRef, useState } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
-import { getPreviewImageUrl, getBatchImageUrls } from "@/utils/cloudinaryUtils";
 import { ExistingImagesGallery } from "./image-upload/ExistingImagesGallery";
 import { CloudinaryIntegrationInfo } from "./image-upload/CloudinaryIntegrationInfo";
 import { UploadControls } from "./image-upload/UploadControls";
@@ -118,7 +116,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       // Create custom public_id
       const customPublicId = `product_${productId || Date.now()}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      // Upload directly to Cloudinary
+      // Upload directly to Cloudinary using the file object
       const result = await uploadDirectToCloudinary(file, productId, customPublicId);
 
       if (result.success && result.cloudinaryUrl && result.publicId) {

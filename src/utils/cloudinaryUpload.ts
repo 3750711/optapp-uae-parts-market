@@ -19,29 +19,50 @@ interface CloudinaryUploadResult {
   error?: string;
 }
 
-export const uploadToCloudinary = async (
-  imageUrl: string, 
+// Convert file to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Remove data:image/...;base64, prefix
+      const base64 = result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = error => reject(error);
+  });
+};
+
+// Direct upload to Cloudinary using base64 data
+export const uploadDirectToCloudinary = async (
+  file: File,
   productId?: string,
-  customPublicId?: string,
-  createVariants: boolean = true
+  customPublicId?: string
 ): Promise<CloudinaryUploadResult> => {
   try {
-    console.log('🚀 Starting full Cloudinary integration upload:', {
-      imageUrl: imageUrl.substring(0, 50) + '...',
+    console.log('📤 Converting file to base64 for Cloudinary upload:', {
+      fileName: file.name,
+      fileSize: file.size,
       productId,
-      customPublicId,
-      createVariants
+      customPublicId
     });
 
+    // Convert file to base64
+    const fileData = await fileToBase64(file);
+    
     // Generate public_id if not provided
     const publicId = customPublicId || `product_${productId || Date.now()}_${Math.random().toString(36).substring(7)}`;
     
+    console.log('☁️ Sending to Cloudinary edge function...');
+    
     const { data, error } = await supabase.functions.invoke('upload-to-cloudinary', {
       body: { 
-        imageUrl,
+        fileData,
+        fileName: file.name,
         productId,
         publicId,
-        createVariants
+        createVariants: true
       }
     });
 
@@ -61,7 +82,7 @@ export const uploadToCloudinary = async (
     }
 
     if (data?.success) {
-      console.log('✅ Full Cloudinary integration SUCCESS:', {
+      console.log('✅ Direct Cloudinary upload SUCCESS:', {
         cloudinaryUrl: data.cloudinaryUrl,
         publicId: data.publicId,
         format: data.format,
@@ -88,7 +109,7 @@ export const uploadToCloudinary = async (
       };
     }
   } catch (error) {
-    console.error('💥 EXCEPTION in uploadToCloudinary:', error);
+    console.error('💥 EXCEPTION in uploadDirectToCloudinary:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -96,32 +117,29 @@ export const uploadToCloudinary = async (
   }
 };
 
-// Direct upload to Cloudinary (bypassing Supabase Storage completely)
-export const uploadDirectToCloudinary = async (
-  file: File,
+// Legacy function for backward compatibility - now uses direct upload
+export const uploadToCloudinary = async (
+  imageUrl: string, 
   productId?: string,
-  customPublicId?: string
+  customPublicId?: string,
+  createVariants: boolean = true
 ): Promise<CloudinaryUploadResult> => {
+  console.log('⚠️ uploadToCloudinary called with URL - this should use direct file upload instead');
+  
   try {
-    console.log('📤 Direct upload to Cloudinary:', {
-      fileName: file.name,
-      fileSize: file.size,
-      productId,
-      customPublicId
-    });
-
-    // Create a blob URL for the file
-    const blobUrl = URL.createObjectURL(file);
-    
-    try {
-      const result = await uploadToCloudinary(blobUrl, productId, customPublicId, true);
-      return result;
-    } finally {
-      // Clean up blob URL
-      URL.revokeObjectURL(blobUrl);
+    // If it's a blob URL, we can't process it on the server
+    if (imageUrl.startsWith('blob:')) {
+      throw new Error('Blob URLs are not supported. Use uploadDirectToCloudinary with the actual file instead.');
     }
+    
+    // For other URLs (external images), we could potentially support them
+    // but for now, recommend using direct upload
+    return {
+      success: false,
+      error: 'URL-based uploads are deprecated. Use uploadDirectToCloudinary with file objects instead.'
+    };
   } catch (error) {
-    console.error('💥 Direct upload error:', error);
+    console.error('💥 EXCEPTION in uploadToCloudinary:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

@@ -12,21 +12,22 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Cloudinary upload function started (Full Integration Mode)');
+    console.log('🚀 Cloudinary upload function started (Direct Base64 Upload)');
     
-    const { imageUrl, productId, publicId, createVariants = true } = await req.json();
+    const { fileData, fileName, productId, publicId, createVariants = true } = await req.json();
     
     console.log('📋 Request params:', {
-      imageUrl: imageUrl ? `${imageUrl.substring(0, 50)}...` : 'undefined',
+      fileName: fileName || 'undefined',
       productId: productId || 'undefined',
       publicId: publicId || 'undefined',
-      createVariants
+      createVariants,
+      hasFileData: !!fileData
     });
     
-    if (!imageUrl) {
-      console.error('❌ No imageUrl provided');
+    if (!fileData) {
+      console.error('❌ No fileData provided');
       return new Response(
-        JSON.stringify({ success: false, error: 'Image URL is required' }),
+        JSON.stringify({ success: false, error: 'File data is required' }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
@@ -64,9 +65,9 @@ serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Upload main image with compression
+    // Upload main image with compression using base64 data
     const formData = new FormData();
-    formData.append('file', imageUrl);
+    formData.append('file', `data:image/jpeg;base64,${fileData}`);
     formData.append('public_id', publicId);
     formData.append('timestamp', timestamp.toString());
     formData.append('api_key', apiKey);
@@ -153,7 +154,7 @@ serve(async (req) => {
       }
     }
     
-    console.log('🎉 SUCCESS! Full Cloudinary integration completed:', {
+    console.log('🎉 SUCCESS! Direct base64 Cloudinary upload completed:', {
       publicId: result.publicId,
       format: result.format,
       sizeKB: Math.round(result.originalSize / 1024),
