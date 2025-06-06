@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
 
 interface CloudinaryUploadProgress {
   fileId: string;
@@ -16,7 +16,6 @@ interface CloudinaryUploadProgress {
 
 interface CloudinaryUploadOptions {
   productId?: string;
-  uploadToCloudinary?: boolean;
 }
 
 export const useCloudinaryUpload = () => {
@@ -29,36 +28,30 @@ export const useCloudinaryUpload = () => {
     options: CloudinaryUploadOptions = {}
   ): Promise<string> => {
     try {
-      console.log('🚀 Starting Cloudinary-only upload process for:', file.name);
+      console.log('🚀 Starting direct Cloudinary upload for:', file.name);
 
       // Update progress - starting upload
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 10 }
+          ? { ...p, status: 'uploading', progress: 20 }
           : p
       ));
-
-      // Create a blob URL for direct Cloudinary upload
-      const blobUrl = URL.createObjectURL(file);
 
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, progress: 50, url: blobUrl }
+          ? { ...p, progress: 50 }
           : p
       ));
 
-      // Upload directly to Cloudinary
+      // Upload directly to Cloudinary using the file object
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
           ? { ...p, status: 'processing', progress: 70 }
           : p
       ));
 
-      console.log('☁️ Starting Cloudinary upload...');
-      const cloudinaryResult = await uploadToCloudinary(blobUrl, options.productId);
-
-      // Clean up blob URL
-      URL.revokeObjectURL(blobUrl);
+      console.log('☁️ Uploading to Cloudinary with file object...');
+      const cloudinaryResult = await uploadDirectToCloudinary(file, options.productId);
 
       if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
         console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
