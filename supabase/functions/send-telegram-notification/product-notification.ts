@@ -6,15 +6,15 @@
 // Any changes may affect the product notification system that sends
 // messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.1.2
-// Last Verified Working: 2025-05-25
-// Change: Updated telegram accounts list to show real handles
+// Version: 1.2.0
+// Last Verified Working: 2025-06-06
+// Change: Added video support to product notifications
 // ================================================================
 
 // Handler for product notifications
 
 import { BOT_TOKEN, MIN_IMAGES_REQUIRED, PRODUCT_GROUP_CHAT_ID } from "./config.ts";
-import { sendImageMediaGroups } from "./telegram-api.ts";
+import { sendImageMediaGroups, sendVideoMediaGroups } from "./telegram-api.ts";
 
 /**
  * Handles product status change notifications
@@ -156,7 +156,8 @@ export async function handleProductNotification(productId: string, notificationT
       lotNumber: product.lot_number,
       optId: product.optid_created || '',
       telegram: product.telegram_url || '',
-      status: product.status
+      status: product.status,
+      hasVideos: videos.length > 0 ? videos.length : 0
     };
     
     messageText = [
@@ -166,10 +167,11 @@ export async function handleProductNotification(productId: string, notificationT
       `🚚 Цена доставки: ${messageData.deliveryPrice} $`,
       `🆔 OPT_ID продавца: ${messageData.optId}`,
       `👤 Telegram продавца: ${getTelegramForDisplay(messageData.telegram)}`,
+      messageData.hasVideos ? `📹 Количество видео: ${messageData.hasVideos}` : '',
       '',
       `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
              messageData.status === 'sold' ? 'Продан' : 'На модерации'}`
-    ].join('\n');
+    ].filter(line => line !== '').join('\n');
   }
   
   console.log('Sending message to Telegram:', messageText);
@@ -221,8 +223,8 @@ export async function handleProductNotification(productId: string, notificationT
     }
   }
 
-  // For regular product notifications, continue with image processing and send to PRODUCT_GROUP_CHAT_ID
-  return await sendImageMediaGroups(
+  // First send images through sendImageMediaGroups
+  const imagesResult = await sendImageMediaGroups(
     images.map((image: any) => image.url), 
     messageText, 
     supabaseClient, 
@@ -231,4 +233,33 @@ export async function handleProductNotification(productId: string, notificationT
     corsHeaders,
     BOT_TOKEN
   );
+
+  // If there are videos, send them after images
+  if (videos && videos.length > 0) {
+    console.log(`Found ${videos.length} videos, sending them after images`);
+    
+    try {
+      // Wait a short time after sending images before sending videos
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Then send videos (with a short caption)
+      const videoCaption = `📹 Видео для лота #${product.lot_number}: ${product.title}${formatBrandModel(product.brand, product.model)}`;
+      
+      await sendVideoMediaGroups(
+        videos.map((video: any) => video.url),
+        videoCaption,
+        PRODUCT_GROUP_CHAT_ID,
+        corsHeaders,
+        BOT_TOKEN
+      );
+      
+      console.log('Videos sent successfully');
+    } catch (videoError) {
+      console.error('Error sending videos:', videoError);
+      // We don't fail the whole notification if videos fail since images were sent
+    }
+  }
+
+  // Return the result from sending images (even if videos fail, we consider it success)
+  return imagesResult;
 }
