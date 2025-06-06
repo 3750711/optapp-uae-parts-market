@@ -140,7 +140,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <OptimizedImage
                   src={index === 0 ? catalogImage : imageUrl}
                   alt={`${product.title} ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-gray-50"
                   onError={handleImageError}
                   onLoad={handleImageLoad}
                   priority={index === 0}
@@ -171,7 +171,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <OptimizedImage
           src={catalogImage}
           alt={product.title}
-          className="w-full h-full transition-transform duration-300 group-hover:scale-105 object-cover"
+          className="w-full h-full transition-transform duration-300 group-hover:scale-105 object-contain bg-gray-50"
           onError={handleImageError}
           onLoad={handleImageLoad}
           priority={false}

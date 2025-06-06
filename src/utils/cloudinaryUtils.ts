@@ -66,11 +66,11 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       format: 'auto',
       dpr: 'auto'
     },
-    // ~20-25KB preview (каталожное качество)
+    // ~20-25KB preview (каталожное качество без обрезания)
     preview: {
       width: 400,
       height: 300,
-      crop: 'fill',
+      crop: 'fit',
       gravity: 'auto',
       quality: 'auto:good',
       format: 'webp',
@@ -94,7 +94,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
     mobile: buildCloudinaryUrl(publicId, {
       width: 400,
       height: 300,
-      crop: 'fill',
+      crop: 'fit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'auto',
@@ -103,7 +103,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
     tablet: buildCloudinaryUrl(publicId, {
       width: 600,
       height: 450,
-      crop: 'fill',
+      crop: 'fit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'auto',
@@ -112,7 +112,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
     desktop: buildCloudinaryUrl(publicId, {
       width: 800,
       height: 600,
-      crop: 'fill',
+      crop: 'fit',
       gravity: 'auto',
       quality: 'auto:low',
       format: 'auto',
@@ -121,12 +121,12 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// Updated preview URL (теперь каталожное качество 20-25KB)
+// Обновленная preview URL (теперь без обрезания, показывает полное изображение)
 export const getPreviewImageUrl = (publicId: string): string => {
   return buildCloudinaryUrl(publicId, {
     width: 400,
     height: 300,
-    crop: 'fill',
+    crop: 'fit',
     gravity: 'auto',
     quality: 'auto:good',
     format: 'webp'

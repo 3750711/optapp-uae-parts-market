@@ -48,12 +48,12 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // Fallback to regular image
+  // Fallback to regular image with object-contain
   return (
     <img
       src={src}
       alt={alt}
-      className={className}
+      className={`${className} object-contain`}
       onLoad={onLoad}
       onError={handleImageError}
       loading={priority ? 'eager' : 'lazy'}

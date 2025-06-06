@@ -51,12 +51,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Изображение товара - используем каталожное качество */}
+        {/* Изображение товара - используем каталожное качество без обрезания */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
           <OptimizedImage
             src={catalogImage}
             alt={product.title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain bg-gray-50"
             cloudinaryPublicId={product.cloudinary_public_id || undefined}
             size="card"
             priority={false}

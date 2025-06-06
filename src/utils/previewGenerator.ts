@@ -15,7 +15,7 @@ export const generateProductPreview = async (
   productId: string
 ): Promise<PreviewGenerationResult> => {
   try {
-    console.log('🎨 Starting preview generation:', {
+    console.log('🎨 Starting preview generation (fit mode):', {
       imageUrl: imageUrl.substring(0, 50) + '...',
       productId,
       timestamp: new Date().toISOString()
@@ -29,14 +29,14 @@ export const generateProductPreview = async (
       .single();
 
     if (product?.cloudinary_public_id) {
-      // Generate preview URL using NEW Cloudinary transformations (400x300, auto:good, webp)
+      // Generate preview URL using NEW Cloudinary transformations (400x300, fit, auto:good, webp)
       const previewUrl = getPreviewImageUrl(product.cloudinary_public_id);
       
-      console.log('✅ Generated NEW Cloudinary preview URL:', {
+      console.log('✅ Generated NEW Cloudinary preview URL (fit mode):', {
         publicId: product.cloudinary_public_id,
         previewUrl,
         productId,
-        parameters: '400x300, quality auto:good, format webp'
+        parameters: '400x300, crop fit, quality auto:good, format webp'
       });
 
       // Update product with preview URL
@@ -74,11 +74,11 @@ export const generateProductPreview = async (
         // Use NEW preview URL generation for uploaded images
         const previewUrl = getPreviewImageUrl(cloudinaryResult.publicId);
         
-        console.log('✅ Uploaded to Cloudinary and generated NEW preview:', {
+        console.log('✅ Uploaded to Cloudinary and generated NEW preview (fit mode):', {
           publicId: cloudinaryResult.publicId,
           previewUrl,
           productId,
-          parameters: '400x300, quality auto:good, format webp'
+          parameters: '400x300, crop fit, quality auto:good, format webp'
         });
 
         return {

@@ -45,7 +45,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
       <img
         src={fallbackSrc}
         alt={alt}
-        className={className}
+        className={`${className} object-contain`}
         onLoad={handleImageLoad}
         loading={priority ? 'eager' : 'lazy'}
       />
@@ -61,7 +61,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
         <img
           src={urls.desktop}
           alt={alt}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain"
           onLoad={handleImageLoad}
           onError={handleImageError}
           loading={priority ? 'eager' : 'lazy'}
@@ -70,7 +70,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     );
   }
 
-  // Use preview for 'card' size (каталожное качество), old function for others
+  // Use preview for 'card' size (каталожное качество без обрезания), old function for others
   const imageUrl = size === 'card' 
     ? getPreviewImageUrl(publicId)
     : getProductImageUrl(publicId, size);
@@ -79,7 +79,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     <img
       src={imageUrl}
       alt={alt}
-      className={className}
+      className={`${className} object-contain`}
       onLoad={handleImageLoad}
       onError={handleImageError}
       loading={priority ? 'eager' : 'lazy'}
