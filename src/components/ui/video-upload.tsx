@@ -1,8 +1,10 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Video, Upload, X, Loader2, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 interface VideoUploadProps {
   videos: string[];
@@ -11,6 +13,11 @@ interface VideoUploadProps {
   maxVideos?: number;
   storageBucket: string;
   storagePrefix?: string;
+  showOnlyButton?: boolean;
+  showGalleryOnly?: boolean;
+  buttonText?: string;
+  buttonIcon?: React.ReactNode;
+  className?: string;
 }
 
 export const VideoUpload: React.FC<VideoUploadProps> = ({
@@ -19,7 +26,12 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
   onDelete,
   maxVideos = 3,
   storageBucket = "Product Images",
-  storagePrefix = ""
+  storagePrefix = "",
+  showOnlyButton = false,
+  showGalleryOnly = false,
+  buttonText = "Загрузить видео",
+  buttonIcon = <Video className="h-4 w-4" />,
+  className
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -44,7 +56,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     try {
       const uploadedUrls: string[] = [];
 
-      // Сначала проверяем, аутентифицирован ли пользователь
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast({
@@ -98,9 +109,8 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
 
   const handleDelete = async (url: string) => {
     try {
-      // Извлекаем путь файла из URL
       const fileUrl = new URL(url);
-      const filePath = fileUrl.pathname.slice(1); // Remove leading slash
+      const filePath = fileUrl.pathname.slice(1);
 
       const { error } = await supabase.storage
         .from(storageBucket)
@@ -129,7 +139,6 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     }
   };
   
-  // Функция для запуска выбора файлов
   const handleChooseVideos = () => {
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -137,8 +146,61 @@ export const VideoUpload: React.FC<VideoUploadProps> = ({
     }
   };
 
+  // Показывать только кнопку
+  if (showOnlyButton) {
+    return (
+      <div className={cn("w-full", className)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleChooseVideos}
+          disabled={uploading || videos.length >= maxVideos}
+          className="w-full h-12"
+        >
+          {uploading ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            buttonIcon
+          )}
+          {uploading ? `Загрузка... ${uploadProgress}%` : buttonText}
+        </Button>
+        
+        <input
+          type="file"
+          accept="video/*"
+          multiple
+          className="hidden"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          disabled={uploading}
+        />
+      </div>
+    );
+  }
+
+  // Показывать только галерею
+  if (showGalleryOnly && videos.length > 0) {
+    return (
+      <div className={cn("grid grid-cols-1 md:grid-cols-3 gap-4", className)}>
+        {videos.map((url, i) => (
+          <div key={i} className="relative aspect-video rounded-lg overflow-hidden border">
+            <video src={url} controls className="w-full h-full object-cover" />
+            <button
+              type="button"
+              onClick={() => handleDelete(url)}
+              className="absolute top-1 right-1 bg-black bg-opacity-50 rounded-full p-1 text-white hover:bg-opacity-70"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // Полный компонент (по умолчанию)
   return (
-    <div className="space-y-2">
+    <div className={cn("space-y-2", className)}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {videos.map((url, i) => (
           <div key={i} className="relative aspect-video rounded-lg overflow-hidden border">

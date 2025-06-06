@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -7,7 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { useOptimizedBrandSearch } from "@/hooks/useOptimizedBrandSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
-import MobileOptimizedForm from "@/components/ui/MobileOptimizedForm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSection";
 import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
 import MediaSection from "./form/MediaSection";
@@ -105,28 +104,12 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
           
-          {/* МЕДИА ФАЙЛЫ - ПЕРВАЯ СЕКЦИЯ */}
-          <MobileOptimizedForm title="Фотографии товара" defaultOpen={true}>
-            <div className="space-y-4">
-              {!hasImages && (
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-blue-800 font-medium text-center">
-                    📸 Сначала добавьте фотографии товара
-                  </p>
-                  <p className="text-blue-600 text-sm text-center mt-1">
-                    Минимум 1 фото, максимум 30 фото
-                  </p>
-                </div>
-              )}
-              
-              {hasImages && (
-                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-800 font-medium text-center">
-                    ✅ Загружено {imageUrls.length} фото
-                  </p>
-                </div>
-              )}
-              
+          {/* МЕДИА ФАЙЛЫ */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Фотографии и видео товара</CardTitle>
+            </CardHeader>
+            <CardContent>
               <MediaSection
                 imageUrls={imageUrls}
                 videoUrls={videoUrls}
@@ -136,36 +119,38 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
                 onSetPrimaryImage={setPrimaryImage}
                 primaryImage={primaryImage}
               />
-            </div>
-          </MobileOptimizedForm>
+            </CardContent>
+          </Card>
           
           {/* ОСНОВНАЯ ИНФОРМАЦИЯ */}
-          <MobileOptimizedForm 
-            title="Основная информация" 
-            defaultOpen={hasImages}
-            disabled={!hasImages}
-          >
-            <MobileOptimizedBasicInfoSection form={form} />
-          </MobileOptimizedForm>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Основная информация</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MobileOptimizedBasicInfoSection form={form} />
+            </CardContent>
+          </Card>
           
           {/* ИНФОРМАЦИЯ ОБ АВТОМОБИЛЕ */}
-          <MobileOptimizedForm 
-            title="Информация об автомобиле" 
-            defaultOpen={false}
-            disabled={!hasImages}
-          >
-            <MobileOptimizedCarInfoSection
-              form={form}
-              filteredBrands={filteredBrands}
-              filteredModels={filteredModels}
-              searchBrandTerm={searchBrandTerm}
-              setSearchBrandTerm={setSearchBrandTerm}
-              searchModelTerm={searchModelTerm}
-              setSearchModelTerm={setSearchModelTerm}
-              watchBrandId={watchBrandId}
-              isLoadingCarData={isLoadingCarData}
-            />
-          </MobileOptimizedForm>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Информация об автомобиле</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MobileOptimizedCarInfoSection
+                form={form}
+                filteredBrands={filteredBrands}
+                filteredModels={filteredModels}
+                searchBrandTerm={searchBrandTerm}
+                setSearchBrandTerm={setSearchBrandTerm}
+                searchModelTerm={searchModelTerm}
+                setSearchModelTerm={setSearchModelTerm}
+                watchBrandId={watchBrandId}
+                isLoadingCarData={isLoadingCarData}
+              />
+            </CardContent>
+          </Card>
           
           {!isMobile && (
             <Button 
