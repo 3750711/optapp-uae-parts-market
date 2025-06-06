@@ -132,7 +132,7 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Simplified single-step product creation
+  // Updated product creation using RPC functions
   const createProduct = async (values: ProductFormValues) => {
     console.log('🚀 Создание товара с параметрами:', values);
     
@@ -167,64 +167,72 @@ const AdminAddProduct = () => {
         return;
       }
 
-      console.log('🏭 Creating product with images...', {
+      console.log('🏭 Creating product using RPC function...', {
         title: values.title,
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         timestamp: new Date().toISOString()
       });
       
-      // Create product (without seller_id - admin can create products without specific seller)
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .insert({
-          title: values.title,
-          price: parseFloat(values.price),
-          condition: "Новый",
-          brand: selectedBrand.name,
-          model: modelName,
-          description: values.description || null,
-          status: 'active',
-          place_number: parseInt(values.placeNumber),
-          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
-        })
-        .select()
-        .single();
+      // Create product using admin RPC function
+      const { data: productId, error: productError } = await supabase.rpc('admin_create_product', {
+        p_title: values.title,
+        p_price: parseFloat(values.price),
+        p_condition: "Новый",
+        p_brand: selectedBrand.name,
+        p_model: modelName,
+        p_description: values.description || null,
+        p_seller_id: null, // Admin creates products without specific seller
+        p_seller_name: "Admin",
+        p_status: 'active',
+        p_place_number: parseInt(values.placeNumber),
+        p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+      });
 
       if (productError) {
         console.error("Error creating product:", productError);
-        throw productError;
+        throw new Error(`Failed to create product: ${productError.message}`);
       }
 
-      console.log('✅ Product created:', product.id);
+      if (!productId) {
+        throw new Error("Product creation returned no ID");
+      }
 
-      // Add images
+      console.log('✅ Product created with ID:', productId);
+
+      // Add images using admin RPC function
       for (const url of imageUrls) {
-        const { error: imageError } = await supabase
-          .from('product_images')
-          .insert({
-            product_id: product.id,
-            url: url,
-            is_primary: url === primaryImage
-          });
+        const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
+          p_product_id: productId,
+          p_url: url,
+          p_is_primary: url === primaryImage
+        });
           
         if (imageError) {
           console.error('Error adding image:', imageError);
+          toast({
+            title: "Предупреждение",
+            description: `Не удалось добавить изображение: ${imageError.message}`,
+            variant: "destructive",
+          });
         }
       }
 
-      // Add videos if any
+      // Add videos using admin RPC function if any
       if (videoUrls.length > 0) {
         for (const videoUrl of videoUrls) {
-          const { error: videoError } = await supabase
-            .from('product_videos')
-            .insert({
-              product_id: product.id,
-              url: videoUrl
-            });
+          const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
+            p_product_id: productId,
+            p_url: videoUrl
+          });
             
           if (videoError) {
             console.error('Error adding video:', videoError);
+            toast({
+              title: "Предупреждение",
+              description: `Не удалось добавить видео: ${videoError.message}`,
+              variant: "destructive",
+            });
           }
         }
       }
@@ -232,7 +240,7 @@ const AdminAddProduct = () => {
       // Send notification
       try {
         supabase.functions.invoke('send-telegram-notification', {
-          body: { productId: product.id }
+          body: { productId: productId }
         }).catch(notifyError => {
           console.error("Error sending notification:", notifyError);
         });
@@ -245,12 +253,23 @@ const AdminAddProduct = () => {
         description: "Товар успешно опубликован",
       });
 
-      navigate(`/product/${product.id}`);
+      navigate(`/product/${productId}`);
     } catch (error) {
       console.error("Error creating product:", error);
+      
+      let errorMessage = "Не удалось создать товар. Попробуйте позже.";
+      
+      if (error instanceof Error) {
+        if (error.message.includes('Only admins can use this function')) {
+          errorMessage = "У вас нет прав администратора для создания товаров.";
+        } else if (error.message.includes('Failed to create product')) {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Ошибка",
-        description: "Не удалось создать товар. Попробуйте позже.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
