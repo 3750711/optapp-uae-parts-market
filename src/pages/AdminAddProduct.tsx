@@ -9,17 +9,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import { useSellers } from "@/hooks/useSellers";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
-
-// Admin schema requires sellerId
-const adminProductSchema = productSchema.extend({
-  sellerId: z.string().min(1, {
-    message: "Выберите продавца",
-  }),
-});
-
-type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 const AdminAddProduct = () => {
   const navigate = useNavigate();
@@ -30,9 +20,6 @@ const AdminAddProduct = () => {
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
-  
-  // Используем новый хук для загрузки продавцов
-  const { sellers, isLoading: isLoadingSellers } = useSellers();
   
   // Use our custom hook for car brands and models
   const { 
@@ -53,8 +40,8 @@ const AdminAddProduct = () => {
     findModelIdByName
   );
 
-  const form = useForm<AdminProductFormValues>({
-    resolver: zodResolver(adminProductSchema),
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
     defaultValues: {
       title: "",
       price: "",
@@ -63,7 +50,6 @@ const AdminAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
-      sellerId: "", // Изменено обратно на пустую строку
     },
     mode: "onChange",
   });
@@ -71,7 +57,6 @@ const AdminAddProduct = () => {
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
-  const watchSellerId = form.watch("sellerId");
 
   // When title changes, try to detect brand and model
   useEffect(() => {
@@ -117,19 +102,6 @@ const AdminAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
-  // Debug form state changes
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔄 Состояние формы изменилось:', {
-        sellerId: watchSellerId,
-        hasValue: !!watchSellerId,
-        sellerExists: sellers.some(s => s.id === watchSellerId),
-        sellersCount: sellers.length,
-        isLoadingSellers
-      });
-    }
-  }, [watchSellerId, sellers, isLoadingSellers]);
-
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
     console.log('📷 New images uploaded:', {
       urls,
@@ -161,12 +133,8 @@ const AdminAddProduct = () => {
   };
 
   // Simplified single-step product creation
-  const createProduct = async (values: AdminProductFormValues) => {
-    console.log('🚀 Создание товара с параметрами:', {
-      ...values,
-      sellersAvailable: sellers.length,
-      selectedSellerExists: sellers.some(s => s.id === values.sellerId)
-    });
+  const createProduct = async (values: ProductFormValues) => {
+    console.log('🚀 Создание товара с параметрами:', values);
     
     if (imageUrls.length === 0) {
       toast({
@@ -177,28 +145,11 @@ const AdminAddProduct = () => {
       return;
     }
 
-    if (!values.sellerId) {
-      toast({
-        title: "Ошибка",
-        description: "Выберите продавца",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
-      
-      console.log('👤 Выбранный продавец:', {
-        sellerId: values.sellerId,
-        sellerFound: !!selectedSeller,
-        sellerName: selectedSeller?.full_name,
-        sellerOptId: selectedSeller?.opt_id
-      });
       
       // Model is optional
       let modelName = null;
@@ -216,25 +167,14 @@ const AdminAddProduct = () => {
         return;
       }
 
-      if (!selectedSeller) {
-        toast({
-          title: "Ошибка",
-          description: "Выбранный продавец не найден",
-          variant: "destructive",
-        });
-        return;
-      }
-
       console.log('🏭 Creating product with images...', {
         title: values.title,
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
-        sellerId: values.sellerId,
-        sellerName: selectedSeller?.full_name,
         timestamp: new Date().toISOString()
       });
       
-      // Create product
+      // Create product (without seller_id - admin can create products without specific seller)
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -244,8 +184,6 @@ const AdminAddProduct = () => {
           brand: selectedBrand.name,
           model: modelName,
           description: values.description || null,
-          seller_id: values.sellerId,
-          seller_name: selectedSeller?.full_name,
           status: 'active',
           place_number: parseInt(values.placeNumber),
           delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
@@ -304,7 +242,7 @@ const AdminAddProduct = () => {
 
       toast({
         title: "Товар создан",
-        description: `Товар успешно опубликован от лица продавца ${selectedSeller?.full_name}`,
+        description: "Товар успешно опубликован",
       });
 
       navigate(`/product/${product.id}`);
@@ -326,31 +264,6 @@ const AdminAddProduct = () => {
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
           
-          {/* Отладочная информация */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mb-4 p-2 bg-gray-100 rounded text-sm font-mono">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <strong>Загрузка:</strong> {isLoadingSellers ? 'Да' : 'Нет'}
-                </div>
-                <div>
-                  <strong>Продавцы:</strong> {sellers.length}
-                </div>
-                <div>
-                  <strong>Выбранный ID:</strong> {watchSellerId || 'не выбран'}
-                </div>
-                <div>
-                  <strong>Продавец найден:</strong> {watchSellerId && sellers.some(s => s.id === watchSellerId) ? 'Да' : 'Нет'}
-                </div>
-              </div>
-              {watchSellerId && (
-                <div className="mt-2">
-                  <strong>Выбранный продавец:</strong> {sellers.find(s => s.id === watchSellerId)?.full_name || 'не найден'}
-                </div>
-              )}
-            </div>
-          )}
-          
           <OptimizedAddProductForm
             form={form}
             onSubmit={createProduct}
@@ -370,9 +283,7 @@ const AdminAddProduct = () => {
             primaryImage={primaryImage}
             setPrimaryImage={setPrimaryImage}
             onImageDelete={removeImage}
-            sellers={sellers}
-            isLoadingSellers={isLoadingSellers}
-            showSellerSelect={true}
+            showSellerSelect={false}
           />
         </div>
       </div>

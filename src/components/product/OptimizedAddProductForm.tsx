@@ -1,3 +1,4 @@
+
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -11,7 +12,6 @@ import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSect
 import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
 import MediaSection from "./form/MediaSection";
 import StickyMobileActions from "@/components/ui/StickyMobileActions";
-import SimpleSellerSelect from "@/components/admin/SimpleSellerSelect";
 
 // Product form schema with zod validation
 export const productSchema = z.object({
@@ -36,7 +36,6 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
-  sellerId: z.string().optional(),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -60,8 +59,6 @@ interface OptimizedAddProductFormProps {
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
-  sellers?: Array<{id: string, full_name: string, opt_id?: string}>;
-  isLoadingSellers?: boolean;
   showSellerSelect?: boolean;
 }
 
@@ -84,8 +81,6 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   primaryImage,
   setPrimaryImage,
   onImageDelete,
-  sellers = [],
-  isLoadingSellers = false,
   showSellerSelect = false
 }) => {
   const isMobile = useIsMobile();
@@ -111,22 +106,6 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
-          
-          {/* ПРОДАВЕЦ - только для администратора */}
-          {showSellerSelect && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Продавец</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SimpleSellerSelect
-                  form={form}
-                  sellers={sellers}
-                  isLoading={isLoadingSellers}
-                />
-              </CardContent>
-            </Card>
-          )}
           
           {/* МЕДИА ФАЙЛЫ */}
           <Card>
