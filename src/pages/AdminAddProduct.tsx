@@ -50,7 +50,6 @@ const AdminAddProduct = () => {
   const [sellers, setSellers] = useState<{ id: string; full_name: string }[]>([]);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
-  const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
   // Use our custom hook for car brands and models
@@ -356,8 +355,6 @@ const AdminAddProduct = () => {
             setPrimaryImage={setPrimaryImage}
             onImageDelete={removeImage}
             sellers={sellers}
-            searchSellerTerm={searchSellerTerm}
-            setSearchSellerTerm={setSearchSellerTerm}
             showSellerSelection={true}
           />
         </div>

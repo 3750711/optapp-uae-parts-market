@@ -8,11 +8,20 @@ import { Form } from "@/components/ui/form";
 import { useOptimizedBrandSearch } from "@/hooks/useOptimizedBrandSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSection";
-import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
 import StickyMobileActions from "@/components/ui/StickyMobileActions";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import VideoUpload from "@/components/ui/video-upload";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import EnhancedVirtualizedSelect from "@/components/ui/EnhancedVirtualizedSelect";
 
 // Product form schema with zod validation
 export const productSchema = z.object({
@@ -37,7 +46,9 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
-  sellerId: z.string().optional(), // Add sellerId field for admin form
+  sellerId: z.string().min(1, {
+    message: "Выберите продавца",
+  }),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -61,10 +72,7 @@ interface OptimizedAddProductFormProps {
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
-  // Add seller selection props for admin form
   sellers?: Array<{id: string, full_name: string}>;
-  searchSellerTerm?: string;
-  setSearchSellerTerm?: (term: string) => void;
   showSellerSelection?: boolean;
 }
 
@@ -88,8 +96,6 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   setPrimaryImage,
   onImageDelete,
   sellers = [],
-  searchSellerTerm = "",
-  setSearchSellerTerm,
   showSellerSelection = false
 }) => {
   const isMobile = useIsMobile();
@@ -101,16 +107,6 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     watchBrandId
   );
 
-  // Filter sellers based on search term
-  const filteredSellers = React.useMemo(() => {
-    if (!searchSellerTerm) return sellers;
-    
-    const term = searchSellerTerm.toLowerCase();
-    return sellers.filter(seller =>
-      seller.full_name.toLowerCase().includes(term)
-    );
-  }, [sellers, searchSellerTerm]);
-
   const handleSubmit = useCallback((values: ProductFormValues) => {
     onSubmit(values);
   }, [onSubmit]);
@@ -121,24 +117,214 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
 
   const hasImages = imageUrls.length > 0;
 
+  // Популярные бренды
+  const POPULAR_BRANDS = [
+    "toyota", "honda", "ford", "chevrolet", "nissan", 
+    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
+  ];
+
+  const popularBrandIds = filteredBrands
+    .filter(brand => POPULAR_BRANDS.includes(brand.name.toLowerCase()))
+    .map(brand => brand.id);
+
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
           
-          {/* ОСНОВНАЯ ИНФОРМАЦИЯ + ФОТОГРАФИИ */}
+          {/* ЕДИНЫЙ БЛОК СО ВСЕЙ ИНФОРМАЦИЕЙ */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Основная информация и фотографии</CardTitle>
+              <CardTitle className="text-lg">Информация о товаре</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Основные поля формы */}
-              <MobileOptimizedBasicInfoSection 
-                form={form} 
-                sellers={filteredSellers}
-                searchSellerTerm={searchSellerTerm}
-                setSearchSellerTerm={setSearchSellerTerm}
-                showSellerSelection={showSellerSelection}
+              
+              {/* Выбор продавца - только для админа */}
+              {showSellerSelection && (
+                <FormField
+                  control={form.control}
+                  name="sellerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Продавец *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="text-base">
+                            <SelectValue placeholder="Выберите продавца" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {sellers.map((seller) => (
+                            <SelectItem key={seller.id} value={seller.id}>
+                              {seller.full_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Название товара */}
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Название товара *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Например: Фара передняя левая BMW X5"
+                        {...field}
+                        className="text-base"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Цена и доставка рядом */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Цена * ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="100"
+                          {...field}
+                          className="text-base"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="deliveryPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Стоимость доставки ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="0"
+                          {...field}
+                          className="text-base"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="placeNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Количество мест *</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="1"
+                          {...field}
+                          className="text-base"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Информация об автомобиле */}
+              <div className="space-y-4">
+                <h3 className="text-base font-medium">Информация об автомобиле</h3>
+                <div className={`grid grid-cols-1 ${isMobile ? "gap-6" : "md:grid-cols-2 gap-4"}`}>
+                  <FormField
+                    control={form.control}
+                    name="brandId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={isMobile ? "text-base font-medium" : ""}>
+                          Марка автомобиля *
+                        </FormLabel>
+                        <FormControl>
+                          <EnhancedVirtualizedSelect
+                            options={filteredBrands}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Выберите марку"
+                            searchPlaceholder="Поиск бренда..."
+                            disabled={isLoadingCarData}
+                            className={isMobile ? "h-12" : ""}
+                            popularOptions={popularBrandIds}
+                            searchTerm={searchBrandTerm}
+                            onSearchChange={setSearchBrandTerm}
+                            showResultCount={true}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="modelId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={isMobile ? "text-base font-medium" : ""}>
+                          Модель (необязательно)
+                        </FormLabel>
+                        <FormControl>
+                          <EnhancedVirtualizedSelect
+                            options={filteredModels}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Выберите модель"
+                            searchPlaceholder="Поиск модели..."
+                            disabled={!watchBrandId || isLoadingCarData}
+                            className={isMobile ? "h-12" : ""}
+                            searchTerm={searchModelTerm}
+                            onSearchChange={setSearchModelTerm}
+                            showResultCount={true}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Описание */}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Описание</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Дополнительная информация о товаре..."
+                        className="resize-none text-base"
+                        rows={3}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
               
               {/* Загрузка фотографий */}
@@ -159,46 +345,22 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
                   </p>
                 )}
               </div>
+
+              {/* Видео - только если есть */}
+              {videoUrls.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-base font-medium">Видео товара</h3>
+                  <VideoUpload
+                    videos={videoUrls}
+                    onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
+                    onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
+                    maxVideos={2}
+                    storageBucket="Product Images"
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
-          
-          {/* ИНФОРМАЦИЯ ОБ АВТОМОБИЛЕ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Информация об автомобиле</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MobileOptimizedCarInfoSection
-                form={form}
-                filteredBrands={filteredBrands}
-                filteredModels={filteredModels}
-                searchBrandTerm={searchBrandTerm}
-                setSearchBrandTerm={setSearchBrandTerm}
-                searchModelTerm={searchModelTerm}
-                setSearchModelTerm={setSearchModelTerm}
-                watchBrandId={watchBrandId}
-                isLoadingCarData={isLoadingCarData}
-              />
-            </CardContent>
-          </Card>
-          
-          {/* ДОПОЛНИТЕЛЬНО: ВИДЕО */}
-          {videoUrls.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Видео товара</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <VideoUpload
-                  videos={videoUrls}
-                  onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
-                  onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
-                  maxVideos={2}
-                  storageBucket="Product Images"
-                />
-              </CardContent>
-            </Card>
-          )}
           
           {!isMobile && (
             <Button 
