@@ -17,10 +17,10 @@ const AdminAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sellers, setSellers] = useState<{ id: string; full_name: string }[]>([]);
+  const [sellers, setSellers] = useState<{ id: string; full_name: string; opt_id?: string }[]>([]);
+  const [isLoadingSellers, setIsLoadingSellers] = useState(true);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
-  const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
   // Use our custom hook for car brands and models
@@ -52,6 +52,7 @@ const AdminAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
+      sellerId: "",
     },
     mode: "onChange",
   });
@@ -59,6 +60,7 @@ const AdminAddProduct = () => {
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
+  const watchSellerId = form.watch("sellerId");
 
   // When title changes, try to detect brand and model
   useEffect(() => {
@@ -83,10 +85,12 @@ const AdminAddProduct = () => {
   // Fetch sellers
   useEffect(() => {
     const fetchSellers = async () => {
+      setIsLoadingSellers(true);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name')
-        .eq('user_type', 'seller');
+        .select('id, full_name, opt_id')
+        .eq('user_type', 'seller')
+        .order('full_name');
 
       if (error) {
         console.error("Error fetching sellers:", error);
@@ -99,6 +103,7 @@ const AdminAddProduct = () => {
       }
 
       setSellers(data || []);
+      setIsLoadingSellers(false);
     };
 
     fetchSellers();
@@ -169,11 +174,21 @@ const AdminAddProduct = () => {
       return;
     }
 
+    if (!values.sellerId) {
+      toast({
+        title: "Ошибка",
+        description: "Выберите продавца",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
+      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
       
       // Model is optional
       let modelName = null;
@@ -191,10 +206,21 @@ const AdminAddProduct = () => {
         return;
       }
 
+      if (!selectedSeller) {
+        toast({
+          title: "Ошибка",
+          description: "Выбранный продавец не найден",
+          variant: "destructive",
+        });
+        return;
+      }
+
       console.log('🏭 Creating product with images...', {
         title: values.title,
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
+        sellerId: values.sellerId,
+        sellerName: selectedSeller.full_name,
         timestamp: new Date().toISOString()
       });
       
@@ -208,8 +234,8 @@ const AdminAddProduct = () => {
           brand: selectedBrand.name,
           model: modelName,
           description: values.description || null,
-          seller_id: '00000000-0000-0000-0000-000000000000', // Admin seller ID
-          seller_name: 'Admin',
+          seller_id: values.sellerId,
+          seller_name: selectedSeller.full_name,
           status: 'active',
           place_number: parseInt(values.placeNumber),
           delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
@@ -268,7 +294,7 @@ const AdminAddProduct = () => {
 
       toast({
         title: "Товар создан",
-        description: "Товар успешно опубликован на маркетплейсе",
+        description: `Товар успешно опубликован от лица продавца ${selectedSeller.full_name}`,
       });
 
       navigate(`/product/${product.id}`);
@@ -309,6 +335,8 @@ const AdminAddProduct = () => {
             primaryImage={primaryImage}
             setPrimaryImage={setPrimaryImage}
             onImageDelete={removeImage}
+            sellers={sellers}
+            isLoadingSellers={isLoadingSellers}
           />
         </div>
       </div>
