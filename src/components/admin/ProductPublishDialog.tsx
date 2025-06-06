@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -97,7 +96,7 @@ Nose cut (Ноускат) высокий - $260
     try {
       setIsSubmitting(true);
       
-      // Update product status and delivery price
+      // Update product status and delivery price - the database trigger will handle notification automatically
       const { error } = await supabase
         .from('products')
         .update({
@@ -111,44 +110,9 @@ Nose cut (Ноускат) высокий - $260
       }
 
       toast({
-        title: "Товар опубликован",
-        description: "Отправка уведомления в Telegram...",
+        title: "Успех",
+        description: "Товар успешно опубликован и отправлен в Telegram канал",
       });
-
-      // Send notification using the new dedicated function
-      try {
-        const { data: notificationData, error: notificationError } = await supabase.functions.invoke('send-product-publish-notification', {
-          body: { productId: product.id }
-        });
-
-        if (notificationError) {
-          console.error('Notification error:', notificationError);
-          toast({
-            title: "Внимание",
-            description: "Товар опубликован, но возникла проблема при отправке уведомления в Telegram",
-            variant: "destructive",
-          });
-        } else if (!notificationData?.success) {
-          console.warn('Notification response indicates failure:', notificationData);
-          toast({
-            title: "Внимание", 
-            description: "Товар опубликован, но возникла проблема при отправке уведомления в Telegram",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Успех",
-            description: "Товар успешно опубликован и отправлен в Telegram канал",
-          });
-        }
-      } catch (notificationError) {
-        console.error('Error sending Telegram notification:', notificationError);
-        toast({
-          title: "Внимание",
-          description: "Товар опубликован, но возникла ошибка при отправке уведомления в Telegram",
-          variant: "destructive",
-        });
-      }
       
       handleOpenChange(false);
       if (onSuccess) onSuccess();
