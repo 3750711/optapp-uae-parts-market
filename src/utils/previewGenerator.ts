@@ -1,120 +1,99 @@
 
+import { getPreviewImageUrl } from "./cloudinaryUtils";
 import { supabase } from "@/integrations/supabase/client";
 
-interface PreviewResult {
+export interface PreviewGenerationResult {
   success: boolean;
   previewUrl?: string;
   previewSize?: number;
-  originalSize?: number;
-  compressionRatio?: number;
-  productUpdated?: boolean;
   error?: string;
+  productUpdated?: boolean;
 }
 
-export const generateProductPreview = async (imageUrl: string, productId: string): Promise<PreviewResult> => {
+export const generateProductPreview = async (
+  imageUrl: string,
+  productId: string
+): Promise<PreviewGenerationResult> => {
   try {
-    console.log('🎯 generateProductPreview called with:', {
-      imageUrl,
+    console.log('🎨 Starting preview generation:', {
+      imageUrl: imageUrl.substring(0, 50) + '...',
       productId,
-      timestamp: new Date().toISOString(),
-      caller: 'generateProductPreview'
-    });
-
-    // CRITICAL: Validate input parameters
-    if (!imageUrl || !productId) {
-      const errorMsg = `Invalid parameters: imageUrl=${!!imageUrl}, productId=${!!productId}`;
-      console.error('❌ Validation failed:', errorMsg);
-      return {
-        success: false,
-        error: errorMsg
-      };
-    }
-
-    if (!imageUrl.startsWith('http')) {
-      const errorMsg = `Invalid imageUrl format: ${imageUrl}`;
-      console.error('❌ URL validation failed:', errorMsg);
-      return {
-        success: false,
-        error: errorMsg
-      };
-    }
-    
-    console.log('📞 INVOKING Supabase Edge Function: generate-product-preview');
-    console.log('📋 Request payload:', {
-      imageUrl,
-      productId,
-      functionName: 'generate-product-preview'
-    });
-    
-    // CRITICAL: Make the actual function call
-    const { data, error } = await supabase.functions.invoke('generate-product-preview', {
-      body: { 
-        imageUrl,
-        productId 
-      }
-    });
-
-    console.log('📥 Edge Function response received:', {
-      data,
-      error,
-      hasData: !!data,
-      hasError: !!error,
       timestamp: new Date().toISOString()
     });
 
-    if (error) {
-      console.error('❌ Edge Function error:', {
-        error,
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      return {
-        success: false,
-        error: error.message || 'Failed to generate preview'
-      };
-    }
+    // Check if the image already has a Cloudinary public_id
+    const { data: product } = await supabase
+      .from('products')
+      .select('cloudinary_public_id, cloudinary_url')
+      .eq('id', productId)
+      .single();
 
-    if (data?.success) {
-      console.log('✅ Preview generation SUCCESS:', {
-        previewUrl: data.previewUrl,
-        previewSize: data.previewSize,
-        originalSize: data.originalSize,
-        compressionRatio: data.compressionRatio,
-        productUpdated: data.productUpdated,
-        productId,
-        imageUrl
-      });
+    if (product?.cloudinary_public_id) {
+      // Generate preview URL using Cloudinary transformations
+      const previewUrl = getPreviewImageUrl(product.cloudinary_public_id);
       
+      console.log('✅ Generated Cloudinary preview URL:', {
+        publicId: product.cloudinary_public_id,
+        previewUrl,
+        productId
+      });
+
+      // Update product with preview URL
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ preview_image_url: previewUrl })
+        .eq('id', productId);
+
+      if (updateError) {
+        console.error('❌ Failed to update product with preview URL:', updateError);
+        return {
+          success: false,
+          error: 'Failed to update product with preview URL'
+        };
+      }
+
       return {
         success: true,
-        previewUrl: data.previewUrl,
-        previewSize: data.previewSize,
-        originalSize: data.originalSize,
-        compressionRatio: data.compressionRatio,
-        productUpdated: data.productUpdated
+        previewUrl,
+        previewSize: 15000, // Estimated size for Cloudinary optimized preview
+        productUpdated: true
       };
     } else {
-      console.error('❌ Preview generation failed:', {
-        error: data?.error,
-        data,
+      // Fallback: try to upload to Cloudinary first
+      console.log('📤 No Cloudinary data found, attempting upload...');
+      
+      const { uploadToCloudinary } = await import("./cloudinaryUpload");
+      const cloudinaryResult = await uploadToCloudinary(
+        imageUrl,
         productId,
-        imageUrl
-      });
-      return {
-        success: false,
-        error: data?.error || 'Unknown error occurred'
-      };
+        `product_${productId}_preview`
+      );
+
+      if (cloudinaryResult.success && cloudinaryResult.publicId) {
+        const previewUrl = getPreviewImageUrl(cloudinaryResult.publicId);
+        
+        console.log('✅ Uploaded to Cloudinary and generated preview:', {
+          publicId: cloudinaryResult.publicId,
+          previewUrl,
+          productId
+        });
+
+        return {
+          success: true,
+          previewUrl,
+          previewSize: cloudinaryResult.originalSize || 15000,
+          productUpdated: true
+        };
+      } else {
+        console.error('❌ Failed to upload to Cloudinary:', cloudinaryResult.error);
+        return {
+          success: false,
+          error: cloudinaryResult.error || 'Failed to upload to Cloudinary'
+        };
+      }
     }
   } catch (error) {
-    console.error('💥 EXCEPTION in generateProductPreview:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : 'No stack trace',
-      productId,
-      imageUrl,
-      timestamp: new Date().toISOString()
-    });
+    console.error('💥 Preview generation error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -122,29 +101,29 @@ export const generateProductPreview = async (imageUrl: string, productId: string
   }
 };
 
-// Функция больше не нужна, так как Edge функция сама обновляет базу данных
-export const updateProductPreview = async (productId: string, previewUrl: string): Promise<boolean> => {
+export const updateProductPreview = async (
+  productId: string,
+  previewUrl: string
+): Promise<boolean> => {
   try {
-    console.log('📝 Updating product preview URL (backup method):', {
-      productId,
-      previewUrl,
-      timestamp: new Date().toISOString()
-    });
-
     const { error } = await supabase
       .from('products')
       .update({ preview_image_url: previewUrl })
       .eq('id', productId);
 
     if (error) {
-      console.error('❌ Error updating product preview URL:', error);
+      console.error('❌ Failed to update product preview:', error);
       return false;
     }
 
-    console.log('✅ Product preview URL updated successfully (backup method)');
+    console.log('✅ Updated product preview URL:', {
+      productId,
+      previewUrl
+    });
+
     return true;
   } catch (error) {
-    console.error('💥 Exception in updateProductPreview:', error);
+    console.error('💥 Error updating product preview:', error);
     return false;
   }
 };

@@ -31,6 +31,7 @@ import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge, Sparkles } from "lucide-react";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -232,6 +233,7 @@ const SellerAddProduct = () => {
 
       setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
 
+      // Create product first
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -254,8 +256,9 @@ const SellerAddProduct = () => {
         throw new Error(`Ошибка создания товара: ${productError.message || 'Неизвестная ошибка'}`);
       }
       
-      setProgressStatus({ step: "Сохранение изображений", progress: 60 });
+      setProgressStatus({ step: "Сохранение изображений и Cloudinary обработка", progress: 60 });
 
+      // Save product images with primary image detection
       const productImages = imageUrls.map((url) => ({
         product_id: product.id,
         url: url,
@@ -269,8 +272,53 @@ const SellerAddProduct = () => {
       if (imagesError) {
         throw new Error(`Ошибка сохранения изображений: ${imagesError.message || 'Неизвестная ошибка'}`);
       }
+
+      // If we have a primary image, trigger Cloudinary upload
+      if (primaryImage) {
+        setProgressStatus({ step: "Загрузка основного изображения в Cloudinary", progress: 75 });
+        
+        try {
+          console.log('🚀 Starting Cloudinary upload for primary image:', primaryImage);
+          
+          const { uploadToCloudinary } = await import("@/utils/cloudinaryUpload");
+          const cloudinaryResult = await uploadToCloudinary(
+            primaryImage,
+            product.id,
+            `product_${product.id}_primary`
+          );
+
+          if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
+            console.log('✅ Cloudinary upload successful, updating product...');
+            
+            // Update product with Cloudinary data
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({
+                cloudinary_public_id: cloudinaryResult.publicId,
+                cloudinary_url: cloudinaryResult.cloudinaryUrl,
+                preview_image_url: cloudinaryResult.cloudinaryUrl
+              })
+              .eq('id', product.id);
+
+            if (updateError) {
+              console.error('❌ Failed to update product with Cloudinary data:', updateError);
+            } else {
+              console.log('✅ Product updated with Cloudinary data');
+              toast({
+                title: "Cloudinary интеграция",
+                description: "Изображение успешно обработано через Cloudinary",
+              });
+            }
+          } else {
+            console.warn('⚠️ Cloudinary upload failed:', cloudinaryResult.error);
+          }
+        } catch (cloudinaryError) {
+          console.error('💥 Cloudinary upload error:', cloudinaryError);
+          // Continue with normal flow if Cloudinary fails
+        }
+      }
       
-      setProgressStatus({ step: "Сохранение видео", progress: 80 });
+      setProgressStatus({ step: "Сохранение видео", progress: 85 });
 
       if (videoUrls.length > 0) {
         const { error: videosError } = await supabase
@@ -386,10 +434,16 @@ const SellerAddProduct = () => {
             
             <Card>
               <CardHeader>
-                <CardTitle>Информация о товаре</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Информация о товаре
+                  <Badge variant="outline" className="text-xs">
+                    <Sparkles className="h-3 w-3 mr-1" />
+                    Cloudinary интеграция
+                  </Badge>
+                </CardTitle>
                 <CardDescription>
                   Заполните все поля для размещения вашего товара на маркетплейсе.
-                  Ваш прогресс автоматически сохраняется.
+                  Изображения автоматически обрабатываются через Cloudinary для оптимальной производительности.
                 </CardDescription>
               </CardHeader>
               <CardContent>

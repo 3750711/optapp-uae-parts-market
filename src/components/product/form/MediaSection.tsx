@@ -9,13 +9,15 @@ interface MediaSectionProps {
   videoUrls: string[];
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
+  productId?: string;
 }
 
 const MediaSection = React.memo<MediaSectionProps>(({ 
   imageUrls,
   videoUrls,
   handleMobileOptimizedImageUpload,
-  setVideoUrls
+  setVideoUrls,
+  productId
 }) => {
   return (
     <div className="space-y-6">
@@ -27,6 +29,9 @@ const MediaSection = React.memo<MediaSectionProps>(({
           storageBucket="Product Images"
           storagePath=""
           existingImages={imageUrls}
+          productId={productId}
+          enableCloudinary={true}
+          autoGeneratePreview={true}
         />
       </div>
       

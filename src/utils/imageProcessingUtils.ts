@@ -1,64 +1,110 @@
 import { supabase } from "@/integrations/supabase/client";
+import { uploadToCloudinary } from "./cloudinaryUpload";
 
 export const uploadImageToStorage = async (
   file: File,
   bucket: string = 'product-images',
-  path: string = ''
+  path: string = '',
+  productId?: string
 ): Promise<string> => {
+  console.log('🚀 Starting image upload:', {
+    fileName: file.name,
+    fileSize: file.size,
+    bucket,
+    path,
+    productId
+  });
+
   try {
-    console.log(`Starting upload for ${file.name} (${Math.round(file.size / 1024)}KB)`);
-    
-    // Обязательно сжимаем до 400KB
-    const compressedFile = await compressImageTo400KB(file);
-    
-    // Генерируем уникальное имя файла
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(7);
-    const fileExtension = compressedFile.type === 'image/jpeg' ? 'jpg' : 'webp';
-    const fileName = `${timestamp}_${randomString}.${fileExtension}`;
-    const fullPath = path ? `${path}/${fileName}` : fileName;
+    // Create unique file name
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    const filePath = path ? `${path}/${fileName}` : fileName;
 
-    console.log(`Uploading compressed file: ${Math.round(compressedFile.size / 1024)}KB`);
-
-    // Загружаем файл
+    console.log('📤 Uploading to Supabase Storage...');
+    
+    // Upload to Supabase Storage first
     const { data, error } = await supabase.storage
       .from(bucket)
-      .upload(fullPath, compressedFile, {
-        contentType: compressedFile.type,
-        cacheControl: '31536000',
-        upsert: false
-      });
+      .upload(filePath, file);
 
     if (error) {
-      console.error('Upload error:', error);
-      throw new Error(`Upload failed: ${error.message}`);
+      console.error('❌ Supabase upload error:', error);
+      throw error;
     }
 
-    // Получаем публичный URL
+    console.log('✅ Supabase upload successful:', data.path);
+
+    // Get public URL from Supabase
     const { data: urlData } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);
 
-    const publicUrl = urlData.publicUrl;
-    
+    const supabaseUrl = urlData.publicUrl;
+    console.log('📋 Supabase public URL:', supabaseUrl);
+
+    // If productId is provided, also upload to Cloudinary
+    if (productId) {
+      console.log('☁️ Uploading to Cloudinary for product:', productId);
+      
+      try {
+        const cloudinaryResult = await uploadToCloudinary(
+          supabaseUrl,
+          productId,
+          `product_${productId}_${Date.now()}`
+        );
+
+        if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
+          console.log('✅ Cloudinary upload successful:', {
+            cloudinaryUrl: cloudinaryResult.cloudinaryUrl,
+            publicId: cloudinaryResult.publicId
+          });
+
+          // Update product with Cloudinary data
+          if (cloudinaryResult.publicId) {
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({
+                cloudinary_public_id: cloudinaryResult.publicId,
+                cloudinary_url: cloudinaryResult.cloudinaryUrl,
+                preview_image_url: cloudinaryResult.cloudinaryUrl
+              })
+              .eq('id', productId);
+
+            if (updateError) {
+              console.error('❌ Failed to update product with Cloudinary data:', updateError);
+            } else {
+              console.log('✅ Product updated with Cloudinary data');
+            }
+          }
+        } else {
+          console.warn('⚠️ Cloudinary upload failed, using Supabase URL');
+        }
+      } catch (cloudinaryError) {
+        console.error('💥 Cloudinary upload error:', cloudinaryError);
+        // Continue with Supabase URL if Cloudinary fails
+      }
+    }
+
     logImageProcessing('UploadSuccess', {
       fileName: file.name,
-      originalSize: file.size,
-      compressedSize: compressedFile.size,
-      compressionRatio: Math.round((compressedFile.size / file.size) * 100),
-      publicUrl
+      filePath: data.path,
+      fileSize: file.size,
+      bucket,
+      hasCloudinary: !!productId
     });
 
-    console.log(`Upload completed: ${publicUrl}`);
-    return publicUrl;
-
+    return supabaseUrl;
   } catch (error) {
+    console.error('💥 Image upload failed:', error);
+    
     logImageProcessing('UploadError', {
       fileName: file.name,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      bucket,
+      path
     });
     
-    console.error('Error uploading image:', error);
     throw error;
   }
 };
