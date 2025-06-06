@@ -9,6 +9,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
+import { useSellers } from "@/hooks/useSellers";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 
 // Admin schema requires sellerId
@@ -26,11 +27,12 @@ const AdminAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sellers, setSellers] = useState<{ id: string; full_name: string; opt_id?: string }[]>([]);
-  const [isLoadingSellers, setIsLoadingSellers] = useState(true);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
+  
+  // Используем новый хук для загрузки продавцов
+  const { sellers, isLoading: isLoadingSellers } = useSellers();
   
   // Use our custom hook for car brands and models
   const { 
@@ -61,7 +63,7 @@ const AdminAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
-      sellerId: undefined, // Изменено с "" на undefined
+      sellerId: "", // Изменено обратно на пустую строку
     },
     mode: "onChange",
   });
@@ -90,50 +92,6 @@ const AdminAddProduct = () => {
       }
     }
   }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
-
-  // Fetch sellers
-  useEffect(() => {
-    const fetchSellers = async () => {
-      setIsLoadingSellers(true);
-      console.log('📋 Начинаем загрузку продавцов...');
-      
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, opt_id')
-          .eq('user_type', 'seller')
-          .order('full_name');
-
-        if (error) {
-          console.error("❌ Ошибка загрузки продавцов:", error);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось загрузить список продавцов",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        console.log('✅ Продавцы загружены:', {
-          count: data?.length || 0,
-          sellers: data?.map(s => ({ id: s.id, name: s.full_name, opt_id: s.opt_id }))
-        });
-        
-        setSellers(data || []);
-      } catch (error) {
-        console.error("❌ Неожиданная ошибка при загрузке продавцов:", error);
-        toast({
-          title: "Ошибка",
-          description: "Произошла неожиданная ошибка при загрузке продавцов",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingSellers(false);
-      }
-    };
-
-    fetchSellers();
-  }, [toast]);
 
   // When brand changes, reset model selection and update models list
   useEffect(() => {

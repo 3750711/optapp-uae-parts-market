@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -12,7 +11,7 @@ import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSect
 import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
 import MediaSection from "./form/MediaSection";
 import StickyMobileActions from "@/components/ui/StickyMobileActions";
-import SellerSelect from "@/components/admin/SellerSelect";
+import SimpleSellerSelect from "@/components/admin/SimpleSellerSelect";
 
 // Product form schema with zod validation
 export const productSchema = z.object({
@@ -120,7 +119,7 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
                 <CardTitle className="text-lg">Продавец</CardTitle>
               </CardHeader>
               <CardContent>
-                <SellerSelect
+                <SimpleSellerSelect
                   form={form}
                   sellers={sellers}
                   isLoading={isLoadingSellers}
