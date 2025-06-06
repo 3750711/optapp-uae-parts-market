@@ -6,9 +6,9 @@
 // Any changes may affect the product notification system that sends
 // messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.3.0
-// Last Verified Working: 2025-06-06
-// Change: Removed video support from product notifications
+// Version: 1.1.2
+// Last Verified Working: 2025-05-25
+// Change: Updated telegram accounts list to show real handles
 // ================================================================
 
 // Handler for product notifications
@@ -67,12 +67,13 @@ export async function handleProductNotification(productId: string, notificationT
   const productNotificationType = notificationType || 'status_change';
   console.log(`Processing ${productNotificationType} notification request for ID:`, productId);
   
-  // Fetch complete product details including images only
+  // Fetch complete product details including images and videos
   const { data: product, error } = await supabaseClient
     .from('products')
     .select(`
       *,
-      product_images(*)
+      product_images(*),
+      product_videos(*)
     `)
     .eq('id', productId)
     .maybeSingle();
@@ -89,8 +90,9 @@ export async function handleProductNotification(productId: string, notificationT
   
   // Check if there are any images for this product
   const images = product.product_images || [];
+  const videos = product.product_videos || [];
   
-  console.log('Product has', images.length, 'images');
+  console.log('Product has', images.length, 'images and', videos.length, 'videos');
   
   // Don't send notification if there are not enough images (except for sold notifications)
   if (notificationType !== 'sold' && images.length < MIN_IMAGES_REQUIRED) {
@@ -167,7 +169,7 @@ export async function handleProductNotification(productId: string, notificationT
       '',
       `📊 Статус: ${messageData.status === 'active' ? 'Опубликован' : 
              messageData.status === 'sold' ? 'Продан' : 'На модерации'}`
-    ].filter(line => line !== '').join('\n');
+    ].join('\n');
   }
   
   console.log('Sending message to Telegram:', messageText);
@@ -219,8 +221,8 @@ export async function handleProductNotification(productId: string, notificationT
     }
   }
 
-  // Send images through sendImageMediaGroups
-  const imagesResult = await sendImageMediaGroups(
+  // For regular product notifications, continue with image processing and send to PRODUCT_GROUP_CHAT_ID
+  return await sendImageMediaGroups(
     images.map((image: any) => image.url), 
     messageText, 
     supabaseClient, 
@@ -229,6 +231,4 @@ export async function handleProductNotification(productId: string, notificationT
     corsHeaders,
     BOT_TOKEN
   );
-
-  return imagesResult;
 }

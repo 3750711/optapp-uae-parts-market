@@ -1,4 +1,3 @@
-
 // ======================== IMPORTANT NOTICE ========================
 // This file contains critical API interaction functionality.
 // DO NOT EDIT unless absolutely necessary!
@@ -6,9 +5,8 @@
 // Any changes may affect both order and product notifications
 // that send messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.2.0
-// Last Verified Working: 2025-06-06
-// Change: Removed video media groups support
+// Version: 1.0.0
+// Last Verified Working: 2025-05-22
 // ================================================================
 
 // Utility functions for sending messages via Telegram API
@@ -69,7 +67,7 @@ export async function sendImageMediaGroups(
         
         // Add caption only to the first image of the first group
         const isFirstImageOfFirstGroup = i === 0 && j === 0;
-        const mediaItem: any = {
+        const mediaItem = {
           type: 'photo',
           media: imageUrl,
         };
