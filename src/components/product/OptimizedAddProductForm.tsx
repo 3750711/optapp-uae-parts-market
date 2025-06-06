@@ -1,4 +1,3 @@
-
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -10,7 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StickyMobileActions from "@/components/ui/StickyMobileActions";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
-import VideoUpload from "@/components/ui/video-upload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import {
   FormControl,
   FormField,
@@ -126,6 +125,14 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   const popularBrandIds = filteredBrands
     .filter(brand => POPULAR_BRANDS.includes(brand.name.toLowerCase()))
     .map(brand => brand.id);
+
+  const handleVideoUpload = (newUrls: string[]) => {
+    setVideoUrls(prevUrls => [...prevUrls, ...newUrls]);
+  };
+
+  const handleVideoDelete = (urlToDelete: string) => {
+    setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete));
+  };
 
   return (
     <>
@@ -346,19 +353,16 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
                 )}
               </div>
 
-              {/* Видео - только если есть */}
-              {videoUrls.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="text-base font-medium">Видео товара</h3>
-                  <VideoUpload
-                    videos={videoUrls}
-                    onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
-                    onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
-                    maxVideos={2}
-                    storageBucket="Product Images"
-                  />
-                </div>
-              )}
+              {/* Загрузка видео */}
+              <div className="space-y-4">
+                <CloudinaryVideoUpload
+                  videos={videoUrls}
+                  onUpload={handleVideoUpload}
+                  onDelete={handleVideoDelete}
+                  maxVideos={3}
+                  productId={undefined}
+                />
+              </div>
             </CardContent>
           </Card>
           
