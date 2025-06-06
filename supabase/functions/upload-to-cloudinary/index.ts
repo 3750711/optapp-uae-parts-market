@@ -6,13 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Generate NEW Cloudinary preview URL (400x300, auto:good, webp)
+function getCloudinaryPreviewUrl(publicId: string): string {
+  const cloudName = 'dcuziurrb';
+  return `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_300,c_fill,g_auto,q_auto:good,f_webp/${publicId}`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 Cloudinary upload function started (Direct Base64 Upload)');
+    console.log('🚀 Cloudinary upload function started (Direct Base64 Upload with NEW preview)');
     
     const { fileData, fileName, productId, publicId, createVariants = true, isVideo = false } = await req.json();
     
@@ -126,19 +132,19 @@ serve(async (req) => {
 
     // Create variants if requested (only for images for now)
     if (createVariants && !isVideo) {
-      console.log('🎨 Creating preview variant (20KB)...');
+      console.log('🎨 Creating NEW preview variant (20-25KB, 400x300)...');
       
       try {
-        // Use transformation URL for preview instead of separate upload
-        const previewUrl = `https://res.cloudinary.com/${cloudName}/image/upload/w_200,h_150,q_60,f_webp,c_fill/${uploadResult.public_id}`;
+        // Use NEW transformation URL for preview (400x300, auto:good, webp)
+        const previewUrl = getCloudinaryPreviewUrl(uploadResult.public_id);
         
         result.variants.preview = {
           url: previewUrl,
-          transformation: 'w_200,h_150,q_60,f_webp,c_fill',
-          estimatedSize: 20000 // ~20KB
+          transformation: 'w_400,h_300,c_fill,g_auto,q_auto:good,f_webp',
+          estimatedSize: 25000 // ~20-25KB
         };
         
-        console.log('✅ Preview variant created:', previewUrl);
+        console.log('✅ NEW Preview variant created:', previewUrl);
       } catch (previewError) {
         console.error('⚠️ Preview variant creation failed:', previewError);
       }
@@ -190,12 +196,18 @@ serve(async (req) => {
             console.log('✅ Video updated with Cloudinary data');
           }
         } else {
-          // Update products table for images (existing logic)
+          // Update products table for images - use NEW preview URL
           const updateData = {
             cloudinary_public_id: uploadResult.public_id,
             cloudinary_url: uploadResult.secure_url,
-            preview_image_url: result.variants.preview?.url || uploadResult.secure_url
+            preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(uploadResult.public_id)
           };
+          
+          console.log('📝 Updating product with NEW preview URL:', {
+            productId,
+            previewUrl: updateData.preview_image_url,
+            parameters: '400x300, auto:good, webp'
+          });
           
           const { error } = await supabase
             .from('products')
@@ -205,18 +217,19 @@ serve(async (req) => {
           if (error) {
             console.error('❌ Database update error:', error);
           } else {
-            console.log('✅ Product updated with Cloudinary data');
+            console.log('✅ Product updated with NEW Cloudinary preview data');
           }
         }
       }
     }
     
-    console.log(`🎉 SUCCESS! Direct base64 Cloudinary ${isVideo ? 'video' : 'image'} upload completed:`, {
+    console.log(`🎉 SUCCESS! Cloudinary ${isVideo ? 'video' : 'image'} upload with NEW preview completed:`, {
       publicId: result.publicId,
       format: result.format,
       sizeKB: Math.round(result.originalSize / 1024),
       duration: result.duration,
-      hasPreview: !!result.variants.preview,
+      hasNewPreview: !!result.variants.preview,
+      newPreviewSize: result.variants.preview ? '20-25KB (400x300)' : 'N/A',
       hasThumbnail: !!result.variants.thumbnail
     });
 
