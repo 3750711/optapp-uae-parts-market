@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { usePreviewImageSync } from "@/hooks/usePreviewImageSync";
 
 export interface AdminProductImagesManagerProps {
   productId: string;
@@ -26,6 +26,15 @@ export const AdminProductImagesManager = ({
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
   const queryClient = useQueryClient();
+
+  // Initialize preview sync hook
+  const { syncPreviewImage } = usePreviewImageSync({
+    productId,
+    onSyncComplete: () => {
+      // Invalidate React Query cache to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    }
+  });
 
   // Handle image upload
   const handleImageUpload = async (newUrls: string[]) => {
@@ -121,7 +130,7 @@ export const AdminProductImagesManager = ({
     }
   };
 
-  // Set primary image
+  // Set primary image with preview sync
   const handleSetPrimaryImage = async (imageUrl: string) => {
     if (!onPrimaryImageChange) return;
     
@@ -148,12 +157,15 @@ export const AdminProductImagesManager = ({
       // Update parent state
       onPrimaryImageChange(imageUrl);
       
+      // 🔄 NEW: Automatically sync preview image after setting primary
+      await syncPreviewImage(imageUrl);
+      
       // Invalidate React Query cache to refresh the data
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       
       toast({
         title: "Успех",
-        description: "Основное фото обновлено",
+        description: "Основное фото обновлено и превью синхронизировано",
       });
     } catch (error) {
       console.error("Error setting primary image:", error);
