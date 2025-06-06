@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -33,6 +33,7 @@ export const useSellers = () => {
             description: "Не удалось загрузить список продавцов",
             variant: "destructive",
           });
+          setSellers([]);
           return;
         }
 
@@ -41,7 +42,14 @@ export const useSellers = () => {
           sellers: data?.map(s => ({ id: s.id, name: s.full_name, opt_id: s.opt_id }))
         });
         
-        setSellers(data || []);
+        // Сортируем продавцов по opt_id, затем по имени
+        const sortedSellers = (data || []).sort((a, b) => {
+          const optIdA = a.opt_id || '';
+          const optIdB = b.opt_id || '';
+          return optIdA.localeCompare(optIdB) || a.full_name.localeCompare(b.full_name);
+        });
+        
+        setSellers(sortedSellers);
       } catch (error) {
         console.error("❌ Неожиданная ошибка при загрузке продавцов:", error);
         toast({
@@ -49,6 +57,7 @@ export const useSellers = () => {
           description: "Произошла неожиданная ошибка при загрузке продавцов",
           variant: "destructive",
         });
+        setSellers([]);
       } finally {
         setIsLoading(false);
       }
@@ -57,17 +66,14 @@ export const useSellers = () => {
     fetchSellers();
   }, [toast]);
 
-  // Мемоизируем отсортированных продавцов
-  const sortedSellers = useMemo(() => {
-    return [...sellers].sort((a, b) => {
-      const optIdA = a.opt_id || '';
-      const optIdB = b.opt_id || '';
-      return optIdA.localeCompare(optIdB) || a.full_name.localeCompare(b.full_name);
-    });
-  }, [sellers]);
+  console.log('🎯 useSellers hook state:', {
+    sellersCount: sellers.length,
+    isLoading,
+    timestamp: new Date().toISOString()
+  });
 
   return {
-    sellers: sortedSellers,
+    sellers,
     isLoading
   };
 };
