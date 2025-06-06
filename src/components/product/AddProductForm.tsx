@@ -282,8 +282,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           <MobileOptimizedImageUpload
             onUploadComplete={handleMobileOptimizedImageUpload}
             maxImages={30}
-            storageBucket="Product Images"
-            storagePath=""
             existingImages={imageUrls}
           />
         </div>

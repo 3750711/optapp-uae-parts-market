@@ -26,12 +26,8 @@ const MediaSection = React.memo<MediaSectionProps>(({
         <MobileOptimizedImageUpload
           onUploadComplete={handleMobileOptimizedImageUpload}
           maxImages={30}
-          storageBucket="Product Images"
-          storagePath=""
           existingImages={imageUrls}
           productId={productId}
-          enableCloudinary={true}
-          autoGeneratePreview={true}
         />
       </div>
       

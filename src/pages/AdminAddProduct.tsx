@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -734,14 +733,11 @@ const AdminAddProduct = () => {
                         <MobileOptimizedImageUpload
                           onUploadComplete={handleMobileOptimizedImageUpload}
                           maxImages={30}
-                          storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
-                          storagePath=""
                           existingImages={imageUrls}
                           onImageDelete={removeImage}
                           onSetPrimaryImage={setPrimaryImage}
                           primaryImage={primaryImage}
                           productId={createdProductId}
-                          autoGeneratePreview={true}
                         />
                         
                         <div className="text-xs text-green-600 space-y-1">
@@ -757,7 +753,7 @@ const AdminAddProduct = () => {
                           onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
                           onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
                           maxVideos={2}
-                          storageBucket={STORAGE_BUCKETS.PRODUCT_IMAGES}
+                          storageBucket="product-images"
                         />
                       </div>
                       

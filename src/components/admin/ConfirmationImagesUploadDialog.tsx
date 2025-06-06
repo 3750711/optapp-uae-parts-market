@@ -148,7 +148,6 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             <MobileOptimizedImageUpload
               onUploadComplete={handleImagesUpload}
               maxImages={10}
-              storageBucket="confirm-images"
               existingImages={confirmImages}
               onImageDelete={handleImageDelete}
             />

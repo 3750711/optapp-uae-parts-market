@@ -109,7 +109,6 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
         <MobileOptimizedImageUpload
           onUploadComplete={handleNewImagesUpload}
           maxImages={25}
-          storageBucket="order-images"
           existingImages={images}
           onImageDelete={handleImageDelete}
         />
