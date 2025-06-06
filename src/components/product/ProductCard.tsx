@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -92,14 +93,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   // Get catalog image with improved Cloudinary optimization (20-25KB)
   const catalogImage = React.useMemo(() => {
-    // Use Cloudinary catalog quality if available
+    // Always use Cloudinary catalog quality if available
     if (product.cloudinary_public_id) {
       return getCatalogImageUrl(product.cloudinary_public_id);
     }
     
-    // Fallback to preview_image_url or first image
-    return product.preview_image_url || images[0];
-  }, [product.cloudinary_public_id, product.preview_image_url, images]);
+    // Fallback only if no Cloudinary public_id
+    const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+    return primaryImageData?.url || 
+           product.image || 
+           product.preview_image_url ||
+           "/placeholder.svg";
+  }, [product.cloudinary_public_id, product.product_images, product.image, product.preview_image_url]);
 
   const handleImageError = () => {
     setImageError(true);
