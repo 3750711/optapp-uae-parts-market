@@ -2,7 +2,7 @@
 import React, { memo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import StoreAboutTab from './StoreAboutTab';
-import StorePhotosTab from './StorePhotosTab';
+import { StorePhotosTab } from './StorePhotosTab';
 import StoreProductsTab from './StoreProductsTab';
 import StoreReviewsTab from './StoreReviewsTab';
 import { StoreWithImages, StoreReview } from '@/types/store';

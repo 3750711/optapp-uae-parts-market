@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Edit, Trash2, Eye, Tag, Hash, Calendar } from "lucide-react";
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
-import ProductEditDialog from '@/components/admin/ProductEditDialog';
+import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
