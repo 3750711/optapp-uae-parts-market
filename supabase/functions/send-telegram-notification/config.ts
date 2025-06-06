@@ -8,6 +8,9 @@ export const BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN");
 export const ORDER_GROUP_CHAT_ID = Deno.env.get("TELEGRAM_ORDER_GROUP_CHAT_ID");
 export const PRODUCT_GROUP_CHAT_ID = Deno.env.get("TELEGRAM_PRODUCT_GROUP_CHAT_ID");
 
+// Base URL for order links
+export const ORDER_BASE_URL = "https://partsbay.ae/order/";
+
 // CORS Headers
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
