@@ -10,7 +10,7 @@ import {
   RefreshCw, 
   AlertTriangle, 
   Trash2, 
-  Star, 
+  Star,
   Cloud 
 } from "lucide-react";
 
@@ -18,14 +18,11 @@ interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'processing';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
   cloudinaryUrl?: string;
   publicId?: string;
-  previewUrl?: string;
   isPrimary?: boolean;
-  fileSize?: number;
-  variants?: any;
 }
 
 interface UploadProgressCardProps {
@@ -50,16 +47,16 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
 
   const successCount = uploadProgress.filter(p => p.status === 'success').length;
   const errorCount = uploadProgress.filter(p => p.status === 'error').length;
-  const uploadingCount = uploadProgress.filter(p => p.status === 'uploading' || p.status === 'processing').length;
+  const uploadingCount = uploadProgress.filter(p => p.status === 'uploading').length;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm flex items-center gap-2">
-          Прогресс загрузки в Cloudinary
+          Прогресс загрузки
           <Badge variant="outline" className="text-xs">
             <Cloud className="h-3 w-3 mr-1" />
-            Автоматическое сжатие
+            Cloudinary
           </Badge>
         </CardTitle>
       </CardHeader>
@@ -111,7 +108,7 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
                   {progress.cloudinaryUrl && (
                     <Badge variant="default" className="text-xs bg-green-500">
                       <Cloud className="h-3 w-3 mr-1" />
-                      Cloudinary
+                      Готово
                     </Badge>
                   )}
                   <span className="text-xs">{progress.progress}%</span>
@@ -124,12 +121,6 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
                 <div className="text-xs text-red-600 flex items-center gap-1">
                   <AlertTriangle className="h-3 w-3" />
                   {progress.error}
-                </div>
-              )}
-              
-              {progress.fileSize && (
-                <div className="text-xs text-gray-500">
-                  Оригинал: {formatFileSize(progress.fileSize)} → ~400KB + 20KB превью
                 </div>
               )}
             </div>

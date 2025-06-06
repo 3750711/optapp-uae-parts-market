@@ -1,7 +1,6 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { STORAGE_BUCKETS } from "@/constants/storage";
 import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
 import { getPreviewImageUrl, getBatchImageUrls } from "@/utils/cloudinaryUtils";
 import { ExistingImagesGallery } from "./image-upload/ExistingImagesGallery";
@@ -15,47 +14,35 @@ interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'processing';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
   cloudinaryUrl?: string;
   publicId?: string;
-  previewUrl?: string;
   isPrimary?: boolean;
-  fileSize?: number;
-  variants?: any;
 }
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
   maxImages?: number;
-  storageBucket?: string;
-  storagePath?: string;
   existingImages?: string[];
   onImageDelete?: (url: string) => void;
   onSetPrimaryImage?: (url: string) => void;
   primaryImage?: string;
   productId?: string;
-  autoGeneratePreview?: boolean;
-  enableCloudinary?: boolean;
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
   onUploadComplete,
   maxImages = 25,
-  storageBucket = STORAGE_BUCKETS.PRODUCT_IMAGES,
-  storagePath = "",
   existingImages = [],
   onImageDelete,
   onSetPrimaryImage,
   primaryImage,
-  productId,
-  autoGeneratePreview = true,
-  enableCloudinary = true
+  productId
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [showPreview, setShowPreview] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -104,17 +91,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 
     if (validFiles.length > 0) {
       setSelectedFiles(validFiles);
-      setShowPreview(true);
-
-      // Show info about Cloudinary processing
-      if (enableCloudinary) {
-        toast({
-          title: "Cloudinary интеграция",
-          description: `${validFiles.length} файлов готовы к загрузке. Автоматическое сжатие до 400KB и создание превью 20KB.`,
-        });
-      }
     }
-  }, [existingImages.length, maxImages, enableCloudinary]);
+  }, [existingImages.length, maxImages]);
 
   // Upload single file directly to Cloudinary
   const uploadSingleFile = useCallback(async (
@@ -133,7 +111,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       // Update progress
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 20, isPrimary, fileSize: file.size }
+          ? { ...p, status: 'uploading', progress: 20, isPrimary }
           : p
       ));
 
@@ -146,14 +124,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       if (result.success && result.cloudinaryUrl && result.publicId) {
         console.log('✅ Cloudinary upload successful:', {
           cloudinaryUrl: result.cloudinaryUrl,
-          publicId: result.publicId,
-          originalSize: result.originalSize,
-          variants: result.variants
+          publicId: result.publicId
         });
-
-        // Generate preview URL using public_id
-        const previewUrl = getPreviewImageUrl(result.publicId);
-        const batchUrls = getBatchImageUrls(result.publicId);
 
         setUploadProgress(prev => prev.map(p => 
           p.fileId === fileId 
@@ -162,9 +134,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                 status: 'success', 
                 progress: 100,
                 cloudinaryUrl: result.cloudinaryUrl,
-                publicId: result.publicId,
-                previewUrl,
-                variants: batchUrls
+                publicId: result.publicId
               }
             : p
         ));
@@ -199,8 +169,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       fileName: file.name,
       progress: 0,
       status: 'pending',
-      isPrimary: index === 0, // First file is primary
-      fileSize: file.size
+      isPrimary: index === 0 // First file is primary
     }));
     
     setUploadProgress(initialProgress);
@@ -232,11 +201,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       onUploadComplete(uploadedUrls);
       
       setSelectedFiles([]);
-      setShowPreview(false);
 
       toast({
         title: "Загрузка завершена",
-        description: `Успешно загружено ${uploadedUrls.length} из ${selectedFiles.length} файлов в Cloudinary с автоматическим сжатием.`,
+        description: `Успешно загружено ${uploadedUrls.length} из ${selectedFiles.length} файлов.`,
       });
     }
 
@@ -246,7 +214,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   // Clear files and preview
   const clearFiles = useCallback(() => {
     setSelectedFiles([]);
-    setShowPreview(false);
   }, []);
 
   // Clear progress

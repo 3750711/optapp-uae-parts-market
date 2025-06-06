@@ -3,20 +3,17 @@ import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
 import { validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
-import { getPreviewImageUrl, getBatchImageUrls } from "@/utils/cloudinaryUtils";
+import { getBatchImageUrls } from "@/utils/cloudinaryUtils";
 
 interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'processing';
+  status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
   cloudinaryUrl?: string;
   publicId?: string;
-  previewUrl?: string;
-  hasPreview?: boolean;
   isPrimary?: boolean;
-  variants?: any;
 }
 
 interface BatchUploadOptions {
@@ -24,7 +21,6 @@ interface BatchUploadOptions {
   batchDelay?: number;
   maxRetries?: number;
   productId?: string;
-  autoGeneratePreview?: boolean;
 }
 
 export const useMobileOptimizedUpload = () => {
@@ -39,23 +35,6 @@ export const useMobileOptimizedUpload = () => {
            window.innerWidth <= 768;
   }, []);
 
-  // Detect device capabilities
-  const getDeviceCapabilities = useCallback(() => {
-    const isMobile = isMobileDevice();
-    const memory = (navigator as any).deviceMemory || 4;
-    const isLowEnd = memory <= 2 || isMobile;
-    
-    return {
-      isMobile,
-      isLowEnd,
-      memory,
-      maxConcurrent: isLowEnd ? 1 : 2, // Reduced since Cloudinary handles processing
-      batchSize: isLowEnd ? 2 : 4,
-      compressionQuality: 1.0, // Not used anymore - Cloudinary handles this
-      maxResolution: 0 // Not used anymore - Cloudinary handles this
-    };
-  }, [isMobileDevice]);
-
   // Upload single file directly to Cloudinary
   const uploadSingleFile = useCallback(async (
     file: File, 
@@ -67,7 +46,7 @@ export const useMobileOptimizedUpload = () => {
     const maxRetries = options.maxRetries || 3;
     
     try {
-      console.log('🚀 Starting Cloudinary-only upload:', {
+      console.log('🚀 Starting Cloudinary upload:', {
         fileName: file.name,
         fileId,
         productId: options.productId,
@@ -78,7 +57,7 @@ export const useMobileOptimizedUpload = () => {
       // Update progress
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: retryCount > 0 ? 'retrying' : 'uploading', progress: 10, isPrimary }
+          ? { ...p, status: 'uploading', progress: 10, isPrimary }
           : p
       ));
 
@@ -101,10 +80,10 @@ export const useMobileOptimizedUpload = () => {
       const customPublicId = `product_${options.productId || Date.now()}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 50, status: 'processing' } : p
+        p.fileId === fileId ? { ...p, progress: 50 } : p
       ));
 
-      // Upload directly to Cloudinary with full processing
+      // Upload directly to Cloudinary
       console.log('☁️ Uploading to Cloudinary...');
       const result = await uploadDirectToCloudinary(file, options.productId, customPublicId);
 
@@ -115,7 +94,6 @@ export const useMobileOptimizedUpload = () => {
       console.log('✅ Cloudinary upload completed:', {
         cloudinaryUrl: result.cloudinaryUrl,
         publicId: result.publicId,
-        originalSize: result.originalSize,
         isPrimary
       });
 
@@ -123,12 +101,10 @@ export const useMobileOptimizedUpload = () => {
         p.fileId === fileId ? { ...p, progress: 80, cloudinaryUrl: result.cloudinaryUrl, publicId: result.publicId } : p
       ));
 
-      // Generate all image variants using public_id
+      // Generate image variants using public_id
       const batchUrls = getBatchImageUrls(result.publicId);
-      const previewUrl = getPreviewImageUrl(result.publicId);
 
       console.log('🎨 Generated image variants:', {
-        preview: previewUrl,
         thumbnail: batchUrls.thumbnail,
         card: batchUrls.card,
         detail: batchUrls.detail
@@ -143,9 +119,6 @@ export const useMobileOptimizedUpload = () => {
               progress: 100, 
               cloudinaryUrl: result.cloudinaryUrl,
               publicId: result.publicId,
-              previewUrl,
-              hasPreview: true,
-              variants: batchUrls,
               isPrimary
             }
           : p
@@ -157,7 +130,6 @@ export const useMobileOptimizedUpload = () => {
         cloudinaryUrl: result.cloudinaryUrl,
         publicId: result.publicId,
         retryCount,
-        previewUrl,
         productId: options.productId,
         isPrimary
       });
@@ -208,15 +180,13 @@ export const useMobileOptimizedUpload = () => {
     files: File[],
     options: BatchUploadOptions = {}
   ): Promise<string[]> => {
-    const capabilities = getDeviceCapabilities();
-    const batchSize = options.batchSize || capabilities.batchSize;
-    const batchDelay = options.batchDelay || (capabilities.isLowEnd ? 1500 : 1000);
+    const batchSize = options.batchSize || 2;
+    const batchDelay = options.batchDelay || 1000;
     
     console.log('📦 STARTING CLOUDINARY BATCH UPLOAD:', {
       fileCount: files.length,
       productId: options.productId,
-      batchSize,
-      cloudinaryOnly: true
+      batchSize
     });
 
     setIsUploading(true);
@@ -264,7 +234,7 @@ export const useMobileOptimizedUpload = () => {
           }
         }
 
-        // Delay between batches to avoid overwhelming Cloudinary
+        // Delay between batches
         if (i + batchSize < files.length && !cancelRef.current) {
           await new Promise(resolve => setTimeout(resolve, batchDelay));
         }
@@ -278,18 +248,16 @@ export const useMobileOptimizedUpload = () => {
       });
 
       if (uploadedUrls.length > 0) {
-        const message = `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов в Cloudinary с автоматическим сжатием до 400KB и созданием превью 20KB.`;
-        
         toast({
-          title: "Загрузка в Cloudinary завершена",
-          description: message,
+          title: "Загрузка завершена",
+          description: `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов.`,
         });
       }
 
       if (errors.length > 0) {
         toast({
           title: "Ошибки загрузки",
-          description: `Не удалось загрузить ${errors.length} файлов в Cloudinary.`,
+          description: `Не удалось загрузить ${errors.length} файлов.`,
           variant: "destructive",
         });
       }
@@ -306,8 +274,8 @@ export const useMobileOptimizedUpload = () => {
       });
 
       toast({
-        title: "Ошибка загрузки в Cloudinary",
-        description: "Произошла ошибка при загрузке файлов в Cloudinary",
+        title: "Ошибка загрузки",
+        description: "Произошла ошибка при загрузке файлов",
         variant: "destructive",
       });
 
@@ -316,7 +284,7 @@ export const useMobileOptimizedUpload = () => {
       setIsUploading(false);
       setCanCancel(false);
     }
-  }, [uploadSingleFile, getDeviceCapabilities]);
+  }, [uploadSingleFile]);
 
   // Cancel upload
   const cancelUpload = useCallback(() => {
@@ -325,34 +293,9 @@ export const useMobileOptimizedUpload = () => {
     
     toast({
       title: "Загрузка отменена",
-      description: "Загрузка файлов в Cloudinary была прервана",
+      description: "Загрузка файлов была прервана",
     });
   }, []);
-
-  // Retry failed uploads
-  const retryFailedUploads = useCallback(async (options: BatchUploadOptions = {}) => {
-    const failedFiles = uploadProgress.filter(p => p.status === 'error');
-    
-    if (failedFiles.length === 0) {
-      toast({
-        title: "Нет файлов для повтора",
-        description: "Все файлы успешно загружены в Cloudinary",
-      });
-      return [];
-    }
-
-    setUploadProgress(prev => prev.map(p => 
-      p.status === 'error' 
-        ? { ...p, status: 'pending', progress: 0, error: undefined }
-        : p
-    ));
-
-    const filesToRetry = failedFiles.map(p => {
-      return new File([], p.fileName);
-    });
-
-    return uploadFilesBatch(filesToRetry, options);
-  }, [uploadProgress, uploadFilesBatch]);
 
   // Clear progress
   const clearProgress = useCallback(() => {
@@ -365,9 +308,7 @@ export const useMobileOptimizedUpload = () => {
     canCancel,
     uploadFilesBatch,
     cancelUpload,
-    retryFailedUploads,
     clearProgress,
-    isMobileDevice: isMobileDevice(),
-    deviceCapabilities: getDeviceCapabilities()
+    isMobileDevice: isMobileDevice()
   };
 };
