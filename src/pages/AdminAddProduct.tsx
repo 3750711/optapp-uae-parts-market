@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -189,7 +188,7 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Simplified single-step product creation
+  // Simplified product creation using standard Supabase operations
   const createProduct = async (values: AdminProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
@@ -243,7 +242,7 @@ const AdminAddProduct = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Create product
+      // Create product using standard Supabase insert (RLS now allows admin to create for any seller)
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -344,7 +343,7 @@ const AdminAddProduct = () => {
             brands={brands}
             brandModels={brandModels}
             isLoadingCarData={isLoadingCarData}
-            watchBrandId={watchBrandId}
+            watchBrandId={form.watch("brandId")}
             searchBrandTerm={searchBrandTerm}
             setSearchBrandTerm={setSearchBrandTerm}
             searchModelTerm={searchModelTerm}
