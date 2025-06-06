@@ -1,3 +1,4 @@
+
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -470,7 +471,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
               {/* Status Summary */}
               <div className="flex flex-wrap gap-2 text-xs">
                 {successCount > 0 && (
-                  <Badge variant="success" className="flex items-center gap-1">
+                  <Badge variant="default" className="flex items-center gap-1 bg-green-500">
                     <CheckCircle className="h-3 w-3" />
                     {successCount} успешно
                   </Badge>
@@ -488,7 +489,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                   </Badge>
                 )}
                 {previewsGenerated > 0 && (
-                  <Badge variant="success" className="flex items-center gap-1">
+                  <Badge variant="default" className="flex items-center gap-1 bg-green-500">
                     <Cloud className="h-3 w-3" />
                     {previewsGenerated} Cloudinary
                   </Badge>
@@ -516,7 +517,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                         </Badge>
                       )}
                       {progress.hasPreview && (
-                        <Badge variant="success" className="text-xs">
+                        <Badge variant="default" className="text-xs bg-green-500">
                           <Cloud className="h-3 w-3 mr-1" />
                           Cloudinary
                         </Badge>
