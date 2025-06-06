@@ -37,18 +37,18 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
 
   // Get catalog image with improved Cloudinary optimization (20-25KB)
   const catalogImage = React.useMemo(() => {
-    // Use Cloudinary catalog quality if available
+    // Always use Cloudinary catalog quality if available
     if (product.cloudinary_public_id) {
       return getCatalogImageUrl(product.cloudinary_public_id);
     }
     
-    // Fallback to preview_image_url or first image
+    // Fallback only if no Cloudinary public_id
     const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-    return product.preview_image_url || 
-           primaryImageData?.url || 
+    return primaryImageData?.url || 
            product.image || 
+           product.preview_image_url ||
            "/placeholder.svg";
-  }, [product.cloudinary_public_id, product.preview_image_url, product.product_images, product.image]);
+  }, [product.cloudinary_public_id, product.product_images, product.image, product.preview_image_url]);
 
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
