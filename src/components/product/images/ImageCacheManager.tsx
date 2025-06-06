@@ -88,7 +88,7 @@ export const useImageCacheManager = () => {
     });
 
     // Also update any other products-infinite caches with filters
-    queryClient.getQueryCache().findAll(['products-infinite']).forEach((query) => {
+    queryClient.getQueryCache().findAll({ queryKey: ['products-infinite'] }).forEach((query) => {
       queryClient.setQueryData(query.queryKey, (oldData: any) => {
         if (!oldData?.pages) return oldData;
         
