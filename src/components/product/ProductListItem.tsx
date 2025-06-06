@@ -1,7 +1,10 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
+import OptimizedImage from "@/components/ui/OptimizedImage";
+import { getCatalogImageUrl } from "@/utils/cloudinaryUtils";
 import { ProductProps } from "./ProductCard";
 
 interface ProductListItemProps {
@@ -32,23 +35,34 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  // Получаем изображение для отображения - превью или основное
-  const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
-  const primaryImageUrl = product.preview_image_url || 
-                         primaryImageData?.url || 
-                         product.image || 
-                         "/placeholder.svg";
+  // Get catalog image with improved Cloudinary optimization (20-25KB)
+  const catalogImage = React.useMemo(() => {
+    // Use Cloudinary catalog quality if available
+    if (product.cloudinary_public_id) {
+      return getCatalogImageUrl(product.cloudinary_public_id);
+    }
+    
+    // Fallback to preview_image_url or first image
+    const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+    return product.preview_image_url || 
+           primaryImageData?.url || 
+           product.image || 
+           "/placeholder.svg";
+  }, [product.cloudinary_public_id, product.preview_image_url, product.product_images, product.image]);
 
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Изображение товара - используем превью */}
+        {/* Изображение товара - используем каталожное качество */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
-          <img
-            src={primaryImageUrl}
+          <OptimizedImage
+            src={catalogImage}
             alt={product.title}
             className="w-full h-full object-cover"
-            loading="lazy"
+            cloudinaryPublicId={product.cloudinary_public_id || undefined}
+            size="card"
+            priority={false}
+            sizes="(max-width: 640px) 80px, 96px"
           />
           {product.lot_number && (
             <Badge 
