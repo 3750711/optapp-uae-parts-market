@@ -145,13 +145,7 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
             defaultOpen={hasImages}
             disabled={!hasImages}
           >
-            {!hasImages ? (
-              <div className="p-4 text-center text-gray-500">
-                <p>Сначала загрузите фотографии товара</p>
-              </div>
-            ) : (
-              <MobileOptimizedBasicInfoSection form={form} />
-            )}
+            <MobileOptimizedBasicInfoSection form={form} />
           </MobileOptimizedForm>
           
           {/* ИНФОРМАЦИЯ ОБ АВТОМОБИЛЕ */}
@@ -160,23 +154,17 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
             defaultOpen={false}
             disabled={!hasImages}
           >
-            {!hasImages ? (
-              <div className="p-4 text-center text-gray-500">
-                <p>Сначала загрузите фотографии товара</p>
-              </div>
-            ) : (
-              <MobileOptimizedCarInfoSection
-                form={form}
-                filteredBrands={filteredBrands}
-                filteredModels={filteredModels}
-                searchBrandTerm={searchBrandTerm}
-                setSearchBrandTerm={setSearchBrandTerm}
-                searchModelTerm={searchModelTerm}
-                setSearchModelTerm={setSearchModelTerm}
-                watchBrandId={watchBrandId}
-                isLoadingCarData={isLoadingCarData}
-              />
-            )}
+            <MobileOptimizedCarInfoSection
+              form={form}
+              filteredBrands={filteredBrands}
+              filteredModels={filteredModels}
+              searchBrandTerm={searchBrandTerm}
+              setSearchBrandTerm={setSearchBrandTerm}
+              searchModelTerm={searchModelTerm}
+              setSearchModelTerm={setSearchModelTerm}
+              watchBrandId={watchBrandId}
+              isLoadingCarData={isLoadingCarData}
+            />
           </MobileOptimizedForm>
           
           {!isMobile && (

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,7 +43,6 @@ const SellerAddProduct = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
-  const [progressStatus, setProgressStatus] = useState({ step: "", progress: 0 });
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   
@@ -116,7 +114,7 @@ const SellerAddProduct = () => {
         setTimeout(() => setShowDraftSaved(false), 5000);
       }
     }
-  }, [loadSavedData, form]);
+  }, [loadSavedData, form, formData]);
 
   // Мемоизированная функция для обработки изменений названия
   const handleTitleChange = useCallback((title: string) => {
@@ -209,7 +207,6 @@ const SellerAddProduct = () => {
     }
 
     setIsSubmitting(true);
-    setProgressStatus({ step: "Создание товара", progress: 10 });
 
     try {
       // Получаем имена бренда и модели для базы данных
@@ -232,8 +229,6 @@ const SellerAddProduct = () => {
       }
 
       const sellerName = profile.full_name || user.email || "Unknown Seller";
-
-      setProgressStatus({ step: "Сохранение данных товара", progress: 30 });
 
       // Create product first
       const { data: product, error: productError } = await supabase
@@ -258,8 +253,6 @@ const SellerAddProduct = () => {
         throw new Error(`Ошибка создания товара: ${productError.message || 'Неизвестная ошибка'}`);
       }
       
-      setProgressStatus({ step: "Сохранение изображений и Cloudinary обработка", progress: 60 });
-
       // Save product images with primary image detection
       const productImages = imageUrls.map((url) => ({
         product_id: product.id,
@@ -277,8 +270,6 @@ const SellerAddProduct = () => {
 
       // If we have a primary image, trigger Cloudinary upload
       if (primaryImage) {
-        setProgressStatus({ step: "Загрузка основного изображения в Cloudinary", progress: 75 });
-        
         try {
           console.log('🚀 Starting Cloudinary upload for primary image:', primaryImage);
           
@@ -319,8 +310,6 @@ const SellerAddProduct = () => {
           // Continue with normal flow if Cloudinary fails
         }
       }
-      
-      setProgressStatus({ step: "Сохранение видео", progress: 85 });
 
       if (videoUrls.length > 0) {
         const { error: videosError } = await supabase
@@ -344,7 +333,6 @@ const SellerAddProduct = () => {
         .single();
 
       if (currentProduct && currentProduct.status === 'active') {
-        setProgressStatus({ step: "Отправка уведомления в Telegram", progress: 90 });
         try {
           supabase.functions.invoke('send-telegram-notification', {
             body: { productId: product.id }
@@ -355,8 +343,6 @@ const SellerAddProduct = () => {
           console.error("Exception while sending notification:", notificationError);
         }
       }
-      
-      setProgressStatus({ step: "Завершение", progress: 100 });
 
       // Очищаем автосохраненный черновик после успешной публикации
       clearSavedData();
@@ -378,7 +364,6 @@ const SellerAddProduct = () => {
       });
     } finally {
       setIsSubmitting(false);
-      setProgressStatus({ step: "", progress: 0 });
     }
   };
 
@@ -467,19 +452,8 @@ const SellerAddProduct = () => {
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
-                  progressStatus={progressStatus}
                 />
               </CardContent>
-              
-              {isSubmitting && (
-                <div className="px-6 pb-4">
-                  <div className="mb-2 flex justify-between items-center">
-                    <span className="text-sm font-medium">{progressStatus.step || "Публикация товара..."}</span>
-                    <span className="text-sm">{progressStatus.progress}%</span>
-                  </div>
-                  <Progress value={progressStatus.progress} className="h-2" />
-                </div>
-              )}
             </Card>
           </div>
         </div>
