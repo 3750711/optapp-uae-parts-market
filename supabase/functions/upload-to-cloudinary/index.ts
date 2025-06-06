@@ -14,13 +14,14 @@ serve(async (req) => {
   try {
     console.log('🚀 Cloudinary upload function started (Direct Base64 Upload)');
     
-    const { fileData, fileName, productId, publicId, createVariants = true } = await req.json();
+    const { fileData, fileName, productId, publicId, createVariants = true, isVideo = false } = await req.json();
     
     console.log('📋 Request params:', {
       fileName: fileName || 'undefined',
       productId: productId || 'undefined',
       publicId: publicId || 'undefined',
       createVariants,
+      isVideo,
       hasFileData: !!fileData
     });
     
@@ -44,17 +45,31 @@ serve(async (req) => {
       throw new Error('Cloudinary API secret not configured');
     }
 
-    console.log('☁️ Uploading to Cloudinary with automatic transformations...');
+    console.log(`☁️ Uploading ${isVideo ? 'video' : 'image'} to Cloudinary with automatic transformations...`);
     
     // Generate timestamp and signature for Cloudinary API
     const timestamp = Math.round(Date.now() / 1000);
     
-    // Upload with automatic compression transformations
-    const transformations = [
-      'q_auto:low',  // Automatic quality optimization for smaller file size
-      'f_auto',      // Automatic format selection (WebP/AVIF)
-      'c_fill'       // Fill crop mode
-    ].join(',');
+    // Different transformations for video and image
+    let transformations, uploadEndpoint;
+    
+    if (isVideo) {
+      // Video transformations: automatic quality, format optimization
+      transformations = [
+        'q_auto:low',     // Automatic quality optimization
+        'f_auto',         // Automatic format selection (mp4/webm)
+        'c_fill'          // Fill crop mode
+      ].join(',');
+      uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
+    } else {
+      // Image transformations (existing)
+      transformations = [
+        'q_auto:low',     // Automatic quality optimization for smaller file size
+        'f_auto',         // Automatic format selection (WebP/AVIF)
+        'c_fill'          // Fill crop mode
+      ].join(',');
+      uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+    }
     
     const paramsToSign = `public_id=${publicId}&timestamp=${timestamp}&transformation=${transformations}`;
     
@@ -65,34 +80,36 @@ serve(async (req) => {
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-    // Upload main image with compression using base64 data
+    // Upload main file with compression using base64 data
     const formData = new FormData();
-    formData.append('file', `data:image/jpeg;base64,${fileData}`);
+    const dataPrefix = isVideo ? 'data:video/mp4;base64,' : 'data:image/jpeg;base64,';
+    formData.append('file', `${dataPrefix}${fileData}`);
     formData.append('public_id', publicId);
     formData.append('timestamp', timestamp.toString());
     formData.append('api_key', apiKey);
     formData.append('signature', signature);
     formData.append('transformation', transformations);
 
-    const uploadResponse = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+    const uploadResponse = await fetch(uploadEndpoint, {
       method: 'POST',
       body: formData
     });
 
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error('❌ Cloudinary upload failed:', errorText);
+      console.error(`❌ Cloudinary ${isVideo ? 'video' : 'image'} upload failed:`, errorText);
       throw new Error(`Cloudinary upload failed: ${uploadResponse.status}`);
     }
 
     const uploadResult = await uploadResponse.json();
-    console.log('✅ Main image upload successful:', {
+    console.log(`✅ Main ${isVideo ? 'video' : 'image'} upload successful:`, {
       public_id: uploadResult.public_id,
       secure_url: uploadResult.secure_url,
       format: uploadResult.format,
       bytes: uploadResult.bytes,
       width: uploadResult.width,
-      height: uploadResult.height
+      height: uploadResult.height,
+      duration: uploadResult.duration // For videos
     });
 
     const result = {
@@ -103,11 +120,12 @@ serve(async (req) => {
       format: uploadResult.format,
       width: uploadResult.width,
       height: uploadResult.height,
+      duration: uploadResult.duration, // Video duration in seconds
       variants: {}
     };
 
-    // Create preview variant (20KB) if requested
-    if (createVariants) {
+    // Create variants if requested (only for images for now)
+    if (createVariants && !isVideo) {
       console.log('🎨 Creating preview variant (20KB)...');
       
       try {
@@ -126,6 +144,25 @@ serve(async (req) => {
       }
     }
 
+    // For videos, create thumbnail variant
+    if (isVideo && createVariants) {
+      console.log('🎬 Creating video thumbnail...');
+      
+      try {
+        const thumbnailUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_200,h_150,q_60,f_jpg,so_2/${uploadResult.public_id}.jpg`;
+        
+        result.variants.thumbnail = {
+          url: thumbnailUrl,
+          transformation: 'w_200,h_150,q_60,f_jpg,so_2',
+          estimatedSize: 15000 // ~15KB
+        };
+        
+        console.log('✅ Video thumbnail created:', thumbnailUrl);
+      } catch (thumbnailError) {
+        console.error('⚠️ Video thumbnail creation failed:', thumbnailError);
+      }
+    }
+
     // Update product with Cloudinary data if productId provided
     if (productId) {
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.7.1');
@@ -135,30 +172,52 @@ serve(async (req) => {
       if (supabaseUrl && supabaseServiceKey) {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         
-        const updateData = {
-          cloudinary_public_id: uploadResult.public_id,
-          cloudinary_url: uploadResult.secure_url,
-          preview_image_url: result.variants.preview?.url || uploadResult.secure_url
-        };
-        
-        const { error } = await supabase
-          .from('products')
-          .update(updateData)
-          .eq('id', productId);
+        if (isVideo) {
+          // Update product_videos table
+          const { error } = await supabase
+            .from('product_videos')
+            .update({
+              cloudinary_public_id: uploadResult.public_id,
+              cloudinary_url: uploadResult.secure_url,
+              thumbnail_url: result.variants.thumbnail?.url || null,
+              duration: uploadResult.duration || null
+            })
+            .eq('url', uploadResult.secure_url); // Assuming we match by URL
 
-        if (error) {
-          console.error('❌ Database update error:', error);
+          if (error) {
+            console.error('❌ Video database update error:', error);
+          } else {
+            console.log('✅ Video updated with Cloudinary data');
+          }
         } else {
-          console.log('✅ Product updated with Cloudinary data');
+          // Update products table for images (existing logic)
+          const updateData = {
+            cloudinary_public_id: uploadResult.public_id,
+            cloudinary_url: uploadResult.secure_url,
+            preview_image_url: result.variants.preview?.url || uploadResult.secure_url
+          };
+          
+          const { error } = await supabase
+            .from('products')
+            .update(updateData)
+            .eq('id', productId);
+
+          if (error) {
+            console.error('❌ Database update error:', error);
+          } else {
+            console.log('✅ Product updated with Cloudinary data');
+          }
         }
       }
     }
     
-    console.log('🎉 SUCCESS! Direct base64 Cloudinary upload completed:', {
+    console.log(`🎉 SUCCESS! Direct base64 Cloudinary ${isVideo ? 'video' : 'image'} upload completed:`, {
       publicId: result.publicId,
       format: result.format,
       sizeKB: Math.round(result.originalSize / 1024),
-      hasPreview: !!result.variants.preview
+      duration: result.duration,
+      hasPreview: !!result.variants.preview,
+      hasThumbnail: !!result.variants.thumbnail
     });
 
     return new Response(

@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import React from "react";
 import { useToast } from "@/hooks/use-toast";
-import VideoUpload from "@/components/ui/video-upload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminProductVideosManagerProps {
   productId: string;
@@ -16,11 +16,10 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
   onVideosChange,
 }) => {
   const { toast } = useToast();
-  const [isUploading, setIsUploading] = useState(false);
 
   const handleVideoUpload = async (newUrls: string[]) => {
     try {
-      setIsUploading(true);
+      console.log('🎬 Adding videos to product:', { productId, newUrls });
       
       const videoInserts = newUrls.map(url => ({
         product_id: productId,
@@ -37,7 +36,7 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
       
       toast({
         title: "Видео добавлены",
-        description: `Добавлено ${newUrls.length} видео`,
+        description: `Добавлено ${newUrls.length} видео через Cloudinary`,
       });
     } catch (error) {
       console.error("Error uploading videos:", error);
@@ -46,8 +45,6 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
         description: "Не удалось добавить видео",
         variant: "destructive",
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -79,14 +76,13 @@ export const AdminProductVideosManager: React.FC<AdminProductVideosManagerProps>
 
   return (
     <div>
-      <h3 className="text-sm font-medium mb-2">Видео</h3>
-      <VideoUpload
+      <h3 className="text-sm font-medium mb-2">Видео (Cloudinary)</h3>
+      <CloudinaryVideoUpload
         videos={videos}
         onUpload={handleVideoUpload}
         onDelete={handleVideoDelete}
         maxVideos={3}
-        storageBucket="Product Images"
-        storagePrefix={`product-${productId}/`}
+        productId={productId}
       />
     </div>
   );
