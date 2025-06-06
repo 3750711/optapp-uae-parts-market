@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,7 @@ import {
 } from "@/components/ui/carousel";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
-import { getPreviewImageUrl } from "@/utils/cloudinaryUtils";
+import { getCatalogImageUrl } from "@/utils/cloudinaryUtils";
 
 export interface ProductProps {
   id: string;
@@ -91,11 +90,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return ["/placeholder.svg"];
   }, [product.product_images, product.image]);
 
-  // Get catalog image with Cloudinary optimization
+  // Get catalog image with improved Cloudinary optimization (20-25KB)
   const catalogImage = React.useMemo(() => {
-    // Use Cloudinary preview if available
+    // Use Cloudinary catalog quality if available
     if (product.cloudinary_public_id) {
-      return getPreviewImageUrl(product.cloudinary_public_id);
+      return getCatalogImageUrl(product.cloudinary_public_id);
     }
     
     // Fallback to preview_image_url or first image
