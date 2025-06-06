@@ -8,6 +8,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
+import { extractPublicIdFromUrl, getPreviewImageUrl } from "@/utils/cloudinaryUtils";
 import OptimizedAddProductForm, { ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 
 // Admin product schema with required sellerId
@@ -188,7 +189,7 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Simplified product creation using standard Supabase operations
+  // Enhanced product creation with Cloudinary data and preview generation
   const createProduct = async (values: AdminProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
@@ -239,6 +240,7 @@ const AdminAddProduct = () => {
         videoCount: videoUrls.length,
         sellerId: values.sellerId,
         sellerName: selectedSeller.full_name,
+        primaryImage,
         timestamp: new Date().toISOString()
       });
       
@@ -280,6 +282,45 @@ const AdminAddProduct = () => {
           
         if (imageError) {
           console.error('Error adding image:', imageError);
+        }
+      }
+
+      // Extract public_id from primary image and update product with Cloudinary data
+      if (primaryImage) {
+        try {
+          console.log('🎨 Extracting public_id from primary image:', primaryImage);
+          const publicId = extractPublicIdFromUrl(primaryImage);
+          
+          if (publicId) {
+            const previewUrl = getPreviewImageUrl(publicId);
+            
+            console.log('📸 Updating product with Cloudinary data:', {
+              productId: product.id,
+              publicId,
+              cloudinaryUrl: primaryImage,
+              previewUrl
+            });
+
+            // Update product with Cloudinary data and preview URL
+            const { error: updateError } = await supabase
+              .from('products')
+              .update({
+                cloudinary_public_id: publicId,
+                cloudinary_url: primaryImage,
+                preview_image_url: previewUrl
+              })
+              .eq('id', product.id);
+
+            if (updateError) {
+              console.error('❌ Error updating product with Cloudinary data:', updateError);
+            } else {
+              console.log('✅ Product updated with Cloudinary data and preview URL');
+            }
+          } else {
+            console.warn('⚠️ Could not extract public_id from primary image URL');
+          }
+        } catch (error) {
+          console.error('💥 Error processing Cloudinary data:', error);
         }
       }
 
