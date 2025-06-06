@@ -11,6 +11,15 @@ import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 
+// Admin schema requires sellerId
+const adminProductSchema = productSchema.extend({
+  sellerId: z.string().min(1, {
+    message: "Выберите продавца",
+  }),
+});
+
+type AdminProductFormValues = z.infer<typeof adminProductSchema>;
+
 const AdminAddProduct = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,8 +51,8 @@ const AdminAddProduct = () => {
     findModelIdByName
   );
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+  const form = useForm<AdminProductFormValues>({
+    resolver: zodResolver(adminProductSchema),
     defaultValues: {
       title: "",
       price: "",
@@ -164,7 +173,7 @@ const AdminAddProduct = () => {
   };
 
   // Simplified single-step product creation
-  const createProduct = async (values: ProductFormValues) => {
+  const createProduct = async (values: AdminProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
         title: "Ошибка",
@@ -337,6 +346,7 @@ const AdminAddProduct = () => {
             onImageDelete={removeImage}
             sellers={sellers}
             isLoadingSellers={isLoadingSellers}
+            showSellerSelect={true}
           />
         </div>
       </div>

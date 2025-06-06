@@ -37,9 +37,7 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
-  sellerId: z.string().min(1, {
-    message: "Выберите продавца",
-  }),
+  sellerId: z.string().optional(),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -63,8 +61,9 @@ interface OptimizedAddProductFormProps {
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
-  sellers: Array<{id: string, full_name: string, opt_id?: string}>;
+  sellers?: Array<{id: string, full_name: string, opt_id?: string}>;
   isLoadingSellers?: boolean;
+  showSellerSelect?: boolean;
 }
 
 const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
@@ -86,8 +85,9 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   primaryImage,
   setPrimaryImage,
   onImageDelete,
-  sellers,
-  isLoadingSellers = false
+  sellers = [],
+  isLoadingSellers = false,
+  showSellerSelect = false
 }) => {
   const isMobile = useIsMobile();
   const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
@@ -113,19 +113,21 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
           
-          {/* ПРОДАВЕЦ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Продавец</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SellerSelect
-                form={form}
-                sellers={sellers}
-                isLoading={isLoadingSellers}
-              />
-            </CardContent>
-          </Card>
+          {/* ПРОДАВЕЦ - только для администратора */}
+          {showSellerSelect && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Продавец</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SellerSelect
+                  form={form}
+                  sellers={sellers}
+                  isLoading={isLoadingSellers}
+                />
+              </CardContent>
+            </Card>
+          )}
           
           {/* МЕДИА ФАЙЛЫ */}
           <Card>
