@@ -1,4 +1,3 @@
-
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -580,7 +579,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       <div className="text-xs text-gray-500 space-y-1">
         <div>Загружено: {existingImages.length} / {maxImages} изображений</div>
         <div>📸 Изображения автоматически сжимаются до 400KB</div>
-        {enableCloudinary && productId && (
+        {enableCloudinary && productId ? (
           <div className="flex items-center gap-1">
             <Star className="h-3 w-3 text-yellow-500" />
             🖼️ Превью 20KB создается только для основного изображения
