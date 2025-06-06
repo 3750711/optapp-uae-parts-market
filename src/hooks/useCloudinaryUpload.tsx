@@ -1,7 +1,7 @@
 
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
 
 interface CloudinaryUploadProgress {
   fileId: string;
@@ -12,11 +12,11 @@ interface CloudinaryUploadProgress {
   url?: string;
   cloudinaryUrl?: string;
   publicId?: string;
-  fileSize?: number;
 }
 
 interface CloudinaryUploadOptions {
   productId?: string;
+  uploadToCloudinary?: boolean;
 }
 
 export const useCloudinaryUpload = () => {
@@ -29,45 +29,36 @@ export const useCloudinaryUpload = () => {
     options: CloudinaryUploadOptions = {}
   ): Promise<string> => {
     try {
-      console.log('🚀 Starting direct Cloudinary upload for:', file.name);
+      console.log('🚀 Starting Cloudinary-only upload process for:', file.name);
 
-      // Update progress - starting upload (более детальный прогресс)
+      // Update progress - starting upload
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 10, fileSize: file.size }
+          ? { ...p, status: 'uploading', progress: 10 }
           : p
       ));
 
-      // Подготовка файла
+      // Create a blob URL for direct Cloudinary upload
+      const blobUrl = URL.createObjectURL(file);
+
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, progress: 25 }
+          ? { ...p, progress: 50, url: blobUrl }
           : p
       ));
 
-      // Начало загрузки
+      // Upload directly to Cloudinary
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, progress: 40 }
+          ? { ...p, status: 'processing', progress: 70 }
           : p
       ));
 
-      // Upload directly to Cloudinary using the file object
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'processing', progress: 60 }
-          : p
-      ));
+      console.log('☁️ Starting Cloudinary upload...');
+      const cloudinaryResult = await uploadToCloudinary(blobUrl, options.productId);
 
-      console.log('☁️ Uploading to Cloudinary with file object...');
-      const cloudinaryResult = await uploadDirectToCloudinary(file, options.productId);
-
-      // Финальная обработка
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, progress: 85 }
-          : p
-      ));
+      // Clean up blob URL
+      URL.revokeObjectURL(blobUrl);
 
       if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
         console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
@@ -109,13 +100,12 @@ export const useCloudinaryUpload = () => {
   ): Promise<string[]> => {
     setIsUploading(true);
 
-    // Initialize progress tracking with file sizes
+    // Initialize progress tracking
     const initialProgress: CloudinaryUploadProgress[] = files.map((file, index) => ({
       fileId: `file-${Date.now()}-${index}`,
       fileName: file.name,
       progress: 0,
-      status: 'pending',
-      fileSize: file.size
+      status: 'pending'
     }));
     
     setUploadProgress(initialProgress);
@@ -124,7 +114,6 @@ export const useCloudinaryUpload = () => {
     const errors: string[] = [];
 
     try {
-      // Загружаем файлы последовательно для лучшего контроля прогресса
       for (let i = 0; i < files.length; i++) {
         try {
           const fileId = initialProgress[i].fileId;

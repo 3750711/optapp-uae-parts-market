@@ -9,31 +9,21 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import { useSellers } from "@/hooks/useSellers";
-import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
-import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
-import { getCompressedImageUrl } from "@/utils/cloudinaryUtils";
-
-// Расширяем схему продукта для включения продавца
-const adminProductSchema = productSchema.extend({
-  sellerId: z.string().min(1, {
-    message: "Выберите продавца",
-  }),
-});
-
-type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 const AdminAddProduct = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sellers, setSellers] = useState<{ id: string; full_name: string }[]>([]);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
+  const [searchSellerTerm, setSearchSellerTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
-  // Хуки для данных
+  // Use our custom hook for car brands and models
   const { 
     brands, 
     brandModels, 
@@ -44,21 +34,7 @@ const AdminAddProduct = () => {
     validateModelBrand 
   } = useCarBrandsAndModels();
 
-  const { sellers, isLoading: isLoadingSellers, error: sellersError, refetch: refetchSellers } = useSellers();
-
-  // Защита от повторных отправок
-  const { guardedSubmit, isSubmitting } = useSubmissionGuard({
-    timeout: 5000,
-    onDuplicateSubmit: () => {
-      toast({
-        title: "Предупреждение",
-        description: "Товар уже создается, подождите...",
-        variant: "destructive",
-      });
-    }
-  });
-
-  // Парсер заголовков
+  // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
     brands,
     brandModels,
@@ -66,8 +42,8 @@ const AdminAddProduct = () => {
     findModelIdByName
   );
 
-  const form = useForm<AdminProductFormValues>({
-    resolver: zodResolver(adminProductSchema),
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productSchema),
     defaultValues: {
       title: "",
       price: "",
@@ -76,7 +52,6 @@ const AdminAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
-      sellerId: "",
     },
     mode: "onChange",
   });
@@ -85,7 +60,7 @@ const AdminAddProduct = () => {
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
 
-  // Автоопределение марки и модели из заголовка
+  // When title changes, try to detect brand and model
   useEffect(() => {
     if (watchTitle && brands.length > 0 && !watchBrandId) {
       const { brandId, modelId } = parseProductTitle(watchTitle);
@@ -105,7 +80,31 @@ const AdminAddProduct = () => {
     }
   }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
-  // Обновление списка моделей при смене марки
+  // Fetch sellers
+  useEffect(() => {
+    const fetchSellers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('user_type', 'seller');
+
+      if (error) {
+        console.error("Error fetching sellers:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список продавцов",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSellers(data || []);
+    };
+
+    fetchSellers();
+  }, [toast]);
+
+  // When brand changes, reset model selection and update models list
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
@@ -119,7 +118,7 @@ const AdminAddProduct = () => {
     }
   }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
 
-  // Валидация модели при изменении списка моделей
+  // Validate model when brandModels change
   useEffect(() => {
     if (watchModelId && brandModels.length > 0) {
       const modelExists = brandModels.some(model => model.id === watchModelId);
@@ -129,8 +128,8 @@ const AdminAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
-  const handleImageUpload = (urls: string[]) => {
-    console.log('📷 Новые изображения загружены:', {
+  const handleMobileOptimizedImageUpload = (urls: string[]) => {
+    console.log('📷 New images uploaded:', {
       urls,
       existingCount: imageUrls.length,
       timestamp: new Date().toISOString()
@@ -138,9 +137,9 @@ const AdminAddProduct = () => {
     
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
-    // Установка основного изображения если его нет
+    // Set default primary image if none is selected yet
     if (!primaryImage && urls.length > 0) {
-      console.log('🎯 Установка основного изображения:', urls[0]);
+      console.log('🎯 Setting primary image:', urls[0]);
       setPrimaryImage(urls[0]);
     }
   };
@@ -149,7 +148,7 @@ const AdminAddProduct = () => {
     const newImageUrls = imageUrls.filter(item => item !== url);
     setImageUrls(newImageUrls);
     
-    // Если удаляется основное изображение, устанавливаем новое
+    // If deleted image was primary, set new primary
     if (primaryImage === url) {
       if (newImageUrls.length > 0) {
         setPrimaryImage(newImageUrls[0]);
@@ -159,15 +158,24 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Улучшенная функция создания товара с retry механизмом для Cloudinary
-  const createProduct = async (values: AdminProductFormValues) => {
-    console.log('🚀 Создание товара администратором:', values);
+  // Simplified single-step product creation
+  const createProduct = async (values: ProductFormValues) => {
+    if (imageUrls.length === 0) {
+      toast({
+        title: "Ошибка",
+        description: "Добавьте хотя бы одну фотографию",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
-      // Получение данных о марке и модели
+      // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
       
+      // Model is optional
       let modelName = null;
       if (values.modelId) {
         const selectedModel = brandModels.find(model => model.id === values.modelId);
@@ -175,201 +183,105 @@ const AdminAddProduct = () => {
       }
 
       if (!selectedBrand) {
-        throw new Error("Выбранная марка не найдена");
+        toast({
+          title: "Ошибка",
+          description: "Выбранная марка не найдена",
+          variant: "destructive",
+        });
+        return;
       }
 
-      if (!selectedSeller) {
-        throw new Error("Выбранный продавец не найден");
-      }
-
-      console.log('🏭 Создание товара через admin RPC функцию...', {
+      console.log('🏭 Creating product with images...', {
         title: values.title,
-        seller: selectedSeller.full_name,
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         timestamp: new Date().toISOString()
       });
       
-      // Создание товара через admin RPC функцию
-      const { data: productId, error: productError } = await supabase.rpc('admin_create_product', {
-        p_title: values.title,
-        p_price: parseFloat(values.price),
-        p_condition: "Новый",
-        p_brand: selectedBrand.name,
-        p_model: modelName,
-        p_description: values.description || null,
-        p_seller_id: values.sellerId,
-        p_seller_name: selectedSeller.full_name,
-        p_status: 'active',
-        p_place_number: parseInt(values.placeNumber),
-        p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
-      });
+      // Create product
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .insert({
+          title: values.title,
+          price: parseFloat(values.price),
+          condition: "Новый",
+          brand: selectedBrand.name,
+          model: modelName,
+          description: values.description || null,
+          seller_id: '00000000-0000-0000-0000-000000000000', // Admin seller ID
+          seller_name: 'Admin',
+          status: 'active',
+          place_number: parseInt(values.placeNumber),
+          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+        })
+        .select()
+        .single();
 
       if (productError) {
-        console.error("Ошибка создания товара:", productError);
-        throw new Error(`Не удалось создать товар: ${productError.message}`);
+        console.error("Error creating product:", productError);
+        throw productError;
       }
 
-      if (!productId) {
-        throw new Error("Создание товара не вернуло ID");
-      }
+      console.log('✅ Product created:', product.id);
 
-      console.log('✅ Товар создан с ID:', productId);
-
-      // Обработка изображений с улучшенной Cloudinary интеграцией
-      let cloudinaryData: {
-        publicId?: string;
-        cloudinaryUrl?: string;
-        previewUrl?: string;
-      } = {};
-
-      for (let i = 0; i < imageUrls.length; i++) {
-        const url = imageUrls[i];
-        const isPrimary = url === primaryImage;
-        
-        try {
-          // Для основного изображения загружаем в Cloudinary
-          if (isPrimary && url.startsWith('blob:')) {
-            console.log('☁️ Загрузка основного изображения в Cloudinary...', url);
-            
-            const response = await fetch(url);
-            const blob = await response.blob();
-            const file = new File([blob], `product_${productId}_primary.jpg`, { type: 'image/jpeg' });
-            
-            const cloudinaryResult = await uploadDirectToCloudinary(file, productId, `product_${productId}_primary`);
-            
-            if (cloudinaryResult.success && cloudinaryResult.publicId && cloudinaryResult.cloudinaryUrl) {
-              cloudinaryData = {
-                publicId: cloudinaryResult.publicId,
-                cloudinaryUrl: getCompressedImageUrl(cloudinaryResult.publicId),
-                previewUrl: getCompressedImageUrl(cloudinaryResult.publicId)
-              };
-              
-              console.log('✅ Cloudinary загрузка успешна:', cloudinaryData);
-            } else {
-              console.warn('⚠️ Cloudinary загрузка не удалась:', cloudinaryResult.error);
-            }
-          }
-
-          // Добавляем изображение в базу данных
-          const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
-            p_product_id: productId,
-            p_url: url,
-            p_is_primary: isPrimary
+      // Add images
+      for (const url of imageUrls) {
+        const { error: imageError } = await supabase
+          .from('product_images')
+          .insert({
+            product_id: product.id,
+            url: url,
+            is_primary: url === primaryImage
           });
-            
-          if (imageError) {
-            console.error('Ошибка добавления изображения:', imageError);
-            toast({
-              title: "Предупреждение",
-              description: `Не удалось добавить изображение: ${imageError.message}`,
-              variant: "destructive",
-            });
-          }
-        } catch (imageProcessError) {
-          console.error('Ошибка обработки изображения:', imageProcessError);
           
-          // Все равно пытаемся добавить изображение в базу
-          const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
-            p_product_id: productId,
-            p_url: url,
-            p_is_primary: isPrimary
-          });
-            
-          if (imageError) {
-            console.error('Ошибка добавления изображения после ошибки обработки:', imageError);
-          }
+        if (imageError) {
+          console.error('Error adding image:', imageError);
         }
       }
 
-      // Обновляем товар с Cloudinary данными если они есть
-      if (cloudinaryData.publicId && cloudinaryData.cloudinaryUrl) {
-        console.log('🔄 Обновление товара с Cloudinary данными...');
-        
-        const { error: updateError } = await supabase
-          .from('products')
-          .update({
-            cloudinary_public_id: cloudinaryData.publicId,
-            cloudinary_url: cloudinaryData.cloudinaryUrl,
-            preview_image_url: cloudinaryData.previewUrl
-          })
-          .eq('id', productId);
-
-        if (updateError) {
-          console.error('❌ Ошибка обновления товара с Cloudinary данными:', updateError);
-          toast({
-            title: "Предупреждение",
-            description: "Товар создан, но Cloudinary данные не сохранены. Воспользуйтесь функцией восстановления.",
-            variant: "destructive",
-          });
-        } else {
-          console.log('✅ Товар успешно обновлен с Cloudinary данными');
-        }
-      }
-
-      // Добавление видео
+      // Add videos if any
       if (videoUrls.length > 0) {
         for (const videoUrl of videoUrls) {
-          const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
-            p_product_id: productId,
-            p_url: videoUrl
-          });
+          const { error: videoError } = await supabase
+            .from('product_videos')
+            .insert({
+              product_id: product.id,
+              url: videoUrl
+            });
             
           if (videoError) {
-            console.error('Ошибка добавления видео:', videoError);
-            toast({
-              title: "Предупреждение",
-              description: `Не удалось добавить видео: ${videoError.message}`,
-              variant: "destructive",
-            });
+            console.error('Error adding video:', videoError);
           }
         }
       }
 
-      // Отправка уведомления
+      // Send notification
       try {
         supabase.functions.invoke('send-telegram-notification', {
-          body: { productId: productId }
+          body: { productId: product.id }
         }).catch(notifyError => {
-          console.error("Ошибка отправки уведомления:", notifyError);
+          console.error("Error sending notification:", notifyError);
         });
       } catch (notifyError) {
-        console.warn("Ошибка отправки уведомления:", notifyError);
+        console.warn("Error sending notification:", notifyError);
       }
 
       toast({
         title: "Товар создан",
-        description: cloudinaryData.publicId 
-          ? `Товар успешно создан для продавца ${selectedSeller.full_name} с Cloudinary интеграцией`
-          : `Товар создан для продавца ${selectedSeller.full_name}. Рекомендуется проверить Cloudinary интеграцию.`,
+        description: "Товар успешно опубликован на маркетплейсе",
       });
 
-      navigate(`/product/${productId}`);
+      navigate(`/product/${product.id}`);
     } catch (error) {
-      console.error("Ошибка создания товара:", error);
-      
-      let errorMessage = "Не удалось создать товар. Попробуйте позже.";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Only admins can use this function')) {
-          errorMessage = "У вас нет прав администратора для создания товаров.";
-        } else if (error.message.includes('Не удалось создать товар')) {
-          errorMessage = error.message;
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
+      console.error("Error creating product:", error);
       toast({
         title: "Ошибка",
-        description: errorMessage,
+        description: "Не удалось создать товар. Попробуйте позже.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
-  };
-
-  const handleSubmit = (values: AdminProductFormValues) => {
-    guardedSubmit(() => createProduct(values));
   };
 
   return (
@@ -380,7 +292,7 @@ const AdminAddProduct = () => {
           
           <OptimizedAddProductForm
             form={form}
-            onSubmit={handleSubmit}
+            onSubmit={createProduct}
             isSubmitting={isSubmitting}
             imageUrls={imageUrls}
             videoUrls={videoUrls}
@@ -392,15 +304,11 @@ const AdminAddProduct = () => {
             setSearchBrandTerm={setSearchBrandTerm}
             searchModelTerm={searchModelTerm}
             setSearchModelTerm={setSearchModelTerm}
-            handleMobileOptimizedImageUpload={handleImageUpload}
+            handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
             setVideoUrls={setVideoUrls}
             primaryImage={primaryImage}
             setPrimaryImage={setPrimaryImage}
             onImageDelete={removeImage}
-            sellers={sellers}
-            isLoadingSellers={isLoadingSellers}
-            sellersError={sellersError}
-            onRefetchSellers={refetchSellers}
           />
         </div>
       </div>
