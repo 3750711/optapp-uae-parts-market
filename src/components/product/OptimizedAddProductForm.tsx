@@ -63,6 +63,8 @@ interface OptimizedAddProductFormProps {
   onImageDelete?: (url: string) => void;
   sellers?: Array<{id: string, full_name: string, opt_id?: string}>;
   isLoadingSellers?: boolean;
+  sellersError?: string | null;
+  onRefetchSellers?: () => void;
 }
 
 const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
@@ -85,7 +87,9 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   setPrimaryImage,
   onImageDelete,
   sellers = [],
-  isLoadingSellers = false
+  isLoadingSellers = false,
+  sellersError = null,
+  onRefetchSellers
 }) => {
   const isMobile = useIsMobile();
   const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
@@ -122,6 +126,8 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
                   form={form}
                   sellers={sellers}
                   isLoading={isLoadingSellers}
+                  error={sellersError}
+                  onRefetch={onRefetchSellers}
                 />
               </CardContent>
             </Card>

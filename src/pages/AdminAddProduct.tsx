@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -42,7 +41,7 @@ const AdminAddProduct = () => {
     validateModelBrand 
   } = useCarBrandsAndModels();
 
-  const { sellers, isLoading: isLoadingSellers } = useSellers();
+  const { sellers, isLoading: isLoadingSellers, error: sellersError, refetch: refetchSellers } = useSellers();
 
   // Защита от повторных отправок
   const { guardedSubmit, isSubmitting } = useSubmissionGuard({
@@ -322,6 +321,8 @@ const AdminAddProduct = () => {
             onImageDelete={removeImage}
             sellers={sellers}
             isLoadingSellers={isLoadingSellers}
+            sellersError={sellersError}
+            onRefetchSellers={refetchSellers}
           />
         </div>
       </div>

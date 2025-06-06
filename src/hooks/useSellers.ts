@@ -12,35 +12,38 @@ interface Seller {
 export const useSellers = () => {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchSellers = async () => {
-      setIsLoading(true);
-      console.log('📋 Загружаем продавцов...');
-      
       try {
+        setIsLoading(true);
+        setError(null);
+        console.log('🔄 Fetching sellers...');
+        
         const { data, error } = await supabase
           .from('profiles')
           .select('id, full_name, opt_id')
           .eq('user_type', 'seller')
           .order('full_name');
 
+        if (!mounted) return;
+
         if (error) {
-          console.error("❌ Ошибка загрузки продавцов:", error);
+          console.error('❌ Error fetching sellers:', error);
+          setError(error.message);
           toast({
             title: "Ошибка",
             description: "Не удалось загрузить список продавцов",
             variant: "destructive",
           });
-          setSellers([]);
           return;
         }
 
-        console.log('✅ Продавцы загружены:', {
-          count: data?.length || 0,
-          sellers: data?.map(s => ({ id: s.id, name: s.full_name, opt_id: s.opt_id }))
-        });
+        console.log('✅ Sellers loaded:', data?.length || 0);
         
         // Сортируем продавцов по opt_id, затем по имени
         const sortedSellers = (data || []).sort((a, b) => {
@@ -50,30 +53,67 @@ export const useSellers = () => {
         });
         
         setSellers(sortedSellers);
-      } catch (error) {
-        console.error("❌ Неожиданная ошибка при загрузке продавцов:", error);
+      } catch (err) {
+        if (!mounted) return;
+        
+        console.error('❌ Unexpected error:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+        setError(errorMessage);
         toast({
           title: "Ошибка",
           description: "Произошла неожиданная ошибка при загрузке продавцов",
           variant: "destructive",
         });
-        setSellers([]);
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchSellers();
+
+    return () => {
+      mounted = false;
+    };
   }, [toast]);
 
-  console.log('🎯 useSellers hook state:', {
-    sellersCount: sellers.length,
-    isLoading,
-    timestamp: new Date().toISOString()
-  });
+  const refetch = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, opt_id')
+        .eq('user_type', 'seller')
+        .order('full_name');
+
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      const sortedSellers = (data || []).sort((a, b) => {
+        const optIdA = a.opt_id || '';
+        const optIdB = b.opt_id || '';
+        return optIdA.localeCompare(optIdB) || a.full_name.localeCompare(b.full_name);
+      });
+      
+      setSellers(sortedSellers);
+      setError(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return {
     sellers,
-    isLoading
+    isLoading,
+    error,
+    refetch
   };
 };

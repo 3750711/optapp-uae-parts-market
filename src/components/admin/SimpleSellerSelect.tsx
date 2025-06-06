@@ -4,23 +4,31 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/comp
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from "react-hook-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SimpleSellerSelectProps {
   form: UseFormReturn<any>;
   sellers: Array<{id: string, full_name: string, opt_id?: string}>;
   isLoading?: boolean;
+  error?: string | null;
+  onRefetch?: () => void;
 }
 
 const SimpleSellerSelect: React.FC<SimpleSellerSelectProps> = ({
   form,
   sellers,
-  isLoading = false
+  isLoading = false,
+  error = null,
+  onRefetch
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   console.log('🔍 SimpleSellerSelect render:', {
     sellersCount: sellers.length,
     isLoading,
+    hasError: !!error,
     searchTerm
   });
 
@@ -53,6 +61,42 @@ const SimpleSellerSelect: React.FC<SimpleSellerSelectProps> = ({
     );
   }
 
+  // Показываем ошибку с возможностью повторной попытки
+  if (error) {
+    return (
+      <FormField
+        control={form.control}
+        name="sellerId"
+        render={() => (
+          <FormItem>
+            <FormLabel>Продавец *</FormLabel>
+            <FormControl>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>Ошибка загрузки продавцов: {error}</span>
+                  {onRefetch && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onRefetch}
+                      className="ml-2"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Повторить
+                    </Button>
+                  )}
+                </AlertDescription>
+              </Alert>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    );
+  }
+
   // Не рендерим селект если нет продавцов
   if (sellers.length === 0) {
     return (
@@ -63,8 +107,18 @@ const SimpleSellerSelect: React.FC<SimpleSellerSelectProps> = ({
           <FormItem>
             <FormLabel>Продавец *</FormLabel>
             <FormControl>
-              <div className="h-10 flex items-center px-3 border rounded-md bg-gray-50 text-gray-500">
-                Продавцы не найдены
+              <div className="h-10 flex items-center justify-between px-3 border rounded-md bg-gray-50 text-gray-500">
+                <span>Продавцы не найдены</span>
+                {onRefetch && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={onRefetch}
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </FormControl>
             <FormMessage />
@@ -101,7 +155,6 @@ const SimpleSellerSelect: React.FC<SimpleSellerSelectProps> = ({
                     sellerName: sellers.find(s => s.id === value)?.full_name
                   });
                   
-                  // Проверяем что выбранный продавец существует в списке
                   if (sellers.some(seller => seller.id === value)) {
                     field.onChange(value);
                   } else {
