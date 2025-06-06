@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -60,7 +61,7 @@ const AdminAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
-      sellerId: "",
+      sellerId: undefined, // Изменено с "" на undefined
     },
     mode: "onChange",
   });
@@ -94,28 +95,41 @@ const AdminAddProduct = () => {
   useEffect(() => {
     const fetchSellers = async () => {
       setIsLoadingSellers(true);
-      console.log('Fetching sellers...');
+      console.log('📋 Начинаем загрузку продавцов...');
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, opt_id')
-        .eq('user_type', 'seller')
-        .order('full_name');
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, opt_id')
+          .eq('user_type', 'seller')
+          .order('full_name');
 
-      if (error) {
-        console.error("Error fetching sellers:", error);
+        if (error) {
+          console.error("❌ Ошибка загрузки продавцов:", error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить список продавцов",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        console.log('✅ Продавцы загружены:', {
+          count: data?.length || 0,
+          sellers: data?.map(s => ({ id: s.id, name: s.full_name, opt_id: s.opt_id }))
+        });
+        
+        setSellers(data || []);
+      } catch (error) {
+        console.error("❌ Неожиданная ошибка при загрузке продавцов:", error);
         toast({
           title: "Ошибка",
-          description: "Не удалось загрузить список продавцов",
+          description: "Произошла неожиданная ошибка при загрузке продавцов",
           variant: "destructive",
         });
+      } finally {
         setIsLoadingSellers(false);
-        return;
       }
-
-      console.log('Sellers fetched:', data);
-      setSellers(data || []);
-      setIsLoadingSellers(false);
     };
 
     fetchSellers();
@@ -144,6 +158,19 @@ const AdminAddProduct = () => {
       }
     }
   }, [brandModels, watchModelId, form]);
+
+  // Debug form state changes
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔄 Состояние формы изменилось:', {
+        sellerId: watchSellerId,
+        hasValue: !!watchSellerId,
+        sellerExists: sellers.some(s => s.id === watchSellerId),
+        sellersCount: sellers.length,
+        isLoadingSellers
+      });
+    }
+  }, [watchSellerId, sellers, isLoadingSellers]);
 
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
     console.log('📷 New images uploaded:', {
@@ -177,7 +204,11 @@ const AdminAddProduct = () => {
 
   // Simplified single-step product creation
   const createProduct = async (values: AdminProductFormValues) => {
-    console.log('Creating product with values:', values);
+    console.log('🚀 Создание товара с параметрами:', {
+      ...values,
+      sellersAvailable: sellers.length,
+      selectedSellerExists: sellers.some(s => s.id === values.sellerId)
+    });
     
     if (imageUrls.length === 0) {
       toast({
@@ -204,7 +235,12 @@ const AdminAddProduct = () => {
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
       
-      console.log('Selected seller:', selectedSeller);
+      console.log('👤 Выбранный продавец:', {
+        sellerId: values.sellerId,
+        sellerFound: !!selectedSeller,
+        sellerName: selectedSeller?.full_name,
+        sellerOptId: selectedSeller?.opt_id
+      });
       
       // Model is optional
       let modelName = null;
@@ -334,10 +370,26 @@ const AdminAddProduct = () => {
           
           {/* Отладочная информация */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
-              <p>Sellers loaded: {sellers.length}</p>
-              <p>Loading: {isLoadingSellers ? 'Yes' : 'No'}</p>
-              <p>Selected seller ID: {form.watch('sellerId')}</p>
+            <div className="mb-4 p-2 bg-gray-100 rounded text-sm font-mono">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <strong>Загрузка:</strong> {isLoadingSellers ? 'Да' : 'Нет'}
+                </div>
+                <div>
+                  <strong>Продавцы:</strong> {sellers.length}
+                </div>
+                <div>
+                  <strong>Выбранный ID:</strong> {watchSellerId || 'не выбран'}
+                </div>
+                <div>
+                  <strong>Продавец найден:</strong> {watchSellerId && sellers.some(s => s.id === watchSellerId) ? 'Да' : 'Нет'}
+                </div>
+              </div>
+              {watchSellerId && (
+                <div className="mt-2">
+                  <strong>Выбранный продавец:</strong> {sellers.find(s => s.id === watchSellerId)?.full_name || 'не найден'}
+                </div>
+              )}
             </div>
           )}
           
