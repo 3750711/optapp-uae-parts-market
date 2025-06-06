@@ -27,12 +27,15 @@ const SellerSelect: React.FC<SellerSelectProps> = ({
       name="sellerId"
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Продавец</FormLabel>
+          <FormLabel>Продавец *</FormLabel>
           <FormControl>
             <OptimizedSelect
               options={sellerOptions}
-              value={field.value}
-              onValueChange={field.onChange}
+              value={field.value || ""}
+              onValueChange={(value) => {
+                console.log('Seller selected:', value);
+                field.onChange(value);
+              }}
               placeholder="Выберите продавца..."
               searchPlaceholder="Поиск продавца..."
               disabled={isLoading}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -95,6 +94,8 @@ const AdminAddProduct = () => {
   useEffect(() => {
     const fetchSellers = async () => {
       setIsLoadingSellers(true);
+      console.log('Fetching sellers...');
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, opt_id')
@@ -108,9 +109,11 @@ const AdminAddProduct = () => {
           description: "Не удалось загрузить список продавцов",
           variant: "destructive",
         });
+        setIsLoadingSellers(false);
         return;
       }
 
+      console.log('Sellers fetched:', data);
       setSellers(data || []);
       setIsLoadingSellers(false);
     };
@@ -174,6 +177,8 @@ const AdminAddProduct = () => {
 
   // Simplified single-step product creation
   const createProduct = async (values: AdminProductFormValues) => {
+    console.log('Creating product with values:', values);
+    
     if (imageUrls.length === 0) {
       toast({
         title: "Ошибка",
@@ -198,6 +203,8 @@ const AdminAddProduct = () => {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
+      
+      console.log('Selected seller:', selectedSeller);
       
       // Model is optional
       let modelName = null;
@@ -229,7 +236,7 @@ const AdminAddProduct = () => {
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         sellerId: values.sellerId,
-        sellerName: selectedSeller.full_name,
+        sellerName: selectedSeller?.full_name,
         timestamp: new Date().toISOString()
       });
       
@@ -244,7 +251,7 @@ const AdminAddProduct = () => {
           model: modelName,
           description: values.description || null,
           seller_id: values.sellerId,
-          seller_name: selectedSeller.full_name,
+          seller_name: selectedSeller?.full_name,
           status: 'active',
           place_number: parseInt(values.placeNumber),
           delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
@@ -303,7 +310,7 @@ const AdminAddProduct = () => {
 
       toast({
         title: "Товар создан",
-        description: `Товар успешно опубликован от лица продавца ${selectedSeller.full_name}`,
+        description: `Товар успешно опубликован от лица продавца ${selectedSeller?.full_name}`,
       });
 
       navigate(`/product/${product.id}`);
@@ -324,6 +331,15 @@ const AdminAddProduct = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
+          
+          {/* Отладочная информация */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mb-4 p-2 bg-gray-100 rounded text-sm">
+              <p>Sellers loaded: {sellers.length}</p>
+              <p>Loading: {isLoadingSellers ? 'Yes' : 'No'}</p>
+              <p>Selected seller ID: {form.watch('sellerId')}</p>
+            </div>
+          )}
           
           <OptimizedAddProductForm
             form={form}
