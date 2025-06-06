@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -11,6 +12,8 @@ import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useSellers } from "@/hooks/useSellers";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
+import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
+import { getCompressedImageUrl } from "@/utils/cloudinaryUtils";
 
 // Расширяем схему продукта для включения продавца
 const adminProductSchema = productSchema.extend({
@@ -156,7 +159,7 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Создание товара с использованием RPC функций
+  // Улучшенная функция создания товара с retry механизмом для Cloudinary
   const createProduct = async (values: AdminProductFormValues) => {
     console.log('🚀 Создание товара администратором:', values);
 
@@ -213,21 +216,94 @@ const AdminAddProduct = () => {
 
       console.log('✅ Товар создан с ID:', productId);
 
-      // Добавление изображений
-      for (const url of imageUrls) {
-        const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
-          p_product_id: productId,
-          p_url: url,
-          p_is_primary: url === primaryImage
-        });
+      // Обработка изображений с улучшенной Cloudinary интеграцией
+      let cloudinaryData: {
+        publicId?: string;
+        cloudinaryUrl?: string;
+        previewUrl?: string;
+      } = {};
+
+      for (let i = 0; i < imageUrls.length; i++) {
+        const url = imageUrls[i];
+        const isPrimary = url === primaryImage;
+        
+        try {
+          // Для основного изображения загружаем в Cloudinary
+          if (isPrimary && url.startsWith('blob:')) {
+            console.log('☁️ Загрузка основного изображения в Cloudinary...', url);
+            
+            const response = await fetch(url);
+            const blob = await response.blob();
+            const file = new File([blob], `product_${productId}_primary.jpg`, { type: 'image/jpeg' });
+            
+            const cloudinaryResult = await uploadDirectToCloudinary(file, productId, `product_${productId}_primary`);
+            
+            if (cloudinaryResult.success && cloudinaryResult.publicId && cloudinaryResult.cloudinaryUrl) {
+              cloudinaryData = {
+                publicId: cloudinaryResult.publicId,
+                cloudinaryUrl: getCompressedImageUrl(cloudinaryResult.publicId),
+                previewUrl: getCompressedImageUrl(cloudinaryResult.publicId)
+              };
+              
+              console.log('✅ Cloudinary загрузка успешна:', cloudinaryData);
+            } else {
+              console.warn('⚠️ Cloudinary загрузка не удалась:', cloudinaryResult.error);
+            }
+          }
+
+          // Добавляем изображение в базу данных
+          const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
+            p_product_id: productId,
+            p_url: url,
+            p_is_primary: isPrimary
+          });
+            
+          if (imageError) {
+            console.error('Ошибка добавления изображения:', imageError);
+            toast({
+              title: "Предупреждение",
+              description: `Не удалось добавить изображение: ${imageError.message}`,
+              variant: "destructive",
+            });
+          }
+        } catch (imageProcessError) {
+          console.error('Ошибка обработки изображения:', imageProcessError);
           
-        if (imageError) {
-          console.error('Ошибка добавления изображения:', imageError);
+          // Все равно пытаемся добавить изображение в базу
+          const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
+            p_product_id: productId,
+            p_url: url,
+            p_is_primary: isPrimary
+          });
+            
+          if (imageError) {
+            console.error('Ошибка добавления изображения после ошибки обработки:', imageError);
+          }
+        }
+      }
+
+      // Обновляем товар с Cloudinary данными если они есть
+      if (cloudinaryData.publicId && cloudinaryData.cloudinaryUrl) {
+        console.log('🔄 Обновление товара с Cloudinary данными...');
+        
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({
+            cloudinary_public_id: cloudinaryData.publicId,
+            cloudinary_url: cloudinaryData.cloudinaryUrl,
+            preview_image_url: cloudinaryData.previewUrl
+          })
+          .eq('id', productId);
+
+        if (updateError) {
+          console.error('❌ Ошибка обновления товара с Cloudinary данными:', updateError);
           toast({
             title: "Предупреждение",
-            description: `Не удалось добавить изображение: ${imageError.message}`,
+            description: "Товар создан, но Cloudinary данные не сохранены. Воспользуйтесь функцией восстановления.",
             variant: "destructive",
           });
+        } else {
+          console.log('✅ Товар успешно обновлен с Cloudinary данными');
         }
       }
 
@@ -263,7 +339,9 @@ const AdminAddProduct = () => {
 
       toast({
         title: "Товар создан",
-        description: `Товар успешно создан для продавца ${selectedSeller.full_name}`,
+        description: cloudinaryData.publicId 
+          ? `Товар успешно создан для продавца ${selectedSeller.full_name} с Cloudinary интеграцией`
+          : `Товар создан для продавца ${selectedSeller.full_name}. Рекомендуется проверить Cloudinary интеграцию.`,
       });
 
       navigate(`/product/${productId}`);
