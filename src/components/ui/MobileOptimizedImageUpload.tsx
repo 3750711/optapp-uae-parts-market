@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Camera, Star, StarOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCloudinaryUpload } from "@/hooks/useCloudinaryUpload";
+import { UploadProgressDisplay } from "@/components/ui/UploadProgressDisplay";
 import { cn } from "@/lib/utils";
 
 interface MobileOptimizedImageUploadProps {
@@ -37,7 +38,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { uploadFiles, isUploading } = useCloudinaryUpload();
+  const { uploadFiles, isUploading, uploadProgress, clearProgress } = useCloudinaryUpload();
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     if (existingImages.length + files.length > maxImages) {
@@ -55,6 +56,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       
       if (uploadedUrls.length > 0) {
         onUploadComplete(uploadedUrls);
+        
+        // Очистить прогресс через 2 секунды после завершения
+        setTimeout(() => {
+          clearProgress();
+        }, 2000);
+        
         toast({
           title: "Успех",
           description: `Загружено ${uploadedUrls.length} изображений`,
@@ -68,7 +75,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         variant: "destructive",
       });
     }
-  }, [existingImages.length, maxImages, onUploadComplete, uploadFiles, productId, toast]);
+  }, [existingImages.length, maxImages, onUploadComplete, uploadFiles, productId, toast, clearProgress]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -95,7 +102,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   // Показывать только кнопку
   if (showOnlyButton) {
     return (
-      <div className={cn("w-full", className)}>
+      <div className={cn("w-full space-y-3", className)}>
         <Button
           type="button"
           variant="outline"
@@ -110,6 +117,14 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           )}
           {buttonText}
         </Button>
+        
+        {/* Показ прогресса загрузки */}
+        {uploadProgress.length > 0 && (
+          <UploadProgressDisplay 
+            uploadProgress={uploadProgress}
+            onCancelAll={clearProgress}
+          />
+        )}
         
         <input
           ref={fileInputRef}
@@ -187,6 +202,14 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         )}
         {buttonText}
       </Button>
+      
+      {/* Показ прогресса загрузки */}
+      {uploadProgress.length > 0 && (
+        <UploadProgressDisplay 
+          uploadProgress={uploadProgress}
+          onCancelAll={clearProgress}
+        />
+      )}
       
       <input
         ref={fileInputRef}

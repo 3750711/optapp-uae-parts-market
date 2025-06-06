@@ -12,6 +12,7 @@ interface CloudinaryUploadProgress {
   url?: string;
   cloudinaryUrl?: string;
   publicId?: string;
+  fileSize?: number;
 }
 
 interface CloudinaryUploadOptions {
@@ -30,28 +31,43 @@ export const useCloudinaryUpload = () => {
     try {
       console.log('🚀 Starting direct Cloudinary upload for:', file.name);
 
-      // Update progress - starting upload
+      // Update progress - starting upload (более детальный прогресс)
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'uploading', progress: 20 }
+          ? { ...p, status: 'uploading', progress: 10, fileSize: file.size }
           : p
       ));
 
+      // Подготовка файла
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, progress: 50 }
+          ? { ...p, progress: 25 }
+          : p
+      ));
+
+      // Начало загрузки
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { ...p, progress: 40 }
           : p
       ));
 
       // Upload directly to Cloudinary using the file object
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, status: 'processing', progress: 70 }
+          ? { ...p, status: 'processing', progress: 60 }
           : p
       ));
 
       console.log('☁️ Uploading to Cloudinary with file object...');
       const cloudinaryResult = await uploadDirectToCloudinary(file, options.productId);
+
+      // Финальная обработка
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { ...p, progress: 85 }
+          : p
+      ));
 
       if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
         console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
@@ -93,12 +109,13 @@ export const useCloudinaryUpload = () => {
   ): Promise<string[]> => {
     setIsUploading(true);
 
-    // Initialize progress tracking
+    // Initialize progress tracking with file sizes
     const initialProgress: CloudinaryUploadProgress[] = files.map((file, index) => ({
       fileId: `file-${Date.now()}-${index}`,
       fileName: file.name,
       progress: 0,
-      status: 'pending'
+      status: 'pending',
+      fileSize: file.size
     }));
     
     setUploadProgress(initialProgress);
@@ -107,6 +124,7 @@ export const useCloudinaryUpload = () => {
     const errors: string[] = [];
 
     try {
+      // Загружаем файлы последовательно для лучшего контроля прогресса
       for (let i = 0; i < files.length; i++) {
         try {
           const fileId = initialProgress[i].fileId;
