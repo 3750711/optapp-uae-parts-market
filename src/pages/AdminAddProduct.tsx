@@ -9,19 +9,29 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
+import { useSellers } from "@/hooks/useSellers";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
+
+// Расширяем схему продукта для включения продавца
+const adminProductSchema = productSchema.extend({
+  sellerId: z.string().min(1, {
+    message: "Выберите продавца",
+  }),
+});
+
+type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 const AdminAddProduct = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
-  // Use our custom hook for car brands and models
+  // Хуки для данных
   const { 
     brands, 
     brandModels, 
@@ -32,7 +42,21 @@ const AdminAddProduct = () => {
     validateModelBrand 
   } = useCarBrandsAndModels();
 
-  // Initialize our title parser
+  const { sellers, isLoading: isLoadingSellers } = useSellers();
+
+  // Защита от повторных отправок
+  const { guardedSubmit, isSubmitting } = useSubmissionGuard({
+    timeout: 5000,
+    onDuplicateSubmit: () => {
+      toast({
+        title: "Предупреждение",
+        description: "Товар уже создается, подождите...",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Парсер заголовков
   const { parseProductTitle } = useProductTitleParser(
     brands,
     brandModels,
@@ -40,8 +64,8 @@ const AdminAddProduct = () => {
     findModelIdByName
   );
 
-  const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+  const form = useForm<AdminProductFormValues>({
+    resolver: zodResolver(adminProductSchema),
     defaultValues: {
       title: "",
       price: "",
@@ -50,6 +74,7 @@ const AdminAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
+      sellerId: "",
     },
     mode: "onChange",
   });
@@ -58,7 +83,7 @@ const AdminAddProduct = () => {
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
 
-  // When title changes, try to detect brand and model
+  // Автоопределение марки и модели из заголовка
   useEffect(() => {
     if (watchTitle && brands.length > 0 && !watchBrandId) {
       const { brandId, modelId } = parseProductTitle(watchTitle);
@@ -78,7 +103,7 @@ const AdminAddProduct = () => {
     }
   }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
-  // When brand changes, reset model selection and update models list
+  // Обновление списка моделей при смене марки
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
@@ -92,7 +117,7 @@ const AdminAddProduct = () => {
     }
   }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
 
-  // Validate model when brandModels change
+  // Валидация модели при изменении списка моделей
   useEffect(() => {
     if (watchModelId && brandModels.length > 0) {
       const modelExists = brandModels.some(model => model.id === watchModelId);
@@ -102,8 +127,8 @@ const AdminAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
-  const handleMobileOptimizedImageUpload = (urls: string[]) => {
-    console.log('📷 New images uploaded:', {
+  const handleImageUpload = (urls: string[]) => {
+    console.log('📷 Новые изображения загружены:', {
       urls,
       existingCount: imageUrls.length,
       timestamp: new Date().toISOString()
@@ -111,9 +136,9 @@ const AdminAddProduct = () => {
     
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
-    // Set default primary image if none is selected yet
+    // Установка основного изображения если его нет
     if (!primaryImage && urls.length > 0) {
-      console.log('🎯 Setting primary image:', urls[0]);
+      console.log('🎯 Установка основного изображения:', urls[0]);
       setPrimaryImage(urls[0]);
     }
   };
@@ -122,7 +147,7 @@ const AdminAddProduct = () => {
     const newImageUrls = imageUrls.filter(item => item !== url);
     setImageUrls(newImageUrls);
     
-    // If deleted image was primary, set new primary
+    // Если удаляется основное изображение, устанавливаем новое
     if (primaryImage === url) {
       if (newImageUrls.length > 0) {
         setPrimaryImage(newImageUrls[0]);
@@ -132,26 +157,15 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Updated product creation using RPC functions
-  const createProduct = async (values: ProductFormValues) => {
-    console.log('🚀 Создание товара с параметрами:', values);
-    
-    if (imageUrls.length === 0) {
-      toast({
-        title: "Ошибка",
-        description: "Добавьте хотя бы одну фотографию",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
+  // Создание товара с использованием RPC функций
+  const createProduct = async (values: AdminProductFormValues) => {
+    console.log('🚀 Создание товара администратором:', values);
 
     try {
-      // Get brand and model names for the database
+      // Получение данных о марке и модели
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
+      const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
       
-      // Model is optional
       let modelName = null;
       if (values.modelId) {
         const selectedModel = brandModels.find(model => model.id === values.modelId);
@@ -159,22 +173,22 @@ const AdminAddProduct = () => {
       }
 
       if (!selectedBrand) {
-        toast({
-          title: "Ошибка",
-          description: "Выбранная марка не найдена",
-          variant: "destructive",
-        });
-        return;
+        throw new Error("Выбранная марка не найдена");
       }
 
-      console.log('🏭 Creating product using RPC function...', {
+      if (!selectedSeller) {
+        throw new Error("Выбранный продавец не найден");
+      }
+
+      console.log('🏭 Создание товара через admin RPC функцию...', {
         title: values.title,
+        seller: selectedSeller.full_name,
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         timestamp: new Date().toISOString()
       });
       
-      // Create product using admin RPC function
+      // Создание товара через admin RPC функцию
       const { data: productId, error: productError } = await supabase.rpc('admin_create_product', {
         p_title: values.title,
         p_price: parseFloat(values.price),
@@ -182,25 +196,25 @@ const AdminAddProduct = () => {
         p_brand: selectedBrand.name,
         p_model: modelName,
         p_description: values.description || null,
-        p_seller_id: null, // Admin creates products without specific seller
-        p_seller_name: "Admin",
+        p_seller_id: values.sellerId,
+        p_seller_name: selectedSeller.full_name,
         p_status: 'active',
         p_place_number: parseInt(values.placeNumber),
         p_delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
       });
 
       if (productError) {
-        console.error("Error creating product:", productError);
-        throw new Error(`Failed to create product: ${productError.message}`);
+        console.error("Ошибка создания товара:", productError);
+        throw new Error(`Не удалось создать товар: ${productError.message}`);
       }
 
       if (!productId) {
-        throw new Error("Product creation returned no ID");
+        throw new Error("Создание товара не вернуло ID");
       }
 
-      console.log('✅ Product created with ID:', productId);
+      console.log('✅ Товар создан с ID:', productId);
 
-      // Add images using admin RPC function
+      // Добавление изображений
       for (const url of imageUrls) {
         const { error: imageError } = await supabase.rpc('admin_insert_product_image', {
           p_product_id: productId,
@@ -209,7 +223,7 @@ const AdminAddProduct = () => {
         });
           
         if (imageError) {
-          console.error('Error adding image:', imageError);
+          console.error('Ошибка добавления изображения:', imageError);
           toast({
             title: "Предупреждение",
             description: `Не удалось добавить изображение: ${imageError.message}`,
@@ -218,7 +232,7 @@ const AdminAddProduct = () => {
         }
       }
 
-      // Add videos using admin RPC function if any
+      // Добавление видео
       if (videoUrls.length > 0) {
         for (const videoUrl of videoUrls) {
           const { error: videoError } = await supabase.rpc('admin_insert_product_video', {
@@ -227,7 +241,7 @@ const AdminAddProduct = () => {
           });
             
           if (videoError) {
-            console.error('Error adding video:', videoError);
+            console.error('Ошибка добавления видео:', videoError);
             toast({
               title: "Предупреждение",
               description: `Не удалось добавить видео: ${videoError.message}`,
@@ -237,32 +251,34 @@ const AdminAddProduct = () => {
         }
       }
 
-      // Send notification
+      // Отправка уведомления
       try {
         supabase.functions.invoke('send-telegram-notification', {
           body: { productId: productId }
         }).catch(notifyError => {
-          console.error("Error sending notification:", notifyError);
+          console.error("Ошибка отправки уведомления:", notifyError);
         });
       } catch (notifyError) {
-        console.warn("Error sending notification:", notifyError);
+        console.warn("Ошибка отправки уведомления:", notifyError);
       }
 
       toast({
         title: "Товар создан",
-        description: "Товар успешно опубликован",
+        description: `Товар успешно создан для продавца ${selectedSeller.full_name}`,
       });
 
       navigate(`/product/${productId}`);
     } catch (error) {
-      console.error("Error creating product:", error);
+      console.error("Ошибка создания товара:", error);
       
       let errorMessage = "Не удалось создать товар. Попробуйте позже.";
       
       if (error instanceof Error) {
         if (error.message.includes('Only admins can use this function')) {
           errorMessage = "У вас нет прав администратора для создания товаров.";
-        } else if (error.message.includes('Failed to create product')) {
+        } else if (error.message.includes('Не удалось создать товар')) {
+          errorMessage = error.message;
+        } else {
           errorMessage = error.message;
         }
       }
@@ -272,9 +288,11 @@ const AdminAddProduct = () => {
         description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (values: AdminProductFormValues) => {
+    guardedSubmit(() => createProduct(values));
   };
 
   return (
@@ -285,7 +303,7 @@ const AdminAddProduct = () => {
           
           <OptimizedAddProductForm
             form={form}
-            onSubmit={createProduct}
+            onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
             imageUrls={imageUrls}
             videoUrls={videoUrls}
@@ -297,12 +315,13 @@ const AdminAddProduct = () => {
             setSearchBrandTerm={setSearchBrandTerm}
             searchModelTerm={searchModelTerm}
             setSearchModelTerm={setSearchModelTerm}
-            handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+            handleMobileOptimizedImageUpload={handleImageUpload}
             setVideoUrls={setVideoUrls}
             primaryImage={primaryImage}
             setPrimaryImage={setPrimaryImage}
             onImageDelete={removeImage}
-            showSellerSelect={false}
+            sellers={sellers}
+            isLoadingSellers={isLoadingSellers}
           />
         </div>
       </div>

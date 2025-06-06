@@ -11,9 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MobileOptimizedBasicInfoSection from "./form/MobileOptimizedBasicInfoSection";
 import MobileOptimizedCarInfoSection from "./form/MobileOptimizedCarInfoSection";
 import MediaSection from "./form/MediaSection";
+import SimpleSellerSelect from "@/components/admin/SimpleSellerSelect";
 import StickyMobileActions from "@/components/ui/StickyMobileActions";
 
-// Product form schema with zod validation
+// Схема продукта с валидацией zod
 export const productSchema = z.object({
   title: z.string().min(3, {
     message: "Название должно содержать не менее 3 символов",
@@ -36,6 +37,7 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
+  sellerId: z.string().optional(),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -59,7 +61,8 @@ interface OptimizedAddProductFormProps {
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
-  showSellerSelect?: boolean;
+  sellers?: Array<{id: string, full_name: string, opt_id?: string}>;
+  isLoadingSellers?: boolean;
 }
 
 const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
@@ -81,7 +84,8 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   primaryImage,
   setPrimaryImage,
   onImageDelete,
-  showSellerSelect = false
+  sellers = [],
+  isLoadingSellers = false
 }) => {
   const isMobile = useIsMobile();
   const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
@@ -100,12 +104,28 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     form.handleSubmit(handleSubmit)();
   }, [form, handleSubmit]);
 
-  const hasImages = imageUrls.length > 0;
+  const hasRequiredData = imageUrls.length > 0 || sellers.length > 0;
 
   return (
     <>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
+          
+          {/* ВЫБОР ПРОДАВЦА */}
+          {sellers.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Продавец</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SimpleSellerSelect
+                  form={form}
+                  sellers={sellers}
+                  isLoading={isLoadingSellers}
+                />
+              </CardContent>
+            </Card>
+          )}
           
           {/* МЕДИА ФАЙЛЫ */}
           <Card>
@@ -159,15 +179,15 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting || !hasImages}
+              disabled={isSubmitting || !hasRequiredData}
             >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Создание товара...
                 </>
-              ) : !hasImages ? (
-                'Сначала добавьте фотографии'
+              ) : !hasRequiredData ? (
+                'Добавьте данные для создания товара'
               ) : (
                 'Создать товар'
               )}
@@ -179,8 +199,8 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
       <StickyMobileActions
         isSubmitting={isSubmitting}
         onSubmit={handleFormSubmit}
-        disabled={!hasImages}
-        submitText={!hasImages ? 'Добавьте фотографии' : 'Создать товар'}
+        disabled={!hasRequiredData}
+        submitText={!hasRequiredData ? 'Добавьте данные' : 'Создать товар'}
       />
     </>
   );
