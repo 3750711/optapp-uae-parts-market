@@ -1,9 +1,9 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
-import { getCatalogImageUrl } from "@/utils/cloudinaryUtils";
 import { ProductProps } from "./ProductCard";
 
 interface ProductListItemProps {

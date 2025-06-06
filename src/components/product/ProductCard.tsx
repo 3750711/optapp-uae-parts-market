@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/carousel";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
-import { getCatalogImageUrl } from "@/utils/cloudinaryUtils";
 
 export interface ProductProps {
   id: string;
@@ -90,14 +89,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return ["/placeholder.svg"];
   }, [product.product_images, product.image]);
 
-  // Use preview_image_url for catalog display (20-25KB)
+  // Use preview_image_url as primary source for catalog display
   const catalogImage = React.useMemo(() => {
-    // Приоритет preview_image_url если есть
+    // Priority: preview_image_url (optimized for catalog ~20-25KB)
     if (product.preview_image_url) {
       return product.preview_image_url;
     }
     
-    // Fallback только если нет preview_image_url
+    // Fallback to primary image or first image
     const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
     return primaryImageData?.url || 
            product.image || 
