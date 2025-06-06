@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +60,6 @@ const ProductQuickPreview = React.memo(({
                 src={primaryImage.url}
                 alt={product.title}
                 className="w-full h-full object-cover"
-                placeholder={true}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">

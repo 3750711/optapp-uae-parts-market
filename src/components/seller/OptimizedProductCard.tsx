@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import OptimizedImage from "@/components/ui/OptimizedImage";
@@ -40,7 +39,6 @@ const OptimizedProductCard = React.memo(({ product, onSelect }: OptimizedProduct
               src={primaryImage.url}
               alt={product.title}
               className="w-full h-full rounded-md object-cover"
-              placeholder={true}
             />
           ) : (
             <div className="w-full h-full bg-gray-100 rounded-md flex items-center justify-center">

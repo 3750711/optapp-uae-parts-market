@@ -67,15 +67,17 @@ const OptimizedOrderImages: React.FC<OptimizedOrderImagesProps> = ({ images }) =
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((url, index) => (
               <div key={index} className="relative">
-                <OptimizedImage
-                  src={url}
-                  alt={`Изображение ${index + 1}`}
-                  className="w-full h-auto rounded-md cursor-pointer"
-                  onClick={() => {
-                    setCurrentImageIndex(index);
-                  }}
-                  onError={() => console.error('Failed to load image')}
-                />
+                <div 
+                  className="cursor-pointer"
+                  onClick={() => setCurrentImageIndex(index)}
+                >
+                  <OptimizedImage
+                    src={url}
+                    alt={`Изображение ${index + 1}`}
+                    className="w-full h-auto rounded-md"
+                    onError={() => console.error('Failed to load image')}
+                  />
+                </div>
                 <div className="absolute top-2 left-2 flex items-center space-x-2">
                   <Badge variant="secondary">{index + 1}</Badge>
                 </div>
