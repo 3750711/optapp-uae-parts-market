@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -31,7 +32,8 @@ import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles } from "lucide-react";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
