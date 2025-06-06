@@ -37,8 +37,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const { uploadToCloudinary, isLoading } = useCloudinaryUpload();
+  const { uploadFiles, isUploading } = useCloudinaryUpload();
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     if (existingImages.length + files.length > maxImages) {
@@ -50,22 +49,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       return;
     }
 
-    setIsUploading(true);
-    
     try {
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const result = await uploadToCloudinary(file, productId);
-        return result.success ? result.url : null;
-      });
-
-      const uploadResults = await Promise.all(uploadPromises);
-      const successfulUploads = uploadResults.filter((url): url is string => url !== null);
+      const filesArray = Array.from(files);
+      const uploadedUrls = await uploadFiles(filesArray, { productId });
       
-      if (successfulUploads.length > 0) {
-        onUploadComplete(successfulUploads);
+      if (uploadedUrls.length > 0) {
+        onUploadComplete(uploadedUrls);
         toast({
           title: "Успех",
-          description: `Загружено ${successfulUploads.length} изображений`,
+          description: `Загружено ${uploadedUrls.length} изображений`,
         });
       }
     } catch (error) {
@@ -75,10 +67,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         description: "Не удалось загрузить изображения",
         variant: "destructive",
       });
-    } finally {
-      setIsUploading(false);
     }
-  }, [existingImages.length, maxImages, onUploadComplete, uploadToCloudinary, productId, toast]);
+  }, [existingImages.length, maxImages, onUploadComplete, uploadFiles, productId, toast]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -110,10 +100,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           type="button"
           variant="outline"
           onClick={handleButtonClick}
-          disabled={isUploading || isLoading || existingImages.length >= maxImages}
+          disabled={isUploading || existingImages.length >= maxImages}
           className="w-full h-12"
         >
-          {isUploading || isLoading ? (
+          {isUploading ? (
             <Upload className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             buttonIcon
@@ -187,10 +177,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         type="button"
         variant="outline"
         onClick={handleButtonClick}
-        disabled={isUploading || isLoading || existingImages.length >= maxImages}
+        disabled={isUploading || existingImages.length >= maxImages}
         className="w-full h-12"
       >
-        {isUploading || isLoading ? (
+        {isUploading ? (
           <Upload className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           buttonIcon
