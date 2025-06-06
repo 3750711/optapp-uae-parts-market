@@ -1,3 +1,4 @@
+
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -36,6 +37,7 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
+  sellerId: z.string().optional(), // Add sellerId field for admin form
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -59,6 +61,11 @@ interface OptimizedAddProductFormProps {
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   onImageDelete?: (url: string) => void;
+  // Add seller selection props for admin form
+  sellers?: Array<{id: string, full_name: string}>;
+  searchSellerTerm?: string;
+  setSearchSellerTerm?: (term: string) => void;
+  showSellerSelection?: boolean;
 }
 
 const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
@@ -79,7 +86,11 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   setVideoUrls,
   primaryImage,
   setPrimaryImage,
-  onImageDelete
+  onImageDelete,
+  sellers = [],
+  searchSellerTerm = "",
+  setSearchSellerTerm,
+  showSellerSelection = false
 }) => {
   const isMobile = useIsMobile();
   const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
@@ -89,6 +100,16 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     searchModelTerm,
     watchBrandId
   );
+
+  // Filter sellers based on search term
+  const filteredSellers = React.useMemo(() => {
+    if (!searchSellerTerm) return sellers;
+    
+    const term = searchSellerTerm.toLowerCase();
+    return sellers.filter(seller =>
+      seller.full_name.toLowerCase().includes(term)
+    );
+  }, [sellers, searchSellerTerm]);
 
   const handleSubmit = useCallback((values: ProductFormValues) => {
     onSubmit(values);
@@ -112,7 +133,13 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Основные поля формы */}
-              <MobileOptimizedBasicInfoSection form={form} />
+              <MobileOptimizedBasicInfoSection 
+                form={form} 
+                sellers={filteredSellers}
+                searchSellerTerm={searchSellerTerm}
+                setSearchSellerTerm={setSearchSellerTerm}
+                showSellerSelection={showSellerSelection}
+              />
               
               {/* Загрузка фотографий */}
               <div className="space-y-4">

@@ -1,7 +1,6 @@
 
-import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { ProductFormValues } from '../OptimizedAddProductForm';
+import React from "react";
+import { UseFormReturn } from "react-hook-form";
 import {
   FormControl,
   FormField,
@@ -11,53 +10,91 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { ProductFormValues } from "../OptimizedAddProductForm";
+import OptimizedSelect from "@/components/ui/OptimizedSelect";
 
 interface MobileOptimizedBasicInfoSectionProps {
   form: UseFormReturn<ProductFormValues>;
+  sellers?: Array<{id: string, full_name: string}>;
+  searchSellerTerm?: string;
+  setSearchSellerTerm?: (term: string) => void;
+  showSellerSelection?: boolean;
 }
 
-const MobileOptimizedBasicInfoSection = React.memo<MobileOptimizedBasicInfoSectionProps>(({ form }) => {
-  const isMobile = useIsMobile();
+const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionProps> = ({
+  form,
+  sellers = [],
+  searchSellerTerm = "",
+  setSearchSellerTerm,
+  showSellerSelection = false
+}) => {
+  const sellerOptions = React.useMemo(() => {
+    return sellers.map(seller => ({
+      value: seller.id,
+      label: seller.full_name,
+      searchText: seller.full_name
+    }));
+  }, [sellers]);
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-1 gap-4">
+      {/* Seller Selection - Only for admin */}
+      {showSellerSelection && (
+        <FormField
+          control={form.control}
+          name="sellerId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Продавец *</FormLabel>
+              <FormControl>
+                <OptimizedSelect
+                  options={sellerOptions}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder="Выберите продавца..."
+                  searchPlaceholder="Поиск продавца..."
+                  disabled={false}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
+      {/* Title */}
       <FormField
         control={form.control}
         name="title"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-              Название товара
-            </FormLabel>
+            <FormLabel>Название товара *</FormLabel>
             <FormControl>
-              <Input 
-                placeholder="Например: Передний бампер BMW X5 F15"
-                className={isMobile ? "h-12 text-base" : ""}
+              <Input
+                placeholder="Например: Фара передняя левая BMW X5"
                 {...field}
+                className="text-base"
               />
             </FormControl>
             <FormMessage />
           </FormItem>
         )}
       />
-      
-      <div className={`grid grid-cols-1 ${isMobile ? "gap-6" : "md:grid-cols-2 gap-4"}`}>
+
+      {/* Price and Place Number */}
+      <div className="grid grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-                Цена ($)
-              </FormLabel>
+              <FormLabel>Цена * (AED)</FormLabel>
               <FormControl>
-                <Input 
+                <Input
                   type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  className={isMobile ? "h-12 text-base" : ""}
+                  placeholder="100"
                   {...field}
+                  className="text-base"
                 />
               </FormControl>
               <FormMessage />
@@ -67,20 +104,16 @@ const MobileOptimizedBasicInfoSection = React.memo<MobileOptimizedBasicInfoSecti
 
         <FormField
           control={form.control}
-          name="deliveryPrice"
+          name="placeNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-                Стоимость доставки ($)
-              </FormLabel>
+              <FormLabel>Количество мест *</FormLabel>
               <FormControl>
-                <Input 
+                <Input
                   type="number"
-                  step="0.01"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  className={isMobile ? "h-12 text-base" : ""}
+                  placeholder="1"
                   {...field}
+                  className="text-base"
                 />
               </FormControl>
               <FormMessage />
@@ -89,20 +122,18 @@ const MobileOptimizedBasicInfoSection = React.memo<MobileOptimizedBasicInfoSecti
         />
       </div>
 
+      {/* Description */}
       <FormField
         control={form.control}
-        name="placeNumber"
+        name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-              Количество мест для отправки
-            </FormLabel>
+            <FormLabel>Описание</FormLabel>
             <FormControl>
-              <Input 
-                type="number"
-                min="1"
-                placeholder="Количество мест"
-                className={isMobile ? "h-12 text-base" : ""}
+              <Textarea
+                placeholder="Дополнительная информация о товаре..."
+                className="resize-none text-base"
+                rows={3}
                 {...field}
               />
             </FormControl>
@@ -110,20 +141,20 @@ const MobileOptimizedBasicInfoSection = React.memo<MobileOptimizedBasicInfoSecti
           </FormItem>
         )}
       />
-      
+
+      {/* Delivery Price */}
       <FormField
         control={form.control}
-        name="description"
+        name="deliveryPrice"
         render={({ field }) => (
           <FormItem>
-            <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-              Описание товара (необязательно)
-            </FormLabel>
+            <FormLabel>Стоимость доставки (AED)</FormLabel>
             <FormControl>
-              <Textarea 
-                placeholder="Описание товара"
-                className={`min-h-[100px] ${isMobile ? "text-base" : ""}`}
+              <Input
+                type="number"
+                placeholder="0"
                 {...field}
+                className="text-base"
               />
             </FormControl>
             <FormMessage />
@@ -132,8 +163,6 @@ const MobileOptimizedBasicInfoSection = React.memo<MobileOptimizedBasicInfoSecti
       />
     </div>
   );
-});
-
-MobileOptimizedBasicInfoSection.displayName = "MobileOptimizedBasicInfoSection";
+};
 
 export default MobileOptimizedBasicInfoSection;
