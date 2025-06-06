@@ -436,8 +436,8 @@ const SellerAddProduct = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   Информация о товаре
-                  <Badge variant="outline" className="text-xs">
-                    <Sparkles className="h-3 w-3 mr-1" />
+                  <Badge variant="outline" className="text-xs flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" />
                     Cloudinary интеграция
                   </Badge>
                 </CardTitle>

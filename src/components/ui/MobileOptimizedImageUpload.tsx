@@ -1,3 +1,4 @@
+
 import React, { useCallback, useRef, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -21,9 +22,24 @@ import {
   Star,
   Cloud
 } from "lucide-react";
-import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { toast } from "@/hooks/use-toast";
 import { STORAGE_BUCKETS } from "@/constants/storage";
+import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
+import { getPreviewImageUrl, getBatchImageUrls } from "@/utils/cloudinaryUtils";
+
+interface UploadProgress {
+  fileId: string;
+  fileName: string;
+  progress: number;
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'processing';
+  error?: string;
+  cloudinaryUrl?: string;
+  publicId?: string;
+  previewUrl?: string;
+  isPrimary?: boolean;
+  fileSize?: number;
+  variants?: any;
+}
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -56,19 +72,12 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [showPreview, setShowPreview] = useState(false);
-  const [compressionQuality, setCompressionQuality] = useState<number | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const {
-    isUploading,
-    uploadProgress,
-    canCancel,
-    uploadFilesBatch,
-    cancelUpload,
-    retryFailedUploads,
-    clearProgress,
-    isMobileDevice,
-    deviceCapabilities
-  } = useMobileOptimizedUpload();
+  // Detect mobile device
+  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                         window.innerWidth <= 768;
 
   // Handle file selection
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -87,54 +96,159 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       return;
     }
 
-    // Check for large files
-    const largeFiles = files.filter(f => f.size > 5 * 1024 * 1024); // 5MB
-    if (largeFiles.length > 0) {
-      toast({
-        title: "Большие файлы",
-        description: `${largeFiles.length} файлов больше 5МБ. Они будут сжаты для мобильных устройств.`,
-      });
+    // Validate file types
+    const validFiles = files.filter(file => {
+      const isValid = file.type.startsWith('image/');
+      if (!isValid) {
+        toast({
+          title: "Неподдерживаемый файл",
+          description: `Файл ${file.name} не является изображением`,
+          variant: "destructive",
+        });
+      }
+      return isValid;
+    });
+
+    if (validFiles.length > 0) {
+      setSelectedFiles(validFiles);
+      setShowPreview(true);
+
+      // Show info about Cloudinary processing
+      if (enableCloudinary) {
+        toast({
+          title: "Cloudinary интеграция",
+          description: `${validFiles.length} файлов готовы к загрузке. Автоматическое сжатие до 400KB и создание превью 20KB.`,
+        });
+      }
     }
+  }, [existingImages.length, maxImages, enableCloudinary]);
 
-    setSelectedFiles(files);
-    setShowPreview(true);
-  }, [existingImages.length, maxImages]);
+  // Upload single file directly to Cloudinary
+  const uploadSingleFile = useCallback(async (
+    file: File, 
+    fileId: string,
+    isPrimary: boolean = false
+  ): Promise<string | null> => {
+    try {
+      console.log('🚀 Starting direct Cloudinary upload:', {
+        fileName: file.name,
+        fileSize: file.size,
+        isPrimary,
+        productId
+      });
 
-  // Start upload with Cloudinary integration
+      // Update progress
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { ...p, status: 'uploading', progress: 20, isPrimary, fileSize: file.size }
+          : p
+      ));
+
+      // Create custom public_id
+      const customPublicId = `product_${productId || Date.now()}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+      // Upload directly to Cloudinary
+      const result = await uploadDirectToCloudinary(file, productId, customPublicId);
+
+      if (result.success && result.cloudinaryUrl && result.publicId) {
+        console.log('✅ Cloudinary upload successful:', {
+          cloudinaryUrl: result.cloudinaryUrl,
+          publicId: result.publicId,
+          originalSize: result.originalSize,
+          variants: result.variants
+        });
+
+        // Generate preview URL using public_id
+        const previewUrl = getPreviewImageUrl(result.publicId);
+        const batchUrls = getBatchImageUrls(result.publicId);
+
+        setUploadProgress(prev => prev.map(p => 
+          p.fileId === fileId 
+            ? { 
+                ...p, 
+                status: 'success', 
+                progress: 100,
+                cloudinaryUrl: result.cloudinaryUrl,
+                publicId: result.publicId,
+                previewUrl,
+                variants: batchUrls
+              }
+            : p
+        ));
+
+        return result.cloudinaryUrl;
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      console.error('💥 Upload error:', errorMessage);
+
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { ...p, status: 'error', error: errorMessage }
+          : p
+      ));
+
+      return null;
+    }
+  }, [productId]);
+
+  // Start upload process
   const startUpload = useCallback(async () => {
     if (selectedFiles.length === 0) return;
 
-    try {
-      const options = {
-        storageBucket,
-        storagePath,
-        compressionQuality: compressionQuality || deviceCapabilities.compressionQuality,
-        maxRetries: 3,
-        batchSize: deviceCapabilities.batchSize,
-        batchDelay: deviceCapabilities.isLowEnd ? 1500 : 500,
-        productId: enableCloudinary ? productId : undefined,
-        autoGeneratePreview: autoGeneratePreview && !!productId && enableCloudinary
-      };
+    setIsUploading(true);
 
-      console.log('🚀 Starting upload with Cloudinary integration:', {
-        enableCloudinary,
-        productId,
-        autoGeneratePreview: options.autoGeneratePreview
-      });
+    // Initialize progress tracking
+    const initialProgress: UploadProgress[] = selectedFiles.map((file, index) => ({
+      fileId: `file-${Date.now()}-${index}`,
+      fileName: file.name,
+      progress: 0,
+      status: 'pending',
+      isPrimary: index === 0, // First file is primary
+      fileSize: file.size
+    }));
+    
+    setUploadProgress(initialProgress);
 
-      const urls = await uploadFilesBatch(selectedFiles, options);
+    const uploadedUrls: string[] = [];
+
+    // Process files sequentially for better control
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      const progressItem = initialProgress[i];
       
-      if (urls.length > 0) {
-        onUploadComplete(urls);
+      try {
+        const url = await uploadSingleFile(file, progressItem.fileId, progressItem.isPrimary);
         
-        setSelectedFiles([]);
-        setShowPreview(false);
-        clearProgress();
+        if (url) {
+          uploadedUrls.push(url);
+        }
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
       }
-    } catch (error) {
-      console.error('Upload failed:', error);
+
+      // Small delay between uploads
+      if (i < selectedFiles.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
     }
-  }, [selectedFiles, storageBucket, storagePath, compressionQuality, deviceCapabilities, uploadFilesBatch, onUploadComplete, clearProgress, productId, autoGeneratePreview, enableCloudinary]);
+
+    if (uploadedUrls.length > 0) {
+      onUploadComplete(uploadedUrls);
+      
+      setSelectedFiles([]);
+      setShowPreview(false);
+
+      toast({
+        title: "Загрузка завершена",
+        description: `Успешно загружено ${uploadedUrls.length} из ${selectedFiles.length} файлов в Cloudinary с автоматическим сжатием.`,
+      });
+    }
+
+    setIsUploading(false);
+  }, [selectedFiles, uploadSingleFile, onUploadComplete]);
 
   // Handle setting primary image
   const handleSetPrimaryImage = async (url: string) => {
@@ -142,18 +256,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       onSetPrimaryImage(url);
     }
   };
-
-  // Calculate overall progress
-  const overallProgress = uploadProgress.length > 0 
-    ? uploadProgress.reduce((sum, p) => sum + p.progress, 0) / uploadProgress.length
-    : 0;
-
-  const successCount = uploadProgress.filter(p => p.status === 'success').length;
-  const errorCount = uploadProgress.filter(p => p.status === 'error').length;
-  const pendingCount = uploadProgress.filter(p => p.status === 'pending').length;
-  const uploadingCount = uploadProgress.filter(p => p.status === 'uploading' || p.status === 'retrying').length;
-  const generatingPreviewCount = uploadProgress.filter(p => p.status === 'generating-preview').length;
-  const previewsGenerated = uploadProgress.filter(p => p.hasPreview).length;
 
   // Format file size
   const formatFileSize = (bytes: number) => {
@@ -164,6 +266,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Calculate overall progress
+  const overallProgress = uploadProgress.length > 0 
+    ? uploadProgress.reduce((sum, p) => sum + p.progress, 0) / uploadProgress.length
+    : 0;
+
+  const successCount = uploadProgress.filter(p => p.status === 'success').length;
+  const errorCount = uploadProgress.filter(p => p.status === 'error').length;
+  const uploadingCount = uploadProgress.filter(p => p.status === 'uploading' || p.status === 'processing').length;
+
   return (
     <div className="space-y-4">
       {/* Existing Images Gallery */}
@@ -172,12 +283,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
               Загруженные изображения ({existingImages.length}/{maxImages})
-              {enableCloudinary && productId && (
-                <Badge variant="secondary" className="text-xs">
-                  <Cloud className="h-3 w-3 mr-1" />
-                  Cloudinary
-                </Badge>
-              )}
+              <Badge variant="secondary" className="text-xs">
+                <Cloud className="h-3 w-3 mr-1" />
+                Cloudinary
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -269,27 +378,25 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         </Card>
       )}
 
-      {/* Device Info Card - обновленная информация */}
-      {isMobileDevice && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2 text-sm text-blue-700">
-              <Camera className="h-4 w-4" />
-              <span>Мобильный режим: оптимизация для {deviceCapabilities.memory}GB RAM</span>
-            </div>
-            <div className="mt-2 text-xs text-blue-600">
-              Пакеты по {deviceCapabilities.batchSize} файлов, качество {Math.round(deviceCapabilities.compressionQuality * 100)}%
-            </div>
-            {enableCloudinary && productId && (
-              <div className="mt-1 text-xs text-blue-600 flex items-center gap-1">
-                <Cloud className="h-3 w-3" />
-                <Sparkles className="h-3 w-3" />
-                Автоматическая загрузка в Cloudinary с превью
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      {/* Cloudinary Integration Info */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="pt-4">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <Cloud className="h-4 w-4" />
+            <Sparkles className="h-4 w-4" />
+            <span>Полная интеграция с Cloudinary: автоматическое сжатие до 400KB</span>
+          </div>
+          <div className="mt-2 text-xs text-blue-600">
+            • Основные изображения: сжатие с q_auto:low и f_auto
+          </div>
+          <div className="text-xs text-blue-600">
+            • Превью: автоматическое создание версий 20KB в формате WebP
+          </div>
+          <div className="text-xs text-blue-600">
+            • Без промежуточной загрузки в Supabase Storage
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Upload Controls */}
       <div className="flex gap-2">
@@ -300,8 +407,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           disabled={isUploading || existingImages.length >= maxImages}
           className="flex-1"
         >
-          <ImagePlus className="mr-2 h-4 w-4" />
-          {enableCloudinary && productId ? 'Загрузить в Cloudinary' : 'Выбрать файлы'}
+          <Cloud className="mr-2 h-4 w-4" />
+          Загрузить в Cloudinary
         </Button>
         
         {isMobileDevice && (
@@ -341,19 +448,17 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm flex items-center gap-2">
-                Готово к загрузке: {selectedFiles.length} файлов
+                Готово к загрузке в Cloudinary: {selectedFiles.length} файлов
                 {selectedFiles.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
                     <Star className="h-3 w-3 mr-1" />
                     1-е = основное
                   </Badge>
                 )}
-                {enableCloudinary && productId && (
-                  <Badge variant="outline" className="ml-2">
-                    <Cloud className="h-3 w-3 mr-1" />
-                    Cloudinary
-                  </Badge>
-                )}
+                <Badge variant="outline" className="ml-2">
+                  <Cloud className="h-3 w-3 mr-1" />
+                  400KB + 20KB превью
+                </Badge>
               </CardTitle>
               <Button
                 type="button"
@@ -369,26 +474,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Compression Quality Selector for Mobile */}
-            {isMobileDevice && (
-              <div>
-                <label className="text-sm font-medium">Качество сжатия:</label>
-                <div className="flex gap-2 mt-1">
-                  {[0.4, 0.6, 0.8].map(quality => (
-                    <Button
-                      key={quality}
-                      type="button"
-                      variant={compressionQuality === quality ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setCompressionQuality(quality)}
-                    >
-                      {Math.round(quality * 100)}%
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* File List */}
             <div className="space-y-2 max-h-40 overflow-y-auto">
               {selectedFiles.map((file, index) => (
@@ -399,47 +484,33 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                     )}
                     <span className="truncate">{file.name}</span>
                     <Badge variant="secondary">{formatFileSize(file.size)}</Badge>
+                    <Badge variant="outline" className="text-xs">
+                      <Cloud className="h-3 w-3 mr-1" />
+                      →400KB
+                    </Badge>
                   </div>
-                  {file.size > 5 * 1024 * 1024 && (
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                  )}
                 </div>
               ))}
             </div>
 
             {/* Upload Button */}
-            <div className="flex gap-2">
-              <Button
-                onClick={startUpload}
-                disabled={isUploading}
-                className="flex-1"
-              >
-                {isUploading ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Загрузка...
-                  </>
-                ) : (
-                  <>
-                    {enableCloudinary && productId ? (
-                      <Cloud className="mr-2 h-4 w-4" />
-                    ) : (
-                      <ImagePlus className="mr-2 h-4 w-4" />
-                    )}
-                    Загрузить {selectedFiles.length} файлов
-                  </>
-                )}
-              </Button>
-              
-              {canCancel && (
-                <Button
-                  variant="outline"
-                  onClick={cancelUpload}
-                >
-                  <Pause className="h-4 w-4" />
-                </Button>
+            <Button
+              onClick={startUpload}
+              disabled={isUploading}
+              className="w-full"
+            >
+              {isUploading ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Загрузка в Cloudinary...
+                </>
+              ) : (
+                <>
+                  <Cloud className="mr-2 h-4 w-4" />
+                  Загрузить {selectedFiles.length} файлов в Cloudinary
+                </>
               )}
-            </div>
+            </Button>
           </CardContent>
         </Card>
       )}
@@ -449,13 +520,11 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         <Card>
           <CardHeader>
             <CardTitle className="text-sm flex items-center gap-2">
-              Прогресс загрузки
-              {enableCloudinary && productId && (
-                <Badge variant="outline" className="text-xs">
-                  <Cloud className="h-3 w-3 mr-1" />
-                  Cloudinary активен
-                </Badge>
-              )}
+              Прогресс загрузки в Cloudinary
+              <Badge variant="outline" className="text-xs">
+                <Cloud className="h-3 w-3 mr-1" />
+                Автоматическое сжатие
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -481,18 +550,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                     {uploadingCount} загружается
                   </Badge>
                 )}
-                {generatingPreviewCount > 0 && (
-                  <Badge variant="outline" className="flex items-center gap-1">
-                    <Sparkles className="h-3 w-3" />
-                    {generatingPreviewCount} превью
-                  </Badge>
-                )}
-                {previewsGenerated > 0 && (
-                  <Badge variant="default" className="flex items-center gap-1 bg-green-500">
-                    <Cloud className="h-3 w-3" />
-                    {previewsGenerated} Cloudinary
-                  </Badge>
-                )}
                 {errorCount > 0 && (
                   <Badge variant="destructive" className="flex items-center gap-1">
                     <XCircle className="h-3 w-3" />
@@ -515,7 +572,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                           Основное
                         </Badge>
                       )}
-                      {progress.hasPreview && (
+                      {progress.cloudinaryUrl && (
                         <Badge variant="default" className="text-xs bg-green-500">
                           <Cloud className="h-3 w-3 mr-1" />
                           Cloudinary
@@ -534,37 +591,20 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                     </div>
                   )}
                   
-                  {progress.status === 'generating-preview' && (
-                    <div className="text-xs text-blue-600 flex items-center gap-1">
-                      <Sparkles className="h-3 w-3" />
-                      Создание превью в Cloudinary...
+                  {progress.fileSize && (
+                    <div className="text-xs text-gray-500">
+                      Оригинал: {formatFileSize(progress.fileSize)} → ~400KB + 20KB превью
                     </div>
                   )}
                 </div>
               ))}
             </div>
 
-            {/* Action Buttons */}
-            {errorCount > 0 && !isUploading && (
+            {/* Clear Progress Button */}
+            {!isUploading && uploadProgress.every(p => p.status === 'success' || p.status === 'error') && (
               <Button
                 variant="outline"
-                onClick={() => retryFailedUploads({
-                  storageBucket,
-                  storagePath,
-                  productId: enableCloudinary ? productId : undefined,
-                  autoGeneratePreview: autoGeneratePreview && !!productId && enableCloudinary
-                })}
-                className="w-full"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Повторить неудачные загрузки
-              </Button>
-            )}
-            
-            {!isUploading && (uploadProgress.every(p => p.status === 'success' || p.status === 'error')) && (
-              <Button
-                variant="outline"
-                onClick={clearProgress}
+                onClick={() => setUploadProgress([])}
                 className="w-full"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
@@ -575,21 +615,18 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         </Card>
       )}
 
-      {/* Usage Info - обновим информацию */}
+      {/* Usage Info */}
       <div className="text-xs text-gray-500 space-y-1">
         <div>Загружено: {existingImages.length} / {maxImages} изображений</div>
-        <div>📸 Изображения автоматически сжимаются до 400KB</div>
-        {enableCloudinary && productId ? (
-          <div className="flex items-center gap-1">
-            <Star className="h-3 w-3 text-yellow-500" />
-            🖼️ Превью 20KB создается только для основного изображения
-          </div>
-        ) : (
-          <div>🖼️ Превью создается автоматически после публикации товара</div>
-        )}
-        {isMobileDevice && (
-          <div>💡 Совет: для экономии трафика изображения сжимаются автоматически</div>
-        )}
+        <div className="flex items-center gap-1">
+          <Cloud className="h-3 w-3 text-blue-500" />
+          🎯 Все изображения автоматически сжимаются до ~400KB через Cloudinary
+        </div>
+        <div className="flex items-center gap-1">
+          <Sparkles className="h-3 w-3 text-yellow-500" />
+          🖼️ Превью 20KB создается автоматически в формате WebP
+        </div>
+        <div>💡 Никаких промежуточных загрузок - сразу в Cloudinary с оптимизацией</div>
       </div>
     </div>
   );

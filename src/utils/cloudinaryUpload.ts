@@ -9,19 +9,28 @@ interface CloudinaryUploadResult {
   format?: string;
   width?: number;
   height?: number;
+  variants?: {
+    preview?: {
+      url: string;
+      transformation: string;
+      estimatedSize: number;
+    };
+  };
   error?: string;
 }
 
 export const uploadToCloudinary = async (
   imageUrl: string, 
   productId?: string,
-  customPublicId?: string
+  customPublicId?: string,
+  createVariants: boolean = true
 ): Promise<CloudinaryUploadResult> => {
   try {
-    console.log('🚀 Starting Cloudinary upload:', {
+    console.log('🚀 Starting full Cloudinary integration upload:', {
       imageUrl: imageUrl.substring(0, 50) + '...',
       productId,
-      customPublicId
+      customPublicId,
+      createVariants
     });
 
     // Generate public_id if not provided
@@ -31,7 +40,8 @@ export const uploadToCloudinary = async (
       body: { 
         imageUrl,
         productId,
-        publicId
+        publicId,
+        createVariants
       }
     });
 
@@ -51,11 +61,13 @@ export const uploadToCloudinary = async (
     }
 
     if (data?.success) {
-      console.log('✅ Cloudinary upload SUCCESS:', {
+      console.log('✅ Full Cloudinary integration SUCCESS:', {
         cloudinaryUrl: data.cloudinaryUrl,
         publicId: data.publicId,
         format: data.format,
-        sizeKB: Math.round(data.originalSize / 1024)
+        sizeKB: Math.round(data.originalSize / 1024),
+        hasPreview: !!data.variants?.preview,
+        variants: data.variants
       });
       
       return {
@@ -65,7 +77,8 @@ export const uploadToCloudinary = async (
         originalSize: data.originalSize,
         format: data.format,
         width: data.width,
-        height: data.height
+        height: data.height,
+        variants: data.variants
       };
     } else {
       console.error('❌ Cloudinary upload failed:', data?.error);
@@ -76,6 +89,39 @@ export const uploadToCloudinary = async (
     }
   } catch (error) {
     console.error('💥 EXCEPTION in uploadToCloudinary:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
+// Direct upload to Cloudinary (bypassing Supabase Storage completely)
+export const uploadDirectToCloudinary = async (
+  file: File,
+  productId?: string,
+  customPublicId?: string
+): Promise<CloudinaryUploadResult> => {
+  try {
+    console.log('📤 Direct upload to Cloudinary:', {
+      fileName: file.name,
+      fileSize: file.size,
+      productId,
+      customPublicId
+    });
+
+    // Create a blob URL for the file
+    const blobUrl = URL.createObjectURL(file);
+    
+    try {
+      const result = await uploadToCloudinary(blobUrl, productId, customPublicId, true);
+      return result;
+    } finally {
+      // Clean up blob URL
+      URL.revokeObjectURL(blobUrl);
+    }
+  } catch (error) {
+    console.error('💥 Direct upload error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'

@@ -1,28 +1,28 @@
+
 import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { uploadImageToStorage, validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
-import { generateProductPreview, updateProductPreview } from "@/utils/previewGenerator";
+import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
+import { validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
+import { getPreviewImageUrl, getBatchImageUrls } from "@/utils/cloudinaryUtils";
 
 interface UploadProgress {
   fileId: string;
   fileName: string;
   progress: number;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'generating-preview';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'retrying' | 'processing';
   error?: string;
-  url?: string;
+  cloudinaryUrl?: string;
+  publicId?: string;
   previewUrl?: string;
   hasPreview?: boolean;
   isPrimary?: boolean;
+  variants?: any;
 }
 
 interface BatchUploadOptions {
   batchSize?: number;
   batchDelay?: number;
   maxRetries?: number;
-  compressionQuality?: number;
-  maxResolution?: number;
-  storageBucket?: string;
-  storagePath?: string;
   productId?: string;
   autoGeneratePreview?: boolean;
 }
@@ -49,178 +49,14 @@ export const useMobileOptimizedUpload = () => {
       isMobile,
       isLowEnd,
       memory,
-      maxConcurrent: isLowEnd ? 1 : 3,
-      batchSize: isLowEnd ? 2 : 5,
-      compressionQuality: isLowEnd ? 0.4 : 0.7,
-      maxResolution: isMobile ? 1280 : 1920
+      maxConcurrent: isLowEnd ? 1 : 2, // Reduced since Cloudinary handles processing
+      batchSize: isLowEnd ? 2 : 4,
+      compressionQuality: 1.0, // Not used anymore - Cloudinary handles this
+      maxResolution: 0 // Not used anymore - Cloudinary handles this
     };
   }, [isMobileDevice]);
 
-  // Compress image with device-specific settings
-  const compressImageForDevice = useCallback(async (file: File): Promise<File> => {
-    const capabilities = getDeviceCapabilities();
-    
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        // Calculate new dimensions
-        let { width, height } = img;
-        const maxDim = capabilities.maxResolution;
-        
-        if (width > maxDim || height > maxDim) {
-          if (width > height) {
-            height = (height * maxDim) / width;
-            width = maxDim;
-          } else {
-            width = (width * maxDim) / height;
-            height = maxDim;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        
-        // Draw and compress
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const compressedFile = new File([blob], file.name, {
-              type: 'image/jpeg',
-              lastModified: Date.now()
-            });
-            resolve(compressedFile);
-          } else {
-            resolve(file);
-          }
-        }, 'image/jpeg', capabilities.compressionQuality);
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  }, [getDeviceCapabilities]);
-
-  // Generate preview for primary image only
-  const generatePreviewForPrimaryImage = useCallback(async (
-    imageUrl: string,
-    fileId: string,
-    productId: string,
-    isPrimary: boolean
-  ): Promise<string | null> => {
-    // Only generate preview for primary images
-    if (!isPrimary) {
-      console.log('⏭️ SKIPPING PREVIEW GENERATION (not primary image):', {
-        imageUrl,
-        fileId,
-        productId,
-        isPrimary
-      });
-      return null;
-    }
-
-    try {
-      console.log('🎯 STARTING PREVIEW GENERATION FOR PRIMARY IMAGE:', {
-        imageUrl,
-        fileId,
-        productId,
-        isPrimary,
-        timestamp: new Date().toISOString(),
-        functionCall: 'generatePreviewForPrimaryImage'
-      });
-      
-      // Update UI immediately to show preview generation status
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'generating-preview', progress: 85 }
-          : p
-      ));
-
-      console.log('📞 About to call generateProductPreview for primary image...');
-      
-      // Call the function and wait for result
-      const previewResult = await generateProductPreview(imageUrl, productId);
-      
-      console.log('📥 Preview result received for primary image:', {
-        success: previewResult.success,
-        previewUrl: previewResult.previewUrl,
-        productUpdated: previewResult.productUpdated,
-        error: previewResult.error,
-        timestamp: new Date().toISOString()
-      });
-      
-      if (previewResult.success && previewResult.previewUrl) {
-        console.log('✅ PRIMARY IMAGE Preview generation SUCCESS:', {
-          previewUrl: previewResult.previewUrl,
-          productUpdated: previewResult.productUpdated,
-          fileId,
-          productId
-        });
-        
-        // Update UI with success status and preview URL
-        setUploadProgress(prev => prev.map(p => 
-          p.fileId === fileId 
-            ? { 
-                ...p, 
-                previewUrl: previewResult.previewUrl,
-                hasPreview: true,
-                progress: 100,
-                status: 'success'
-              }
-            : p
-        ));
-
-        return previewResult.previewUrl;
-      } else {
-        console.error('❌ PRIMARY IMAGE Preview generation FAILED:', {
-          error: previewResult.error,
-          fileId,
-          productId,
-          imageUrl
-        });
-        
-        // Update UI to show preview generation failed but upload succeeded
-        setUploadProgress(prev => prev.map(p => 
-          p.fileId === fileId 
-            ? { 
-                ...p, 
-                hasPreview: false,
-                progress: 100,
-                status: 'success'
-              }
-            : p
-        ));
-        
-        return null;
-      }
-    } catch (error) {
-      console.error('💥 EXCEPTION in generatePreviewForPrimaryImage:', {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : 'No stack trace',
-        fileId,
-        productId,
-        imageUrl
-      });
-      
-      // Update UI to show preview generation failed
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { 
-              ...p, 
-              hasPreview: false,
-              progress: 100,
-              status: 'success'
-            }
-          : p
-      ));
-      
-      return null;
-    }
-  }, []);
-
-  // Upload single file with primary image preview logic
+  // Upload single file directly to Cloudinary
   const uploadSingleFile = useCallback(async (
     file: File, 
     fileId: string, 
@@ -231,14 +67,12 @@ export const useMobileOptimizedUpload = () => {
     const maxRetries = options.maxRetries || 3;
     
     try {
-      console.log('🚀 Starting upload for file:', {
+      console.log('🚀 Starting Cloudinary-only upload:', {
         fileName: file.name,
         fileId,
         productId: options.productId,
-        autoGeneratePreview: options.autoGeneratePreview,
-        hasProductId: !!options.productId,
         isPrimary,
-        shouldGeneratePreview: !!options.productId && options.autoGeneratePreview !== false && isPrimary
+        retryCount
       });
 
       // Update progress
@@ -254,9 +88,6 @@ export const useMobileOptimizedUpload = () => {
         throw new Error(validation.errorMessage || 'Invalid file');
       }
 
-      // Compress for mobile
-      const compressedFile = await compressImageForDevice(file);
-      
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId ? { ...p, progress: 30 } : p
       ));
@@ -266,82 +97,42 @@ export const useMobileOptimizedUpload = () => {
         throw new Error('Upload cancelled');
       }
 
-      // Upload to storage
-      console.log('📤 Uploading to storage...');
-      const imageUrl = await uploadImageToStorage(
-        compressedFile,
-        options.storageBucket || 'product-images',
-        options.storagePath || ''
-      );
+      // Create custom public_id
+      const customPublicId = `product_${options.productId || Date.now()}_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-      console.log('✅ Upload completed:', {
-        imageUrl,
-        fileId,
-        fileName: file.name,
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId ? { ...p, progress: 50, status: 'processing' } : p
+      ));
+
+      // Upload directly to Cloudinary with full processing
+      console.log('☁️ Uploading to Cloudinary...');
+      const result = await uploadDirectToCloudinary(file, options.productId, customPublicId);
+
+      if (!result.success || !result.cloudinaryUrl || !result.publicId) {
+        throw new Error(result.error || 'Cloudinary upload failed');
+      }
+
+      console.log('✅ Cloudinary upload completed:', {
+        cloudinaryUrl: result.cloudinaryUrl,
+        publicId: result.publicId,
+        originalSize: result.originalSize,
         isPrimary
       });
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 70, url: imageUrl } : p
+        p.fileId === fileId ? { ...p, progress: 80, cloudinaryUrl: result.cloudinaryUrl, publicId: result.publicId } : p
       ));
 
-      // Preview generation logic - ONLY for primary images
-      let previewUrl: string | null = null;
-      
-      console.log('🔍 PREVIEW GENERATION CHECK:', {
-        hasProductId: !!options.productId,
-        productId: options.productId,
-        autoGeneratePreview: options.autoGeneratePreview,
-        isPrimary,
-        shouldGenerate: !!options.productId && options.autoGeneratePreview !== false && isPrimary,
-        imageUrl
-      });
+      // Generate all image variants using public_id
+      const batchUrls = getBatchImageUrls(result.publicId);
+      const previewUrl = getPreviewImageUrl(result.publicId);
 
-      // Generate preview ONLY for primary images
-      if (options.productId && options.autoGeneratePreview !== false && isPrimary) {
-        console.log('🎨 ATTEMPTING PREVIEW GENERATION FOR PRIMARY IMAGE:', {
-          productId: options.productId,
-          imageUrl,
-          fileId,
-          isPrimary,
-          timestamp: new Date().toISOString()
-        });
-        
-        try {
-          previewUrl = await generatePreviewForPrimaryImage(imageUrl, fileId, options.productId, isPrimary);
-          
-          if (previewUrl) {
-            console.log('✅ PRIMARY IMAGE PREVIEW GENERATION SUCCESS:', {
-              previewUrl,
-              productId: options.productId,
-              imageUrl,
-              fileId
-            });
-          } else {
-            console.warn('⚠️ PRIMARY IMAGE PREVIEW GENERATION RETURNED NULL:', {
-              productId: options.productId,
-              imageUrl,
-              fileId
-            });
-          }
-        } catch (previewError) {
-          console.error('💥 PRIMARY IMAGE PREVIEW GENERATION EXCEPTION:', {
-            error: previewError instanceof Error ? previewError.message : 'Unknown error',
-            productId: options.productId,
-            imageUrl,
-            fileId
-          });
-        }
-      } else {
-        console.log('⏭️ SKIPPING PREVIEW GENERATION:', {
-          reason: !options.productId ? 'No productId provided' : 
-                  !isPrimary ? 'Not primary image' : 
-                  'autoGeneratePreview disabled',
-          productId: options.productId,
-          autoGeneratePreview: options.autoGeneratePreview,
-          isPrimary
-        });
-      }
+      console.log('🎨 Generated image variants:', {
+        preview: previewUrl,
+        thumbnail: batchUrls.thumbnail,
+        card: batchUrls.card,
+        detail: batchUrls.detail
+      });
 
       // Final success update
       setUploadProgress(prev => prev.map(p => 
@@ -350,31 +141,32 @@ export const useMobileOptimizedUpload = () => {
               ...p, 
               status: 'success', 
               progress: 100, 
-              url: imageUrl,
-              previewUrl: previewUrl || undefined,
-              hasPreview: !!previewUrl,
+              cloudinaryUrl: result.cloudinaryUrl,
+              publicId: result.publicId,
+              previewUrl,
+              hasPreview: true,
+              variants: batchUrls,
               isPrimary
             }
           : p
       ));
 
-      logImageProcessing('MobileUploadSuccess', { 
+      logImageProcessing('CloudinaryUploadSuccess', { 
         fileName: file.name,
         originalSize: file.size,
-        compressedSize: compressedFile.size,
+        cloudinaryUrl: result.cloudinaryUrl,
+        publicId: result.publicId,
         retryCount,
-        previewGenerated: !!previewUrl,
-        productId: options.productId,
-        imageUrl,
         previewUrl,
+        productId: options.productId,
         isPrimary
       });
 
-      return imageUrl;
+      return result.cloudinaryUrl;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       
-      console.error('💥 Upload error:', {
+      console.error('💥 Cloudinary upload error:', {
         fileName: file.name,
         error: errorMessage,
         retryCount,
@@ -383,7 +175,7 @@ export const useMobileOptimizedUpload = () => {
         isPrimary
       });
 
-      logImageProcessing('MobileUploadError', {
+      logImageProcessing('CloudinaryUploadError', {
         fileName: file.name,
         error: errorMessage,
         retryCount,
@@ -394,7 +186,7 @@ export const useMobileOptimizedUpload = () => {
       if (retryCount < maxRetries && !cancelRef.current) {
         // Retry with exponential backoff
         const delay = Math.pow(2, retryCount) * 1000;
-        console.log(`🔄 Retrying upload in ${delay}ms...`);
+        console.log(`🔄 Retrying Cloudinary upload in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
         
         return uploadSingleFile(file, fileId, options, retryCount + 1, isPrimary);
@@ -409,23 +201,22 @@ export const useMobileOptimizedUpload = () => {
         throw error;
       }
     }
-  }, [compressImageForDevice, generatePreviewForPrimaryImage]);
+  }, []);
 
-  // Process files in batches with primary image detection
+  // Process files in batches - all go directly to Cloudinary
   const uploadFilesBatch = useCallback(async (
     files: File[],
     options: BatchUploadOptions = {}
   ): Promise<string[]> => {
     const capabilities = getDeviceCapabilities();
     const batchSize = options.batchSize || capabilities.batchSize;
-    const batchDelay = options.batchDelay || (capabilities.isLowEnd ? 1500 : 500);
+    const batchDelay = options.batchDelay || (capabilities.isLowEnd ? 1500 : 1000);
     
-    console.log('📦 STARTING BATCH UPLOAD:', {
+    console.log('📦 STARTING CLOUDINARY BATCH UPLOAD:', {
       fileCount: files.length,
       productId: options.productId,
-      autoGeneratePreview: options.autoGeneratePreview,
       batchSize,
-      shouldGeneratePreview: !!options.productId && options.autoGeneratePreview !== false
+      cloudinaryOnly: true
     });
 
     setIsUploading(true);
@@ -454,68 +245,43 @@ export const useMobileOptimizedUpload = () => {
         const batch = files.slice(i, i + batchSize);
         const batchProgress = initialProgress.slice(i, i + batchSize);
 
-        console.log(`📋 Processing batch ${Math.floor(i / batchSize) + 1}:`, {
+        console.log(`📋 Processing Cloudinary batch ${Math.floor(i / batchSize) + 1}:`, {
           batchFiles: batch.map(f => f.name),
-          productId: options.productId,
-          autoGeneratePreview: options.autoGeneratePreview
+          productId: options.productId
         });
 
-        // Process batch sequentially for mobile, parallel for desktop
-        if (capabilities.isMobile) {
-          // Sequential processing for mobile
-          for (let j = 0; j < batch.length; j++) {
-            if (cancelRef.current) break;
-            
-            try {
-              const fileId = batchProgress[j].fileId;
-              const isPrimary = batchProgress[j].isPrimary || false;
-              const url = await uploadSingleFile(batch[j], fileId, options, 0, isPrimary);
-              uploadedUrls.push(url);
-            } catch (error) {
-              errors.push(`${batch[j].name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-            }
-          }
-        } else {
-          // Parallel processing for desktop
-          const batchPromises = batch.map((file, j) => {
+        // Process batch sequentially for better error handling
+        for (let j = 0; j < batch.length; j++) {
+          if (cancelRef.current) break;
+          
+          try {
+            const fileId = batchProgress[j].fileId;
             const isPrimary = batchProgress[j].isPrimary || false;
-            return uploadSingleFile(file, batchProgress[j].fileId, options, 0, isPrimary)
-              .catch(error => {
-                errors.push(`${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                return null;
-              });
-          });
-
-          const batchResults = await Promise.all(batchPromises);
-          batchResults.forEach(url => {
-            if (url) uploadedUrls.push(url);
-          });
+            const url = await uploadSingleFile(batch[j], fileId, options, 0, isPrimary);
+            uploadedUrls.push(url);
+          } catch (error) {
+            errors.push(`${batch[j].name}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
         }
 
-        // Delay between batches to allow memory cleanup
+        // Delay between batches to avoid overwhelming Cloudinary
         if (i + batchSize < files.length && !cancelRef.current) {
           await new Promise(resolve => setTimeout(resolve, batchDelay));
         }
       }
 
-      // Show results with enhanced preview information
-      const previewsGenerated = uploadProgress.filter(p => p.hasPreview).length;
-      
-      console.log('🎉 BATCH UPLOAD COMPLETED:', {
+      console.log('🎉 CLOUDINARY BATCH UPLOAD COMPLETED:', {
         uploaded: uploadedUrls.length,
         total: files.length,
-        previewsGenerated,
         errors: errors.length,
         productId: options.productId
       });
 
       if (uploadedUrls.length > 0) {
-        const message = options.productId && previewsGenerated > 0 
-          ? `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов. Создано ${previewsGenerated} превью для основного изображения.`
-          : `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов`;
+        const message = `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов в Cloudinary с автоматическим сжатием до 400KB и созданием превью 20KB.`;
         
         toast({
-          title: "Загрузка завершена",
+          title: "Загрузка в Cloudinary завершена",
           description: message,
         });
       }
@@ -523,16 +289,16 @@ export const useMobileOptimizedUpload = () => {
       if (errors.length > 0) {
         toast({
           title: "Ошибки загрузки",
-          description: `Не удалось загрузить ${errors.length} файлов. Проверьте детали.`,
+          description: `Не удалось загрузить ${errors.length} файлов в Cloudinary.`,
           variant: "destructive",
         });
       }
 
       return uploadedUrls;
     } catch (error) {
-      console.error('💥 Batch upload error:', error);
+      console.error('💥 Batch Cloudinary upload error:', error);
 
-      logImageProcessing('BatchUploadError', { 
+      logImageProcessing('BatchCloudinaryUploadError', { 
         error: error instanceof Error ? error.message : 'Unknown error',
         totalFiles: files.length,
         successfulUploads: uploadedUrls.length,
@@ -540,8 +306,8 @@ export const useMobileOptimizedUpload = () => {
       });
 
       toast({
-        title: "Ошибка загрузки",
-        description: "Произошла ошибка при загрузке файлов",
+        title: "Ошибка загрузки в Cloudinary",
+        description: "Произошла ошибка при загрузке файлов в Cloudinary",
         variant: "destructive",
       });
 
@@ -559,7 +325,7 @@ export const useMobileOptimizedUpload = () => {
     
     toast({
       title: "Загрузка отменена",
-      description: "Загрузка файлов была прервана",
+      description: "Загрузка файлов в Cloudinary была прервана",
     });
   }, []);
 
@@ -570,7 +336,7 @@ export const useMobileOptimizedUpload = () => {
     if (failedFiles.length === 0) {
       toast({
         title: "Нет файлов для повтора",
-        description: "Все файлы успешно загружены",
+        description: "Все файлы успешно загружены в Cloudinary",
       });
       return [];
     }
