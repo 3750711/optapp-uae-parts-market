@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -57,12 +57,14 @@ export const useSellers = () => {
     fetchSellers();
   }, [toast]);
 
-  // Сортируем продавцов по opt_id, затем по имени
-  const sortedSellers = [...sellers].sort((a, b) => {
-    const optIdA = a.opt_id || '';
-    const optIdB = b.opt_id || '';
-    return optIdA.localeCompare(optIdB) || a.full_name.localeCompare(b.full_name);
-  });
+  // Мемоизируем отсортированных продавцов
+  const sortedSellers = useMemo(() => {
+    return [...sellers].sort((a, b) => {
+      const optIdA = a.opt_id || '';
+      const optIdB = b.opt_id || '';
+      return optIdA.localeCompare(optIdB) || a.full_name.localeCompare(b.full_name);
+    });
+  }, [sellers]);
 
   return {
     sellers: sortedSellers,
