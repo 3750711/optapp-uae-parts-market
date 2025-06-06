@@ -1,10 +1,11 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, X, Camera, Star, StarOff } from "lucide-react";
+import { Upload, X, Camera, Star, StarOff, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { cn } from "@/lib/utils";
+import { UploadProgressCard } from "@/components/ui/image-upload/UploadProgressCard";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -37,7 +38,15 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isUploading, uploadFilesBatch } = useMobileOptimizedUpload();
+  const { 
+    isUploading, 
+    uploadProgress, 
+    canCancel, 
+    uploadFilesBatch, 
+    cancelUpload, 
+    clearProgress,
+    isMobileDevice 
+  } = useMobileOptimizedUpload();
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     if (existingImages.length + files.length > maxImages) {
@@ -95,10 +104,18 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     }
   };
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   // Показывать только кнопку
   if (showOnlyButton) {
     return (
-      <div className={cn("w-full", className)}>
+      <div className={cn("w-full space-y-4", className)}>
         <Button
           type="button"
           variant="outline"
@@ -107,11 +124,11 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           className="w-full h-12"
         >
           {isUploading ? (
-            <Upload className="mr-2 h-4 w-4 animate-spin" />
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             buttonIcon
           )}
-          {buttonText}
+          {isUploading ? "Загрузка..." : buttonText}
         </Button>
         
         <input
@@ -122,6 +139,27 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           onChange={handleFileChange}
           className="hidden"
         />
+
+        {/* Show upload progress */}
+        <UploadProgressCard
+          uploadProgress={uploadProgress}
+          isUploading={isUploading}
+          onClearProgress={clearProgress}
+          formatFileSize={formatFileSize}
+        />
+
+        {/* Cancel button */}
+        {canCancel && (
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={cancelUpload}
+            className="w-full"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Отменить загрузку
+          </Button>
+        )}
       </div>
     );
   }
@@ -184,11 +222,11 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         className="w-full h-12"
       >
         {isUploading ? (
-          <Upload className="mr-2 h-4 w-4 animate-spin" />
+          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
         ) : (
           buttonIcon
         )}
-        {buttonText}
+        {isUploading ? "Загрузка..." : buttonText}
       </Button>
       
       <input
@@ -199,6 +237,27 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         onChange={handleFileChange}
         className="hidden"
       />
+
+      {/* Show upload progress */}
+      <UploadProgressCard
+        uploadProgress={uploadProgress}
+        isUploading={isUploading}
+        onClearProgress={clearProgress}
+        formatFileSize={formatFileSize}
+      />
+
+      {/* Cancel button */}
+      {canCancel && (
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={cancelUpload}
+          className="w-full"
+        >
+          <X className="mr-2 h-4 w-4" />
+          Отменить загрузку
+        </Button>
+      )}
 
       {existingImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
