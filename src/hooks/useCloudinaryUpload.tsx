@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadToCloudinary } from "@/utils/cloudinaryUpload";
-import { uploadImageToStorage } from "@/utils/imageProcessingUtils";
 
 interface CloudinaryUploadProgress {
   fileId: string;
@@ -17,8 +16,6 @@ interface CloudinaryUploadProgress {
 
 interface CloudinaryUploadOptions {
   productId?: string;
-  storageBucket?: string;
-  storagePath?: string;
   uploadToCloudinary?: boolean;
 }
 
@@ -32,7 +29,7 @@ export const useCloudinaryUpload = () => {
     options: CloudinaryUploadOptions = {}
   ): Promise<string> => {
     try {
-      console.log('🚀 Starting Cloudinary upload process for:', file.name);
+      console.log('🚀 Starting Cloudinary-only upload process for:', file.name);
 
       // Update progress - starting upload
       setUploadProgress(prev => prev.map(p => 
@@ -41,74 +38,47 @@ export const useCloudinaryUpload = () => {
           : p
       ));
 
-      // First upload to Supabase Storage
-      const storageUrl = await uploadImageToStorage(
-        file,
-        options.storageBucket || 'product-images',
-        options.storagePath || ''
-      );
-
-      console.log('✅ Supabase upload completed:', storageUrl);
+      // Create a blob URL for direct Cloudinary upload
+      const blobUrl = URL.createObjectURL(file);
 
       setUploadProgress(prev => prev.map(p => 
         p.fileId === fileId 
-          ? { ...p, progress: 50, url: storageUrl }
+          ? { ...p, progress: 50, url: blobUrl }
           : p
       ));
 
-      // Upload to Cloudinary if enabled
-      if (options.uploadToCloudinary !== false) {
+      // Upload directly to Cloudinary
+      setUploadProgress(prev => prev.map(p => 
+        p.fileId === fileId 
+          ? { ...p, status: 'processing', progress: 70 }
+          : p
+      ));
+
+      console.log('☁️ Starting Cloudinary upload...');
+      const cloudinaryResult = await uploadToCloudinary(blobUrl, options.productId);
+
+      // Clean up blob URL
+      URL.revokeObjectURL(blobUrl);
+
+      if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
+        console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
+        
         setUploadProgress(prev => prev.map(p => 
           p.fileId === fileId 
-            ? { ...p, status: 'processing', progress: 70 }
+            ? { 
+                ...p, 
+                status: 'success', 
+                progress: 100,
+                cloudinaryUrl: cloudinaryResult.cloudinaryUrl,
+                publicId: cloudinaryResult.publicId
+              }
             : p
         ));
 
-        console.log('☁️ Starting Cloudinary upload...');
-        const cloudinaryResult = await uploadToCloudinary(storageUrl, options.productId);
-
-        if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
-          console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
-          
-          setUploadProgress(prev => prev.map(p => 
-            p.fileId === fileId 
-              ? { 
-                  ...p, 
-                  status: 'success', 
-                  progress: 100,
-                  cloudinaryUrl: cloudinaryResult.cloudinaryUrl,
-                  publicId: cloudinaryResult.publicId
-                }
-              : p
-          ));
-
-          return cloudinaryResult.cloudinaryUrl;
-        } else {
-          console.warn('⚠️ Cloudinary upload failed, using storage URL:', cloudinaryResult.error);
-          
-          setUploadProgress(prev => prev.map(p => 
-            p.fileId === fileId 
-              ? { 
-                  ...p, 
-                  status: 'success', 
-                  progress: 100,
-                  error: 'Cloudinary upload failed, using storage URL'
-                }
-              : p
-          ));
-
-          return storageUrl;
-        }
+        return cloudinaryResult.cloudinaryUrl;
+      } else {
+        throw new Error(cloudinaryResult.error || 'Cloudinary upload failed');
       }
-
-      // If Cloudinary is disabled, just return storage URL
-      setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId 
-          ? { ...p, status: 'success', progress: 100 }
-          : p
-      ));
-
-      return storageUrl;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
@@ -157,14 +127,14 @@ export const useCloudinaryUpload = () => {
       if (uploadedUrls.length > 0) {
         toast({
           title: "Загрузка завершена",
-          description: `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов`,
+          description: `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов в Cloudinary`,
         });
       }
 
       if (errors.length > 0) {
         toast({
           title: "Ошибки загрузки",
-          description: `Не удалось загрузить ${errors.length} файлов`,
+          description: `Не удалось загрузить ${errors.length} файлов в Cloudinary`,
           variant: "destructive",
         });
       }
