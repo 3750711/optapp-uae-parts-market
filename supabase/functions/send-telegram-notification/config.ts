@@ -41,4 +41,3 @@ console.log("Environment:", {
 // Notification configuration
 export const MIN_IMAGES_REQUIRED = 1; // Minimum number of images required for notifications
 export const MAX_IMAGES_PER_GROUP = 10; // Maximum number of images per media group (Telegram limit)
-export const MAX_VIDEOS_PER_GROUP = 10; // Maximum number of videos per media group (Telegram limit)
