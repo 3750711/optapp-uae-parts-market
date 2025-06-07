@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -88,7 +89,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           // Get fresh order data
           const { data: freshOrder, error: orderError } = await supabase
             .from('orders')
-            .select('images')
+            .select('images, video_url')
             .eq('id', order.id)
             .single();
 
@@ -108,9 +109,17 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
           if (videosError) throw videosError;
           
-          const videoUrls = videos?.map(video => video.url) || [];
-          console.log('Fresh videos from database:', videoUrls);
-          setOrderVideos(videoUrls);
+          const newVideoUrls = videos?.map(video => video.url) || [];
+          
+          // Combine old video_url field with new order_videos table
+          const oldVideoUrls = freshOrder?.video_url || [];
+          const allVideoUrls = [...oldVideoUrls, ...newVideoUrls];
+          
+          console.log('Old videos from video_url field:', oldVideoUrls);
+          console.log('New videos from order_videos table:', newVideoUrls);
+          console.log('All combined videos:', allVideoUrls);
+          
+          setOrderVideos(allVideoUrls);
           
           // Update cache with fresh data
           queryClient.setQueryData(['order', order.id], (oldData: any) => {
@@ -287,7 +296,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
       if (error) throw error;
 
-      // Update local state
+      // Update local state - add to existing videos
       setOrderVideos(prev => [...prev, ...urls]);
 
       toast({
@@ -299,6 +308,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+      queryClient.invalidateQueries({ queryKey: ['order-videos', order.id] });
     } catch (error) {
       console.error('Error uploading videos:', error);
       toast({
@@ -313,13 +323,35 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (!order?.id) return;
 
     try {
-      const { error } = await supabase
-        .from('order_videos')
-        .delete()
-        .eq('order_id', order.id)
-        .eq('url', url);
+      // Check if video is from old video_url field or new order_videos table
+      const { data: freshOrder } = await supabase
+        .from('orders')
+        .select('video_url')
+        .eq('id', order.id)
+        .single();
 
-      if (error) throw error;
+      const isOldVideo = freshOrder?.video_url?.includes(url);
+
+      if (isOldVideo) {
+        // Remove from video_url array in orders table
+        const updatedVideoUrls = (freshOrder?.video_url || []).filter(videoUrl => videoUrl !== url);
+        
+        const { error } = await supabase
+          .from('orders')
+          .update({ video_url: updatedVideoUrls })
+          .eq('id', order.id);
+
+        if (error) throw error;
+      } else {
+        // Remove from order_videos table
+        const { error } = await supabase
+          .from('order_videos')
+          .delete()
+          .eq('order_id', order.id)
+          .eq('url', url);
+
+        if (error) throw error;
+      }
 
       // Update local state
       setOrderVideos(prev => prev.filter(videoUrl => videoUrl !== url));
@@ -333,6 +365,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
+      queryClient.invalidateQueries({ queryKey: ['order-videos', order.id] });
     } catch (error) {
       console.error('Error deleting video:', error);
       toast({
