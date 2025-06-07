@@ -40,16 +40,26 @@ Deno.serve(async (req) => {
       throw new Error('No file data provided');
     }
 
-    // Get Cloudinary upload preset from environment
+    // Get Cloudinary credentials from environment
+    const apiKey = Deno.env.get('CLOUDINARY_API_KEY');
+    const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET');
     const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET');
-    console.log('🔑 Upload preset check:', { 
-      hasPreset: !!uploadPreset, 
-      presetValue: uploadPreset ? `${uploadPreset.substring(0, 5)}...` : 'undefined'
+    
+    console.log('🔑 Cloudinary credentials check:', { 
+      hasApiKey: !!apiKey,
+      hasApiSecret: !!apiSecret,
+      hasUploadPreset: !!uploadPreset,
+      apiKeyPrefix: apiKey ? `${apiKey.substring(0, 6)}...` : 'undefined',
+      uploadPreset: uploadPreset || 'undefined'
     });
     
-    if (!uploadPreset) {
-      console.error('❌ CLOUDINARY_UPLOAD_PRESET environment variable not found');
-      throw new Error('Cloudinary upload preset not configured in environment variables');
+    if (!apiKey || !apiSecret || !uploadPreset) {
+      console.error('❌ Missing Cloudinary credentials:', {
+        apiKey: !!apiKey,
+        apiSecret: !!apiSecret,
+        uploadPreset: !!uploadPreset
+      });
+      throw new Error('Cloudinary credentials not configured properly');
     }
 
     // Generate public_id
@@ -63,17 +73,28 @@ Deno.serve(async (req) => {
       uploadPreset
     });
 
+    // Generate signature for authenticated upload
+    const timestamp = Math.round(new Date().getTime() / 1000);
+    const stringToSign = `folder=products&public_id=${publicId}&timestamp=${timestamp}&transformation=q_auto:low,f_auto,c_limit,w_2000,h_2000${apiSecret}`;
+    
+    // Create SHA1 hash for signature
+    const encoder = new TextEncoder();
+    const data = encoder.encode(stringToSign);
+    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
     // Prepare form data for Cloudinary upload
     const formData = new FormData();
     formData.append('file', `data:image/jpeg;base64,${fileData}`);
-    formData.append('upload_preset', uploadPreset);
+    formData.append('api_key', apiKey);
+    formData.append('timestamp', timestamp.toString());
+    formData.append('signature', signature);
     formData.append('public_id', publicId);
     formData.append('folder', 'products');
     
     // Auto-optimize and compress to ~400KB for main image
     formData.append('transformation', 'q_auto:low,f_auto,c_limit,w_2000,h_2000');
-    formData.append('quality', 'auto:low');
-    formData.append('fetch_format', 'auto');
 
     console.log('☁️ Uploading original image...');
     console.log('🌐 Upload URL:', CLOUDINARY_UPLOAD_URL);
