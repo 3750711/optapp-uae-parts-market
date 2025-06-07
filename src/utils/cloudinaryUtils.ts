@@ -146,6 +146,13 @@ export const getPreviewImageUrl = (publicId: string, version?: string): string =
   // 🔧 ПРАВИЛЬНАЯ обработка версии: version должна быть ПЕРЕД public_id
   const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
   
+  console.log('🔧 getPreviewImageUrl debug:', {
+    originalPublicId: publicId,
+    version: version || 'none',
+    versionedPublicId,
+    finalUrl: buildCloudinaryUrl(versionedPublicId, transformations)
+  });
+  
   return buildCloudinaryUrl(versionedPublicId, transformations);
 };
 

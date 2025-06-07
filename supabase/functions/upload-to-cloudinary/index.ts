@@ -122,7 +122,6 @@ serve(async (req) => {
       ].join(',');
       uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
     } else {
-      // Улучшенные настройки качества для изображений
       transformations = [
         'q_auto:good',
         'f_auto',
@@ -269,13 +268,14 @@ serve(async (req) => {
             console.log('✅ Video updated in database');
           }
         } else {
+          // 🔧 ИСПРАВЛЕНИЕ: Передаем извлеченную версию в getCloudinaryPreviewUrl
           const updateData = {
             cloudinary_public_id: cloudinaryPublicId,
             cloudinary_url: uploadResult.secure_url,
             preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(cloudinaryPublicId, extractedVersion || undefined)
           };
           
-          console.log('📝 Updating product:', {
+          console.log('📝 Updating product with correct preview URL:', {
             productId,
             cloudinaryPublicId,
             extractedVersion,
@@ -333,3 +333,26 @@ serve(async (req) => {
     );
   }
 });
+
+// Input validation helper
+function validateInput(body: any) {
+  const errors: string[] = [];
+  
+  if (!body.fileData) {
+    errors.push('fileData is required');
+  }
+  
+  if (!body.publicId || typeof body.publicId !== 'string') {
+    errors.push('publicId is required and must be a string');
+  }
+  
+  if (body.fileName && typeof body.fileName !== 'string') {
+    errors.push('fileName must be a string');
+  }
+  
+  if (body.isVideo !== undefined && typeof body.isVideo !== 'boolean') {
+    errors.push('isVideo must be a boolean');
+  }
+  
+  return errors;
+}
