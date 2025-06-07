@@ -42,8 +42,14 @@ Deno.serve(async (req) => {
 
     // Get Cloudinary upload preset from environment
     const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET');
+    console.log('🔑 Upload preset check:', { 
+      hasPreset: !!uploadPreset, 
+      presetValue: uploadPreset ? `${uploadPreset.substring(0, 5)}...` : 'undefined'
+    });
+    
     if (!uploadPreset) {
-      throw new Error('Cloudinary upload preset not configured');
+      console.error('❌ CLOUDINARY_UPLOAD_PRESET environment variable not found');
+      throw new Error('Cloudinary upload preset not configured in environment variables');
     }
 
     // Generate public_id
@@ -52,7 +58,9 @@ Deno.serve(async (req) => {
     console.log('📤 Uploading to Cloudinary:', {
       fileName,
       publicId,
-      productId
+      productId,
+      cloudName: CLOUDINARY_CLOUD_NAME,
+      uploadPreset
     });
 
     // Prepare form data for Cloudinary upload
@@ -67,16 +75,28 @@ Deno.serve(async (req) => {
     formData.append('quality', 'auto:low');
     formData.append('fetch_format', 'auto');
 
-    // Upload original image to Cloudinary
     console.log('☁️ Uploading original image...');
+    console.log('🌐 Upload URL:', CLOUDINARY_UPLOAD_URL);
+    
+    // Upload original image to Cloudinary
     const uploadResponse = await fetch(CLOUDINARY_UPLOAD_URL, {
       method: 'POST',
       body: formData,
     });
 
+    console.log('📊 Upload response status:', {
+      status: uploadResponse.status,
+      statusText: uploadResponse.statusText,
+      ok: uploadResponse.ok
+    });
+
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
-      console.error('❌ Cloudinary upload failed:', errorText);
+      console.error('❌ Cloudinary upload failed:', {
+        status: uploadResponse.status,
+        statusText: uploadResponse.statusText,
+        errorBody: errorText
+      });
       throw new Error(`Cloudinary upload failed: ${uploadResponse.status} ${errorText}`);
     }
 
@@ -86,7 +106,8 @@ Deno.serve(async (req) => {
       publicId: cloudinaryResult.public_id,
       originalUrl: cloudinaryResult.secure_url,
       originalSize: cloudinaryResult.bytes,
-      dimensions: `${cloudinaryResult.width}x${cloudinaryResult.height}`
+      dimensions: `${cloudinaryResult.width}x${cloudinaryResult.height}`,
+      format: cloudinaryResult.format
     });
 
     // Generate compressed main image URL (~400KB)
