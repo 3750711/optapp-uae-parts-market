@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -50,6 +51,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
   const isMobile = useIsMobile();
   const [orderImages, setOrderImages] = React.useState<string[]>([]);
   const [orderVideos, setOrderVideos] = React.useState<string[]>([]);
+  const [orderVideosFromTable, setOrderVideosFromTable] = React.useState<string[]>([]);
 
   const form = useForm({
     defaultValues: {
@@ -79,6 +81,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       // Reset local state first
       setOrderImages([]);
       setOrderVideos([]);
+      setOrderVideosFromTable([]);
       
       // Fetch fresh order data from database
       const loadFreshOrderData = async () => {
@@ -100,16 +103,39 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           
           setOrderImages(freshImages);
 
-          // Use only video_url field from orders table
-          const allVideoUrls = freshOrder?.video_url || [];
-          console.log('All videos from video_url field:', allVideoUrls);
+          // Get videos from video_url field in orders table
+          const videosFromField = freshOrder?.video_url || [];
+          console.log('Videos from video_url field:', videosFromField);
           
-          setOrderVideos(allVideoUrls);
+          // Get videos from order_videos table
+          const { data: videosFromTable, error: videosError } = await supabase
+            .from('order_videos')
+            .select('url')
+            .eq('order_id', order.id)
+            .order('created_at', { ascending: true });
+
+          if (videosError) {
+            console.error('Error fetching videos from order_videos table:', videosError);
+          }
+
+          const videosFromTableUrls = videosFromTable?.map(v => v.url) || [];
+          console.log('Videos from order_videos table:', videosFromTableUrls);
+          
+          // Combine all videos for display
+          const allVideos = [...videosFromField, ...videosFromTableUrls];
+          console.log('All videos combined:', allVideos);
+          
+          setOrderVideos(allVideos);
+          setOrderVideosFromTable(videosFromTableUrls);
           
           // Update cache with fresh data
           queryClient.setQueryData(['order', order.id], (oldData: any) => {
             console.log('Updating cache with fresh order data');
-            return oldData ? { ...oldData, images: freshImages, video_url: allVideoUrls } : oldData;
+            return oldData ? { 
+              ...oldData, 
+              images: freshImages, 
+              video_url: videosFromField 
+            } : oldData;
           });
 
         } catch (error) {
@@ -269,9 +295,17 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     try {
       console.log('Adding videos to order video_url field:', { orderId: order.id, urls });
       
-      // Get current videos and add new ones
-      const currentVideos = orderVideos;
-      const updatedVideos = [...currentVideos, ...urls];
+      // Get current videos from video_url field (not from table)
+      const { data: currentOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('video_url')
+        .eq('id', order.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const currentVideosFromField = currentOrder?.video_url || [];
+      const updatedVideos = [...currentVideosFromField, ...urls];
       
       // Update video_url field in orders table
       const { error } = await supabase
@@ -281,8 +315,9 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
       if (error) throw error;
 
-      // Update local state
-      setOrderVideos(updatedVideos);
+      // Update local state with all videos
+      const allVideos = [...updatedVideos, ...orderVideosFromTable];
+      setOrderVideos(allVideos);
 
       toast({
         title: "Успешно",
@@ -307,18 +342,63 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (!order?.id) return;
 
     try {
-      // Remove video from video_url array
-      const updatedVideos = orderVideos.filter(videoUrl => videoUrl !== url);
+      console.log('Deleting video:', url);
       
-      const { error } = await supabase
-        .from('orders')
-        .update({ video_url: updatedVideos })
-        .eq('id', order.id);
+      // Check if video is from order_videos table
+      const isFromTable = orderVideosFromTable.includes(url);
+      
+      if (isFromTable) {
+        // Delete from order_videos table
+        const { error } = await supabase
+          .from('order_videos')
+          .delete()
+          .eq('order_id', order.id)
+          .eq('url', url);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Update local state
-      setOrderVideos(updatedVideos);
+        // Update local state
+        const updatedVideosFromTable = orderVideosFromTable.filter(videoUrl => videoUrl !== url);
+        setOrderVideosFromTable(updatedVideosFromTable);
+        
+        // Get current videos from video_url field
+        const { data: currentOrder } = await supabase
+          .from('orders')
+          .select('video_url')
+          .eq('id', order.id)
+          .single();
+        
+        const videosFromField = currentOrder?.video_url || [];
+        const allVideos = [...videosFromField, ...updatedVideosFromTable];
+        setOrderVideos(allVideos);
+        
+        console.log('Deleted video from order_videos table');
+      } else {
+        // Remove from video_url array in orders table
+        const { data: currentOrder, error: fetchError } = await supabase
+          .from('orders')
+          .select('video_url')
+          .eq('id', order.id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
+        const currentVideos = currentOrder?.video_url || [];
+        const updatedVideos = currentVideos.filter(videoUrl => videoUrl !== url);
+        
+        const { error } = await supabase
+          .from('orders')
+          .update({ video_url: updatedVideos })
+          .eq('id', order.id);
+
+        if (error) throw error;
+
+        // Update local state
+        const allVideos = [...updatedVideos, ...orderVideosFromTable];
+        setOrderVideos(allVideos);
+        
+        console.log('Deleted video from video_url field');
+      }
 
       toast({
         title: "Успешно",
