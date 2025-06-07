@@ -3,19 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface CloudinaryUploadResult {
   success: boolean;
-  cloudinaryUrl?: string;
   publicId?: string;
+  mainImageUrl?: string;
+  previewImageUrl?: string;
   originalSize?: number;
-  format?: string;
-  width?: number;
-  height?: number;
-  variants?: {
-    preview?: {
-      url: string;
-      transformation: string;
-      estimatedSize: number;
-    };
-  };
+  compressedSize?: number;
+  previewSize?: number;
   error?: string;
 }
 
@@ -34,8 +27,8 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
-// Direct upload to Cloudinary using base64 data
-export const uploadDirectToCloudinary = async (
+// Upload image to Cloudinary with automatic compression
+export const uploadToCloudinary = async (
   file: File,
   productId?: string,
   customPublicId?: string
@@ -51,18 +44,14 @@ export const uploadDirectToCloudinary = async (
     // Convert file to base64
     const fileData = await fileToBase64(file);
     
-    // Generate public_id if not provided
-    const publicId = customPublicId || `product_${productId || Date.now()}_${Math.random().toString(36).substring(7)}`;
+    console.log('☁️ Calling new Cloudinary upload function...');
     
-    console.log('☁️ Sending to Cloudinary edge function...');
-    
-    const { data, error } = await supabase.functions.invoke('upload-to-cloudinary', {
+    const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
       body: { 
         fileData,
         fileName: file.name,
         productId,
-        publicId,
-        createVariants: true
+        customPublicId
       }
     });
 
@@ -82,24 +71,23 @@ export const uploadDirectToCloudinary = async (
     }
 
     if (data?.success) {
-      console.log('✅ Direct Cloudinary upload SUCCESS:', {
-        cloudinaryUrl: data.cloudinaryUrl,
+      console.log('✅ Cloudinary upload SUCCESS:', {
         publicId: data.publicId,
-        format: data.format,
-        sizeKB: Math.round(data.originalSize / 1024),
-        hasPreview: !!data.variants?.preview,
-        variants: data.variants
+        mainImageUrl: data.mainImageUrl,
+        previewImageUrl: data.previewImageUrl,
+        originalSize: data.originalSize,
+        compressedSize: data.compressedSize,
+        previewSize: data.previewSize
       });
       
       return {
         success: true,
-        cloudinaryUrl: data.cloudinaryUrl,
         publicId: data.publicId,
+        mainImageUrl: data.mainImageUrl,
+        previewImageUrl: data.previewImageUrl,
         originalSize: data.originalSize,
-        format: data.format,
-        width: data.width,
-        height: data.height,
-        variants: data.variants
+        compressedSize: data.compressedSize,
+        previewSize: data.previewSize
       };
     } else {
       console.error('❌ Cloudinary upload failed:', data?.error);
@@ -109,36 +97,6 @@ export const uploadDirectToCloudinary = async (
       };
     }
   } catch (error) {
-    console.error('💥 EXCEPTION in uploadDirectToCloudinary:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    };
-  }
-};
-
-// Legacy function for backward compatibility - now uses direct upload
-export const uploadToCloudinary = async (
-  imageUrl: string, 
-  productId?: string,
-  customPublicId?: string,
-  createVariants: boolean = true
-): Promise<CloudinaryUploadResult> => {
-  console.log('⚠️ uploadToCloudinary called with URL - this should use direct file upload instead');
-  
-  try {
-    // If it's a blob URL, we can't process it on the server
-    if (imageUrl.startsWith('blob:')) {
-      throw new Error('Blob URLs are not supported. Use uploadDirectToCloudinary with the actual file instead.');
-    }
-    
-    // For other URLs (external images), we could potentially support them
-    // but for now, recommend using direct upload
-    return {
-      success: false,
-      error: 'URL-based uploads are deprecated. Use uploadDirectToCloudinary with file objects instead.'
-    };
-  } catch (error) {
     console.error('💥 EXCEPTION in uploadToCloudinary:', error);
     return {
       success: false,
@@ -146,3 +104,6 @@ export const uploadToCloudinary = async (
     };
   }
 };
+
+// Legacy function - now redirects to new implementation
+export const uploadDirectToCloudinary = uploadToCloudinary;
