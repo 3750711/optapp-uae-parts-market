@@ -213,9 +213,9 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       {!isMobile && renderThumbnails()}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-[90vw] h-[90vh] p-0">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-black">
           <div
-            className="relative w-full h-full flex items-center justify-center bg-black/95"
+            className="relative w-full h-full flex items-center justify-center"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
@@ -234,7 +234,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40"
                   onClick={handlePrevMedia}
                 >
                   <ChevronLeft className="h-8 w-8" />
@@ -242,7 +242,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40"
                   onClick={handleNextMedia}
                 >
                   <ChevronRight className="h-8 w-8" />
@@ -250,22 +250,24 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </>
             )}
             
-            {fullScreenMediaType === 'video' ? (
-              <video
-                src={fullScreenMedia}
-                controls
-                autoPlay
-                className="max-h-full max-w-full object-contain"
-                preload="metadata"
-              />
-            ) : (
-              <img
-                src={fullScreenMedia}
-                alt={title}
-                className="max-h-full max-w-full object-contain"
-                loading="lazy"
-              />
-            )}
+            <div className="w-full h-full flex items-center justify-center p-8">
+              {fullScreenMediaType === 'video' ? (
+                <video
+                  src={fullScreenMedia}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-full object-contain"
+                  preload="metadata"
+                />
+              ) : (
+                <img
+                  src={fullScreenMedia}
+                  alt={title}
+                  className="max-w-full max-h-full object-contain"
+                  loading="lazy"
+                />
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
