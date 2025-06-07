@@ -3,6 +3,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Search, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import SearchBar from '@/components/admin/filters/SearchBar';
@@ -21,6 +22,8 @@ interface CatalogSearchAndFiltersProps {
   setSelectedModel: (model: string | null) => void;
   brands: { id: string; name: string }[];
   brandModels: { id: string; name: string }[];
+  hideSoldProducts: boolean;
+  setHideSoldProducts: (hide: boolean) => void;
 }
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
@@ -35,7 +38,9 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   selectedModel,
   setSelectedModel,
   brands,
-  brandModels
+  brandModels,
+  hideSoldProducts,
+  setHideSoldProducts
 }) => {
   return (
     <Card className="mb-4">
@@ -94,6 +99,22 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
               ))}
             </SelectContent>
           </Select>
+
+          {/* Hide sold products checkbox */}
+          <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg border">
+            <Checkbox
+              id="hide-sold"
+              checked={hideSoldProducts}
+              onCheckedChange={setHideSoldProducts}
+              className="h-3 w-3"
+            />
+            <label
+              htmlFor="hide-sold"
+              className="text-xs text-gray-600 cursor-pointer select-none whitespace-nowrap"
+            >
+              Скрыть проданные
+            </label>
+          </div>
         
           {/* Search button */}
           <Button type="submit" onClick={onSearchSubmit} className="bg-primary hover:bg-primary/90">

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -157,6 +156,8 @@ const Catalog: React.FC = () => {
           setSelectedModel={setSelectedModel}
           brands={brands}
           brandModels={brandModels}
+          hideSoldProducts={hideSoldProducts}
+          setHideSoldProducts={setHideSoldProducts}
         />
 
         {/* Active Filters */}
