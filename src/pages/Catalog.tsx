@@ -10,7 +10,6 @@ import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
-import EnhancedSearchBar from "@/components/catalog/EnhancedSearchBar";
 import FiltersPanel from "@/components/catalog/FiltersPanel";
 import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting";
 import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
@@ -18,6 +17,8 @@ import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
+import SearchBar from "@/components/admin/filters/SearchBar";
+import ActiveSearchDisplay from "@/components/admin/filters/ActiveSearchDisplay";
 import Layout from "@/components/layout/Layout";
 
 const Catalog: React.FC = () => {
@@ -47,9 +48,9 @@ const Catalog: React.FC = () => {
 
   // Use the updated hook with external brand/model values
   const {
-    searchQuery,
-    setSearchQuery,
-    hasSearched,
+    searchTerm,
+    setSearchTerm,
+    activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
     mappedProducts,
@@ -61,6 +62,7 @@ const Catalog: React.FC = () => {
     isError,
     refetch,
     handleClearSearch,
+    handleSearch,
     handleSearchSubmit,
     isActiveFilters
   } = useCatalogProducts({
@@ -92,13 +94,13 @@ const Catalog: React.FC = () => {
   // Enhanced search handlers
   const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
+    if (searchTerm.trim()) {
       const selectedBrandName = findBrandNameById(selectedBrand);
       const selectedModelName = findModelNameById(selectedModel);
-      addToHistory(searchQuery, selectedBrandName || undefined, selectedModelName || undefined);
+      addToHistory(searchTerm, selectedBrandName || undefined, selectedModelName || undefined);
     }
     handleSearchSubmit(e);
-  }, [searchQuery, selectedBrand, selectedModel, findBrandNameById, findModelNameById, addToHistory, handleSearchSubmit]);
+  }, [searchTerm, selectedBrand, selectedModel, findBrandNameById, findModelNameById, addToHistory, handleSearchSubmit]);
 
   // Clear handlers
   const handleClearBrand = useCallback(() => {
@@ -127,7 +129,7 @@ const Catalog: React.FC = () => {
 
   // Check if we have any active filters
   const hasAnyFilters = !!(
-    searchQuery || 
+    activeSearchTerm || 
     selectedBrandName || 
     selectedModelName || 
     hideSoldProducts
@@ -145,20 +147,25 @@ const Catalog: React.FC = () => {
       <div className="container mx-auto py-8 space-y-6">
         {/* Breadcrumb */}
         <CatalogBreadcrumb
-          searchQuery={searchQuery}
+          searchQuery={activeSearchTerm}
           selectedBrandName={selectedBrandName}
           selectedModelName={selectedModelName}
         />
 
-        {/* Enhanced Search Bar */}
+        {/* Search Bar */}
         <Card className="mb-4">
-          <div className="p-4">
-            <EnhancedSearchBar
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              handleSearchSubmit={handleEnhancedSearchSubmit}
-              selectedBrandName={selectedBrandName}
-              selectedModelName={selectedModelName}
+          <div className="p-4 space-y-3">
+            <SearchBar 
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              onSearch={handleSearch}
+              onClear={handleClearSearch}
+              activeSearchTerm={activeSearchTerm}
+              placeholder="Поиск по названию, бренду, модели..."
+            />
+            <ActiveSearchDisplay 
+              searchTerm={activeSearchTerm} 
+              onClear={handleClearSearch} 
             />
           </div>
         </Card>
@@ -204,7 +211,7 @@ const Catalog: React.FC = () => {
         {/* Active Filters */}
         {hasAnyFilters && (
           <ActiveFilters
-            searchQuery={searchQuery}
+            searchQuery={activeSearchTerm}
             selectedBrandName={selectedBrandName}
             selectedModelName={selectedModelName}
             hideSoldProducts={hideSoldProducts}
@@ -218,8 +225,8 @@ const Catalog: React.FC = () => {
 
         {/* Sticky Filters for Mobile */}
         <StickyFilters
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          searchQuery={searchTerm}
+          setSearchQuery={setSearchTerm}
           selectedBrandName={selectedBrandName}
           selectedModelName={selectedModelName}
           onClearSearch={handleClearSearch}

@@ -29,7 +29,7 @@ export type ProductType = {
 };
 
 export interface CatalogFilters {
-  searchQuery: string;
+  activeSearchTerm: string;
   hideSoldProducts: boolean;
   selectedBrand?: string | null;
   selectedModel?: string | null;
@@ -48,9 +48,8 @@ export const useCatalogProducts = ({
   externalSelectedBrand = null,
   externalSelectedModel = null
 }: UseCatalogProductsProps = {}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [hasSearched, setHasSearched] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
@@ -61,22 +60,6 @@ export const useCatalogProducts = ({
 
   const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
   const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : internalSelectedModel;
-
-  // Debounce search query with reduced delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      console.log('🔍 Debounced search query updated:', searchQuery);
-    }, 300); // Reduced from 500ms to 300ms
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  // Track if user has searched
-  useEffect(() => {
-    if (debouncedSearchQuery) {
-      setHasSearched(true);
-    }
-  }, [debouncedSearchQuery]);
 
   // Helper function to build sort query
   const buildSortQuery = (query: any, sortOption: SortOption) => {
@@ -101,7 +84,7 @@ export const useCatalogProducts = ({
   // Memoize filters
   const filters = useMemo(() => {
     const filtersObj = {
-      debouncedSearchQuery,
+      activeSearchTerm,
       hideSoldProducts,
       selectedBrand,
       selectedModel,
@@ -110,7 +93,7 @@ export const useCatalogProducts = ({
     };
     console.log('📋 Filters updated:', filtersObj);
     return filtersObj;
-  }, [debouncedSearchQuery, hideSoldProducts, selectedBrand, selectedModel, sortBy, isAdmin]);
+  }, [activeSearchTerm, hideSoldProducts, selectedBrand, selectedModel, sortBy, isAdmin]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -129,7 +112,7 @@ export const useCatalogProducts = ({
         const to = from + productsPerPage - 1;
         
         console.log('🔎 Executing search query with filters:', {
-          searchQuery: filters.debouncedSearchQuery,
+          searchQuery: filters.activeSearchTerm,
           selectedBrand: filters.selectedBrand,
           selectedModel: filters.selectedModel,
           hideSoldProducts: filters.hideSoldProducts,
@@ -155,8 +138,8 @@ export const useCatalogProducts = ({
         }
 
         // Apply search filters
-        if (filters.debouncedSearchQuery) {
-          const searchTerm = filters.debouncedSearchQuery.trim();
+        if (filters.activeSearchTerm) {
+          const searchTerm = filters.activeSearchTerm.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
           console.log('🔍 Applied text search:', searchTerm);
         }
@@ -239,23 +222,26 @@ export const useCatalogProducts = ({
   }, [mappedProducts]);
 
   const handleClearSearch = useCallback(() => {
-    setSearchQuery('');
-    setHasSearched(false);
+    setSearchTerm('');
+    setActiveSearchTerm('');
     if (externalSelectedBrand === undefined) setInternalSelectedBrand(null);
     if (externalSelectedModel === undefined) setInternalSelectedModel(null);
   }, [externalSelectedBrand, externalSelectedModel]);
 
+  const handleSearch = useCallback(() => {
+    setActiveSearchTerm(searchTerm);
+    console.log('🔍 Search executed:', searchTerm);
+  }, [searchTerm]);
+
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    setHasSearched(!!searchQuery);
-    refetch();
-  }, [searchQuery, refetch]);
+    handleSearch();
+  }, [handleSearch]);
 
   return {
-    searchQuery,
-    setSearchQuery,
-    debouncedSearchQuery,
-    hasSearched,
+    searchTerm,
+    setSearchTerm,
+    activeSearchTerm,
     hideSoldProducts,
     setHideSoldProducts,
     selectedBrand,
@@ -272,8 +258,9 @@ export const useCatalogProducts = ({
     isError,
     refetch,
     handleClearSearch,
+    handleSearch,
     handleSearchSubmit,
-    isActiveFilters: !!(searchQuery || hideSoldProducts || selectedBrand || selectedModel)
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrand || selectedModel)
   };
 };
 
