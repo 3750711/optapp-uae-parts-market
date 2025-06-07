@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
@@ -36,22 +37,15 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     onError?.();
   };
 
-  // Если включена каталожная оптимизация, используем такую же логику как для основных изображений
+  // Если включена каталожная оптимизация, используем оригинальные изображения
   if (useCatalogOptimization) {
     const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
     
-    console.log('🎨 Using catalog optimization - DETAILED DEBUG:', {
+    console.log('🎨 Using catalog optimization (original images):', {
       originalSrc: src,
-      cloudinaryPublicId,
       cloudinaryUrl,
       optimizedSrc,
-      imageError,
-      srcType: typeof src,
-      publicIdType: typeof cloudinaryPublicId,
-      cloudinaryUrlType: typeof cloudinaryUrl,
-      srcValue: src || 'EMPTY',
-      publicIdValue: cloudinaryPublicId || 'EMPTY',
-      cloudinaryUrlValue: cloudinaryUrl || 'EMPTY'
+      imageError
     });
 
     return (
@@ -60,16 +54,14 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         alt={alt}
         className={`${className} object-contain`}
         onLoad={() => {
-          console.log('✅ Catalog optimized image loaded successfully:', optimizedSrc);
+          console.log('✅ Original image loaded successfully:', optimizedSrc);
           onLoad?.();
         }}
         onError={(e) => {
-          console.error('❌ Catalog optimized image failed to load:', {
+          console.error('❌ Original image failed to load:', {
             src: optimizedSrc,
             originalSrc: src,
-            error: e,
-            naturalWidth: (e.target as HTMLImageElement)?.naturalWidth,
-            naturalHeight: (e.target as HTMLImageElement)?.naturalHeight
+            error: e
           });
           handleImageError();
         }}
@@ -87,7 +79,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     hasValidSrc: src && src !== '/placeholder.svg'
   });
 
-  // Приоритет готовому URL (preview_image_url или product_images) - используем как есть
+  // Приоритет готовому URL - используем как есть
   if (src && src !== '/placeholder.svg' && !imageError) {
     return (
       <img

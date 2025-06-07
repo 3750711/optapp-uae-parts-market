@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface PreviewImageResponse {
@@ -54,49 +53,31 @@ export const getCatalogImageUrl = (
     cloudinaryUrlType: typeof cloudinaryUrl
   });
 
-  // Priority 1: Use existing preview_image_url if available
+  // Priority 1: Use main cloudinary URL if available (original quality)
+  if (cloudinaryUrl) {
+    console.log('🎨 Using main cloudinary URL (original):', cloudinaryUrl);
+    return cloudinaryUrl;
+  }
+
+  // Priority 2: Use existing preview_image_url if available
   if (previewImageUrl) {
     console.log('🎨 Using existing preview_image_url:', previewImageUrl);
     return previewImageUrl;
   }
 
-  // Priority 2: Generate from cloudinary_public_id using version/extension from main URL
-  if (cloudinaryPublicId && cloudinaryUrl) {
-    console.log('🎨 Generating from publicId + main URL...');
-    
-    // Clean publicId from version prefix if present
-    const cleanPublicId = cloudinaryPublicId.replace(/^v\d+\//, '');
-    
-    // Extract version and extension from main cloudinary URL
-    const { version, extension } = extractVersionAndExtension(cloudinaryUrl);
-    
-    // Build preview URL with correct structure: transformations/version/publicId.extension
-    const catalogUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${version}/${cleanPublicId}${extension}`;
-    
-    console.log('🎨 Generated catalog URL with version/extension:', {
-      originalPublicId: cloudinaryPublicId,
-      cleanPublicId,
-      version,
-      extension,
-      catalogUrl
-    });
-    
-    return catalogUrl;
-  }
-
-  // Priority 3: Generate from cloudinary_public_id without version (fallback)
+  // Priority 3: Generate basic URL from cloudinary_public_id
   if (cloudinaryPublicId) {
-    console.log('🎨 Generating from publicId only (no version)...');
+    console.log('🎨 Generating basic URL from publicId...');
     const cleanPublicId = cloudinaryPublicId.replace(/^v\d+\//, '');
-    const catalogUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${cleanPublicId}`;
+    const basicUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/${cleanPublicId}`;
     
-    console.log('🎨 Generated catalog URL from publicId (no version):', {
+    console.log('🎨 Generated basic URL:', {
       originalPublicId: cloudinaryPublicId,
       cleanPublicId,
-      catalogUrl
+      basicUrl
     });
     
-    return catalogUrl;
+    return basicUrl;
   }
 
   // Priority 4: Fallback
@@ -106,38 +87,8 @@ export const getCatalogImageUrl = (
 
 // Generate compressed preview image URL (~30KB) using Edge function (keep for backwards compatibility)
 export const generatePreviewImage = async (publicId: string, targetSize: number = 30): Promise<string | null> => {
-  try {
-    console.log('🖼️ Generating preview for publicId:', publicId);
-
-    const { data, error } = await supabase.functions.invoke('generate-preview', {
-      body: { 
-        publicId,
-        targetSize
-      }
-    });
-
-    if (error) {
-      console.error('❌ Preview generation error:', error);
-      return null;
-    }
-
-    const response = data as PreviewImageResponse;
-
-    if (response.success && response.previewUrl) {
-      console.log('✅ Preview generated successfully:', {
-        previewUrl: response.previewUrl,
-        estimatedSize: `${response.estimatedSize}KB`
-      });
-      return response.previewUrl;
-    } else {
-      console.error('❌ Preview generation failed:', response.error);
-      return null;
-    }
-
-  } catch (error) {
-    console.error('💥 Preview generation exception:', error);
-    return null;
-  }
+  console.log('⚠️ generatePreviewImage is deprecated, returning null');
+  return null;
 };
 
 // Batch generate preview images for multiple products
@@ -145,32 +96,6 @@ export const batchGeneratePreviewImages = async (
   publicIds: string[],
   targetSize: number = 30
 ): Promise<Record<string, string | null>> => {
-  const results: Record<string, string | null> = {};
-
-  console.log('📦 Batch generating previews for:', publicIds.length, 'images');
-
-  // Process in batches of 5 to avoid overwhelming the server
-  const batchSize = 5;
-  for (let i = 0; i < publicIds.length; i += batchSize) {
-    const batch = publicIds.slice(i, i + batchSize);
-    
-    const batchPromises = batch.map(async (publicId) => {
-      const previewUrl = await generatePreviewImage(publicId, targetSize);
-      results[publicId] = previewUrl;
-    });
-
-    await Promise.all(batchPromises);
-    
-    // Small delay between batches
-    if (i + batchSize < publicIds.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  }
-
-  console.log('🎉 Batch generation completed:', {
-    total: publicIds.length,
-    successful: Object.values(results).filter(Boolean).length
-  });
-
-  return results;
+  console.log('⚠️ batchGeneratePreviewImages is deprecated, returning empty object');
+  return {};
 };
