@@ -3,7 +3,8 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, HelpCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import SearchBar from '@/components/admin/filters/SearchBar';
 import ActiveSearchDisplay from '@/components/admin/filters/ActiveSearchDisplay';
 
@@ -55,7 +56,7 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
           onClear={onClearSearch} 
         />
 
-        {/* Фильтры марки и модели */}
+        {/* Фильтры марки и модели с ссылкой на руководство */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Brand select */}
           <Select
@@ -99,6 +100,17 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
             <Search className="h-4 w-4 mr-2" />
             Поиск
           </Button>
+        </div>
+
+        {/* Ссылка на руководство покупателя */}
+        <div className="flex justify-center pt-2">
+          <Link 
+            to="/buyer-guide" 
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            <HelpCircle className="h-4 w-4 mr-1" />
+            Как покупать товар?
+          </Link>
         </div>
       </div>
     </Card>
