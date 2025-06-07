@@ -83,19 +83,16 @@ export const useCloudinaryVideoUpload = () => {
         prev.map(p => p.fileId === fileId ? { ...p, progress: 50 } : p)
       );
       
-      // Generate public_id if not provided
-      const publicId = customPublicId || `video_${productId || Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
       console.log('☁️ Sending video to Cloudinary edge function...');
       
-      const { data, error } = await supabase.functions.invoke('upload-to-cloudinary', {
+      // Fixed function name: use 'cloudinary-upload' instead of 'upload-to-cloudinary'
+      const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
         body: { 
           fileData,
           fileName: file.name,
           productId,
-          publicId,
-          createVariants: true,
-          isVideo: true
+          customPublicId,
+          isVideo: true // Add parameter to indicate this is a video
         }
       });
 
@@ -123,13 +120,12 @@ export const useCloudinaryVideoUpload = () => {
       }
 
       if (data?.success) {
-        console.log('✅ Direct Cloudinary video upload SUCCESS:', {
+        console.log('✅ Cloudinary video upload SUCCESS:', {
           cloudinaryUrl: data.cloudinaryUrl,
           publicId: data.publicId,
           format: data.format,
           sizeKB: Math.round(data.originalSize / 1024),
-          duration: data.duration,
-          hasThumbnail: !!data.variants?.thumbnail
+          duration: data.duration
         });
         
         // Update progress to success
@@ -151,7 +147,7 @@ export const useCloudinaryVideoUpload = () => {
           originalSize: data.originalSize,
           format: data.format,
           duration: data.duration,
-          thumbnailUrl: data.variants?.thumbnail?.url
+          thumbnailUrl: data.thumbnailUrl
         };
       } else {
         console.error('❌ Cloudinary video upload failed:', data?.error);

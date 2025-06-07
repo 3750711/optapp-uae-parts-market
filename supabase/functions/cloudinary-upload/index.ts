@@ -2,24 +2,29 @@
 import { corsHeaders } from '../_shared/cors.ts'
 
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
-const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 interface CloudinaryResponse {
   public_id: string;
   secure_url: string;
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
   bytes: number;
   format: string;
   version: number;
+  duration?: number; // For videos
+  resource_type: 'image' | 'video';
 }
 
 interface UploadResponse {
   success: boolean;
   publicId?: string;
+  cloudinaryUrl?: string;
   mainImageUrl?: string;
   originalSize?: number;
   compressedSize?: number;
+  format?: string;
+  duration?: number;
+  thumbnailUrl?: string;
   error?: string;
 }
 
@@ -32,7 +37,7 @@ Deno.serve(async (req) => {
   try {
     console.log('🚀 Starting Cloudinary upload process...');
 
-    const { fileData, fileName, productId, customPublicId } = await req.json();
+    const { fileData, fileName, productId, customPublicId, isVideo = false } = await req.json();
 
     if (!fileData) {
       throw new Error('No file data provided');
@@ -49,7 +54,8 @@ Deno.serve(async (req) => {
       hasUploadPreset: !!uploadPreset,
       apiKeyPrefix: apiKey ? `${apiKey.substring(0, 6)}...` : 'undefined',
       apiKeyLength: apiKey ? apiKey.length : 0,
-      uploadPreset: uploadPreset || 'undefined'
+      uploadPreset: uploadPreset || 'undefined',
+      isVideo
     });
     
     if (!apiKey || !apiSecret || !uploadPreset) {
@@ -62,19 +68,32 @@ Deno.serve(async (req) => {
     }
 
     // Generate public_id
-    const publicId = customPublicId || `product_${productId || Date.now()}_${Date.now()}`;
+    const publicId = customPublicId || `${isVideo ? 'video' : 'product'}_${productId || Date.now()}_${Date.now()}`;
     
     console.log('📤 Uploading to Cloudinary:', {
       fileName,
       publicId,
       productId,
       cloudName: CLOUDINARY_CLOUD_NAME,
-      uploadPreset
+      uploadPreset,
+      isVideo,
+      fileType: isVideo ? 'video' : 'image'
     });
+
+    // Determine the correct endpoint and data prefix
+    const resourceType = isVideo ? 'video' : 'image';
+    const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
+    const dataPrefix = isVideo ? 'data:video/mp4;base64,' : 'data:image/jpeg;base64,';
 
     // Generate signature for authenticated upload
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const stringToSign = `folder=products&public_id=${publicId}&timestamp=${timestamp}&transformation=q_auto:low,f_auto,c_limit,w_2000,h_2000${apiSecret}`;
+    
+    // Different transformations for video and image
+    const transformation = isVideo 
+      ? 'q_auto:low,f_auto,c_limit,w_1920,h_1080' // Video optimization
+      : 'q_auto:low,f_auto,c_limit,w_2000,h_2000'; // Image optimization
+    
+    const stringToSign = `folder=products&public_id=${publicId}&timestamp=${timestamp}&transformation=${transformation}${apiSecret}`;
     
     // Create SHA1 hash for signature
     const encoder = new TextEncoder();
@@ -85,21 +104,19 @@ Deno.serve(async (req) => {
 
     // Prepare form data for Cloudinary upload
     const formData = new FormData();
-    formData.append('file', `data:image/jpeg;base64,${fileData}`);
+    formData.append('file', `${dataPrefix}${fileData}`);
     formData.append('api_key', apiKey);
     formData.append('timestamp', timestamp.toString());
     formData.append('signature', signature);
     formData.append('public_id', publicId);
     formData.append('folder', 'products');
-    
-    // Auto-optimize and compress to ~400KB for main image
-    formData.append('transformation', 'q_auto:low,f_auto,c_limit,w_2000,h_2000');
+    formData.append('transformation', transformation);
 
-    console.log('☁️ Uploading original image...');
-    console.log('🌐 Upload URL:', CLOUDINARY_UPLOAD_URL);
+    console.log(`☁️ Uploading ${resourceType}...`);
+    console.log('🌐 Upload URL:', uploadUrl);
     
-    // Upload original image to Cloudinary
-    const uploadResponse = await fetch(CLOUDINARY_UPLOAD_URL, {
+    // Upload to Cloudinary
+    const uploadResponse = await fetch(uploadUrl, {
       method: 'POST',
       body: formData,
     });
@@ -126,31 +143,38 @@ Deno.serve(async (req) => {
       publicId: cloudinaryResult.public_id,
       originalUrl: cloudinaryResult.secure_url,
       originalSize: cloudinaryResult.bytes,
-      dimensions: `${cloudinaryResult.width}x${cloudinaryResult.height}`,
+      dimensions: isVideo ? 'video' : `${cloudinaryResult.width}x${cloudinaryResult.height}`,
       format: cloudinaryResult.format,
-      version: cloudinaryResult.version
-    });
-
-    // Generate compressed main image URL (~400KB)
-    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:low,f_auto,c_limit,w_1920,h_1920/${cloudinaryResult.public_id}`;
-
-    console.log('🎨 Generated main image URL:', {
-      mainImageUrl,
-      publicId: cloudinaryResult.public_id,
       version: cloudinaryResult.version,
-      format: cloudinaryResult.format
+      duration: cloudinaryResult.duration,
+      resourceType: cloudinaryResult.resource_type
     });
 
-    // Estimate compressed sizes based on Cloudinary's compression
-    const estimatedMainSize = Math.round(cloudinaryResult.bytes * 0.3); // ~400KB
+    let response: UploadResponse;
 
-    const response: UploadResponse = {
-      success: true,
-      publicId: cloudinaryResult.public_id,
-      mainImageUrl,
-      originalSize: cloudinaryResult.bytes,
-      compressedSize: estimatedMainSize
-    };
+    if (isVideo) {
+      // For videos, return the optimized URL directly
+      response = {
+        success: true,
+        publicId: cloudinaryResult.public_id,
+        cloudinaryUrl: cloudinaryResult.secure_url,
+        originalSize: cloudinaryResult.bytes,
+        format: cloudinaryResult.format,
+        duration: cloudinaryResult.duration
+      };
+    } else {
+      // For images, generate compressed main image URL
+      const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:low,f_auto,c_limit,w_1920,h_1920/${cloudinaryResult.public_id}`;
+      const estimatedMainSize = Math.round(cloudinaryResult.bytes * 0.3); // ~400KB
+
+      response = {
+        success: true,
+        publicId: cloudinaryResult.public_id,
+        mainImageUrl,
+        originalSize: cloudinaryResult.bytes,
+        compressedSize: estimatedMainSize
+      };
+    }
 
     console.log('📊 Upload completed successfully:', response);
 
