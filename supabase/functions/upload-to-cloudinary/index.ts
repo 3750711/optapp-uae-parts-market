@@ -63,7 +63,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Cloudinary upload function started (Improved Version)');
+    console.log('🚀 Cloudinary upload function started');
     
     const body = await req.json();
     const validationErrors = validateInput(body);
@@ -166,7 +166,7 @@ serve(async (req) => {
     // Extract version from secure_url
     const extractedVersion = extractVersionFromUrl(uploadResult.secure_url);
     
-    console.log(`✅ Main ${isVideo ? 'video' : 'image'} upload successful with version extraction:`, {
+    console.log(`✅ Main ${isVideo ? 'video' : 'image'} upload successful:`, {
       cloudinary_public_id: cloudinaryPublicId,
       secure_url: uploadResult.secure_url,
       extracted_version: extractedVersion,
@@ -191,7 +191,7 @@ serve(async (req) => {
 
     // Create variants if requested (only for images for now)
     if (createVariants && !isVideo) {
-      console.log('🎨 Creating preview variant with extracted version...');
+      console.log('🎨 Creating preview variant...');
       
       try {
         const previewUrl = getCloudinaryPreviewUrl(cloudinaryPublicId, extractedVersion || undefined);
@@ -202,11 +202,10 @@ serve(async (req) => {
           estimatedSize: 25000
         };
         
-        console.log('✅ Preview variant created with extracted version:', {
+        console.log('✅ Preview variant created:', {
           cloudinaryPublicId,
           extractedVersion,
-          previewUrl,
-          hasVersion: !!extractedVersion
+          previewUrl
         });
       } catch (previewError) {
         console.error('⚠️ Preview variant creation failed:', previewError);
@@ -215,7 +214,7 @@ serve(async (req) => {
 
     // For videos, create thumbnail variant
     if (isVideo && createVariants) {
-      console.log('🎬 Creating video thumbnail with extracted version...');
+      console.log('🎬 Creating video thumbnail...');
       
       try {
         const versionedPublicId = extractedVersion ? `v${extractedVersion}/${cloudinaryPublicId}` : cloudinaryPublicId;
@@ -227,7 +226,7 @@ serve(async (req) => {
           estimatedSize: 15000
         };
         
-        console.log('✅ Video thumbnail created with extracted version:', {
+        console.log('✅ Video thumbnail created:', {
           thumbnailUrl,
           extractedVersion
         });
@@ -236,7 +235,7 @@ serve(async (req) => {
       }
     }
 
-    // Update product with Cloudinary data including version-aware preview
+    // Update product with Cloudinary data
     if (productId) {
       try {
         const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.7.1');
@@ -267,7 +266,7 @@ serve(async (req) => {
           if (error) {
             console.error('❌ Video database update error:', error);
           } else {
-            console.log('✅ Video updated with version-aware URLs');
+            console.log('✅ Video updated in database');
           }
         } else {
           const updateData = {
@@ -276,12 +275,11 @@ serve(async (req) => {
             preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(cloudinaryPublicId, extractedVersion || undefined)
           };
           
-          console.log('📝 Updating product with version-aware URLs:', {
+          console.log('📝 Updating product:', {
             productId,
             cloudinaryPublicId,
             extractedVersion,
-            previewUrl: updateData.preview_image_url,
-            hasVersionInPreview: updateData.preview_image_url.includes('/v')
+            previewUrl: updateData.preview_image_url
           });
           
           const { error } = await supabase
@@ -291,24 +289,20 @@ serve(async (req) => {
 
           if (error) {
             console.error('❌ Database update error:', error);
-            // Don't throw here - the upload was successful, just log the DB error
           } else {
-            console.log('✅ Product updated with version-aware preview URL');
+            console.log('✅ Product updated in database');
           }
         }
       } catch (dbError) {
         console.error('⚠️ Database operation failed:', dbError);
-        // Don't fail the entire request for DB errors
       }
     }
     
-    console.log(`🎉 SUCCESS! Cloudinary ${isVideo ? 'video' : 'image'} upload completed:`, {
+    console.log(`🎉 Upload completed successfully:`, {
       cloudinaryPublicId: result.publicId,
       extractedVersion: extractedVersion,
       format: result.format,
-      sizeKB: Math.round(result.originalSize / 1024),
-      hasVersionInPreview: result.variants.preview?.url?.includes('/v') || false,
-      previewTransformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
+      sizeKB: Math.round(result.originalSize / 1024)
     });
 
     return new Response(
@@ -319,7 +313,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('💥 FUNCTION ERROR:', {
+    console.error('💥 Function error:', {
       message: error.message,
       stack: error.stack,
       name: error.name
