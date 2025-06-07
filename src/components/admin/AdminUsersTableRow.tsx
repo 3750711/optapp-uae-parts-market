@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Edit, ExternalLink, Ban, UserCog } from "lucide-react";
+import { UserCheck, Edit, ExternalLink, Ban, UserCog, Star } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
