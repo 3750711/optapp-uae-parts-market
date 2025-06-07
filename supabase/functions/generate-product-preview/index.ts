@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
@@ -10,9 +9,21 @@ const corsHeaders = {
 // Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
-// Generate Cloudinary preview URL with correct parameters (400x300, c_fit, auto:good, webp)
-function getCloudinaryPreviewUrl(publicId: string): string {
-  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${publicId}`;
+// Helper to extract version from Cloudinary URL
+function extractVersionFromUrl(cloudinaryUrl: string): string | null {
+  try {
+    const versionMatch = cloudinaryUrl.match(/\/v(\d+)\//);
+    return versionMatch ? versionMatch[1] : null;
+  } catch (error) {
+    console.error('Error extracting version from URL:', error);
+    return null;
+  }
+}
+
+// Generate Cloudinary preview URL with version support
+function getCloudinaryPreviewUrl(publicId: string, version?: string): string {
+  const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${versionedPublicId}`;
 }
 
 // Helper to clean public_id from version prefix
@@ -56,7 +67,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Generate preview function started (with cleaned public_id handling)');
+    console.log('🚀 Generate preview function started (with version-aware handling)');
     
     const { imageUrl, productId } = await req.json();
     
@@ -110,8 +121,11 @@ serve(async (req) => {
       );
     }
 
-    if (product?.cloudinary_public_id) {
-      // 🔧 ИСПРАВЛЕНИЕ: Clean the public_id from version prefix
+    if (product?.cloudinary_public_id && product?.cloudinary_url) {
+      // 🔧 Extract version from the original cloudinary_url
+      const version = extractVersionFromUrl(product.cloudinary_url);
+      
+      // Clean the public_id from version prefix
       const originalPublicId = product.cloudinary_public_id;
       const cleanedPublicId = cleanPublicId(originalPublicId);
       
@@ -135,18 +149,19 @@ serve(async (req) => {
         );
       }
       
-      // 🔧 ИСПРАВЛЕНИЕ: Generate preview URL with cleaned public_id
-      const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId);
+      // 🔧 Generate preview URL with version support
+      const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId, version || undefined);
       
-      console.log('✅ Generated preview URL with cleaned public_id:', {
+      console.log('✅ Generated preview URL with version:', {
         originalPublicId,
         cleanedPublicId,
+        version,
         previewUrl,
         productId,
         transformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
       });
 
-      // 🔧 ИСПРАВЛЕНИЕ: Update product with cleaned public_id and preview URL
+      // Update product with preview URL
       const updateData: any = { preview_image_url: previewUrl };
       
       // Always update public_id to ensure it's cleaned
@@ -184,18 +199,20 @@ serve(async (req) => {
         previewSize: 25000, // Estimated 20-25KB
         compressionRatio: 100, // Direct transformation
         productUpdated: true,
-        method: 'cloudinary_transformation_with_cleanup',
+        method: 'cloudinary_transformation_with_version',
         publicIdCleaned: originalPublicId !== cleanedPublicId,
-        cleanedPublicId: cleanedPublicId
+        cleanedPublicId: cleanedPublicId,
+        version: version
       };
       
-      console.log('🎉 SUCCESS! Preview generation with cleaned public_id completed:', {
+      console.log('🎉 SUCCESS! Preview generation with version completed:', {
         previewUrl: previewUrl.substring(previewUrl.lastIndexOf('/') + 1),
         estimatedKB: Math.round(result.previewSize / 1024),
         productUpdated: result.productUpdated,
         method: result.method,
         publicIdCleaned: result.publicIdCleaned,
-        cleanedPublicId: result.cleanedPublicId
+        cleanedPublicId: result.cleanedPublicId,
+        version: result.version
       });
 
       return new Response(

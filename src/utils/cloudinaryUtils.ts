@@ -32,6 +32,17 @@ export const buildCloudinaryUrl = (publicId: string, transformations: Cloudinary
   return `${baseUrl}/${transformString}${publicId}`;
 };
 
+// Helper to extract version from Cloudinary URL
+export const extractVersionFromUrl = (cloudinaryUrl: string): string | null => {
+  try {
+    const versionMatch = cloudinaryUrl.match(/\/v(\d+)\//);
+    return versionMatch ? versionMatch[1] : null;
+  } catch (error) {
+    console.error('Error extracting version from URL:', error);
+    return null;
+  }
+};
+
 // Predefined transformations for different use cases (all optimized for file size)
 export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'preview' | 'compressed' = 'card'): string => {
   const transformations: Record<string, CloudinaryTransformation> = {
@@ -121,15 +132,20 @@ export const getResponsiveImageUrls = (publicId: string) => {
 };
 
 // Обновленная preview URL (теперь с c_fit, показывает полное изображение без обрезания)
-export const getPreviewImageUrl = (publicId: string): string => {
-  return buildCloudinaryUrl(publicId, {
+export const getPreviewImageUrl = (publicId: string, version?: string): string => {
+  const transformations = {
     width: 400,
     height: 300,
-    crop: 'fit', // 🔧 ИСПРАВЛЕНИЕ: используем fit вместо fill для показа полного изображения
-    gravity: 'auto',
-    quality: 'auto:good',
-    format: 'webp'
-  });
+    crop: 'fit' as const,
+    gravity: 'auto' as const,
+    quality: 'auto:good' as const,
+    format: 'webp' as const
+  };
+  
+  // Include version in public_id if provided
+  const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
+  
+  return buildCloudinaryUrl(versionedPublicId, transformations);
 };
 
 // Generate compressed main image URL (~400KB)

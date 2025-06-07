@@ -1,5 +1,5 @@
 
-import { getPreviewImageUrl, cleanPublicId, isValidPublicId } from "./cloudinaryUtils";
+import { getPreviewImageUrl, cleanPublicId, isValidPublicId, extractVersionFromUrl } from "./cloudinaryUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PreviewGenerationResult {
@@ -15,7 +15,7 @@ export const generateProductPreview = async (
   productId: string
 ): Promise<PreviewGenerationResult> => {
   try {
-    console.log('🎨 Starting preview generation with cleanup logic:', {
+    console.log('🎨 Starting preview generation with version-aware logic:', {
       imageUrl: imageUrl.substring(0, 50) + '...',
       productId,
       timestamp: new Date().toISOString()
@@ -28,8 +28,11 @@ export const generateProductPreview = async (
       .eq('id', productId)
       .single();
 
-    if (product?.cloudinary_public_id) {
-      // 🔧 ИСПРАВЛЕНИЕ: Clean the public_id from version prefix
+    if (product?.cloudinary_public_id && product?.cloudinary_url) {
+      // 🔧 Extract version from the original cloudinary_url
+      const version = extractVersionFromUrl(product.cloudinary_url);
+      
+      // Clean the public_id from version prefix
       const originalPublicId = product.cloudinary_public_id;
       const cleanedPublicId = cleanPublicId(originalPublicId);
       
@@ -47,18 +50,19 @@ export const generateProductPreview = async (
         };
       }
       
-      // 🔧 ИСПРАВЛЕНИЕ: Generate preview URL using cleaned public_id
-      const previewUrl = getPreviewImageUrl(cleanedPublicId);
+      // 🔧 Generate preview URL with version support
+      const previewUrl = getPreviewImageUrl(cleanedPublicId, version || undefined);
       
-      console.log('✅ Generated preview URL with cleaned public_id:', {
+      console.log('✅ Generated preview URL with version:', {
         originalPublicId,
         cleanedPublicId,
+        version,
         previewUrl,
         productId,
         transformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
       });
 
-      // 🔧 ИСПРАВЛЕНИЕ: Update product with cleaned public_id and preview URL
+      // Update product with preview URL
       const updateData: any = { preview_image_url: previewUrl };
       
       // Always ensure public_id is cleaned in database
@@ -101,10 +105,10 @@ export const generateProductPreview = async (
       );
 
       if (cloudinaryResult.success && cloudinaryResult.publicId) {
-        // 🔧 ИСПРАВЛЕНИЕ: The upload function now returns cleaned public_id
-        const cleanedPublicId = cloudinaryResult.publicId; // Already cleaned by upload function
+        // The upload function now returns cleaned public_id
+        const cleanedPublicId = cloudinaryResult.publicId;
         
-        // Use cleaned public_id for preview URL generation
+        // Use cleaned public_id for preview URL generation (no version for new uploads)
         const previewUrl = getPreviewImageUrl(cleanedPublicId);
         
         console.log('✅ Uploaded to Cloudinary and generated preview with clean ID:', {
