@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -34,19 +35,14 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
     }
   };
 
-  // Use catalog-optimized preview image (~30KB)
+  // Use primary image or first available
   const catalogImage = React.useMemo(() => {
-    // Приоритет preview_image_url если есть
-    if (product.preview_image_url) {
-      return product.preview_image_url;
-    }
-    
-    // Fallback только если нет preview_image_url
     const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
     return primaryImageData?.url || 
+           product.cloudinary_url ||
            product.image || 
            "/placeholder.svg";
-  }, [product.preview_image_url, product.product_images, product.image]);
+  }, [product.product_images, product.cloudinary_url, product.image]);
 
   // Format title with brand and model
   const formatTitle = () => {
@@ -60,7 +56,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
-        {/* Изображение товара - используем каталожное качество с оптимизацией */}
+        {/* Product image */}
         <div className="flex-shrink-0 w-20 h-20 sm:w-24 sm:h-24 relative bg-gray-50 rounded-lg overflow-hidden">
           <OptimizedImage
             src={catalogImage}
@@ -71,7 +67,6 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             size="card"
             priority={false}
             sizes="(max-width: 640px) 80px, 96px"
-            useCatalogOptimization={true} // Включаем каталожную оптимизацию
           />
           {product.lot_number && (
             <Badge 
