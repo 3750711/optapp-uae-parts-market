@@ -1,4 +1,3 @@
-
 // Cloudinary configuration and utilities
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
@@ -121,12 +120,12 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// Обновленная preview URL (теперь без обрезания, показывает полное изображение)
+// Обновленная preview URL (теперь с c_fit, показывает полное изображение без обрезания)
 export const getPreviewImageUrl = (publicId: string): string => {
   return buildCloudinaryUrl(publicId, {
     width: 400,
     height: 300,
-    crop: 'fit',
+    crop: 'fit', // 🔧 ИСПРАВЛЕНИЕ: используем fit вместо fill для показа полного изображения
     gravity: 'auto',
     quality: 'auto:good',
     format: 'webp'

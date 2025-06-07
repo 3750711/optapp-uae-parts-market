@@ -15,7 +15,7 @@ export const generateProductPreview = async (
   productId: string
 ): Promise<PreviewGenerationResult> => {
   try {
-    console.log('🎨 Starting preview generation (fit mode):', {
+    console.log('🎨 Starting preview generation with cleanup logic:', {
       imageUrl: imageUrl.substring(0, 50) + '...',
       productId,
       timestamp: new Date().toISOString()
@@ -29,13 +29,14 @@ export const generateProductPreview = async (
       .single();
 
     if (product?.cloudinary_public_id) {
-      // Clean the public_id from version prefix
-      const cleanedPublicId = cleanPublicId(product.cloudinary_public_id);
+      // 🔧 ИСПРАВЛЕНИЕ: Clean the public_id from version prefix
+      const originalPublicId = product.cloudinary_public_id;
+      const cleanedPublicId = cleanPublicId(originalPublicId);
       
       // Validate the cleaned public_id
       if (!isValidPublicId(cleanedPublicId)) {
         console.error('❌ Invalid public_id after cleaning:', {
-          original: product.cloudinary_public_id,
+          original: originalPublicId,
           cleaned: cleanedPublicId,
           productId
         });
@@ -46,24 +47,32 @@ export const generateProductPreview = async (
         };
       }
       
-      // Generate preview URL using cleaned public_id
+      // 🔧 ИСПРАВЛЕНИЕ: Generate preview URL using cleaned public_id
       const previewUrl = getPreviewImageUrl(cleanedPublicId);
       
-      console.log('✅ Generated NEW Cloudinary preview URL (fit mode):', {
-        originalPublicId: product.cloudinary_public_id,
+      console.log('✅ Generated preview URL with cleaned public_id:', {
+        originalPublicId,
         cleanedPublicId,
         previewUrl,
         productId,
-        parameters: '400x300, crop fit, quality auto:good, format webp'
+        transformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
       });
 
-      // Update product with cleaned public_id and preview URL
+      // 🔧 ИСПРАВЛЕНИЕ: Update product with cleaned public_id and preview URL
+      const updateData: any = { preview_image_url: previewUrl };
+      
+      // Always ensure public_id is cleaned in database
+      if (originalPublicId !== cleanedPublicId) {
+        updateData.cloudinary_public_id = cleanedPublicId;
+        console.log('🧹 Also updating public_id to cleaned version:', {
+          from: originalPublicId,
+          to: cleanedPublicId
+        });
+      }
+
       const { error: updateError } = await supabase
         .from('products')
-        .update({ 
-          cloudinary_public_id: cleanedPublicId, // Save cleaned version
-          preview_image_url: previewUrl 
-        })
+        .update(updateData)
         .eq('id', productId);
 
       if (updateError) {
@@ -77,7 +86,7 @@ export const generateProductPreview = async (
       return {
         success: true,
         previewUrl,
-        previewSize: 25000, // Estimated size for catalog quality (20-25KB)
+        previewSize: 25000, // Estimated size for preview quality (20-25KB)
         productUpdated: true
       };
     } else {
@@ -92,24 +101,23 @@ export const generateProductPreview = async (
       );
 
       if (cloudinaryResult.success && cloudinaryResult.publicId) {
-        // Clean the public_id from any version prefix
-        const cleanedPublicId = cleanPublicId(cloudinaryResult.publicId);
+        // 🔧 ИСПРАВЛЕНИЕ: The upload function now returns cleaned public_id
+        const cleanedPublicId = cloudinaryResult.publicId; // Already cleaned by upload function
         
         // Use cleaned public_id for preview URL generation
         const previewUrl = getPreviewImageUrl(cleanedPublicId);
         
-        console.log('✅ Uploaded to Cloudinary and generated NEW preview (fit mode):', {
-          originalPublicId: cloudinaryResult.publicId,
+        console.log('✅ Uploaded to Cloudinary and generated preview with clean ID:', {
           cleanedPublicId,
           previewUrl,
           productId,
-          parameters: '400x300, crop fit, quality auto:good, format webp'
+          transformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
         });
 
         return {
           success: true,
           previewUrl,
-          previewSize: 25000, // Estimated size for catalog quality
+          previewSize: 25000, // Estimated size for preview quality
           productUpdated: true
         };
       } else {

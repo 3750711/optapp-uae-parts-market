@@ -10,9 +10,9 @@ const corsHeaders = {
 // Cloudinary configuration
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
-// Generate Cloudinary preview URL with NEW parameters (400x300, auto:good, webp)
+// Generate Cloudinary preview URL with correct parameters (400x300, c_fit, auto:good, webp)
 function getCloudinaryPreviewUrl(publicId: string): string {
-  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fill,g_auto,q_auto:good,f_webp/${publicId}`;
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${publicId}`;
 }
 
 // Helper to clean public_id from version prefix
@@ -56,7 +56,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 NEW Generate preview function started (Cloudinary-only with cleanup)');
+    console.log('🚀 Generate preview function started (with cleaned public_id handling)');
     
     const { imageUrl, productId } = await req.json();
     
@@ -111,7 +111,7 @@ serve(async (req) => {
     }
 
     if (product?.cloudinary_public_id) {
-      // Clean the public_id from version prefix
+      // 🔧 ИСПРАВЛЕНИЕ: Clean the public_id from version prefix
       const originalPublicId = product.cloudinary_public_id;
       const cleanedPublicId = cleanPublicId(originalPublicId);
       
@@ -135,24 +135,24 @@ serve(async (req) => {
         );
       }
       
-      // Generate NEW Cloudinary preview URL with cleaned public_id
+      // 🔧 ИСПРАВЛЕНИЕ: Generate preview URL with cleaned public_id
       const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId);
       
-      console.log('✅ Generated NEW Cloudinary preview URL with cleaned public_id:', {
+      console.log('✅ Generated preview URL with cleaned public_id:', {
         originalPublicId,
         cleanedPublicId,
         previewUrl,
         productId,
-        parameters: '400x300, quality auto:good, format webp'
+        transformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
       });
 
-      // Update product with cleaned public_id and NEW preview URL
+      // 🔧 ИСПРАВЛЕНИЕ: Update product with cleaned public_id and preview URL
       const updateData: any = { preview_image_url: previewUrl };
       
-      // Only update public_id if it was actually cleaned
+      // Always update public_id to ensure it's cleaned
       if (originalPublicId !== cleanedPublicId) {
         updateData.cloudinary_public_id = cleanedPublicId;
-        console.log('🧹 Also updating public_id in database:', {
+        console.log('🧹 Updating public_id in database:', {
           from: originalPublicId,
           to: cleanedPublicId
         });
@@ -184,16 +184,18 @@ serve(async (req) => {
         previewSize: 25000, // Estimated 20-25KB
         compressionRatio: 100, // Direct transformation
         productUpdated: true,
-        method: 'cloudinary_transformation_cleaned',
-        publicIdCleaned: originalPublicId !== cleanedPublicId
+        method: 'cloudinary_transformation_with_cleanup',
+        publicIdCleaned: originalPublicId !== cleanedPublicId,
+        cleanedPublicId: cleanedPublicId
       };
       
-      console.log('🎉 SUCCESS! NEW Cloudinary preview generation with cleanup completed:', {
+      console.log('🎉 SUCCESS! Preview generation with cleaned public_id completed:', {
         previewUrl: previewUrl.substring(previewUrl.lastIndexOf('/') + 1),
         estimatedKB: Math.round(result.previewSize / 1024),
         productUpdated: result.productUpdated,
         method: result.method,
-        publicIdCleaned: result.publicIdCleaned
+        publicIdCleaned: result.publicIdCleaned,
+        cleanedPublicId: result.cleanedPublicId
       });
 
       return new Response(
