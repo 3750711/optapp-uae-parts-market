@@ -196,12 +196,12 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
           {isUploading && uploadProgress.length > 0 && (
             <div className="bg-muted/50 rounded-lg p-3 space-y-2">
               <div className="text-sm font-medium text-muted-foreground">
-                Загрузка фотографий ({uploadProgress.filter(p => p.status === 'completed').length}/{uploadProgress.length})
+                Загрузка фотографий ({uploadProgress.filter(p => p.status === 'success').length}/{uploadProgress.length})
               </div>
               {uploadProgress.map((progress, index) => (
                 <div key={index} className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="truncate">{progress.file.name}</span>
+                    <span className="truncate">{progress.fileName}</span>
                     <span>{Math.round(progress.progress)}%</span>
                   </div>
                   <div className="w-full bg-background rounded-full h-1">
