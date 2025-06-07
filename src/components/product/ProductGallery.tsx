@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -213,32 +212,37 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       {!isMobile && renderThumbnails()}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className={`
-          fixed inset-0 
-          w-screen h-screen 
-          max-w-none max-h-none 
-          p-0 m-0 
-          bg-black 
-          overflow-hidden 
-          border-0 
-          ${isMobile ? 'rounded-none' : ''}
-        `}>
+        <DialogContent 
+          className="
+            fixed inset-0 
+            w-screen h-screen 
+            max-w-none max-h-none 
+            p-0 m-0 
+            bg-black 
+            overflow-hidden 
+            border-0 
+            rounded-none
+            translate-x-0 translate-y-0
+            left-0 top-0
+          "
+          onPointerDownOutside={() => setIsOpen(false)}
+        >
           <div
             className="relative w-full h-full flex items-center justify-center"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            {/* Кнопка закрытия - адаптивная позиция */}
+            {/* Кнопка закрытия */}
             <Button
               variant="ghost"
               size="icon"
               className={`
-                fixed top-4 right-4 
+                absolute top-4 right-4 
                 ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}
                 text-white hover:bg-white/20 
-                z-50 bg-black/80 
-                ring-2 ring-white/40
+                z-50 bg-black/70 
+                ring-2 ring-white/30
                 backdrop-blur-sm
                 transition-all duration-200
               `}
@@ -247,18 +251,18 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               <X className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
             </Button>
             
-            {/* Стрелки навигации - адаптивные */}
+            {/* Стрелки навигации */}
             {mediaItems.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
                   className={`
-                    fixed left-4 top-1/2 -translate-y-1/2 
+                    absolute left-4 top-1/2 -translate-y-1/2 
                     ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}
                     text-white hover:bg-white/20 
-                    z-40 bg-black/80 
-                    ring-2 ring-white/40
+                    z-40 bg-black/70 
+                    ring-2 ring-white/30
                     backdrop-blur-sm
                     transition-all duration-200
                   `}
@@ -270,11 +274,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   variant="ghost"
                   size="icon"
                   className={`
-                    fixed right-4 top-1/2 -translate-y-1/2 
+                    absolute right-20 top-1/2 -translate-y-1/2 
                     ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}
                     text-white hover:bg-white/20 
-                    z-40 bg-black/80 
-                    ring-2 ring-white/40
+                    z-40 bg-black/70 
+                    ring-2 ring-white/30
                     backdrop-blur-sm
                     transition-all duration-200
                   `}
@@ -285,7 +289,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </>
             )}
             
-            {/* Контент медиа - адаптивный размер */}
+            {/* Контент медиа */}
             <div className={`
               w-full h-full 
               flex items-center justify-center 
@@ -296,37 +300,15 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   src={fullScreenMedia}
                   controls
                   autoPlay
-                  className={`
-                    object-contain
-                    ${isMobile 
-                      ? 'max-w-[calc(100vw-8rem)] max-h-[calc(100vh-8rem)]' 
-                      : 'max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)]'
-                    }
-                    w-auto h-auto
-                  `}
+                  className="max-w-[80vw] max-h-[80vh] w-auto h-auto object-contain"
                   preload="metadata"
-                  style={{
-                    maxWidth: isMobile ? 'calc(100vw - 8rem)' : 'calc(100vw - 10rem)',
-                    maxHeight: isMobile ? 'calc(100vh - 8rem)' : 'calc(100vh - 10rem)'
-                  }}
                 />
               ) : (
                 <img
                   src={fullScreenMedia}
                   alt={title}
-                  className={`
-                    object-contain
-                    ${isMobile 
-                      ? 'max-w-[calc(100vw-8rem)] max-h-[calc(100vh-8rem)]' 
-                      : 'max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)]'
-                    }
-                    w-auto h-auto
-                  `}
+                  className="max-w-[80vw] max-h-[80vh] w-auto h-auto object-contain"
                   loading="lazy"
-                  style={{
-                    maxWidth: isMobile ? 'calc(100vw - 8rem)' : 'calc(100vw - 10rem)',
-                    maxHeight: isMobile ? 'calc(100vh - 8rem)' : 'calc(100vh - 10rem)'
-                  }}
                 />
               )}
             </div>
