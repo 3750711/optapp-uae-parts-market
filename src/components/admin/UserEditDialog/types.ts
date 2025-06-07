@@ -1,27 +1,26 @@
 
-import { Database } from '@/integrations/supabase/types';
+import { ProfileType } from '@/components/profile/types';
 
-export type UserFormValues = {
-  full_name: string | null;
-  company_name: string | null;
-  phone: string | null;
-  telegram: string | null;
-  opt_id: string | null;
-  user_type: 'buyer' | 'seller' | 'admin';
-  verification_status: 'pending' | 'verified' | 'blocked';
-  communication_ability: number | null;
-};
-
-export type Profile = Database['public']['Tables']['profiles']['Row'];
+export interface UserFormValues {
+  full_name?: string;
+  company_name?: string;
+  phone?: string;
+  telegram?: string;
+  opt_id?: string;
+  user_type: "buyer" | "seller" | "admin";
+  verification_status: "pending" | "verified" | "blocked";
+  communication_ability?: number;
+  rating?: string;
+}
 
 export interface UserEditDialogProps {
-  user: Profile | null;
-  trigger?: React.ReactNode;
+  user: ProfileType;
+  trigger: React.ReactNode;
   onSuccess?: () => void;
 }
 
 export interface UserEditFormProps {
-  user: Profile;
+  user: ProfileType;
   onSubmit: (values: UserFormValues) => Promise<void>;
   isSubmitting: boolean;
   onClose: () => void;

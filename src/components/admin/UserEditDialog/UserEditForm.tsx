@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,6 +38,7 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
       user_type: user.user_type,
       verification_status: user.verification_status,
       communication_ability: user.communication_ability || 3,
+      rating: user.rating?.toString() || "",
     },
   });
 
@@ -147,6 +147,29 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
 
           <FormField
             control={form.control}
+            name="rating"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Рейтинг (0-5)</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    step="0.1" 
+                    min="0" 
+                    max="5" 
+                    placeholder="Введите рейтинг" 
+                    {...field} 
+                    value={field.value || ""} 
+                    className={isMobile ? "h-12 text-base" : ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
             name="communication_ability"
             render={({ field }) => (
               <FormItem>
@@ -220,7 +243,6 @@ export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile =
           />
         </div>
 
-        {/* Кнопки - sticky внизу на мобильных */}
         <div className={`
           flex gap-3 pt-4
           ${isMobile ? 'sticky bottom-0 bg-white border-t px-6 py-4 -mx-6 -mb-4' : ''}

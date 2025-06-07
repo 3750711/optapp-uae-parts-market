@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -36,7 +35,12 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
       
       // Clean up values to prevent empty strings being saved as nulls
       const cleanedValues = Object.entries(values).reduce((acc, [key, value]) => {
-        acc[key] = value === "" ? null : value;
+        if (key === 'rating' && value) {
+          // Convert rating string to number
+          acc[key] = parseFloat(value as string);
+        } else {
+          acc[key] = value === "" ? null : value;
+        }
         return acc;
       }, {} as Record<string, any>);
       
