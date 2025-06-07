@@ -54,7 +54,6 @@ const AdminUsers = () => {
   
   // Dialog states
   const [editingUser, setEditingUser] = useState<ProfileType | null>(null);
-  const [ratingUser, setRatingUser] = useState<ProfileType | null>(null);
 
   // Handle editing user
   const handleEditUser = (user: ProfileType) => {
@@ -66,11 +65,6 @@ const AdminUsers = () => {
     console.log("Closing edit dialog, invalidating cache");
     queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     setEditingUser(null);
-  };
-
-  const handleRatingDialogClose = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
-    setRatingUser(null);
   };
 
   // Keyboard shortcuts
@@ -230,7 +224,7 @@ const AdminUsers = () => {
                     onQuickAction={handleContextAction}
                     onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
                     onEdit={handleEditUser}
-                    onRating={setRatingUser}
+                    onRating={() => {}} // Removed rating dialog functionality
                     onOptStatusChange={handleOptStatusChange}
                   />
                 ))}
@@ -247,7 +241,6 @@ const AdminUsers = () => {
                 onQuickStatusChange={handleQuickStatusChange}
                 onOptStatusChange={handleOptStatusChange}
                 onEditUser={handleEditUser}
-                onRatingUser={setRatingUser}
                 onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
                 onContextAction={handleContextAction}
               />
@@ -277,9 +270,9 @@ const AdminUsers = () => {
 
         <AdminUsersDialogs
           editingUser={editingUser}
-          ratingUser={ratingUser}
+          ratingUser={null}
           onEditDialogClose={handleEditDialogClose}
-          onRatingDialogClose={handleRatingDialogClose}
+          onRatingDialogClose={() => {}}
         />
       </div>
     </AdminLayout>

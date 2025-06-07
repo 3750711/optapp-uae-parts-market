@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { UserCheck, Edit, Star, ExternalLink, Ban, UserCog } from "lucide-react";
+import { UserCheck, Edit, ExternalLink, Ban, UserCog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +22,6 @@ interface AdminUsersTableRowProps {
   onQuickStatusChange: (userId: string, status: 'verified' | 'pending' | 'blocked') => void;
   onOptStatusChange: (userId: string, status: 'free_user' | 'opt_user') => void;
   onEditUser: (user: ProfileType) => void;
-  onRatingUser: (user: ProfileType) => void;
   onOpenProfile: (userId: string) => void;
   onContextAction: (userId: string, action: string) => void;
 }
@@ -36,7 +34,6 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
   onQuickStatusChange,
   onOptStatusChange,
   onEditUser,
-  onRatingUser,
   onOpenProfile,
   onContextAction
 }) => {
@@ -46,7 +43,6 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
       onQuickAction={onContextAction}
       onOpenProfile={onOpenProfile}
       onEdit={onEditUser}
-      onRating={onRatingUser}
     >
       <TableRow 
         className={`${
@@ -172,10 +168,6 @@ export const AdminUsersTableRow: React.FC<AdminUsersTableRowProps> = ({
                 <DropdownMenuItem onClick={() => onEditUser(user)}>
                   <Edit className="mr-2 h-4 w-4" />
                   Редактировать
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onRatingUser(user)}>
-                  <Star className="mr-2 h-4 w-4" />
-                  Изменить рейтинг
                 </DropdownMenuItem>
                 {user.verification_status !== 'blocked' && (
                   <DropdownMenuItem

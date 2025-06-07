@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Table,
@@ -23,7 +22,6 @@ interface AdminUsersTableProps {
   onQuickStatusChange: (userId: string, status: 'verified' | 'pending' | 'blocked') => void;
   onOptStatusChange: (userId: string, status: 'free_user' | 'opt_user') => void;
   onEditUser: (user: ProfileType) => void;
-  onRatingUser: (user: ProfileType) => void;
   onOpenProfile: (userId: string) => void;
   onContextAction: (userId: string, action: string) => void;
 }
@@ -39,7 +37,6 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
   onQuickStatusChange,
   onOptStatusChange,
   onEditUser,
-  onRatingUser,
   onOpenProfile,
   onContextAction
 }) => {
@@ -140,7 +137,6 @@ export const AdminUsersTable: React.FC<AdminUsersTableProps> = ({
               onQuickStatusChange={onQuickStatusChange}
               onOptStatusChange={onOptStatusChange}
               onEditUser={onEditUser}
-              onRatingUser={onRatingUser}
               onOpenProfile={onOpenProfile}
               onContextAction={onContextAction}
             />

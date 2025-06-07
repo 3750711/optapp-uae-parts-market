@@ -8,7 +8,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import { ProfileType } from '@/components/profile/types';
-import { UserCheck, Ban, UserX, ExternalLink, Edit, Star } from 'lucide-react';
+import { UserCheck, Ban, UserX, ExternalLink, Edit } from 'lucide-react';
 
 interface UserContextMenuProps {
   user: ProfileType;
@@ -16,7 +16,6 @@ interface UserContextMenuProps {
   onQuickAction: (userId: string, action: string) => void;
   onOpenProfile: (userId: string) => void;
   onEdit: (user: ProfileType) => void;
-  onRating: (user: ProfileType) => void;
 }
 
 export const UserContextMenu: React.FC<UserContextMenuProps> = ({
@@ -24,17 +23,11 @@ export const UserContextMenu: React.FC<UserContextMenuProps> = ({
   children,
   onQuickAction,
   onOpenProfile,
-  onEdit,
-  onRating
+  onEdit
 }) => {
   const handleEdit = () => {
     console.log("Context menu edit clicked for user:", user.id);
     onEdit(user);
-  };
-
-  const handleRating = () => {
-    console.log("Context menu rating clicked for user:", user.id);
-    onRating(user);
   };
 
   return (
@@ -50,10 +43,6 @@ export const UserContextMenu: React.FC<UserContextMenuProps> = ({
         <ContextMenuItem onClick={handleEdit}>
           <Edit className="mr-2 h-4 w-4" />
           Редактировать
-        </ContextMenuItem>
-        <ContextMenuItem onClick={handleRating}>
-          <Star className="mr-2 h-4 w-4" />
-          Изменить рейтинг
         </ContextMenuItem>
         <ContextMenuSeparator />
         {user.verification_status !== 'verified' && (
