@@ -4,6 +4,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Upload } from "lucide-react";
 
 interface OrderConfirmationImagesProps {
   orderId: string;
@@ -17,6 +19,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   const { data: images = [] } = useQuery({
     queryKey: ['confirm-images', orderId],
@@ -55,6 +58,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 
       // Refetch images
       queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
+      setShowUpload(false);
     } catch (error) {
       console.error('Error uploading confirmation images:', error);
       toast({
@@ -104,18 +108,53 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     );
   }
 
+  const hasImages = images.length > 0;
+
   return (
     <div className="space-y-4">
       {canEdit ? (
-        <MobileOptimizedImageUpload
-          onUploadComplete={handleImageUpload}
-          maxImages={10}
-          existingImages={images}
-          onImageDelete={handleImageDelete}
-          productId={orderId}
-          buttonText="Загрузить подтверждающие фото"
-          showOnlyButton={false}
-        />
+        <div className="space-y-2">
+          {/* Show small upload button if images exist */}
+          {hasImages && !showUpload && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUpload(true)}
+                className="h-6 px-2 text-xs"
+              >
+                <Upload className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+          
+          {/* Show full upload component if no images or user clicked to upload more */}
+          {(!hasImages || showUpload) && (
+            <MobileOptimizedImageUpload
+              onUploadComplete={handleImageUpload}
+              maxImages={10}
+              existingImages={images}
+              onImageDelete={handleImageDelete}
+              productId={orderId}
+              buttonText="Загрузить подтверждающие фото"
+              showOnlyButton={false}
+            />
+          )}
+          
+          {/* Always show existing images gallery if they exist */}
+          {hasImages && showUpload && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUpload(false)}
+                className="h-6 px-2 text-xs"
+              >
+                Скрыть
+              </Button>
+            </div>
+          )}
+        </div>
       ) : (
         <MobileOptimizedImageUpload
           onUploadComplete={() => {}}
