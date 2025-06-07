@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +20,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   const [isUploading, setIsUploading] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
   const { data: images = [] } = useQuery({
     queryKey: ['confirm-images', orderId],
@@ -60,6 +60,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
       // Refetch images
       queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
       setShowUpload(false);
+      setSelectedFiles([]);
     } catch (error) {
       console.error('Error uploading confirmation images:', error);
       toast({
@@ -110,11 +111,11 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      // Convert FileList to array and handle upload
       const fileArray = Array.from(files);
-      // Here we would need to implement the actual upload logic
-      // For now, let's show the upload component
+      setSelectedFiles(fileArray);
       setShowUpload(true);
+      // Reset input value to allow selecting same files again
+      e.target.value = '';
     }
   };
 
@@ -164,8 +165,8 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
             </div>
           )}
           
-          {/* Show upload component when user clicks to upload */}
-          {showUpload && (
+          {/* Show upload component when files are selected */}
+          {showUpload && selectedFiles.length > 0 && (
             <>
               <MobileOptimizedImageUpload
                 onUploadComplete={handleImageUpload}
@@ -174,13 +175,16 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
                 onImageDelete={handleImageDelete}
                 productId={orderId}
                 buttonText="Загрузить подтверждающие фото"
-                showOnlyButton={false}
+                showOnlyButton={true}
               />
               <div className="flex justify-end">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowUpload(false)}
+                  onClick={() => {
+                    setShowUpload(false);
+                    setSelectedFiles([]);
+                  }}
                   className="h-6 px-2 text-xs"
                 >
                   Скрыть
