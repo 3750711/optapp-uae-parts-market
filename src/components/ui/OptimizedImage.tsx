@@ -32,8 +32,31 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     onError?.();
   };
 
-  // Use Cloudinary if publicId is available and no error occurred
-  if (cloudinaryPublicId && !imageError) {
+  // Debug logging
+  console.log('OptimizedImage debug:', {
+    src,
+    cloudinaryPublicId,
+    imageError,
+    hasValidSrc: src && src !== '/placeholder.svg'
+  });
+
+  // Приоритет готовому URL (preview_image_url) - используем Cloudinary только как fallback
+  if (src && src !== '/placeholder.svg' && !imageError) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} object-contain`}
+        onLoad={onLoad}
+        onError={handleImageError}
+        loading={priority ? 'eager' : 'lazy'}
+        sizes={sizes}
+      />
+    );
+  }
+
+  // Fallback к Cloudinary если основное изображение не загрузилось или нет src
+  if (cloudinaryPublicId && imageError) {
     return (
       <CloudinaryImage
         publicId={cloudinaryPublicId}
@@ -42,20 +65,19 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         className={className}
         priority={priority}
         onLoad={onLoad}
-        onError={handleImageError}
-        fallbackSrc={src}
+        onError={onError}
+        fallbackSrc="/placeholder.svg"
       />
     );
   }
 
-  // Fallback to regular image with object-contain
+  // Финальный fallback
   return (
     <img
-      src={src}
+      src="/placeholder.svg"
       alt={alt}
       className={`${className} object-contain`}
       onLoad={onLoad}
-      onError={handleImageError}
       loading={priority ? 'eager' : 'lazy'}
       sizes={sizes}
     />

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -96,15 +95,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const catalogImage = React.useMemo(() => {
     // Priority: preview_image_url (optimized for catalog ~20-25KB)
     if (product.preview_image_url) {
+      console.log('Using preview_image_url for product:', product.id, product.preview_image_url);
       return product.preview_image_url;
     }
     
     // Fallback to primary image or first image
     const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
+    console.log('Fallback to product_images for product:', product.id, primaryImageData?.url);
     return primaryImageData?.url || 
            product.image || 
            "/placeholder.svg";
-  }, [product.preview_image_url, product.product_images, product.image]);
+  }, [product.preview_image_url, product.product_images, product.image, product.id]);
 
   const handleImageError = () => {
     setImageError(true);
@@ -148,7 +149,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   onLoad={handleImageLoad}
                   priority={index === 0}
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  cloudinaryPublicId={index === 0 && product.cloudinary_public_id ? product.cloudinary_public_id : undefined}
+                  cloudinaryPublicId={
+                    // Только передаем cloudinaryPublicId если нет preview_image_url
+                    index === 0 && !product.preview_image_url && product.cloudinary_public_id 
+                      ? product.cloudinary_public_id 
+                      : undefined
+                  }
                   size="card"
                 />
               </CarouselItem>
@@ -179,7 +185,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
           onLoad={handleImageLoad}
           priority={false}
           sizes="(max-width: 768px) 50vw, 25vw"
-          cloudinaryPublicId={product.cloudinary_public_id || undefined}
+          cloudinaryPublicId={
+            // Только передаем cloudinaryPublicId если нет preview_image_url
+            !product.preview_image_url && product.cloudinary_public_id 
+              ? product.cloudinary_public_id 
+              : undefined
+          }
           size="card"
         />
       );
