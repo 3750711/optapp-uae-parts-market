@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -86,7 +85,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
         try {
           console.log('Fetching fresh order data from database...');
           
-          // Get fresh order data
+          // Get fresh order data including both images and videos
           const { data: freshOrder, error: orderError } = await supabase
             .from('orders')
             .select('images, video_url')
@@ -101,30 +100,16 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           
           setOrderImages(freshImages);
 
-          // Load videos from order_videos table
-          const { data: videos, error: videosError } = await supabase
-            .from('order_videos')
-            .select('url')
-            .eq('order_id', order.id);
-
-          if (videosError) throw videosError;
-          
-          const newVideoUrls = videos?.map(video => video.url) || [];
-          
-          // Combine old video_url field with new order_videos table
-          const oldVideoUrls = freshOrder?.video_url || [];
-          const allVideoUrls = [...oldVideoUrls, ...newVideoUrls];
-          
-          console.log('Old videos from video_url field:', oldVideoUrls);
-          console.log('New videos from order_videos table:', newVideoUrls);
-          console.log('All combined videos:', allVideoUrls);
+          // Use only video_url field from orders table
+          const allVideoUrls = freshOrder?.video_url || [];
+          console.log('All videos from video_url field:', allVideoUrls);
           
           setOrderVideos(allVideoUrls);
           
           // Update cache with fresh data
           queryClient.setQueryData(['order', order.id], (oldData: any) => {
             console.log('Updating cache with fresh order data');
-            return oldData ? { ...oldData, images: freshImages } : oldData;
+            return oldData ? { ...oldData, images: freshImages, video_url: allVideoUrls } : oldData;
           });
 
         } catch (error) {
@@ -282,22 +267,22 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (!order?.id) return;
 
     try {
-      console.log('Uploading videos to order:', { orderId: order.id, urls });
+      console.log('Adding videos to order video_url field:', { orderId: order.id, urls });
       
-      // Insert new videos into order_videos table
+      // Get current videos and add new ones
+      const currentVideos = orderVideos;
+      const updatedVideos = [...currentVideos, ...urls];
+      
+      // Update video_url field in orders table
       const { error } = await supabase
-        .from('order_videos')
-        .insert(
-          urls.map(url => ({
-            order_id: order.id,
-            url
-          }))
-        );
+        .from('orders')
+        .update({ video_url: updatedVideos })
+        .eq('id', order.id);
 
       if (error) throw error;
 
-      // Update local state - add to existing videos
-      setOrderVideos(prev => [...prev, ...urls]);
+      // Update local state
+      setOrderVideos(updatedVideos);
 
       toast({
         title: "Успешно",
@@ -308,7 +293,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-      queryClient.invalidateQueries({ queryKey: ['order-videos', order.id] });
     } catch (error) {
       console.error('Error uploading videos:', error);
       toast({
@@ -323,38 +307,18 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
     if (!order?.id) return;
 
     try {
-      // Check if video is from old video_url field or new order_videos table
-      const { data: freshOrder } = await supabase
+      // Remove video from video_url array
+      const updatedVideos = orderVideos.filter(videoUrl => videoUrl !== url);
+      
+      const { error } = await supabase
         .from('orders')
-        .select('video_url')
-        .eq('id', order.id)
-        .single();
+        .update({ video_url: updatedVideos })
+        .eq('id', order.id);
 
-      const isOldVideo = freshOrder?.video_url?.includes(url);
-
-      if (isOldVideo) {
-        // Remove from video_url array in orders table
-        const updatedVideoUrls = (freshOrder?.video_url || []).filter(videoUrl => videoUrl !== url);
-        
-        const { error } = await supabase
-          .from('orders')
-          .update({ video_url: updatedVideoUrls })
-          .eq('id', order.id);
-
-        if (error) throw error;
-      } else {
-        // Remove from order_videos table
-        const { error } = await supabase
-          .from('order_videos')
-          .delete()
-          .eq('order_id', order.id)
-          .eq('url', url);
-
-        if (error) throw error;
-      }
+      if (error) throw error;
 
       // Update local state
-      setOrderVideos(prev => prev.filter(videoUrl => videoUrl !== url));
+      setOrderVideos(updatedVideos);
 
       toast({
         title: "Успешно",
@@ -365,7 +329,6 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
       queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order.id] });
-      queryClient.invalidateQueries({ queryKey: ['order-videos', order.id] });
     } catch (error) {
       console.error('Error deleting video:', error);
       toast({
