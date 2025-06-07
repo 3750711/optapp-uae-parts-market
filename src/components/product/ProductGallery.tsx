@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -234,18 +233,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                     type={item.type}
                     alt={`${title} - медиа ${index + 1}`}
                     className="w-full h-auto object-contain max-h-[50vh]"
-                    lazy={Math.abs(index - currentCarouselIndex) <= 1} // Загружаем только текущий и соседние
+                    lazy={Math.abs(index - currentCarouselIndex) <= 1}
                   />
                 </div>
               </CarouselItem>
             ))}
           </CarouselContent>
-          {mediaItems.length > 1 && (
-            <>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </>
-          )}
         </Carousel>
         
         {/* Dots indicator */}
@@ -294,26 +287,26 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               <X className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
             </Button>
             
-            {/* Navigation arrows */}
-            {mediaItems.length > 1 && (
+            {/* Navigation arrows - показываем только на десктопе */}
+            {mediaItems.length > 1 && !isMobile && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`absolute left-4 top-1/2 -translate-y-1/2 ${isMobile ? 'w-12 h-12' : 'w-10 h-10'} text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30 backdrop-blur-sm transition-all duration-200`}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30 backdrop-blur-sm transition-all duration-200"
                   onClick={handlePrevMedia}
                   aria-label="Предыдущее медиа"
                 >
-                  <ChevronLeft className={isMobile ? "h-8 w-8" : "h-6 w-6"} />
+                  <ChevronLeft className="h-6 w-6" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`absolute right-20 top-1/2 -translate-y-1/2 ${isMobile ? 'w-12 h-12' : 'w-10 h-10'} text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30 backdrop-blur-sm transition-all duration-200`}
+                  className="absolute right-20 top-1/2 -translate-y-1/2 w-10 h-10 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30 backdrop-blur-sm transition-all duration-200"
                   onClick={handleNextMedia}
                   aria-label="Следующее медиа"
                 >
-                  <ChevronRight className={isMobile ? "h-8 w-8" : "h-6 w-6"} />
+                  <ChevronRight className="h-6 w-6" />
                 </Button>
               </>
             )}

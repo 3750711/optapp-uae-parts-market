@@ -55,7 +55,6 @@ const MediaItem: React.FC<MediaItemProps> = ({
           className="w-full h-full object-contain"
           preload="metadata"
           muted
-          loading={lazy ? "lazy" : "eager"}
           onLoadedData={handleLoad}
           onError={handleError}
         />
