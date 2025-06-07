@@ -224,7 +224,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-2 top-2 text-white hover:bg-white/20 z-50 bg-black/50"
+              className="absolute right-6 top-6 text-white hover:bg-white/20 z-50 bg-black/70 ring-2 ring-white/30"
               onClick={() => setIsOpen(false)}
             >
               <X className="h-6 w-6" />
@@ -236,7 +236,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/50"
+                  className="absolute left-6 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
                   onClick={handlePrevMedia}
                 >
                   <ChevronLeft className="h-8 w-8" />
@@ -244,7 +244,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/50"
+                  className="absolute right-20 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
                   onClick={handleNextMedia}
                 >
                   <ChevronRight className="h-8 w-8" />
