@@ -21,7 +21,6 @@ function extractVersionFromUrl(cloudinaryUrl: string): string | null {
 function getCloudinaryPreviewUrl(publicId: string, version?: string): string {
   const cloudName = 'dcuziurrb';
   
-  // If version is provided, include it in the URL path
   const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
   
   console.log('🔧 Generating preview URL:', {
@@ -268,7 +267,6 @@ serve(async (req) => {
             console.log('✅ Video updated in database');
           }
         } else {
-          // 🔧 ИСПРАВЛЕНИЕ: Передаем извлеченную версию в getCloudinaryPreviewUrl
           const updateData = {
             cloudinary_public_id: cloudinaryPublicId,
             cloudinary_url: uploadResult.secure_url,
@@ -333,26 +331,3 @@ serve(async (req) => {
     );
   }
 });
-
-// Input validation helper
-function validateInput(body: any) {
-  const errors: string[] = [];
-  
-  if (!body.fileData) {
-    errors.push('fileData is required');
-  }
-  
-  if (!body.publicId || typeof body.publicId !== 'string') {
-    errors.push('publicId is required and must be a string');
-  }
-  
-  if (body.fileName && typeof body.fileName !== 'string') {
-    errors.push('fileName must be a string');
-  }
-  
-  if (body.isVideo !== undefined && typeof body.isVideo !== 'boolean') {
-    errors.push('isVideo must be a boolean');
-  }
-  
-  return errors;
-}
