@@ -91,9 +91,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return ["/placeholder.svg"];
   }, [product.product_images, product.image]);
 
-  // Use preview_image_url as primary source for catalog display
+  // Use catalog-optimized image for better performance (~30KB)
   const catalogImage = React.useMemo(() => {
-    // Priority: preview_image_url (optimized for catalog ~20-25KB)
+    // Priority: preview_image_url (optimized for catalog ~30KB)
     if (product.preview_image_url) {
       console.log('Using preview_image_url for product:', product.id, product.preview_image_url);
       return product.preview_image_url;
@@ -156,6 +156,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                       : undefined
                   }
                   size="card"
+                  useCatalogOptimization={index === 0} // Каталожная оптимизация для первого изображения
                 />
               </CarouselItem>
             ))}
@@ -192,6 +193,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               : undefined
           }
           size="card"
+          useCatalogOptimization={true} // Включаем каталожную оптимизацию
         />
       );
     }

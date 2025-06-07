@@ -1,4 +1,3 @@
-
 // Cloudinary configuration and utilities
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
@@ -132,25 +131,39 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// 🔧 ИСПРАВЛЕННАЯ preview URL - правильный порядок параметров
+// 🔧 ОБНОВЛЕННАЯ preview URL с улучшенным сжатием для каталога (~30KB)
 export const getPreviewImageUrl = (publicId: string, version?: string): string => {
   if (!publicId) return '';
   
   // Очищаем publicId от версии если она есть
   const cleanPublicId = publicId.replace(/^v\d+\//, '');
   
-  // Формируем правильный URL с корректным порядком параметров
-  const transformationString = 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp';
+  // Формируем URL с агрессивным сжатием для каталога (~30KB)
+  // Используем q_auto:eco для максимального сжатия и fl_progressive:semi для оптимизации
+  const transformationString = 'w_400,h_300,c_fit,g_auto,q_auto:eco,f_webp,fl_progressive:semi';
   
   const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/${cleanPublicId}`;
   
-  console.log('🔧 getPreviewImageUrl:', {
+  console.log('🔧 getCatalogPreviewUrl:', {
     originalPublicId: publicId,
     cleanPublicId,
-    finalUrl
+    finalUrl,
+    estimatedSize: '~30KB'
   });
   
   return finalUrl;
+};
+
+// Новая функция для каталожных превью с максимальным сжатием
+export const getCatalogPreviewUrl = (publicId: string): string => {
+  if (!publicId) return '';
+  
+  const cleanPublicId = publicId.replace(/^v\d+\//, '');
+  
+  // Агрессивное сжатие специально для каталога (~30KB)
+  const transformationString = 'w_400,h_300,c_fit,g_auto,q_auto:eco,f_webp,fl_progressive:semi,dpr_auto';
+  
+  return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/${cleanPublicId}`;
 };
 
 // Generate compressed main image URL (~400KB)
