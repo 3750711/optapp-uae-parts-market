@@ -3,7 +3,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useImageCacheManager } from "./ImageCacheManager";
-import { usePreviewImageSync } from "@/hooks/usePreviewImageSync";
 
 interface UsePrimaryImageProps {
   productId: string;
@@ -17,16 +16,6 @@ export const usePrimaryImage = ({
   const { toast } = useToast();
   const { invalidateAllCaches, optimisticUpdateCache } = useImageCacheManager();
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
-  
-  // Initialize preview sync hook
-  const { syncPreviewImage } = usePreviewImageSync({
-    productId,
-    onSyncComplete: (previewUrl) => {
-      console.log('🎯 Preview sync completed:', previewUrl);
-      // Invalidate cache after successful sync
-      invalidateAllCaches(productId);
-    }
-  });
 
   const handleSetPrimaryImage = async (imageUrl: string) => {
     if (!onPrimaryImageChange) {
@@ -69,12 +58,9 @@ export const usePrimaryImage = ({
       
       console.log("Database updated successfully for primary image");
       
-      // 🔄 NEW: Automatically sync preview image after setting primary
-      await syncPreviewImage(imageUrl);
-      
       toast({
         title: "Обновлено",
-        description: "Основное фото изменено и превью обновлено",
+        description: "Основное фото изменено",
       });
     } catch (error) {
       console.error("Error setting primary image:", error);
