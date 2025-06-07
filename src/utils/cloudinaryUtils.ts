@@ -1,3 +1,4 @@
+
 // Cloudinary configuration and utilities
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
@@ -131,7 +132,7 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// Обновленная preview URL (теперь с c_fit, показывает полное изображение без обрезания)
+// 🔧 ИСПРАВЛЕННАЯ preview URL (теперь правильно обрабатывает версию)
 export const getPreviewImageUrl = (publicId: string, version?: string): string => {
   const transformations = {
     width: 400,
@@ -142,7 +143,7 @@ export const getPreviewImageUrl = (publicId: string, version?: string): string =
     format: 'webp' as const
   };
   
-  // Include version in public_id if provided
+  // 🔧 ПРАВИЛЬНАЯ обработка версии: version должна быть ПЕРЕД public_id
   const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
   
   return buildCloudinaryUrl(versionedPublicId, transformations);

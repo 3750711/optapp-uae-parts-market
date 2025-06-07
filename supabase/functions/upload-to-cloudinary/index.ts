@@ -6,10 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Generate NEW Cloudinary preview URL (400x300, auto:good, webp)
-function getCloudinaryPreviewUrl(publicId: string): string {
+// Helper to extract version from Cloudinary URL
+function extractVersionFromUrl(cloudinaryUrl: string): string | null {
+  try {
+    const versionMatch = cloudinaryUrl.match(/\/v(\d+)\//);
+    return versionMatch ? versionMatch[1] : null;
+  } catch (error) {
+    console.error('Error extracting version from URL:', error);
+    return null;
+  }
+}
+
+// Generate NEW Cloudinary preview URL (400x300, auto:good, webp) WITH VERSION
+function getCloudinaryPreviewUrl(publicId: string, version?: string): string {
   const cloudName = 'dcuziurrb';
-  return `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${publicId}`;
+  // Include version in public_id if provided
+  const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
+  return `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${versionedPublicId}`;
 }
 
 // Helper to clean public_id from version prefix
@@ -128,10 +141,14 @@ serve(async (req) => {
     const originalPublicId = uploadResult.public_id;
     const cleanedPublicId = cleanPublicId(originalPublicId);
     
+    // 🔧 НОВОЕ: Извлекаем версию из основного URL для использования в preview
+    const mainImageVersion = extractVersionFromUrl(uploadResult.secure_url);
+    
     console.log(`✅ Main ${isVideo ? 'video' : 'image'} upload successful with cleanup:`, {
       original_public_id: originalPublicId,
       cleaned_public_id: cleanedPublicId,
       secure_url: uploadResult.secure_url,
+      version: mainImageVersion,
       format: uploadResult.format,
       bytes: uploadResult.bytes,
       width: uploadResult.width,
@@ -153,11 +170,11 @@ serve(async (req) => {
 
     // Create variants if requested (only for images for now)
     if (createVariants && !isVideo) {
-      console.log('🎨 Creating preview variant with cleaned public_id...');
+      console.log('🎨 Creating preview variant with cleaned public_id and version...');
       
       try {
-        // 🔧 ИСПРАВЛЕНИЕ: Используем очищенный public_id для preview URL
-        const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId);
+        // 🔧 ИСПРАВЛЕНИЕ: Используем очищенный public_id И версию для preview URL
+        const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId, mainImageVersion || undefined);
         
         result.variants.preview = {
           url: previewUrl,
@@ -165,8 +182,9 @@ serve(async (req) => {
           estimatedSize: 25000 // ~20-25KB
         };
         
-        console.log('✅ Preview variant created with cleaned public_id:', {
+        console.log('✅ Preview variant created with cleaned public_id and version:', {
           cleanedPublicId,
+          version: mainImageVersion,
           previewUrl
         });
       } catch (previewError) {
@@ -220,16 +238,17 @@ serve(async (req) => {
             console.log('✅ Video updated with cleaned Cloudinary data');
           }
         } else {
-          // 🔧 ИСПРАВЛЕНИЕ: Update products table for images - используем очищенный public_id
+          // 🔧 ИСПРАВЛЕНИЕ: Update products table for images - используем очищенный public_id и preview с версией
           const updateData = {
             cloudinary_public_id: cleanedPublicId, // 🔧 Сохраняем очищенный ID
             cloudinary_url: uploadResult.secure_url,
-            preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(cleanedPublicId)
+            preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(cleanedPublicId, mainImageVersion || undefined)
           };
           
-          console.log('📝 Updating product with cleaned data:', {
+          console.log('📝 Updating product with cleaned data and versioned preview:', {
             productId,
             cleanedPublicId,
+            version: mainImageVersion,
             previewUrl: updateData.preview_image_url,
             transformation: 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp'
           });
@@ -242,7 +261,7 @@ serve(async (req) => {
           if (error) {
             console.error('❌ Database update error:', error);
           } else {
-            console.log('✅ Product updated with cleaned Cloudinary data');
+            console.log('✅ Product updated with cleaned Cloudinary data and versioned preview');
           }
         }
       }
@@ -250,6 +269,7 @@ serve(async (req) => {
     
     console.log(`🎉 SUCCESS! Cloudinary ${isVideo ? 'video' : 'image'} upload with cleaned data completed:`, {
       cleanedPublicId: result.publicId,
+      version: mainImageVersion,
       format: result.format,
       sizeKB: Math.round(result.originalSize / 1024),
       duration: result.duration,
