@@ -12,7 +12,7 @@ import { Loader2 } from 'lucide-react';
 
 const OrderDetails = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const { data: order, isLoading, error } = useQuery({
     queryKey: ['order', id],
@@ -89,13 +89,11 @@ const OrderDetails = () => {
     );
   }
 
-  // Проверяем права доступа к редактированию подтверждающих фото
-  const canEditConfirmationImages = user && (
-    user.id === order.seller_id || 
-    user.id === order.buyer_id ||
-    // Добавляем проверку для админов
-    user.raw_user_meta_data?.user_type === 'admin'
-  );
+  // Проверяем права доступа к редактированию подтверждающих фото (только для админов)
+  const canEditConfirmationImages = user && profile?.user_type === 'admin';
+
+  // Проверяем, является ли пользователь администратором для просмотра подтверждающих фото
+  const isAdmin = profile?.user_type === 'admin';
 
   return (
     <Layout>
@@ -106,18 +104,20 @@ const OrderDetails = () => {
           videos={videos}
         />
         
-        {/* Отдельный блок подтверждающих фотографий */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Подтверждающие фотографии</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OrderConfirmationImages 
-              orderId={order.id} 
-              canEdit={canEditConfirmationImages}
-            />
-          </CardContent>
-        </Card>
+        {/* Отдельный блок подтверждающих фотографий - только для администраторов */}
+        {isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Подтверждающие фотографии</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OrderConfirmationImages 
+                orderId={order.id} 
+                canEdit={canEditConfirmationImages}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );
