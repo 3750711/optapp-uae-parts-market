@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -213,7 +212,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       {!isMobile && renderThumbnails()}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-black overflow-hidden">
+        <DialogContent className="fixed inset-0 max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] p-0 bg-black overflow-hidden border-0">
           <div
             className="relative w-full h-full flex items-center justify-center"
             onTouchStart={onTouchStart}
@@ -224,7 +223,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-6 top-6 text-white hover:bg-white/20 z-50 bg-black/70 ring-2 ring-white/30"
+              className="fixed right-6 top-6 text-white hover:bg-white/20 z-50 bg-black/70 ring-2 ring-white/30"
               onClick={() => setIsOpen(false)}
             >
               <X className="h-6 w-6" />
@@ -236,7 +235,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-6 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
+                  className="fixed left-6 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
                   onClick={handlePrevMedia}
                 >
                   <ChevronLeft className="h-8 w-8" />
@@ -244,7 +243,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-20 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
+                  className="fixed right-6 bottom-6 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
                   onClick={handleNextMedia}
                 >
                   <ChevronRight className="h-8 w-8" />
@@ -252,24 +251,22 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </>
             )}
             
-            {/* Контент медиа */}
-            <div className="w-full h-full flex items-center justify-center p-12">
+            {/* Контент медиа - фиксированный размер */}
+            <div className="w-full h-full flex items-center justify-center p-20">
               {fullScreenMediaType === 'video' ? (
                 <video
                   src={fullScreenMedia}
                   controls
                   autoPlay
-                  className="max-w-full max-h-full w-auto h-auto object-contain"
+                  className="max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)] w-auto h-auto object-contain"
                   preload="metadata"
-                  style={{ maxWidth: 'calc(100vw - 6rem)', maxHeight: 'calc(100vh - 6rem)' }}
                 />
               ) : (
                 <img
                   src={fullScreenMedia}
                   alt={title}
-                  className="max-w-full max-h-full w-auto h-auto object-contain"
+                  className="max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)] w-auto h-auto object-contain"
                   loading="lazy"
-                  style={{ maxWidth: 'calc(100vw - 6rem)', maxHeight: 'calc(100vh - 6rem)' }}
                 />
               )}
             </div>
