@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,6 @@ import { useIntersection } from '@/hooks/useIntersection';
 import RefactoredProductSearchFilters from '@/components/admin/RefactoredProductSearchFilters';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
-import { PreviewSyncManager } from '@/components/admin/PreviewSyncManager';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw } from 'lucide-react';
 import { useProductFilters } from '@/hooks/useProductFilters';

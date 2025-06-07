@@ -6,7 +6,6 @@ import { Check, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
-import { usePreviewImageSync } from "@/hooks/usePreviewImageSync";
 
 export interface AdminProductImagesManagerProps {
   productId: string;
@@ -27,17 +26,6 @@ export const AdminProductImagesManager = ({
   const [deletingImage, setDeletingImage] = useState<string | null>(null);
   const [settingPrimary, setSettingPrimary] = useState<string | null>(null);
   const queryClient = useQueryClient();
-
-  // Initialize preview sync hook
-  const { syncPreviewImage } = usePreviewImageSync({
-    productId,
-    onSyncComplete: (previewUrl) => {
-      console.log('🎯 Admin preview sync completed:', previewUrl);
-      // Invalidate React Query cache to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
-    }
-  });
 
   // Handle image upload
   const handleImageUpload = async (newUrls: string[]) => {
@@ -133,7 +121,7 @@ export const AdminProductImagesManager = ({
     }
   };
 
-  // Set primary image with preview sync
+  // Set primary image
   const handleSetPrimaryImage = async (imageUrl: string) => {
     if (!onPrimaryImageChange) return;
     
@@ -158,21 +146,18 @@ export const AdminProductImagesManager = ({
       
       if (error) throw error;
       
-      console.log('✅ Database updated, now syncing preview...');
+      console.log('✅ Database updated');
       
       // Update parent state immediately
       onPrimaryImageChange(imageUrl);
       
-      // 🔄 Sync preview image after database update
-      await syncPreviewImage(imageUrl);
-      
-      // Force invalidate cache after sync
+      // Force invalidate cache
       queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
       queryClient.invalidateQueries({ queryKey: ['products-infinite'] });
       
       toast({
         title: "Успех",
-        description: "Основное фото обновлено и превью синхронизировано",
+        description: "Основное фото обновлено",
       });
     } catch (error) {
       console.error("Error setting primary image:", error);
