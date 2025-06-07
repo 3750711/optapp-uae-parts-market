@@ -108,54 +108,10 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     );
   }
 
-  const hasImages = images.length > 0;
-
   return (
     <div className="space-y-4">
-      {canEdit ? (
-        <div className="space-y-2">
-          {/* Show small upload button if images exist */}
-          {hasImages && !showUpload && (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowUpload(true)}
-                className="h-6 px-2 text-xs"
-              >
-                <Upload className="h-3 w-3" />
-              </Button>
-            </div>
-          )}
-          
-          {/* Show full upload component if no images or user clicked to upload more */}
-          {(!hasImages || showUpload) && (
-            <MobileOptimizedImageUpload
-              onUploadComplete={handleImageUpload}
-              maxImages={10}
-              existingImages={images}
-              onImageDelete={handleImageDelete}
-              productId={orderId}
-              buttonText="Загрузить подтверждающие фото"
-              showOnlyButton={false}
-            />
-          )}
-          
-          {/* Always show existing images gallery if they exist */}
-          {hasImages && showUpload && (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowUpload(false)}
-                className="h-6 px-2 text-xs"
-              >
-                Скрыть
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
+      {/* Always show existing images gallery if they exist */}
+      {images.length > 0 && (
         <MobileOptimizedImageUpload
           onUploadComplete={() => {}}
           maxImages={10}
@@ -163,6 +119,50 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
           productId={orderId}
           showGalleryOnly={true}
         />
+      )}
+
+      {canEdit && (
+        <div className="space-y-2">
+          {/* Always show upload button for admins */}
+          {!showUpload && (
+            <div className="flex justify-end">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowUpload(true)}
+                className="h-8 px-3 text-sm"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Загрузить фото
+              </Button>
+            </div>
+          )}
+          
+          {/* Show upload component when user clicks to upload */}
+          {showUpload && (
+            <>
+              <MobileOptimizedImageUpload
+                onUploadComplete={handleImageUpload}
+                maxImages={10}
+                existingImages={images}
+                onImageDelete={handleImageDelete}
+                productId={orderId}
+                buttonText="Загрузить подтверждающие фото"
+                showOnlyButton={false}
+              />
+              <div className="flex justify-end">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowUpload(false)}
+                  className="h-6 px-2 text-xs"
+                >
+                  Скрыть
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );
