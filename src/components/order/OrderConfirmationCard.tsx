@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,6 @@ import { OrderEditForm } from './OrderEditForm';
 import { Label } from "@/components/ui/label";
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderDetails } from './OrderDetails';
-import { OrderVideos } from './OrderVideos';
 import { OrderConfirmationImages } from './OrderConfirmationImages';
 import { Database } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -110,8 +110,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
             <p className="text-gray-700 whitespace-pre-wrap">{order.description}</p>
           </div>
         )}
-
-        <OrderVideos videos={videos} orderId={order.id} />
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-3xl">

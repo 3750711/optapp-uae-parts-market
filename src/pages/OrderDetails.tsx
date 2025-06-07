@@ -8,7 +8,7 @@ import Layout from '@/components/layout/Layout';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { OrderImages } from '@/components/order/OrderImages';
-import { OrderVideos } from '@/components/order/OrderVideos';
+import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
@@ -99,6 +99,9 @@ const OrderDetails = () => {
 
   // Получаем фотографии заказа из поля images
   const orderImages = order.images || [];
+  
+  // Получаем видео заказа из поля video_url и базы данных
+  const allVideos = [...(order.video_url || []), ...videos];
 
   return (
     <Layout>
@@ -106,7 +109,7 @@ const OrderDetails = () => {
         <OrderConfirmationCard
           order={order}
           images={orderImages}
-          videos={videos}
+          videos={allVideos}
         />
         
         {/* Показываем основные фотографии заказа */}
@@ -121,15 +124,13 @@ const OrderDetails = () => {
           </Card>
         )}
 
-        {/* Показываем видео заказа */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Видео заказа</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <OrderVideos videos={videos} orderId={order.id} />
-          </CardContent>
-        </Card>
+        {/* Показываем видео заказа с оптимизированным компонентом */}
+        {allVideos.length > 0 && (
+          <OptimizedOrderVideos 
+            videos={allVideos} 
+            orderNumber={order.order_number?.toString()}
+          />
+        )}
         
         {/* Отдельный блок подтверждающих фотографий - только для администраторов */}
         {isAdmin && (
