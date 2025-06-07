@@ -40,16 +40,17 @@ Deno.serve(async (req) => {
       throw new Error('No file data provided');
     }
 
-    // Get Cloudinary credentials from environment
-    const apiKey = Deno.env.get('CLOUDINARY_API_KEY');
-    const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET');
-    const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET');
+    // Get Cloudinary credentials from environment and clean them
+    const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
+    const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
+    const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET')?.trim();
     
     console.log('🔑 Cloudinary credentials check:', { 
       hasApiKey: !!apiKey,
       hasApiSecret: !!apiSecret,
       hasUploadPreset: !!uploadPreset,
       apiKeyPrefix: apiKey ? `${apiKey.substring(0, 6)}...` : 'undefined',
+      apiKeyLength: apiKey ? apiKey.length : 0,
       uploadPreset: uploadPreset || 'undefined'
     });
     
