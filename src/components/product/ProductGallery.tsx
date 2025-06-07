@@ -220,21 +220,23 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
+            {/* Кнопка закрытия - фиксированная позиция */}
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-4 top-4 text-white hover:bg-white/20 z-50"
+              className="absolute right-2 top-2 text-white hover:bg-white/20 z-50 bg-black/50"
               onClick={() => setIsOpen(false)}
             >
               <X className="h-6 w-6" />
             </Button>
             
+            {/* Стрелки навигации - фиксированная позиция */}
             {mediaItems.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/50"
                   onClick={handlePrevMedia}
                 >
                   <ChevronLeft className="h-8 w-8" />
@@ -242,7 +244,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/50"
                   onClick={handleNextMedia}
                 >
                   <ChevronRight className="h-8 w-8" />
@@ -250,7 +252,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </>
             )}
             
-            <div className="w-full h-full flex items-center justify-center p-4">
+            {/* Контент медиа */}
+            <div className="w-full h-full flex items-center justify-center p-12">
               {fullScreenMediaType === 'video' ? (
                 <video
                   src={fullScreenMedia}
@@ -258,7 +261,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   autoPlay
                   className="max-w-full max-h-full w-auto h-auto object-contain"
                   preload="metadata"
-                  style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}
+                  style={{ maxWidth: 'calc(100vw - 6rem)', maxHeight: 'calc(100vh - 6rem)' }}
                 />
               ) : (
                 <img
@@ -266,7 +269,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   alt={title}
                   className="max-w-full max-h-full w-auto h-auto object-contain"
                   loading="lazy"
-                  style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}
+                  style={{ maxWidth: 'calc(100vw - 6rem)', maxHeight: 'calc(100vh - 6rem)' }}
                 />
               )}
             </div>
