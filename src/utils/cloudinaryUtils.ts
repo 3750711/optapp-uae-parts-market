@@ -47,7 +47,7 @@ export const extractVersionFromUrl = (cloudinaryUrl: string): string | null => {
 // Predefined transformations for different use cases
 export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
   const transformations: Record<string, CloudinaryTransformation> = {
-    // ~50KB thumbnail
+    // ~30KB thumbnail for very small previews
     thumbnail: {
       width: 150,
       height: 150,
@@ -57,7 +57,7 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       format: 'auto',
       dpr: 'auto'
     },
-    // ~200KB card
+    // ~100KB card - optimized for catalog listings
     card: {
       width: 400,
       height: 300,
@@ -67,18 +67,20 @@ export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' 
       format: 'auto',
       dpr: 'auto'
     },
-    // ~400KB detail
+    // ~300KB detail for product pages
     detail: {
       width: 800,
       height: 600,
       crop: 'fit',
       gravity: 'auto',
-      quality: 'auto:low',
+      quality: 'auto:good',
       format: 'auto',
       dpr: 'auto'
     },
-    // ~400KB compressed (main storage format)
+    // ~200KB compressed (main storage format)
     compressed: {
+      width: 600,
+      height: 450,
       crop: 'fill',
       gravity: 'auto',
       quality: 'auto:low',
@@ -122,9 +124,11 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// Generate compressed main image URL (~400KB)
+// Generate compressed main image URL (~200KB)
 export const getCompressedImageUrl = (publicId: string): string => {
   return buildCloudinaryUrl(publicId, {
+    width: 600,
+    height: 450,
     crop: 'fill',
     gravity: 'auto',
     quality: 'auto:low',
@@ -146,29 +150,44 @@ export const getBatchImageUrls = (publicId: string) => {
 // Helper to extract public_id from Cloudinary URL
 export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => {
   try {
-    const urlParts = cloudinaryUrl.split('/');
+    console.log('🔧 Extracting public_id from URL:', cloudinaryUrl);
+    
+    // Remove query parameters if any
+    const cleanUrl = cloudinaryUrl.split('?')[0];
+    
+    const urlParts = cleanUrl.split('/');
     const uploadIndex = urlParts.findIndex(part => part === 'upload');
     
-    if (uploadIndex === -1) return null;
+    if (uploadIndex === -1) {
+      console.log('❌ No "upload" found in URL');
+      return null;
+    }
     
-    // Skip transformation part if exists
+    // Skip transformation part if exists (anything with commas or underscores after upload)
     let publicIdIndex = uploadIndex + 1;
-    if (urlParts[publicIdIndex]?.includes('_') || urlParts[publicIdIndex]?.includes(',')) {
+    
+    // Skip transformation parameters (they contain commas, underscores, colons)
+    while (publicIdIndex < urlParts.length && 
+           (urlParts[publicIdIndex].includes(',') || 
+            urlParts[publicIdIndex].includes('_') ||
+            urlParts[publicIdIndex].includes(':') ||
+            urlParts[publicIdIndex].startsWith('v') && /^v\d+$/.test(urlParts[publicIdIndex]))) {
       publicIdIndex++;
+    }
+    
+    if (publicIdIndex >= urlParts.length) {
+      console.log('❌ No public_id found after transformations');
+      return null;
     }
     
     const publicIdWithExtension = urlParts.slice(publicIdIndex).join('/');
     
-    // Remove version prefix (v{timestamp}/) if present
-    const publicIdCleaned = publicIdWithExtension.replace(/^v\d+\//, '');
-    
     // Remove file extension
-    const publicIdFinal = publicIdCleaned.replace(/\.[^/.]+$/, '');
+    const publicIdFinal = publicIdWithExtension.replace(/\.[^/.]+$/, '');
     
-    console.log('extractPublicIdFromUrl:', {
+    console.log('✅ Extracted public_id:', {
       originalUrl: cloudinaryUrl,
       publicIdWithExtension,
-      publicIdCleaned,
       publicIdFinal
     });
     
@@ -204,8 +223,8 @@ export const isValidPublicId = (publicId: string): boolean => {
     return false;
   }
   
-  // Should contain valid characters (letters, numbers, underscores, hyphens)
-  const validFormat = /^[a-zA-Z0-9_-]+$/.test(publicId.replace(/\//g, '_'));
+  // Should contain valid characters (letters, numbers, underscores, hyphens, slashes)
+  const validFormat = /^[a-zA-Z0-9_/-]+$/.test(publicId);
   
   if (!validFormat) {
     console.warn('Invalid public_id format:', publicId);
