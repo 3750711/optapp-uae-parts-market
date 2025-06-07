@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, SkipForward, Check, AlertCircle, Video } from "lucide-react";
@@ -253,10 +252,14 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                 <div className="text-sm">
                   <p className="font-medium">Рекомендации по файлам подтверждения:</p>
                   <ul className="mt-1 space-y-1 text-blue-600">
-                    <li>• Сфотографируйте или снимите товар после упаковки</li>
-                    <li>• Включите этикетки или документы в кадр</li>
-                    <li>• Убедитесь, что изображения и видео четкие</li>
-                    <li>• Для видео: показывайте процесс упаковки или готовый товар</li>
+                    <li>• Подпишите товар номером заказа и ID покупателя</li>
+                    <li>• Добавьте скриншот переписки если вы обсуждали детали с покупателем</li>
+                    <li>• Добавьте скриншот переписки с обсуждения цены</li>
+                  </ul>
+                  <p className="font-medium mt-2">Для видео:</p>
+                  <ul className="mt-1 space-y-1 text-blue-600">
+                    <li>• Добавьте больше видео если вы присылали их продавцу</li>
+                    <li>• Добавьте видео эндоскопии, масла и прокрутки для моторов</li>
                   </ul>
                 </div>
               </div>
