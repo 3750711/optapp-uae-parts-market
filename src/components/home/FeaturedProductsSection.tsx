@@ -26,6 +26,8 @@ type ProductType = {
   created_at: string;
   delivery_price?: number | null;
   has_preview?: boolean;
+  cloudinary_public_id?: string | null;
+  cloudinary_url?: string | null;
 };
 
 const FeaturedProductsSection = () => {
