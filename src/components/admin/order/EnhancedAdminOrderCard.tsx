@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,6 @@ import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
-import { OrderPriorityIndicator } from './OrderPriorityIndicator';
 import { CompactOrderInfo } from './CompactOrderInfo';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
@@ -156,19 +154,9 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
 
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
   const showRegisterButton = order.status === 'admin_confirmed';
-  const totalValue = Number(order.price) + Number(order.delivery_price_confirm || 0);
 
   return (
     <Card className={`${highlightColor} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden`}>
-      {/* Индикатор приоритета */}
-      <div className="absolute top-2 left-2 z-10">
-        <OrderPriorityIndicator 
-          createdAt={order.created_at}
-          status={order.status}
-          totalValue={totalValue}
-        />
-      </div>
-
       <CardHeader className="space-y-3 pb-4">
         <div className="flex justify-between items-start">
           <EnhancedOrderStatusBadge status={order.status} />
