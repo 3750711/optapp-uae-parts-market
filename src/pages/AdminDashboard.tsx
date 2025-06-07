@@ -1,15 +1,16 @@
+
 import React from 'react';
-import AdminLayout from '@/components/layouts/AdminLayout';
-import DashboardHeader from '@/components/admin/DashboardHeader';
-import AdminMetricsSection from '@/components/admin/AdminMetricsSection';
-import AdminActionsSection from '@/components/admin/AdminActionsSection';
+import AdminLayout from '@/components/admin/AdminLayout';
+import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
+import AdminMetricsSection from '@/components/admin/dashboard/AdminMetricsSection';
+import AdminActionsSection from '@/components/admin/dashboard/AdminActionsSection';
 import CloudinaryDataCleanup from '@/components/admin/CloudinaryDataCleanup';
 
 const AdminDashboard = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <DashboardHeader />
+        <DashboardHeader title="Админ панель" />
         <AdminMetricsSection />
         <AdminActionsSection />
         
