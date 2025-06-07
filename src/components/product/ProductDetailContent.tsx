@@ -1,6 +1,6 @@
+
 import React from "react";
 import ProductGallery from "@/components/product/ProductGallery";
-import ProductVideos from "@/components/product/ProductVideos";
 import ProductInfo from "@/components/product/ProductInfo";
 import ContactButtons from "@/components/product/ContactButtons";
 import SellerInfo from "@/components/product/SellerInfo";
@@ -35,32 +35,24 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
 }) => {
   const handleTelegramContact = (message?: string) => {
     if (message) {
-      // Если передано сообщение, открываем Telegram с предзаполненным текстом
       const telegramUrl = `https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}`;
       window.open(telegramUrl, '_blank');
     } else {
-      // Иначе просто открываем профиль
       window.open(`https://t.me/${product.telegram_url}`, '_blank');
     }
   };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-      {/* Gallery section */}
+      {/* Gallery section - now includes videos */}
       <div className="space-y-6">
         <ProductGallery 
-          images={imageUrls} 
+          images={imageUrls}
+          videos={videoUrls}
           title={product.title}
           selectedImage={selectedImage} 
           onImageClick={onImageClick}
         />
-        
-        {videoUrls.length > 0 && (
-          <div className="animate-fade-in">
-            <h3 className="text-lg font-semibold mb-4 text-foreground">Видео</h3>
-            <ProductVideos videos={videoUrls} />
-          </div>
-        )}
       </div>
       
       {/* Info section with better spacing */}

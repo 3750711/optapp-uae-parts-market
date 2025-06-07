@@ -1,7 +1,8 @@
+
 import React, { useState, useRef } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { 
@@ -12,72 +13,93 @@ import {
   CarouselPrevious 
 } from "@/components/ui/carousel";
 
-interface ProductGalleryProps {
-  images: string[];
-  title?: string;  // Made optional since it's not always provided
-  compressed?: boolean;
-  isPreview?: boolean;
-  selectedImage?: string; // Add support for external control of the active image
-  onImageClick?: (url: string) => void; // Add support for external image click handler
+interface MediaItem {
+  url: string;
+  type: 'image' | 'video';
 }
 
-const SWIPE_THRESHOLD = 50; // минимальное расстояние в пикселях для активации свайпа
+interface ProductGalleryProps {
+  images: string[];
+  videos?: string[];
+  title?: string;
+  compressed?: boolean;
+  isPreview?: boolean;
+  selectedImage?: string;
+  onImageClick?: (url: string) => void;
+}
+
+const SWIPE_THRESHOLD = 50;
 
 const ProductGallery: React.FC<ProductGalleryProps> = ({ 
   images, 
-  title = "", // Default to empty string if not provided
+  videos = [],
+  title = "",
   compressed = true,
   isPreview = false,
   selectedImage,
   onImageClick
 }) => {
-  // Use selectedImage prop if provided, otherwise manage internally
-  const [internalActiveImage, setInternalActiveImage] = useState<string>(images[0] || "");
-  const activeImage = selectedImage || internalActiveImage;
+  // Combine images and videos into media array
+  const mediaItems: MediaItem[] = [
+    ...images.map(url => ({ url, type: 'image' as const })),
+    ...videos.map(url => ({ url, type: 'video' as const }))
+  ];
+
+  const [internalActiveMedia, setInternalActiveMedia] = useState<string>(mediaItems[0]?.url || "");
+  const activeMedia = selectedImage || internalActiveMedia;
   
   const [isOpen, setIsOpen] = useState(false);
-  const [fullScreenImage, setFullScreenImage] = useState<string>("");
+  const [fullScreenMedia, setFullScreenMedia] = useState<string>("");
+  const [fullScreenMediaType, setFullScreenMediaType] = useState<'image' | 'video'>('image');
   const isMobile = useIsMobile();
 
-  // для touch-событий
   const touchStartX = useRef<number | null>(null);
   const touchEndX = useRef<number | null>(null);
 
-  const handleImageClick = (image: string) => {
-    if (isPreview) return; // Don't open dialog for preview images
+  const getMediaType = (url: string): 'image' | 'video' => {
+    return mediaItems.find(item => item.url === url)?.type || 'image';
+  };
+
+  const handleMediaClick = (url: string) => {
+    if (isPreview) return;
     
-    // Use external handler if provided
+    const mediaType = getMediaType(url);
+    
     if (onImageClick) {
-      onImageClick(image);
+      onImageClick(url);
     } else {
-      setInternalActiveImage(image);
+      setInternalActiveMedia(url);
     }
     
-    setFullScreenImage(image);
+    setFullScreenMedia(url);
+    setFullScreenMediaType(mediaType);
     setIsOpen(true);
   };
 
-  const handleThumbnailClick = (image: string) => {
+  const handleThumbnailClick = (url: string) => {
     if (onImageClick) {
-      onImageClick(image);
+      onImageClick(url);
     } else {
-      setInternalActiveImage(image);
+      setInternalActiveMedia(url);
     }
   };
 
-  const handleNextImage = () => {
-    const currentIndex = images.indexOf(fullScreenImage);
-    const nextIndex = (currentIndex + 1) % images.length;
-    setFullScreenImage(images[nextIndex]);
+  const handleNextMedia = () => {
+    const currentIndex = mediaItems.findIndex(item => item.url === fullScreenMedia);
+    const nextIndex = (currentIndex + 1) % mediaItems.length;
+    const nextItem = mediaItems[nextIndex];
+    setFullScreenMedia(nextItem.url);
+    setFullScreenMediaType(nextItem.type);
   };
 
-  const handlePrevImage = () => {
-    const currentIndex = images.indexOf(fullScreenImage);
-    const prevIndex = (currentIndex - 1 + images.length) % images.length;
-    setFullScreenImage(images[prevIndex]);
+  const handlePrevMedia = () => {
+    const currentIndex = mediaItems.findIndex(item => item.url === fullScreenMedia);
+    const prevIndex = (currentIndex - 1 + mediaItems.length) % mediaItems.length;
+    const prevItem = mediaItems[prevIndex];
+    setFullScreenMedia(prevItem.url);
+    setFullScreenMediaType(prevItem.type);
   };
 
-  // Touch events для свайпа на мобильных
   const onTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     touchStartX.current = e.touches[0].clientX;
   };
@@ -89,83 +111,90 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   };
 
   const onTouchEnd = () => {
-    if (
-      touchStartX.current !== null &&
-      touchEndX.current !== null
-    ) {
+    if (touchStartX.current !== null && touchEndX.current !== null) {
       const diffX = touchStartX.current - touchEndX.current;
 
       if (diffX > SWIPE_THRESHOLD) {
-        // свайп влево -> следующая картинка
-        handleNextImage();
+        handleNextMedia();
       } else if (diffX < -SWIPE_THRESHOLD) {
-        // свайп вправо -> предыдущая картинка
-        handlePrevImage();
+        handlePrevMedia();
       }
     }
-    // Сбросить значения
     touchStartX.current = null;
     touchEndX.current = null;
   };
 
-  // Отображение главного изображения
-  const renderMainImage = () => (
+  const renderMediaPreview = (url: string, isActive?: boolean, className?: string) => {
+    const mediaType = getMediaType(url);
+    
+    if (mediaType === 'video') {
+      return (
+        <div className={`relative ${className || ''}`}>
+          <video 
+            src={url} 
+            className="w-full h-full object-contain"
+            preload="metadata"
+            muted
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
+            <Play className="w-8 h-8 text-white" fill="white" />
+          </div>
+        </div>
+      );
+    }
+    
+    return (
+      <img 
+        src={url} 
+        alt={title}
+        className={className || "w-full h-full object-contain"}
+      />
+    );
+  };
+
+  const renderMainMedia = () => (
     <div 
       className="mb-4 overflow-hidden rounded-lg cursor-pointer"
-      onClick={() => isPreview ? null : handleImageClick(activeImage)}
+      onClick={() => isPreview ? null : handleMediaClick(activeMedia)}
     >
       <AspectRatio ratio={16 / 9}>
-        <img 
-          src={activeImage} 
-          alt={title}
-          className="w-full h-full object-contain"
-        />
+        {renderMediaPreview(activeMedia, true, "w-full h-full object-contain")}
       </AspectRatio>
     </div>
   );
 
-  // Отображение миниатюр изображений
   const renderThumbnails = () => (
     <div className="grid grid-cols-4 gap-2">
-      {images.map((image, index) => (
+      {mediaItems.map((item, index) => (
         <div 
           key={index} 
           className={`overflow-hidden rounded-md border-2 aspect-square ${
-            activeImage === image ? 'border-optapp-yellow' : 'border-transparent'
+            activeMedia === item.url ? 'border-optapp-yellow' : 'border-transparent'
           } hover:border-optapp-yellow cursor-pointer`}
-          onClick={() => handleThumbnailClick(image)}
+          onClick={() => handleThumbnailClick(item.url)}
         >
-          <img 
-            src={image} 
-            alt={`${title} ${index + 1}`} 
-            className="w-full h-full object-contain"
-          />
+          {renderMediaPreview(item.url, false, "w-full h-full object-contain")}
         </div>
       ))}
     </div>
   );
 
-  // Мобильная карусель
   const renderMobileCarousel = () => (
     <div className="mb-4">
       <Carousel className="w-full">
         <CarouselContent>
-          {images.map((image, index) => (
+          {mediaItems.map((item, index) => (
             <CarouselItem key={index} className="basis-full">
               <div 
                 className="overflow-hidden rounded-lg cursor-pointer h-full flex items-center justify-center"
-                onClick={() => isPreview ? null : handleImageClick(image)}
+                onClick={() => isPreview ? null : handleMediaClick(item.url)}
               >
-                <img 
-                  src={image} 
-                  alt={`${title} ${index + 1}`}
-                  className="w-full h-auto object-contain max-h-[50vh]"
-                />
+                {renderMediaPreview(item.url, false, "w-full h-auto object-contain max-h-[50vh]")}
               </div>
             </CarouselItem>
           ))}
         </CarouselContent>
-        {images.length > 1 && (
+        {mediaItems.length > 1 && (
           <>
             <CarouselPrevious className="left-2" />
             <CarouselNext className="right-2" />
@@ -175,9 +204,11 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     </div>
   );
 
+  if (mediaItems.length === 0) return null;
+
   return (
     <div>
-      {isMobile && images.length > 1 ? renderMobileCarousel() : renderMainImage()}
+      {isMobile && mediaItems.length > 1 ? renderMobileCarousel() : renderMainMedia()}
       
       {!isMobile && renderThumbnails()}
 
@@ -198,13 +229,13 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               <X className="h-6 w-6" />
             </Button>
             
-            {images.length > 1 && (
+            {mediaItems.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
-                  onClick={handlePrevImage}
+                  onClick={handlePrevMedia}
                 >
                   <ChevronLeft className="h-8 w-8" />
                 </Button>
@@ -212,19 +243,29 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                   variant="ghost"
                   size="icon"
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20"
-                  onClick={handleNextImage}
+                  onClick={handleNextMedia}
                 >
                   <ChevronRight className="h-8 w-8" />
                 </Button>
               </>
             )}
             
-            <img
-              src={fullScreenImage}
-              alt={title}
-              className="max-h-full max-w-full object-contain"
-              loading="lazy"
-            />
+            {fullScreenMediaType === 'video' ? (
+              <video
+                src={fullScreenMedia}
+                controls
+                autoPlay
+                className="max-h-full max-w-full object-contain"
+                preload="metadata"
+              />
+            ) : (
+              <img
+                src={fullScreenMedia}
+                alt={title}
+                className="max-h-full max-w-full object-contain"
+                loading="lazy"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
