@@ -15,13 +15,48 @@ function getCloudinaryPreviewUrl(publicId: string): string {
   return `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fill,g_auto,q_auto:good,f_webp/${publicId}`;
 }
 
+// Helper to clean public_id from version prefix
+function cleanPublicId(publicId: string): string {
+  if (!publicId) return '';
+  
+  // Remove version prefix (v{timestamp}/) if present
+  const cleaned = publicId.replace(/^v\d+\//, '');
+  
+  console.log('cleanPublicId:', {
+    original: publicId,
+    cleaned
+  });
+  
+  return cleaned;
+}
+
+// Helper to validate public_id format
+function isValidPublicId(publicId: string): boolean {
+  if (!publicId || typeof publicId !== 'string') return false;
+  
+  // Valid public_id should not contain version prefix
+  if (publicId.startsWith('v') && /^v\d+\//.test(publicId)) {
+    console.warn('Invalid public_id with version prefix:', publicId);
+    return false;
+  }
+  
+  // Should contain valid characters (letters, numbers, underscores, hyphens)
+  const validFormat = /^[a-zA-Z0-9_-]+$/.test(publicId.replace(/\//g, '_'));
+  
+  if (!validFormat) {
+    console.warn('Invalid public_id format:', publicId);
+  }
+  
+  return validFormat;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 NEW Generate preview function started (Cloudinary-only)');
+    console.log('🚀 NEW Generate preview function started (Cloudinary-only with cleanup)');
     
     const { imageUrl, productId } = await req.json();
     
@@ -76,20 +111,56 @@ serve(async (req) => {
     }
 
     if (product?.cloudinary_public_id) {
-      // Generate NEW Cloudinary preview URL (400x300, auto:good, webp)
-      const previewUrl = getCloudinaryPreviewUrl(product.cloudinary_public_id);
+      // Clean the public_id from version prefix
+      const originalPublicId = product.cloudinary_public_id;
+      const cleanedPublicId = cleanPublicId(originalPublicId);
       
-      console.log('✅ Generated NEW Cloudinary preview URL:', {
-        publicId: product.cloudinary_public_id,
+      // Validate the cleaned public_id
+      if (!isValidPublicId(cleanedPublicId)) {
+        console.error('❌ Invalid public_id after cleaning:', {
+          original: originalPublicId,
+          cleaned: cleanedPublicId,
+          productId
+        });
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: 'Invalid public_id format after cleaning'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400 
+          }
+        );
+      }
+      
+      // Generate NEW Cloudinary preview URL with cleaned public_id
+      const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId);
+      
+      console.log('✅ Generated NEW Cloudinary preview URL with cleaned public_id:', {
+        originalPublicId,
+        cleanedPublicId,
         previewUrl,
         productId,
         parameters: '400x300, quality auto:good, format webp'
       });
 
-      // Update product with the NEW preview URL
+      // Update product with cleaned public_id and NEW preview URL
+      const updateData: any = { preview_image_url: previewUrl };
+      
+      // Only update public_id if it was actually cleaned
+      if (originalPublicId !== cleanedPublicId) {
+        updateData.cloudinary_public_id = cleanedPublicId;
+        console.log('🧹 Also updating public_id in database:', {
+          from: originalPublicId,
+          to: cleanedPublicId
+        });
+      }
+      
       const { error: updateError } = await supabase
         .from('products')
-        .update({ preview_image_url: previewUrl })
+        .update(updateData)
         .eq('id', productId);
 
       if (updateError) {
@@ -113,14 +184,16 @@ serve(async (req) => {
         previewSize: 25000, // Estimated 20-25KB
         compressionRatio: 100, // Direct transformation
         productUpdated: true,
-        method: 'cloudinary_transformation'
+        method: 'cloudinary_transformation_cleaned',
+        publicIdCleaned: originalPublicId !== cleanedPublicId
       };
       
-      console.log('🎉 SUCCESS! NEW Cloudinary preview generation completed:', {
+      console.log('🎉 SUCCESS! NEW Cloudinary preview generation with cleanup completed:', {
         previewUrl: previewUrl.substring(previewUrl.lastIndexOf('/') + 1),
         estimatedKB: Math.round(result.previewSize / 1024),
         productUpdated: result.productUpdated,
-        method: result.method
+        method: result.method,
+        publicIdCleaned: result.publicIdCleaned
       });
 
       return new Response(

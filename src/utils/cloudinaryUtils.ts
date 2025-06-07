@@ -170,8 +170,58 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
     }
     
     const publicIdWithExtension = urlParts.slice(publicIdIndex).join('/');
-    return publicIdWithExtension.replace(/\.[^/.]+$/, ''); // Remove file extension
-  } catch {
+    
+    // Remove version prefix (v{timestamp}/) if present
+    const publicIdCleaned = publicIdWithExtension.replace(/^v\d+\//, '');
+    
+    // Remove file extension
+    const publicIdFinal = publicIdCleaned.replace(/\.[^/.]+$/, '');
+    
+    console.log('extractPublicIdFromUrl:', {
+      originalUrl: cloudinaryUrl,
+      publicIdWithExtension,
+      publicIdCleaned,
+      publicIdFinal
+    });
+    
+    return publicIdFinal;
+  } catch (error) {
+    console.error('Error extracting public_id from URL:', error);
     return null;
   }
+};
+
+// Helper to clean public_id from version prefix
+export const cleanPublicId = (publicId: string): string => {
+  if (!publicId) return '';
+  
+  // Remove version prefix (v{timestamp}/) if present
+  const cleaned = publicId.replace(/^v\d+\//, '');
+  
+  console.log('cleanPublicId:', {
+    original: publicId,
+    cleaned
+  });
+  
+  return cleaned;
+};
+
+// Helper to validate public_id format
+export const isValidPublicId = (publicId: string): boolean => {
+  if (!publicId || typeof publicId !== 'string') return false;
+  
+  // Valid public_id should not contain version prefix
+  if (publicId.startsWith('v') && /^v\d+\//.test(publicId)) {
+    console.warn('Invalid public_id with version prefix:', publicId);
+    return false;
+  }
+  
+  // Should contain valid characters (letters, numbers, underscores, hyphens)
+  const validFormat = /^[a-zA-Z0-9_-]+$/.test(publicId.replace(/\//g, '_'));
+  
+  if (!validFormat) {
+    console.warn('Invalid public_id format:', publicId);
+  }
+  
+  return validFormat;
 };

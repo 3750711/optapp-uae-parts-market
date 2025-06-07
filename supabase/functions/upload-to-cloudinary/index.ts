@@ -12,6 +12,21 @@ function getCloudinaryPreviewUrl(publicId: string): string {
   return `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_300,c_fill,g_auto,q_auto:good,f_webp/${publicId}`;
 }
 
+// Helper to clean public_id from version prefix
+function cleanPublicId(publicId: string): string {
+  if (!publicId) return '';
+  
+  // Remove version prefix (v{timestamp}/) if present
+  const cleaned = publicId.replace(/^v\d+\//, '');
+  
+  console.log('cleanPublicId:', {
+    original: publicId,
+    cleaned
+  });
+  
+  return cleaned;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -108,8 +123,14 @@ serve(async (req) => {
     }
 
     const uploadResult = await uploadResponse.json();
+    
+    // Clean the public_id from any version prefix
+    const originalPublicId = uploadResult.public_id;
+    const cleanedPublicId = cleanPublicId(originalPublicId);
+    
     console.log(`✅ Main ${isVideo ? 'video' : 'image'} upload successful:`, {
-      public_id: uploadResult.public_id,
+      original_public_id: originalPublicId,
+      cleaned_public_id: cleanedPublicId,
       secure_url: uploadResult.secure_url,
       format: uploadResult.format,
       bytes: uploadResult.bytes,
@@ -121,7 +142,7 @@ serve(async (req) => {
     const result = {
       success: true,
       cloudinaryUrl: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
+      publicId: cleanedPublicId, // Use cleaned public_id
       originalSize: uploadResult.bytes,
       format: uploadResult.format,
       width: uploadResult.width,
@@ -135,8 +156,8 @@ serve(async (req) => {
       console.log('🎨 Creating NEW preview variant (20-25KB, 400x300)...');
       
       try {
-        // Use NEW transformation URL for preview (400x300, auto:good, webp)
-        const previewUrl = getCloudinaryPreviewUrl(uploadResult.public_id);
+        // Use NEW transformation URL for preview (400x300, auto:good, webp) with cleaned public_id
+        const previewUrl = getCloudinaryPreviewUrl(cleanedPublicId);
         
         result.variants.preview = {
           url: previewUrl,
@@ -144,7 +165,7 @@ serve(async (req) => {
           estimatedSize: 25000 // ~20-25KB
         };
         
-        console.log('✅ NEW Preview variant created:', previewUrl);
+        console.log('✅ NEW Preview variant created with cleaned public_id:', previewUrl);
       } catch (previewError) {
         console.error('⚠️ Preview variant creation failed:', previewError);
       }
@@ -155,7 +176,7 @@ serve(async (req) => {
       console.log('🎬 Creating video thumbnail...');
       
       try {
-        const thumbnailUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_200,h_150,q_60,f_jpg,so_2/${uploadResult.public_id}.jpg`;
+        const thumbnailUrl = `https://res.cloudinary.com/${cloudName}/video/upload/w_200,h_150,q_60,f_jpg,so_2/${cleanedPublicId}.jpg`;
         
         result.variants.thumbnail = {
           url: thumbnailUrl,
@@ -163,7 +184,7 @@ serve(async (req) => {
           estimatedSize: 15000 // ~15KB
         };
         
-        console.log('✅ Video thumbnail created:', thumbnailUrl);
+        console.log('✅ Video thumbnail created with cleaned public_id:', thumbnailUrl);
       } catch (thumbnailError) {
         console.error('⚠️ Video thumbnail creation failed:', thumbnailError);
       }
@@ -183,7 +204,7 @@ serve(async (req) => {
           const { error } = await supabase
             .from('product_videos')
             .update({
-              cloudinary_public_id: uploadResult.public_id,
+              cloudinary_public_id: cleanedPublicId, // Use cleaned public_id
               cloudinary_url: uploadResult.secure_url,
               thumbnail_url: result.variants.thumbnail?.url || null,
               duration: uploadResult.duration || null
@@ -193,18 +214,19 @@ serve(async (req) => {
           if (error) {
             console.error('❌ Video database update error:', error);
           } else {
-            console.log('✅ Video updated with Cloudinary data');
+            console.log('✅ Video updated with cleaned Cloudinary data');
           }
         } else {
-          // Update products table for images - use NEW preview URL
+          // Update products table for images - use NEW preview URL with cleaned public_id
           const updateData = {
-            cloudinary_public_id: uploadResult.public_id,
+            cloudinary_public_id: cleanedPublicId, // Use cleaned public_id
             cloudinary_url: uploadResult.secure_url,
-            preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(uploadResult.public_id)
+            preview_image_url: result.variants.preview?.url || getCloudinaryPreviewUrl(cleanedPublicId)
           };
           
-          console.log('📝 Updating product with NEW preview URL:', {
+          console.log('📝 Updating product with NEW preview URL and cleaned public_id:', {
             productId,
+            cleanedPublicId,
             previewUrl: updateData.preview_image_url,
             parameters: '400x300, auto:good, webp'
           });
@@ -217,14 +239,14 @@ serve(async (req) => {
           if (error) {
             console.error('❌ Database update error:', error);
           } else {
-            console.log('✅ Product updated with NEW Cloudinary preview data');
+            console.log('✅ Product updated with NEW Cloudinary preview data and cleaned public_id');
           }
         }
       }
     }
     
     console.log(`🎉 SUCCESS! Cloudinary ${isVideo ? 'video' : 'image'} upload with NEW preview completed:`, {
-      publicId: result.publicId,
+      cleanedPublicId: result.publicId,
       format: result.format,
       sizeKB: Math.round(result.originalSize / 1024),
       duration: result.duration,

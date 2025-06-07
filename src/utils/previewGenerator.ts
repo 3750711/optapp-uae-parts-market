@@ -1,5 +1,5 @@
 
-import { getPreviewImageUrl } from "./cloudinaryUtils";
+import { getPreviewImageUrl, cleanPublicId, isValidPublicId } from "./cloudinaryUtils";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PreviewGenerationResult {
@@ -29,20 +29,41 @@ export const generateProductPreview = async (
       .single();
 
     if (product?.cloudinary_public_id) {
-      // Generate preview URL using NEW Cloudinary transformations (400x300, fit, auto:good, webp)
-      const previewUrl = getPreviewImageUrl(product.cloudinary_public_id);
+      // Clean the public_id from version prefix
+      const cleanedPublicId = cleanPublicId(product.cloudinary_public_id);
+      
+      // Validate the cleaned public_id
+      if (!isValidPublicId(cleanedPublicId)) {
+        console.error('❌ Invalid public_id after cleaning:', {
+          original: product.cloudinary_public_id,
+          cleaned: cleanedPublicId,
+          productId
+        });
+        
+        return {
+          success: false,
+          error: 'Invalid public_id format'
+        };
+      }
+      
+      // Generate preview URL using cleaned public_id
+      const previewUrl = getPreviewImageUrl(cleanedPublicId);
       
       console.log('✅ Generated NEW Cloudinary preview URL (fit mode):', {
-        publicId: product.cloudinary_public_id,
+        originalPublicId: product.cloudinary_public_id,
+        cleanedPublicId,
         previewUrl,
         productId,
         parameters: '400x300, crop fit, quality auto:good, format webp'
       });
 
-      // Update product with preview URL
+      // Update product with cleaned public_id and preview URL
       const { error: updateError } = await supabase
         .from('products')
-        .update({ preview_image_url: previewUrl })
+        .update({ 
+          cloudinary_public_id: cleanedPublicId, // Save cleaned version
+          preview_image_url: previewUrl 
+        })
         .eq('id', productId);
 
       if (updateError) {
@@ -71,11 +92,15 @@ export const generateProductPreview = async (
       );
 
       if (cloudinaryResult.success && cloudinaryResult.publicId) {
-        // Use NEW preview URL generation for uploaded images
-        const previewUrl = getPreviewImageUrl(cloudinaryResult.publicId);
+        // Clean the public_id from any version prefix
+        const cleanedPublicId = cleanPublicId(cloudinaryResult.publicId);
+        
+        // Use cleaned public_id for preview URL generation
+        const previewUrl = getPreviewImageUrl(cleanedPublicId);
         
         console.log('✅ Uploaded to Cloudinary and generated NEW preview (fit mode):', {
-          publicId: cloudinaryResult.publicId,
+          originalPublicId: cloudinaryResult.publicId,
+          cleanedPublicId,
           previewUrl,
           productId,
           parameters: '400x300, crop fit, quality auto:good, format webp'
