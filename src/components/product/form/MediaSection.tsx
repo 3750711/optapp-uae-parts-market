@@ -3,7 +3,7 @@ import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, Video } from "lucide-react";
-import VideoUpload from "@/components/ui/video-upload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 
 interface MediaSectionProps {
@@ -29,6 +29,14 @@ const MediaSection = React.memo<MediaSectionProps>(({
 }) => {
   const totalMediaCount = imageUrls.length + videoUrls.length;
 
+  const handleVideoUpload = (urls: string[]) => {
+    setVideoUrls(prevUrls => [...prevUrls, ...urls]);
+  };
+
+  const handleVideoDelete = (urlToDelete: string) => {
+    setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete));
+  };
+
   return (
     <div className="space-y-6">
       {/* Кнопки загрузки */}
@@ -49,12 +57,12 @@ const MediaSection = React.memo<MediaSectionProps>(({
         </div>
         
         <div className="flex-1">
-          <VideoUpload
+          <CloudinaryVideoUpload
             videos={videoUrls}
-            onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
-            onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
+            onUpload={handleVideoUpload}
+            onDelete={handleVideoDelete}
             maxVideos={2}
-            storageBucket="Product Images"
+            productId={productId}
             showOnlyButton={true}
             buttonText="Загрузить видео"
             buttonIcon={<Video className="h-4 w-4" />}
@@ -120,7 +128,7 @@ const MediaSection = React.memo<MediaSectionProps>(({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setVideoUrls(prevUrls => prevUrls.filter(u => u !== url))}
+                  onClick={() => handleVideoDelete(url)}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
                 >
                   ×

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
-import VideoUpload from "@/components/ui/video-upload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 
 interface OrderMediaTabProps {
   order: any;
@@ -51,12 +51,13 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
           <CardTitle>Видеофайлы заказа</CardTitle>
         </CardHeader>
         <CardContent>
-          <VideoUpload
+          <CloudinaryVideoUpload
             videos={orderVideos}
             onUpload={onVideoUpload}
             onDelete={onVideoDelete}
-            maxVideos={5}
-            storageBucket="Order Videos"
+            maxVideos={3}
+            productId={order?.id}
+            buttonText="Загрузить видео заказа"
           />
         </CardContent>
       </Card>

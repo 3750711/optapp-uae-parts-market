@@ -9,7 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { ImageUpload } from "@/components/ui/image-upload";
-import { VideoUpload } from "@/components/ui/video-upload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -224,6 +224,14 @@ const BuyerCreateOrder = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const handleVideoUpload = (urls: string[]) => {
+    setOrderVideos(prevUrls => [...prevUrls, ...urls]);
+  };
+
+  const handleVideoDelete = (urlToDelete: string) => {
+    setOrderVideos(prevUrls => prevUrls.filter(url => url !== urlToDelete));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -484,221 +492,212 @@ const BuyerCreateOrder = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Информация о заказе</CardTitle>
-              <CardDescription>
-                Заполните необходимые поля для создания нового заказа
-              </CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="title">Наименование *</Label>
-                    <Input 
-                      id="title" 
-                      value={formData.title}
-                      onChange={(e) => handleInputChange('title', e.target.value)}
-                      required 
-                      placeholder="Введите наименование"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="quantity">Количество единиц товара</Label>
-                    <Input 
-                      id="quantity" 
-                      type="number"
-                      value={formData.quantity}
-                      onChange={(e) => handleInputChange('quantity', e.target.value)}
-                      required 
-                      min="1"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="brand">Марка</Label>
-                    <Select
-                      value={selectedBrandId || ""}
-                      onValueChange={setSelectedBrandId}
-                      disabled={loadingBrands}
-                    >
-                      <SelectTrigger id="brand">
-                        <SelectValue placeholder="Выберите марку" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {brands.map((brand) => (
-                          <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="model">Модель</Label>
-                    <Select
-                      value={selectedModelId || ""}
-                      onValueChange={setSelectedModelId}
-                      disabled={!selectedBrandId || loadingModels}
-                    >
-                      <SelectTrigger id="model">
-                        <SelectValue placeholder="Выберите модель" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {brandModels.map((model) => (
-                          <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Цена ($) *</Label>
-                    <Input 
-                      id="price" 
-                      type="number" 
-                      value={formData.price}
-                      onChange={(e) => handleInputChange('price', e.target.value)}
-                      required 
-                      placeholder="0.00"
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="delivery_price">Стоимость доставки ($)</Label>
-                    <Input 
-                      id="delivery_price"
-                      type="number"
-                      value={formData.delivery_price}
-                      onChange={(e) => handleInputChange('delivery_price', e.target.value)}
-                      placeholder="0.00"
-                      step="0.01"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>OPT_ID продавца</Label>
-                    <Input 
-                      value={formData.sellerOptId}
-                      readOnly 
-                      className="bg-gray-100"
-                    />
-                  </div>
-                </div>
-
+      <div className="container mx-auto py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Создать заказ</CardTitle>
+            <CardDescription>
+              Заполните информацию о заказе для отправки продавцу
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>OPT_ID покупателя</Label>
+                  <Label htmlFor="title">Наименование *</Label>
                   <Input 
-                    value={profile?.opt_id || ''} 
-                    readOnly 
-                    className="bg-gray-100"
+                    id="title" 
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    required 
+                    placeholder="Введите наименование"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label>Телеграм покупателя</Label>
+                  <Label htmlFor="quantity">Количество единиц товара</Label>
                   <Input 
-                    value={profile?.telegram || ''} 
-                    readOnly 
-                    className="bg-gray-100"
+                    id="quantity" 
+                    type="number"
+                    value={formData.quantity}
+                    onChange={(e) => handleInputChange('quantity', e.target.value)}
+                    required 
+                    min="1"
                   />
                 </div>
+              </div>
 
-                {productImages.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Изображения товара</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {productImages.map((url, index) => (
-                        <div key={index} className="aspect-square overflow-hidden rounded-md border">
-                          <img 
-                            src={url} 
-                            alt={`Изображение товара ${index + 1}`} 
-                            className="h-full w-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Видео заказа</Label>
-                  <VideoUpload
-                    videos={orderVideos}
-                    onUpload={(urls) => setOrderVideos((prev) => [...prev, ...urls])}
-                    onDelete={(url) => setOrderVideos((prev) => prev.filter(u => u !== url))}
-                    maxVideos={2}
-                    storageBucket="order-videos"
-                    storagePrefix=""
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Способ доставки</Label>
+                  <Label htmlFor="brand">Марка</Label>
                   <Select
-                    value="self_pickup"
-                    onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
+                    value={selectedBrandId || ""}
+                    onValueChange={setSelectedBrandId}
+                    disabled={loadingBrands}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите способ доставки" />
+                    <SelectTrigger id="brand">
+                      <SelectValue placeholder="Выберите марку" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="self_pickup">Самовывоз</SelectItem>
-                      <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-                      <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+                      {brands.map((brand) => (
+                        <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="place_number">Количество мест для отправки</Label>
+                  <Label htmlFor="model">Модель</Label>
+                  <Select
+                    value={selectedModelId || ""}
+                    onValueChange={setSelectedModelId}
+                    disabled={!selectedBrandId || loadingModels}
+                  >
+                    <SelectTrigger id="model">
+                      <SelectValue placeholder="Выберите модель" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {brandModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Цена ($) *</Label>
                   <Input 
-                    id="place_number"
-                    type="number"
-                    min="1"
-                    value={formData.place_number}
-                    onChange={(e) => handleInputChange('place_number', e.target.value)}
-                    placeholder="Укажите количество мест"
+                    id="price" 
+                    type="number" 
+                    value={formData.price}
+                    onChange={(e) => handleInputChange('price', e.target.value)}
+                    required 
+                    placeholder="0.00"
+                    step="0.01"
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label>Дополнительная информация</Label>
-                  <Textarea 
-                    placeholder="Укажите дополнительную информацию по заказу (необязательно)"
-                    className="resize-none"
-                    rows={3}
-                    value={formData.text_order}
-                    onChange={(e) => handleInputChange('text_order', e.target.value)}
+                  <Label htmlFor="delivery_price">Стоимость доставки ($)</Label>
+                  <Input 
+                    id="delivery_price"
+                    type="number"
+                    value={formData.delivery_price}
+                    onChange={(e) => handleInputChange('delivery_price', e.target.value)}
+                    placeholder="0.00"
+                    step="0.01"
                   />
                 </div>
-              </CardContent>
-              <CardFooter className="flex justify-end space-x-4">
-                <Button 
-                  variant="outline" 
-                  type="button"
-                  onClick={() => navigate(-1)}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>OPT_ID продавца</Label>
+                  <Input 
+                    value={formData.sellerOptId}
+                    readOnly 
+                    className="bg-gray-100"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>OPT_ID покупателя</Label>
+                <Input 
+                  value={profile?.opt_id || ''} 
+                  readOnly 
+                  className="bg-gray-100"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Телеграм покупателя</Label>
+                <Input 
+                  value={profile?.telegram || ''} 
+                  readOnly 
+                  className="bg-gray-100"
+                />
+              </div>
+
+              {productImages.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Изображения товара</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {productImages.map((url, index) => (
+                      <div key={index} className="aspect-square overflow-hidden rounded-md border">
+                        <img 
+                          src={url} 
+                          alt={`Изображение товара ${index + 1}`} 
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Видео товара</Label>
+                <CloudinaryVideoUpload
+                  videos={orderVideos}
+                  onUpload={handleVideoUpload}
+                  onDelete={handleVideoDelete}
+                  maxVideos={3}
+                  productId={productId || undefined}
+                  buttonText="Загрузить видео товара"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Способ доставки</Label>
+                <Select
+                  value="self_pickup"
+                  onValueChange={(value: DeliveryMethod) => handleInputChange('deliveryMethod', value)}
                 >
-                  Отмена
-                </Button>
-                <Button 
-                  type="submit"
-                  className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Создание..." : "Создать заказ"}
-                </Button>
-              </CardFooter>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите способ доставки" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                    <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                    <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="place_number">Количество мест для отправки</Label>
+                <Input 
+                  id="place_number"
+                  type="number"
+                  min="1"
+                  value={formData.place_number}
+                  onChange={(e) => handleInputChange('place_number', e.target.value)}
+                  placeholder="Укажите количество мест"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Дополнительное описание</Label>
+                <Textarea
+                  value={formData.text_order}
+                  onChange={(e) => handleInputChange('text_order', e.target.value)}
+                  placeholder="Дополнительная информация о заказе..."
+                  className="min-h-[100px]"
+                />
+              </div>
             </form>
-          </Card>
-        </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isSubmitting}
+              onClick={handleSubmit}
+            >
+              {isSubmitting ? "Создание заказа..." : "Создать заказ"}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </Layout>
   );
