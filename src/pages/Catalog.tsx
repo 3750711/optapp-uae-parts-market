@@ -45,6 +45,7 @@ const Catalog: React.FC = () => {
   // Search history
   const { addToHistory } = useSearchHistory();
 
+  // Use the updated hook with external brand/model values
   const {
     searchQuery,
     setSearchQuery,
@@ -62,7 +63,12 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearchSubmit,
     isActiveFilters
-  } = useCatalogProducts(8, sortBy);
+  } = useCatalogProducts({
+    productsPerPage: 8,
+    sortBy,
+    externalSelectedBrand: selectedBrand,
+    externalSelectedModel: selectedModel
+  });
 
   // Load more when the loadMoreRef is visible
   React.useEffect(() => {

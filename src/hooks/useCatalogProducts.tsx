@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,21 +35,39 @@ export interface CatalogFilters {
   selectedModel?: string | null;
 }
 
-export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'newest') => {
+interface UseCatalogProductsProps {
+  productsPerPage?: number;
+  sortBy?: SortOption;
+  externalSelectedBrand?: string | null;
+  externalSelectedModel?: string | null;
+}
+
+export const useCatalogProducts = ({ 
+  productsPerPage = 8, 
+  sortBy = 'newest',
+  externalSelectedBrand = null,
+  externalSelectedModel = null
+}: UseCatalogProductsProps = {}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
 
-  // Debounce search query
+  // Use external brand/model values if provided, otherwise use internal state
+  const [internalSelectedBrand, setInternalSelectedBrand] = useState<string | null>(null);
+  const [internalSelectedModel, setInternalSelectedModel] = useState<string | null>(null);
+
+  const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
+  const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : internalSelectedModel;
+
+  // Debounce search query with reduced delay
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchQuery(searchQuery);
-    }, 500);
+      console.log('🔍 Debounced search query updated:', searchQuery);
+    }, 300); // Reduced from 500ms to 300ms
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -80,14 +99,18 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
   };
 
   // Memoize filters
-  const filters = useMemo(() => ({
-    debouncedSearchQuery,
-    hideSoldProducts,
-    selectedBrand,
-    selectedModel,
-    sortBy,
-    isAdmin
-  }), [debouncedSearchQuery, hideSoldProducts, selectedBrand, selectedModel, sortBy, isAdmin]);
+  const filters = useMemo(() => {
+    const filtersObj = {
+      debouncedSearchQuery,
+      hideSoldProducts,
+      selectedBrand,
+      selectedModel,
+      sortBy,
+      isAdmin
+    };
+    console.log('📋 Filters updated:', filtersObj);
+    return filtersObj;
+  }, [debouncedSearchQuery, hideSoldProducts, selectedBrand, selectedModel, sortBy, isAdmin]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -104,6 +127,14 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
       try {
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
+        
+        console.log('🔎 Executing search query with filters:', {
+          searchQuery: filters.debouncedSearchQuery,
+          selectedBrand: filters.selectedBrand,
+          selectedModel: filters.selectedModel,
+          hideSoldProducts: filters.hideSoldProducts,
+          page: pageParam
+        });
         
         let query = supabase
           .from('products')
@@ -127,28 +158,32 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         if (filters.debouncedSearchQuery) {
           const searchTerm = filters.debouncedSearchQuery.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
+          console.log('🔍 Applied text search:', searchTerm);
         }
 
         // Apply brand filter
         if (filters.selectedBrand) {
           query = query.eq('brand', filters.selectedBrand);
+          console.log('🏷️ Applied brand filter:', filters.selectedBrand);
         }
 
         // Apply model filter
         if (filters.selectedModel) {
           query = query.eq('model', filters.selectedModel);
+          console.log('🚗 Applied model filter:', filters.selectedModel);
         }
 
         const { data, error } = await query.range(from, to);
         
         if (error) {
-          console.error('Error fetching products:', error);
+          console.error('❌ Error fetching products:', error);
           throw new Error('Failed to fetch products');
         }
         
+        console.log('✅ Products fetched successfully:', data?.length, 'items');
         return data || [];
       } catch (error) {
-        console.error('Error in queryFn:', error);
+        console.error('💥 Error in queryFn:', error);
         throw error;
       }
     },
@@ -206,9 +241,9 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
   const handleClearSearch = useCallback(() => {
     setSearchQuery('');
     setHasSearched(false);
-    setSelectedBrand(null);
-    setSelectedModel(null);
-  }, []);
+    if (externalSelectedBrand === undefined) setInternalSelectedBrand(null);
+    if (externalSelectedModel === undefined) setInternalSelectedModel(null);
+  }, [externalSelectedBrand, externalSelectedModel]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -224,9 +259,9 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
     hideSoldProducts,
     setHideSoldProducts,
     selectedBrand,
-    setSelectedBrand,
+    setSelectedBrand: externalSelectedBrand === undefined ? setInternalSelectedBrand : () => {},
     selectedModel,
-    setSelectedModel,
+    setSelectedModel: externalSelectedModel === undefined ? setInternalSelectedModel : () => {},
     allProducts: mappedProducts,
     mappedProducts,
     productChunks,
