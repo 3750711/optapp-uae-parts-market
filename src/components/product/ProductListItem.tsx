@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Star } from "lucide-react";
 import ProductStatusChangeDialog from "@/components/product/ProductStatusChangeDialog";
 import OptimizedImage from "@/components/ui/OptimizedImage";
 import { ProductProps } from "./ProductCard";
@@ -48,6 +49,15 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
            "/placeholder.svg";
   }, [product.preview_image_url, product.product_images, product.image]);
 
+  // Format title with brand and model
+  const formatTitle = () => {
+    const brandModel = [product.brand, product.model].filter(Boolean).join(' ');
+    if (brandModel) {
+      return `${product.title} ${brandModel}`;
+    }
+    return product.title;
+  };
+
   return (
     <div className="group bg-white rounded-lg border border-gray-100 hover:border-gray-200 hover:shadow-md transition-all duration-200 p-4">
       <Link to={`/product/${product.id}`} className="flex gap-4">
@@ -76,18 +86,12 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
         <div className="flex-1 min-w-0 flex flex-col">
           <div className="flex items-start justify-between gap-2 mb-2">
             <h3 className="font-medium text-gray-900 line-clamp-2 group-hover:text-primary transition-colors text-sm sm:text-base">
-              {product.title}
+              {formatTitle()}
             </h3>
             <div className="flex items-center gap-2 flex-shrink-0">
               {getStatusBadge(product.status)}
             </div>
           </div>
-          
-          {(product.brand || product.model) && (
-            <p className="text-xs sm:text-sm text-gray-600 mb-2">
-              {[product.brand, product.model].filter(Boolean).join(' ')}
-            </p>
-          )}
           
           <div className="flex items-center justify-between mt-auto">
             <span className="text-lg sm:text-xl font-bold text-primary">
@@ -95,9 +99,15 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             </span>
             
             {product.seller_name && (
-              <span className="text-xs text-gray-500 truncate ml-2">
-                {product.seller_name}
-              </span>
+              <div className="flex items-center gap-1 text-xs text-gray-500 truncate ml-2">
+                <span className="truncate">{product.seller_name}</span>
+                {product.rating_seller && (
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                    <span>{product.rating_seller.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>

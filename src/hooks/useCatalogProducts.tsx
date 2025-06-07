@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +25,8 @@ export type ProductType = {
   created_at: string;
   delivery_price?: number | null;
   preview_image_url?: string | null;
+  cloudinary_public_id?: string | null;
+  cloudinary_url?: string | null;
 };
 
 export interface CatalogFilters {
@@ -106,7 +109,7 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         
         let query = supabase
           .from('products')
-          .select('*, product_images(url, is_primary), preview_image_url');
+          .select('*, product_images(url, is_primary), preview_image_url, cloudinary_public_id, cloudinary_url');
 
         // Apply sorting
         query = buildSortQuery(query, sortBy);
@@ -179,6 +182,9 @@ export const useCatalogProducts = (productsPerPage = 8, sortBy: SortOption = 'ne
         delivery_price: typedProduct.delivery_price,
         optid_created: typedProduct.optid_created,
         preview_image_url: typedProduct.preview_image_url,
+        cloudinary_public_id: typedProduct.cloudinary_public_id,
+        cloudinary_url: typedProduct.cloudinary_url,
+        rating_seller: typedProduct.rating_seller,
         product_images: typedProduct.product_images?.map(img => ({
           id: '',
           url: img.url,

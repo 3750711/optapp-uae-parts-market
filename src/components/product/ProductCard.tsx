@@ -1,8 +1,10 @@
+
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Star } from "lucide-react";
 import { 
   Carousel, 
   CarouselContent, 
@@ -31,6 +33,7 @@ export interface ProductProps {
   preview_image_url?: string | null;
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
+  rating_seller?: number | null;
   product_images?: Array<{
     id: string;
     url: string;
@@ -183,6 +186,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
     }
   };
 
+  // Format title with brand and model
+  const formatTitle = () => {
+    const brandModel = [product.brand, product.model].filter(Boolean).join(' ');
+    if (brandModel) {
+      return `${product.title} ${brandModel}`;
+    }
+    return product.title;
+  };
+
   return (
     <div className="group block bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 hover:border-gray-200 w-full h-full flex flex-col">
       <Link
@@ -206,14 +218,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
         
         <div className="p-4 flex-grow flex flex-col">
           <h3 className="font-medium text-gray-900 line-clamp-2 mb-2 group-hover:text-primary transition-colors flex-grow">
-            {product.title}
+            {formatTitle()}
           </h3>
-          
-          {(product.brand || product.model) && (
-            <p className="text-sm text-gray-600 mb-2">
-              {[product.brand, product.model].filter(Boolean).join(' ')}
-            </p>
-          )}
           
           <div className="flex items-center justify-between mt-auto">
             <span className="text-lg font-bold text-primary">
@@ -221,9 +227,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </span>
             
             {product.seller_name && (
-              <span className="text-xs text-gray-500 truncate ml-2">
-                {product.seller_name}
-              </span>
+              <div className="flex items-center gap-1 text-xs text-gray-500 truncate ml-2">
+                <span className="truncate">{product.seller_name}</span>
+                {product.rating_seller && (
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                    <span>{product.rating_seller.toFixed(1)}</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
