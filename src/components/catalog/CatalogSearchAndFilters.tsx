@@ -127,6 +127,8 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
         <div className="flex justify-center pt-2">
           <Link 
             to="/buyer-guide" 
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
           >
             <HelpCircle className="h-4 w-4 mr-1" />
