@@ -13,7 +13,7 @@ type ProductType = {
   id: string;
   title: string;
   price: number | string;
-  product_images?: { url: string; is_primary?: boolean; preview_url?: string }[];
+  product_images?: { url: string; is_primary?: boolean }[];
   profiles?: { location?: string; opt_id?: string; rating?: number; opt_status?: string; verification_status?: string };
   condition?: string;
   location?: string;
@@ -57,7 +57,7 @@ const FeaturedProductsSection = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*, product_images(url, is_primary, preview_url), profiles:seller_id(*)')
+        .select('*, product_images(url, is_primary), profiles:seller_id(*)')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(8); // Показываем 8 товаров вместо 6
@@ -74,16 +74,8 @@ const FeaturedProductsSection = () => {
     const typedProduct = product as unknown as ProductType;
     
     let imageUrl = "/placeholder.svg";
-    let previewUrl = null;
     
     if (typedProduct.product_images && typedProduct.product_images.length > 0) {
-      for (const img of typedProduct.product_images) {
-        if (img.preview_url) {
-          previewUrl = img.preview_url;
-          if (img.is_primary) break;
-        }
-      }
-      
       const primaryImage = typedProduct.product_images.find(img => img.is_primary);
       if (primaryImage) {
         imageUrl = primaryImage.url;
@@ -97,7 +89,6 @@ const FeaturedProductsSection = () => {
       title: typedProduct.title,
       price: Number(typedProduct.price),
       image: imageUrl,
-      preview_image: previewUrl,
       brand: typedProduct.brand || "",
       model: typedProduct.model || "",
       seller_name: typedProduct.seller_name,
