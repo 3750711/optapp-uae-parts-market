@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface PreviewImageResponse {
@@ -9,7 +8,41 @@ interface PreviewImageResponse {
   error?: string;
 }
 
-// Generate compressed preview image URL (~30KB) using Edge function
+// Get catalog-optimized image URL with fallback logic
+export const getCatalogImageUrl = (
+  previewImageUrl?: string | null,
+  cloudinaryPublicId?: string | null,
+  fallbackUrl?: string
+): string => {
+  // Priority 1: Use existing preview_image_url if available
+  if (previewImageUrl) {
+    console.log('🎨 Using existing preview_image_url:', previewImageUrl);
+    return previewImageUrl;
+  }
+
+  // Priority 2: Generate from cloudinary_public_id using the same structure as main images
+  if (cloudinaryPublicId) {
+    // Clean publicId from version prefix if present (same as main images)
+    const cleanPublicId = cloudinaryPublicId.replace(/^v\d+\//, '');
+    
+    // Use the same Cloudinary cloud name and structure as main images
+    const catalogUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${cleanPublicId}`;
+    
+    console.log('🎨 Generated catalog URL from publicId:', {
+      originalPublicId: cloudinaryPublicId,
+      cleanPublicId,
+      catalogUrl
+    });
+    
+    return catalogUrl;
+  }
+
+  // Priority 3: Fallback
+  console.log('🎨 Using fallback URL:', fallbackUrl);
+  return fallbackUrl || "/placeholder.svg";
+};
+
+// Generate compressed preview image URL (~30KB) using Edge function (keep for backwards compatibility)
 export const generatePreviewImage = async (publicId: string, targetSize: number = 30): Promise<string | null> => {
   try {
     console.log('🖼️ Generating preview for publicId:', publicId);
@@ -43,29 +76,6 @@ export const generatePreviewImage = async (publicId: string, targetSize: number 
     console.error('💥 Preview generation exception:', error);
     return null;
   }
-};
-
-// Get catalog-optimized image URL with fallback logic
-export const getCatalogImageUrl = (
-  previewImageUrl?: string | null,
-  cloudinaryPublicId?: string | null,
-  fallbackUrl?: string
-): string => {
-  // Priority 1: Use existing preview_image_url
-  if (previewImageUrl) {
-    return previewImageUrl;
-  }
-
-  // Priority 2: Generate from cloudinary_public_id
-  if (cloudinaryPublicId) {
-    // Generate optimized catalog URL directly (~30KB)
-    const catalogUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,h_300,c_fit,g_auto,q_auto:eco,f_webp,fl_progressive:semi/${cloudinaryPublicId}`;
-    console.log('🎨 Generated catalog URL from publicId:', catalogUrl);
-    return catalogUrl;
-  }
-
-  // Priority 3: Fallback
-  return fallbackUrl || "/placeholder.svg";
 };
 
 // Batch generate preview images for multiple products

@@ -13,7 +13,7 @@ interface OptimizedImageProps {
   onError?: () => void;
   cloudinaryPublicId?: string;
   size?: 'thumbnail' | 'card' | 'detail' | 'preview';
-  useCatalogOptimization?: boolean; // Новый проп для каталожной оптимизации
+  useCatalogOptimization?: boolean;
 }
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -35,7 +35,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     onError?.();
   };
 
-  // Если включена каталожная оптимизация, используем специальную логику
+  // Если включена каталожная оптимизация, используем такую же логику как для основных изображений
   if (useCatalogOptimization) {
     const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg');
     
@@ -67,7 +67,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     hasValidSrc: src && src !== '/placeholder.svg'
   });
 
-  // Приоритет готовому URL (preview_image_url или product_images) - используем Cloudinary только как fallback
+  // Приоритет готовому URL (preview_image_url или product_images) - используем как есть
   if (src && src !== '/placeholder.svg' && !imageError) {
     return (
       <img
