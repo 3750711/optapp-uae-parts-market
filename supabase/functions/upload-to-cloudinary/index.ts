@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -33,15 +34,56 @@ function getCloudinaryPreviewUrl(publicId: string, version?: string): string {
   return `https://res.cloudinary.com/${cloudName}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${versionedPublicId}`;
 }
 
+// Input validation helper
+function validateInput(body: any) {
+  const errors: string[] = [];
+  
+  if (!body.fileData) {
+    errors.push('fileData is required');
+  }
+  
+  if (!body.publicId || typeof body.publicId !== 'string') {
+    errors.push('publicId is required and must be a string');
+  }
+  
+  if (body.fileName && typeof body.fileName !== 'string') {
+    errors.push('fileName must be a string');
+  }
+  
+  if (body.isVideo !== undefined && typeof body.isVideo !== 'boolean') {
+    errors.push('isVideo must be a boolean');
+  }
+  
+  return errors;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🚀 Cloudinary upload function started (Fixed Version Handling)');
+    console.log('🚀 Cloudinary upload function started (Improved Version)');
     
-    const { fileData, fileName, productId, publicId, createVariants = true, isVideo = false } = await req.json();
+    const body = await req.json();
+    const validationErrors = validateInput(body);
+    
+    if (validationErrors.length > 0) {
+      console.error('❌ Validation errors:', validationErrors);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Validation failed',
+          details: validationErrors
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
+    const { fileData, fileName, productId, publicId, createVariants = true, isVideo = false } = body;
     
     console.log('📋 Request params:', {
       fileName: fileName || 'undefined',
@@ -51,21 +93,15 @@ serve(async (req) => {
       isVideo,
       hasFileData: !!fileData
     });
-    
-    if (!fileData) {
-      console.error('❌ No fileData provided');
-      return new Response(
-        JSON.stringify({ success: false, error: 'File data is required' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
 
     const cloudName = 'dcuziurrb';
-    const apiKey = '647673934374161';
+    const apiKey = Deno.env.get('CLOUDINARY_API_KEY');
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET');
+    
+    if (!apiKey) {
+      console.error('❌ CLOUDINARY_API_KEY not found');
+      throw new Error('Cloudinary API key not configured');
+    }
     
     if (!apiSecret) {
       console.error('❌ CLOUDINARY_API_SECRET not found');
@@ -80,14 +116,15 @@ serve(async (req) => {
     
     if (isVideo) {
       transformations = [
-        'q_auto:low',
+        'q_auto:good',
         'f_auto',
         'c_fill'
       ].join(',');
       uploadEndpoint = `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`;
     } else {
+      // Улучшенные настройки качества для изображений
       transformations = [
-        'q_auto:low',
+        'q_auto:good',
         'f_auto',
         'c_fill'
       ].join(',');
@@ -119,14 +156,14 @@ serve(async (req) => {
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
       console.error(`❌ Cloudinary ${isVideo ? 'video' : 'image'} upload failed:`, errorText);
-      throw new Error(`Cloudinary upload failed: ${uploadResponse.status}`);
+      throw new Error(`Cloudinary upload failed: ${uploadResponse.status} - ${errorText}`);
     }
 
     const uploadResult = await uploadResponse.json();
     
     const cloudinaryPublicId = uploadResult.public_id;
     
-    // 🔧 НОВАЯ ЛОГИКА: Извлекаем версию из secure_url
+    // Extract version from secure_url
     const extractedVersion = extractVersionFromUrl(uploadResult.secure_url);
     
     console.log(`✅ Main ${isVideo ? 'video' : 'image'} upload successful with version extraction:`, {
@@ -157,7 +194,6 @@ serve(async (req) => {
       console.log('🎨 Creating preview variant with extracted version...');
       
       try {
-        // 🔧 ИСПРАВЛЕНО: Используем извлеченную версию для preview URL
         const previewUrl = getCloudinaryPreviewUrl(cloudinaryPublicId, extractedVersion || undefined);
         
         result.variants.preview = {
@@ -202,23 +238,31 @@ serve(async (req) => {
 
     // Update product with Cloudinary data including version-aware preview
     if (productId) {
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.7.1');
-      const supabaseUrl = Deno.env.get('SUPABASE_URL');
-      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-      
-      if (supabaseUrl && supabaseServiceKey) {
+      try {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.7.1');
+        const supabaseUrl = Deno.env.get('SUPABASE_URL');
+        const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+        
+        if (!supabaseUrl || !supabaseServiceKey) {
+          console.error('❌ Missing Supabase configuration');
+          throw new Error('Supabase configuration not found');
+        }
+        
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         
         if (isVideo) {
           const { error } = await supabase
             .from('product_videos')
-            .update({
+            .upsert({
+              product_id: productId,
+              url: uploadResult.secure_url,
               cloudinary_public_id: cloudinaryPublicId,
               cloudinary_url: uploadResult.secure_url,
               thumbnail_url: result.variants.thumbnail?.url || null,
               duration: uploadResult.duration || null
-            })
-            .eq('url', uploadResult.secure_url);
+            }, {
+              onConflict: 'product_id,url'
+            });
 
           if (error) {
             console.error('❌ Video database update error:', error);
@@ -226,7 +270,6 @@ serve(async (req) => {
             console.log('✅ Video updated with version-aware URLs');
           }
         } else {
-          // 🔧 ИСПРАВЛЕНО: Используем preview URL с версией
           const updateData = {
             cloudinary_public_id: cloudinaryPublicId,
             cloudinary_url: uploadResult.secure_url,
@@ -248,14 +291,18 @@ serve(async (req) => {
 
           if (error) {
             console.error('❌ Database update error:', error);
+            // Don't throw here - the upload was successful, just log the DB error
           } else {
             console.log('✅ Product updated with version-aware preview URL');
           }
         }
+      } catch (dbError) {
+        console.error('⚠️ Database operation failed:', dbError);
+        // Don't fail the entire request for DB errors
       }
     }
     
-    console.log(`🎉 SUCCESS! Cloudinary ${isVideo ? 'video' : 'image'} upload completed with version handling:`, {
+    console.log(`🎉 SUCCESS! Cloudinary ${isVideo ? 'video' : 'image'} upload completed:`, {
       cloudinaryPublicId: result.publicId,
       extractedVersion: extractedVersion,
       format: result.format,
