@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -51,22 +50,22 @@ const FeaturedProductsSection = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Загружаем только последние опубликованные товары
+  // Загружаем товары с cloudinary данными
   const { data: products, isLoading } = useQuery({
     queryKey: ['featured-products'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('*, product_images(url, is_primary), profiles:seller_id(*)')
+        .select('*, product_images(url, is_primary), profiles:seller_id(*), cloudinary_public_id, cloudinary_url')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(8); // Показываем 8 товаров вместо 6
+        .limit(8);
 
       if (error) throw error;
       return data || [];
     },
-    enabled: isVisible, // Загружаем данные только когда секция видна
-    staleTime: 300000, // 5 минут
+    enabled: isVisible,
+    staleTime: 300000,
   });
 
   // Преобразование данных в нужный формат
@@ -95,7 +94,9 @@ const FeaturedProductsSection = () => {
       status: typedProduct.status,
       seller_id: typedProduct.seller_id,
       delivery_price: typedProduct.delivery_price,
-      optid_created: typedProduct.optid_created
+      optid_created: typedProduct.optid_created,
+      cloudinary_public_id: typedProduct.cloudinary_public_id,
+      cloudinary_url: typedProduct.cloudinary_url
     } as ProductProps;
   });
 
