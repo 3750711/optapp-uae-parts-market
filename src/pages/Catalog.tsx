@@ -8,11 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
 import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
-import FiltersPanel from "@/components/catalog/FiltersPanel";
-import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting";
-import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
@@ -23,11 +19,6 @@ import Layout from "@/components/layout/Layout";
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
-
-  // View and sorting state
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [sortBy, setSortBy] = useState<SortOption>('newest');
-  const [showFilters, setShowFilters] = useState(false);
 
   // Car brands and models
   const {
@@ -66,7 +57,6 @@ const Catalog: React.FC = () => {
     isActiveFilters
   } = useCatalogProducts({
     productsPerPage: 8,
-    sortBy,
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
@@ -169,44 +159,6 @@ const Catalog: React.FC = () => {
           brandModels={brandModels}
         />
 
-        {/* Controls Row */}
-        <Card className="mb-4">
-          <div className="p-4">
-            <div className="flex flex-col lg:flex-row gap-4">
-              {/* Filters Panel */}
-              <div className="flex-1">
-                <FiltersPanel
-                  showFilters={showFilters}
-                  setShowFilters={setShowFilters}
-                  selectedBrand={selectedBrand}
-                  selectBrand={selectBrand}
-                  selectedModel={selectedModel}
-                  setSelectedModel={setSelectedModel}
-                  brands={brands}
-                  brandModels={brandModels}
-                  hideSoldProducts={hideSoldProducts}
-                  setHideSoldProducts={setHideSoldProducts}
-                  handleSearchSubmit={handleEnhancedSearchSubmit}
-                  handleClearSearch={handleClearAll}
-                  isActiveFilters={hasAnyFilters}
-                />
-              </div>
-
-              {/* Sorting and View Controls */}
-              <div className="flex items-center gap-4">
-                <ProductSorting
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                />
-                <ViewToggle
-                  viewMode={viewMode}
-                  onViewModeChange={setViewMode}
-                />
-              </div>
-            </div>
-          </div>
-        </Card>
-
         {/* Active Filters */}
         {hasAnyFilters && (
           <ActiveFilters
@@ -229,7 +181,7 @@ const Catalog: React.FC = () => {
           selectedBrandName={selectedBrandName}
           selectedModelName={selectedModelName}
           onClearSearch={handleClearSearch}
-          onOpenFilters={() => setShowFilters(true)}
+          onOpenFilters={() => {}}
           hasActiveFilters={hasAnyFilters}
           handleSearchSubmit={handleEnhancedSearchSubmit}
         />
@@ -261,7 +213,7 @@ const Catalog: React.FC = () => {
                   <ProductGrid 
                     key={index} 
                     products={chunk} 
-                    viewMode={viewMode}
+                    viewMode="list"
                   />
                 ))}
 
