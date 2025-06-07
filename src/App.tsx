@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,6 +44,8 @@ import AdminFreeOrder from "./pages/AdminFreeOrder";
 import AdminCreateOrderFromProduct from "./pages/AdminCreateOrderFromProduct";
 import AdminCarCatalog from "./pages/AdminCarCatalog";
 import AdminLogistics from "./pages/AdminLogistics";
+
+import './utils/autoCleanupTrigger'; // Auto-trigger cleanup
 
 function App() {
   return (
