@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
@@ -41,12 +40,18 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   if (useCatalogOptimization) {
     const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
     
-    console.log('🎨 Using catalog optimization:', {
+    console.log('🎨 Using catalog optimization - DETAILED DEBUG:', {
       originalSrc: src,
       cloudinaryPublicId,
       cloudinaryUrl,
       optimizedSrc,
-      imageError
+      imageError,
+      srcType: typeof src,
+      publicIdType: typeof cloudinaryPublicId,
+      cloudinaryUrlType: typeof cloudinaryUrl,
+      srcValue: src || 'EMPTY',
+      publicIdValue: cloudinaryPublicId || 'EMPTY',
+      cloudinaryUrlValue: cloudinaryUrl || 'EMPTY'
     });
 
     return (
@@ -54,8 +59,20 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         src={optimizedSrc}
         alt={alt}
         className={`${className} object-contain`}
-        onLoad={onLoad}
-        onError={handleImageError}
+        onLoad={() => {
+          console.log('✅ Catalog optimized image loaded successfully:', optimizedSrc);
+          onLoad?.();
+        }}
+        onError={(e) => {
+          console.error('❌ Catalog optimized image failed to load:', {
+            src: optimizedSrc,
+            originalSrc: src,
+            error: e,
+            naturalWidth: (e.target as HTMLImageElement)?.naturalWidth,
+            naturalHeight: (e.target as HTMLImageElement)?.naturalHeight
+          });
+          handleImageError();
+        }}
         loading={priority ? 'eager' : 'lazy'}
         sizes={sizes}
       />
