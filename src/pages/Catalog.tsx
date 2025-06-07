@@ -15,10 +15,9 @@ import ProductSorting, { SortOption } from "@/components/catalog/ProductSorting"
 import ViewToggle, { ViewMode } from "@/components/catalog/ViewToggle";
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
+import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
-import SearchBar from "@/components/admin/filters/SearchBar";
-import ActiveSearchDisplay from "@/components/admin/filters/ActiveSearchDisplay";
 import Layout from "@/components/layout/Layout";
 
 const Catalog: React.FC = () => {
@@ -154,23 +153,21 @@ const Catalog: React.FC = () => {
           selectedModelName={selectedModelName}
         />
 
-        {/* Search Bar */}
-        <Card className="mb-4">
-          <div className="p-4 space-y-3">
-            <SearchBar 
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              onSearch={handleSearch}
-              onClear={handleClearSearch}
-              activeSearchTerm={activeSearchTerm}
-              placeholder="Поиск по названию, бренду, модели..."
-            />
-            <ActiveSearchDisplay 
-              searchTerm={activeSearchTerm} 
-              onClear={handleClearSearch} 
-            />
-          </div>
-        </Card>
+        {/* Объединённый блок поиска и фильтров */}
+        <CatalogSearchAndFilters 
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          activeSearchTerm={activeSearchTerm}
+          onSearch={handleSearch}
+          onClearSearch={handleClearSearch}
+          onSearchSubmit={handleEnhancedSearchSubmit}
+          selectedBrand={selectedBrand}
+          selectBrand={selectBrand}
+          selectedModel={selectedModel}
+          setSelectedModel={setSelectedModel}
+          brands={brands}
+          brandModels={brandModels}
+        />
 
         {/* Controls Row */}
         <Card className="mb-4">
