@@ -32,7 +32,7 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
-import { extractPublicIdFromUrl, getPreviewImageUrl } from "@/utils/cloudinaryUtils";
+import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -291,15 +291,11 @@ const SellerAddProduct = () => {
           console.log('🚀 Processing primary image for Cloudinary data:', primaryImage);
           
           // Try to extract publicId from the URL (if it's already a Cloudinary URL)
-          const { extractPublicIdFromUrl, getPreviewImageUrl } = await import("@/utils/cloudinaryUtils");
           const publicId = extractPublicIdFromUrl(primaryImage);
 
           if (publicId) {
-            const previewUrl = getPreviewImageUrl(publicId);
-            
             console.log('✅ Extracted Cloudinary data, updating product:', {
-              publicId,
-              previewUrl
+              publicId
             });
             
             // Update product with Cloudinary data
@@ -307,8 +303,7 @@ const SellerAddProduct = () => {
               .from('products')
               .update({
                 cloudinary_public_id: publicId,
-                cloudinary_url: primaryImage,
-                preview_image_url: previewUrl
+                cloudinary_url: primaryImage
               })
               .eq('id', product.id);
 

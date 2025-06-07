@@ -4,23 +4,16 @@ import { Label } from "@/components/ui/label";
 
 interface OrderImagesProps {
   images: string[];
-  previewImages?: string[]; // New prop for preview images
 }
 
-export const OrderImages: React.FC<OrderImagesProps> = ({ 
-  images, 
-  previewImages 
-}) => {
+export const OrderImages: React.FC<OrderImagesProps> = ({ images }) => {
   if (images.length === 0) return null;
-
-  // Use preview images if available, otherwise use original images
-  const displayImages = previewImages && previewImages.length > 0 ? previewImages : images;
 
   return (
     <div>
       <Label className="text-sm text-gray-500 mb-2 block">Фотографии заказа</Label>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        {displayImages.map((url, index) => (
+        {images.map((url, index) => (
           <div key={url} className="relative aspect-square">
             <img
               src={url}
