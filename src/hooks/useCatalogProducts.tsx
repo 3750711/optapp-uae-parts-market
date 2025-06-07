@@ -40,13 +40,17 @@ interface UseCatalogProductsProps {
   sortBy?: SortOption;
   externalSelectedBrand?: string | null;
   externalSelectedModel?: string | null;
+  findBrandNameById?: (brandId: string | null) => string | null;
+  findModelNameById?: (modelId: string | null) => string | null;
 }
 
 export const useCatalogProducts = ({ 
   productsPerPage = 8, 
   sortBy = 'newest',
   externalSelectedBrand = null,
-  externalSelectedModel = null
+  externalSelectedModel = null,
+  findBrandNameById,
+  findModelNameById
 }: UseCatalogProductsProps = {}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
@@ -60,6 +64,10 @@ export const useCatalogProducts = ({
 
   const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
   const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : internalSelectedModel;
+
+  // Convert brand and model IDs to names for database query
+  const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
+  const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
 
   // Helper function to build sort query
   const buildSortQuery = (query: any, sortOption: SortOption) => {
@@ -86,14 +94,14 @@ export const useCatalogProducts = ({
     const filtersObj = {
       activeSearchTerm,
       hideSoldProducts,
-      selectedBrand,
-      selectedModel,
+      selectedBrandName,
+      selectedModelName,
       sortBy,
       isAdmin
     };
     console.log('📋 Filters updated:', filtersObj);
     return filtersObj;
-  }, [activeSearchTerm, hideSoldProducts, selectedBrand, selectedModel, sortBy, isAdmin]);
+  }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
   // Use React Query for data fetching with infinite scroll
   const {
@@ -113,8 +121,8 @@ export const useCatalogProducts = ({
         
         console.log('🔎 Executing search query with filters:', {
           searchQuery: filters.activeSearchTerm,
-          selectedBrand: filters.selectedBrand,
-          selectedModel: filters.selectedModel,
+          selectedBrandName: filters.selectedBrandName,
+          selectedModelName: filters.selectedModelName,
           hideSoldProducts: filters.hideSoldProducts,
           page: pageParam
         });
@@ -144,16 +152,16 @@ export const useCatalogProducts = ({
           console.log('🔍 Applied text search:', searchTerm);
         }
 
-        // Apply brand filter
-        if (filters.selectedBrand) {
-          query = query.eq('brand', filters.selectedBrand);
-          console.log('🏷️ Applied brand filter:', filters.selectedBrand);
+        // Apply brand filter - now using text name instead of ID
+        if (filters.selectedBrandName) {
+          query = query.eq('brand', filters.selectedBrandName);
+          console.log('🏷️ Applied brand filter:', filters.selectedBrandName);
         }
 
-        // Apply model filter
-        if (filters.selectedModel) {
-          query = query.eq('model', filters.selectedModel);
-          console.log('🚗 Applied model filter:', filters.selectedModel);
+        // Apply model filter - now using text name instead of ID
+        if (filters.selectedModelName) {
+          query = query.eq('model', filters.selectedModelName);
+          console.log('🚗 Applied model filter:', filters.selectedModelName);
         }
 
         const { data, error } = await query.range(from, to);
@@ -260,7 +268,7 @@ export const useCatalogProducts = ({
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
-    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrand || selectedModel)
+    isActiveFilters: !!(activeSearchTerm || hideSoldProducts || selectedBrandName || selectedModelName)
   };
 };
 

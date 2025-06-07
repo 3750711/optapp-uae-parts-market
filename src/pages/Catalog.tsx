@@ -46,7 +46,7 @@ const Catalog: React.FC = () => {
   // Search history
   const { addToHistory } = useSearchHistory();
 
-  // Use the updated hook with external brand/model values
+  // Use the updated hook with external brand/model values and helper functions
   const {
     searchTerm,
     setSearchTerm,
@@ -69,7 +69,9 @@ const Catalog: React.FC = () => {
     productsPerPage: 8,
     sortBy,
     externalSelectedBrand: selectedBrand,
-    externalSelectedModel: selectedModel
+    externalSelectedModel: selectedModel,
+    findBrandNameById,
+    findModelNameById
   });
 
   // Load more when the loadMoreRef is visible
