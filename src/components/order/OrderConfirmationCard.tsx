@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,39 +108,6 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           <div>
             <Label className="text-sm text-gray-500 mb-2 block">Описание</Label>
             <p className="text-gray-700 whitespace-pre-wrap">{order.description}</p>
-          </div>
-        )}
-
-        {/* Отображение миниатюр подтверждающих фото только если они есть */}
-        {isAdmin && confirmImages.length > 0 && (
-          <div>
-            <Label className="text-sm text-gray-500 mb-2 block flex items-center gap-2">
-              <Camera className="h-4 w-4" />
-              Подтверждающие фотографии ({confirmImages.length})
-            </Label>
-            <div className="flex gap-2 flex-wrap">
-              {confirmImages.slice(0, 3).map((url, index) => (
-                <div 
-                  key={index} 
-                  className="w-16 h-16 rounded-lg overflow-hidden border cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setIsConfirmImagesDialogOpen(true)}
-                >
-                  <img 
-                    src={url} 
-                    alt={`Подтверждающее фото ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-              {confirmImages.length > 3 && (
-                <div 
-                  className="w-16 h-16 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-xs text-gray-500 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => setIsConfirmImagesDialogOpen(true)}
-                >
-                  +{confirmImages.length - 3}
-                </div>
-              )}
-            </div>
           </div>
         )}
 
