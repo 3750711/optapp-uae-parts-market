@@ -10,7 +10,7 @@ interface CloudinaryUploadProgress {
   status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
   error?: string;
   url?: string;
-  cloudinaryUrl?: string;
+  mainImageUrl?: string;
   publicId?: string;
 }
 
@@ -38,7 +38,7 @@ export const useCloudinaryUpload = () => {
           : p
       ));
 
-      // Create a blob URL for direct Cloudinary upload
+      // Create a blob URL for preview
       const blobUrl = URL.createObjectURL(file);
 
       setUploadProgress(prev => prev.map(p => 
@@ -55,12 +55,12 @@ export const useCloudinaryUpload = () => {
       ));
 
       console.log('☁️ Starting Cloudinary upload...');
-      const cloudinaryResult = await uploadToCloudinary(blobUrl, options.productId);
+      const cloudinaryResult = await uploadToCloudinary(file, options.productId);
 
       // Clean up blob URL
       URL.revokeObjectURL(blobUrl);
 
-      if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
+      if (cloudinaryResult.success && cloudinaryResult.mainImageUrl) {
         console.log('✅ Cloudinary upload successful:', cloudinaryResult.publicId);
         
         setUploadProgress(prev => prev.map(p => 
@@ -69,13 +69,13 @@ export const useCloudinaryUpload = () => {
                 ...p, 
                 status: 'success', 
                 progress: 100,
-                cloudinaryUrl: cloudinaryResult.cloudinaryUrl,
+                mainImageUrl: cloudinaryResult.mainImageUrl,
                 publicId: cloudinaryResult.publicId
               }
             : p
         ));
 
-        return cloudinaryResult.cloudinaryUrl;
+        return cloudinaryResult.mainImageUrl;
       } else {
         throw new Error(cloudinaryResult.error || 'Cloudinary upload failed');
       }

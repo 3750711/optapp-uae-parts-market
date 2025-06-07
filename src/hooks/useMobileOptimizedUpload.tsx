@@ -11,7 +11,7 @@ interface UploadProgress {
   progress: number;
   status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
-  cloudinaryUrl?: string;
+  mainImageUrl?: string;
   publicId?: string;
   isPrimary?: boolean;
 }
@@ -87,18 +87,18 @@ export const useMobileOptimizedUpload = () => {
       console.log('☁️ Uploading to Cloudinary...');
       const result = await uploadDirectToCloudinary(file, options.productId, customPublicId);
 
-      if (!result.success || !result.cloudinaryUrl || !result.publicId) {
+      if (!result.success || !result.mainImageUrl || !result.publicId) {
         throw new Error(result.error || 'Cloudinary upload failed');
       }
 
       console.log('✅ Cloudinary upload completed:', {
-        cloudinaryUrl: result.cloudinaryUrl,
+        mainImageUrl: result.mainImageUrl,
         publicId: result.publicId,
         isPrimary
       });
 
       setUploadProgress(prev => prev.map(p => 
-        p.fileId === fileId ? { ...p, progress: 80, cloudinaryUrl: result.cloudinaryUrl, publicId: result.publicId } : p
+        p.fileId === fileId ? { ...p, progress: 80, mainImageUrl: result.mainImageUrl, publicId: result.publicId } : p
       ));
 
       // Generate image variants using public_id
@@ -117,7 +117,7 @@ export const useMobileOptimizedUpload = () => {
               ...p, 
               status: 'success', 
               progress: 100, 
-              cloudinaryUrl: result.cloudinaryUrl,
+              mainImageUrl: result.mainImageUrl,
               publicId: result.publicId,
               isPrimary
             }
@@ -127,14 +127,14 @@ export const useMobileOptimizedUpload = () => {
       logImageProcessing('CloudinaryUploadSuccess', { 
         fileName: file.name,
         originalSize: file.size,
-        cloudinaryUrl: result.cloudinaryUrl,
+        mainImageUrl: result.mainImageUrl,
         publicId: result.publicId,
         retryCount,
         productId: options.productId,
         isPrimary
       });
 
-      return result.cloudinaryUrl;
+      return result.mainImageUrl;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Upload failed';
       

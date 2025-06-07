@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -33,6 +32,7 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
+import { extractPublicIdFromUrl, getPreviewImageUrl } from "@/utils/cloudinaryUtils";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -285,28 +285,30 @@ const SellerAddProduct = () => {
         throw new Error(`Ошибка сохранения изображений: ${imagesError.message || 'Неизвестная ошибка'}`);
       }
 
-      // If we have a primary image, trigger Cloudinary upload
+      // If we have a primary image, try to get its Cloudinary data and update product
       if (primaryImage) {
         try {
-          console.log('🚀 Starting Cloudinary upload for primary image:', primaryImage);
+          console.log('🚀 Processing primary image for Cloudinary data:', primaryImage);
           
-          const { uploadToCloudinary } = await import("@/utils/cloudinaryUpload");
-          const cloudinaryResult = await uploadToCloudinary(
-            primaryImage,
-            product.id,
-            `product_${product.id}_primary`
-          );
+          // Try to extract publicId from the URL (if it's already a Cloudinary URL)
+          const { extractPublicIdFromUrl, getPreviewImageUrl } = await import("@/utils/cloudinaryUtils");
+          const publicId = extractPublicIdFromUrl(primaryImage);
 
-          if (cloudinaryResult.success && cloudinaryResult.cloudinaryUrl) {
-            console.log('✅ Cloudinary upload successful, updating product...');
+          if (publicId) {
+            const previewUrl = getPreviewImageUrl(publicId);
+            
+            console.log('✅ Extracted Cloudinary data, updating product:', {
+              publicId,
+              previewUrl
+            });
             
             // Update product with Cloudinary data
             const { error: updateError } = await supabase
               .from('products')
               .update({
-                cloudinary_public_id: cloudinaryResult.publicId,
-                cloudinary_url: cloudinaryResult.cloudinaryUrl,
-                preview_image_url: cloudinaryResult.cloudinaryUrl
+                cloudinary_public_id: publicId,
+                cloudinary_url: primaryImage,
+                preview_image_url: previewUrl
               })
               .eq('id', product.id);
 
@@ -314,17 +316,13 @@ const SellerAddProduct = () => {
               console.error('❌ Failed to update product with Cloudinary data:', updateError);
             } else {
               console.log('✅ Product updated with Cloudinary data');
-              toast({
-                title: "Cloudinary интеграция",
-                description: "Изображение успешно обработано через Cloudinary",
-              });
             }
           } else {
-            console.warn('⚠️ Cloudinary upload failed:', cloudinaryResult.error);
+            console.warn('⚠️ Could not extract publicId from primary image URL');
           }
         } catch (cloudinaryError) {
-          console.error('💥 Cloudinary upload error:', cloudinaryError);
-          // Continue with normal flow if Cloudinary fails
+          console.error('💥 Error processing Cloudinary data:', cloudinaryError);
+          // Continue with normal flow if Cloudinary processing fails
         }
       }
 
