@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+
+import React, { useRef } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Camera } from "lucide-react";
+import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 
 interface OrderConfirmationImagesProps {
   orderId: string;
@@ -17,10 +19,13 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isUploading, setIsUploading] = useState(false);
-  const [showUpload, setShowUpload] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const { 
+    isUploading, 
+    uploadProgress, 
+    uploadFilesBatch,
+    clearProgress
+  } = useMobileOptimizedUpload();
 
   const { data: images = [] } = useQuery({
     queryKey: ['confirm-images', orderId],
@@ -38,7 +43,6 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
   const handleImageUpload = async (urls: string[]) => {
     if (!canEdit) return;
 
-    setIsUploading(true);
     try {
       // Save new images to confirm_images table
       const imageInserts = urls.map(url => ({
@@ -59,8 +63,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 
       // Refetch images
       queryClient.invalidateQueries({ queryKey: ['confirm-images', orderId] });
-      setShowUpload(false);
-      setSelectedFiles([]);
+      clearProgress();
     } catch (error) {
       console.error('Error uploading confirmation images:', error);
       toast({
@@ -68,8 +71,6 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
         description: "Не удалось загрузить фотографии",
         variant: "destructive",
       });
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -108,17 +109,37 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (files && files.length > 0) {
+    if (files && files.length > 0 && canEdit) {
       const fileArray = Array.from(files);
-      setSelectedFiles(fileArray);
-      setShowUpload(true);
+      
+      try {
+        // Start upload automatically after file selection
+        const uploadedUrls = await uploadFilesBatch(fileArray, {
+          productId: orderId,
+          batchSize: 2,
+          batchDelay: 1000
+        });
+        
+        if (uploadedUrls.length > 0) {
+          await handleImageUpload(uploadedUrls);
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить изображения",
+          variant: "destructive",
+        });
+      }
+      
       // Reset input value to allow selecting same files again
       e.target.value = '';
     }
   };
 
+  // Don't show anything if user can't edit and no images exist
   if (!canEdit && images.length === 0) {
     return (
       <div className="text-center p-4 text-muted-foreground">
@@ -135,6 +156,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
           onUploadComplete={() => {}}
           maxImages={10}
           existingImages={images}
+          onImageDelete={canEdit ? handleImageDelete : undefined}
           productId={orderId}
           showGalleryOnly={true}
         />
@@ -142,55 +164,55 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 
       {canEdit && (
         <div className="space-y-2">
-          {/* Always show upload button for admins */}
-          {!showUpload && (
-            <div className="flex justify-end">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleUploadButtonClick}
-                className="h-8 px-3 text-sm"
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                Загрузить фото
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-            </div>
-          )}
+          {/* Upload button with photo count indicator */}
+          <div className="flex justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleUploadButtonClick}
+              disabled={isUploading}
+              className="h-8 px-3 text-sm relative"
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              {isUploading ? "Загрузка..." : "Загрузить фото"}
+              {images.length > 0 && !isUploading && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                  {images.length}
+                </span>
+              )}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={handleFileChange}
+              className="hidden"
+              disabled={isUploading}
+            />
+          </div>
           
-          {/* Show upload component when files are selected */}
-          {showUpload && selectedFiles.length > 0 && (
-            <>
-              <MobileOptimizedImageUpload
-                onUploadComplete={handleImageUpload}
-                maxImages={10}
-                existingImages={images}
-                onImageDelete={handleImageDelete}
-                productId={orderId}
-                buttonText="Загрузить подтверждающие фото"
-                showOnlyButton={true}
-              />
-              <div className="flex justify-end">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setShowUpload(false);
-                    setSelectedFiles([]);
-                  }}
-                  className="h-6 px-2 text-xs"
-                >
-                  Скрыть
-                </Button>
+          {/* Show upload progress when uploading */}
+          {isUploading && uploadProgress.length > 0 && (
+            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+              <div className="text-sm font-medium text-muted-foreground">
+                Загрузка фотографий ({uploadProgress.filter(p => p.status === 'completed').length}/{uploadProgress.length})
               </div>
-            </>
+              {uploadProgress.map((progress, index) => (
+                <div key={index} className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="truncate">{progress.file.name}</span>
+                    <span>{Math.round(progress.progress)}%</span>
+                  </div>
+                  <div className="w-full bg-background rounded-full h-1">
+                    <div 
+                      className="bg-primary h-1 rounded-full transition-all duration-300"
+                      style={{ width: `${progress.progress}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

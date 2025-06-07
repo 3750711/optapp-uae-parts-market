@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, CheckCircle, Eye } from "lucide-react";
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
@@ -44,6 +44,20 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
   onViewDetails 
 }) => {
   const queryClient = useQueryClient();
+  
+  // Check if confirmation images exist for this order
+  const { data: confirmImages = [] } = useQuery({
+    queryKey: ['confirm-images', order.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('url')
+        .eq('order_id', order.id);
+
+      if (error) throw error;
+      return data?.map(img => img.url) || [];
+    }
+  });
   
   const highlightColor = 
     order.status === 'processed' ? 'bg-gradient-to-br from-green-50 to-green-100 border-green-200' :
@@ -190,10 +204,13 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
           </div>
         )}
 
-        <OrderConfirmationImages 
-          orderId={order.id} 
-          canEdit={true}
-        />
+        {/* Показывать подтверждающие фото только если они есть или есть возможность их добавить */}
+        {confirmImages.length > 0 && (
+          <OrderConfirmationImages 
+            orderId={order.id} 
+            canEdit={true}
+          />
+        )}
       </CardContent>
       
       <div className="p-4 border-t bg-white/50 backdrop-blur-sm flex items-center justify-end gap-2">

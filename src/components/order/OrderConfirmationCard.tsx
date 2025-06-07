@@ -78,16 +78,21 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader className="text-center relative">
         <div className="absolute right-6 top-6 flex gap-2">
-          {/* Маленькая кнопка загрузки подтверждающих фото для администраторов */}
+          {/* Компактная кнопка загрузки подтверждающих фото для администраторов */}
           {isAdmin && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsConfirmImagesDialogOpen(true)}
-              className="h-8 px-2 text-xs"
-              title="Загрузить подтверждающие фото"
+              className="h-8 px-2 text-xs relative"
+              title="Подтверждающие фото"
             >
-              <Upload className="h-3 w-3" />
+              <Camera className="h-3 w-3" />
+              {confirmImages.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                  {confirmImages.length}
+                </span>
+              )}
             </Button>
           )}
           {order.status === 'created'}
@@ -107,7 +112,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           </div>
         )}
 
-        {/* Отображение миниатюр подтверждающих фото для администраторов */}
+        {/* Отображение миниатюр подтверждающих фото только если они есть */}
         {isAdmin && confirmImages.length > 0 && (
           <div>
             <Label className="text-sm text-gray-500 mb-2 block flex items-center gap-2">
