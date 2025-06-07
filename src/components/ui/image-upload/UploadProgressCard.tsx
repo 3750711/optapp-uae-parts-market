@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,6 +35,23 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
   isUploading,
   onClearProgress
 }) => {
+  // Auto-hide after successful uploads
+  useEffect(() => {
+    if (uploadProgress.length > 0 && !isUploading) {
+      const allSuccess = uploadProgress.every(p => p.status === 'success');
+      const hasErrors = uploadProgress.some(p => p.status === 'error');
+      
+      if (allSuccess && !hasErrors) {
+        // Auto-clear after 2 seconds if all uploads are successful
+        const timer = setTimeout(() => {
+          onClearProgress();
+        }, 2000);
+        
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [uploadProgress, isUploading, onClearProgress]);
+
   if (uploadProgress.length === 0) return null;
 
   // Calculate overall progress
