@@ -43,6 +43,8 @@ export const useImageCacheManager = () => {
             ...img,
             is_primary: img.url === imageUrl
           })) || [],
+          // Also update preview_image_url optimistically
+          preview_image_url: imageUrl
         };
       }
       return product;

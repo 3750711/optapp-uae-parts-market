@@ -56,6 +56,7 @@ export interface Product {
   // Cloudinary fields
   cloudinary_public_id?: string | null;
   cloudinary_url?: string | null;
+  preview_image_url?: string | null;
   
   // Joined relationships
   product_images?: ProductImage[];

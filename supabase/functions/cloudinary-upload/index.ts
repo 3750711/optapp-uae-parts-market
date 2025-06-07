@@ -18,8 +18,10 @@ interface UploadResponse {
   success: boolean;
   publicId?: string;
   mainImageUrl?: string;
+  previewImageUrl?: string;
   originalSize?: number;
   compressedSize?: number;
+  previewSize?: number;
   error?: string;
 }
 
@@ -134,8 +136,12 @@ Deno.serve(async (req) => {
     // Generate compressed main image URL (~400KB)
     const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:low,f_auto,c_limit,w_1920,h_1920/${cloudinaryResult.public_id}`;
     
-    console.log('🎨 Generated main image URL:', {
+    // 🔧 ИСПРАВЛЕННЫЙ preview image URL с версией и расширением (~20KB)
+    const previewImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/v${cloudinaryResult.version}/${cloudinaryResult.public_id}.${cloudinaryResult.format}`;
+
+    console.log('🎨 Generated image variants:', {
       mainImageUrl,
+      previewImageUrl,
       publicId: cloudinaryResult.public_id,
       version: cloudinaryResult.version,
       format: cloudinaryResult.format
@@ -143,13 +149,16 @@ Deno.serve(async (req) => {
 
     // Estimate compressed sizes based on Cloudinary's compression
     const estimatedMainSize = Math.round(cloudinaryResult.bytes * 0.3); // ~400KB
+    const estimatedPreviewSize = Math.round(cloudinaryResult.bytes * 0.05); // ~20KB
 
     const response: UploadResponse = {
       success: true,
       publicId: cloudinaryResult.public_id,
       mainImageUrl,
+      previewImageUrl,
       originalSize: cloudinaryResult.bytes,
-      compressedSize: estimatedMainSize
+      compressedSize: estimatedMainSize,
+      previewSize: estimatedPreviewSize
     };
 
     console.log('📊 Upload completed successfully:', response);

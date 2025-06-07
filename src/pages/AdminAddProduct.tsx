@@ -8,7 +8,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
+import { extractPublicIdFromUrl, getPreviewImageUrl } from "@/utils/cloudinaryUtils";
 import OptimizedAddProductForm, { ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 
 // Admin product schema with required sellerId
@@ -189,7 +189,7 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Enhanced product creation with Cloudinary data
+  // Enhanced product creation with Cloudinary data and preview generation
   const createProduct = async (values: AdminProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
@@ -244,7 +244,7 @@ const AdminAddProduct = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Create product using standard Supabase insert
+      // Create product using standard Supabase insert (RLS now allows admin to create for any seller)
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -292,25 +292,29 @@ const AdminAddProduct = () => {
           const publicId = extractPublicIdFromUrl(primaryImage);
           
           if (publicId) {
+            const previewUrl = getPreviewImageUrl(publicId);
+            
             console.log('📸 Updating product with Cloudinary data:', {
               productId: product.id,
               publicId,
-              cloudinaryUrl: primaryImage
+              cloudinaryUrl: primaryImage,
+              previewUrl
             });
 
-            // Update product with Cloudinary data
+            // Update product with Cloudinary data and preview URL
             const { error: updateError } = await supabase
               .from('products')
               .update({
                 cloudinary_public_id: publicId,
-                cloudinary_url: primaryImage
+                cloudinary_url: primaryImage,
+                preview_image_url: previewUrl
               })
               .eq('id', product.id);
 
             if (updateError) {
               console.error('❌ Error updating product with Cloudinary data:', updateError);
             } else {
-              console.log('✅ Product updated with Cloudinary data');
+              console.log('✅ Product updated with Cloudinary data and preview URL');
             }
           } else {
             console.warn('⚠️ Could not extract public_id from primary image URL');

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -92,21 +91,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
     return ["/placeholder.svg"];
   }, [product.product_images, product.image]);
 
-  // Use original images for catalog display
+  // Use catalog-optimized image for better performance (~30KB)
   const catalogImage = React.useMemo(() => {
-    // Priority 1: Main cloudinary URL (original quality)
-    if (product.cloudinary_url) {
-      console.log('Using cloudinary_url for product:', product.id, product.cloudinary_url);
-      return product.cloudinary_url;
+    // Priority: preview_image_url (optimized for catalog ~30KB)
+    if (product.preview_image_url) {
+      console.log('Using preview_image_url for product:', product.id, product.preview_image_url);
+      return product.preview_image_url;
     }
     
-    // Priority 2: Primary image or first image
+    // Fallback to primary image or first image
     const primaryImageData = product.product_images?.find(img => img.is_primary) || product.product_images?.[0];
     console.log('Fallback to product_images for product:', product.id, primaryImageData?.url);
     return primaryImageData?.url || 
            product.image || 
            "/placeholder.svg";
-  }, [product.cloudinary_url, product.product_images, product.image, product.id]);
+  }, [product.preview_image_url, product.product_images, product.image, product.id]);
 
   const handleImageError = () => {
     setImageError(true);
@@ -150,10 +149,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   onLoad={handleImageLoad}
                   priority={index === 0}
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  cloudinaryPublicId={product.cloudinary_public_id || undefined}
+                  cloudinaryPublicId={
+                    // Только передаем cloudinaryPublicId если нет preview_image_url
+                    index === 0 && !product.preview_image_url && product.cloudinary_public_id 
+                      ? product.cloudinary_public_id 
+                      : undefined
+                  }
                   cloudinaryUrl={product.cloudinary_url || undefined}
                   size="card"
-                  useCatalogOptimization={index === 0} // Используем оригинальные изображения
+                  useCatalogOptimization={index === 0} // Каталожная оптимизация для первого изображения
                 />
               </CarouselItem>
             ))}
@@ -183,10 +187,15 @@ const ProductCard: React.FC<ProductCardProps> = ({
           onLoad={handleImageLoad}
           priority={false}
           sizes="(max-width: 768px) 50vw, 25vw"
-          cloudinaryPublicId={product.cloudinary_public_id || undefined}
+          cloudinaryPublicId={
+            // Только передаем cloudinaryPublicId если нет preview_image_url
+            !product.preview_image_url && product.cloudinary_public_id 
+              ? product.cloudinary_public_id 
+              : undefined
+          }
           cloudinaryUrl={product.cloudinary_url || undefined}
           size="card"
-          useCatalogOptimization={true} // Используем оригинальные изображения
+          useCatalogOptimization={true} // Включаем каталожную оптимизацию
         />
       );
     }

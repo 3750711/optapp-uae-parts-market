@@ -5,8 +5,10 @@ interface CloudinaryUploadResult {
   success: boolean;
   publicId?: string;
   mainImageUrl?: string;
+  previewImageUrl?: string;
   originalSize?: number;
   compressedSize?: number;
+  previewSize?: number;
   error?: string;
 }
 
@@ -42,7 +44,7 @@ export const uploadToCloudinary = async (
     // Convert file to base64
     const fileData = await fileToBase64(file);
     
-    console.log('☁️ Calling Cloudinary upload function...');
+    console.log('☁️ Calling new Cloudinary upload function...');
     
     const { data, error } = await supabase.functions.invoke('cloudinary-upload', {
       body: { 
@@ -72,16 +74,20 @@ export const uploadToCloudinary = async (
       console.log('✅ Cloudinary upload SUCCESS:', {
         publicId: data.publicId,
         mainImageUrl: data.mainImageUrl,
+        previewImageUrl: data.previewImageUrl,
         originalSize: data.originalSize,
-        compressedSize: data.compressedSize
+        compressedSize: data.compressedSize,
+        previewSize: data.previewSize
       });
       
       return {
         success: true,
         publicId: data.publicId,
         mainImageUrl: data.mainImageUrl,
+        previewImageUrl: data.previewImageUrl,
         originalSize: data.originalSize,
-        compressedSize: data.compressedSize
+        compressedSize: data.compressedSize,
+        previewSize: data.previewSize
       };
     } else {
       console.error('❌ Cloudinary upload failed:', data?.error);
