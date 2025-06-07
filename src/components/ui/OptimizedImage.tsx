@@ -13,7 +13,7 @@ interface OptimizedImageProps {
   onError?: () => void;
   cloudinaryPublicId?: string;
   cloudinaryUrl?: string;
-  size?: 'thumbnail' | 'card' | 'detail' | 'preview';
+  size?: 'thumbnail' | 'card' | 'detail';
   useCatalogOptimization?: boolean;
 }
 
