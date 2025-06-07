@@ -38,7 +38,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   const handleImagesUpload = async (urls: string[]) => {
     console.log("Confirmation images uploaded:", urls);
-    setConfirmImages(urls);
+    setConfirmImages(prev => [...prev, ...urls]);
     setUploadError(null);
   };
 
