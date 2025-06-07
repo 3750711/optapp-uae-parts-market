@@ -1,5 +1,4 @@
 
-
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -62,8 +61,10 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         return;
       }
 
-      // Check product availability
+      // Check product availability with more robust error handling
       if (productId) {
+        console.log("Checking product availability before order creation:", productId);
+        
         const { data: currentProduct, error: productCheckError } = await supabase
           .from('products')
           .select('status')
@@ -72,13 +73,44 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
           
         if (productCheckError) {
           console.error('Error checking product status:', productCheckError);
+          
+          if (productCheckError.code === 'PGRST116') {
+            toast({
+              title: "Товар не найден",
+              description: "Указанный товар не существует или был удален",
+              variant: "destructive",
+            });
+            return;
+          }
+          
           throw new Error('Failed to verify product availability');
         }
         
         if (currentProduct.status !== 'active') {
+          console.log("Product is not active:", currentProduct.status);
           toast({
             title: "Товар недоступен",
-            description: "Этот товар уже продан или недоступен для заказа",
+            description: `Этот товар уже продан или недоступен для заказа. Статус: ${currentProduct.status}`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        // Additional check for existing active orders for this product
+        const { data: existingOrders, error: existingOrdersError } = await supabase
+          .from('orders')
+          .select('id, order_number, status')
+          .eq('product_id', productId)
+          .not('status', 'in', '(cancelled,declined)');
+          
+        if (existingOrdersError) {
+          console.error('Error checking existing orders:', existingOrdersError);
+          // Don't fail completely, just log the error
+        } else if (existingOrders && existingOrders.length > 0) {
+          console.log("Found existing active orders for product:", existingOrders);
+          toast({
+            title: "Заказ уже существует",
+            description: `Для этого товара уже создан активный заказ #${existingOrders[0].order_number}`,
             variant: "destructive",
           });
           return;
@@ -136,6 +168,8 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         delivery_price_confirm: deliveryPrice,
       };
 
+      console.log("Creating order with payload:", orderPayload);
+
       const { data: createdOrderData, error: orderError } = await supabase
         .from('orders')
         .insert(orderPayload)
@@ -143,6 +177,17 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
 
       if (orderError) {
         console.error("Error creating order:", orderError);
+        
+        // Handle specific database errors
+        if (orderError.message?.includes('duplicate') || orderError.code === '23505') {
+          toast({
+            title: "Дублирование заказа",
+            description: "Заказ с таким номером уже существует. Попробуйте еще раз.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw orderError;
       }
 
@@ -152,12 +197,17 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         throw new Error("Order was created but no data was returned");
       }
       
-      // Update product status if needed
+      console.log("Order created successfully:", createdOrder);
+      
+      // Update product status if needed - only if order creation was successful
       if (productId) {
+        console.log("Updating product status to sold:", productId);
+        
         const { error: updateError } = await supabase
           .from('products')
           .update({ status: 'sold' })
-          .eq('id', productId);
+          .eq('id', productId)
+          .eq('status', 'active'); // Only update if still active
 
         if (updateError) {
           console.error("Error updating product status:", updateError);
@@ -166,6 +216,8 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
             description: "Заказ создан, но статус товара не обновился. Пожалуйста, сообщите администратору.",
             variant: "destructive",
           });
+        } else {
+          console.log("Product status updated to sold successfully");
         }
       }
 
@@ -243,4 +295,3 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
 
   return { submitOrder };
 };
-

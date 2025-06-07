@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ChevronRight, User, Package, UserCheck, ShoppingCart } from "lucide-react";
+import { ChevronRight, User, Package, UserCheck, ShoppingCart, AlertTriangle } from "lucide-react";
 import ProductSearchAndFilters, { SearchFilters } from "@/components/admin/ProductSearchAndFilters";
 import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
 import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
@@ -107,7 +107,7 @@ const AdminCreateOrderFromProduct = () => {
     fetchBuyers();
   }, []);
 
-  // Загрузка товаров выбранного продавца
+  // Загрузка товаров выбранного продавца с проверкой статуса
   useEffect(() => {
     if (selectedSeller) {
       const fetchProducts = async () => {
@@ -116,7 +116,7 @@ const AdminCreateOrderFromProduct = () => {
           .from("products")
           .select("*, product_images(*)")
           .eq("seller_id", selectedSeller.id)
-          .eq("status", "active")
+          .eq("status", "active") // Загружаем только активные товары
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -186,15 +186,104 @@ const AdminCreateOrderFromProduct = () => {
     setStep(2);
   };
 
-  const handleProductSelect = (product: Product) => {
-    setSelectedProduct(product);
-    setStep(3);
+  const handleProductSelect = async (product: Product) => {
+    // Проверяем статус товара перед выбором
+    console.log("Checking product status before selection:", product.id);
+    
+    try {
+      const { data: currentProduct, error } = await supabase
+        .from('products')
+        .select('status')
+        .eq('id', product.id)
+        .single();
+        
+      if (error) {
+        console.error('Error checking product status:', error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось проверить статус товара",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (currentProduct.status !== 'active') {
+        toast({
+          title: "Товар недоступен",
+          description: `Этот товар уже продан или недоступен. Текущий статус: ${currentProduct.status}`,
+          variant: "destructive",
+        });
+        // Обновляем список товаров, исключая недоступный товар
+        setFilteredProducts(prev => prev.filter(p => p.id !== product.id));
+        setProducts(prev => prev.filter(p => p.id !== product.id));
+        return;
+      }
+      
+      setSelectedProduct(product);
+      setStep(3);
+    } catch (error) {
+      console.error('Unexpected error checking product status:', error);
+      toast({
+        title: "Ошибка",
+        description: "Произошла неожиданная ошибка при проверке товара",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleBuyerSelect = (buyerId: string) => {
+  const handleBuyerSelect = async (buyerId: string) => {
     const buyer = buyers.find(b => b.id === buyerId);
     setSelectedBuyer(buyer || null);
-    setShowConfirmDialog(true);
+    
+    // Финальная проверка статуса товара перед показом диалога подтверждения
+    if (selectedProduct) {
+      console.log("Final product status check before confirmation dialog:", selectedProduct.id);
+      
+      try {
+        const { data: currentProduct, error } = await supabase
+          .from('products')
+          .select('status')
+          .eq('id', selectedProduct.id)
+          .single();
+          
+        if (error) {
+          console.error('Error in final product status check:', error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось проверить статус товара",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (currentProduct.status !== 'active') {
+          toast({
+            title: "Товар недоступен",
+            description: `Этот товар уже продан или недоступен. Статус: ${currentProduct.status}`,
+            variant: "destructive",
+          });
+          // Возвращаемся к выбору товара
+          setStep(2);
+          setSelectedProduct(null);
+          setSelectedBuyer(null);
+          // Обновляем список товаров
+          setFilteredProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
+          setProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
+          return;
+        }
+        
+        setShowConfirmDialog(true);
+      } catch (error) {
+        console.error('Unexpected error in final product check:', error);
+        toast({
+          title: "Ошибка",
+          description: "Произошла неожиданная ошибка",
+          variant: "destructive",
+        });
+      }
+    } else {
+      setShowConfirmDialog(true);
+    }
   };
 
   const createOrder = async (orderData: {
@@ -218,6 +307,12 @@ const AdminCreateOrderFromProduct = () => {
       buyer: selectedBuyer,
       orderData
     });
+
+    // Отключаем кнопку создания заказа для предотвращения двойного нажатия
+    if (isCreatingOrder) {
+      console.log("Order creation already in progress, ignoring duplicate request");
+      return;
+    }
 
     setIsCreatingOrder(true);
 
@@ -256,6 +351,35 @@ const AdminCreateOrderFromProduct = () => {
 
       if (orderError) {
         console.error("Error creating order:", orderError);
+        
+        // Обработка специфических ошибок от базы данных
+        if (orderError.message?.includes('Product is not available for order')) {
+          toast({
+            title: "Товар недоступен",
+            description: "Этот товар уже продан или недоступен для заказа",
+            variant: "destructive",
+          });
+          // Возвращаемся к выбору товара
+          setStep(2);
+          setSelectedProduct(null);
+          setSelectedBuyer(null);
+          setShowConfirmDialog(false);
+          // Обновляем список товаров
+          setFilteredProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
+          setProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
+          return;
+        }
+        
+        if (orderError.message?.includes('An active order already exists')) {
+          toast({
+            title: "Заказ уже существует",
+            description: "Для этого товара уже создан активный заказ",
+            variant: "destructive",
+          });
+          setShowConfirmDialog(false);
+          return;
+        }
+        
         throw orderError;
       }
 
@@ -296,11 +420,6 @@ const AdminCreateOrderFromProduct = () => {
           // Не прерываем процесс создания заказа при ошибке уведомления
         }
       }
-
-      // Примечание: Обновление статуса товара на "sold" и отправка уведомления о продаже 
-      // теперь обрабатываются автоматически через триггеры базы данных:
-      // - notify_on_order_product_status_changes: обновляет статус товара при создании заказа
-      // - notify_on_product_status_changes: отправляет уведомление о продаже товара
 
       toast({
         title: "Заказ создан",
@@ -355,6 +474,7 @@ const AdminCreateOrderFromProduct = () => {
     setShowConfirmDialog(false);
     setShowConfirmImagesDialog(false);
     setCreatedOrderId(null);
+    setIsCreatingOrder(false);
   };
 
   const getStepIcon = (stepNumber: number) => {
@@ -470,7 +590,7 @@ const AdminCreateOrderFromProduct = () => {
               ) : (
                 <div className="space-y-3">
                   <div className="text-sm text-gray-600 mb-3">
-                    Найдено товаров: {filteredProducts.length} из {products.length}
+                    Найдено активных товаров: {filteredProducts.length} из {products.length}
                   </div>
                   {filteredProducts.map((product) => (
                     <div
@@ -490,6 +610,11 @@ const AdminCreateOrderFromProduct = () => {
                             >
                               {product.status}
                             </Badge>
+                            {product.status === 'active' && (
+                              <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                                Доступен для заказа
+                              </Badge>
+                            )}
                           </div>
                           <h3 className="font-medium text-sm mb-1 line-clamp-2">
                             {product.title}
@@ -531,6 +656,14 @@ const AdminCreateOrderFromProduct = () => {
               <CardTitle>Шаг 3: Выберите покупателя</CardTitle>
               <CardDescription>
                 Товар: {selectedProduct.title}
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant="outline" className="text-xs">
+                    Лот: {selectedProduct.lot_number}
+                  </Badge>
+                  <Badge variant="success" className="text-xs">
+                    {selectedProduct.status}
+                  </Badge>
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent>
