@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { OrderImages } from '@/components/order/OrderImages';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
@@ -95,14 +96,29 @@ const OrderDetails = () => {
   // Проверяем, является ли пользователь администратором для просмотра подтверждающих фото
   const isAdmin = profile?.user_type === 'admin';
 
+  // Получаем фотографии заказа из поля images
+  const orderImages = order.images || [];
+
   return (
     <Layout>
       <div className="container mx-auto py-8 space-y-8">
         <OrderConfirmationCard
           order={order}
-          images={images}
+          images={orderImages}
           videos={videos}
         />
+        
+        {/* Показываем основные фотографии заказа */}
+        {orderImages.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Фотографии заказа</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <OrderImages images={orderImages} />
+            </CardContent>
+          </Card>
+        )}
         
         {/* Отдельный блок подтверждающих фотографий - только для администраторов */}
         {isAdmin && (
