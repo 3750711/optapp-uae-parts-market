@@ -155,6 +155,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                       ? product.cloudinary_public_id 
                       : undefined
                   }
+                  cloudinaryUrl={product.cloudinary_url || undefined}
                   size="card"
                   useCatalogOptimization={index === 0} // Каталожная оптимизация для первого изображения
                 />
@@ -192,6 +193,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
               ? product.cloudinary_public_id 
               : undefined
           }
+          cloudinaryUrl={product.cloudinary_url || undefined}
           size="card"
           useCatalogOptimization={true} // Включаем каталожную оптимизацию
         />

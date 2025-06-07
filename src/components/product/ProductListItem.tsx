@@ -67,6 +67,7 @@ const ProductListItem: React.FC<ProductListItemProps> = ({
             alt={product.title}
             className="w-full h-full object-contain bg-gray-50"
             cloudinaryPublicId={product.cloudinary_public_id || undefined}
+            cloudinaryUrl={product.cloudinary_url || undefined}
             size="card"
             priority={false}
             sizes="(max-width: 640px) 80px, 96px"

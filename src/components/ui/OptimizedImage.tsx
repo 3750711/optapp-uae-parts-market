@@ -12,6 +12,7 @@ interface OptimizedImageProps {
   onLoad?: () => void;
   onError?: () => void;
   cloudinaryPublicId?: string;
+  cloudinaryUrl?: string;
   size?: 'thumbnail' | 'card' | 'detail' | 'preview';
   useCatalogOptimization?: boolean;
 }
@@ -25,6 +26,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   onLoad,
   onError,
   cloudinaryPublicId,
+  cloudinaryUrl,
   size = 'card',
   useCatalogOptimization = false
 }) => {
@@ -37,11 +39,12 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 
   // Если включена каталожная оптимизация, используем такую же логику как для основных изображений
   if (useCatalogOptimization) {
-    const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg');
+    const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
     
     console.log('🎨 Using catalog optimization:', {
       originalSrc: src,
       cloudinaryPublicId,
+      cloudinaryUrl,
       optimizedSrc,
       imageError
     });
