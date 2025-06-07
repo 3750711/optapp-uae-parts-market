@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, MessageSquare } from "lucide-react";
@@ -179,7 +180,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       }
       
       let productImages: string[] = [];
+      let productVideos: string[] = [];
+      
       if (product.id) {
+        // Получаем изображения товара
         const { data: productImagesData, error: productImagesError } = await supabase
           .from('product_images')
           .select('url')
@@ -191,6 +195,19 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           productImages = productImagesData.map(img => img.url);
           console.log('Found product images:', productImages);
         }
+
+        // Получаем видео товара
+        const { data: productVideosData, error: productVideosError } = await supabase
+          .from('product_videos')
+          .select('url')
+          .eq('product_id', product.id);
+          
+        if (productVideosError) {
+          console.error('Error fetching product videos:', productVideosError);
+        } else if (productVideosData && productVideosData.length > 0) {
+          productVideos = productVideosData.map(video => video.url);
+          console.log('Found product videos:', productVideos);
+        }
       }
 
       console.log('Product delivery price:', currentProduct.delivery_price);
@@ -199,7 +216,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       const brandValue = product.brand || "Не указано";
       const modelValue = product.model || "Не указано";
 
-      // Используем новую RPC функцию create_user_order для единообразной генерации номеров
+      // Используем обновленную RPC функцию create_user_order с поддержкой видео
       const { data: orderId, error: orderError } = await supabase
         .rpc('create_user_order', {
           p_title: product.title,
@@ -215,6 +232,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           p_order_created_type: 'ads_order' as OrderCreatedType,
           p_telegram_url_order: profile?.telegram || '',
           p_images: productImages,
+          p_video_url: productVideos, // Передаем видео в функцию
           p_product_id: product.id,
           p_delivery_method: deliveryMethod,
           p_text_order: orderData.text_order || null,
