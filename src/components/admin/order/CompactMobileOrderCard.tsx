@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { OrderPriorityIndicator } from './OrderPriorityIndicator';
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import {
@@ -64,11 +63,6 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                 <Badge variant="outline" className="text-xs shrink-0 font-mono">
                   №{order.order_number}
                 </Badge>
-                <OrderPriorityIndicator
-                  createdAt={order.created_at}
-                  status={order.status}
-                  totalValue={totalValue}
-                />
               </div>
               
               <div className="text-xs font-medium line-clamp-1 mb-1">

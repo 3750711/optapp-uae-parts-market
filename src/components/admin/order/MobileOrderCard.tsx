@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, CheckCircle, Eye, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { OrderPriorityIndicator } from './OrderPriorityIndicator';
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import {
@@ -58,11 +57,6 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
                 <Badge variant="outline" className="text-xs font-mono shrink-0">
                   №{order.order_number}
                 </Badge>
-                <OrderPriorityIndicator
-                  createdAt={order.created_at}
-                  status={order.status}
-                  totalValue={totalValue}
-                />
                 <div className="text-xs text-muted-foreground">
                   {new Date(order.created_at).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}
                 </div>

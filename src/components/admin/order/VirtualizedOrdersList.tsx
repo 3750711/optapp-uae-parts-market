@@ -1,9 +1,9 @@
+
 import React, { useMemo, useRef, useEffect, useState } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { MemoizedAdminOrderCard } from './MemoizedAdminOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { Checkbox } from '@/components/ui/checkbox';
-import { OrderPriorityIndicator } from './OrderPriorityIndicator';
 
 interface VirtualizedOrdersListProps {
   orders: Order[];
@@ -77,14 +77,6 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
             </div>
           )}
           
-          <div className="absolute top-2 right-2 z-10">
-            <OrderPriorityIndicator
-              createdAt={order.created_at}
-              status={order.status}
-              totalValue={order.price || 0}
-            />
-          </div>
-          
           <MemoizedAdminOrderCard
             order={order}
             onEdit={onEdit}
@@ -127,14 +119,6 @@ export const VirtualizedOrdersList: React.FC<VirtualizedOrdersListProps> = ({
                   />
                 </div>
               )}
-              
-              <div className="absolute top-2 right-2 z-10">
-                <OrderPriorityIndicator
-                  createdAt={order.created_at}
-                  status={order.status}
-                  totalValue={order.price || 0}
-                />
-              </div>
               
               <MemoizedAdminOrderCard
                 order={order}
