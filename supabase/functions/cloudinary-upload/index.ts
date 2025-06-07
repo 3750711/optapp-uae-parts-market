@@ -135,8 +135,8 @@ Deno.serve(async (req) => {
     // Generate compressed main image URL (~400KB)
     const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:low,f_auto,c_limit,w_1920,h_1920/${cloudinaryResult.public_id}`;
     
-    // Generate preview image URL (~20KB)  
-    const previewImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:eco,f_webp,c_fit,w_400,h_300/${cloudinaryResult.public_id}`;
+    // 🔧 ИСПРАВЛЕННЫЙ preview image URL (~20KB) - правильный порядок и форматирование параметров
+    const previewImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${cloudinaryResult.public_id}`;
 
     console.log('🎨 Generated image variants:', {
       mainImageUrl,

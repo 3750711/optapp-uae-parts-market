@@ -40,7 +40,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     hasValidSrc: src && src !== '/placeholder.svg'
   });
 
-  // Приоритет готовому URL (preview_image_url) - используем Cloudinary только как fallback
+  // Приоритет готовому URL (preview_image_url или product_images) - используем Cloudinary только как fallback
   if (src && src !== '/placeholder.svg' && !imageError) {
     return (
       <img
@@ -55,8 +55,9 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // Fallback к Cloudinary если основное изображение не загрузилось или нет src
+  // Fallback к Cloudinary если основное изображение не загрузилось
   if (cloudinaryPublicId && imageError) {
+    console.log('🔧 Using Cloudinary fallback for:', cloudinaryPublicId);
     return (
       <CloudinaryImage
         publicId={cloudinaryPublicId}

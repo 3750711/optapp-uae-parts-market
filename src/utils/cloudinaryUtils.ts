@@ -19,7 +19,7 @@ export const buildCloudinaryUrl = (publicId: string, transformations: Cloudinary
   
   const transformParts: string[] = [];
   
-  // Add transformations
+  // Add transformations in correct order
   if (transformations.width) transformParts.push(`w_${transformations.width}`);
   if (transformations.height) transformParts.push(`h_${transformations.height}`);
   if (transformations.crop) transformParts.push(`c_${transformations.crop}`);
@@ -132,28 +132,25 @@ export const getResponsiveImageUrls = (publicId: string) => {
   };
 };
 
-// 🔧 ИСПРАВЛЕННАЯ preview URL (теперь правильно обрабатывает версию)
+// 🔧 ИСПРАВЛЕННАЯ preview URL - правильный порядок параметров
 export const getPreviewImageUrl = (publicId: string, version?: string): string => {
-  const transformations = {
-    width: 400,
-    height: 300,
-    crop: 'fit' as const,
-    gravity: 'auto' as const,
-    quality: 'auto:good' as const,
-    format: 'webp' as const
-  };
+  if (!publicId) return '';
   
-  // 🔧 ПРАВИЛЬНАЯ обработка версии: version должна быть ПЕРЕД public_id
-  const versionedPublicId = version ? `v${version}/${publicId}` : publicId;
+  // Очищаем publicId от версии если она есть
+  const cleanPublicId = publicId.replace(/^v\d+\//, '');
   
-  console.log('🔧 getPreviewImageUrl debug:', {
+  // Формируем правильный URL с корректным порядком параметров
+  const transformationString = 'w_400,h_300,c_fit,g_auto,q_auto:good,f_webp';
+  
+  const finalUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/${transformationString}/${cleanPublicId}`;
+  
+  console.log('🔧 getPreviewImageUrl:', {
     originalPublicId: publicId,
-    version: version || 'none',
-    versionedPublicId,
-    finalUrl: buildCloudinaryUrl(versionedPublicId, transformations)
+    cleanPublicId,
+    finalUrl
   });
   
-  return buildCloudinaryUrl(versionedPublicId, transformations);
+  return finalUrl;
 };
 
 // Generate compressed main image URL (~400KB)
