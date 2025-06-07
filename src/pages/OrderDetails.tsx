@@ -8,6 +8,7 @@ import Layout from '@/components/layout/Layout';
 import { OrderConfirmationCard } from '@/components/order/OrderConfirmationCard';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { OrderImages } from '@/components/order/OrderImages';
+import { OrderVideos } from '@/components/order/OrderVideos';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 
@@ -119,6 +120,16 @@ const OrderDetails = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Показываем видео заказа */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Видео заказа</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <OrderVideos videos={videos} orderId={order.id} />
+          </CardContent>
+        </Card>
         
         {/* Отдельный блок подтверждающих фотографий - только для администраторов */}
         {isAdmin && (

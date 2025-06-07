@@ -111,7 +111,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           </div>
         )}
 
-        <OrderVideos videos={videos} />
+        <OrderVideos videos={videos} orderId={order.id} />
 
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-3xl">
