@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -265,8 +266,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       {/* Fullscreen Dialog */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent 
-          className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 bg-black overflow-hidden border-0 rounded-none translate-x-0 translate-y-0 left-0 top-0"
-          onPointerDownOutside={() => setIsOpen(false)}
+          className="fixed inset-0 w-screen h-screen max-w-none max-h-none p-0 m-0 bg-black overflow-hidden border-0 rounded-none"
           role="dialog"
           aria-label="Полноэкранный просмотр медиа"
         >
@@ -281,7 +281,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               variant="ghost"
               size="icon"
               className={`absolute top-4 right-4 ${isMobile ? 'w-12 h-12' : 'w-10 h-10'} text-white hover:bg-white/20 z-50 bg-black/70 ring-2 ring-white/30 backdrop-blur-sm transition-all duration-200`}
-              onClick={() => setIsOpen(false)}
+              onClick={handleCloseFullscreen}
               aria-label="Закрыть"
             >
               <X className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
@@ -311,21 +311,21 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </>
             )}
             
-            {/* Media content */}
-            <div className={`w-full h-full flex items-center justify-center ${isMobile ? 'p-16' : 'p-20'}`}>
+            {/* Media content - улучшенное центрирование */}
+            <div className="w-full h-full flex items-center justify-center p-4">
               {fullScreenMediaType === 'video' ? (
                 <video
                   src={fullScreenMedia}
                   controls
                   autoPlay
-                  className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                   preload="metadata"
                 />
               ) : (
                 <img
                   src={fullScreenMedia}
                   alt={title}
-                  className="max-w-[90vw] max-h-[90vh] w-auto h-auto object-contain"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                   loading="eager"
                 />
               )}
