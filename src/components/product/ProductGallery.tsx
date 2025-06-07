@@ -213,7 +213,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       {!isMobile && renderThumbnails()}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-black">
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-[95vw] h-[95vh] p-0 bg-black overflow-hidden">
           <div
             className="relative w-full h-full flex items-center justify-center"
             onTouchStart={onTouchStart}
@@ -250,21 +250,23 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </>
             )}
             
-            <div className="w-full h-full flex items-center justify-center p-8">
+            <div className="w-full h-full flex items-center justify-center p-4">
               {fullScreenMediaType === 'video' ? (
                 <video
                   src={fullScreenMedia}
                   controls
                   autoPlay
-                  className="max-w-full max-h-full object-contain"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                   preload="metadata"
+                  style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}
                 />
               ) : (
                 <img
                   src={fullScreenMedia}
                   alt={title}
-                  className="max-w-full max-h-full object-contain"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                   loading="lazy"
+                  style={{ maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 2rem)' }}
                 />
               )}
             </div>
