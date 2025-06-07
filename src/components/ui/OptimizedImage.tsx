@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
@@ -12,8 +13,7 @@ interface OptimizedImageProps {
   onError?: () => void;
   cloudinaryPublicId?: string;
   cloudinaryUrl?: string;
-  size?: 'thumbnail' | 'card' | 'detail' | 'preview';
-  useCatalogOptimization?: boolean;
+  size?: 'thumbnail' | 'card' | 'detail';
 }
 
 const OptimizedImage: React.FC<OptimizedImageProps> = ({
@@ -26,8 +26,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   onError,
   cloudinaryPublicId,
   cloudinaryUrl,
-  size = 'card',
-  useCatalogOptimization = false
+  size = 'card'
 }) => {
   const [imageError, setImageError] = useState(false);
 
@@ -36,62 +35,22 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     onError?.();
   };
 
-  // Если включена каталожная оптимизация, используем такую же логику как для основных изображений
-  if (useCatalogOptimization) {
-    const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
-    
-    console.log('🎨 Using catalog optimization - DETAILED DEBUG:', {
-      originalSrc: src,
-      cloudinaryPublicId,
-      cloudinaryUrl,
-      optimizedSrc,
-      imageError,
-      srcType: typeof src,
-      publicIdType: typeof cloudinaryPublicId,
-      cloudinaryUrlType: typeof cloudinaryUrl,
-      srcValue: src || 'EMPTY',
-      publicIdValue: cloudinaryPublicId || 'EMPTY',
-      cloudinaryUrlValue: cloudinaryUrl || 'EMPTY'
-    });
+  // Use catalog optimization to get the best available image
+  const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
+  
+  console.log('🎨 OptimizedImage using:', {
+    originalSrc: src,
+    cloudinaryPublicId,
+    cloudinaryUrl,
+    optimizedSrc,
+    imageError
+  });
 
+  // Priority to ready URL - use as is
+  if (optimizedSrc && optimizedSrc !== '/placeholder.svg' && !imageError) {
     return (
       <img
         src={optimizedSrc}
-        alt={alt}
-        className={`${className} object-contain`}
-        onLoad={() => {
-          console.log('✅ Catalog optimized image loaded successfully:', optimizedSrc);
-          onLoad?.();
-        }}
-        onError={(e) => {
-          console.error('❌ Catalog optimized image failed to load:', {
-            src: optimizedSrc,
-            originalSrc: src,
-            error: e,
-            naturalWidth: (e.target as HTMLImageElement)?.naturalWidth,
-            naturalHeight: (e.target as HTMLImageElement)?.naturalHeight
-          });
-          handleImageError();
-        }}
-        loading={priority ? 'eager' : 'lazy'}
-        sizes={sizes}
-      />
-    );
-  }
-
-  // Debug logging
-  console.log('OptimizedImage debug:', {
-    src,
-    cloudinaryPublicId,
-    imageError,
-    hasValidSrc: src && src !== '/placeholder.svg'
-  });
-
-  // Приоритет готовому URL (preview_image_url или product_images) - используем как есть
-  if (src && src !== '/placeholder.svg' && !imageError) {
-    return (
-      <img
-        src={src}
         alt={alt}
         className={`${className} object-contain`}
         onLoad={onLoad}
@@ -102,7 +61,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // Fallback к Cloudinary если основное изображение не загрузилось
+  // Fallback to Cloudinary if main image failed
   if (cloudinaryPublicId && imageError) {
     console.log('🔧 Using Cloudinary fallback for:', cloudinaryPublicId);
     return (
@@ -119,7 +78,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // Финальный fallback
+  // Final fallback
   return (
     <img
       src="/placeholder.svg"

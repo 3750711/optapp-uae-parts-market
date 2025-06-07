@@ -32,7 +32,7 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
-import { extractPublicIdFromUrl, getPreviewImageUrl } from "@/utils/cloudinaryUtils";
+import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -204,16 +204,8 @@ const SellerAddProduct = () => {
     });
   }, [primaryImage]);
 
-  const onSubmit = async (values: ProductFormValues) => {
-    if (!user || !profile) {
-      toast({
-        title: "Ошибка",
-        description: "Вы должны быть авторизованы как продавец",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Enhanced product creation with Cloudinary data
+  const createProduct = async (values: ProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
         title: "Ошибка",
@@ -226,9 +218,10 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
-      // Получаем имена бренда и модели для базы данных
+      // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       
+      // Model is optional
       let modelName = null;
       if (values.modelId) {
         const selectedModel = brandModels.find(model => model.id === values.modelId);
@@ -241,13 +234,18 @@ const SellerAddProduct = () => {
           description: "Выбранная марка не найдена",
           variant: "destructive",
         });
-        setIsSubmitting(false);
         return;
       }
 
-      const sellerName = profile.full_name || user.email || "Unknown Seller";
-
-      // Create product first
+      console.log('🏭 Creating product with images...', {
+        title: values.title,
+        imageCount: imageUrls.length,
+        videoCount: videoUrls.length,
+        primaryImage,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Create product using standard Supabase insert
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -257,124 +255,103 @@ const SellerAddProduct = () => {
           brand: selectedBrand.name,
           model: modelName,
           description: values.description || null,
-          seller_id: user.id,
-          seller_name: sellerName,
+          seller_id: user?.id,
+          seller_name: profile?.full_name || '',
           status: 'pending',
           place_number: parseInt(values.placeNumber),
           delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
         })
-        .select('id')
+        .select()
         .single();
 
       if (productError) {
-        throw new Error(`Ошибка создания товара: ${productError.message || 'Неизвестная ошибка'}`);
-      }
-      
-      // Save product images with primary image detection
-      const productImages = imageUrls.map((url) => ({
-        product_id: product.id,
-        url: url,
-        is_primary: url === primaryImage
-      }));
-
-      const { error: imagesError } = await supabase
-        .from('product_images')
-        .insert(productImages);
-
-      if (imagesError) {
-        throw new Error(`Ошибка сохранения изображений: ${imagesError.message || 'Неизвестная ошибка'}`);
+        console.error("Error creating product:", productError);
+        throw productError;
       }
 
-      // If we have a primary image, try to get its Cloudinary data and update product
+      console.log('✅ Product created:', product.id);
+
+      // Add images
+      for (const url of imageUrls) {
+        const { error: imageError } = await supabase
+          .from('product_images')
+          .insert({
+            product_id: product.id,
+            url: url,
+            is_primary: url === primaryImage
+          });
+          
+        if (imageError) {
+          console.error('Error adding image:', imageError);
+        }
+      }
+
+      // Extract public_id from primary image and update product with Cloudinary data
       if (primaryImage) {
         try {
-          console.log('🚀 Processing primary image for Cloudinary data:', primaryImage);
+          console.log('🎨 Extracting public_id from primary image:', primaryImage);
+          const publicIdMatch = primaryImage.match(/\/v\d+\/(.+?)(?:\.|$)/);
+          const publicId = publicIdMatch ? publicIdMatch[1] : null;
           
-          // Try to extract publicId from the URL (if it's already a Cloudinary URL)
-          const { extractPublicIdFromUrl, getPreviewImageUrl } = await import("@/utils/cloudinaryUtils");
-          const publicId = extractPublicIdFromUrl(primaryImage);
-
           if (publicId) {
-            const previewUrl = getPreviewImageUrl(publicId);
-            
-            console.log('✅ Extracted Cloudinary data, updating product:', {
+            console.log('📸 Updating product with Cloudinary data:', {
+              productId: product.id,
               publicId,
-              previewUrl
+              cloudinaryUrl: primaryImage
             });
-            
+
             // Update product with Cloudinary data
             const { error: updateError } = await supabase
               .from('products')
               .update({
                 cloudinary_public_id: publicId,
-                cloudinary_url: primaryImage,
-                preview_image_url: previewUrl
+                cloudinary_url: primaryImage
               })
               .eq('id', product.id);
 
             if (updateError) {
-              console.error('❌ Failed to update product with Cloudinary data:', updateError);
+              console.error('❌ Error updating product with Cloudinary data:', updateError);
             } else {
               console.log('✅ Product updated with Cloudinary data');
             }
           } else {
-            console.warn('⚠️ Could not extract publicId from primary image URL');
+            console.warn('⚠️ Could not extract public_id from primary image URL');
           }
-        } catch (cloudinaryError) {
-          console.error('💥 Error processing Cloudinary data:', cloudinaryError);
-          // Continue with normal flow if Cloudinary processing fails
+        } catch (error) {
+          console.error('💥 Error processing Cloudinary data:', error);
         }
       }
 
+      // Add videos if any
       if (videoUrls.length > 0) {
-        const { error: videosError } = await supabase
-          .from('product_videos')
-          .insert(
-            videoUrls.map((url) => ({
+        for (const videoUrl of videoUrls) {
+          const { error: videoError } = await supabase
+            .from('product_videos')
+            .insert({
               product_id: product.id,
-              url
-            }))
-          );
-
-        if (videosError) {
-          throw new Error(`Ошибка сохранения видео: ${videosError.message || 'Неизвестная ошибка'}`);
-        }
-      }
-      
-      const { data: currentProduct } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', product.id)
-        .single();
-
-      if (currentProduct && currentProduct.status === 'active') {
-        try {
-          supabase.functions.invoke('send-telegram-notification', {
-            body: { productId: product.id }
-          }).catch(notificationError => {
-            console.error("Error sending notification:", notificationError);
-          });
-        } catch (notificationError) {
-          console.error("Exception while sending notification:", notificationError);
+              url: videoUrl
+            });
+            
+          if (videoError) {
+            console.error('Error adding video:', videoError);
+          }
         }
       }
 
-      // Очищаем автосохраненный черновик после успешной публикации
+      // Clear saved draft
       clearSavedData();
 
       toast({
-        title: "Товар добавлен",
-        description: "Ваш товар успешно размещен на маркетплейсе",
+        title: "Товар создан",
+        description: "Товар отправлен на модерацию и будет опубликован после проверки",
       });
 
       navigate(`/product/${product.id}`);
     } catch (error) {
-      console.error("Error adding product:", error);
+      console.error("Error creating product:", error);
       toast({
         title: "Ошибка",
-        description: error instanceof Error 
-          ? error.message 
-          : "Не удалось добавить товар. Попробуйте позже.",
+        description: "Не удалось создать товар. Попробуйте позже.",
         variant: "destructive",
       });
     } finally {
@@ -451,23 +428,40 @@ const SellerAddProduct = () => {
               <CardContent>
                 <OptimizedAddProductForm
                   form={form}
-                  onSubmit={onSubmit}
+                  onSubmit={createProduct}
                   isSubmitting={isSubmitting}
                   imageUrls={imageUrls}
                   videoUrls={videoUrls}
                   brands={brands}
                   brandModels={brandModels}
                   isLoadingCarData={isLoadingCarData}
-                  watchBrandId={watchBrandId}
+                  watchBrandId={form.watch("brandId")}
                   searchBrandTerm={searchBrandTerm}
                   setSearchBrandTerm={setSearchBrandTerm}
                   searchModelTerm={searchModelTerm}
                   setSearchModelTerm={setSearchModelTerm}
-                  handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+                  handleMobileOptimizedImageUpload={(urls: string[]) => {
+                    console.log('📷 New images uploaded:', urls);
+                    setImageUrls(prevUrls => [...prevUrls, ...urls]);
+                    if (!primaryImage && urls.length > 0) {
+                      setPrimaryImage(urls[0]);
+                    }
+                  }}
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
-                  onImageDelete={removeImage}
+                  onImageDelete={(url: string) => {
+                    const newImageUrls = imageUrls.filter(item => item !== url);
+                    setImageUrls(newImageUrls);
+                    if (primaryImage === url) {
+                      if (newImageUrls.length > 0) {
+                        setPrimaryImage(newImageUrls[0]);
+                      } else {
+                        setPrimaryImage("");
+                      }
+                    }
+                  }}
+                  showSellerSelection={false}
                 />
               </CardContent>
             </Card>

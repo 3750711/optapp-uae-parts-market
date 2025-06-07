@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -8,7 +9,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import { extractPublicIdFromUrl, getPreviewImageUrl } from "@/utils/cloudinaryUtils";
+import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 import OptimizedAddProductForm, { ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 
 // Admin product schema with required sellerId

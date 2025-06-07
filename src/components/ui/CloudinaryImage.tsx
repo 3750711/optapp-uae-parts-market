@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react';
-import { getProductImageUrl, getResponsiveImageUrls, getPreviewImageUrl } from '@/utils/cloudinaryUtils';
+import { getProductImageUrl, getResponsiveImageUrls } from '@/utils/cloudinaryUtils';
 
 interface CloudinaryImageProps {
   publicId: string;
   alt: string;
-  size?: 'thumbnail' | 'card' | 'detail' | 'preview';
+  size?: 'thumbnail' | 'card' | 'detail';
   className?: string;
   responsive?: boolean;
   priority?: boolean;
@@ -70,10 +70,7 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
     );
   }
 
-  // Use preview for 'card' size (каталожное качество без обрезания), old function for others
-  const imageUrl = size === 'card' 
-    ? getPreviewImageUrl(publicId)
-    : getProductImageUrl(publicId, size);
+  const imageUrl = getProductImageUrl(publicId, size);
 
   return (
     <img

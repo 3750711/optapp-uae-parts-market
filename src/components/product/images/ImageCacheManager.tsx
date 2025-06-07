@@ -1,3 +1,4 @@
+
 import { useQueryClient } from "@tanstack/react-query";
 
 export const useImageCacheManager = () => {
@@ -42,9 +43,7 @@ export const useImageCacheManager = () => {
           product_images: product.product_images?.map((img: any) => ({
             ...img,
             is_primary: img.url === imageUrl
-          })) || [],
-          // Also update preview_image_url optimistically
-          preview_image_url: imageUrl
+          })) || []
         };
       }
       return product;
@@ -74,7 +73,7 @@ export const useImageCacheManager = () => {
       return oldData;
     });
 
-    // Update products-infinite cache (for catalog) - THIS IS CRITICAL
+    // Update products-infinite cache (for catalog)
     queryClient.setQueryData(['products-infinite'], (oldData: any) => {
       if (!oldData?.pages) return oldData;
       
