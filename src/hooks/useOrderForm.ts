@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { Database } from '@/integrations/supabase/types';
 import { useFormAutosave } from '@/hooks/useFormAutosave';
@@ -115,6 +116,14 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     setImages(prev => prev.filter(url => url !== urlToDelete));
   };
 
+  const handleVideoUpload = (urls: string[]) => {
+    setVideos(prev => [...prev, ...urls]);
+  };
+
+  const handleVideoDelete = (urlToDelete: string) => {
+    setVideos(prev => prev.filter(url => url !== urlToDelete));
+  };
+
   const resetForm = () => {
     setFormData({
       title: "",
@@ -162,9 +171,12 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     handleInputChange,
     handleImageUpload,
     handleImageDelete,
+    handleVideoUpload,
+    handleVideoDelete,
     setImages,
     setVideos,
     guardedSubmit,
     resetForm,
   };
 };
+

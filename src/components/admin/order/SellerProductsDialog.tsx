@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ interface Product {
   delivery_price?: number;
   place_number?: number;
   product_images?: { url: string; is_primary?: boolean }[];
+  product_videos?: { url: string }[];
 }
 
 interface SellerProductsDialogProps {
@@ -75,7 +77,7 @@ const SellerProductsDialog: React.FC<SellerProductsDialogProps> = ({
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("*, product_images(*)")
+        .select("*, product_images(*), product_videos(*)")
         .eq("seller_id", sellerId)
         .eq("status", "active")
         .order("created_at", { ascending: false });
@@ -189,6 +191,11 @@ const SellerProductsDialog: React.FC<SellerProductsDialogProps> = ({
                         <Badge variant="outline" className="text-xs">
                           Лот: {product.lot_number}
                         </Badge>
+                        {product.product_videos && product.product_videos.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            Видео: {product.product_videos.length}
+                          </Badge>
+                        )}
                       </div>
                       <h3 className="font-medium text-sm mb-1 line-clamp-2">
                         {product.title}
@@ -226,3 +233,4 @@ const SellerProductsDialog: React.FC<SellerProductsDialogProps> = ({
 };
 
 export default SellerProductsDialog;
+

@@ -234,6 +234,7 @@ export type Database = {
           telegram_url_order: string | null
           text_order: string | null
           title: string
+          video_url: string[] | null
         }
         Insert: {
           brand: string
@@ -265,6 +266,7 @@ export type Database = {
           telegram_url_order?: string | null
           text_order?: string | null
           title: string
+          video_url?: string[] | null
         }
         Update: {
           brand?: string
@@ -296,6 +298,7 @@ export type Database = {
           telegram_url_order?: string | null
           text_order?: string | null
           title?: string
+          video_url?: string[] | null
         }
         Relationships: [
           {

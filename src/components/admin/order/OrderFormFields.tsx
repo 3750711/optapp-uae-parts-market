@@ -1,4 +1,5 @@
 
+
 import React, { useState } from "react";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
 import SellerProductsDialog from "./SellerProductsDialog";
@@ -30,6 +31,7 @@ interface OrderFormFieldsProps {
   parseTitleForBrand: (title: string) => void;
   // Add new props for handling images and data from product
   onImagesUpload?: (urls: string[]) => void;
+  onVideosUpload?: (urls: string[]) => void;
   onDataFromProduct?: (data: any) => void;
 }
 
@@ -43,6 +45,7 @@ interface Product {
   delivery_price?: number;
   place_number?: number;
   product_images?: { url: string; is_primary?: boolean }[];
+  product_videos?: { url: string }[];
 }
 
 export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
@@ -62,6 +65,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   filteredModels,
   parseTitleForBrand,
   onImagesUpload,
+  onVideosUpload,
   onDataFromProduct,
 }) => {
   const [showProductsDialog, setShowProductsDialog] = useState(false);
@@ -115,6 +119,12 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
       onImagesUpload(imageUrls);
     }
 
+    // Копируем видео товара
+    if (product.product_videos && product.product_videos.length > 0 && onVideosUpload) {
+      const videoUrls = product.product_videos.map(video => video.url);
+      onVideosUpload(videoUrls);
+    }
+
     // Вызываем парсинг названия для автозаполнения бренда/модели
     parseTitleForBrand(product.title);
 
@@ -123,9 +133,10 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
       onDataFromProduct(product);
     }
 
+    const mediaCount = (product.product_images?.length || 0) + (product.product_videos?.length || 0);
     toast({
       title: "Данные скопированы",
-      description: `Данные из товара "${product.title}" успешно добавлены в форму`,
+      description: `Данные из товара "${product.title}" успешно добавлены в форму${mediaCount > 0 ? ` (медиафайлов: ${mediaCount})` : ''}`,
     });
   };
 
@@ -192,3 +203,4 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
     </div>
   );
 };
+

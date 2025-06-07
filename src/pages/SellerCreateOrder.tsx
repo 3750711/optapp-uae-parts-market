@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ const SellerCreateOrder = () => {
     handleInputChange,
     handleImageUpload,
     handleImageDelete,
+    handleVideoUpload,
+    handleVideoDelete,
     setImages,
     setVideos,
     guardedSubmit,
@@ -125,6 +128,7 @@ const SellerCreateOrder = () => {
           <OrderConfirmationCard 
             order={createdOrder} 
             images={images}
+            videos={videos}
             onOrderUpdate={handleOrderUpdate}
           />
         </div>
@@ -230,3 +234,4 @@ const SellerCreateOrder = () => {
 };
 
 export default SellerCreateOrder;
+

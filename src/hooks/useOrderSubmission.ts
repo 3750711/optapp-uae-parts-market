@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -128,6 +129,7 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         order_created_type: 'free_order' as OrderCreatedType,
         telegram_url_order: buyerData.telegram || null,
         images: images,
+        video_url: videos,
         product_id: productId || null,
         delivery_method: formData.deliveryMethod as DeliveryMethod,
         text_order: formData.text_order || null,
@@ -189,7 +191,7 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         }
       }
 
-      // Save videos
+      // Save videos (both in video_url array and order_videos table for compatibility)
       if (videos.length > 0) {
         const videoRecords = videos.map(url => ({
           order_id: createdOrder.id,
@@ -214,7 +216,7 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
       try {
         await supabase.functions.invoke('send-telegram-notification', {
           body: { 
-            order: { ...createdOrder, images },
+            order: { ...createdOrder, images, videos },
             action: 'create'
           }
         });
@@ -241,3 +243,4 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
 
   return { submitOrder };
 };
+
