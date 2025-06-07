@@ -48,11 +48,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onKeyDown={handleKeyDown}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
-          className="w-full pl-10 pr-16 py-2 border-gray-200 bg-white/70 backdrop-blur-sm rounded-lg shadow-none"
+          className={`w-full pl-10 py-2 border-gray-200 bg-white/70 backdrop-blur-sm rounded-lg shadow-none ${hasActiveSearch && onClear ? 'pr-12' : 'pr-4'}`}
         />
         
-        <div className="absolute right-1 top-0 h-10 flex items-center">
-          {hasActiveSearch && onClear && (
+        {hasActiveSearch && onClear && (
+          <div className="absolute right-1 top-0 h-10 flex items-center">
             <Button 
               variant="ghost" 
               size="icon" 
@@ -62,18 +62,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
             >
               <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
             </Button>
-          )}
-          
-          <Button 
-            variant="ghost" 
-            size="sm"
-            className="rounded-lg h-8 px-3 ml-1 bg-gray-50 hover:bg-gray-100 text-gray-500"
-            onClick={onSearch}
-            title="Поиск"
-          >
-            <span className="text-xs mr-1">Найти</span>
-          </Button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
