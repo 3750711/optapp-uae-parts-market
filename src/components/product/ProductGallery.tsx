@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from "react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -212,61 +213,120 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       {!isMobile && renderThumbnails()}
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="fixed inset-0 max-w-[100vw] max-h-[100vh] w-[100vw] h-[100vh] p-0 bg-black overflow-hidden border-0">
+        <DialogContent className={`
+          fixed inset-0 
+          w-screen h-screen 
+          max-w-none max-h-none 
+          p-0 m-0 
+          bg-black 
+          overflow-hidden 
+          border-0 
+          ${isMobile ? 'rounded-none' : ''}
+        `}>
           <div
             className="relative w-full h-full flex items-center justify-center"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
-            {/* Кнопка закрытия - фиксированная позиция */}
+            {/* Кнопка закрытия - адаптивная позиция */}
             <Button
               variant="ghost"
               size="icon"
-              className="fixed right-6 top-6 text-white hover:bg-white/20 z-50 bg-black/70 ring-2 ring-white/30"
+              className={`
+                fixed top-4 right-4 
+                ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}
+                text-white hover:bg-white/20 
+                z-50 bg-black/80 
+                ring-2 ring-white/40
+                backdrop-blur-sm
+                transition-all duration-200
+              `}
               onClick={() => setIsOpen(false)}
             >
-              <X className="h-6 w-6" />
+              <X className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
             </Button>
             
-            {/* Стрелки навигации - фиксированная позиция */}
+            {/* Стрелки навигации - адаптивные */}
             {mediaItems.length > 1 && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="fixed left-6 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
+                  className={`
+                    fixed left-4 top-1/2 -translate-y-1/2 
+                    ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}
+                    text-white hover:bg-white/20 
+                    z-40 bg-black/80 
+                    ring-2 ring-white/40
+                    backdrop-blur-sm
+                    transition-all duration-200
+                  `}
                   onClick={handlePrevMedia}
                 >
-                  <ChevronLeft className="h-8 w-8" />
+                  <ChevronLeft className={isMobile ? "h-8 w-8" : "h-6 w-6"} />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="fixed right-6 bottom-6 text-white hover:bg-white/20 z-40 bg-black/70 ring-2 ring-white/30"
+                  className={`
+                    fixed right-4 top-1/2 -translate-y-1/2 
+                    ${isMobile ? 'w-12 h-12' : 'w-10 h-10'}
+                    text-white hover:bg-white/20 
+                    z-40 bg-black/80 
+                    ring-2 ring-white/40
+                    backdrop-blur-sm
+                    transition-all duration-200
+                  `}
                   onClick={handleNextMedia}
                 >
-                  <ChevronRight className="h-8 w-8" />
+                  <ChevronRight className={isMobile ? "h-8 w-8" : "h-6 w-6"} />
                 </Button>
               </>
             )}
             
-            {/* Контент медиа - фиксированный размер */}
-            <div className="w-full h-full flex items-center justify-center p-20">
+            {/* Контент медиа - адаптивный размер */}
+            <div className={`
+              w-full h-full 
+              flex items-center justify-center 
+              ${isMobile ? 'p-16' : 'p-20'}
+            `}>
               {fullScreenMediaType === 'video' ? (
                 <video
                   src={fullScreenMedia}
                   controls
                   autoPlay
-                  className="max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)] w-auto h-auto object-contain"
+                  className={`
+                    object-contain
+                    ${isMobile 
+                      ? 'max-w-[calc(100vw-8rem)] max-h-[calc(100vh-8rem)]' 
+                      : 'max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)]'
+                    }
+                    w-auto h-auto
+                  `}
                   preload="metadata"
+                  style={{
+                    maxWidth: isMobile ? 'calc(100vw - 8rem)' : 'calc(100vw - 10rem)',
+                    maxHeight: isMobile ? 'calc(100vh - 8rem)' : 'calc(100vh - 10rem)'
+                  }}
                 />
               ) : (
                 <img
                   src={fullScreenMedia}
                   alt={title}
-                  className="max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)] w-auto h-auto object-contain"
+                  className={`
+                    object-contain
+                    ${isMobile 
+                      ? 'max-w-[calc(100vw-8rem)] max-h-[calc(100vh-8rem)]' 
+                      : 'max-w-[calc(100vw-10rem)] max-h-[calc(100vh-10rem)]'
+                    }
+                    w-auto h-auto
+                  `}
                   loading="lazy"
+                  style={{
+                    maxWidth: isMobile ? 'calc(100vw - 8rem)' : 'calc(100vw - 10rem)',
+                    maxHeight: isMobile ? 'calc(100vh - 8rem)' : 'calc(100vh - 10rem)'
+                  }}
                 />
               )}
             </div>
