@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { VideoUpload } from '@/components/ui/video-upload';
+import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { useAuth } from '@/contexts/AuthContext';
 import { OrderFormData } from '@/hooks/useOrderForm';
@@ -96,13 +97,12 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
 
       <div className="space-y-2">
         <Label>Видео заказа</Label>
-        <VideoUpload
+        <CloudinaryVideoUpload
           videos={videos}
           onUpload={handleVideoUpload}
           onDelete={handleVideoDelete}
           maxVideos={2}
-          storageBucket="order-videos"
-          storagePrefix=""
+          buttonText="Загрузить видео заказа"
         />
       </div>
 

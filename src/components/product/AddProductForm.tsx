@@ -1,3 +1,4 @@
+
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -22,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import VideoUpload from "@/components/ui/video-upload";
+import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 
 // Product form schema with zod validation
@@ -97,6 +98,14 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   primaryImage,
   setPrimaryImage
 }) => {
+  const handleVideoUpload = (urls: string[]) => {
+    setVideoUrls(prevUrls => [...prevUrls, ...urls]);
+  };
+
+  const handleVideoDelete = (urlToDelete: string) => {
+    setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete));
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -288,12 +297,13 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         
         <div className="space-y-2">
           <Label htmlFor="videos">Видео товара (необязательно)</Label>
-          <VideoUpload
+          <CloudinaryVideoUpload
             videos={videoUrls}
-            onUpload={(urls) => setVideoUrls(prevUrls => [...prevUrls, ...urls])}
-            onDelete={(urlToDelete) => setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete))}
+            onUpload={handleVideoUpload}
+            onDelete={handleVideoDelete}
             maxVideos={2}
-            storageBucket="Product Images"
+            productId={userId}
+            buttonText="Загрузить видео товара"
           />
         </div>
         
