@@ -189,7 +189,7 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Enhanced product creation with Cloudinary data and preview generation
+  // Enhanced product creation with Cloudinary data (no preview generation)
   const createProduct = async (values: AdminProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
@@ -285,36 +285,33 @@ const AdminAddProduct = () => {
         }
       }
 
-      // Extract public_id from primary image and update product with Cloudinary data
+      // Extract public_id from primary image and update product with Cloudinary data (no preview)
       if (primaryImage) {
         try {
           console.log('🎨 Extracting public_id from primary image:', primaryImage);
-          const publicId = extractPublicIdFromUrl(primaryImage);
+          const publicIdMatch = primaryImage.match(/\/v\d+\/(.+?)(?:\.|$)/);
+          const publicId = publicIdMatch ? publicIdMatch[1] : null;
           
           if (publicId) {
-            const previewUrl = getPreviewImageUrl(publicId);
-            
             console.log('📸 Updating product with Cloudinary data:', {
               productId: product.id,
               publicId,
-              cloudinaryUrl: primaryImage,
-              previewUrl
+              cloudinaryUrl: primaryImage
             });
 
-            // Update product with Cloudinary data and preview URL
+            // Update product with Cloudinary data (no preview URL)
             const { error: updateError } = await supabase
               .from('products')
               .update({
                 cloudinary_public_id: publicId,
-                cloudinary_url: primaryImage,
-                preview_image_url: previewUrl
+                cloudinary_url: primaryImage
               })
               .eq('id', product.id);
 
             if (updateError) {
               console.error('❌ Error updating product with Cloudinary data:', updateError);
             } else {
-              console.log('✅ Product updated with Cloudinary data and preview URL');
+              console.log('✅ Product updated with Cloudinary data');
             }
           } else {
             console.warn('⚠️ Could not extract public_id from primary image URL');

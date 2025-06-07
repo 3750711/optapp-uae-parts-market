@@ -1,14 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-interface PreviewImageResponse {
-  success: boolean;
-  previewUrl?: string;
-  originalPublicId?: string;
-  estimatedSize?: number;
-  error?: string;
-}
-
 // Helper function to extract version and extension from cloudinary URL
 const extractVersionAndExtension = (cloudinaryUrl: string): { version: string; extension: string } => {
   try {
@@ -70,7 +62,7 @@ export const getCatalogImageUrl = (
     // Extract version and extension from main cloudinary URL
     const { version, extension } = extractVersionAndExtension(cloudinaryUrl);
     
-    // Build preview URL with correct structure: transformations/version/publicId.extension
+    // Build catalog URL with correct structure: transformations/version/publicId.extension
     const catalogUrl = `https://res.cloudinary.com/dcuziurrb/image/upload/w_400,h_300,c_fit,g_auto,q_auto:good,f_webp/${version}/${cleanPublicId}${extension}`;
     
     console.log('🎨 Generated catalog URL with version/extension:', {
@@ -102,75 +94,4 @@ export const getCatalogImageUrl = (
   // Priority 4: Fallback
   console.log('🎨 Using fallback URL:', fallbackUrl);
   return fallbackUrl || "/placeholder.svg";
-};
-
-// Generate compressed preview image URL (~30KB) using Edge function (keep for backwards compatibility)
-export const generatePreviewImage = async (publicId: string, targetSize: number = 30): Promise<string | null> => {
-  try {
-    console.log('🖼️ Generating preview for publicId:', publicId);
-
-    const { data, error } = await supabase.functions.invoke('generate-preview', {
-      body: { 
-        publicId,
-        targetSize
-      }
-    });
-
-    if (error) {
-      console.error('❌ Preview generation error:', error);
-      return null;
-    }
-
-    const response = data as PreviewImageResponse;
-
-    if (response.success && response.previewUrl) {
-      console.log('✅ Preview generated successfully:', {
-        previewUrl: response.previewUrl,
-        estimatedSize: `${response.estimatedSize}KB`
-      });
-      return response.previewUrl;
-    } else {
-      console.error('❌ Preview generation failed:', response.error);
-      return null;
-    }
-
-  } catch (error) {
-    console.error('💥 Preview generation exception:', error);
-    return null;
-  }
-};
-
-// Batch generate preview images for multiple products
-export const batchGeneratePreviewImages = async (
-  publicIds: string[],
-  targetSize: number = 30
-): Promise<Record<string, string | null>> => {
-  const results: Record<string, string | null> = {};
-
-  console.log('📦 Batch generating previews for:', publicIds.length, 'images');
-
-  // Process in batches of 5 to avoid overwhelming the server
-  const batchSize = 5;
-  for (let i = 0; i < publicIds.length; i += batchSize) {
-    const batch = publicIds.slice(i, i + batchSize);
-    
-    const batchPromises = batch.map(async (publicId) => {
-      const previewUrl = await generatePreviewImage(publicId, targetSize);
-      results[publicId] = previewUrl;
-    });
-
-    await Promise.all(batchPromises);
-    
-    // Small delay between batches
-    if (i + batchSize < publicIds.length) {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-  }
-
-  console.log('🎉 Batch generation completed:', {
-    total: publicIds.length,
-    successful: Object.values(results).filter(Boolean).length
-  });
-
-  return results;
 };
