@@ -139,7 +139,11 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="max-w-2xl" hideCloseButton>
+      <DialogContent 
+        className="max-w-2xl" 
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Shield className="h-6 w-6 text-optapp-yellow" />
