@@ -4,6 +4,17 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
+// Расширяем типы Window для gtag
+declare global {
+  interface Window {
+    gtag?: (
+      command: string,
+      eventName: string,
+      parameters: Record<string, any>
+    ) => void;
+  }
+}
+
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;

@@ -1,12 +1,45 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import { Suspense, lazy } from "react";
 import { Loader2 } from "lucide-react";
+
+// Import all page components
+import Index from "./pages/Index";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import SellerRegister from "./pages/SellerRegister";
+import Profile from "./pages/Profile";
+import Catalog from "./pages/Catalog";
+import ProductDetail from "./pages/ProductDetail";
+import SellerAddProduct from "./pages/SellerAddProduct";
+import SellerListings from "./pages/SellerListings";
+import SellerOrders from "./pages/SellerOrders";
+import SellerProfile from "./pages/SellerProfile";
+import SellerCreateOrder from "./pages/SellerCreateOrder";
+import SellerSellProduct from "./pages/SellerSellProduct";
+import PublicSellerProfile from "./pages/PublicSellerProfile";
+import BuyerOrders from "./pages/BuyerOrders";
+import BuyerCreateOrder from "./pages/BuyerCreateOrder";
+import OrderDetails from "./pages/OrderDetails";
+import CreateRequest from "./pages/CreateRequest";
+import Requests from "./pages/Requests";
+import RequestDetail from "./pages/RequestDetail";
+import Stores from "./pages/Stores";
+import StoreDetail from "./pages/StoreDetail";
+import CreateStore from "./pages/CreateStore";
+import Contact from "./pages/Contact";
+import About from "./pages/About";
+import BuyerGuide from "./pages/BuyerGuide";
+import NotFound from "./pages/NotFound";
+
+// Import auth components
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 // Admin pages
 import AdminDashboard from "./pages/AdminDashboard";
