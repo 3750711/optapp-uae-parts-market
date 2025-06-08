@@ -52,19 +52,26 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      // Сначала обновляем пароль
+      const { error: passwordError } = await supabase.auth.updateUser({
         password: newPassword
       });
 
-      if (error) throw error;
+      if (passwordError) {
+        console.error('Password update error:', passwordError);
+        throw new Error(passwordError.message);
+      }
 
-      // Устанавливаем флаг завершения первого входа
+      // Затем устанавливаем флаг завершения первого входа
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ first_login_completed: true })
         .eq('id', profile?.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile update error:', profileError);
+        throw new Error('Не удалось обновить профиль');
+      }
 
       setPasswordChanged(true);
       await refreshProfile();
@@ -77,11 +84,27 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
       setStep(2);
     } catch (error: any) {
       console.error('Error changing password:', error);
-      toast({
-        title: "Ошибка при смене пароля",
-        description: error.message || "Произошла ошибка",
-        variant: "destructive",
-      });
+      
+      // Проверяем специфичные ошибки
+      if (error.message?.includes('JWT') || error.message?.includes('session')) {
+        toast({
+          title: "Ошибка авторизации",
+          description: "Пожалуйста, войдите в систему заново",
+          variant: "destructive",
+        });
+      } else if (error.message?.includes('password')) {
+        toast({
+          title: "Ошибка при смене пароля",
+          description: "Пароль должен отличаться от текущего и содержать минимум 8 символов",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Ошибка при смене пароля",
+          description: error.message || "Произошла ошибка, попробуйте позже",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
