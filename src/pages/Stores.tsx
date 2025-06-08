@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, MapPin, Star, Filter, Grid, List } from "lucide-react";
+import { Search, MapPin, Star, Filter } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -14,261 +14,243 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useIntersection } from "@/hooks/useIntersection";
-import { useIsMobile } from "@/hooks/use-mobile";
-import OptimizedImage from "@/components/ui/OptimizedImage";
-import StoreCardMobile from "@/components/stores/StoreCardMobile";
-import { StoreWithImages } from "@/types/store";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Link } from "react-router-dom";
 
-interface StoreData {
+interface Store {
   id: string;
   name: string;
-  tags?: string[];
-  rating?: number;
-  address: string;
-  created_at: string;
   description?: string;
+  address: string;
   location?: string;
-  owner_name?: string;
   phone?: string;
-  seller_id?: string;
-  telegram?: string;
-  updated_at?: string;
+  rating?: number;
   verified: boolean;
+  tags?: string[];
+  created_at: string;
   store_images?: Array<{
     id: string;
     url: string;
     is_primary?: boolean;
   }>;
-  product_count?: number;
 }
 
 const Stores = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("rating");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const isMobile = useIsMobile();
+  const [sortBy, setSortBy] = useState("name");
 
-  // Изменяем тип ref на HTMLDivElement для совместимости
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
-  const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
-
-  const storesPerPage = 12;
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    isError,
-    error,
-  } = useInfiniteQuery({
-    queryKey: ["stores-infinite", searchTerm, sortBy, selectedTags],
-    queryFn: async ({ pageParam = 0 }) => {
-      const from = pageParam * storesPerPage;
-      const to = from + storesPerPage - 1;
-
-      let query = supabase
-        .from("stores")
-        .select("*, store_images(*), product_count:products(count)")
-        .order(sortBy === "rating" ? "rating" : "name", {
-          ascending: sortBy === "name",
-        })
-        .range(from, to);
-
-      if (searchTerm) {
-        query = query.ilike("name", `%${searchTerm}%`);
-      }
-
-      if (selectedTags.length > 0) {
-        query = query.contains("tags", selectedTags);
-      }
-
-      const { data, error } = await query;
+  // Fetch stores
+  const { data: stores = [], isLoading, error } = useQuery({
+    queryKey: ['stores'],
+    queryFn: async () => {
+      console.log('🔍 Fetching stores...');
+      
+      const { data, error } = await supabase
+        .from('stores')
+        .select(`
+          *,
+          store_images(*)
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error("Error fetching stores:", error);
-        throw new Error("Failed to fetch stores");
+        console.error('❌ Error fetching stores:', error);
+        throw error;
       }
 
-      return data as StoreData[];
+      console.log('✅ Stores fetched:', data?.length || 0);
+      return data as Store[];
     },
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage.length === storesPerPage ? allPages.length : undefined;
-    },
-    initialPageParam: 0,
-    staleTime: 60 * 60 * 1000, // 1 hour
-    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 5, // 5 минут кэширования
   });
 
-  React.useEffect(() => {
-    if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage && !isError) {
-      fetchNextPage();
-    }
-  }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage, isError]);
-
-  const allStores = useMemo(() => {
-    return data?.pages.flat() || [];
-  }, [data]);
-
-  const handleTagSelect = (tag: string) => {
-    setSelectedTags((prevTags) =>
-      prevTags.includes(tag)
-        ? prevTags.filter((t) => t !== tag)
-        : [...prevTags, tag]
-    );
-  };
-
-  const availableTags = useMemo(() => {
-    const tags = new Set<string>();
-    allStores.forEach((store) => {
-      if (store.tags) {
-        store.tags.forEach((tag) => tags.add(tag));
-      }
-    });
-    return Array.from(tags);
-  }, [allStores]);
-
+  // Filter and sort stores
   const filteredStores = useMemo(() => {
-    return allStores.filter((store) => {
-      if (searchTerm && !store.name.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-      if (selectedTags.length > 0 && (!store.tags || !selectedTags.every(tag => store.tags?.includes(tag)))) {
-        return false;
-      }
-      return true;
-    });
-  }, [allStores, searchTerm, selectedTags]);
+    let result = stores;
 
-  const handleLoadMore = () => {
-    fetchNextPage();
+    // Apply search filter
+    if (searchTerm.trim()) {
+      result = result.filter(store => 
+        store.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        store.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        store.address.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'created_at':
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        default:
+          return 0;
+      }
+    });
+
+    return result;
+  }, [stores, searchTerm, sortBy]);
+
+  const getMainImageUrl = (store: Store) => {
+    const primaryImage = store.store_images?.find(img => img.is_primary);
+    return primaryImage?.url || store.store_images?.[0]?.url || '/placeholder.svg';
   };
 
   return (
     <>
       <Helmet>
-        <title>Магазины</title>
-        <meta name="description" content="Список магазинов" />
+        <title>Магазины автозапчастей | PartsBay.ae</title>
+        <meta name="description" content="Каталог магазинов автозапчастей в ОАЭ. Найдите проверенных продавцов автозапчастей в Дубае." />
       </Helmet>
 
-      <div className="container py-8 space-y-6">
+      <div className="container mx-auto py-8 space-y-6">
+        {/* Header */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">Магазины</h1>
+            <h1 className="text-3xl font-bold">Магазины</h1>
             {filteredStores.length > 0 && (
               <Badge variant="secondary">{filteredStores.length}</Badge>
             )}
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-              <Input
-                type="search"
-                placeholder="Поиск магазинов..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            <Select value={sortBy} onValueChange={(value) => setSortBy(value)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Сортировать по" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="rating">Рейтингу</SelectItem>
-                <SelectItem value="name">Имени</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {!isMobile && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
-              >
-                {viewMode === "grid" ? <List /> : <Grid />}
-              </Button>
-            )}
-          </div>
         </div>
 
-        {availableTags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            <span className="text-sm font-medium">Тэги:</span>
-            {availableTags.map((tag) => (
-              <Badge
-                key={tag}
-                variant={selectedTags.includes(tag) ? "default" : "outline"}
-                className="cursor-pointer"
-                onClick={() => handleTagSelect(tag)}
-              >
-                {tag}
-              </Badge>
+        {/* Search and Filters */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Поиск магазинов..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-full md:w-[200px]">
+              <SelectValue placeholder="Сортировать по" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">По названию</SelectItem>
+              <SelectItem value="rating">По рейтингу</SelectItem>
+              <SelectItem value="created_at">По дате создания</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <div className="aspect-video bg-gray-200 rounded-t-lg" />
+                <CardHeader>
+                  <div className="h-4 bg-gray-200 rounded w-3/4" />
+                  <div className="h-3 bg-gray-200 rounded w-1/2" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-3 bg-gray-200 rounded w-full" />
+                  <div className="h-3 bg-gray-200 rounded w-2/3 mt-2" />
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div
-                key={i}
-                className="animate-pulse rounded-lg bg-gray-100 aspect-square"
-              />
-            ))}
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-red-600">Ошибка загрузки</h3>
+            <p className="text-gray-500 mt-2">Не удалось загрузить магазины. Попробуйте позже.</p>
           </div>
-        ) : filteredStores.length === 0 ? (
+        )}
+
+        {/* Empty State */}
+        {!isLoading && !error && filteredStores.length === 0 && (
           <div className="text-center py-12">
             <h3 className="text-lg font-medium">
-              {searchTerm
-                ? "Ничего не найдено"
-                : "Пока нет ни одного магазина"}
+              {searchTerm ? "Ничего не найдено" : "Пока нет магазинов"}
             </h3>
-            <p className="text-gray-500">
-              {searchTerm
-                ? "Попробуйте изменить поисковый запрос"
-                : "Возвращайтесь позже"}
+            <p className="text-gray-500 mt-2">
+              {searchTerm 
+                ? "Попробуйте изменить поисковый запрос" 
+                : "Магазины появятся здесь, когда продавцы их создадут"
+              }
             </p>
           </div>
-        ) : (
-          <div
-            className={`grid ${
-              viewMode === "grid"
-                ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                : "grid-cols-1"
-            } gap-4`}
-          >
+        )}
+
+        {/* Stores Grid */}
+        {!isLoading && !error && filteredStores.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredStores.map((store) => (
-              <StoreCardMobile key={store.id} store={store as StoreWithImages} />
+              <Card key={store.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Link to={`/stores/${store.id}`}>
+                  <div className="aspect-video relative overflow-hidden">
+                    <img
+                      src={getMainImageUrl(store)}
+                      alt={store.name}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                    {store.verified && (
+                      <Badge className="absolute top-2 right-2 bg-green-500">
+                        Проверен
+                      </Badge>
+                    )}
+                  </div>
+                </Link>
+
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg line-clamp-1">
+                    <Link 
+                      to={`/stores/${store.id}`}
+                      className="hover:text-primary transition-colors"
+                    >
+                      {store.name}
+                    </Link>
+                  </CardTitle>
+                  
+                  {store.rating && (
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <span className="text-sm font-medium">{store.rating.toFixed(1)}</span>
+                    </div>
+                  )}
+                </CardHeader>
+
+                <CardContent className="space-y-2">
+                  {store.description && (
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {store.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center gap-1 text-sm text-gray-500">
+                    <MapPin className="h-3 w-3" />
+                    <span className="line-clamp-1">{store.address}</span>
+                  </div>
+
+                  {store.tags && store.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {store.tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                      {store.tags.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{store.tags.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             ))}
-          </div>
-        )}
-
-        {hasNextPage && (
-          <div className="text-center">
-            {/* Используем div для ref вместо button */}
-            <div ref={loadMoreRef} className="w-full flex justify-center">
-              {!isFetchingNextPage && (
-                <Button onClick={handleLoadMore}>
-                  Загрузить еще
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {isFetchingNextPage && (
-          <div className="text-center">Загрузка магазинов...</div>
-        )}
-
-        {isError && (
-          <div className="text-center text-red-500">
-            Error: {error?.message}
           </div>
         )}
       </div>
