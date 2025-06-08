@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ProfileType } from "./types";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -23,7 +24,8 @@ import { UserTypeField } from "./fields/UserTypeField";
 import { OptIdField } from "./fields/OptIdField";
 import { TelegramField } from "./fields/TelegramField";
 import { ProfileTextField } from "./fields/ProfileTextField";
-import { Save } from "lucide-react";
+import EmailChangeForm from "./EmailChangeForm";
+import { Save, Edit } from "lucide-react";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
@@ -62,6 +64,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
   const { isAdmin } = useAdminAccess();
   const canEditOptId = (user?.id === profile.id) || isAdmin;
   const isSeller = profile.user_type === 'seller';
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -89,6 +92,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     }
   };
 
+  const handleEmailChangeSuccess = () => {
+    setIsEmailDialogOpen(false);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -103,14 +110,48 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
               label="Имя и фамилия"
               placeholder="Введите ваше имя"
             />
-            <ProfileTextField
-              name="email"
+            
+            <FormField
               control={form.control}
-              label="Email"
-              placeholder=""
-              type="email"
-              disabled={true}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder=""
+                        disabled={true}
+                        className="flex-1"
+                      />
+                    </FormControl>
+                    <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <EmailChangeForm
+                          currentEmail={profile.email}
+                          onSuccess={handleEmailChangeSuccess}
+                          onCancel={() => setIsEmailDialogOpen(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
+
             <UserTypeField control={form.control} readOnlyUserType={readOnlyUserType} />
             <ProfileTextField
               name="phone"
