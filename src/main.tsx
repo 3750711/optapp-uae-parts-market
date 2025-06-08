@@ -1,4 +1,5 @@
 
+
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { ToastProvider } from "@/hooks/use-toast"
@@ -26,6 +27,8 @@ import Contact from "./pages/Contact";
 import ProductDetail from "./pages/ProductDetail";
 import StoreDetail from "./pages/StoreDetail";
 import BuyerGuide from "./pages/BuyerGuide";
+import AdminStores from "./pages/AdminStores";
+import PublicSellerProfile from "./pages/PublicSellerProfile";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
@@ -71,6 +74,8 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/register" element={<Register />} />
                       <Route path="/verify-email" element={<VerifyEmail />} />
                       <Route path="/profile" element={<Profile />} />
+                      <Route path="/seller/:id" element={<PublicSellerProfile />} />
+                      <Route path="/admin/stores" element={<AdminStores />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </div>
@@ -83,3 +88,4 @@ createRoot(document.getElementById("root")!).render(
     </HelmetProvider>
   </React.StrictMode>
 );
+
