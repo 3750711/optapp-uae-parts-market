@@ -115,6 +115,36 @@ export type Database = {
         }
         Relationships: []
       }
+      login_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string
+          error_message: string | null
+          id: string
+          identifier: string
+          ip_address: unknown | null
+          success: boolean
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          identifier: string
+          ip_address?: unknown | null
+          success?: boolean
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          identifier?: string
+          ip_address?: unknown | null
+          success?: boolean
+        }
+        Relationships: []
+      }
       logistics_exports: {
         Row: {
           created_at: string
@@ -924,12 +954,18 @@ export type Database = {
         Returns: undefined
       }
       check_opt_id_exists: {
-        Args: { p_opt_id: string }
+        Args:
+          | { p_opt_id: string }
+          | { p_opt_id: string; p_ip_address?: unknown }
         Returns: boolean
       }
       check_order_number_unique: {
         Args: { p_order_number: number; p_order_id?: string }
         Returns: boolean
+      }
+      cleanup_old_login_attempts: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       clear_all_rls_policies: {
         Args: Record<PropertyKey, never>
@@ -997,7 +1033,9 @@ export type Database = {
         Returns: undefined
       }
       get_email_by_opt_id: {
-        Args: { p_opt_id: string }
+        Args:
+          | { p_opt_id: string }
+          | { p_opt_id: string; p_ip_address?: unknown }
         Returns: string
       }
       get_next_order_number: {

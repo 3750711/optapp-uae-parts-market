@@ -55,7 +55,7 @@ type FormData = z.infer<typeof formSchema>;
 const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasOptId, setHasOptId] = useState(false);
-  const [optIdStatus, setOptIdStatus] = useState<'checking' | 'available' | 'taken' | null>(null);
+  const [optIdStatus, setOptIdStatus] = useState<'checking' | 'available' | 'taken' | 'rate_limited' | null>(null);
   const navigate = useNavigate();
   
   const form = useForm<FormData>({
@@ -85,8 +85,13 @@ const Register = () => {
     const checkOptId = async () => {
       if (optId && optId.length > 2) {
         setOptIdStatus('checking');
-        const exists = await checkOptIdExists(optId);
-        setOptIdStatus(exists ? 'taken' : 'available');
+        const result = await checkOptIdExists(optId);
+        
+        if (result.isRateLimited) {
+          setOptIdStatus('rate_limited');
+        } else {
+          setOptIdStatus(result.exists ? 'taken' : 'available');
+        }
       } else {
         setOptIdStatus(null);
       }
@@ -181,6 +186,8 @@ const Register = () => {
         return <Check className="h-4 w-4 text-green-500" />;
       case 'taken':
         return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'rate_limited':
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
       default:
         return null;
     }
@@ -194,6 +201,8 @@ const Register = () => {
         return "✓ OPT ID доступен";
       case 'taken':
         return "✗ OPT ID уже используется";
+      case 'rate_limited':
+        return "⚠ Слишком много запросов, попробуйте позже";
       default:
         return null;
     }
@@ -235,7 +244,8 @@ const Register = () => {
                       {optIdStatus && (
                         <p className={`text-xs ${
                           optIdStatus === 'available' ? 'text-green-600' :
-                          optIdStatus === 'taken' ? 'text-red-600' : 'text-gray-600'
+                          optIdStatus === 'taken' ? 'text-red-600' : 
+                          optIdStatus === 'rate_limited' ? 'text-orange-600' : 'text-gray-600'
                         }`}>
                           {getOptIdStatusText()}
                         </p>
@@ -406,7 +416,7 @@ const Register = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoading || optIdStatus === 'taken'}
+                  disabled={isLoading || optIdStatus === 'taken' || optIdStatus === 'rate_limited'}
                 >
                   {isLoading ? "Регистрация..." : "Зарегистрироваться"}
                 </Button>
