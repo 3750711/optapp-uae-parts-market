@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
 
 interface EmailVerificationResult {
   success: boolean;
@@ -16,6 +15,8 @@ export const useEmailVerification = () => {
     setIsLoading(true);
     
     try {
+      console.log('Sending verification code to:', email);
+      
       const response = await fetch(
         `${supabase.supabaseUrl}/functions/v1/send-email-verification`,
         {
@@ -29,6 +30,8 @@ export const useEmailVerification = () => {
       );
 
       const result = await response.json();
+      console.log('Send verification response:', result);
+      
       return result;
     } catch (error) {
       console.error('Error sending verification code:', error);
@@ -45,6 +48,8 @@ export const useEmailVerification = () => {
     setIsLoading(true);
 
     try {
+      console.log('Verifying code for email:', email, 'code:', code);
+      
       const { data, error } = await supabase.rpc('verify_email_code', {
         p_email: email,
         p_code: code
@@ -58,6 +63,7 @@ export const useEmailVerification = () => {
         };
       }
 
+      console.log('Verification result:', data);
       return data;
     } catch (error) {
       console.error('Error verifying code:', error);

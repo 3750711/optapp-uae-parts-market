@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -113,15 +114,31 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
     setIsLoading(true);
     
     try {
-      // Обновляем email в профиле пользователя
-      const { error } = await supabase
+      console.log('Updating email in Supabase Auth:', verifiedEmail);
+      
+      // Обновляем email в Supabase Auth (это основной источник истины)
+      const { error: authError } = await supabase.auth.updateUser({
+        email: verifiedEmail
+      });
+
+      if (authError) {
+        console.error('Error updating auth email:', authError);
+        throw new Error(`Не удалось обновить email в системе авторизации: ${authError.message}`);
+      }
+
+      console.log('Auth email updated successfully, now updating profile');
+
+      // Обновляем email в профиле пользователя 
+      // (триггер sync_email_to_auth должен синхронизировать это автоматически)
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({ email: verifiedEmail })
         .eq('id', profile?.id);
 
-      if (error) {
-        console.error('Error updating profile email:', error);
-        throw new Error('Не удалось обновить email в профиле');
+      if (profileError) {
+        console.error('Error updating profile email:', profileError);
+        // Не блокируем процесс, так как основной email уже обновлен в auth
+        console.warn('Profile email update failed, but auth email was updated');
       }
 
       await refreshProfile();
