@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import Layout from "@/components/layout/Layout";
 
 interface Store {
   id: string;
@@ -100,7 +101,7 @@ const Stores = () => {
   };
 
   return (
-    <>
+    <Layout>
       <Helmet>
         <title>Магазины автозапчастей | PartsBay.ae</title>
         <meta name="description" content="Каталог магазинов автозапчастей в ОАЭ. Найдите проверенных продавцов автозапчастей в Дубае." />
@@ -254,7 +255,7 @@ const Stores = () => {
           </div>
         )}
       </div>
-    </>
+    </Layout>
   );
 };
 
