@@ -147,17 +147,6 @@ const ForgotPassword = () => {
         return;
       }
 
-      // Теперь создаем сессию сброса пароля через Supabase
-      const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(emailToUse, {
-        redirectTo: resetLink,
-      });
-
-      if (supabaseError) {
-        console.error("Supabase password reset error:", supabaseError);
-        // Не показываем эррор пользователю, так как письмо уже отправлено
-        console.log("Supabase reset error (non-critical):", supabaseError.message);
-      }
-
       // Успешно отправлено
       setEmailSent(true);
       setSentToEmail(emailToUse);
