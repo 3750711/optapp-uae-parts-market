@@ -923,6 +923,10 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
+      check_opt_id_exists: {
+        Args: { p_opt_id: string }
+        Returns: boolean
+      }
       check_order_number_unique: {
         Args: { p_order_number: number; p_order_id?: string }
         Returns: boolean
@@ -991,6 +995,10 @@ export type Database = {
       delete_user_account: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_email_by_opt_id: {
+        Args: { p_opt_id: string }
+        Returns: string
       }
       get_next_order_number: {
         Args: Record<PropertyKey, never>

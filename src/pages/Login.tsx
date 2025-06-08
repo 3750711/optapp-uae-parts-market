@@ -18,9 +18,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
+import { Mail, User } from "lucide-react";
 
 const formSchema = z.object({
-  email: z.string().email({ message: "Введите корректный email адрес" }),
+  emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
   password: z.string().min(1, { message: "Введите пароль" }),
 });
 
@@ -28,32 +30,66 @@ type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
   const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
+      emailOrOptId: "",
       password: "",
     }
   });
+
+  const watchedInput = form.watch('emailOrOptId');
+
+  // Определяем тип ввода в реальном времени
+  React.useEffect(() => {
+    if (watchedInput) {
+      const type = detectInputType(watchedInput);
+      setInputType(type);
+    } else {
+      setInputType(null);
+    }
+  }, [watchedInput]);
 
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     
     try {
-      console.log("Attempting to sign in with email:", data.email);
+      console.log("Attempting to sign in with:", data.emailOrOptId);
       
-      // Perform the login
+      const inputType = detectInputType(data.emailOrOptId);
+      let emailToUse = data.emailOrOptId;
+
+      // Если введен OPT ID, найдем соответствующий email
+      if (inputType === 'opt_id') {
+        console.log("Detected OPT ID, searching for email...");
+        const foundEmail = await getEmailByOptId(data.emailOrOptId);
+        
+        if (!foundEmail) {
+          toast({
+            title: "Ошибка входа",
+            description: "OPT ID не найден в системе",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        emailToUse = foundEmail;
+        console.log("Found email for OPT ID:", emailToUse);
+      }
+
+      // Выполняем вход с найденным email
       const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
+        email: emailToUse,
         password: data.password,
       });
 
       if (error) {
         console.error("Login error:", error);
         
-        // Handle specific error cases
+        // Обрабатываем специфичные ошибки
         if (error.message.includes("Database error")) {
           toast({
             title: "Ошибка входа",
@@ -66,17 +102,19 @@ const Login = () => {
         throw error;
       }
 
-      // Show success message
+      // Показываем сообщение об успехе
       toast({
         title: "Вход выполнен успешно",
-        description: "Добро пожаловать в partsbay.ae",
+        description: inputType === 'opt_id' 
+          ? `Добро пожаловать в partsbay.ae (OPT ID: ${data.emailOrOptId})`
+          : "Добро пожаловать в partsbay.ae",
       });
       
-      // Check URL for "from" parameter for redirection
+      // Проверяем URL для параметра "from" для редиректа
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // Add a short delay to ensure auth state is properly updated
+      // Добавляем небольшую задержку для обновления состояния авторизации
       setTimeout(() => {
         console.log("Redirecting to:", from);
         navigate(from);
@@ -85,15 +123,31 @@ const Login = () => {
     } catch (error: any) {
       console.error("Login error:", error);
       
-      // Show error message
+      // Показываем сообщение об ошибке
+      const errorMessage = inputType === 'opt_id' 
+        ? "Неверный OPT ID или пароль"
+        : "Неверный email или пароль";
+        
       toast({
         title: "Ошибка входа",
-        description: "Неверный email или пароль",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const getInputIcon = () => {
+    if (inputType === 'email') return <Mail className="h-4 w-4 text-green-500" />;
+    if (inputType === 'opt_id') return <User className="h-4 w-4 text-blue-500" />;
+    return null;
+  };
+
+  const getPlaceholderText = () => {
+    if (inputType === 'email') return "example@mail.com";
+    if (inputType === 'opt_id') return "KIROV, DSG, AAN...";
+    return "example@mail.com или KIROV";
   };
 
   return (
@@ -103,7 +157,7 @@ const Login = () => {
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold">Вход в аккаунт</CardTitle>
             <CardDescription>
-              Введите свои данные для входа в систему
+              Введите свой email или OPT ID для входа в систему
             </CardDescription>
           </CardHeader>
           <Form {...form}>
@@ -111,14 +165,33 @@ const Login = () => {
               <CardContent className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="emailOrOptId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>Email или OPT ID</FormLabel>
                       <FormControl>
-                        <Input type="email" placeholder="example@mail.com" {...field} />
+                        <div className="relative">
+                          <Input 
+                            type="text" 
+                            placeholder={getPlaceholderText()}
+                            {...field} 
+                            className="pr-10"
+                          />
+                          {getInputIcon() && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                              {getInputIcon()}
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
+                      {inputType && (
+                        <p className="text-xs text-muted-foreground">
+                          {inputType === 'email' 
+                            ? "✓ Определен как email адрес" 
+                            : "✓ Определен как OPT ID"}
+                        </p>
+                      )}
                     </FormItem>
                   )}
                 />
@@ -155,6 +228,11 @@ const Login = () => {
                   <Link to="/register" className="text-optapp-dark font-medium hover:underline">
                     Зарегистрироваться
                   </Link>
+                </div>
+                <div className="text-center text-xs text-muted-foreground border-t pt-4">
+                  <p>💡 Подсказка: Вы можете войти используя:</p>
+                  <p>• Email адрес (example@mail.com)</p>
+                  <p>• OPT ID (KIROV, DSG, AAN и т.д.)</p>
                 </div>
               </CardFooter>
             </form>

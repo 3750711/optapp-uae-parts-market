@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -26,7 +25,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { countries } from "@/data/countries";
-import { Check, User, Store } from "lucide-react";
+import { Check, User, Store, AlertCircle } from "lucide-react";
+import { checkOptIdExists } from "@/utils/authUtils";
 
 const formSchema = z.object({
   fullName: z.string().optional(),
@@ -55,6 +55,7 @@ type FormData = z.infer<typeof formSchema>;
 const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [hasOptId, setHasOptId] = useState(false);
+  const [optIdStatus, setOptIdStatus] = useState<'checking' | 'available' | 'taken' | null>(null);
   const navigate = useNavigate();
   
   const form = useForm<FormData>({
@@ -79,14 +80,41 @@ const Register = () => {
     setHasOptId(!!optId);
   }, [optId]);
 
+  // Проверяем уникальность OPT ID при вводе
+  useEffect(() => {
+    const checkOptId = async () => {
+      if (optId && optId.length > 2) {
+        setOptIdStatus('checking');
+        const exists = await checkOptIdExists(optId);
+        setOptIdStatus(exists ? 'taken' : 'available');
+      } else {
+        setOptIdStatus(null);
+      }
+    };
+
+    const timeoutId = setTimeout(checkOptId, 500);
+    return () => clearTimeout(timeoutId);
+  }, [optId]);
+
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     console.log("Form data submitting:", data);
     
+    // Дополнительная проверка уникальности OPT ID перед отправкой
+    if (data.optId && optIdStatus === 'taken') {
+      toast({
+        title: "Ошибка регистрации",
+        description: "Этот OPT ID уже используется",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+    
     try {
       console.log("Attempting to register user with email:", data.email);
       
-      // Register the user with Supabase auth
+      // Регистрируем пользователя через Supabase auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -106,7 +134,7 @@ const Register = () => {
       
       console.log("Registration successful:", authData);
 
-      // Ensure the profile data is also updated directly
+      // Убеждаемся, что данные профиля также обновлены напрямую
       if (authData.user) {
         const { error: profileError } = await supabase
           .from('profiles')
@@ -127,7 +155,9 @@ const Register = () => {
 
       toast({
         title: "Регистрация прошла успешно",
-        description: "Проверьте вашу почту для подтверждения email",
+        description: data.optId 
+          ? `Проверьте вашу почту для подтверждения email. OPT ID: ${data.optId}`
+          : "Проверьте вашу почту для подтверждения email",
       });
       
       navigate("/login");
@@ -140,6 +170,32 @@ const Register = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const getOptIdStatusIcon = () => {
+    switch (optIdStatus) {
+      case 'checking':
+        return <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />;
+      case 'available':
+        return <Check className="h-4 w-4 text-green-500" />;
+      case 'taken':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getOptIdStatusText = () => {
+    switch (optIdStatus) {
+      case 'checking':
+        return "Проверяем доступность...";
+      case 'available':
+        return "✓ OPT ID доступен";
+      case 'taken':
+        return "✗ OPT ID уже используется";
+      default:
+        return null;
     }
   };
 
@@ -163,8 +219,27 @@ const Register = () => {
                     <FormItem>
                       <FormLabel>OPT ID (если есть)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Введите ваш OPT ID если он у вас есть" {...field} />
+                        <div className="relative">
+                          <Input 
+                            placeholder="Введите ваш OPT ID если он у вас есть" 
+                            {...field} 
+                            className="pr-10"
+                          />
+                          {getOptIdStatusIcon() && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                              {getOptIdStatusIcon()}
+                            </div>
+                          )}
+                        </div>
                       </FormControl>
+                      {optIdStatus && (
+                        <p className={`text-xs ${
+                          optIdStatus === 'available' ? 'text-green-600' :
+                          optIdStatus === 'taken' ? 'text-red-600' : 'text-gray-600'
+                        }`}>
+                          {getOptIdStatusText()}
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -331,7 +406,7 @@ const Register = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoading}
+                  disabled={isLoading || optIdStatus === 'taken'}
                 >
                   {isLoading ? "Регистрация..." : "Зарегистрироваться"}
                 </Button>
