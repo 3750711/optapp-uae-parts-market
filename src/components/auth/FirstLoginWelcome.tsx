@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +9,7 @@ import { User, Lock, Mail, Shield, CheckCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import EmailVerificationForm from './EmailVerificationForm';
 
 interface FirstLoginWelcomeProps {
   isOpen: boolean;
@@ -27,8 +27,7 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
   const [passwordChanged, setPasswordChanged] = useState(false);
   
   // Email change state
-  const [newEmail, setNewEmail] = useState('');
-  const [emailChangeStep, setEmailChangeStep] = useState<'form' | 'sent' | 'skip'>('form');
+  const [emailChangeStep, setEmailChangeStep] = useState<'form' | 'verification' | 'completed'>('form');
 
   const handlePasswordChange = async () => {
     if (newPassword.length < 8) {
@@ -110,37 +109,32 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
     }
   };
 
-  const handleEmailChange = async () => {
-    if (!newEmail || !newEmail.includes('@')) {
-      toast({
-        title: "Некорректный email",
-        description: "Введите корректный email адрес",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const handleEmailVerificationSuccess = async (verifiedEmail: string) => {
     setIsLoading(true);
-
+    
     try {
-      // Отправляем письмо для подтверждения нового email
-      const { error } = await supabase.auth.updateUser(
-        { email: newEmail },
-        { emailRedirectTo: `${window.location.origin}/` }
-      );
+      // Обновляем email в профиле пользователя
+      const { error } = await supabase
+        .from('profiles')
+        .update({ email: verifiedEmail })
+        .eq('id', profile?.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile email:', error);
+        throw new Error('Не удалось обновить email в профиле');
+      }
 
-      setEmailChangeStep('sent');
+      await refreshProfile();
+      setEmailChangeStep('completed');
 
       toast({
-        title: "Письмо отправлено",
-        description: `Проверьте почту ${newEmail} для подтверждения`,
+        title: "Email успешно изменен",
+        description: `Ваш новый email: ${verifiedEmail}`,
       });
     } catch (error: any) {
-      console.error('Error changing email:', error);
+      console.error('Error updating email:', error);
       toast({
-        title: "Ошибка при смене email",
+        title: "Ошибка при обновлении email",
         description: error.message || "Произошла ошибка",
         variant: "destructive",
       });
@@ -154,7 +148,7 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
   };
 
   const handleSkipEmail = () => {
-    setEmailChangeStep('skip');
+    setEmailChangeStep('completed');
     handleComplete();
   };
 
@@ -268,25 +262,13 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
                       Рекомендуем сменить email с @g.com на ваш настоящий email адрес для получения уведомлений.
                     </p>
                     
-                    <div>
-                      <Label htmlFor="newEmail">Новый email</Label>
-                      <Input
-                        id="newEmail"
-                        type="email"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                        placeholder="your@email.com"
-                        disabled={isLoading}
-                      />
-                    </div>
-
                     <div className="flex gap-3">
                       <Button 
-                        onClick={handleEmailChange}
-                        disabled={!newEmail || isLoading}
+                        onClick={() => setEmailChangeStep('verification')}
+                        disabled={isLoading}
                         className="flex-1 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
                       >
-                        {isLoading ? "Отправка..." : "Изменить email"}
+                        Изменить email
                       </Button>
                       
                       <Button 
@@ -301,30 +283,29 @@ const FirstLoginWelcome = ({ isOpen, onClose }: FirstLoginWelcomeProps) => {
                   </>
                 )}
 
-                {emailChangeStep === 'sent' && (
-                  <div className="text-center space-y-4">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                    <div>
-                      <h3 className="font-medium">Письмо отправлено!</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Проверьте почту {newEmail} и перейдите по ссылке для подтверждения.
-                      </p>
-                    </div>
-                    <Button onClick={handleComplete} className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
-                      Завершить настройку
-                    </Button>
+                {emailChangeStep === 'verification' && (
+                  <div className="space-y-4">
+                    <EmailVerificationForm
+                      onVerificationSuccess={handleEmailVerificationSuccess}
+                      onCancel={() => setEmailChangeStep('form')}
+                      title="Подтверждение нового email"
+                      description="Введите новый email и подтвердите его кодом"
+                    />
                   </div>
                 )}
 
-                {emailChangeStep === 'skip' && (
+                {emailChangeStep === 'completed' && (
                   <div className="text-center space-y-4">
-                    <CheckCircle className="h-16 w-16 text-optapp-yellow mx-auto" />
+                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
                     <div>
                       <h3 className="font-medium">Настройка завершена!</h3>
                       <p className="text-sm text-muted-foreground">
                         Вы можете изменить email позже в настройках профиля.
                       </p>
                     </div>
+                    <Button onClick={handleComplete} className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500">
+                      Завершить настройку
+                    </Button>
                   </div>
                 )}
               </CardContent>

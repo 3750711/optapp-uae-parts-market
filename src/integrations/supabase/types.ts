@@ -85,6 +85,36 @@ export type Database = {
           },
         ]
       }
+      email_verification_codes: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          used?: boolean
+        }
+        Relationships: []
+      }
       event_logs: {
         Row: {
           action_type: string
@@ -966,6 +996,10 @@ export type Database = {
         Args: { p_order_number: number; p_order_id?: string }
         Returns: boolean
       }
+      cleanup_expired_verification_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_old_login_attempts: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1100,6 +1134,14 @@ export type Database = {
           p_delivery_price_confirm: number
         }
         Returns: string
+      }
+      send_verification_code: {
+        Args: { p_email: string; p_ip_address?: unknown }
+        Returns: Json
+      }
+      verify_email_code: {
+        Args: { p_email: string; p_code: string }
+        Returns: Json
       }
     }
     Enums: {

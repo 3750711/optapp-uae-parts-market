@@ -1,149 +1,82 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import { Suspense, lazy } from "react";
-import { Loader2 } from "lucide-react";
-
-// Import all page components
+import { Helmet, HelmetProvider } from "react-helmet-async";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import SellerRegister from "./pages/SellerRegister";
+import VerifyEmail from "./pages/VerifyEmail";
 import Profile from "./pages/Profile";
-import Catalog from "./pages/Catalog";
-import ProductDetail from "./pages/ProductDetail";
-import SellerAddProduct from "./pages/SellerAddProduct";
-import SellerListings from "./pages/SellerListings";
-import SellerOrders from "./pages/SellerOrders";
-import SellerProfile from "./pages/SellerProfile";
-import SellerCreateOrder from "./pages/SellerCreateOrder";
-import SellerSellProduct from "./pages/SellerSellProduct";
-import PublicSellerProfile from "./pages/PublicSellerProfile";
-import BuyerOrders from "./pages/BuyerOrders";
-import BuyerCreateOrder from "./pages/BuyerCreateOrder";
+import Products from "./pages/Products";
+import ProductDetails from "./pages/ProductDetails";
+import CreateProduct from "./pages/CreateProduct";
+import EditProduct from "./pages/EditProduct";
+import Orders from "./pages/Orders";
 import OrderDetails from "./pages/OrderDetails";
-import CreateRequest from "./pages/CreateRequest";
-import Requests from "./pages/Requests";
-import RequestDetail from "./pages/RequestDetail";
+import CreateOrder from "./pages/CreateOrder";
+import EditOrder from "./pages/EditOrder";
+import Users from "./pages/Users";
 import Stores from "./pages/Stores";
-import StoreDetail from "./pages/StoreDetail";
+import StoreDetails from "./pages/StoreDetails";
 import CreateStore from "./pages/CreateStore";
-import Contact from "./pages/Contact";
-import About from "./pages/About";
-import BuyerGuide from "./pages/BuyerGuide";
+import EditStore from "./pages/EditStore";
+import Requests from "./pages/Requests";
+import RequestDetails from "./pages/RequestDetails";
+import CreateRequest from "./pages/CreateRequest";
+import EditRequest from "./pages/EditRequest";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
-// Import auth components
-import ProtectedRoute from "./components/auth/ProtectedRoute";
+const queryClient = new QueryClient();
 
-// Admin pages
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminUsers from "./pages/AdminUsers";
-import AdminProducts from "./pages/AdminProducts";
-import AdminOrders from "./pages/AdminOrders";
-import AdminStores from "./pages/AdminStores";
-import AdminEvents from "./pages/AdminEvents";
-import AdminAddProduct from "./pages/AdminAddProduct";
-import AdminFreeOrder from "./pages/AdminFreeOrder";
-import AdminCreateOrderFromProduct from "./pages/AdminCreateOrderFromProduct";
-import AdminCarCatalog from "./pages/AdminCarCatalog";
-import AdminLogistics from "./pages/AdminLogistics";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      retry: (failureCount, error: any) => {
-        // Не повторяем запросы для ошибок авторизации
-        if (error?.message?.includes('JWT') || error?.status === 401) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-    },
-  },
-});
-
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="h-8 w-8 animate-spin" />
-  </div>
-);
-
-function App() {
-  return (
-    <GlobalErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
+const App = () => (
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
           <AuthProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/register" element={<Register />} />
-                  <Route path="/seller-register" element={<SellerRegister />} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/catalog" element={<Catalog />} />
-                  <Route path="/product/:id" element={<ProductDetail />} />
-                  <Route path="/seller/add-product" element={<ProtectedRoute><SellerAddProduct /></ProtectedRoute>} />
-                  <Route path="/seller/listings" element={<ProtectedRoute><SellerListings /></ProtectedRoute>} />
-                  <Route path="/seller/orders" element={<ProtectedRoute><SellerOrders /></ProtectedRoute>} />
-                  {/* Изменяем маршрут с dashboard на profile */}
-                  <Route path="/seller/profile" element={<ProtectedRoute><SellerProfile /></ProtectedRoute>} />
-                  <Route path="/seller/dashboard" element={<Navigate to="/seller/profile" replace />} />
-                  <Route path="/seller/create-order" element={<ProtectedRoute><SellerCreateOrder /></ProtectedRoute>} />
-                  <Route path="/seller/sell-product" element={<ProtectedRoute><SellerSellProduct /></ProtectedRoute>} />
-                  {/* Публичный профиль продавца - это должно быть в конце, чтобы не конфликтовать */}
-                  <Route path="/seller/:id" element={<PublicSellerProfile />} />
-                  
-                  {/* Редирект с /orders на /buyer/orders */}
-                  <Route path="/orders" element={<Navigate to="/buyer/orders" replace />} />
-                  
-                  <Route path="/buyer/orders" element={<ProtectedRoute><BuyerOrders /></ProtectedRoute>} />
-                  <Route path="/buyer/create-order" element={<ProtectedRoute><BuyerCreateOrder /></ProtectedRoute>} />
-                  <Route path="/order/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
-                  <Route path="/create-request" element={<ProtectedRoute><CreateRequest /></ProtectedRoute>} />
-                  <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
-                  <Route path="/request/:id" element={<ProtectedRoute><RequestDetail /></ProtectedRoute>} />
-                  <Route path="/stores" element={<Stores />} />
-                  <Route path="/store/:id" element={<StoreDetail />} />
-                  <Route path="/create-store" element={<ProtectedRoute><CreateStore /></ProtectedRoute>} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/buyer-guide" element={<BuyerGuide />} />
-                  
-                  {/* Admin routes */}
-                  <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-                  <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-                  <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-                  <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
-                  <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
-                  <Route path="/admin/orders/:id" element={<ProtectedRoute><OrderDetails /></ProtectedRoute>} />
-                  <Route path="/admin/stores" element={<ProtectedRoute><AdminStores /></ProtectedRoute>} />
-                  <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
-                  <Route path="/admin/add-product" element={<ProtectedRoute><AdminAddProduct /></ProtectedRoute>} />
-                  <Route path="/admin/free-order" element={<ProtectedRoute><AdminFreeOrder /></ProtectedRoute>} />
-                  <Route path="/admin/create-order-from-product" element={<ProtectedRoute><AdminCreateOrderFromProduct /></ProtectedRoute>} />
-                  <Route path="/admin/car-catalog" element={<ProtectedRoute><AdminCarCatalog /></ProtectedRoute>} />
-                  <Route path="/admin/logistics" element={<ProtectedRoute><AdminLogistics /></ProtectedRoute>} />
-                  
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </BrowserRouter>
+            <div className="min-h-screen bg-white">
+              <Helmet>
+                <title>PartsBay.ae - Автозапчасти из ОАЭ</title>
+                <meta name="description" content="Купить автозапчасти из ОАЭ с доставкой по всему миру. Качественные запчасти для всех марок автомобилей." />
+              </Helmet>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/products" element={<Products />} />
+                <Route path="/products/:id" element={<ProductDetails />} />
+                <Route path="/products/create" element={<CreateProduct />} />
+                <Route path="/products/edit/:id" element={<EditProduct />} />
+                <Route path="/orders" element={<Orders />} />
+                <Route path="/orders/:id" element={<OrderDetails />} />
+                <Route path="/orders/create" element={<CreateOrder />} />
+                <Route path="/orders/edit/:id" element={<EditOrder />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/stores" element={<Stores />} />
+                <Route path="/stores/:id" element={<StoreDetails />} />
+                <Route path="/stores/create" element={<CreateStore />} />
+                <Route path="/stores/edit/:id" element={<EditStore />} />
+                <Route path="/requests" element={<Requests />} />
+                <Route path="/requests/:id" element={<RequestDetails />} />
+                <Route path="/requests/create" element={<CreateRequest />} />
+                <Route path="/requests/edit/:id" element={<EditRequest />} />
+                <Route path="/admin" element={<Admin />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
           </AuthProvider>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </GlobalErrorBoundary>
-  );
-}
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </HelmetProvider>
+);
 
 export default App;
