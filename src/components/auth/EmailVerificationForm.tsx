@@ -84,15 +84,6 @@ const EmailVerificationForm = ({
           title: "Код отправлен",
           description: result.message,
         });
-
-        // Для тестирования показываем код (удалить в продакшене!)
-        if (result.debug_code) {
-          console.log('Debug code:', result.debug_code);
-          toast({
-            title: "Код для тестирования",
-            description: `Код: ${result.debug_code}`,
-          });
-        }
       } else {
         toast({
           title: "Ошибка отправки",
