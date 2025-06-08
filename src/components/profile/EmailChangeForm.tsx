@@ -60,6 +60,32 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
     }
   };
 
+  const sendEmailChangeNotification = async (oldEmail: string, newEmail: string) => {
+    try {
+      // Отправляем уведомление на старый email
+      await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: JSON.stringify({
+          email: oldEmail,
+          resetLink: `${window.location.origin}/profile`,
+          emailChangeInfo: {
+            oldEmail: oldEmail,
+            newEmail: newEmail,
+            type: 'email_change_notification'
+          }
+        })
+      });
+
+      console.log('Email change notification sent to old email');
+    } catch (error) {
+      console.error('Error sending email change notification:', error);
+    }
+  };
+
   const handleVerifyAndChange = async () => {
     if (code.length !== 6) {
       toast({
@@ -117,11 +143,14 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
         return;
       }
 
+      // Отправляем уведомление об изменении email на старый адрес
+      await sendEmailChangeNotification(currentEmail, newEmail);
+
       await refreshProfile();
       
       toast({
         title: "Email изменен",
-        description: "Ваш email успешно изменен",
+        description: "Ваш email успешно изменен. Уведомление отправлено на старый адрес.",
       });
 
       if (onSuccess) {
