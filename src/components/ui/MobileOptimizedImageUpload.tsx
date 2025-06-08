@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, X, Camera, Star, StarOff, RefreshCw } from "lucide-react";
@@ -20,6 +19,7 @@ interface MobileOptimizedImageUploadProps {
   showGalleryOnly?: boolean;
   buttonText?: string;
   buttonIcon?: React.ReactNode;
+  disabled?: boolean;
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
@@ -34,7 +34,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   showOnlyButton = false,
   showGalleryOnly = false,
   buttonText = "Загрузить фотографии",
-  buttonIcon = <Upload className="h-4 w-4" />
+  buttonIcon = <Upload className="h-4 w-4" />,
+  disabled = false,
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +121,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           type="button"
           variant="outline"
           onClick={handleButtonClick}
-          disabled={isUploading || existingImages.length >= maxImages}
+          disabled={disabled || isUploading || existingImages.length >= maxImages}
           className="w-full h-12"
         >
           {isUploading ? (
@@ -138,6 +139,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           accept="image/*"
           onChange={handleFileChange}
           className="hidden"
+          disabled={disabled}
         />
 
         {/* Show upload progress */}
@@ -155,6 +157,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             variant="destructive"
             onClick={cancelUpload}
             className="w-full"
+            disabled={disabled}
           >
             <X className="mr-2 h-4 w-4" />
             Отменить загрузку
@@ -184,6 +187,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                   variant={primaryImage === url ? "default" : "secondary"}
                   onClick={() => handleSetPrimary(url)}
                   className="h-6 w-6 p-0"
+                  disabled={disabled}
                 >
                   {primaryImage === url ? (
                     <Star className="h-3 w-3" />
@@ -200,6 +204,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                   variant="destructive"
                   onClick={() => handleDelete(url)}
                   className="h-6 w-6 p-0"
+                  disabled={disabled}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -218,7 +223,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         type="button"
         variant="outline"
         onClick={handleButtonClick}
-        disabled={isUploading || existingImages.length >= maxImages}
+        disabled={disabled || isUploading || existingImages.length >= maxImages}
         className="w-full h-12"
       >
         {isUploading ? (
@@ -236,6 +241,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         accept="image/*"
         onChange={handleFileChange}
         className="hidden"
+        disabled={disabled}
       />
 
       {/* Show upload progress */}
@@ -253,6 +259,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           variant="destructive"
           onClick={cancelUpload}
           className="w-full"
+          disabled={disabled}
         >
           <X className="mr-2 h-4 w-4" />
           Отменить загрузку
@@ -277,6 +284,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                     variant={primaryImage === url ? "default" : "secondary"}
                     onClick={() => handleSetPrimary(url)}
                     className="h-6 w-6 p-0"
+                    disabled={disabled}
                   >
                     {primaryImage === url ? (
                       <Star className="h-3 w-3" />
@@ -293,6 +301,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
                     variant="destructive"
                     onClick={() => handleDelete(url)}
                     className="h-6 w-6 p-0"
+                    disabled={disabled}
                   >
                     <X className="h-3 w-3" />
                   </Button>
