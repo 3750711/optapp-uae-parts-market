@@ -1,8 +1,12 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +15,6 @@ const corsHeaders = {
 
 interface PasswordResetRequest {
   email: string;
-  resetLink: string;
   optId?: string;
   emailChangeInfo?: {
     oldEmail: string;
@@ -19,6 +22,10 @@ interface PasswordResetRequest {
     type: 'email_change_notification';
   };
 }
+
+const generateResetCode = (): string => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests
@@ -29,7 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     console.log("Password reset request received");
     
-    const { email, resetLink, optId, emailChangeInfo }: PasswordResetRequest = await req.json();
+    const { email, optId, emailChangeInfo }: PasswordResetRequest = await req.json();
     
     console.log("Processing request for:", email);
     console.log("Request type:", emailChangeInfo ? "Email change notification" : "Password reset");
@@ -38,7 +45,7 @@ const handler = async (req: Request): Promise<Response> => {
     let subject: string;
 
     if (emailChangeInfo && emailChangeInfo.type === 'email_change_notification') {
-      // HTML шаблон для уведомления об изменении email
+      // HTML шаблон для уведомления об изменении email (без изменений)
       subject = "🔄 Изменение email адреса - PartsBay.ae";
       htmlContent = `
         <!DOCTYPE html>
@@ -96,8 +103,42 @@ const handler = async (req: Request): Promise<Response> => {
         </html>
       `;
     } else {
-      // HTML шаблон для сброса пароля (существующий код)
-      subject = "🔐 Сброс пароля - PartsBay.ae";
+      // Новая логика для сброса пароля через код
+      const resetCode = generateResetCode();
+      
+      // Сохраняем код в базе данных
+      const { error: dbError } = await supabase
+        .from('password_reset_codes')
+        .upsert({
+          email: email,
+          code: resetCode,
+          expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString(), // 15 минут
+          used: false,
+          opt_id: optId || null
+        }, {
+          onConflict: 'email'
+        });
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: "Failed to generate reset code",
+            details: dbError.message 
+          }),
+          {
+            status: 500,
+            headers: { 
+              "Content-Type": "application/json", 
+              ...corsHeaders 
+            },
+          }
+        );
+      }
+
+      // HTML шаблон для сброса пароля с кодом
+      subject = "🔐 Код для сброса пароля - PartsBay.ae";
       htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -110,8 +151,8 @@ const handler = async (req: Request): Promise<Response> => {
               .header { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
               .content { background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; }
               .footer { background: #f9fafb; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; }
-              .button { display: inline-block; background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-              .button:hover { background: #d97706; }
+              .code-box { background: #f0f9ff; border: 2px solid #0ea5e9; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; }
+              .code { font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0369a1; font-family: monospace; }
               .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 20px 0; }
               .info-box { background: #f0f9ff; border: 1px solid #0ea5e9; padding: 15px; border-radius: 8px; margin: 20px 0; }
             </style>
@@ -133,27 +174,26 @@ const handler = async (req: Request): Promise<Response> => {
               </div>
               ` : ''}
               
-              <p>Чтобы создать новый пароль, нажмите на кнопку ниже:</p>
+              <p>Ваш код для сброса пароля:</p>
               
-              <div style="text-align: center;">
-                <a href="${resetLink}" class="button">Создать новый пароль</a>
+              <div class="code-box">
+                <div class="code">${resetCode}</div>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #6b7280;">
+                  Введите этот код на странице сброса пароля
+                </p>
               </div>
-              
-              <p><strong>Или скопируйте и вставьте эту ссылку в браузер:</strong></p>
-              <p style="word-break: break-all; background: #f9fafb; padding: 10px; border-radius: 5px; font-family: monospace;">
-                ${resetLink}
-              </p>
               
               <div class="warning">
                 <strong>⚠️ Важно:</strong>
                 <ul>
-                  <li>Ссылка действительна в течение 1 часа</li>
+                  <li>Код действителен в течение 15 минут</li>
                   <li>Если вы не запрашивали сброс пароля, проигнорируйте это письмо</li>
-                  <li>Никому не передавайте эту ссылку</li>
+                  <li>Никому не передавайте этот код</li>
+                  <li>Код можно использовать только один раз</li>
                 </ul>
               </div>
               
-              <p>После создания нового пароля вы сможете войти в систему с новыми учетными данными.</p>
+              <p>Перейдите на страницу сброса пароля и введите код выше для создания нового пароля.</p>
             </div>
             
             <div class="footer">
@@ -180,7 +220,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: emailChangeInfo ? "Email change notification sent successfully" : "Password reset email sent successfully",
+        message: emailChangeInfo ? "Email change notification sent successfully" : "Password reset code sent successfully",
         emailId: emailResponse.data?.id 
       }), 
       {
