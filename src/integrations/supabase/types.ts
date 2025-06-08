@@ -927,6 +927,10 @@ export type Database = {
         Args: { p_order_number: number; p_order_id?: string }
         Returns: boolean
       }
+      clear_all_rls_policies: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       create_user_order: {
         Args:
           | {
@@ -988,6 +992,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_rls_policies_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          schema_name: string
+          table_name: string
+          policy_name: string
+          policy_roles: string[]
+          policy_cmd: string
+          policy_qual: string
+        }[]
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -995,6 +1010,10 @@ export type Database = {
       is_seller: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      restore_basic_rls_policies: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       search_car_brands_and_models: {
         Args: { search_term: string }
