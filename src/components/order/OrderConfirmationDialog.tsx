@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, InfoIcon, Package, Truck, User, DollarSign, ShoppingCart, CheckCircle } from "lucide-react";
@@ -16,6 +15,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Database } from "@/integrations/supabase/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { toast } from "@/hooks/use-toast";
 
 interface OrderConfirmationDialogProps {
   open: boolean;
@@ -56,6 +57,18 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 }) => {
   const [textOrder, setTextOrder] = useState<string>("");
   
+  // Добавляем защиту от дублирующих отправок
+  const { guardedSubmit, canSubmit } = useSubmissionGuard({
+    timeout: 5000,
+    onDuplicateSubmit: () => {
+      toast({
+        title: "Подождите",
+        description: "Заказ уже создается, пожалуйста подождите",
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Set default value to cargo_rf on first render if not set
   useEffect(() => {
     console.log("OrderConfirmationDialog (order) - Current delivery method:", deliveryMethod);
@@ -67,7 +80,9 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
 
   const handleConfirm = () => {
     console.log("Submitting text_order:", textOrder);
-    onConfirm({ text_order: textOrder });
+    guardedSubmit(async () => {
+      onConfirm({ text_order: textOrder });
+    });
   };
 
   // Добавляем явную проверку на случай, если profile равен null
@@ -77,6 +92,8 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
   const showDeliveryPrice = optStatus === 'opt_user' && deliveryMethod === 'cargo_rf';
 
   const totalPrice = product.price + (showDeliveryPrice && product.delivery_price ? product.delivery_price : 0);
+
+  const isFormDisabled = isSubmitting || !canSubmit;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -156,6 +173,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                   console.log("Changing delivery method to:", value);
                   onDeliveryMethodChange(value as Database["public"]["Enums"]["delivery_method"]);
                 }}
+                disabled={isFormDisabled}
               >
                 <SelectTrigger className="w-full bg-white border-gray-300 text-gray-900 hover:border-gray-400 focus:ring-2 focus:ring-optapp-yellow h-10">
                   <SelectValue placeholder="Выберите способ доставки" />
@@ -240,6 +258,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
                 rows={3}
                 value={textOrder}
                 onChange={(e) => setTextOrder(e.target.value)}
+                disabled={isFormDisabled}
               />
             </div>
           </div>
@@ -263,7 +282,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
+            disabled={isFormDisabled}
             className="text-sm h-11 px-6 sm:h-10"
           >
             Отмена
@@ -271,7 +290,7 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
           <Button
             onClick={handleConfirm}
             className="bg-optapp-yellow text-optapp-dark hover:bg-yellow-500 text-sm h-11 px-6 sm:h-10"
-            disabled={isSubmitting}
+            disabled={isFormDisabled}
           >
             {isSubmitting ? (
               <>

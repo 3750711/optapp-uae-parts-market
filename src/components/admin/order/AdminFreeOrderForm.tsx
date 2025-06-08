@@ -9,6 +9,8 @@ import { Loader } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { toast } from "@/hooks/use-toast";
 
 export const AdminFreeOrderForm = () => {
   const {
@@ -34,7 +36,7 @@ export const AdminFreeOrderForm = () => {
     handleInputChange,
     handleImageUpload,
     handleOrderUpdate,
-    handleSubmit,
+    handleSubmit: originalHandleSubmit,
     resetForm,
     navigate,
     parseTitleForBrand,
@@ -42,6 +44,18 @@ export const AdminFreeOrderForm = () => {
     creationStage,
     creationProgress
   } = useOrderFormLogic();
+
+  // Добавляем защиту от дублирующих отправок
+  const { guardedSubmit, canSubmit } = useSubmissionGuard({
+    timeout: 10000, // Увеличиваем время для создания заказа
+    onDuplicateSubmit: () => {
+      toast({
+        title: "Заказ создается",
+        description: "Пожалуйста подождите, заказ уже создается",
+        variant: "destructive",
+      });
+    }
+  });
 
   // Create form instance for shadcn/ui Form component
   const form = useForm();
@@ -67,6 +81,14 @@ export const AdminFreeOrderForm = () => {
     console.log("Product data received:", productData);
     // Дополнительная обработка, если нужна
   };
+
+  // Защищенный обработчик отправки формы
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    guardedSubmit(async () => {
+      await originalHandleSubmit(e);
+    });
+  };
   
   // Get stage message based on current creation stage
   const getStageMessage = () => {
@@ -89,6 +111,8 @@ export const AdminFreeOrderForm = () => {
         return 'Создание заказа...';
     }
   };
+
+  const isFormDisabled = isLoading || !canSubmit;
 
   if (createdOrder) {
     return (
@@ -125,6 +149,7 @@ export const AdminFreeOrderForm = () => {
         parseTitleForBrand={parseTitleForBrand}
         onImagesUpload={onImagesUpload}
         onDataFromProduct={handleDataFromProduct}
+        disabled={isFormDisabled}
       />
       
       <MediaUploadSection 
@@ -133,6 +158,7 @@ export const AdminFreeOrderForm = () => {
         onImagesUpload={onImagesUpload}
         onVideoUpload={onVideoUpload}
         onVideoDelete={onVideoDelete}
+        disabled={isFormDisabled}
       />
       
       <div className="flex flex-col space-y-4">
@@ -154,7 +180,7 @@ export const AdminFreeOrderForm = () => {
           </div>
         )}
         <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading} className="w-full md:w-auto">
+          <Button type="submit" disabled={isFormDisabled} className="w-full md:w-auto">
             {isLoading ? (
               <>
                 <Loader className="mr-2 h-4 w-4 animate-spin" />
