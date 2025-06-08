@@ -12,6 +12,7 @@ interface ProductInfoSectionProps {
   selectedSeller: SellerProfile | null;
   onAddDataFromProduct: () => void;
   onTitleBlur: (title: string) => void;
+  disabled?: boolean;
 }
 
 export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
@@ -20,6 +21,7 @@ export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
   selectedSeller,
   onAddDataFromProduct,
   onTitleBlur,
+  disabled = false,
 }) => {
   return (
     <div className="space-y-2">
@@ -32,6 +34,7 @@ export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
             size="sm"
             onClick={onAddDataFromProduct}
             className="flex items-center gap-2"
+            disabled={disabled}
           >
             <Package className="h-4 w-4" />
             Добавить данные из объявления
@@ -47,6 +50,7 @@ export const ProductInfoSection: React.FC<ProductInfoSectionProps> = ({
         }}
         required 
         placeholder="Введите наименование"
+        disabled={disabled}
       />
     </div>
   );

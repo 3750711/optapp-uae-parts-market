@@ -1,5 +1,3 @@
-
-
 import React, { useState } from "react";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
 import SellerProductsDialog from "./SellerProductsDialog";
@@ -33,6 +31,8 @@ interface OrderFormFieldsProps {
   onImagesUpload?: (urls: string[]) => void;
   onVideosUpload?: (urls: string[]) => void;
   onDataFromProduct?: (data: any) => void;
+  // Add disabled prop
+  disabled?: boolean;
 }
 
 interface Product {
@@ -67,6 +67,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   onImagesUpload,
   onVideosUpload,
   onDataFromProduct,
+  disabled = false,
 }) => {
   const [showProductsDialog, setShowProductsDialog] = useState(false);
 
@@ -148,6 +149,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         selectedSeller={selectedSeller}
         onAddDataFromProduct={handleAddDataFromProduct}
         onTitleBlur={parseTitleForBrand}
+        disabled={disabled}
       />
 
       <CarBrandModelSection
@@ -163,6 +165,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         searchModelTerm={searchModelTerm}
         setSearchModelTerm={setSearchModelTerm}
         filteredBrands={filteredBrands}
+        disabled={disabled}
       />
 
       <PricingSection
@@ -170,6 +173,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         deliveryPrice={formData.delivery_price}
         onPriceChange={(value) => handleInputChange('price', value)}
         onDeliveryPriceChange={(value) => handleInputChange('delivery_price', value)}
+        disabled={disabled}
       />
 
       <ParticipantsSection
@@ -179,6 +183,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         onSellerIdChange={(value) => handleInputChange("sellerId", value)}
         buyerProfiles={buyerProfiles}
         sellerProfiles={sellerProfiles}
+        disabled={disabled}
       />
 
       <SellerInfoSection selectedSeller={selectedSeller} />
@@ -190,6 +195,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         onDeliveryMethodChange={(value) => handleInputChange('deliveryMethod', value)}
         onPlaceNumberChange={(value) => handleInputChange('place_number', value)}
         onTextOrderChange={(value) => handleInputChange('text_order', value)}
+        disabled={disabled}
       />
 
       {/* Диалог выбора товаров продавца */}
@@ -203,4 +209,3 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
     </div>
   );
 };
-

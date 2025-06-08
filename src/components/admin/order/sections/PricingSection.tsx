@@ -8,6 +8,7 @@ interface PricingSectionProps {
   deliveryPrice: string;
   onPriceChange: (value: string) => void;
   onDeliveryPriceChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export const PricingSection: React.FC<PricingSectionProps> = ({
@@ -15,6 +16,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
   deliveryPrice,
   onPriceChange,
   onDeliveryPriceChange,
+  disabled = false,
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -28,6 +30,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           required 
           placeholder="0.00"
           step="0.01"
+          disabled={disabled}
         />
       </div>
       <div className="space-y-2">
@@ -39,6 +42,7 @@ export const PricingSection: React.FC<PricingSectionProps> = ({
           onChange={(e) => onDeliveryPriceChange(e.target.value)}
           placeholder="0.00"
           step="0.01"
+          disabled={disabled}
         />
       </div>
     </div>

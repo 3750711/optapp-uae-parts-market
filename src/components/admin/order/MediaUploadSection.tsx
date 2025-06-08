@@ -13,6 +13,7 @@ interface MediaUploadSectionProps {
   onVideoUpload: (urls: string[]) => void;
   onVideoDelete: (url: string) => void;
   orderId?: string;
+  disabled?: boolean;
 }
 
 export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
@@ -22,6 +23,7 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
   onVideoUpload,
   onVideoDelete,
   orderId,
+  disabled = false,
 }) => {
   
   const handleImageDelete = async (url: string) => {
@@ -111,6 +113,7 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           maxImages={25}
           existingImages={images}
           onImageDelete={handleImageDelete}
+          disabled={disabled}
         />
       </div>
 
@@ -124,6 +127,7 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           maxVideos={3}
           productId={orderId}
           buttonText="Загрузить видео заказа"
+          disabled={disabled}
         />
       </div>
     </div>

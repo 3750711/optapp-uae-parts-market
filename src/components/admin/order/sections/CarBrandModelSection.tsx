@@ -16,6 +16,7 @@ interface CarBrandModelSectionProps {
   searchModelTerm: string;
   setSearchModelTerm: (term: string) => void;
   filteredBrands: { id: string; name: string }[];
+  disabled?: boolean;
 }
 
 export const CarBrandModelSection: React.FC<CarBrandModelSectionProps> = ({
@@ -31,6 +32,7 @@ export const CarBrandModelSection: React.FC<CarBrandModelSectionProps> = ({
   searchModelTerm,
   setSearchModelTerm,
   filteredBrands,
+  disabled = false,
 }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -39,7 +41,7 @@ export const CarBrandModelSection: React.FC<CarBrandModelSectionProps> = ({
         <Select
           value={brandId}
           onValueChange={onBrandChange}
-          disabled={isLoadingCarData}
+          disabled={isLoadingCarData || disabled}
         >
           <SelectTrigger id="brandId" className="bg-white">
             <SelectValue placeholder="Выберите бренд" />
@@ -68,7 +70,7 @@ export const CarBrandModelSection: React.FC<CarBrandModelSectionProps> = ({
         <Select
           value={modelId}
           onValueChange={onModelChange}
-          disabled={!brandId || isLoadingCarData}
+          disabled={!brandId || isLoadingCarData || disabled}
         >
           <SelectTrigger id="modelId" className="bg-white">
             <SelectValue placeholder="Выберите модель" />

@@ -11,6 +11,7 @@ interface ParticipantsSectionProps {
   onSellerIdChange: (value: string) => void;
   buyerProfiles: ProfileShort[];
   sellerProfiles: SellerProfile[];
+  disabled?: boolean;
 }
 
 export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
@@ -20,6 +21,7 @@ export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
   onSellerIdChange,
   buyerProfiles,
   sellerProfiles,
+  disabled = false,
 }) => {
   // Sort buyer profiles by opt_id alphabetically
   const sortedBuyerProfiles = [...buyerProfiles].sort((a, b) => {
@@ -43,6 +45,7 @@ export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
           value={buyerOptId}
           onValueChange={onBuyerOptIdChange}
           required
+          disabled={disabled}
         >
           <SelectTrigger id="buyerOptId" className="bg-white">
             <SelectValue placeholder="Выберите OPT_ID покупателя" />
@@ -66,6 +69,7 @@ export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
           value={sellerId}
           onValueChange={onSellerIdChange}
           required
+          disabled={disabled}
         >
           <SelectTrigger id="sellerId" className="bg-white">
             <SelectValue placeholder="Выберите продавца" />

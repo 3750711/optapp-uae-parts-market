@@ -13,6 +13,7 @@ interface OrderDetailsSectionProps {
   onDeliveryMethodChange: (value: DeliveryMethod) => void;
   onPlaceNumberChange: (value: string) => void;
   onTextOrderChange: (value: string) => void;
+  disabled?: boolean;
 }
 
 export const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
@@ -22,6 +23,7 @@ export const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
   onDeliveryMethodChange,
   onPlaceNumberChange,
   onTextOrderChange,
+  disabled = false,
 }) => {
   return (
     <>
@@ -30,6 +32,7 @@ export const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
         <Select
           value={deliveryMethod}
           onValueChange={onDeliveryMethodChange}
+          disabled={disabled}
         >
           <SelectTrigger>
             <SelectValue placeholder="Выберите способ доставки" />
@@ -52,6 +55,7 @@ export const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
           required 
           min="1"
           placeholder="Укажите количество мест"
+          disabled={disabled}
         />
       </div>
 
@@ -63,6 +67,7 @@ export const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
           rows={3}
           value={textOrder}
           onChange={(e) => onTextOrderChange(e.target.value)}
+          disabled={disabled}
         />
       </div>
     </>
