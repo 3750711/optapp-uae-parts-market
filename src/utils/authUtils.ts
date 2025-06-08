@@ -86,3 +86,28 @@ export const logSuccessfulLogin = async (identifier: string, attemptType: 'email
     console.error('Error logging successful login:', error);
   }
 };
+
+// Функция для проверки необходимости первого входа
+export const checkFirstLoginRequired = (profile: any): boolean => {
+  return profile?.email?.endsWith('@g.com') && !profile?.first_login_completed;
+};
+
+// Функция для завершения процесса первого входа
+export const completeFirstLogin = async (userId: string): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ first_login_completed: true })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error completing first login:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Exception completing first login:', error);
+    return false;
+  }
+};

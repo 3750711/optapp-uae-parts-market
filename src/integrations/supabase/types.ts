@@ -518,6 +518,7 @@ export type Database = {
           created_at: string
           description_user: string | null
           email: string
+          first_login_completed: boolean
           full_name: string | null
           id: string
           last_login: string | null
@@ -539,6 +540,7 @@ export type Database = {
           created_at?: string
           description_user?: string | null
           email: string
+          first_login_completed?: boolean
           full_name?: string | null
           id: string
           last_login?: string | null
@@ -560,6 +562,7 @@ export type Database = {
           created_at?: string
           description_user?: string | null
           email?: string
+          first_login_completed?: boolean
           full_name?: string | null
           id?: string
           last_login?: string | null

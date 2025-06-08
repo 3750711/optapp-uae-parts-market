@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
+import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
 
   async function fetchUserProfile(userId: string) {
     try {
@@ -42,6 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data) {
         setProfile(data);
+        
+        // Проверяем, нужно ли показать окно первого входа
+        if (data.email.endsWith('@g.com') && !data.first_login_completed) {
+          console.log("AuthContext: First login detected for @g.com user");
+          setShowFirstLoginWelcome(true);
+        }
       } else {
         console.error('AuthContext: No profile data found for user:', userId);
       }
@@ -54,6 +62,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) {
       console.log("AuthContext: Refreshing profile for user:", user.id);
       await fetchUserProfile(user.id);
+    }
+  };
+
+  const handleFirstLoginComplete = (completed: boolean) => {
+    if (completed) {
+      setShowFirstLoginWelcome(false);
+      // Обновляем профиль для получения актуальных данных
+      refreshProfile();
     }
   };
 
@@ -86,6 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             } else {
               console.log("AuthContext: User not authenticated, clearing profile");
               setProfile(null);
+              setShowFirstLoginWelcome(false);
             }
             
             // Set loading to false after handling auth state change
@@ -151,6 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       setProfile(null);
+      setShowFirstLoginWelcome(false);
       console.log("AuthContext: Sign out successful");
     } catch (error) {
       console.error('AuthContext: Error during sign out:', error);
@@ -169,6 +187,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshProfile 
     }}>
       {children}
+      <FirstLoginWelcome 
+        isOpen={showFirstLoginWelcome}
+        onClose={handleFirstLoginComplete}
+      />
     </AuthContext.Provider>
   );
 }
