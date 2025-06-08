@@ -984,6 +984,10 @@ export type Database = {
             }
         Returns: string
       }
+      current_user_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       delete_user_account: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1004,6 +1008,10 @@ export type Database = {
         }[]
       }
       is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
