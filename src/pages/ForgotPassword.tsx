@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { z } from "zod";
@@ -85,6 +84,7 @@ const ForgotPassword = () => {
       
       const inputType = detectInputType(data.emailOrOptId);
       let emailToUse = data.emailOrOptId;
+      let optId: string | undefined;
 
       // Если введен OPT ID, найдем соответствующий email
       if (inputType === 'opt_id') {
@@ -111,25 +111,51 @@ const ForgotPassword = () => {
         }
         
         emailToUse = result.email;
+        optId = data.emailOrOptId;
         console.log("Found email for OPT ID:", emailToUse);
       }
 
-      // Отправляем запрос на сброс пароля через Supabase
-      const { error } = await supabase.auth.resetPasswordForEmail(emailToUse, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Создаем ссылку для сброса пароля
+      const resetLink = `${window.location.origin}/reset-password`;
+
+      // Отправляем запрос на наш кастомный Edge Function
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: JSON.stringify({
+          email: emailToUse,
+          resetLink: resetLink,
+          optId: optId
+        })
       });
 
-      if (error) {
-        console.error("Password reset error:", error);
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error("Password reset error:", result);
         handleFailedAttempt();
         
-        // Показываем общее сообщение об ошибке
+        // Показываем сообщение об ошибке из ответа или общее
         toast({
           title: "Ошибка",
-          description: "Не удалось отправить письмо для сброса пароля",
+          description: result.message || "Не удалось отправить письмо для сброса пароля",
           variant: "destructive",
         });
         return;
+      }
+
+      // Теперь создаем сессию сброса пароля через Supabase
+      const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(emailToUse, {
+        redirectTo: resetLink,
+      });
+
+      if (supabaseError) {
+        console.error("Supabase password reset error:", supabaseError);
+        // Не показываем эррор пользователю, так как письмо уже отправлено
+        console.log("Supabase reset error (non-critical):", supabaseError.message);
       }
 
       // Успешно отправлено
