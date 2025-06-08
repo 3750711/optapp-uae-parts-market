@@ -111,6 +111,7 @@ export const useCatalogProducts = ({
     isFetchingNextPage,
     isLoading,
     isError,
+    error,
     refetch
   } = useInfiniteQuery({
     queryKey: ['products-infinite', filters],
@@ -124,8 +125,23 @@ export const useCatalogProducts = ({
           selectedBrandName: filters.selectedBrandName,
           selectedModelName: filters.selectedModelName,
           hideSoldProducts: filters.hideSoldProducts,
-          page: pageParam
+          page: pageParam,
+          from,
+          to
         });
+        
+        // Test Supabase connection first
+        const { data: testConnection, error: connectionError } = await supabase
+          .from('products')
+          .select('count')
+          .limit(1);
+          
+        if (connectionError) {
+          console.error('❌ Supabase connection error:', connectionError);
+          throw new Error(`Ошибка подключения к базе данных: ${connectionError.message}`);
+        }
+        
+        console.log('✅ Supabase connection test successful');
         
         let query = supabase
           .from('products')
@@ -137,11 +153,14 @@ export const useCatalogProducts = ({
         // Apply status filtering
         if (filters.hideSoldProducts) {
           query = query.eq('status', 'active');
+          console.log('🔍 Filtering for active products only');
         } else {
           if (filters.isAdmin) {
             query = query.in('status', ['active', 'sold', 'pending', 'archived']);
+            console.log('👑 Admin view: showing all statuses');
           } else {
             query = query.in('status', ['active', 'sold']);
+            console.log('👤 Regular user view: showing active and sold');
           }
         }
 
@@ -168,14 +187,19 @@ export const useCatalogProducts = ({
         
         if (error) {
           console.error('❌ Error fetching products:', error);
-          throw new Error('Failed to fetch products');
+          throw new Error(`Ошибка загрузки товаров: ${error.message}`);
         }
         
         console.log('✅ Products fetched successfully:', data?.length, 'items');
         return data || [];
       } catch (error) {
         console.error('💥 Error in queryFn:', error);
-        throw error;
+        // Show user-friendly error message
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        } else {
+          throw new Error('Произошла неизвестная ошибка при загрузке товаров');
+        }
       }
     },
     getNextPageParam: (lastPage, allPages) => {
@@ -183,38 +207,60 @@ export const useCatalogProducts = ({
     },
     initialPageParam: 0,
     staleTime: 180000,
-    refetchOnWindowFocus: false
+    refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      console.log(`🔄 Retry attempt ${failureCount} for error:`, error);
+      return failureCount < 2; // Reduced retries to avoid endless loops
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000)
   });
+
+  // Handle errors with toast notifications
+  useEffect(() => {
+    if (isError && error) {
+      console.error('🚨 Query error detected:', error);
+      toast({
+        title: "Ошибка загрузки товаров",
+        description: error instanceof Error ? error.message : "Не удалось загрузить товары",
+        variant: "destructive",
+      });
+    }
+  }, [isError, error, toast]);
 
   // Get all products from all pages
   const allProducts = data?.pages.flat() || [];
   
   // Map products to the correct format
   const mappedProducts: ProductProps[] = useMemo(() => {
-    return allProducts.map((product) => {
-      const typedProduct = product as unknown as ProductType;
-      
-      return {
-        id: typedProduct.id,
-        title: typedProduct.title,
-        price: Number(typedProduct.price),
-        brand: typedProduct.brand || "",
-        model: typedProduct.model || "",
-        seller_name: typedProduct.seller_name,
-        status: typedProduct.status,
-        seller_id: typedProduct.seller_id,
-        delivery_price: typedProduct.delivery_price,
-        optid_created: typedProduct.optid_created,
-        cloudinary_public_id: typedProduct.cloudinary_public_id,
-        cloudinary_url: typedProduct.cloudinary_url,
-        rating_seller: typedProduct.rating_seller,
-        product_images: typedProduct.product_images?.map(img => ({
-          id: '',
-          url: img.url,
-          is_primary: img.is_primary || false
-        }))
-      } as ProductProps;
-    });
+    try {
+      return allProducts.map((product) => {
+        const typedProduct = product as unknown as ProductType;
+        
+        return {
+          id: typedProduct.id,
+          title: typedProduct.title,
+          price: Number(typedProduct.price),
+          brand: typedProduct.brand || "",
+          model: typedProduct.model || "",
+          seller_name: typedProduct.seller_name,
+          status: typedProduct.status,
+          seller_id: typedProduct.seller_id,
+          delivery_price: typedProduct.delivery_price,
+          optid_created: typedProduct.optid_created,
+          cloudinary_public_id: typedProduct.cloudinary_public_id,
+          cloudinary_url: typedProduct.cloudinary_url,
+          rating_seller: typedProduct.rating_seller,
+          product_images: typedProduct.product_images?.map(img => ({
+            id: '',
+            url: img.url,
+            is_primary: img.is_primary || false
+          }))
+        } as ProductProps;
+      });
+    } catch (mappingError) {
+      console.error('❌ Error mapping products:', mappingError);
+      return [];
+    }
   }, [allProducts]);
 
   // Chunking logic for better performance
@@ -264,6 +310,7 @@ export const useCatalogProducts = ({
     isFetchingNextPage,
     isLoading,
     isError,
+    error,
     refetch,
     handleClearSearch,
     handleSearch,

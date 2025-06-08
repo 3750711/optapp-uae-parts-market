@@ -33,42 +33,62 @@ const SellerListingsContent = () => {
   } = useInfiniteQuery({
     queryKey: ['seller-products-infinite', user?.id],
     queryFn: async ({ pageParam = 0 }) => {
-      if (!user?.id) throw new Error('User not authenticated');
+      if (!user?.id) {
+        console.error('❌ User not authenticated');
+        throw new Error('Пользователь не авторизован');
+      }
       
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
-      console.log(`Fetching seller products: ${from} to ${to}`);
+      console.log(`📦 Fetching seller products: ${from} to ${to} for user ${user.id}`);
       
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          id,
-          title,
-          price,
-          brand,
-          model,
-          status,
-          created_at,
-          seller_name,
-          delivery_price,
-          optid_created,
-          lot_number,
-          product_images(
-            url,
-            is_primary
-          )
-        `)
-        .eq('seller_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      try {
+        // Test connection first
+        const { error: connectionError } = await supabase
+          .from('products')
+          .select('count')
+          .limit(1);
+          
+        if (connectionError) {
+          console.error('❌ Database connection error:', connectionError);
+          throw new Error(`Ошибка подключения: ${connectionError.message}`);
+        }
+        
+        const { data, error } = await supabase
+          .from('products')
+          .select(`
+            id,
+            title,
+            price,
+            brand,
+            model,
+            status,
+            created_at,
+            seller_name,
+            delivery_price,
+            optid_created,
+            lot_number,
+            product_images(
+              url,
+              is_primary
+            )
+          `)
+          .eq('seller_id', user.id)
+          .order('created_at', { ascending: false })
+          .range(from, to);
 
-      if (error) {
-        console.error('Database error:', error);
-        throw new Error(`Ошибка загрузки товаров: ${error.message}`);
+        if (error) {
+          console.error('❌ Database error:', error);
+          throw new Error(`Ошибка загрузки товаров: ${error.message}`);
+        }
+        
+        console.log(`✅ Successfully fetched ${data?.length || 0} products`);
+        return data as Product[];
+      } catch (dbError) {
+        console.error('💥 Error in seller products query:', dbError);
+        throw dbError;
       }
-      
-      return data as Product[];
     },
     getNextPageParam: (lastPage, allPages) => {
       return lastPage.length === productsPerPage ? allPages.length : undefined;
@@ -77,8 +97,11 @@ const SellerListingsContent = () => {
     enabled: !!user?.id,
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retry: (failureCount, error) => {
+      console.log(`🔄 Seller products retry attempt ${failureCount}:`, error);
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000),
     refetchOnWindowFocus: false,
     refetchOnMount: false,
   });
@@ -129,42 +152,66 @@ const SellerListingsContent = () => {
 
   const handleRetry = async () => {
     try {
+      console.log('🔄 Retrying seller products fetch...');
       await refetch();
       toast({
         title: "Обновление данных",
         description: "Загружаем ваши товары...",
       });
     } catch (error) {
-      console.error('Retry failed:', error);
+      console.error('❌ Retry failed:', error);
+      toast({
+        variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось обновить данные",
+      });
     }
   };
 
+  // Handle errors with detailed logging
+  useEffect(() => {
+    if (isError && error) {
+      console.error('🚨 Seller listings error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast({
+        variant: "destructive",
+        title: "Ошибка загрузки товаров",
+        description: errorMessage,
+      });
+    }
+  }, [isError, error]);
+
   const allProducts = data?.pages.flat() || [];
-  console.log(`Total seller products loaded: ${allProducts.length}`);
+  console.log(`📊 Total seller products loaded: ${allProducts.length}`);
 
   const mappedProducts: ProductProps[] = React.useMemo(() => {
-    return allProducts.map(product => {
-      const images = product.product_images || [];
-      const primaryImage = images.find(img => img.is_primary);
-      const fallbackImage = images[0];
-      
-      const imageUrl = primaryImage?.url || fallbackImage?.url || '/placeholder.svg';
-      
-      return {
-        id: product.id,
-        title: product.title,
-        price: Number(product.price),
-        image: imageUrl,
-        brand: product.brand || '',
-        model: product.model || '',
-        seller_name: product.seller_name,
-        status: product.status,
-        seller_id: user?.id,
-        delivery_price: product.delivery_price,
-        optid_created: product.optid_created,
-        lot_number: product.lot_number
-      };
-    });
+    try {
+      return allProducts.map(product => {
+        const images = product.product_images || [];
+        const primaryImage = images.find(img => img.is_primary);
+        const fallbackImage = images[0];
+        
+        const imageUrl = primaryImage?.url || fallbackImage?.url || '/placeholder.svg';
+        
+        return {
+          id: product.id,
+          title: product.title,
+          price: Number(product.price),
+          image: imageUrl,
+          brand: product.brand || '',
+          model: product.model || '',
+          seller_name: product.seller_name,
+          status: product.status,
+          seller_id: user?.id,
+          delivery_price: product.delivery_price,
+          optid_created: product.optid_created,
+          lot_number: product.lot_number
+        };
+      });
+    } catch (mappingError) {
+      console.error('❌ Error mapping seller products:', mappingError);
+      return [];
+    }
   }, [allProducts, user?.id]);
 
   if (isLoading) {
@@ -172,6 +219,8 @@ const SellerListingsContent = () => {
   }
 
   if (isError) {
+    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -183,8 +232,9 @@ const SellerListingsContent = () => {
           <AlertDescription className="flex items-center justify-between">
             <div>
               <div className="font-medium mb-1">Ошибка загрузки товаров</div>
-              <div className="text-sm">
-                {error instanceof Error ? error.message : 'Неизвестная ошибка'}
+              <div className="text-sm">{errorMessage}</div>
+              <div className="text-xs mt-1 opacity-75">
+                Проверьте подключение к интернету и попробуйте снова
               </div>
             </div>
             <Button 
