@@ -144,10 +144,15 @@ const Login = () => {
     return null;
   };
 
+  const generateRandomOptId = () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    return Array.from({ length: 3 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
+  };
+
   const getPlaceholderText = () => {
     if (inputType === 'email') return "example@mail.com";
-    if (inputType === 'opt_id') return "KIROV, DSG, AAN...";
-    return "example@mail.com или KIROV";
+    if (inputType === 'opt_id') return `${generateRandomOptId()}, ${generateRandomOptId()}, ${generateRandomOptId()}...`;
+    return `example@mail.com или ${generateRandomOptId()}`;
   };
 
   return (
@@ -232,7 +237,7 @@ const Login = () => {
                 <div className="text-center text-xs text-muted-foreground border-t pt-4">
                   <p>💡 Подсказка: Вы можете войти используя:</p>
                   <p>• Email адрес (example@mail.com)</p>
-                  <p>• OPT ID (KIROV, DSG, AAN и т.д.)</p>
+                  <p>• OPT ID ({generateRandomOptId()}, {generateRandomOptId()}, {generateRandomOptId()} и т.д.)</p>
                 </div>
               </CardFooter>
             </form>
