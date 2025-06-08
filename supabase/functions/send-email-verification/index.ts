@@ -87,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Отправляем реальный email с кодом
     try {
       const emailResponse = await resend.emails.send({
-        from: "PartsBay.ae <noreply@resend.dev>",
+        from: "PartsBay.ae <noreply@partsbay.ae>",
         to: [email],
         subject: "Код подтверждения email - PartsBay.ae",
         html: `
