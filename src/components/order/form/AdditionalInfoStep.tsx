@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useMobileOptimizedUpload } from '@/hooks/useMobileOptimizedUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { OrderFormData } from '@/hooks/useOrderForm';
-import { ImageIcon, VideoIcon, Plus, X } from 'lucide-react';
+import { ImageIcon, VideoIcon, Upload, X, Plus } from 'lucide-react';
 
 interface AdditionalInfoStepProps {
   formData: OrderFormData;
@@ -125,24 +125,77 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         />
       </div>
 
-      {/* Компактный блок загрузки медиа */}
-      <div className="space-y-3">
+      {/* Компактный блок загрузки медиафайлов */}
+      <div className="space-y-4">
         <Label className={isMobile ? "text-base font-medium" : ""}>
-          Медиафайлы
+          Фото и видео
         </Label>
         
+        {/* Галерея загруженных файлов */}
+        {(images.length > 0 || videos.length > 0) && (
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+              {/* Изображения */}
+              {images.map((url, index) => (
+                <div key={`img-${index}`} className="relative group">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-white border shadow-sm">
+                    <img 
+                      src={url} 
+                      alt={`Фото ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onImageDelete(url)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <div className="absolute bottom-1 left-1 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                    <ImageIcon className="h-2.5 w-2.5 text-white" />
+                  </div>
+                </div>
+              ))}
+              
+              {/* Видео */}
+              {videos.map((url, index) => (
+                <div key={`vid-${index}`} className="relative group">
+                  <div className="aspect-square rounded-lg overflow-hidden bg-white border shadow-sm">
+                    <video 
+                      src={url} 
+                      className="w-full h-full object-cover"
+                      muted
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleVideoDelete(url)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-md"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                  <div className="absolute bottom-1 left-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+                    <VideoIcon className="h-2.5 w-2.5 text-white" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Кнопки загрузки */}
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleUploadClick}
             disabled={isUploading}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 h-10"
           >
             <ImageIcon className="h-4 w-4" />
-            {isUploading ? "Загрузка..." : "Фото"}
+            Добавить фото
           </Button>
           
           <CloudinaryVideoUpload
@@ -151,14 +204,14 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             onDelete={handleVideoDelete}
             maxVideos={3}
             showOnlyButton={true}
-            buttonText="Видео"
+            buttonText="Добавить видео"
             buttonIcon={<VideoIcon className="h-4 w-4" />}
             disabled={isUploading}
           />
           
           {(images.length > 0 || videos.length > 0) && (
-            <span className="text-sm text-muted-foreground self-center">
-              {images.length + videos.length} файл(ов)
+            <span className="text-sm text-gray-500 ml-2">
+              {images.length + videos.length} файл{images.length + videos.length === 1 ? '' : images.length + videos.length < 5 ? 'а' : 'ов'}
             </span>
           )}
         </div>
@@ -173,70 +226,24 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
           disabled={isUploading}
         />
 
-        {/* Компактная галерея медиафайлов */}
-        {(images.length > 0 || videos.length > 0) && (
-          <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
-            {/* Фотографии */}
-            {images.map((url, index) => (
-              <div key={`img-${index}`} className="relative aspect-square">
-                <img 
-                  src={url} 
-                  alt={`Фото ${index + 1}`}
-                  className="w-full h-full object-cover rounded border"
-                />
-                <button
-                  type="button"
-                  onClick={() => onImageDelete(url)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                <div className="absolute bottom-1 left-1 bg-black/50 rounded px-1 text-white text-xs">
-                  <ImageIcon className="h-3 w-3" />
-                </div>
-              </div>
-            ))}
-            
-            {/* Видео */}
-            {videos.map((url, index) => (
-              <div key={`vid-${index}`} className="relative aspect-square">
-                <video 
-                  src={url} 
-                  className="w-full h-full object-cover rounded border"
-                  muted
-                />
-                <button
-                  type="button"
-                  onClick={() => handleVideoDelete(url)}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-                <div className="absolute bottom-1 left-1 bg-black/50 rounded px-1 text-white text-xs">
-                  <VideoIcon className="h-3 w-3" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
         {/* Прогресс загрузки */}
         {isUploading && uploadProgress.length > 0 && (
-          <div className="bg-muted/50 rounded p-3">
-            <div className="text-sm font-medium mb-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-blue-700 mb-2">
+              <Upload className="h-4 w-4 animate-pulse" />
               Загрузка {uploadProgress.filter(p => p.status === 'success').length}/{uploadProgress.length}
             </div>
             <div className="space-y-2">
               {uploadProgress.map((progress, index) => (
                 <div key={index} className="flex items-center gap-3">
                   <div className="flex-1">
-                    <div className="flex justify-between text-xs mb-1">
-                      <span className="truncate">{progress.fileName}</span>
+                    <div className="flex justify-between text-xs mb-1 text-gray-600">
+                      <span className="truncate max-w-32">{progress.fileName}</span>
                       <span>{Math.round(progress.progress)}%</span>
                     </div>
-                    <div className="w-full bg-background rounded-full h-1.5">
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
                       <div 
-                        className="bg-primary h-1.5 rounded-full transition-all duration-300"
+                        className="bg-blue-500 h-1.5 rounded-full transition-all duration-300"
                         style={{ width: `${progress.progress}%` }}
                       />
                     </div>
@@ -246,6 +253,10 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             </div>
           </div>
         )}
+        
+        <p className="text-xs text-gray-500">
+          Поддерживаются: JPG, PNG, WebP для фото • MP4, MOV для видео • Максимум 10 фото и 3 видео
+        </p>
       </div>
     </div>
   );
