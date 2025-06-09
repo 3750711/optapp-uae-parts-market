@@ -1009,56 +1009,31 @@ export type Database = {
         Returns: string
       }
       create_user_order: {
-        Args:
-          | {
-              p_title: string
-              p_price: number
-              p_place_number: number
-              p_seller_id: string
-              p_order_seller_name: string
-              p_seller_opt_id: string
-              p_buyer_id: string
-              p_brand: string
-              p_model: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_telegram_url_order: string
-              p_images: string[]
-              p_product_id: string
-              p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_text_order: string
-              p_delivery_price_confirm: number
-              p_quantity?: number
-              p_description?: string
-              p_buyer_opt_id?: string
-              p_lot_number_order?: number
-              p_telegram_url_buyer?: string
-            }
-          | {
-              p_title: string
-              p_price: number
-              p_place_number: number
-              p_seller_id: string
-              p_order_seller_name: string
-              p_seller_opt_id: string
-              p_buyer_id: string
-              p_brand: string
-              p_model: string
-              p_status: Database["public"]["Enums"]["order_status"]
-              p_order_created_type: Database["public"]["Enums"]["order_created_type"]
-              p_telegram_url_order: string
-              p_images: string[]
-              p_product_id: string
-              p_delivery_method: Database["public"]["Enums"]["delivery_method"]
-              p_text_order: string
-              p_delivery_price_confirm: number
-              p_quantity?: number
-              p_description?: string
-              p_buyer_opt_id?: string
-              p_lot_number_order?: number
-              p_telegram_url_buyer?: string
-              p_video_url?: string[]
-            }
+        Args: {
+          p_title: string
+          p_price: number
+          p_place_number: number
+          p_seller_id: string
+          p_order_seller_name: string
+          p_seller_opt_id: string
+          p_buyer_id: string
+          p_brand: string
+          p_model: string
+          p_status: Database["public"]["Enums"]["order_status"]
+          p_order_created_type: Database["public"]["Enums"]["order_created_type"]
+          p_telegram_url_order: string
+          p_images: string[]
+          p_product_id: string
+          p_delivery_method: Database["public"]["Enums"]["delivery_method"]
+          p_text_order: string
+          p_delivery_price_confirm: number
+          p_quantity?: number
+          p_description?: string
+          p_buyer_opt_id?: string
+          p_lot_number_order?: number
+          p_telegram_url_buyer?: string
+          p_video_url?: string[]
+        }
         Returns: string
       }
       current_user_id: {

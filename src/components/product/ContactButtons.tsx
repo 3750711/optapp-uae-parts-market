@@ -222,9 +222,9 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
 
       console.log('💰 Product delivery price:', currentProduct.delivery_price);
 
-      // Правильная обработка brand и model - передаем null если поля пустые
-      const brandValue = product.brand && product.brand.trim() ? product.brand : null;
-      const modelValue = product.model && product.model.trim() ? product.model : null;
+      // Правильная обработка brand и model - заменяем пустые значения на "Не указано"
+      const brandValue = product.brand && product.brand.trim() ? product.brand : "Не указано";
+      const modelValue = product.model && product.model.trim() ? product.model : "Не указано";
 
       console.log('🔄 Calling create_user_order RPC function with all parameters...');
 
@@ -243,7 +243,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         p_order_created_type: 'ads_order' as OrderCreatedType,
         p_telegram_url_order: profile?.telegram || null,
         p_images: productImages,
-        p_video_url: productVideos, // Добавляем обратно недостающий параметр
+        p_video_url: productVideos,
         p_product_id: product.id,
         p_delivery_method: deliveryMethod,
         p_text_order: orderData.text_order || null,
