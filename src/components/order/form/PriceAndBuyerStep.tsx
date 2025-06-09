@@ -1,5 +1,4 @@
-
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
@@ -36,9 +35,11 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
     []
   );
 
-  const { data: profiles = [], isLoading: profilesLoading } = useQuery({
+  const { data: profiles = [], isLoading: profilesLoading, error: profilesError } = useQuery({
     queryKey: ['buyer-profiles', profileSearchTerm],
     queryFn: async () => {
+      console.log('Fetching buyer profiles with search term:', profileSearchTerm);
+      
       let query = supabase
         .from("profiles")
         .select("id, opt_id, full_name")
@@ -55,14 +56,25 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
 
       if (error) {
         console.error("Ошибка загрузки списка OPT_ID:", error);
+        console.error("Error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw error;
       }
       
+      console.log('Loaded buyer profiles:', data?.length || 0, 'profiles');
       return data || [];
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     enabled: true,
+    retry: (failureCount, error) => {
+      console.log('Query retry attempt:', failureCount, 'Error:', error);
+      return failureCount < 2;
+    }
   });
 
   // Sort profiles by opt_id alphabetically
@@ -119,6 +131,13 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
     setProfileSearchTerm("");
   };
 
+  // Debug информация
+  useEffect(() => {
+    if (profilesError) {
+      console.error('Profiles query error:', profilesError);
+    }
+  }, [profilesError]);
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -165,6 +184,14 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
         <Label htmlFor="buyerOptId" className={isMobile ? "text-base font-medium" : ""}>
           OPT_ID получателя *
         </Label>
+        {profilesError && (
+          <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
+            Ошибка загрузки списка покупателей: {profilesError.message}
+            {profilesError.details && (
+              <div className="mt-1 text-xs">{profilesError.details}</div>
+            )}
+          </div>
+        )}
         <Select
           value={formData.buyerOptId}
           onValueChange={(value) => onInputChange("buyerOptId", value)}
@@ -175,7 +202,11 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
           }}
         >
           <SelectTrigger className={`w-full ${isMobile ? 'min-h-[44px]' : ''}`}>
-            <SelectValue placeholder={profilesLoading ? "Загрузка..." : "Выберите OPT_ID"} />
+            <SelectValue placeholder={
+              profilesLoading ? "Загрузка..." : 
+              profilesError ? "Ошибка загрузки" :
+              "Выберите OPT_ID"
+            } />
           </SelectTrigger>
           <SelectContent 
             className="bg-white border border-gray-200 shadow-md max-h-60"
@@ -192,7 +223,15 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
                 />
               </div>
             </div>
-            {filteredProfiles.length === 0 && !profilesLoading ? (
+            {profilesLoading ? (
+              <div className="py-2 px-3 text-sm text-gray-500">
+                Загрузка...
+              </div>
+            ) : profilesError ? (
+              <div className="py-2 px-3 text-sm text-red-500">
+                Ошибка загрузки данных
+              </div>
+            ) : filteredProfiles.length === 0 ? (
               <div className="py-2 px-3 text-sm text-gray-500">
                 {profileSearchTerm ? "Не найдено" : "Нет данных"}
               </div>
@@ -207,15 +246,15 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
                 </SelectItem>
               ))
             )}
-            {profilesLoading && (
-              <div className="py-2 px-3 text-sm text-gray-500">
-                Загрузка...
-              </div>
-            )}
           </SelectContent>
         </Select>
         {getFieldError('buyerOptId') && (
           <p className="text-sm text-red-500">{getFieldError('buyerOptId')}</p>
+        )}
+        {profiles.length > 0 && (
+          <p className="text-xs text-gray-500">
+            Найдено покупателей: {profiles.length}
+          </p>
         )}
       </div>
     </div>
