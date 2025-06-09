@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Database } from '@/integrations/supabase/types';
 import { useFormAutosave } from '@/hooks/useFormAutosave';
@@ -144,6 +143,8 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
       buyerOptId: "",
       brand: "",
       model: "",
+      brandId: "",
+      modelId: "",
       optid_created: "",
       seller_opt_id: "",
       deliveryMethod: 'self_pickup' as DeliveryMethod,
