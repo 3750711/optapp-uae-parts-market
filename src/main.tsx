@@ -47,6 +47,13 @@ import SellerCreateOrder from "./pages/SellerCreateOrder";
 import SellerSellProduct from "./pages/SellerSellProduct";
 import SellerOrders from "./pages/SellerOrders";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+// Add missing imports for requests, orders, and other pages
+import Requests from "./pages/Requests";
+import CreateRequest from "./pages/CreateRequest";
+import RequestDetail from "./pages/RequestDetail";
+import BuyerOrders from "./pages/BuyerOrders";
+import OrderDetails from "./pages/OrderDetails";
+import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
@@ -95,12 +102,28 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/seller/:id" element={<PublicSellerProfile />} />
+                      
+                      {/* Requests routes */}
+                      <Route path="/requests" element={<Requests />} />
+                      <Route path="/requests/create" element={<CreateRequest />} />
+                      <Route path="/requests/:id" element={<RequestDetail />} />
+                      
+                      {/* Buyer routes */}
+                      <Route path="/buyer/orders" element={<BuyerOrders />} />
+                      <Route path="/buyer/create-order" element={<BuyerCreateOrder />} />
+                      
+                      {/* Order details route */}
+                      <Route path="/order/:id" element={<OrderDetails />} />
+                      
+                      {/* Seller routes */}
                       <Route path="/seller/dashboard" element={<SellerDashboard />} />
                       <Route path="/seller/add-product" element={<SellerAddProduct />} />
                       <Route path="/seller/listings" element={<SellerListings />} />
                       <Route path="/seller/create-order" element={<SellerCreateOrder />} />
                       <Route path="/seller/sell-product" element={<SellerSellProduct />} />
                       <Route path="/seller/orders" element={<SellerOrders />} />
+                      
+                      {/* Admin routes */}
                       <Route path="/admin" element={
                         <AdminRoute>
                           <AdminDashboard />
