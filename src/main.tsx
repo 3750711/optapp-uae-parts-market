@@ -1,4 +1,3 @@
-
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { ToastProvider } from "@/hooks/use-toast"
@@ -31,6 +30,11 @@ import PublicSellerProfile from "./pages/PublicSellerProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import SellerDashboard from "./pages/SellerDashboard";
+import SellerAddProduct from "./pages/SellerAddProduct";
+import SellerListings from "./pages/SellerListings";
+import SellerCreateOrder from "./pages/SellerCreateOrder";
+import SellerSellProduct from "./pages/SellerSellProduct";
+import SellerOrders from "./pages/SellerOrders";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
