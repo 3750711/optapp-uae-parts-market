@@ -47,6 +47,12 @@ import SellerSellProduct from "./pages/SellerSellProduct";
 import SellerOrders from "./pages/SellerOrders";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import OrdersRedirect from "./pages/OrdersRedirect";
+import Requests from "./pages/Requests";
+import CreateRequest from "./pages/CreateRequest";
+import RequestDetail from "./pages/RequestDetail";
+import BuyerOrders from "./pages/BuyerOrders";
+import OrderDetails from "./pages/OrderDetails";
+import BuyerCreateOrder from "./pages/BuyerCreateOrder";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
