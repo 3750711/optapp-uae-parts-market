@@ -203,43 +203,91 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         }
       }
 
+      // Получаем видео товара
+      let productVideos: string[] = [];
+      
+      if (product.id) {
+        const { data: productVideosData, error: productVideosError } = await supabase
+          .from('product_videos')
+          .select('url')
+          .eq('product_id', product.id);
+          
+        if (productVideosError) {
+          console.error('⚠️ Error fetching product videos:', productVideosError);
+        } else if (productVideosData && productVideosData.length > 0) {
+          productVideos = productVideosData.map(video => video.url);
+          console.log('🎥 Found product videos:', productVideos.length);
+        }
+      }
+
       console.log('💰 Product delivery price:', currentProduct.delivery_price);
 
-      // Ensure brand and model have default values if they're empty
-      const brandValue = product.brand || "Не указано";
-      const modelValue = product.model || "Не указано";
+      // Правильная обработка brand и model - передаем null если поля пустые
+      const brandValue = product.brand && product.brand.trim() ? product.brand : null;
+      const modelValue = product.model && product.model.trim() ? product.model : null;
 
-      console.log('🔄 Calling create_user_order RPC function...');
+      console.log('🔄 Calling create_user_order RPC function with all parameters...');
 
-      // Используем RPC функцию create_user_order БЕЗ видео параметра
+      // Подготавливаем параметры для RPC вызова
+      const rpcParams = {
+        p_title: product.title,
+        p_price: product.price,
+        p_place_number: 1,
+        p_seller_id: product.seller_id,
+        p_order_seller_name: product.seller_name || "Unknown Seller",
+        p_seller_opt_id: product.optid_created || null,
+        p_buyer_id: user?.id,
+        p_brand: brandValue,
+        p_model: modelValue,
+        p_status: 'created' as OrderStatus,
+        p_order_created_type: 'ads_order' as OrderCreatedType,
+        p_telegram_url_order: profile?.telegram || null,
+        p_images: productImages,
+        p_video_url: productVideos, // Добавляем обратно недостающий параметр
+        p_product_id: product.id,
+        p_delivery_method: deliveryMethod,
+        p_text_order: orderData.text_order || null,
+        p_delivery_price_confirm: currentProduct.delivery_price,
+        p_quantity: 1,
+        p_description: product.description || null,
+        p_buyer_opt_id: profile?.opt_id || null,
+        p_lot_number_order: lotNumberOrder,
+        p_telegram_url_buyer: profile?.telegram || null
+      };
+
+      console.log('📋 RPC Parameters:', rpcParams);
+
+      // Используем RPC функцию create_user_order С видео параметром
       const { data: orderId, error: orderError } = await supabase
-        .rpc('create_user_order', {
-          p_title: product.title,
-          p_price: product.price,
-          p_place_number: 1,
-          p_seller_id: product.seller_id,
-          p_order_seller_name: product.seller_name || "Unknown Seller",
-          p_seller_opt_id: product.optid_created || '',
-          p_buyer_id: user?.id,
-          p_brand: brandValue,
-          p_model: modelValue,
-          p_status: 'created' as OrderStatus,
-          p_order_created_type: 'ads_order' as OrderCreatedType,
-          p_telegram_url_order: profile?.telegram || '',
-          p_images: productImages,
-          p_product_id: product.id,
-          p_delivery_method: deliveryMethod,
-          p_text_order: orderData.text_order || null,
-          p_delivery_price_confirm: currentProduct.delivery_price,
-          p_quantity: 1,
-          p_description: product.description || null,
-          p_buyer_opt_id: profile?.opt_id || null,
-          p_lot_number_order: lotNumberOrder,
-          p_telegram_url_buyer: profile?.telegram || null
-        });
+        .rpc('create_user_order', rpcParams);
 
       if (orderError) {
         console.error('❌ RPC Error creating order:', orderError);
+        console.error('❌ RPC Error details:', {
+          code: orderError.code,
+          message: orderError.message,
+          details: orderError.details,
+          hint: orderError.hint
+        });
+        
+        // Более детальная обработка ошибок RPC
+        let errorMessage = "Не удалось создать заказ. Попробуйте позже.";
+        
+        if (orderError.message?.includes('permission') || orderError.message?.includes('access')) {
+          errorMessage = "Недостаточно прав для создания заказа. Обратитесь к администратору.";
+        } else if (orderError.message?.includes('duplicate')) {
+          errorMessage = "Для этого товара уже существует активный заказ";
+        } else if (orderError.message?.includes('function') || orderError.message?.includes('not found')) {
+          errorMessage = "Системная ошибка. Обратитесь к администратору.";
+        } else if (orderError.message?.includes('parameter')) {
+          errorMessage = "Ошибка в параметрах заказа. Попробуйте еще раз.";
+        }
+        
+        toast({
+          title: "Ошибка создания заказа",
+          description: errorMessage,
+          variant: "destructive",
+        });
         throw orderError;
       }
 
@@ -306,6 +354,8 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           errorMessage = "Товар не найден или был удален";
         } else if (error.message.includes('permission') || error.message.includes('access')) {
           errorMessage = "Недостаточно прав для создания заказа";
+        } else if (error.message.includes('parameter')) {
+          errorMessage = "Ошибка в параметрах заказа";
         }
       }
       
