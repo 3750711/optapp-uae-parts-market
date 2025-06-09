@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,13 @@ interface PriceAndBuyerStepProps {
   isFieldValid: (field: string) => boolean;
   getFieldError: (field: string) => string | null;
   isMobile?: boolean;
+}
+
+// Type for Supabase errors
+interface SupabaseError extends Error {
+  details?: string;
+  hint?: string;
+  code?: string;
 }
 
 const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
@@ -58,9 +66,9 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
         console.error("Ошибка загрузки списка OPT_ID:", error);
         console.error("Error details:", {
           message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
+          details: (error as SupabaseError).details,
+          hint: (error as SupabaseError).hint,
+          code: (error as SupabaseError).code
         });
         throw error;
       }
@@ -187,8 +195,8 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
         {profilesError && (
           <div className="text-sm text-red-600 bg-red-50 p-2 rounded">
             Ошибка загрузки списка покупателей: {profilesError.message}
-            {profilesError.details && (
-              <div className="mt-1 text-xs">{profilesError.details}</div>
+            {(profilesError as SupabaseError).details && (
+              <div className="mt-1 text-xs">{(profilesError as SupabaseError).details}</div>
             )}
           </div>
         )}
