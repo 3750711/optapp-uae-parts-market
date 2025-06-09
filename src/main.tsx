@@ -27,6 +27,7 @@ import ProductDetail from "./pages/ProductDetail";
 import StoreDetail from "./pages/StoreDetail";
 import BuyerGuide from "./pages/BuyerGuide";
 import AdminStores from "./pages/AdminStores";
+import AdminDashboard from "./pages/AdminDashboard";
 import PublicSellerProfile from "./pages/PublicSellerProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -36,6 +37,7 @@ import SellerListings from "./pages/SellerListings";
 import SellerCreateOrder from "./pages/SellerCreateOrder";
 import SellerSellProduct from "./pages/SellerSellProduct";
 import SellerOrders from "./pages/SellerOrders";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
@@ -90,7 +92,16 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/seller/create-order" element={<SellerCreateOrder />} />
                       <Route path="/seller/sell-product" element={<SellerSellProduct />} />
                       <Route path="/seller/orders" element={<SellerOrders />} />
-                      <Route path="/admin/stores" element={<AdminStores />} />
+                      <Route path="/admin" element={
+                        <AdminRoute>
+                          <AdminDashboard />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/stores" element={
+                        <AdminRoute>
+                          <AdminStores />
+                        </AdminRoute>
+                      } />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </div>
