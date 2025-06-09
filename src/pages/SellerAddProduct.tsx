@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -47,6 +47,10 @@ const SellerAddProduct = () => {
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   
+  // Refs for tracking initialization state
+  const isInitializedRef = useRef(false);
+  const draftLoadedRef = useRef(false);
+  
   // Use our custom hook for car brands and models
   const { 
     brands, 
@@ -70,7 +74,6 @@ const SellerAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
-      // Don't set sellerId as it's not required for sellers
     },
     mode: "onChange",
   });
@@ -83,12 +86,14 @@ const SellerAddProduct = () => {
     findModelIdByName
   );
 
-  // Автосохранение формы
-  const formData = form.watch();
+  // Get form data for autosave - use getValues instead of watch to avoid reactivity
+  const getFormDataForAutosave = useCallback(() => form.getValues(), [form]);
+
+  // Автосохранение формы with debounced data
   const { loadSavedData, clearSavedData } = useFormAutosave({
     key: 'seller_add_product',
-    data: formData,
-    enabled: !isSubmitting
+    data: getFormDataForAutosave(),
+    enabled: !isSubmitting && isInitializedRef.current
   });
 
   // Breadcrumbs навигация
@@ -101,36 +106,42 @@ const SellerAddProduct = () => {
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
 
-  // Загрузка сохраненного черновика при инициализации
+  // Load saved draft on component mount (only once)
   useEffect(() => {
-    const savedData = loadSavedData();
-    if (savedData && Object.keys(savedData).length > 0) {
-      // Проверяем, что форма пуста перед загрузкой черновика
-      const currentFormIsEmpty = !formData.title && !formData.price && !formData.brandId;
+    if (!draftLoadedRef.current && !isSubmitting) {
+      console.log("Loading saved draft...");
+      const savedData = loadSavedData();
       
-      if (currentFormIsEmpty) {
+      if (savedData && Object.keys(savedData).length > 0) {
+        console.log("Found saved draft:", savedData);
+        
+        // Set form values without triggering watch reactivity
         Object.entries(savedData).forEach(([key, value]) => {
-          if (value && key in formData) {
-            form.setValue(key as keyof ProductFormValues, value as any);
+          if (value && key in form.getValues()) {
+            form.setValue(key as keyof ProductFormValues, value as any, { shouldValidate: false });
           }
         });
         
         setShowDraftSaved(true);
         setTimeout(() => setShowDraftSaved(false), 5000);
       }
+      
+      draftLoadedRef.current = true;
+      isInitializedRef.current = true;
     }
-  }, [loadSavedData, form, formData]);
+  }, [loadSavedData, form, isSubmitting]);
 
-  // Мемоизированная функция для обработки изменений названия
+  // Handle title changes with debounce
   const handleTitleChange = useCallback((title: string) => {
-    if (title && brands.length > 0 && !watchBrandId) {
+    if (title && brands.length > 0 && !watchBrandId && isInitializedRef.current) {
+      console.log("Parsing title for auto-detection:", title);
       const { brandId, modelId } = parseProductTitle(title);
       
       if (brandId) {
-        form.setValue("brandId", brandId);
+        form.setValue("brandId", brandId, { shouldValidate: false });
         
         if (modelId) {
-          form.setValue("modelId", modelId);
+          form.setValue("modelId", modelId, { shouldValidate: false });
         }
 
         toast({
@@ -139,22 +150,23 @@ const SellerAddProduct = () => {
         });
       }
     }
-  }, [brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
+  }, [brands, parseProductTitle, form, watchBrandId, toast]);
 
-  // Объединенный и оптимизированный useEffect для обработки изменений
+  // Debounced title processing
   useEffect(() => {
-    // Обработка изменений названия с debounce
-    if (watchTitle) {
-      const timeoutId = setTimeout(() => {
-        handleTitleChange(watchTitle);
-      }, 500);
+    if (!isInitializedRef.current || !watchTitle) return;
+    
+    const timeoutId = setTimeout(() => {
+      handleTitleChange(watchTitle);
+    }, 500);
 
-      return () => clearTimeout(timeoutId);
-    }
+    return () => clearTimeout(timeoutId);
   }, [watchTitle, handleTitleChange]);
 
-  // Отдельный useEffect для обработки изменений бренда и модели
+  // Handle brand and model changes
   useEffect(() => {
+    if (!isInitializedRef.current) return;
+    
     if (watchBrandId) {
       selectBrand(watchBrandId);
       
@@ -164,7 +176,7 @@ const SellerAddProduct = () => {
           model.id === watchModelId && model.brand_id === watchBrandId
         );
         if (!modelBelongsToBrand) {
-          form.setValue("modelId", "");
+          form.setValue("modelId", "", { shouldValidate: false });
         }
       }
     }
@@ -173,41 +185,35 @@ const SellerAddProduct = () => {
     if (watchModelId && brandModels.length > 0) {
       const modelExists = brandModels.some(model => model.id === watchModelId);
       if (!modelExists) {
-        form.setValue("modelId", "");
+        form.setValue("modelId", "", { shouldValidate: false });
       }
     }
   }, [watchBrandId, watchModelId, selectBrand, form, brandModels]);
 
-  const handleMobileOptimizedImageUpload = useCallback((urls: string[]) => {
+  // Unified image upload handler
+  const handleImageUpload = useCallback((urls: string[]) => {
+    console.log("📷 New images uploaded:", urls);
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
     
     if (!primaryImage && urls.length > 0) {
       setPrimaryImage(urls[0]);
-    } else if (primaryImage && !urls.includes(primaryImage)) {
-      if (urls.length > 0) {
-        setPrimaryImage(urls[0]);
+    }
+  }, [primaryImage]);
+
+  // Unified image deletion handler
+  const handleImageDelete = useCallback((url: string) => {
+    console.log("🗑️ Deleting image:", url);
+    const newImageUrls = imageUrls.filter(item => item !== url);
+    setImageUrls(newImageUrls);
+    
+    if (primaryImage === url) {
+      if (newImageUrls.length > 0) {
+        setPrimaryImage(newImageUrls[0]);
       } else {
         setPrimaryImage("");
       }
     }
-  }, [primaryImage]);
-
-  const removeImage = useCallback((url: string) => {
-    setImageUrls(prevUrls => {
-      const newUrls = prevUrls.filter(item => item !== url);
-      
-      // If deleted image was primary, set new primary
-      if (primaryImage === url) {
-        if (newUrls.length > 0) {
-          setPrimaryImage(newUrls[0]);
-        } else {
-          setPrimaryImage("");
-        }
-      }
-      
-      return newUrls;
-    });
-  }, [primaryImage]);
+  }, [imageUrls, primaryImage]);
 
   // Enhanced product creation with automatic seller assignment
   const createProduct = async (values: ProductFormValues) => {
@@ -463,27 +469,11 @@ const SellerAddProduct = () => {
                   setSearchBrandTerm={setSearchBrandTerm}
                   searchModelTerm={searchModelTerm}
                   setSearchModelTerm={setSearchModelTerm}
-                  handleMobileOptimizedImageUpload={(urls: string[]) => {
-                    console.log('📷 New images uploaded:', urls);
-                    setImageUrls(prevUrls => [...prevUrls, ...urls]);
-                    if (!primaryImage && urls.length > 0) {
-                      setPrimaryImage(urls[0]);
-                    }
-                  }}
+                  handleMobileOptimizedImageUpload={handleImageUpload}
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
-                  onImageDelete={(url: string) => {
-                    const newImageUrls = imageUrls.filter(item => item !== url);
-                    setImageUrls(newImageUrls);
-                    if (primaryImage === url) {
-                      if (newImageUrls.length > 0) {
-                        setPrimaryImage(newImageUrls[0]);
-                      } else {
-                        setPrimaryImage("");
-                      }
-                    }
-                  }}
+                  onImageDelete={handleImageDelete}
                   showSellerSelection={false} // Hide seller selection for normal sellers
                 />
               </CardContent>
