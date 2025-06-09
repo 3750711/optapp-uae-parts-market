@@ -7,7 +7,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Save } from "lucide-react";
-import FormProgressIndicator from "@/components/ui/FormProgressIndicator";
 
 // Import new components and hooks
 import { useOrderForm } from "@/hooks/useOrderForm";
@@ -62,16 +61,6 @@ const SellerCreateOrder = () => {
       });
     }
   });
-
-  // Form fields for progress calculation
-  const formFields = useMemo(() => [
-    { name: 'title', label: 'Наименование', required: true, filled: !!formData.title, hasError: !isFieldValid('title') },
-    { name: 'price', label: 'Цена', required: true, filled: !!formData.price, hasError: !isFieldValid('price') },
-    { name: 'buyerOptId', label: 'Покупатель', required: true, filled: !!formData.buyerOptId, hasError: !isFieldValid('buyerOptId') },
-    { name: 'brand', label: 'Бренд', required: false, filled: !!formData.brand },
-    { name: 'model', label: 'Модель', required: false, filled: !!formData.model },
-    { name: 'delivery_price', label: 'Доставка', required: false, filled: !!formData.delivery_price },
-  ], [formData, isFieldValid]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,10 +128,6 @@ const SellerCreateOrder = () => {
                     Автосохранение
                   </div>
                 )}
-              </div>
-              
-              <div className="mt-4">
-                <FormProgressIndicator fields={formFields} />
               </div>
             </CardHeader>
             

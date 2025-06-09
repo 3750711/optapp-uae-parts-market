@@ -3,7 +3,6 @@ import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
-import SmartFieldHints from '@/components/ui/SmartFieldHints';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
@@ -155,39 +154,6 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
     }
   }, [formData.brandId, selectedBrand, selectBrand]);
 
-  const getSmartHints = (fieldName: string, value: string) => {
-    const hints = [];
-    
-    if (fieldName === 'title' && value.length > 0 && value.length < 10) {
-      hints.push({
-        type: 'tip' as const,
-        text: 'Добавьте больше деталей в название для лучшего поиска'
-      });
-    }
-    
-    if (fieldName === 'price' && value) {
-      const price = parseFloat(value);
-      if (price > 1000) {
-        hints.push({
-          type: 'trend' as const,
-          text: 'Высокая цена. Убедитесь, что она корректна'
-        });
-      } else if (price === 0) {
-        hints.push({
-          type: 'info' as const,
-          text: 'Цена равна нулю - подходит для бесплатных товаров'
-        });
-      } else if (price < 0) {
-        hints.push({
-          type: 'warning' as const,
-          text: 'Отрицательная цена - используйте для корректировок'
-        });
-      }
-    }
-    
-    return hints;
-  };
-
   return (
     <div className="space-y-6">
       {/* Основная информация */}
@@ -207,11 +173,6 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             touched={touchedFields.has('title')}
             error={getFieldError('title')}
             success={touchedFields.has('title') && isFieldValid('title')}
-          />
-          <SmartFieldHints 
-            fieldName="title"
-            value={formData.title}
-            suggestions={getSmartHints('title', formData.title)}
           />
         </div>
 
@@ -301,11 +262,6 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
               touched={touchedFields.has('price')}
               error={getFieldError('price')}
               success={touchedFields.has('price') && isFieldValid('price')}
-            />
-            <SmartFieldHints 
-              fieldName="price"
-              value={formData.price}
-              suggestions={getSmartHints('price', formData.price)}
             />
           </div>
           
@@ -397,11 +353,6 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
           </Select>
           {getFieldError('buyerOptId') && (
             <p className="text-sm text-red-500">{getFieldError('buyerOptId')}</p>
-          )}
-          {profiles.length > 0 && (
-            <p className="text-xs text-gray-500">
-              Найдено покупателей: {profiles.length}
-            </p>
           )}
         </div>
       </div>

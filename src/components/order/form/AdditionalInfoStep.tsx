@@ -1,17 +1,14 @@
 
 import React from 'react';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ImageUpload } from '@/components/ui/image-upload';
-import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
-import OptimizedImage from '@/components/ui/OptimizedImage';
-import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { UploadControls } from '@/components/ui/image-upload/UploadControls';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useMobileOptimizedUpload } from '@/hooks/useMobileOptimizedUpload';
 import { OrderFormData } from '@/hooks/useOrderForm';
-import { Database } from '@/integrations/supabase/types';
-
-type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
 
 interface AdditionalInfoStepProps {
   formData: OrderFormData;
@@ -32,119 +29,171 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   onImageDelete,
   setVideos
 }) => {
-  const { profile } = useAuth();
+  const isMobile = useIsMobile();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  
+  const { 
+    isUploading, 
+    uploadProgress, 
+    uploadFilesBatch,
+    clearProgress
+  } = useMobileOptimizedUpload();
 
-  const handleVideoUpload = (urls: string[]) => {
-    setVideos([...videos, ...urls]);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const fileArray = Array.from(files);
+      
+      try {
+        const uploadedUrls = await uploadFilesBatch(fileArray, {
+          productId: 'order-' + Date.now(),
+          batchSize: 2,
+          batchDelay: 1000
+        });
+        
+        if (uploadedUrls.length > 0) {
+          onImageUpload(uploadedUrls);
+        }
+      } catch (error) {
+        console.error('Upload error:', error);
+      }
+      
+      e.target.value = '';
+    }
   };
 
-  const handleVideoDelete = (url: string) => {
-    setVideos(videos.filter(u => u !== url));
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
   };
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>Имя отправителя</Label>
-        <Input 
-          value={profile?.full_name || 'Неизвестный продавец'} 
-          readOnly 
-          className="bg-gray-100"
-        />
+      <h3 className="text-lg font-medium">Дополнительная информация</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="place_number" className={isMobile ? "text-base font-medium" : ""}>
+            Номер места
+          </Label>
+          <TouchOptimizedInput 
+            id="place_number"
+            value={formData.place_number}
+            onChange={(e) => onInputChange('place_number', e.target.value)}
+            placeholder="1"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="deliveryMethod" className={isMobile ? "text-base font-medium" : ""}>
+            Способ доставки
+          </Label>
+          <Select
+            value={formData.deliveryMethod}
+            onValueChange={(value) => onInputChange('deliveryMethod', value)}
+          >
+            <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
+              <SelectValue placeholder="Выберите способ доставки" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="self_pickup">Самовывоз</SelectItem>
+              <SelectItem value="courier">Курьер</SelectItem>
+              <SelectItem value="post">Почта</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="space-y-2">
-        <Label>OPT_ID отправителя</Label>
-        <Input 
-          value={formData.seller_opt_id || profile?.opt_id || ''} 
-          readOnly 
-          className="bg-gray-100"
+        <Label htmlFor="text_order" className={isMobile ? "text-base font-medium" : ""}>
+          Описание заказа
+        </Label>
+        <Textarea 
+          id="text_order"
+          value={formData.text_order}
+          onChange={(e) => onInputChange('text_order', e.target.value)}
+          placeholder="Дополнительные детали заказа..."
+          className={isMobile ? "min-h-[120px] text-base" : "min-h-[100px]"}
         />
       </div>
 
-      <div className="space-y-2">
-        <Label>Телеграм отправителя</Label>
-        <Input 
-          value={profile?.telegram || ''} 
-          readOnly 
-          className="bg-gray-100"
-        />
-      </div>
+      {/* Компактный блок загрузки изображений */}
+      <div className="space-y-3">
+        <Label className={isMobile ? "text-base font-medium" : ""}>
+          Изображения
+        </Label>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleUploadClick}
+            disabled={isUploading}
+            className="h-8"
+          >
+            {isUploading ? "Загрузка..." : "Добавить фото"}
+          </Button>
+          {images.length > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {images.length} файл(ов)
+            </span>
+          )}
+        </div>
 
-      <div className="space-y-2">
-        <Label>Фотографии заказа</Label>
-        <ImageUpload
-          images={images}
-          onUpload={onImageUpload}
-          onDelete={onImageDelete}
-          maxImages={25}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+          disabled={isUploading}
         />
+
+        {/* Простой предпросмотр изображений в одну строку */}
         {images.length > 0 && (
-          <div className="grid grid-cols-3 md:grid-cols-4 gap-2 mt-4">
+          <div className="flex gap-2 overflow-x-auto">
             {images.map((url, index) => (
-              <div key={index} className="aspect-square rounded-md overflow-hidden">
-                <OptimizedImage
-                  src={url}
-                  alt={`Изображение заказа ${index + 1}`}
-                  className="w-full h-full"
-                  sizes="(max-width: 768px) 33vw, 25vw"
+              <div key={index} className="relative flex-shrink-0">
+                <img 
+                  src={url} 
+                  alt={`Изображение ${index + 1}`}
+                  className="w-16 h-16 object-cover rounded border"
                 />
+                <button
+                  type="button"
+                  onClick={() => onImageDelete(url)}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs flex items-center justify-center hover:bg-red-600"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
         )}
-      </div>
 
-      <div className="space-y-2">
-        <Label>Видео заказа</Label>
-        <CloudinaryVideoUpload
-          videos={videos}
-          onUpload={handleVideoUpload}
-          onDelete={handleVideoDelete}
-          maxVideos={2}
-          buttonText="Загрузить видео заказа"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Способ доставки</Label>
-        <Select
-          value={formData.deliveryMethod}
-          onValueChange={(value: DeliveryMethod) => onInputChange('deliveryMethod', value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Выберите способ доставки" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="self_pickup">Самовывоз</SelectItem>
-            <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-            <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="place_number">Количество мест для отправки</Label>
-        <Input 
-          id="place_number" 
-          type="number"
-          value={formData.place_number}
-          onChange={(e) => onInputChange('place_number', e.target.value)}
-          required 
-          min="1"
-          placeholder="Укажите количество мест"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label>Дополнительная информация</Label>
-        <Textarea 
-          placeholder="Укажите дополнительную информацию по заказу (необязательно)"
-          className="resize-none"
-          rows={3}
-          value={formData.text_order}
-          onChange={(e) => onInputChange('text_order', e.target.value)}
-        />
+        {/* Прогресс загрузки */}
+        {isUploading && uploadProgress.length > 0 && (
+          <div className="bg-muted/50 rounded p-2 space-y-1">
+            <div className="text-xs text-muted-foreground">
+              Загрузка {uploadProgress.filter(p => p.status === 'success').length}/{uploadProgress.length}
+            </div>
+            {uploadProgress.map((progress, index) => (
+              <div key={index} className="space-y-1">
+                <div className="flex justify-between text-xs">
+                  <span className="truncate max-w-[120px]">{progress.fileName}</span>
+                  <span>{Math.round(progress.progress)}%</span>
+                </div>
+                <div className="w-full bg-background rounded-full h-1">
+                  <div 
+                    className="bg-primary h-1 rounded-full transition-all duration-300"
+                    style={{ width: `${progress.progress}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
