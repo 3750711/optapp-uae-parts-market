@@ -1073,6 +1073,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_current_user_seller: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_seller: {
         Args: Record<PropertyKey, never>
         Returns: boolean

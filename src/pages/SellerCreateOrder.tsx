@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 import { Save } from "lucide-react";
 import FormProgressIndicator from "@/components/ui/FormProgressIndicator";
 
@@ -15,11 +13,8 @@ import FormProgressIndicator from "@/components/ui/FormProgressIndicator";
 import { useOrderForm } from "@/hooks/useOrderForm";
 import { useOrderSubmission } from "@/hooks/useOrderSubmission";
 import { useProductData } from "@/hooks/useProductData";
-import BasicInfoStep from "@/components/order/form/BasicInfoStep";
-import PriceAndBuyerStep from "@/components/order/form/PriceAndBuyerStep";
+import BasicOrderInfoStep from "@/components/order/form/BasicOrderInfoStep";
 import AdditionalInfoStep from "@/components/order/form/AdditionalInfoStep";
-import OrderFormNavigation from "@/components/order/form/OrderFormNavigation";
-import OrderFormActions from "@/components/order/form/OrderFormActions";
 
 const SellerCreateOrder = () => {
   const navigate = useNavigate();
@@ -28,7 +23,6 @@ const SellerCreateOrder = () => {
   const isMobile = useIsMobile();
   
   const [createdOrder, setCreatedOrder] = useState<any>(null);
-  const [currentStep, setCurrentStep] = useState(1);
 
   // Use custom hooks for form logic
   const {
@@ -66,16 +60,6 @@ const SellerCreateOrder = () => {
           handleInputChange(key, value);
         }
       });
-    }
-  });
-
-  // Swipe navigation for mobile
-  const swipeRef = useSwipeNavigation({
-    onSwipeLeft: () => {
-      if (currentStep < 3) setCurrentStep(prev => prev + 1);
-    },
-    onSwipeRight: () => {
-      if (currentStep > 1) setCurrentStep(prev => prev - 1);
     }
   });
 
@@ -138,100 +122,80 @@ const SellerCreateOrder = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8" ref={swipeRef}>
-        <div className={`max-w-4xl mx-auto ${isMobile ? 'pb-24' : ''}`}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className={isMobile ? "text-xl" : ""}>Информация о заказе</CardTitle>
+                  <CardTitle className={isMobile ? "text-xl" : ""}>Создание заказа</CardTitle>
                   <CardDescription>
-                    Заполните необходимые поля для создания нового заказа
+                    Заполните информацию о заказе
                   </CardDescription>
                 </div>
                 {hasUnsavedChanges && (
                   <div className="flex items-center text-orange-600 text-sm">
                     <Save className="h-4 w-4 mr-1" />
-                    Автосохранение активно
+                    Автосохранение
                   </div>
                 )}
               </div>
               
-              {isMobile && (
-                <div className="mt-4">
-                  <FormProgressIndicator fields={formFields} />
-                </div>
-              )}
+              <div className="mt-4">
+                <FormProgressIndicator fields={formFields} />
+              </div>
             </CardHeader>
             
             <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-6">
-                {/* Step 1: Basic Info */}
-                {(!isMobile || currentStep === 1) && (
-                  <BasicInfoStep
-                    formData={formData}
-                    touchedFields={touchedFields}
-                    onInputChange={handleInputChange}
-                    isFieldValid={isFieldValid}
-                    getFieldError={getFieldError}
-                    isMobile={isMobile}
-                  />
-                )}
+              <CardContent className="space-y-8">
+                {/* Основная информация, цена и покупатель - все в одном компоненте */}
+                <BasicOrderInfoStep
+                  formData={formData}
+                  touchedFields={touchedFields}
+                  onInputChange={handleInputChange}
+                  isFieldValid={isFieldValid}
+                  getFieldError={getFieldError}
+                  isMobile={isMobile}
+                />
 
-                {/* Step 2: Price and Buyer */}
-                {(!isMobile || currentStep === 2) && (
-                  <PriceAndBuyerStep
-                    formData={formData}
-                    touchedFields={touchedFields}
-                    onInputChange={handleInputChange}
-                    isFieldValid={isFieldValid}
-                    getFieldError={getFieldError}
-                    isMobile={isMobile}
-                  />
-                )}
-
-                {/* Step 3: Additional Info */}
-                {(!isMobile || currentStep === 3) && (
-                  <AdditionalInfoStep
-                    formData={formData}
-                    images={images}
-                    videos={videos}
-                    onInputChange={handleInputChange}
-                    onImageUpload={handleImageUpload}
-                    onImageDelete={handleImageDelete}
-                    setVideos={setVideos}
-                  />
-                )}
+                {/* Дополнительная информация */}
+                <AdditionalInfoStep
+                  formData={formData}
+                  images={images}
+                  videos={videos}
+                  onInputChange={handleInputChange}
+                  onImageUpload={handleImageUpload}
+                  onImageDelete={handleImageDelete}
+                  setVideos={setVideos}
+                />
               </CardContent>
               
               <CardFooter>
-                <OrderFormActions
-                  onSubmit={handleSubmit}
-                  isSubmitting={isSubmitting}
-                  canSubmit={canSubmit}
-                  isMobile={isMobile}
-                />
+                <div className="flex justify-end w-full gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate('/seller/dashboard')}
+                    disabled={isSubmitting}
+                    className={isMobile ? "min-h-[44px]" : ""}
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !canSubmit}
+                    className={isMobile ? "min-h-[44px]" : ""}
+                  >
+                    {isSubmitting ? "Создание..." : "Создать заказ"}
+                  </Button>
+                </div>
               </CardFooter>
             </form>
           </Card>
-          
-          {!isMobile && (
-            <div className="mt-6">
-              <FormProgressIndicator fields={formFields} />
-            </div>
-          )}
         </div>
       </div>
-      
-      <OrderFormNavigation
-        currentStep={currentStep}
-        totalSteps={3}
-        onStepChange={setCurrentStep}
-        isMobile={isMobile}
-      />
     </Layout>
   );
 };
 
 export default SellerCreateOrder;
-
