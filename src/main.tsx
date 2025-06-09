@@ -1,3 +1,4 @@
+
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { ToastProvider } from "@/hooks/use-toast"
@@ -29,6 +30,7 @@ import AdminStores from "./pages/AdminStores";
 import PublicSellerProfile from "./pages/PublicSellerProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import SellerDashboard from "./pages/SellerDashboard";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
@@ -77,6 +79,7 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/seller/:id" element={<PublicSellerProfile />} />
+                      <Route path="/seller/dashboard" element={<SellerDashboard />} />
                       <Route path="/admin/stores" element={<AdminStores />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
