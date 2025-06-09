@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
 import SmartFieldHints from '@/components/ui/SmartFieldHints';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { OrderFormData } from '@/hooks/useOrderForm';
+import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
 
 interface BasicInfoStepProps {
   formData: OrderFormData;
@@ -22,6 +24,64 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
   getFieldError,
   isMobile = false
 }) => {
+  const [searchBrandTerm, setSearchBrandTerm] = useState("");
+  const [searchModelTerm, setSearchModelTerm] = useState("");
+
+  const {
+    brands,
+    brandModels,
+    selectedBrand,
+    selectBrand,
+    isLoading,
+    findBrandNameById,
+    findModelNameById
+  } = useCarBrandsAndModels();
+
+  // Фильтрация брендов по поисковому запросу
+  const filteredBrands = useMemo(() => {
+    if (!searchBrandTerm) return brands;
+    return brands.filter(brand => 
+      brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+    );
+  }, [brands, searchBrandTerm]);
+
+  // Фильтрация моделей по поисковому запросу
+  const filteredModels = useMemo(() => {
+    if (!searchModelTerm) return brandModels;
+    return brandModels.filter(model => 
+      model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+    );
+  }, [brandModels, searchModelTerm]);
+
+  // Обработчик изменения бренда
+  const handleBrandChange = (brandId: string) => {
+    const brand = brands.find(b => b.id === brandId);
+    if (brand) {
+      onInputChange('brandId', brandId);
+      onInputChange('brand', brand.name);
+      selectBrand(brandId);
+      // Сбрасываем модель при смене бренда
+      onInputChange('modelId', '');
+      onInputChange('model', '');
+    }
+  };
+
+  // Обработчик изменения модели
+  const handleModelChange = (modelId: string) => {
+    const model = brandModels.find(m => m.id === modelId);
+    if (model) {
+      onInputChange('modelId', modelId);
+      onInputChange('model', model.name);
+    }
+  };
+
+  // Синхронизация выбранного бренда с формой
+  React.useEffect(() => {
+    if (formData.brandId && formData.brandId !== selectedBrand) {
+      selectBrand(formData.brandId);
+    }
+  }, [formData.brandId, selectedBrand, selectBrand]);
+
   const getSmartHints = (fieldName: string, value: string) => {
     const hints = [];
     
@@ -60,22 +120,77 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="brand" className={isMobile ? "text-base font-medium" : ""}>Бренд</Label>
-          <TouchOptimizedInput 
-            id="brand" 
-            value={formData.brand}
-            onChange={(e) => onInputChange('brand', e.target.value)}
-            placeholder="Введите бренд"
-          />
+          <Label htmlFor="brand" className={isMobile ? "text-base font-medium" : ""}>
+            Бренд
+          </Label>
+          <Select
+            value={formData.brandId}
+            onValueChange={handleBrandChange}
+            disabled={isLoading}
+          >
+            <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
+              <SelectValue placeholder="Выберите бренд" />
+            </SelectTrigger>
+            <SelectContent 
+              className="bg-white border border-gray-200 shadow-md max-h-60"
+              showSearch={true}
+              searchPlaceholder="Поиск бренда..."
+              searchValue={searchBrandTerm}
+              onSearchChange={setSearchBrandTerm}
+            >
+              {filteredBrands.map((brand) => (
+                <SelectItem 
+                  key={brand.id} 
+                  value={brand.id}
+                  className={isMobile ? "py-3 text-base" : ""}
+                >
+                  {brand.name}
+                </SelectItem>
+              ))}
+              {filteredBrands.length === 0 && (
+                <div className="py-2 px-3 text-sm text-gray-500">
+                  Бренд не найден
+                </div>
+              )}
+            </SelectContent>
+          </Select>
         </div>
+
         <div className="space-y-2">
-          <Label htmlFor="model" className={isMobile ? "text-base font-medium" : ""}>Модель</Label>
-          <TouchOptimizedInput 
-            id="model"
-            value={formData.model}
-            onChange={(e) => onInputChange('model', e.target.value)}
-            placeholder="Введите модель"
-          />
+          <Label htmlFor="model" className={isMobile ? "text-base font-medium" : ""}>
+            Модель
+          </Label>
+          <Select
+            value={formData.modelId}
+            onValueChange={handleModelChange}
+            disabled={isLoading || !formData.brandId}
+          >
+            <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
+              <SelectValue placeholder={formData.brandId ? "Выберите модель" : "Сначала выберите бренд"} />
+            </SelectTrigger>
+            <SelectContent 
+              className="bg-white border border-gray-200 shadow-md max-h-60"
+              showSearch={true}
+              searchPlaceholder="Поиск модели..."
+              searchValue={searchModelTerm}
+              onSearchChange={setSearchModelTerm}
+            >
+              {filteredModels.map((model) => (
+                <SelectItem 
+                  key={model.id} 
+                  value={model.id}
+                  className={isMobile ? "py-3 text-base" : ""}
+                >
+                  {model.name}
+                </SelectItem>
+              ))}
+              {filteredModels.length === 0 && formData.brandId && (
+                <div className="py-2 px-3 text-sm text-gray-500">
+                  Модель не найдена
+                </div>
+              )}
+            </SelectContent>
+          </Select>
         </div>
       </div>
     </div>

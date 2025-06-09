@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect } from 'react';
 import { Database } from '@/integrations/supabase/types';
 import { useFormAutosave } from '@/hooks/useFormAutosave';
@@ -14,6 +13,8 @@ export interface OrderFormData {
   buyerOptId: string;
   brand: string;
   model: string;
+  brandId: string;
+  modelId: string;
   optid_created: string;
   seller_opt_id: string;
   deliveryMethod: DeliveryMethod;
@@ -34,6 +35,8 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     buyerOptId: "",
     brand: "",
     model: "",
+    brandId: "",
+    modelId: "",
     optid_created: "",
     seller_opt_id: "",
     deliveryMethod: 'self_pickup' as DeliveryMethod,
@@ -100,10 +103,20 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
   });
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // При изменении brandId сбрасываем modelId
+      if (field === 'brandId') {
+        newData.modelId = "";
+        newData.model = "";
+      }
+      
+      return newData;
+    });
     
     setTouchedFields(prev => new Set(prev).add(field));
   };
@@ -179,4 +192,3 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     resetForm,
   };
 };
-
