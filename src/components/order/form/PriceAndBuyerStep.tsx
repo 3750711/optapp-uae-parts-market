@@ -4,7 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
 import SmartFieldHints from '@/components/ui/SmartFieldHints';
-import OptimizedSelect from '@/components/ui/OptimizedSelect';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import { debounce } from 'lodash';
@@ -27,6 +29,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
   isMobile = false
 }) => {
   const [profileSearchTerm, setProfileSearchTerm] = React.useState("");
+  const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
   const debouncedSearchTerm = useMemo(
     () => debounce((term: string) => setProfileSearchTerm(term), 300),
@@ -72,14 +75,14 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
     [profiles]
   );
 
-  const profileOptions = useMemo(() => 
-    sortedProfiles.map(p => ({
-      value: p.opt_id,
-      label: `${p.opt_id}${p.full_name ? ` - ${p.full_name}` : ''}`,
-      searchText: `${p.opt_id} ${p.full_name || ''}`
-    })), 
-    [sortedProfiles]
-  );
+  // Filter profiles based on search term
+  const filteredProfiles = useMemo(() => {
+    if (!profileSearchTerm) return sortedProfiles;
+    return sortedProfiles.filter(profile => 
+      profile.opt_id?.toLowerCase().includes(profileSearchTerm.toLowerCase()) ||
+      profile.full_name?.toLowerCase().includes(profileSearchTerm.toLowerCase())
+    );
+  }, [sortedProfiles, profileSearchTerm]);
 
   const getSmartHints = (fieldName: string, value: string) => {
     const hints = [];
@@ -105,6 +108,15 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
     }
     
     return hints;
+  };
+
+  const handleSearchChange = (value: string) => {
+    setProfileSearchTerm(value);
+    debouncedSearchTerm(value);
+  };
+
+  const resetSearch = () => {
+    setProfileSearchTerm("");
   };
 
   return (
@@ -153,17 +165,57 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
         <Label htmlFor="buyerOptId" className={isMobile ? "text-base font-medium" : ""}>
           OPT_ID получателя *
         </Label>
-        <OptimizedSelect
-          options={profileOptions}
+        <Select
           value={formData.buyerOptId}
           onValueChange={(value) => onInputChange("buyerOptId", value)}
-          placeholder={profilesLoading ? "Загрузка..." : "Выберите OPT_ID"}
-          searchPlaceholder="Поиск по OPT_ID или имени..."
           disabled={profilesLoading}
-          className={`w-full ${isMobile ? 'min-h-[44px]' : ''}`}
-        />
-        {profilesLoading && (
-          <p className="text-sm text-muted-foreground">Загрузка профилей...</p>
+          onOpenChange={(open) => {
+            setIsSelectOpen(open);
+            if (!open) resetSearch();
+          }}
+        >
+          <SelectTrigger className={`w-full ${isMobile ? 'min-h-[44px]' : ''}`}>
+            <SelectValue placeholder={profilesLoading ? "Загрузка..." : "Выберите OPT_ID"} />
+          </SelectTrigger>
+          <SelectContent 
+            className="bg-white border border-gray-200 shadow-md max-h-60"
+          >
+            <div className="sticky top-0 px-1 pt-1 pb-0 z-10 bg-white border-b">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-gray-400 pointer-events-none" />
+                <Input
+                  placeholder="Поиск по OPT_ID или имени..."
+                  className={`pl-8 ${isMobile ? "text-base py-2.5" : ""}`}
+                  value={profileSearchTerm}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+            {filteredProfiles.length === 0 && !profilesLoading ? (
+              <div className="py-2 px-3 text-sm text-gray-500">
+                {profileSearchTerm ? "Не найдено" : "Нет данных"}
+              </div>
+            ) : (
+              filteredProfiles.map((profile) => (
+                <SelectItem 
+                  key={profile.id} 
+                  value={profile.opt_id || ''}
+                  className={isMobile ? "py-3 text-base" : ""}
+                >
+                  {profile.opt_id}{profile.full_name ? ` - ${profile.full_name}` : ''}
+                </SelectItem>
+              ))
+            )}
+            {profilesLoading && (
+              <div className="py-2 px-3 text-sm text-gray-500">
+                Загрузка...
+              </div>
+            )}
+          </SelectContent>
+        </Select>
+        {getFieldError('buyerOptId') && (
+          <p className="text-sm text-red-500">{getFieldError('buyerOptId')}</p>
         )}
       </div>
     </div>
