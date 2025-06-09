@@ -53,6 +53,7 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         });
         
         if (uploadedUrls.length > 0) {
+          // ИСПРАВЛЕНО: передаем массив URL-ов напрямую
           onImageUpload(uploadedUrls);
         }
       } catch (error) {
@@ -68,6 +69,7 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   };
 
   const handleVideoUpload = (urls: string[]) => {
+    // ИСПРАВЛЕНО: объединяем существующие и новые видео
     setVideos([...videos, ...urls]);
   };
 

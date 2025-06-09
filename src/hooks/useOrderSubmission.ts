@@ -30,7 +30,7 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
     // Validation
     const errors = [];
     if (!formData.title.trim()) errors.push('Наименование обязательно');
-    if (!formData.price || parseFloat(formData.price) <= 0) errors.push('Укажите корректную цену');
+    if (!formData.price || isNaN(parseFloat(formData.price))) errors.push('Укажите корректную цену');
     if (!formData.buyerOptId) errors.push('Выберите покупателя');
 
     if (errors.length > 0) {
@@ -221,8 +221,9 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         }
       }
 
-      // Save images
+      // ИСПРАВЛЕНО: Сохраняем изображения в таблицу order_images
       if (images.length > 0) {
+        console.log("Saving order images:", images);
         const imageInserts = images.map((url) => ({
           order_id: createdOrder.id,
           url,
@@ -240,11 +241,14 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
             description: "Заказ создан, но возникла проблема с сохранением изображений",
             variant: "destructive"
           });
+        } else {
+          console.log("Order images saved successfully");
         }
       }
 
-      // Save videos (both in video_url array and order_videos table for compatibility)
+      // ИСПРАВЛЕНО: Сохраняем видео в таблицу order_videos
       if (videos.length > 0) {
+        console.log("Saving order videos:", videos);
         const videoRecords = videos.map(url => ({
           order_id: createdOrder.id,
           url
@@ -261,6 +265,8 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
             description: "Заказ создан, но возникла проблема с сохранением видео",
             variant: "destructive"
           });
+        } else {
+          console.log("Order videos saved successfully");
         }
       }
 
