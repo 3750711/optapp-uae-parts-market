@@ -28,6 +28,15 @@ import StoreDetail from "./pages/StoreDetail";
 import BuyerGuide from "./pages/BuyerGuide";
 import AdminStores from "./pages/AdminStores";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminAddProduct from "./pages/AdminAddProduct";
+import AdminEvents from "./pages/AdminEvents";
+import AdminCarCatalog from "./pages/AdminCarCatalog";
+import AdminFreeOrder from "./pages/AdminFreeOrder";
+import AdminCreateOrderFromProduct from "./pages/AdminCreateOrderFromProduct";
+import AdminOrders from "./pages/AdminOrders";
+import AdminProducts from "./pages/AdminProducts";
+import AdminUsers from "./pages/AdminUsers";
+import AdminLogistics from "./pages/AdminLogistics";
 import PublicSellerProfile from "./pages/PublicSellerProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -95,6 +104,51 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/admin" element={
                         <AdminRoute>
                           <AdminDashboard />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/add-product" element={
+                        <AdminRoute>
+                          <AdminAddProduct />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/events" element={
+                        <AdminRoute>
+                          <AdminEvents />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/car-catalog" element={
+                        <AdminRoute>
+                          <AdminCarCatalog />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/free-order" element={
+                        <AdminRoute>
+                          <AdminFreeOrder />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/create-order-from-product" element={
+                        <AdminRoute>
+                          <AdminCreateOrderFromProduct />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/orders" element={
+                        <AdminRoute>
+                          <AdminOrders />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/products" element={
+                        <AdminRoute>
+                          <AdminProducts />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/users" element={
+                        <AdminRoute>
+                          <AdminUsers />
+                        </AdminRoute>
+                      } />
+                      <Route path="/admin/logistics" element={
+                        <AdminRoute>
+                          <AdminLogistics />
                         </AdminRoute>
                       } />
                       <Route path="/admin/stores" element={
