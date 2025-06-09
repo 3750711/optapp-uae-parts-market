@@ -1,4 +1,3 @@
-
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { ToastProvider } from "@/hooks/use-toast"
@@ -47,13 +46,7 @@ import SellerCreateOrder from "./pages/SellerCreateOrder";
 import SellerSellProduct from "./pages/SellerSellProduct";
 import SellerOrders from "./pages/SellerOrders";
 import { AdminRoute } from "@/components/auth/AdminRoute";
-// Add missing imports for requests, orders, and other pages
-import Requests from "./pages/Requests";
-import CreateRequest from "./pages/CreateRequest";
-import RequestDetail from "./pages/RequestDetail";
-import BuyerOrders from "./pages/BuyerOrders";
-import OrderDetails from "./pages/OrderDetails";
-import BuyerCreateOrder from "./pages/BuyerCreateOrder";
+import OrdersRedirect from "./pages/OrdersRedirect";
 
 // Create a client with optimized configuration
 const queryClient = new QueryClient({
@@ -102,6 +95,9 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/seller/:id" element={<PublicSellerProfile />} />
+                      
+                      {/* Orders redirect route */}
+                      <Route path="/orders" element={<OrdersRedirect />} />
                       
                       {/* Requests routes */}
                       <Route path="/requests" element={<Requests />} />
