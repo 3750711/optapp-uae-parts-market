@@ -388,8 +388,8 @@ const SellerAddProduct = () => {
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
                   <BreadcrumbLink asChild>
-                    <Link to="/seller/profile" className="text-muted-foreground hover:text-foreground transition-colors">
-                      Профиль продавца
+                    <Link to="/seller/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+                      Панель продавца
                     </Link>
                   </BreadcrumbLink>
                 </BreadcrumbItem>
