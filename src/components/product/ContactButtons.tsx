@@ -145,6 +145,13 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         throw new Error('Missing required product information');
       }
 
+      console.log('🛒 Starting order creation process...', {
+        productId: product.id,
+        sellerId: product.seller_id,
+        buyerId: user?.id,
+        deliveryMethod
+      });
+
       const { data: currentProduct, error: productCheckError } = await supabase
         .from('products')
         .select('status, delivery_price')
@@ -152,7 +159,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         .single();
         
       if (productCheckError) {
-        console.error('Error checking product status:', productCheckError);
+        console.error('❌ Error checking product status:', productCheckError);
         throw new Error('Failed to verify product availability');
       }
       
@@ -180,7 +187,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       }
       
       let productImages: string[] = [];
-      let productVideos: string[] = [];
       
       if (product.id) {
         // Получаем изображения товара
@@ -190,33 +196,22 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           .eq('product_id', product.id);
           
         if (productImagesError) {
-          console.error('Error fetching product images:', productImagesError);
+          console.error('⚠️ Error fetching product images:', productImagesError);
         } else if (productImagesData && productImagesData.length > 0) {
           productImages = productImagesData.map(img => img.url);
-          console.log('Found product images:', productImages);
-        }
-
-        // Получаем видео товара
-        const { data: productVideosData, error: productVideosError } = await supabase
-          .from('product_videos')
-          .select('url')
-          .eq('product_id', product.id);
-          
-        if (productVideosError) {
-          console.error('Error fetching product videos:', productVideosError);
-        } else if (productVideosData && productVideosData.length > 0) {
-          productVideos = productVideosData.map(video => video.url);
-          console.log('Found product videos:', productVideos);
+          console.log('📸 Found product images:', productImages.length);
         }
       }
 
-      console.log('Product delivery price:', currentProduct.delivery_price);
+      console.log('💰 Product delivery price:', currentProduct.delivery_price);
 
       // Ensure brand and model have default values if they're empty
       const brandValue = product.brand || "Не указано";
       const modelValue = product.model || "Не указано";
 
-      // Используем обновленную RPC функцию create_user_order с поддержкой видео
+      console.log('🔄 Calling create_user_order RPC function...');
+
+      // Используем RPC функцию create_user_order БЕЗ видео параметра
       const { data: orderId, error: orderError } = await supabase
         .rpc('create_user_order', {
           p_title: product.title,
@@ -232,7 +227,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           p_order_created_type: 'ads_order' as OrderCreatedType,
           p_telegram_url_order: profile?.telegram || '',
           p_images: productImages,
-          p_video_url: productVideos, // Передаем видео в функцию
           p_product_id: product.id,
           p_delivery_method: deliveryMethod,
           p_text_order: orderData.text_order || null,
@@ -245,11 +239,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         });
 
       if (orderError) {
-        console.error('Error creating order:', orderError);
+        console.error('❌ RPC Error creating order:', orderError);
         throw orderError;
       }
 
-      console.log('Order created successfully with ID:', orderId);
+      console.log('✅ Order created successfully with ID:', orderId);
 
       // Получаем данные созданного заказа для отправки уведомления и отображения номера
       const { data: createdOrder, error: fetchError } = await supabase
@@ -259,10 +253,11 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         .single();
 
       if (fetchError) {
-        console.error("Error fetching created order:", fetchError);
+        console.error("⚠️ Error fetching created order:", fetchError);
       } else {
         // Отправляем уведомление о создании заказа в Telegram
         try {
+          console.log('📱 Sending order notification...');
           const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
             body: {
               order: createdOrder,
@@ -271,21 +266,16 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
           });
 
           if (notificationError) {
-            console.error('Error sending order notification:', notificationError);
+            console.error('⚠️ Error sending order notification:', notificationError);
           } else {
-            console.log('Order notification sent successfully');
+            console.log('✅ Order notification sent successfully');
           }
         } catch (notificationError) {
-          console.error('Error calling notification function:', notificationError);
+          console.error('💥 Error calling notification function:', notificationError);
         }
       }
 
-      // Примечание: Обновление статуса товара на "sold" и отправка уведомлений 
-      // теперь обрабатываются автоматически через триггеры базы данных:
-      // - notify_on_order_product_status_changes: обновляет статус товара при создании заказа
-      // - notify_on_product_status_changes: отправляет уведомление о продаже товара
-      // - send-telegram-notification: отправляет уведомление о создании заказа
-
+      // Обработка успешного создания заказа
       if (deliveryMethod === 'self_pickup' && createdOrder) {
         setOrderNumber(createdOrder.order_number);
         setShowSuccessDialog(true);
@@ -303,10 +293,25 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
         }, 1500);
       }
     } catch (error) {
-      console.error('Error handling order:', error);
+      console.error('💥 Error handling order:', error);
+      
+      // Более детальная обработка ошибок
+      let errorMessage = "Не удалось создать заказ. Попробуйте позже.";
+      
+      if (error instanceof Error) {
+        // Проверяем специфичные ошибки
+        if (error.message.includes('duplicate') || error.message.includes('already exists')) {
+          errorMessage = "Для этого товара уже существует активный заказ";
+        } else if (error.message.includes('not found')) {
+          errorMessage = "Товар не найден или был удален";
+        } else if (error.message.includes('permission') || error.message.includes('access')) {
+          errorMessage = "Недостаточно прав для создания заказа";
+        }
+      }
+      
       toast({
-        title: "Ошибка",
-        description: "Не удалось создать заказ. Попробуйте позже.",
+        title: "Ошибка создания заказа",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
