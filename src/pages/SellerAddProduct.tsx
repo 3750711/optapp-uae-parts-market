@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
-import OptimizedAddProductForm, { productSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
+import OptimizedAddProductForm, { createProductSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -56,8 +57,11 @@ const SellerAddProduct = () => {
     isLoading: isLoadingCarData 
   } = useCarBrandsAndModels();
 
+  // Create schema for seller (showSellerSelection = false)
+  const sellerProductSchema = useMemo(() => createProductSchema(false), []);
+
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(productSchema),
+    resolver: zodResolver(sellerProductSchema),
     defaultValues: {
       title: "",
       price: "",
@@ -66,6 +70,7 @@ const SellerAddProduct = () => {
       placeNumber: "1",
       description: "",
       deliveryPrice: "0",
+      // Don't set sellerId as it's not required for sellers
     },
     mode: "onChange",
   });
@@ -88,7 +93,7 @@ const SellerAddProduct = () => {
 
   // Breadcrumbs навигация
   const breadcrumbItems = useMemo(() => [
-    { label: "Профиль продавца", href: "/seller/profile" },
+    { label: "Панель продавца", href: "/seller/dashboard" },
     { label: "Добавить товар" }
   ], []);
 
@@ -204,12 +209,28 @@ const SellerAddProduct = () => {
     });
   }, [primaryImage]);
 
-  // Enhanced product creation with Cloudinary data
+  // Enhanced product creation with automatic seller assignment
   const createProduct = async (values: ProductFormValues) => {
+    console.log('🚀 createProduct called with values:', values);
+    console.log('📊 Current state:', {
+      userId: user?.id,
+      imageCount: imageUrls.length,
+      videoCount: videoUrls.length
+    });
+
     if (imageUrls.length === 0) {
       toast({
         title: "Ошибка",
         description: "Добавьте хотя бы одну фотографию",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!user?.id) {
+      toast({
+        title: "Ошибка",
+        description: "Пользователь не авторизован",
         variant: "destructive",
       });
       return;
@@ -237,15 +258,17 @@ const SellerAddProduct = () => {
         return;
       }
 
-      console.log('🏭 Creating product with images...', {
+      console.log('🏭 Creating product with seller automatically assigned...', {
         title: values.title,
+        sellerId: user.id,
+        sellerName: profile?.full_name || '',
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         primaryImage,
         timestamp: new Date().toISOString()
       });
       
-      // Create product using standard Supabase insert
+      // Create product using standard Supabase insert with automatic seller assignment
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -255,7 +278,7 @@ const SellerAddProduct = () => {
           brand: selectedBrand.name,
           model: modelName,
           description: values.description || null,
-          seller_id: user?.id,
+          seller_id: user.id, // Automatically assign current user as seller
           seller_name: profile?.full_name || '',
           status: 'pending',
           place_number: parseInt(values.placeNumber),
@@ -265,7 +288,7 @@ const SellerAddProduct = () => {
         .single();
 
       if (productError) {
-        console.error("Error creating product:", productError);
+        console.error("❌ Error creating product:", productError);
         throw productError;
       }
 
@@ -282,7 +305,7 @@ const SellerAddProduct = () => {
           });
           
         if (imageError) {
-          console.error('Error adding image:', imageError);
+          console.error('❌ Error adding image:', imageError);
         }
       }
 
@@ -333,7 +356,7 @@ const SellerAddProduct = () => {
             });
             
           if (videoError) {
-            console.error('Error adding video:', videoError);
+            console.error('❌ Error adding video:', videoError);
           }
         }
       }
@@ -348,7 +371,7 @@ const SellerAddProduct = () => {
 
       navigate(`/product/${product.id}`);
     } catch (error) {
-      console.error("Error creating product:", error);
+      console.error("💥 Error creating product:", error);
       toast({
         title: "Ошибка",
         description: "Не удалось создать товар. Попробуйте позже.",
@@ -461,7 +484,7 @@ const SellerAddProduct = () => {
                       }
                     }
                   }}
-                  showSellerSelection={false}
+                  showSellerSelection={false} // Hide seller selection for normal sellers
                 />
               </CardContent>
             </Card>

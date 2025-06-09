@@ -1,3 +1,4 @@
+
 import React, { useCallback } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -22,8 +23,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EnhancedVirtualizedSelect from "@/components/ui/EnhancedVirtualizedSelect";
 
-// Product form schema with zod validation
-export const productSchema = z.object({
+// Updated product form schema with conditional sellerId validation
+export const createProductSchema = (showSellerSelection: boolean = false) => z.object({
   title: z.string().min(3, {
     message: "Название должно содержать не менее 3 символов",
   }),
@@ -45,10 +46,13 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
-  sellerId: z.string().min(1, {
-    message: "Выберите продавца",
-  }),
+  sellerId: showSellerSelection 
+    ? z.string().min(1, { message: "Выберите продавца" })
+    : z.string().optional(),
 });
+
+// Legacy schema for backward compatibility
+export const productSchema = createProductSchema(true);
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
@@ -107,10 +111,29 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
   );
 
   const handleSubmit = useCallback((values: ProductFormValues) => {
-    onSubmit(values);
-  }, [onSubmit]);
+    console.log('🚀 Form submission started:', {
+      showSellerSelection,
+      sellerId: values.sellerId,
+      hasTitle: !!values.title,
+      hasPrice: !!values.price,
+      hasBrandId: !!values.brandId,
+      imageCount: imageUrls.length
+    });
+
+    // If seller selection is hidden, we don't need sellerId for validation
+    if (!showSellerSelection) {
+      // Remove sellerId from validation by creating a copy without it
+      const { sellerId, ...submitValues } = values;
+      console.log('📝 Submitting without sellerId (seller selection hidden)');
+      onSubmit(submitValues as ProductFormValues);
+    } else {
+      console.log('📝 Submitting with sellerId (seller selection visible)');
+      onSubmit(values);
+    }
+  }, [onSubmit, showSellerSelection, imageUrls.length]);
 
   const handleFormSubmit = useCallback(() => {
+    console.log('🎯 Form submit triggered, current form errors:', form.formState.errors);
     form.handleSubmit(handleSubmit)();
   }, [form, handleSubmit]);
 
