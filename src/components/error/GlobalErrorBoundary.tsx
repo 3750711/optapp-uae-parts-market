@@ -26,22 +26,18 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
-  retryCount: number;
   isModuleLoadError: boolean;
   isPermissionError: boolean;
   isNetworkError: boolean;
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
-  private retryTimeoutId: NodeJS.Timeout | null = null;
-
   constructor(props: Props) {
     super(props);
     this.state = { 
       hasError: false, 
       error: null, 
       errorInfo: null, 
-      retryCount: 0,
       isModuleLoadError: false,
       isPermissionError: false,
       isNetworkError: false
@@ -79,9 +75,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     console.error('Stack:', error.stack);
     console.error('Component stack:', errorInfo.componentStack);
     console.error('Current pathname:', window.location.pathname);
-    console.error('User agent:', navigator.userAgent);
     console.error('Timestamp:', new Date().toISOString());
-    console.error('Admin route:', this.props.isAdminRoute);
     console.groupEnd();
     
     this.setState({ errorInfo });
@@ -98,45 +92,50 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       });
     }
 
-    // Auto-retry for certain error types
-    if (this.state.retryCount < 2 && (this.state.isModuleLoadError || this.state.isNetworkError)) {
-      this.retryTimeoutId = setTimeout(() => {
-        this.handleRetry();
-      }, 1000 * (this.state.retryCount + 1)); // Progressive delay
+    // Auto-handle chunk load errors
+    if (this.state.isModuleLoadError) {
+      console.log('🔄 Auto-handling chunk load error...');
+      this.handleChunkError();
     }
   }
 
-  componentWillUnmount() {
-    if (this.retryTimeoutId) {
-      clearTimeout(this.retryTimeoutId);
+  handleChunkError = async () => {
+    try {
+      // Clear all caches
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        console.log('✅ Cleared all caches');
+      }
+      
+      // Clear localStorage and sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+      console.log('✅ Cleared storage');
+      
+      // Reload the page after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error) {
+      console.error('❌ Error clearing caches:', error);
+      // Force reload anyway
+      window.location.reload();
     }
-  }
-
-  handleRetry = () => {
-    console.log('🔄 Retrying from GlobalErrorBoundary, attempt:', this.state.retryCount + 1);
-    this.setState(prevState => ({ 
-      hasError: false, 
-      error: null, 
-      errorInfo: null,
-      retryCount: prevState.retryCount + 1,
-      isModuleLoadError: false,
-      isPermissionError: false,
-      isNetworkError: false
-    }));
   };
 
   handleReload = () => {
-    console.log('🔄 Reloading page from GlobalErrorBoundary');
+    console.log('🔄 Manual page reload');
     window.location.reload();
   };
 
   handleGoHome = () => {
-    console.log('🏠 Navigating to home from GlobalErrorBoundary');
+    console.log('🏠 Navigating to home');
     window.location.href = '/';
   };
 
   handleGoToProfile = () => {
-    console.log('👤 Navigating to profile from GlobalErrorBoundary');
+    console.log('👤 Navigating to profile');
     window.location.href = '/profile';
   };
 
@@ -169,42 +168,36 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         );
       }
 
-      // Module loading error
+      // Module loading error with auto-recovery
       if (this.state.isModuleLoadError) {
         return (
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
             <div className="max-w-md w-full space-y-4">
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>Ошибка загрузки</AlertTitle>
+                <AlertTitle>Обновление приложения</AlertTitle>
                 <AlertDescription>
-                  Не удалось загрузить компонент. Это может быть связано с проблемами сети или обновлением приложения.
-                  {this.state.retryCount > 0 && ` (Попытка ${this.state.retryCount + 1}/3)`}
+                  Обнаружена новая версия приложения. Страница будет автоматически обновлена.
                 </AlertDescription>
               </Alert>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={this.handleRetry}
-                  variant="outline"
-                  className="flex-1"
-                  disabled={this.state.retryCount >= 2}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  {this.state.retryCount >= 2 ? 'Превышен лимит' : 'Повторить'}
-                </Button>
-                <Button 
-                  onClick={this.handleReload}
-                  className="flex-1"
-                >
-                  Перезагрузить
-                </Button>
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <span className="ml-3 text-gray-600">Обновление...</span>
               </div>
+              <Button 
+                onClick={this.handleReload}
+                variant="outline"
+                className="w-full"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Обновить сейчас
+              </Button>
             </div>
           </div>
         );
       }
 
-      // General error
+      // General error with recovery options
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
           <div className="max-w-md w-full space-y-4">
@@ -213,19 +206,17 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               <AlertTitle>Что-то пошло не так</AlertTitle>
               <AlertDescription>
                 Произошла неожиданная ошибка. Попробуйте обновить страницу или вернуться на главную.
-                {this.state.retryCount > 0 && ` (Попытка ${this.state.retryCount + 1})`}
               </AlertDescription>
             </Alert>
 
             <div className="flex gap-2">
               <Button 
-                onClick={this.handleRetry}
+                onClick={this.handleReload}
                 variant="outline"
                 className="flex-1"
-                disabled={this.state.retryCount >= 2}
               >
                 <RefreshCw className="h-4 w-4 mr-2" />
-                {this.state.retryCount >= 2 ? 'Превышен лимит' : 'Повторить'}
+                Обновить
               </Button>
               <Button 
                 onClick={this.handleGoHome}

@@ -1,33 +1,57 @@
 import { lazy } from 'react';
 import { devError, devLog } from '@/utils/performanceUtils';
 
-// Utility function to add retry logic to lazy imports with optimized logging
-const lazyWithRetry = (importFunc: () => Promise<any>, retries = 2) => { // Reduced retries
+// Improved lazy loading with better chunk error handling
+const lazyWithRetry = (importFunc: () => Promise<any>) => {
   return lazy(() => {
-    const attemptImport = (attemptsLeft: number): Promise<any> => {
+    const attemptImport = (): Promise<any> => {
       return importFunc().catch((error) => {
         devError('Failed to load module:', error);
         
-        if (attemptsLeft > 0) {
-          devLog(`Retrying module load... (${attemptsLeft} attempts left)`);
-          return new Promise((resolve, reject) => {
-            setTimeout(() => {
-              attemptImport(attemptsLeft - 1)
-                .then(resolve)
-                .catch(reject);
-            }, 500); // Reduced delay
+        // Check if it's a chunk load error
+        const isChunkLoadError = error.message.includes('loading dynamically imported module') ||
+                                error.message.includes('Failed to fetch dynamically imported module') ||
+                                error.message.includes('Loading chunk') ||
+                                error.name === 'ChunkLoadError';
+        
+        if (isChunkLoadError) {
+          devLog('Chunk load error detected, clearing cache and reloading...');
+          
+          // Clear cache and reload for chunk errors
+          if ('caches' in window) {
+            caches.keys().then(names => {
+              names.forEach(name => caches.delete(name));
+            });
+          }
+          
+          // Force reload after a short delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 100);
+          
+          // Return a fallback component while reloading
+          return Promise.resolve({
+            default: () => (
+              <div className="flex items-center justify-center min-h-screen">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-gray-600">Обновление приложения...</p>
+                </div>
+              </div>
+            )
           });
         }
         
+        // For other errors, throw to be handled by error boundary
         throw error;
       });
     };
     
-    return attemptImport(retries);
+    return attemptImport();
   });
 };
 
-// Regular pages with reduced retry count
+// Regular pages with improved error handling
 const Index = lazyWithRetry(() => import('@/pages/Index'));
 const About = lazyWithRetry(() => import('@/pages/About'));
 const Contact = lazyWithRetry(() => import('@/pages/Contact'));
@@ -62,20 +86,20 @@ const NotFound = lazyWithRetry(() => import('@/pages/NotFound'));
 const OrdersRedirect = lazyWithRetry(() => import('@/pages/OrdersRedirect'));
 const OrderDetails = lazyWithRetry(() => import('@/pages/OrderDetails'));
 
-// Admin pages with standard retry count
-const AdminDashboard = lazyWithRetry(() => import('@/pages/AdminDashboard'), 2);
-const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'), 2);
-const AdminProducts = lazyWithRetry(() => import('@/pages/AdminProducts'), 2);
-const AdminAddProduct = lazyWithRetry(() => import('@/pages/AdminAddProduct'), 2);
-const AdminOrders = lazyWithRetry(() => import('@/pages/AdminOrders'), 2);
-const AdminOrderDetails = lazyWithRetry(() => import('@/pages/AdminOrderDetails'), 2);
-const AdminFreeOrder = lazyWithRetry(() => import('@/pages/AdminFreeOrder'), 2);
-const AdminCreateOrderFromProduct = lazyWithRetry(() => import('@/pages/AdminCreateOrderFromProduct'), 2);
-const AdminStores = lazyWithRetry(() => import('@/pages/AdminStores'), 2);
-const AdminCarCatalog = lazyWithRetry(() => import('@/pages/AdminCarCatalog'), 2);
-const AdminLogistics = lazyWithRetry(() => import('@/pages/AdminLogistics'), 2);
-const AdminEvents = lazyWithRetry(() => import('@/pages/AdminEvents'), 2);
-const GenerateOGImage = lazyWithRetry(() => import('@/pages/GenerateOGImage'), 2);
+// Admin pages with same improved error handling
+const AdminDashboard = lazyWithRetry(() => import('@/pages/AdminDashboard'));
+const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'));
+const AdminProducts = lazyWithRetry(() => import('@/pages/AdminProducts'));
+const AdminAddProduct = lazyWithRetry(() => import('@/pages/AdminAddProduct'));
+const AdminOrders = lazyWithRetry(() => import('@/pages/AdminOrders'));
+const AdminOrderDetails = lazyWithRetry(() => import('@/pages/AdminOrderDetails'));
+const AdminFreeOrder = lazyWithRetry(() => import('@/pages/AdminFreeOrder'));
+const AdminCreateOrderFromProduct = lazyWithRetry(() => import('@/pages/AdminCreateOrderFromProduct'));
+const AdminStores = lazyWithRetry(() => import('@/pages/AdminStores'));
+const AdminCarCatalog = lazyWithRetry(() => import('@/pages/AdminCarCatalog'));
+const AdminLogistics = lazyWithRetry(() => import('@/pages/AdminLogistics'));
+const AdminEvents = lazyWithRetry(() => import('@/pages/AdminEvents'));
+const GenerateOGImage = lazyWithRetry(() => import('@/pages/GenerateOGImage'));
 
 export const routes = [
   {
