@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAdminGuard } from '@/hooks/useAdminGuard';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,18 +16,24 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, profile, isLoading, isAdmin } = useAuth();
+  const { 
+    isChecking, 
+    hasAdminAccess, 
+    needsLogin, 
+    needsProfile, 
+    accessDenied 
+  } = useAdminGuard(false);
 
   devLog('AdminRoute render:', {
-    hasUser: !!user,
-    hasProfile: !!profile,
-    isLoading,
-    isAdmin,
-    userType: profile?.user_type
+    isChecking,
+    hasAdminAccess,
+    needsLogin,
+    needsProfile,
+    accessDenied
   });
 
-  // Show loading state only while auth is initializing
-  if (isLoading) {
+  // Show loading state
+  if (isChecking) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -39,12 +45,12 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // Redirect to login if not authenticated
-  if (!user) {
+  if (needsLogin) {
     return <Navigate to="/login" replace />;
   }
 
-  // Show access denied if not admin (profile loaded but not admin)
-  if (profile && isAdmin === false) {
+  // Show access denied with user-friendly message
+  if (accessDenied) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -65,12 +71,12 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Show content if admin access confirmed
-  if (isAdmin === true) {
+  // Show content if all checks pass
+  if (hasAdminAccess) {
     return <>{children}</>;
   }
 
-  // Fallback loading state for edge cases
+  // Fallback loading state
   return fallback || (
     <div className="flex items-center justify-center min-h-screen">
       <Loader2 className="h-8 w-8 animate-spin" />

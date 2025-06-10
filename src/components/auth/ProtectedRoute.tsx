@@ -21,12 +21,12 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     pathname: location.pathname 
   });
   
-  // Show minimal loading state while checking authentication
+  // Show loading state while checking authentication
   if (isLoading) {
     devLog("ProtectedRoute: Showing loading state");
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-optapp-yellow"></div>
       </div>
     );
   }
@@ -37,17 +37,8 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to={`/login?from=${encodeURIComponent(location.pathname)}`} replace />;
   }
   
-  // If profile is still loading but user exists, show minimal loading
-  if (!profile) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-optapp-yellow"></div>
-      </div>
-    );
-  }
-  
   // Check if user is blocked
-  if (profile.verification_status === 'blocked') {
+  if (profile?.verification_status === 'blocked') {
     devLog("ProtectedRoute: User is blocked");
     toast({
       title: "Доступ ограничен",
@@ -58,7 +49,7 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   }
   
   // Check for role restrictions if provided
-  if (allowedRoles && !allowedRoles.includes(profile.user_type)) {
+  if (allowedRoles && profile && !allowedRoles.includes(profile.user_type)) {
     devLog("ProtectedRoute: User doesn't have required role");
     return <Navigate to="/" replace />;
   }

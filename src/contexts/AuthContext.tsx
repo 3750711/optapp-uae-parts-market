@@ -4,7 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
-import { devLog } from '@/utils/performanceUtils';
+import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -14,6 +14,7 @@ type AuthContextType = {
   profile: Profile | null;
   isLoading: boolean;
   isAdmin: boolean | null;
+  isCheckingAdmin: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   refreshAdminStatus: () => Promise<void>;
@@ -27,17 +28,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
   const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
   
   // Refs to prevent unnecessary re-renders
+  const adminCheckTimeoutRef = useRef<NodeJS.Timeout>();
   const mountedRef = useRef(true);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!mountedRef.current) return null;
     
     try {
-      devLog('AuthContext: Fetching user profile and admin status for:', userId);
-      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -52,17 +53,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data) {
         setProfile(data);
         
-        // Напрямую определяем админские права из профиля
-        const hasAdminAccess = data.user_type === 'admin';
-        setIsAdmin(hasAdminAccess);
-        
-        devLog('AuthContext: Profile loaded, isAdmin:', hasAdminAccess);
-        
         // Check if first login welcome should be shown
         if (data.email.endsWith('@g.com') && !data.first_login_completed) {
           setShowFirstLoginWelcome(true);
         }
-        
         return data;
       }
       
@@ -73,6 +67,82 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Debounced admin check to prevent excessive calls
+  const debouncedAdminCheck = useCallback(async (userId: string, forceRefresh = false) => {
+    if (!userId || !mountedRef.current) {
+      setIsAdmin(false);
+      return false;
+    }
+
+    // Clear previous timeout
+    if (adminCheckTimeoutRef.current) {
+      clearTimeout(adminCheckTimeoutRef.current);
+    }
+
+    return new Promise<boolean>((resolve) => {
+      adminCheckTimeoutRef.current = setTimeout(async () => {
+        if (!mountedRef.current) {
+          resolve(false);
+          return;
+        }
+
+        setIsCheckingAdmin(true);
+        
+        try {
+          // Check cache first
+          if (!forceRefresh) {
+            const cached = getCachedAdminRights(userId);
+            if (cached !== null) {
+              setIsAdmin(cached);
+              setIsCheckingAdmin(false);
+              resolve(cached);
+              return;
+            }
+          }
+
+          // Quick profile check first
+          if (profile && String(profile.user_type) === 'admin') {
+            setIsAdmin(true);
+            setCachedAdminRights(userId, true);
+            setIsCheckingAdmin(false);
+            resolve(true);
+            return;
+          }
+
+          if (profile && String(profile.user_type) !== 'admin') {
+            setIsAdmin(false);
+            setCachedAdminRights(userId, false);
+            setIsCheckingAdmin(false);
+            resolve(false);
+            return;
+          }
+
+          // Fallback to RPC only if profile not loaded
+          const { data, error } = await supabase.rpc('is_admin');
+          
+          if (error || !mountedRef.current) {
+            console.error('AuthContext: Error checking admin status:', error);
+            setIsAdmin(false);
+            setIsCheckingAdmin(false);
+            resolve(false);
+            return;
+          }
+
+          const hasAdminAccess = data === true;
+          setIsAdmin(hasAdminAccess);
+          setCachedAdminRights(userId, hasAdminAccess);
+          setIsCheckingAdmin(false);
+          resolve(hasAdminAccess);
+        } catch (error) {
+          console.error('AuthContext: Error in admin check:', error);
+          setIsAdmin(false);
+          setIsCheckingAdmin(false);
+          resolve(false);
+        }
+      }, 100); // 100ms debounce
+    });
+  }, [profile]);
+
   const refreshProfile = useCallback(async () => {
     if (user && mountedRef.current) {
       await fetchUserProfile(user.id);
@@ -81,10 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAdminStatus = useCallback(async () => {
     if (user && mountedRef.current) {
-      // Просто перезагружаем профиль, админский статус установится автоматически
-      await fetchUserProfile(user.id);
+      await debouncedAdminCheck(user.id, true);
     }
-  }, [user, fetchUserProfile]);
+  }, [user, debouncedAdminCheck]);
 
   const handleFirstLoginComplete = useCallback((completed: boolean) => {
     if (completed) {
@@ -104,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(null);
       setIsAdmin(null);
       setShowFirstLoginWelcome(false);
+      clearAdminCache();
     } catch (error) {
       console.error('AuthContext: Error during sign out:', error);
     } finally {
@@ -111,15 +181,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Main auth effect - simplified and optimized
+  // Main auth effect - simplified dependencies
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
     
     const setupAuth = async () => {
       try {
-        devLog('AuthContext: Setting up auth...');
-        
         // Get initial session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
@@ -134,11 +202,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession?.user ?? null);
           
           if (currentSession?.user) {
-            devLog('AuthContext: User found, fetching profile...');
-            await fetchUserProfile(currentSession.user.id);
-          } else {
-            devLog('AuthContext: No user found');
-            setIsAdmin(false);
+            const profileData = await fetchUserProfile(currentSession.user.id);
+            if (profileData && mounted) {
+              await debouncedAdminCheck(currentSession.user.id);
+            }
           }
           
           setIsLoading(false);
@@ -149,17 +216,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (event, currentSession) => {
             if (!mounted) return;
             
-            devLog('AuthContext: Auth state changed:', event);
-            
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
-              await fetchUserProfile(currentSession.user.id);
+              const profileData = await fetchUserProfile(currentSession.user.id);
+              if (profileData && mounted) {
+                await debouncedAdminCheck(currentSession.user.id);
+              }
             } else {
               setProfile(null);
-              setIsAdmin(false);
+              setIsAdmin(null);
               setShowFirstLoginWelcome(false);
+              clearAdminCache();
             }
           }
         );
@@ -178,6 +247,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       mountedRef.current = false;
+      if (adminCheckTimeoutRef.current) {
+        clearTimeout(adminCheckTimeoutRef.current);
+      }
     };
   }, []); // Minimal dependencies
 
@@ -188,10 +260,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     profile,
     isLoading,
     isAdmin,
+    isCheckingAdmin,
     signOut,
     refreshProfile,
     refreshAdminStatus
-  }), [user, session, profile, isLoading, isAdmin, signOut, refreshProfile, refreshAdminStatus]);
+  }), [user, session, profile, isLoading, isAdmin, isCheckingAdmin, signOut, refreshProfile, refreshAdminStatus]);
 
   return (
     <AuthContext.Provider value={contextValue}>
