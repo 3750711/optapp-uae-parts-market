@@ -1,122 +1,185 @@
+import React from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
+import "./App.css";
 
-import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'next-themes';
-import { HelmetProvider } from 'react-helmet-async';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { AdminRoute } from '@/components/auth/AdminRoute';
+// Используем оптимизированные компоненты
+import { AuthProvider } from "@/contexts/OptimizedAuthContext";
+import { OptimizedAdminRoute } from "@/components/auth/OptimizedAdminRoute";
+import OptimizedProtectedRoute from "@/components/auth/OptimizedProtectedRoute";
 
-// Import simplified route configs
-import { routeConfigs, preloadCriticalRoutes } from '@/utils/lazyRoutes';
+// Импорты оптимизированных роутов
+import {
+  Index,
+  ProductDetail,
+  Catalog,
+  Login,
+  Register,
+  LazyProfile,
+  LazyBuyerOrders,
+  LazySellerOrders,
+  LazyAdminDashboard,
+  LazyAdminUsers,
+  LazyAdminProducts,
+  LazyAdminOrders,
+  LazyAbout,
+  LazyContact,
+  LazyStores,
+  LazySellerDashboard,
+  LazySellerListings,
+  LazyCreateStore,
+  AdminSuspenseWrapper
+} from "@/utils/optimizedLazyRoutes";
 
-// Оптимизированная конфигурация React Query
-const createQueryClient = () => new QueryClient({
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 минут для стабильных данных
-      gcTime: 1000 * 60 * 30, // 30 минут для кэша
-      retry: (failureCount, error: any) => {
-        // Умная логика повторов
-        if (error?.status === 404 || error?.status === 403) return false;
-        return failureCount < 2;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 1000 * 60 * 5, // 5 минут
+      gcTime: 1000 * 60 * 10, // 10 минут
       refetchOnWindowFocus: false,
-      refetchOnMount: false, // Используем кэш при монтировании
-      refetchOnReconnect: true, // Обновляем при восстановлении соединения
-    },
-    mutations: {
-      retry: 1,
-      retryDelay: 1000,
+      retry: (failureCount, error) => {
+        if (error instanceof Error && error.message.includes('fetch')) {
+          return failureCount < 2;
+        }
+        return false;
+      },
     },
   },
 });
 
-// Простой компонент загрузки
-const LoadingFallback = React.memo(() => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-optapp-yellow mx-auto mb-4"></div>
-      <p className="text-gray-600 text-sm">Загрузка...</p>
-    </div>
-  </div>
-));
-
-LoadingFallback.displayName = 'LoadingFallback';
-
 function App() {
-  // Создаем QueryClient один раз
-  const [queryClient] = React.useState(() => createQueryClient());
-
-  // Предзагружаем критические маршруты после инициализации
-  React.useEffect(() => {
-    preloadCriticalRoutes();
-  }, []);
-
   return (
-    <GlobalErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
             <AuthProvider>
-              <Router>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    {routeConfigs.map((route, index) => {
-                      const { path, component: Component, protected: isProtected, adminOnly } = route;
-                      
-                      if (adminOnly) {
-                        return (
-                          <Route
-                            key={path}
-                            path={path}
-                            element={
-                              <AdminRoute>
-                                <Component />
-                              </AdminRoute>
-                            }
-                          />
-                        );
-                      }
-                      
-                      if (isProtected) {
-                        return (
-                          <Route
-                            key={path}
-                            path={path}
-                            element={
-                              <ProtectedRoute>
-                                <Component />
-                              </ProtectedRoute>
-                            }
-                          />
-                        );
-                      }
-                      
-                      return (
-                        <Route
-                          key={path}
-                          path={path}
-                          element={<Component />}
-                        />
-                      );
-                    })}
-                  </Routes>
-                </Suspense>
-              </Router>
+              <Routes>
+                {/* Публичные страницы - без lazy loading */}
+                <Route path="/" element={<Index />} />
+                <Route path="/catalog" element={<Catalog />} />
+                <Route path="/product/:id" element={<ProductDetail />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                
+                {/* Страницы с минимальной защитой */}
+                <Route path="/about" element={<LazyAbout />} />
+                <Route path="/contact" element={<LazyContact />} />
+                <Route path="/stores" element={<LazyStores />} />
+
+                {/* Защищенные страницы */}
+                <Route
+                  path="/profile"
+                  element={
+                    <OptimizedProtectedRoute>
+                      <LazyProfile />
+                    </OptimizedProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/buyer/orders"
+                  element={
+                    <OptimizedProtectedRoute allowedRoles={['buyer', 'admin']}>
+                      <LazyBuyerOrders />
+                    </OptimizedProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/seller/dashboard"
+                  element={
+                    <OptimizedProtectedRoute allowedRoles={['seller', 'admin']}>
+                      <LazySellerDashboard />
+                    </OptimizedProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/seller/orders"
+                  element={
+                    <OptimizedProtectedRoute allowedRoles={['seller', 'admin']}>
+                      <LazySellerOrders />
+                    </OptimizedProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/seller/listings"
+                  element={
+                    <OptimizedProtectedRoute allowedRoles={['seller', 'admin']}>
+                      <LazySellerListings />
+                    </OptimizedProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/stores/create"
+                  element={
+                    <OptimizedProtectedRoute allowedRoles={['seller', 'admin']}>
+                      <LazyCreateStore />
+                    </OptimizedProtectedRoute>
+                  }
+                />
+
+                {/* Админские маршруты */}
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <OptimizedAdminRoute>
+                      <AdminSuspenseWrapper>
+                        <LazyAdminDashboard />
+                      </AdminSuspenseWrapper>
+                    </OptimizedAdminRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/users"
+                  element={
+                    <OptimizedAdminRoute>
+                      <AdminSuspenseWrapper>
+                        <LazyAdminUsers />
+                      </AdminSuspenseWrapper>
+                    </OptimizedAdminRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/products"
+                  element={
+                    <OptimizedAdminRoute>
+                      <AdminSuspenseWrapper>
+                        <LazyAdminProducts />
+                      </AdminSuspenseWrapper>
+                    </OptimizedAdminRoute>
+                  }
+                />
+
+                <Route
+                  path="/admin/orders"
+                  element={
+                    <OptimizedAdminRoute>
+                      <AdminSuspenseWrapper>
+                        <LazyAdminOrders />
+                      </AdminSuspenseWrapper>
+                    </OptimizedAdminRoute>
+                  }
+                />
+
+                <Route path="*" element={<div>Страница не найдена</div>} />
+              </Routes>
             </AuthProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
-    </GlobalErrorBoundary>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 }
 
