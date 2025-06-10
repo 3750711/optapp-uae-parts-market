@@ -38,6 +38,8 @@ const AdminProducts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -91,6 +93,8 @@ const AdminProducts = () => {
   const {
     data,
     isLoading,
+    isError,
+    error,
     refetch,
   } = useQuery({
     queryKey: ['products', searchTerm, statusFilter, dateRange, priceRange, currentPage],
@@ -128,6 +132,7 @@ const AdminProducts = () => {
   const handleBulkDelete = async () => {
     if (selectedProducts.length === 0) return;
 
+    setIsDeleting(true);
     try {
       const { error } = await supabase
         .from('products')
@@ -150,7 +155,43 @@ const AdminProducts = () => {
         description: "Не удалось удалить товары",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleteProductId(id);
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: "Товар удален",
+      });
+
+      refetch();
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось удалить товар",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteProductId(null);
+    }
+  };
+
+  const handleStatusChange = () => {
+    refetch();
   };
 
   const filteredProducts = useMemo(() => {
@@ -211,46 +252,35 @@ const AdminProducts = () => {
         />
 
         {/* Selected Products Actions */}
-        {selectedProducts.length > 0 && (
-          <SelectedProductsActions
-            selectedCount={selectedProducts.length}
-            onStatusChange={handleBulkStatusChange}
-            onDelete={handleBulkDelete}
-            onClearSelection={() => setSelectedProducts([])}
-          />
-        )}
+        <SelectedProductsActions
+          selectedCount={selectedProducts.length}
+          onStatusChange={handleBulkStatusChange}
+          onDelete={handleBulkDelete}
+          onClearSelection={() => setSelectedProducts([])}
+        />
 
         {/* Products Grid */}
-        {isLoading && currentPage === 1 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm border animate-pulse">
-                <div className="aspect-video bg-gray-200 rounded-t-lg"></div>
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-8 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <ProductsGrid
-              products={filteredProducts}
-              selectedProducts={selectedProducts}
-              onProductSelect={setSelectedProducts}
-              onProductUpdate={refetch}
-            />
-            
-            {hasNextPage && (
-              <LoadMoreTrigger
-                onLoadMore={loadMore}
-                isLoading={isLoadingMore}
-                hasNextPage={hasNextPage}
-              />
-            )}
-          </>
+        <ProductsGrid
+          products={filteredProducts}
+          selectedProducts={selectedProducts}
+          onProductSelect={setSelectedProducts}
+          onProductUpdate={refetch}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          refetch={refetch}
+          onDelete={handleDelete}
+          isDeleting={isDeleting}
+          deleteProductId={deleteProductId}
+          onStatusChange={handleStatusChange}
+        />
+        
+        {hasNextPage && (
+          <LoadMoreTrigger
+            onLoadMore={loadMore}
+            isLoading={isLoadingMore}
+            hasNextPage={hasNextPage}
+          />
         )}
 
         {/* Empty State */}

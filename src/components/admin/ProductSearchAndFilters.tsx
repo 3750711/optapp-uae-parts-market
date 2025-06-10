@@ -5,48 +5,55 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search, Filter, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Slider } from "@/components/ui/slider";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
-interface ProductSearchAndFiltersProps {
-  onSearchChange: (filters: SearchFilters) => void;
-  onClearFilters: () => void;
+interface DateRange {
+  from: Date | null;
+  to: Date | null;
 }
 
-export interface SearchFilters {
+interface PriceRange {
+  min: number;
+  max: number;
+}
+
+interface ProductSearchAndFiltersProps {
   searchTerm: string;
-  lotNumber: string;
-  priceFrom: string;
-  priceTo: string;
+  setSearchTerm: (term: string) => void;
+  statusFilter: string;
+  setStatusFilter: (status: string) => void;
+  dateRange: DateRange;
+  setDateRange: (range: DateRange) => void;
+  priceRange: PriceRange;
+  setPriceRange: (range: PriceRange) => void;
+  clearFilters: () => void;
+  isLoading: boolean;
 }
 
 const ProductSearchAndFilters: React.FC<ProductSearchAndFiltersProps> = ({
-  onSearchChange,
-  onClearFilters
+  searchTerm,
+  setSearchTerm,
+  statusFilter,
+  setStatusFilter,
+  dateRange,
+  setDateRange,
+  priceRange,
+  setPriceRange,
+  clearFilters,
+  isLoading
 }) => {
-  const [filters, setFilters] = useState<SearchFilters>({
-    searchTerm: '',
-    lotNumber: '',
-    priceFrom: '',
-    priceTo: ''
-  });
-
-  const handleFilterChange = (key: keyof SearchFilters, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onSearchChange(newFilters);
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
   };
 
-  const handleClear = () => {
-    const emptyFilters = {
-      searchTerm: '',
-      lotNumber: '',
-      priceFrom: '',
-      priceTo: ''
-    };
-    setFilters(emptyFilters);
-    onClearFilters();
-  };
-
-  const hasActiveFilters = Object.values(filters).some(value => value.trim() !== '');
+  const hasActiveFilters = searchTerm || statusFilter !== 'all' || dateRange.from || dateRange.to || priceRange.min > 0 || priceRange.max < 100000;
 
   return (
     <Card className="mb-4">
@@ -63,41 +70,45 @@ const ProductSearchAndFilters: React.FC<ProductSearchAndFiltersProps> = ({
             <Input
               id="search"
               placeholder="Введите название товара..."
-              value={filters.searchTerm}
-              onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="lotNumber">Номер лота</Label>
+            <Label htmlFor="status">Статус</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Все статусы" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="pending">Ожидает проверки</SelectItem>
+                <SelectItem value="active">Активный</SelectItem>
+                <SelectItem value="sold">Продан</SelectItem>
+                <SelectItem value="archived">Архив</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Цена от ($)</Label>
             <Input
-              id="lotNumber"
-              placeholder="Введите номер лота..."
-              value={filters.lotNumber}
-              onChange={(e) => handleFilterChange('lotNumber', e.target.value)}
               type="number"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="priceFrom">Цена от ($)</Label>
-            <Input
-              id="priceFrom"
               placeholder="Мин. цена"
-              value={filters.priceFrom}
-              onChange={(e) => handleFilterChange('priceFrom', e.target.value)}
-              type="number"
+              value={priceRange.min || ''}
+              onChange={(e) => setPriceRange({ ...priceRange, min: Number(e.target.value) || 0 })}
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="priceTo">Цена до ($)</Label>
+            <Label>Цена до ($)</Label>
             <Input
-              id="priceTo"
-              placeholder="Макс. цена"
-              value={filters.priceTo}
-              onChange={(e) => handleFilterChange('priceTo', e.target.value)}
               type="number"
+              placeholder="Макс. цена"
+              value={priceRange.max === 100000 ? '' : priceRange.max}
+              onChange={(e) => setPriceRange({ ...priceRange, max: Number(e.target.value) || 100000 })}
             />
           </div>
         </div>
@@ -107,7 +118,7 @@ const ProductSearchAndFilters: React.FC<ProductSearchAndFiltersProps> = ({
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handleClear}
+              onClick={clearFilters}
               className="flex items-center gap-2"
             >
               <X className="h-4 w-4" />
