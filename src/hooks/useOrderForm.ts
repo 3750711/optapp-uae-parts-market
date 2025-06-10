@@ -39,7 +39,7 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     modelId: "",
     optid_created: "",
     seller_opt_id: "",
-    deliveryMethod: 'self_pickup' as DeliveryMethod,
+    deliveryMethod: 'cargo_rf' as DeliveryMethod, // Изменено на Cargo РФ по умолчанию
     place_number: "1",
     text_order: "",
     delivery_price: "",
@@ -153,7 +153,7 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
       modelId: "",
       optid_created: "",
       seller_opt_id: "",
-      deliveryMethod: 'self_pickup' as DeliveryMethod,
+      deliveryMethod: 'cargo_rf' as DeliveryMethod, // Также изменено здесь
       place_number: "1",
       text_order: "",
       delivery_price: "",
