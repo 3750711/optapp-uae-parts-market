@@ -80,7 +80,7 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
         {/* Цена */}
         <div className="space-y-2">
           <Label htmlFor="price" className={isMobile ? "text-base font-medium" : ""}>
-            Цена *
+            Цена ($) *
           </Label>
           <TouchOptimizedInput 
             id="price"
@@ -94,6 +94,41 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             touched={touchedFields.has('price')}
             error={getFieldError('price')}
             success={touchedFields.has('price') && isFieldValid('price')}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Стоимость доставки */}
+        <div className="space-y-2">
+          <Label htmlFor="delivery_price" className={isMobile ? "text-base font-medium" : ""}>
+            Стоимость доставки ($)
+          </Label>
+          <TouchOptimizedInput 
+            id="delivery_price"
+            type="number"
+            min="0"
+            step="0.01"
+            value={formData.delivery_price}
+            onChange={(e) => onInputChange('delivery_price', e.target.value)}
+            placeholder="0.00"
+            inputMode="decimal"
+          />
+        </div>
+
+        {/* Количество мест для отправки */}
+        <div className="space-y-2">
+          <Label htmlFor="place_number" className={isMobile ? "text-base font-medium" : ""}>
+            Количество мест для отправки
+          </Label>
+          <TouchOptimizedInput 
+            id="place_number"
+            type="number"
+            min="1"
+            value={formData.place_number || '1'}
+            onChange={(e) => onInputChange('place_number', e.target.value)}
+            placeholder="1"
+            inputMode="numeric"
           />
         </div>
       </div>

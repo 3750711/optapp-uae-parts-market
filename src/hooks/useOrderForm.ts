@@ -14,6 +14,7 @@ export interface OrderFormData {
   buyerName: string;
   buyerOptId: string;
   delivery_price: string;
+  place_number: string;
   [key: string]: string;
 }
 
@@ -33,7 +34,8 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     buyerPhone: '',
     buyerName: '',
     buyerOptId: '',
-    delivery_price: ''
+    delivery_price: '',
+    place_number: '1'
   });
 
   const [images, setImages] = useState<string[]>([]);
@@ -110,7 +112,8 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
       buyerPhone: '',
       buyerName: '',
       buyerOptId: '',
-      delivery_price: ''
+      delivery_price: '',
+      place_number: '1'
     });
     setImages([]);
     setVideos([]);

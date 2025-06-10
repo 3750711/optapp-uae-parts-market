@@ -32,7 +32,9 @@ export const useProductData = ({ productId, onDataLoaded }: UseProductDataProps)
             brand: data.brand || '',
             model: data.model || '',
             brandId: data.brand_id || '',
-            modelId: data.model_id || ''
+            modelId: data.model_id || '',
+            delivery_price: data.delivery_price?.toString() || '',
+            place_number: data.place_number?.toString() || '1'
           });
         }
       } catch (error) {

@@ -14,6 +14,8 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
 
   const submitOrder = useCallback(async (formData: OrderFormData, images: string[], videos: string[]) => {
     try {
+      console.log('Submitting order with data:', { formData, images, videos });
+      
       // Простая заглушка для создания заказа
       const orderData = {
         id: Date.now().toString(),
@@ -24,6 +26,9 @@ export const useOrderSubmission = ({ productId, onOrderCreated }: UseOrderSubmis
         model: formData.model,
         buyer_phone: formData.buyerPhone,
         buyer_name: formData.buyerName,
+        buyer_opt_id: formData.buyerOptId,
+        delivery_price: formData.delivery_price ? parseFloat(formData.delivery_price) : 0,
+        place_number: formData.place_number ? parseInt(formData.place_number) : 1,
         images,
         videos,
         status: 'pending',
