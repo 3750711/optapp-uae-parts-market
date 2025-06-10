@@ -1,342 +1,418 @@
-import { lazy } from 'react';
+import { lazy, ComponentType } from 'react';
 import { devError, devLog } from '@/utils/performanceUtils';
 
-// Improved lazy loading with better chunk error handling
-const lazyWithRetry = (importFunc: () => Promise<any>) => {
+// Простой fallback без излишеств
+const ChunkErrorFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+      <p className="text-gray-600">Загрузка...</p>
+    </div>
+  </div>
+);
+
+// Улучшенная функция lazy загрузки с простым retry
+const createLazyComponent = (importFunc: () => Promise<any>, maxRetries = 2) => {
   return lazy(() => {
-    const attemptImport = (): Promise<any> => {
-      return importFunc().catch((error) => {
-        devError('Failed to load module:', error);
+    let retryCount = 0;
+    
+    const attemptImport = async (): Promise<any> => {
+      try {
+        return await importFunc();
+      } catch (error: any) {
+        retryCount++;
         
-        // Check if it's a chunk load error
-        const isChunkLoadError = error.message.includes('loading dynamically imported module') ||
-                                error.message.includes('Failed to fetch dynamically imported module') ||
-                                error.message.includes('Loading chunk') ||
-                                error.name === 'ChunkLoadError';
+        const isChunkError = error.name === 'ChunkLoadError' || 
+                           error.message?.includes('Loading chunk') ||
+                           error.message?.includes('dynamically imported module');
         
-        if (isChunkLoadError) {
-          devLog('Chunk load error detected, clearing cache and reloading...');
-          
-          // Clear cache and reload for chunk errors
-          if ('caches' in window) {
-            caches.keys().then(names => {
-              names.forEach(name => caches.delete(name));
-            });
-          }
-          
-          // Force reload after a short delay
-          setTimeout(() => {
-            window.location.reload();
-          }, 100);
-          
-          // Return a fallback component while reloading
-          return Promise.resolve({
-            default: () => (
-              <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-gray-600">Обновление приложения...</p>
-                </div>
-              </div>
-            )
-          });
+        if (isChunkError && retryCount <= maxRetries) {
+          devLog(`Chunk load failed, retry ${retryCount}/${maxRetries}`);
+          // Простая задержка перед повтором
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          return attemptImport();
         }
         
-        // For other errors, throw to be handled by error boundary
-        throw error;
-      });
+        devError('Failed to load module after retries:', error);
+        
+        // Возвращаем fallback вместо перезагрузки страницы
+        return { default: ChunkErrorFallback };
+      }
     };
     
     return attemptImport();
   });
 };
 
-// Regular pages with improved error handling
-const Index = lazyWithRetry(() => import('@/pages/Index'));
-const About = lazyWithRetry(() => import('@/pages/About'));
-const Contact = lazyWithRetry(() => import('@/pages/Contact'));
-const Catalog = lazyWithRetry(() => import('@/pages/Catalog'));
-const ProductDetail = lazyWithRetry(() => import('@/pages/ProductDetail'));
-const Login = lazyWithRetry(() => import('@/pages/Login'));
-const Register = lazyWithRetry(() => import('@/pages/Register'));
-const SellerRegister = lazyWithRetry(() => import('@/pages/SellerRegister'));
-const ForgotPassword = lazyWithRetry(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazyWithRetry(() => import('@/pages/ResetPassword'));
-const VerifyEmail = lazyWithRetry(() => import('@/pages/VerifyEmail'));
-const Profile = lazyWithRetry(() => import('@/pages/Profile'));
-const SellerDashboard = lazyWithRetry(() => import('@/pages/SellerDashboard'));
-const SellerListings = lazyWithRetry(() => import('@/pages/SellerListings'));
-const SellerAddProduct = lazyWithRetry(() => import('@/pages/SellerAddProduct'));
-const SellerCreateOrder = lazyWithRetry(() => import('@/pages/SellerCreateOrder'));
-const SellerOrders = lazyWithRetry(() => import('@/pages/SellerOrders'));
-const SellerOrderDetails = lazyWithRetry(() => import('@/pages/SellerOrderDetails'));
-const SellerSellProduct = lazyWithRetry(() => import('@/pages/SellerSellProduct'));
-const SellerProfile = lazyWithRetry(() => import('@/pages/SellerProfile'));
-const PublicSellerProfile = lazyWithRetry(() => import('@/pages/PublicSellerProfile'));
-const BuyerCreateOrder = lazyWithRetry(() => import('@/pages/BuyerCreateOrder'));
-const BuyerOrders = lazyWithRetry(() => import('@/pages/BuyerOrders'));
-const BuyerGuide = lazyWithRetry(() => import('@/pages/BuyerGuide'));
-const Stores = lazyWithRetry(() => import('@/pages/Stores'));
-const StoreDetail = lazyWithRetry(() => import('@/pages/StoreDetail'));
-const CreateStore = lazyWithRetry(() => import('@/pages/CreateStore'));
-const Requests = lazyWithRetry(() => import('@/pages/Requests'));
-const CreateRequest = lazyWithRetry(() => import('@/pages/CreateRequest'));
-const RequestDetail = lazyWithRetry(() => import('@/pages/RequestDetail'));
-const NotFound = lazyWithRetry(() => import('@/pages/NotFound'));
-const OrdersRedirect = lazyWithRetry(() => import('@/pages/OrdersRedirect'));
-const OrderDetails = lazyWithRetry(() => import('@/pages/OrderDetails'));
+// Группировка маршрутов по приоритету загрузки
+// Критические компоненты (загружаются первыми)
+const criticalComponents = {
+  Index: () => createLazyComponent(() => import('@/pages/Index')),
+  Login: () => createLazyComponent(() => import('@/pages/Login')),
+  Register: () => createLazyComponent(() => import('@/pages/Register')),
+  NotFound: () => createLazyComponent(() => import('@/pages/NotFound')),
+  Catalog: () => createLazyComponent(() => import('@/pages/Catalog')),
+};
 
-// Admin pages with same improved error handling
-const AdminDashboard = lazyWithRetry(() => import('@/pages/AdminDashboard'));
-const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'));
-const AdminProducts = lazyWithRetry(() => import('@/pages/AdminProducts'));
-const AdminAddProduct = lazyWithRetry(() => import('@/pages/AdminAddProduct'));
-const AdminOrders = lazyWithRetry(() => import('@/pages/AdminOrders'));
-const AdminOrderDetails = lazyWithRetry(() => import('@/pages/AdminOrderDetails'));
-const AdminFreeOrder = lazyWithRetry(() => import('@/pages/AdminFreeOrder'));
-const AdminCreateOrderFromProduct = lazyWithRetry(() => import('@/pages/AdminCreateOrderFromProduct'));
-const AdminStores = lazyWithRetry(() => import('@/pages/AdminStores'));
-const AdminCarCatalog = lazyWithRetry(() => import('@/pages/AdminCarCatalog'));
-const AdminLogistics = lazyWithRetry(() => import('@/pages/AdminLogistics'));
-const AdminEvents = lazyWithRetry(() => import('@/pages/AdminEvents'));
-const GenerateOGImage = lazyWithRetry(() => import('@/pages/GenerateOGImage'));
+// Основные компоненты (загружаются по требованию)
+const mainComponents = {
+  About: () => createLazyComponent(() => import('@/pages/About')),
+  Contact: () => createLazyComponent(() => import('@/pages/Contact')),
+  ProductDetail: () => createLazyComponent(() => import('@/pages/ProductDetail')),
+  Profile: () => createLazyComponent(() => import('@/pages/Profile')),
+  ForgotPassword: () => createLazyComponent(() => import('@/pages/ForgotPassword')),
+  ResetPassword: () => createLazyComponent(() => import('@/pages/ResetPassword')),
+  VerifyEmail: () => createLazyComponent(() => import('@/pages/VerifyEmail')),
+};
 
+// Продавцы (загружаются только когда нужны)
+const sellerComponents = {
+  SellerRegister: () => createLazyComponent(() => import('@/pages/SellerRegister')),
+  SellerDashboard: () => createLazyComponent(() => import('@/pages/SellerDashboard')),
+  SellerListings: () => createLazyComponent(() => import('@/pages/SellerListings')),
+  SellerAddProduct: () => createLazyComponent(() => import('@/pages/SellerAddProduct')),
+  SellerCreateOrder: () => createLazyComponent(() => import('@/pages/SellerCreateOrder')),
+  SellerOrders: () => createLazyComponent(() => import('@/pages/SellerOrders')),
+  SellerOrderDetails: () => createLazyComponent(() => import('@/pages/SellerOrderDetails')),
+  SellerSellProduct: () => createLazyComponent(() => import('@/pages/SellerSellProduct')),
+  SellerProfile: () => createLazyComponent(() => import('@/pages/SellerProfile')),
+  PublicSellerProfile: () => createLazyComponent(() => import('@/pages/PublicSellerProfile')),
+};
+
+// Покупатели
+const buyerComponents = {
+  BuyerCreateOrder: () => createLazyComponent(() => import('@/pages/BuyerCreateOrder')),
+  BuyerOrders: () => createLazyComponent(() => import('@/pages/BuyerOrders')),
+  BuyerGuide: () => createLazyComponent(() => import('@/pages/BuyerGuide')),
+};
+
+// Магазины и заявки
+const storeComponents = {
+  Stores: () => createLazyComponent(() => import('@/pages/Stores')),
+  StoreDetail: () => createLazyComponent(() => import('@/pages/StoreDetail')),
+  CreateStore: () => createLazyComponent(() => import('@/pages/CreateStore')),
+  Requests: () => createLazyComponent(() => import('@/pages/Requests')),
+  CreateRequest: () => createLazyComponent(() => import('@/pages/CreateRequest')),
+  RequestDetail: () => createLazyComponent(() => import('@/pages/RequestDetail')),
+  OrdersRedirect: () => createLazyComponent(() => import('@/pages/OrdersRedirect')),
+  OrderDetails: () => createLazyComponent(() => import('@/pages/OrderDetails')),
+};
+
+// Админ компоненты (загружаются только для админов)
+const adminComponents = {
+  AdminDashboard: () => createLazyComponent(() => import('@/pages/AdminDashboard')),
+  AdminUsers: () => createLazyComponent(() => import('@/pages/AdminUsers')),
+  AdminProducts: () => createLazyComponent(() => import('@/pages/AdminProducts')),
+  AdminAddProduct: () => createLazyComponent(() => import('@/pages/AdminAddProduct')),
+  AdminOrders: () => createLazyComponent(() => import('@/pages/AdminOrders')),
+  AdminOrderDetails: () => createLazyComponent(() => import('@/pages/AdminOrderDetails')),
+  AdminFreeOrder: () => createLazyComponent(() => import('@/pages/AdminFreeOrder')),
+  AdminCreateOrderFromProduct: () => createLazyComponent(() => import('@/pages/AdminCreateOrderFromProduct')),
+  AdminStores: () => createLazyComponent(() => import('@/pages/AdminStores')),
+  AdminCarCatalog: () => createLazyComponent(() => import('@/pages/AdminCarCatalog')),
+  AdminLogistics: () => createLazyComponent(() => import('@/pages/AdminLogistics')),
+  AdminEvents: () => createLazyComponent(() => import('@/pages/AdminEvents')),
+  GenerateOGImage: () => createLazyComponent(() => import('@/pages/GenerateOGImage')),
+};
+
+// Ленивое создание компонентов только когда они нужны
+const getComponent = (name: string): ComponentType<any> => {
+  if (criticalComponents[name as keyof typeof criticalComponents]) {
+    return criticalComponents[name as keyof typeof criticalComponents]();
+  }
+  if (mainComponents[name as keyof typeof mainComponents]) {
+    return mainComponents[name as keyof typeof mainComponents]();
+  }
+  if (sellerComponents[name as keyof typeof sellerComponents]) {
+    return sellerComponents[name as keyof typeof sellerComponents]();
+  }
+  if (buyerComponents[name as keyof typeof buyerComponents]) {
+    return buyerComponents[name as keyof typeof buyerComponents]();
+  }
+  if (storeComponents[name as keyof typeof storeComponents]) {
+    return storeComponents[name as keyof typeof storeComponents]();
+  }
+  if (adminComponents[name as keyof typeof adminComponents]) {
+    return adminComponents[name as keyof typeof adminComponents]();
+  }
+  
+  // Fallback
+  return criticalComponents.NotFound();
+};
+
+// Конфигурация маршрутов без предварительного создания компонентов
 export const routes = [
+  // Критические маршруты
   {
     path: "/",
-    element: <Index />,
-  },
-  {
-    path: "/about",
-    element: <About />,
-  },
-  {
-    path: "/contact",
-    element: <Contact />,
-  },
-  {
-    path: "/catalog",
-    element: <Catalog />,
-  },
-  {
-    path: "/product/:id",
-    element: <ProductDetail />,
+    element: React.createElement(getComponent('Index')),
   },
   {
     path: "/login",
-    element: <Login />,
+    element: React.createElement(getComponent('Login')),
   },
   {
     path: "/register",
-    element: <Register />,
+    element: React.createElement(getComponent('Register')),
   },
   {
-    path: "/seller/register",
-    element: <SellerRegister />,
+    path: "/catalog",
+    element: React.createElement(getComponent('Catalog')),
+  },
+  
+  // Основные маршруты
+  {
+    path: "/about",
+    element: React.createElement(getComponent('About')),
+  },
+  {
+    path: "/contact",
+    element: React.createElement(getComponent('Contact')),
+  },
+  {
+    path: "/product/:id",
+    element: React.createElement(getComponent('ProductDetail')),
   },
   {
     path: "/forgot-password",
-    element: <ForgotPassword />,
+    element: React.createElement(getComponent('ForgotPassword')),
   },
   {
     path: "/reset-password",
-    element: <ResetPassword />,
+    element: React.createElement(getComponent('ResetPassword')),
   },
   {
     path: "/verify-email",
-    element: <VerifyEmail />,
+    element: React.createElement(getComponent('VerifyEmail')),
   },
+  
+  // Защищенные маршруты
   {
     path: "/profile",
-    element: <Profile />,
+    element: React.createElement(getComponent('Profile')),
     protected: true,
+  },
+  
+  // Продавцы
+  {
+    path: "/seller/register",
+    element: React.createElement(getComponent('SellerRegister')),
   },
   {
     path: "/seller/dashboard",
-    element: <SellerDashboard />,
+    element: React.createElement(getComponent('SellerDashboard')),
     protected: true,
   },
   {
     path: "/seller/listings",
-    element: <SellerListings />,
+    element: React.createElement(getComponent('SellerListings')),
     protected: true,
   },
   {
     path: "/seller/add-product",
-    element: <SellerAddProduct />,
+    element: React.createElement(getComponent('SellerAddProduct')),
     protected: true,
   },
   {
     path: "/seller/create-order",
-    element: <SellerCreateOrder />,
+    element: React.createElement(getComponent('SellerCreateOrder')),
     protected: true,
   },
   {
     path: "/seller/orders",
-    element: <SellerOrders />,
+    element: React.createElement(getComponent('SellerOrders')),
     protected: true,
   },
   {
     path: "/seller/orders/:id",
-    element: <SellerOrderDetails />,
+    element: React.createElement(getComponent('SellerOrderDetails')),
     protected: true,
   },
   {
     path: "/seller/sell-product/:id",
-    element: <SellerSellProduct />,
+    element: React.createElement(getComponent('SellerSellProduct')),
     protected: true,
   },
   {
     path: "/seller/profile",
-    element: <SellerProfile />,
+    element: React.createElement(getComponent('SellerProfile')),
     protected: true,
   },
   {
     path: "/seller/:id",
-    element: <PublicSellerProfile />,
+    element: React.createElement(getComponent('PublicSellerProfile')),
   },
+  
+  // Покупатели
   {
     path: "/buyer/create-order",
-    element: <BuyerCreateOrder />,
+    element: React.createElement(getComponent('BuyerCreateOrder')),
     protected: true,
   },
   {
     path: "/buyer/orders",
-    element: <BuyerOrders />,
+    element: React.createElement(getComponent('BuyerOrders')),
     protected: true,
   },
   {
     path: "/buyer/guide",
-    element: <BuyerGuide />,
+    element: React.createElement(getComponent('BuyerGuide')),
   },
+  
+  // Магазины
   {
     path: "/stores",
-    element: <Stores />,
+    element: React.createElement(getComponent('Stores')),
   },
   {
     path: "/store/:id",
-    element: <StoreDetail />,
+    element: React.createElement(getComponent('StoreDetail')),
   },
   {
     path: "/create-store",
-    element: <CreateStore />,
+    element: React.createElement(getComponent('CreateStore')),
     protected: true,
   },
+  
+  // Заявки
   {
     path: "/requests",
-    element: <Requests />,
+    element: React.createElement(getComponent('Requests')),
   },
   {
     path: "/create-request",
-    element: <CreateRequest />,
+    element: React.createElement(getComponent('CreateRequest')),
     protected: true,
   },
   {
     path: "/request/:id",
-    element: <RequestDetail />,
+    element: React.createElement(getComponent('RequestDetail')),
   },
+  
+  // Заказы
   {
     path: "/orders",
-    element: <OrdersRedirect />,
+    element: React.createElement(getComponent('OrdersRedirect')),
     protected: true,
   },
   {
     path: "/order/:id",
-    element: <OrderDetails />,
+    element: React.createElement(getComponent('OrderDetails')),
   },
-  // Admin routes
+  
+  // Админ маршруты (загружаются только для админов)
   {
     path: "/admin",
-    element: <AdminDashboard />,
+    element: React.createElement(getComponent('AdminDashboard')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/dashboard",
-    element: <AdminDashboard />,
+    element: React.createElement(getComponent('AdminDashboard')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/users",
-    element: <AdminUsers />,
+    element: React.createElement(getComponent('AdminUsers')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/products",
-    element: <AdminProducts />,
+    element: React.createElement(getComponent('AdminProducts')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/add-product",
-    element: <AdminAddProduct />,
+    element: React.createElement(getComponent('AdminAddProduct')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/orders",
-    element: <AdminOrders />,
+    element: React.createElement(getComponent('AdminOrders')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/orders/:id",
-    element: <AdminOrderDetails />,
+    element: React.createElement(getComponent('AdminOrderDetails')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/free-order",
-    element: <AdminFreeOrder />,
+    element: React.createElement(getComponent('AdminFreeOrder')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/create-order-from-product",
-    element: <AdminCreateOrderFromProduct />,
+    element: React.createElement(getComponent('AdminCreateOrderFromProduct')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/create-order/:productId",
-    element: <AdminCreateOrderFromProduct />,
+    element: React.createElement(getComponent('AdminCreateOrderFromProduct')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/stores",
-    element: <AdminStores />,
+    element: React.createElement(getComponent('AdminStores')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/car-catalog",
-    element: <AdminCarCatalog />,
+    element: React.createElement(getComponent('AdminCarCatalog')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/logistics",
-    element: <AdminLogistics />,
+    element: React.createElement(getComponent('AdminLogistics')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/events",
-    element: <AdminEvents />,
+    element: React.createElement(getComponent('AdminEvents')),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/generate-og-image",
-    element: <GenerateOGImage />,
+    element: React.createElement(getComponent('GenerateOGImage')),
     protected: true,
     adminOnly: true,
   },
+  
+  // 404
   {
     path: "*",
-    element: <NotFound />,
+    element: React.createElement(getComponent('NotFound')),
   },
 ];
+
+// Предзагрузка критических маршрутов после инициализации
+export const preloadCriticalRoutes = () => {
+  // Предзагружаем самые важные компоненты через небольшое время
+  setTimeout(() => {
+    import('@/pages/Index');
+    import('@/pages/Login');
+    import('@/pages/Register');
+    import('@/pages/Catalog');
+  }, 2000);
+  
+  // Предзагружаем основные компоненты через больше времени
+  setTimeout(() => {
+    import('@/pages/About');
+    import('@/pages/Contact');
+    import('@/pages/ProductDetail');
+  }, 5000);
+};
