@@ -4,7 +4,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
-import { useQuery } from '@tanstack/react-query';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -24,54 +23,58 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
   
   const mountedRef = useRef(true);
-
-  // Используем React Query для кэширования профиля
-  const { 
-    data: profile, 
-    isLoading: profileLoading, 
-    refetch: refetchProfile 
-  } = useQuery({
-    queryKey: ['profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (error || !data) {
-        console.error('Error fetching profile:', error);
-        return null;
-      }
-      
-      // Проверяем first login для пользователей @g.com
-      if (data.email.endsWith('@g.com') && !data.first_login_completed) {
-        setShowFirstLoginWelcome(true);
-      }
-      
-      return data;
-    },
-    enabled: !!user?.id && mountedRef.current,
-    staleTime: 1000 * 60 * 5, // 5 минут кэш
-    gcTime: 1000 * 60 * 10, // 10 минут в памяти
-  });
 
   // Вычисляем админские права напрямую из профиля
   const isAdmin = useMemo(() => {
     return profile?.user_type === 'admin' ? true : false;
   }, [profile?.user_type]);
 
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    if (!mountedRef.current) return null;
+    
+    try {
+      console.log('OptimizedAuthContext: Fetching user profile for:', userId);
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error || !mountedRef.current) {
+        console.error('OptimizedAuthContext: Error fetching user profile:', error);
+        return null;
+      }
+      
+      if (data && mountedRef.current) {
+        setProfile(data);
+        
+        // Проверяем first login для пользователей @g.com
+        if (data.email.endsWith('@g.com') && !data.first_login_completed) {
+          setShowFirstLoginWelcome(true);
+        }
+        
+        console.log('OptimizedAuthContext: Profile loaded, user_type:', data.user_type);
+        return data;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('OptimizedAuthContext: Exception while fetching profile:', error);
+      return null;
+    }
+  }, []);
+
   const refreshProfile = useCallback(async () => {
     if (user && mountedRef.current) {
-      await refetchProfile();
+      await fetchUserProfile(user.id);
     }
-  }, [user, refetchProfile]);
+  }, [user, fetchUserProfile]);
 
   const refreshAdminStatus = useCallback(async () => {
     // Просто перезагружаем профиль
@@ -93,9 +96,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(null);
       setSession(null);
+      setProfile(null);
       setShowFirstLoginWelcome(false);
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('OptimizedAuthContext: Error during sign out:', error);
     } finally {
       setIsLoading(false);
     }
@@ -108,10 +112,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const setupAuth = async () => {
       try {
+        console.log('OptimizedAuthContext: Setting up auth...');
+        
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error || !mounted) {
-          console.error("Error getting session:", error);
+          console.error("OptimizedAuthContext: Error getting session:", error);
           if (mounted) setIsLoading(false);
           return;
         }
@@ -119,6 +125,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
+          
+          if (currentSession?.user) {
+            console.log('OptimizedAuthContext: User found, fetching profile...');
+            await fetchUserProfile(currentSession.user.id);
+          } else {
+            console.log('OptimizedAuthContext: No user found');
+          }
+          
           setIsLoading(false);
         }
         
@@ -127,10 +141,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (event, currentSession) => {
             if (!mounted) return;
             
+            console.log('OptimizedAuthContext: Auth state changed:', event);
+            
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
-            if (!currentSession?.user) {
+            if (currentSession?.user) {
+              await fetchUserProfile(currentSession.user.id);
+            } else {
+              setProfile(null);
               setShowFirstLoginWelcome(false);
             }
           }
@@ -140,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error("Error setting up auth:", error);
+        console.error("OptimizedAuthContext: Error setting up auth:", error);
         if (mounted) setIsLoading(false);
       }
     };
@@ -151,21 +170,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       mountedRef.current = false;
     };
-  }, []);
-
-  // Общее состояние загрузки - только при первичной инициализации
-  const totalLoading = isLoading;
+  }, [fetchUserProfile]);
 
   const contextValue = useMemo(() => ({
     user,
     session,
-    profile: profile || null,
-    isLoading: totalLoading,
+    profile,
+    isLoading,
     isAdmin,
     signOut,
     refreshProfile,
     refreshAdminStatus
-  }), [user, session, profile, totalLoading, isAdmin, signOut, refreshProfile, refreshAdminStatus]);
+  }), [user, session, profile, isLoading, isAdmin, signOut, refreshProfile, refreshAdminStatus]);
 
   return (
     <AuthContext.Provider value={contextValue}>
