@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Star } from "lucide-react";
 import { 
@@ -133,20 +134,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <CarouselContent>
             {images.map((imageUrl, index) => (
               <CarouselItem key={index} className="basis-full">
-                <div className="w-full min-h-[200px] bg-gray-50 flex items-center justify-center p-2">
-                  <OptimizedImage
-                    src={index === 0 ? primaryImage : imageUrl}
-                    alt={`${product.title} ${index + 1}`}
-                    className="w-full h-full object-contain"
-                    onError={handleImageError}
-                    onLoad={handleImageLoad}
-                    priority={index === 0}
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    cloudinaryPublicId={product.cloudinary_public_id || undefined}
-                    cloudinaryUrl={product.cloudinary_url || undefined}
-                    size="card"
-                  />
-                </div>
+                <OptimizedImage
+                  src={index === 0 ? primaryImage : imageUrl}
+                  alt={`${product.title} ${index + 1}`}
+                  className="w-full h-full object-contain bg-gray-50"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  cloudinaryPublicId={product.cloudinary_public_id || undefined}
+                  cloudinaryUrl={product.cloudinary_url || undefined}
+                  size="card"
+                />
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -167,20 +166,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
       );
     } else {
       return (
-        <div className="w-full min-h-[200px] bg-gray-50 flex items-center justify-center p-2">
-          <OptimizedImage
-            src={primaryImage}
-            alt={product.title}
-            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-            onError={handleImageError}
-            onLoad={handleImageLoad}
-            priority={false}
-            sizes="(max-width: 768px) 50vw, 25vw"
-            cloudinaryPublicId={product.cloudinary_public_id || undefined}
-            cloudinaryUrl={product.cloudinary_url || undefined}
-            size="card"
-          />
-        </div>
+        <OptimizedImage
+          src={primaryImage}
+          alt={product.title}
+          className="w-full h-full transition-transform duration-300 group-hover:scale-105 object-contain bg-gray-50"
+          onError={handleImageError}
+          onLoad={handleImageLoad}
+          priority={false}
+          sizes="(max-width: 768px) 50vw, 25vw"
+          cloudinaryPublicId={product.cloudinary_public_id || undefined}
+          cloudinaryUrl={product.cloudinary_url || undefined}
+          size="card"
+        />
       );
     }
   };
@@ -201,7 +198,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         className="flex-1 flex flex-col"
       >
         <div className="relative flex-shrink-0">
-          {renderImageContent()}
+          <AspectRatio ratio={16 / 9} className="bg-gray-50">
+            {renderImageContent()}
+          </AspectRatio>
           {getStatusBadge(product.status)}
           {product.lot_number && (
             <Badge 
