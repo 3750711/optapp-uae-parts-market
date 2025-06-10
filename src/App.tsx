@@ -1,4 +1,5 @@
-import React, { Suspense, useMemo } from 'react';
+
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
@@ -8,7 +9,7 @@ import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
-// Import optimized lazy routes
+// Import optimized routes
 import { routes, preloadCriticalRoutes } from '@/utils/lazyRoutes';
 
 // Оптимизированная конфигурация React Query
@@ -70,9 +71,33 @@ const setupErrorHandling = () => {
 // Инициализируем обработку ошибок один раз
 setupErrorHandling();
 
-// Мемоизированный компонент маршрута
+// Компонент маршрута с защитой от ошибок
 const RouteComponent = React.memo(({ route, index }: { route: any; index: number }) => {
   const { path, element, protected: isProtected, adminOnly } = route;
+  
+  // Проверяем валидность элемента
+  if (!element) {
+    console.error(`Route "${path}" has undefined element at index ${index}`);
+    return (
+      <Route
+        key={index}
+        path={path}
+        element={
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <p className="text-red-600 mb-2">Ошибка загрузки страницы</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+              >
+                Обновить
+              </button>
+            </div>
+          </div>
+        }
+      />
+    );
+  }
   
   if (adminOnly) {
     return (
@@ -114,18 +139,10 @@ const RouteComponent = React.memo(({ route, index }: { route: any; index: number
 RouteComponent.displayName = 'RouteComponent';
 
 function App() {
-  // Мемоизируем QueryClient для предотвращения пересоздания
-  const queryClient = useMemo(() => createQueryClient(), []);
-  
-  // Мемоизируем маршруты
-  const renderedRoutes = useMemo(() => 
-    routes.map((route, index) => (
-      <RouteComponent key={route.path || index} route={route} index={index} />
-    )), 
-    [routes]
-  );
+  // Создаем QueryClient один раз
+  const [queryClient] = React.useState(() => createQueryClient());
 
-  // Предзагружаем критические маршруты после инициализации1
+  // Предзагружаем критические маршруты после инициализации
   React.useEffect(() => {
     preloadCriticalRoutes();
   }, []);
@@ -144,7 +161,9 @@ function App() {
               <Router>
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
-                    {renderedRoutes}
+                    {routes.map((route, index) => (
+                      <RouteComponent key={route.path || index} route={route} index={index} />
+                    ))}
                   </Routes>
                 </Suspense>
               </Router>
