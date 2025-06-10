@@ -1,5 +1,5 @@
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Car } from 'lucide-react';
@@ -24,15 +24,10 @@ const StoreCarBrandsSection: React.FC<StoreCarBrandsSectionProps> = ({
 }) => {
   const { 
     brands: allCarBrands,
-    allModels: allCarModels,
+    brandModels: allCarModels,
+    selectBrand,
     isLoading: isBrandsLoading
   } = useCarBrandsAndModels();
-
-  // Get models for selected brand
-  const modelsForSelectedBrand = useMemo(() => {
-    if (!selectedBrandForModels || !allCarModels) return [];
-    return allCarModels.filter(model => model.brand_id === selectedBrandForModels);
-  }, [selectedBrandForModels, allCarModels]);
 
   return (
     <div className="space-y-4 border-t pt-4">
@@ -70,6 +65,7 @@ const StoreCarBrandsSection: React.FC<StoreCarBrandsSectionProps> = ({
               value={selectedBrandForModels || ''} 
               onValueChange={(value) => {
                 onSelectBrandForModels(value);
+                selectBrand(value);
               }}
             >
               <SelectTrigger className="w-[180px]">
@@ -93,9 +89,9 @@ const StoreCarBrandsSection: React.FC<StoreCarBrandsSectionProps> = ({
           <div className="border rounded-md p-2">
             {isBrandsLoading ? (
               <div className="text-center py-2">Загрузка моделей...</div>
-            ) : modelsForSelectedBrand.length > 0 ? (
+            ) : allCarModels.length > 0 ? (
               <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
-                {modelsForSelectedBrand.map((model) => (
+                {allCarModels.map((model) => (
                   <div key={model.id} className="flex items-center space-x-2">
                     <Checkbox
                       id={`model-${model.id}`}

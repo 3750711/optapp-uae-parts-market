@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/product";
@@ -67,7 +67,9 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   // Use our car brands and models hook
   const { 
     brands, 
-    allModels,
+    brandModels, 
+    selectedBrand, 
+    selectBrand, 
     isLoading: loadingBrands,
     findBrandIdByName,
     findModelIdByName,
@@ -75,34 +77,27 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     findModelNameById
   } = useCarBrandsAndModels();
 
-  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
-
-  // Get models for currently selected brand
-  const brandModels = useMemo(() => {
-    if (!selectedBrandId || !allModels) return [];
-    return allModels.filter(model => model.brand_id === selectedBrandId);
-  }, [selectedBrandId, allModels]);
 
   // Set initial selected brand when the component mounts and brands are loaded
   useEffect(() => {
     if (brands.length > 0 && product.brand) {
       const brandId = findBrandIdByName(product.brand);
       if (brandId) {
-        setSelectedBrandId(brandId);
+        selectBrand(brandId);
       }
     }
-  }, [brands, product.brand, findBrandIdByName]);
+  }, [brands, product.brand, findBrandIdByName, selectBrand]);
 
   // Set initial selected model when brand models are loaded
   useEffect(() => {
-    if (selectedBrandId && brandModels.length > 0 && product.model) {
-      const modelId = findModelIdByName(product.model, selectedBrandId);
+    if (selectedBrand && brandModels.length > 0 && product.model) {
+      const modelId = findModelIdByName(product.model, selectedBrand);
       if (modelId) {
         setSelectedModelId(modelId);
       }
     }
-  }, [brandModels, product.model, selectedBrandId, findModelIdByName]);
+  }, [brandModels, product.model, selectedBrand, findModelIdByName]);
 
   React.useEffect(() => {
     const checkIsCreator = async () => {
@@ -120,7 +115,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
 
   // When brand changes, update formData and reset model
   const handleBrandChange = (brandId: string) => {
-    setSelectedBrandId(brandId);
+    selectBrand(brandId);
     setSelectedModelId(null);
     
     const brandName = findBrandNameById(brandId);
@@ -236,7 +231,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
           setFormData={setFormData}
           brands={brands}
           brandModels={brandModels}
-          selectedBrand={selectedBrandId}
+          selectedBrand={selectedBrand}
           handleBrandChange={handleBrandChange}
           handleModelChange={handleModelChange}
           selectedModelId={selectedModelId}
