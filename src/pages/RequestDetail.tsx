@@ -6,7 +6,7 @@ import { CalendarClock, Tag, FileText } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import RequestProcessing from '@/components/request/RequestProcessing';
 import RequestStatusBadge from '@/components/request/RequestStatusBadge';
@@ -15,7 +15,6 @@ import RequestMatchingService from '@/components/request/RequestMatchingService'
 const RequestDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showResponseOptions, setShowResponseOptions] = useState(false);

@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/product";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -25,7 +24,6 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   isCreator = false,
 }) => {
   const [isLoading, setIsLoading] = React.useState(false);
-  const { toast } = useToast();
   const isMobile = useIsMobile();
   const queryClient = useQueryClient();
 

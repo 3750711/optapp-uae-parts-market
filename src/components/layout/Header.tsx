@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,7 +15,7 @@ import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, M
 import { Badge } from "@/components/ui/badge";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 import {
   Sheet,
   SheetContent,

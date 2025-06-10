@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
 import SellerProductsDialog from "./SellerProductsDialog";
