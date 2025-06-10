@@ -88,7 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Проверяем по профилю (быстрее чем RPC)
-      if (profile?.user_type === 'admin') {
+      // Используем строковое сравнение вместо прямого сравнения с enum
+      if (profile && String(profile.user_type) === 'admin') {
         setIsAdmin(true);
         setCachedAdminRights(userId, true);
         setIsCheckingAdmin(false);
@@ -96,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Если профиль есть и не админ, кешируем результат
-      if (profile && profile.user_type !== 'admin') {
+      if (profile && String(profile.user_type) !== 'admin') {
         setIsAdmin(false);
         setCachedAdminRights(userId, false);
         setIsCheckingAdmin(false);
