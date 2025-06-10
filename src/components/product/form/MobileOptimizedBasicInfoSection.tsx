@@ -42,14 +42,14 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {showSellerSelection && (
         <FormField
           control={form.control}
-          name="sellerId" as any
+          name="sellerId" as keyof (ProductFormValues | AdminProductFormValues)
           render={({ field }) => (
             <FormItem>
               <FormLabel>Продавец *</FormLabel>
               <FormControl>
                 <OptimizedSelect
                   options={sellerOptions}
-                  value={field.value || ""}
+                  value={String(field.value || "")}
                   onValueChange={field.onChange}
                   placeholder="Выберите продавца..."
                   searchPlaceholder="Поиск продавца..."

@@ -24,7 +24,7 @@ export type ProductFormValues = z.infer<typeof createProductSchema>;
 export type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 interface OptimizedAddProductFormProps {
-  form: UseFormReturn<ProductFormValues | AdminProductFormValues>;
+  form: UseFormReturn<ProductFormValues> | UseFormReturn<AdminProductFormValues>;
   onSubmit: (values: ProductFormValues | AdminProductFormValues) => Promise<void>;
   isSubmitting: boolean;
   imageUrls: string[];
@@ -94,8 +94,10 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
                   </option>
                 ))}
               </select>
-              {form.formState.errors.sellerId && (
-                <p className="text-red-500 text-sm mt-1">{form.formState.errors.sellerId.message}</p>
+              {showSellerSelection && form.formState.errors && 'sellerId' in form.formState.errors && (
+                <p className="text-red-500 text-sm mt-1">
+                  {(form.formState.errors as any).sellerId?.message}
+                </p>
               )}
             </div>
           )}
