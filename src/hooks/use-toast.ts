@@ -179,13 +179,10 @@ function toast({ ...props }: Toast) {
     },
   })
 
-  // Автоматическое закрытие через 4 секунды (если не указано иное)
-  const autoClose = props.autoClose !== false // по умолчанию true
-  if (autoClose) {
-    setTimeout(() => {
-      dismiss()
-    }, 4000)
-  }
+  // Автоматическое закрытие через 4 секунды (по умолчанию)
+  setTimeout(() => {
+    dismiss()
+  }, 4000)
 
   return {
     id: id,

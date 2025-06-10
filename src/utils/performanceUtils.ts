@@ -1,5 +1,112 @@
 // Дополнительные функции для добавления в ваш существующий performanceUtils.ts
 
+// Environment check
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+// Development logging functions
+export const devLog = (...args: any[]) => {
+  if (isDevelopment) {
+    console.log(...args);
+  }
+};
+
+export const devError = (...args: any[]) => {
+  if (isDevelopment) {
+    console.error(...args);
+  }
+};
+
+export const devWarn = (...args: any[]) => {
+  if (isDevelopment) {
+    console.warn(...args);
+  }
+};
+
+// Performance marking functions
+export const perfMark = (name: string) => {
+  if (typeof performance !== 'undefined' && performance.mark) {
+    performance.mark(name);
+  }
+};
+
+export const perfMeasure = (name: string, startMark: string, endMark: string) => {
+  if (typeof performance !== 'undefined' && performance.measure) {
+    try {
+      performance.measure(name, startMark, endMark);
+      if (isDevelopment) {
+        const measure = performance.getEntriesByName(name, 'measure')[0];
+        if (measure) {
+          console.log(`⏱️ ${name}: ${measure.duration.toFixed(2)}ms`);
+        }
+      }
+    } catch (error) {
+      devError('Failed to measure performance:', error);
+    }
+  }
+};
+
+// Admin cache functions
+const ADMIN_CACHE_KEY = 'admin_rights_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+interface AdminCacheData {
+  isAdmin: boolean;
+  timestamp: number;
+  userId: string;
+}
+
+export const getCachedAdminRights = (userId: string): boolean | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const cached = localStorage.getItem(`${ADMIN_CACHE_KEY}_${userId}`);
+    if (!cached) return null;
+    
+    const data: AdminCacheData = JSON.parse(cached);
+    const now = Date.now();
+    
+    if (now - data.timestamp > CACHE_DURATION) {
+      localStorage.removeItem(`${ADMIN_CACHE_KEY}_${userId}`);
+      return null;
+    }
+    
+    return data.isAdmin;
+  } catch (error) {
+    devError('Failed to get cached admin rights:', error);
+    return null;
+  }
+};
+
+export const setCachedAdminRights = (userId: string, isAdmin: boolean): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const data: AdminCacheData = {
+      isAdmin,
+      timestamp: Date.now(),
+      userId
+    };
+    localStorage.setItem(`${ADMIN_CACHE_KEY}_${userId}`, JSON.stringify(data));
+  } catch (error) {
+    devError('Failed to cache admin rights:', error);
+  }
+};
+
+export const clearAdminCache = (): void => {
+  if (typeof window === 'undefined') return;
+  
+  try {
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith(ADMIN_CACHE_KEY)) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (error) {
+    devError('Failed to clear admin cache:', error);
+  }
+};
+
 // Throttle функция для ограничения частоты вызовов
 export const throttle = <T extends (...args: any[]) => any>(
   func: T,
