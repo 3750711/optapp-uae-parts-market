@@ -2,11 +2,9 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import CarBrandModelSelector from './CarBrandModelSelector';
+import SmartFieldHints from '@/components/ui/SmartFieldHints';
+import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { OrderFormData } from '@/hooks/useOrderForm';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 
 interface BasicOrderInfoStepProps {
   formData: OrderFormData;
@@ -14,7 +12,7 @@ interface BasicOrderInfoStepProps {
   onInputChange: (field: string, value: string) => void;
   isFieldValid: (field: string) => boolean;
   getFieldError: (field: string) => string | null;
-  isMobile: boolean;
+  isMobile?: boolean;
 }
 
 const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
@@ -23,26 +21,9 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
   onInputChange,
   isFieldValid,
   getFieldError,
-  isMobile
+  isMobile = false
 }) => {
-  // Загружаем покупателей
-  const { data: buyers = [], isLoading: isBuyersLoading } = useQuery({
-    queryKey: ['buyers'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_type', 'buyer')
-        .order('full_name');
-
-      if (error) {
-        console.error('Error fetching buyers:', error);
-        throw error;
-      }
-      return data || [];
-    }
-  });
-
+  // Обработчик изменения бренда
   const handleBrandChange = (brandId: string, brandName: string) => {
     onInputChange('brandId', brandId);
     onInputChange('brand', brandName);
@@ -51,97 +32,55 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
     onInputChange('model', '');
   };
 
+  // Обработчик изменения модели
   const handleModelChange = (modelId: string, modelName: string) => {
     onInputChange('modelId', modelId);
     onInputChange('model', modelName);
   };
 
+  const getSmartHints = (fieldName: string, value: string) => {
+    const hints = [];
+    
+    if (fieldName === 'title' && value.length > 0 && value.length < 10) {
+      hints.push({
+        type: 'tip' as const,
+        text: 'Добавьте больше деталей в название для лучшего поиска'
+      });
+    }
+    
+    return hints;
+  };
+
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Основная информация</h3>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Наименование */}
-        <div className="space-y-2">
-          <Label htmlFor="title" className={isMobile ? "text-base font-medium" : ""}>
-            Наименование *
-          </Label>
-          <TouchOptimizedInput 
-            id="title"
-            value={formData.title}
-            onChange={(e) => onInputChange('title', e.target.value)}
-            placeholder="Введите наименование товара"
-            className={!isFieldValid('title') && touchedFields.has('title') ? "border-red-500" : ""}
-          />
-          {getFieldError('title') && (
-            <p className="text-sm text-red-500">{getFieldError('title')}</p>
-          )}
-        </div>
-
-        {/* Цена */}
-        <div className="space-y-2">
-          <Label htmlFor="price" className={isMobile ? "text-base font-medium" : ""}>
-            Цена *
-          </Label>
-          <TouchOptimizedInput 
-            id="price"
-            type="number"
-            min="0"
-            step="0.01"
-            value={formData.price}
-            onChange={(e) => onInputChange('price', e.target.value)}
-            placeholder="0.00"
-            className={!isFieldValid('price') && touchedFields.has('price') ? "border-red-500" : ""}
-          />
-          {getFieldError('price') && (
-            <p className="text-sm text-red-500">{getFieldError('price')}</p>
-          )}
-        </div>
-      </div>
-
-      {/* Покупатель */}
       <div className="space-y-2">
-        <Label htmlFor="buyerOptId" className={isMobile ? "text-base font-medium" : ""}>
-          Покупатель *
+        <Label htmlFor="title" className={isMobile ? "text-base font-medium" : ""}>
+          Наименование *
         </Label>
-        <Select
-          value={formData.buyerOptId}
-          onValueChange={(value) => onInputChange('buyerOptId', value)}
-          disabled={isBuyersLoading}
-        >
-          <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
-            <SelectValue placeholder={isBuyersLoading ? "Загрузка..." : "Выберите покупателя"} />
-          </SelectTrigger>
-          <SelectContent>
-            {buyers.map((buyer) => (
-              <SelectItem key={buyer.id} value={buyer.opt_id || buyer.id}>
-                {buyer.full_name || buyer.email} {buyer.opt_id ? `(${buyer.opt_id})` : ''}
-              </SelectItem>
-            ))}
-            {buyers.length === 0 && !isBuyersLoading && (
-              <div className="py-2 px-3 text-sm text-gray-500">
-                Покупатели не найдены
-              </div>
-            )}
-          </SelectContent>
-        </Select>
-        {getFieldError('buyerOptId') && (
-          <p className="text-sm text-red-500">{getFieldError('buyerOptId')}</p>
-        )}
-      </div>
-
-      {/* Информация об автомобиле */}
-      <div className="space-y-4">
-        <h4 className="text-md font-medium">Информация об автомобиле</h4>
-        
-        <CarBrandModelSelector
-          brandId={formData.brandId}
-          modelId={formData.modelId}
-          onBrandChange={handleBrandChange}
-          onModelChange={handleModelChange}
-          isMobile={isMobile}
+        <TouchOptimizedInput 
+          id="title" 
+          value={formData.title}
+          onChange={(e) => onInputChange('title', e.target.value)}
+          required 
+          placeholder="Введите наименование"
+          touched={touchedFields.has('title')}
+          error={getFieldError('title')}
+          success={touchedFields.has('title') && isFieldValid('title')}
+        />
+        <SmartFieldHints 
+          fieldName="title"
+          value={formData.title}
+          suggestions={getSmartHints('title', formData.title)}
         />
       </div>
+
+      <SimpleCarSelector
+        brandId={formData.brandId}
+        modelId={formData.modelId}
+        onBrandChange={handleBrandChange}
+        onModelChange={handleModelChange}
+        isMobile={isMobile}
+      />
     </div>
   );
 };

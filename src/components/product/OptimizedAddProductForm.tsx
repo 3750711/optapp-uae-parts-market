@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -54,16 +55,11 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
-  const [searchBrandTerm, setSearchBrandTerm] = useState('');
-  const [searchModelTerm, setSearchModelTerm] = useState('');
 
   // Car brands and models
   const {
-    brands,
-    allModels,
     findBrandNameById,
     findModelNameById,
-    isLoading: isLoadingCarData
   } = useCarBrandsAndModels();
 
   // Form with validation
@@ -73,37 +69,12 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
       title: initialProductData?.title || '',
       price: initialProductData?.price ? Number(initialProductData.price) : 0,
       description: initialProductData?.description || '',
-      brandId: initialProductData?.brand_id || '',
-      modelId: initialProductData?.model_id || '',
+      brandId: '',
+      modelId: '',
       place_number: initialProductData?.place_number || 1,
       delivery_price: initialProductData?.delivery_price ? Number(initialProductData.delivery_price) : 0,
     },
   });
-
-  // Watch brand ID for filtering models
-  const watchBrandId = form.watch('brandId');
-
-  // Filter models for selected brand
-  const filteredModelsByBrand = useMemo(() => {
-    if (!watchBrandId) return [];
-    return allModels.filter(model => model.brand_id === watchBrandId);
-  }, [allModels, watchBrandId]);
-
-  // Simple filtered brands
-  const filteredBrands = useMemo(() => {
-    if (!searchBrandTerm) return brands;
-    return brands.filter(brand => 
-      brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
-    );
-  }, [brands, searchBrandTerm]);
-
-  // Simple filtered models
-  const filteredModels = useMemo(() => {
-    if (!searchModelTerm) return filteredModelsByBrand;
-    return filteredModelsByBrand.filter(model => 
-      model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
-    );
-  }, [filteredModelsByBrand, searchModelTerm]);
 
   // Submission guard to prevent duplicate submissions
   const { guardedSubmit } = useSubmissionGuard({
@@ -207,7 +178,6 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
     form.setValue('brandId', brandId);
     // Reset model when brand changes
     form.setValue('modelId', '');
-    setSearchModelTerm('');
   };
 
   const handleModelChange = (modelId: string, modelName: string) => {
@@ -218,8 +188,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <BasicInfoSection 
-          form={form} 
-          isMobile={isMobile} 
+          form={form}
         />
 
         <SimpleCarSelector

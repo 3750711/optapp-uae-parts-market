@@ -2,26 +2,28 @@
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ProductFormValues } from '../OptimizedAddProductForm';
 
-interface BasicInfoSectionProps {
+interface DescriptionSectionProps {
   form: UseFormReturn<ProductFormValues>;
+  isMobile?: boolean;
 }
 
-const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ form }) => {
+const DescriptionSection: React.FC<DescriptionSectionProps> = ({ form, isMobile = false }) => {
   return (
     <FormField
       control={form.control}
-      name="title"
+      name="description"
       render={({ field }) => (
         <FormItem>
-          <FormLabel>
-            Название товара *
+          <FormLabel className={isMobile ? "text-base font-medium" : ""}>
+            Описание
           </FormLabel>
           <FormControl>
-            <Input
-              placeholder="Введите название товара"
+            <Textarea
+              placeholder="Дополнительная информация о товаре"
+              className={isMobile ? "min-h-[120px] text-base" : "min-h-[100px]"}
               {...field}
             />
           </FormControl>
@@ -32,4 +34,4 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({ form }) => {
   );
 };
 
-export default BasicInfoSection;
+export default DescriptionSection;
