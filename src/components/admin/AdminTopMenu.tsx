@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/menubar";
 import { Bell, Mail, Settings, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/OptimizedAuthContext";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import Header from "../layout/Header";
 

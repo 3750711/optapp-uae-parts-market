@@ -1,6 +1,6 @@
 
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/OptimizedAuthContext";
 import { toast } from "@/hooks/use-toast";
 import { devLog } from "@/utils/performanceUtils";
 
