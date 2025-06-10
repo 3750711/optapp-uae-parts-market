@@ -23,7 +23,8 @@ export const AdminFreeOrderForm = () => {
     isLoading,
     createdOrder,
     brands,
-    brandModels,
+    allModels,
+    getModelsForBrand,
     isLoadingCarData,
     searchBrandTerm,
     setSearchBrandTerm,
@@ -138,14 +139,14 @@ export const AdminFreeOrderForm = () => {
         sellerProfiles={sellerProfiles}
         selectedSeller={selectedSeller}
         brands={brands}
-        brandModels={brandModels}
+        brandModels={getModelsForBrand(formData.brandId || "")}
         isLoadingCarData={isLoadingCarData}
         searchBrandTerm={searchBrandTerm}
         setSearchBrandTerm={setSearchBrandTerm}
         searchModelTerm={searchModelTerm}
         setSearchModelTerm={setSearchModelTerm}
         filteredBrands={filteredBrands}
-        filteredModels={filteredModels}
+        filteredModels={filteredModels(formData.brandId || "")}
         parseTitleForBrand={parseTitleForBrand}
         onImagesUpload={onImagesUpload}
         onDataFromProduct={handleDataFromProduct}

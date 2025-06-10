@@ -106,8 +106,7 @@ const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
     brands,
     brandModels,
     searchBrandTerm,
-    searchModelTerm,
-    watchBrandId
+    searchModelTerm
   );
 
   const handleSubmit = useCallback((values: ProductFormValues) => {
