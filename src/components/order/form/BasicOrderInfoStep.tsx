@@ -25,8 +25,8 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
   getFieldError,
   isMobile
 }) => {
-  // Загружаем покупателей напрямую из Supabase
-  const { data: buyers = [] } = useQuery({
+  // Загружаем покупателей
+  const { data: buyers = [], isLoading: isBuyersLoading } = useQuery({
     queryKey: ['buyers'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -107,9 +107,10 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
         <Select
           value={formData.buyerOptId}
           onValueChange={(value) => onInputChange('buyerOptId', value)}
+          disabled={isBuyersLoading}
         >
           <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
-            <SelectValue placeholder="Выберите покупателя" />
+            <SelectValue placeholder={isBuyersLoading ? "Загрузка..." : "Выберите покупателя"} />
           </SelectTrigger>
           <SelectContent>
             {buyers.map((buyer) => (
@@ -117,6 +118,11 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
                 {buyer.full_name || buyer.email} {buyer.opt_id ? `(${buyer.opt_id})` : ''}
               </SelectItem>
             ))}
+            {buyers.length === 0 && !isBuyersLoading && (
+              <div className="py-2 px-3 text-sm text-gray-500">
+                Покупатели не найдены
+              </div>
+            )}
           </SelectContent>
         </Select>
         {getFieldError('buyerOptId') && (

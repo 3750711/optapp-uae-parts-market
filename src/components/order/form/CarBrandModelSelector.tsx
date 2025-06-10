@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Label } from '@/components/ui/label';
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
 import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
@@ -25,12 +25,19 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
 
   const {
     brands,
-    brandModels,
-    selectBrand,
+    allModels,
     findBrandNameById,
     findModelNameById,
     isLoading: isLoadingCarData
   } = useCarBrandsAndModels();
+
+  // Фильтруем модели для выбранного бренда
+  const filteredModelsByBrand = useMemo(() => {
+    if (!brandId || !allModels || allModels.length === 0) {
+      return [];
+    }
+    return allModels.filter(model => model.brand_id === brandId);
+  }, [allModels, brandId]);
 
   // Оптимизированный поиск
   const {
@@ -40,40 +47,43 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
     hasValidModels
   } = useOptimizedBrandSearch(
     brands,
-    brandModels,
+    filteredModelsByBrand,
     searchBrandTerm,
-    searchModelTerm,
-    brandId // Используем brandId напрямую из пропсов
+    searchModelTerm
   );
 
-  // Синхронизация выбранного бренда
-  useEffect(() => {
-    if (brandId && brandId !== '') {
-      selectBrand(brandId);
-    }
-  }, [brandId, selectBrand]);
-
-  const handleBrandChange = (selectedBrandId: string) => {
+  const handleBrandChange = useCallback((selectedBrandId: string) => {
     if (!selectedBrandId || !hasValidBrands) return;
     
     const brandName = findBrandNameById(selectedBrandId);
     if (brandName) {
       onBrandChange(selectedBrandId, brandName);
-      selectBrand(selectedBrandId);
-      
       // Сбрасываем модель при смене бренда
       onModelChange('', '');
+      // Сбрасываем поиск модели
+      setSearchModelTerm('');
     }
-  };
+  }, [hasValidBrands, findBrandNameById, onBrandChange, onModelChange]);
 
-  const handleModelChange = (selectedModelId: string) => {
+  const handleModelChange = useCallback((selectedModelId: string) => {
     if (!selectedModelId || !hasValidModels) return;
     
     const modelName = findModelNameById(selectedModelId);
     if (modelName) {
       onModelChange(selectedModelId, modelName);
     }
-  };
+  }, [hasValidModels, findModelNameById, onModelChange]);
+
+  // Мемоизированные обработчики поиска
+  const handleBrandSearchChange = useCallback((term: string) => {
+    setSearchBrandTerm(term);
+  }, []);
+
+  const handleModelSearchChange = useCallback((term: string) => {
+    setSearchModelTerm(term);
+  }, []);
+
+  const isModelDisabled = !brandId || isLoadingCarData || !hasValidModels;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -91,9 +101,15 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
           disabled={isLoadingCarData || !hasValidBrands}
           className={isMobile ? "h-12" : ""}
           searchTerm={searchBrandTerm}
-          onSearchChange={setSearchBrandTerm}
+          onSearchChange={handleBrandSearchChange}
           showResultCount={true}
         />
+        {isLoadingCarData && (
+          <p className="text-xs text-gray-500">Загрузка брендов...</p>
+        )}
+        {!isLoadingCarData && !hasValidBrands && (
+          <p className="text-xs text-red-500">Бренды не найдены</p>
+        )}
       </div>
 
       {/* Модель с поиском */}
@@ -107,12 +123,18 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
           onValueChange={handleModelChange}
           placeholder={brandId ? "Выберите модель" : "Сначала выберите бренд"}
           searchPlaceholder="Поиск модели..."
-          disabled={!brandId || isLoadingCarData || !hasValidModels}
+          disabled={isModelDisabled}
           className={isMobile ? "h-12" : ""}
           searchTerm={searchModelTerm}
-          onSearchChange={setSearchModelTerm}
+          onSearchChange={handleModelSearchChange}
           showResultCount={true}
         />
+        {isLoadingCarData && brandId && (
+          <p className="text-xs text-gray-500">Загрузка моделей...</p>
+        )}
+        {!isLoadingCarData && brandId && !hasValidModels && (
+          <p className="text-xs text-red-500">Модели для данного бренда не найдены</p>
+        )}
       </div>
     </div>
   );

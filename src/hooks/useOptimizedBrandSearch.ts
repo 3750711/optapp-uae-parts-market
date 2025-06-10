@@ -15,18 +15,17 @@ interface Model {
 
 export const useOptimizedBrandSearch = (
   brands: Brand[],
-  brandModels: Model[],
+  models: Model[], // Уже отфильтрованные модели для выбранного бренда
   searchBrandTerm: string,
-  searchModelTerm: string,
-  selectedBrandId: string // Используем напрямую brandId из формы
+  searchModelTerm: string
 ) => {
   // Популярные бренды
-  const popularBrands = [
-    "toyota", "honda", "ford", "chevrolet", "nissan", 
-    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
-  ];
-
   const popularBrandIds = useMemo(() => {
+    const popularBrands = [
+      "toyota", "honda", "ford", "chevrolet", "nissan", 
+      "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
+    ];
+    
     if (!brands || brands.length === 0) return [];
     return brands
       .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
@@ -39,16 +38,8 @@ export const useOptimizedBrandSearch = (
     popularItems: popularBrandIds
   });
 
-  // Модели для выбранного бренда - используем selectedBrandId напрямую
-  const brandFilteredModels = useMemo(() => {
-    if (!brandModels || brandModels.length === 0 || !selectedBrandId) {
-      return [];
-    }
-    return brandModels.filter(model => model.brand_id === selectedBrandId);
-  }, [brandModels, selectedBrandId]);
-
   const modelSearch = useEnhancedSearch({
-    items: brandFilteredModels,
+    items: models || [],
     searchTerm: searchModelTerm
   });
 
@@ -57,9 +48,7 @@ export const useOptimizedBrandSearch = (
     filteredModels: modelSearch.filteredItems,
     brandResultCount: brandSearch.resultCount,
     modelResultCount: modelSearch.resultCount,
-    isBrandSearching: brandSearch.isSearching,
-    isModelSearching: modelSearch.isSearching,
     hasValidBrands: brands && brands.length > 0,
-    hasValidModels: brandFilteredModels.length > 0
+    hasValidModels: models && models.length > 0
   };
 };
