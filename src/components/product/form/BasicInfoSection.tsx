@@ -58,7 +58,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
 
         <FormField
           control={form.control}
-          name="deliveryPrice"
+          name="delivery_price"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Стоимость доставки ($)</FormLabel>
@@ -79,7 +79,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
 
       <FormField
         control={form.control}
-        name="placeNumber"
+        name="place_number"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Количество мест для отправки</FormLabel>

@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { UseFormReturn } from 'react-hook-form';
 import { CarBrand, CarModel } from '@/hooks/useCarBrandsAndModels';
 
-// Экспортируем схему и типы
+// Base schema for regular product form
 export const createProductSchema = z.object({
   title: z.string().min(1, 'Название обязательно'),
   price: z.number().min(0, 'Цена должна быть положительной'),
@@ -15,11 +15,17 @@ export const createProductSchema = z.object({
   delivery_price: z.number().optional(),
 });
 
+// Extended schema for admin forms that includes seller selection
+export const adminProductSchema = createProductSchema.extend({
+  sellerId: z.string().min(1, 'Выберите продавца'),
+});
+
 export type ProductFormValues = z.infer<typeof createProductSchema>;
+export type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 interface OptimizedAddProductFormProps {
-  form: UseFormReturn<ProductFormValues>;
-  onSubmit: (values: ProductFormValues) => Promise<void>;
+  form: UseFormReturn<ProductFormValues | AdminProductFormValues>;
+  onSubmit: (values: ProductFormValues | AdminProductFormValues) => Promise<void>;
   isSubmitting: boolean;
   imageUrls: string[];
   videoUrls: string[];
@@ -73,6 +79,27 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
       <h2 className="text-2xl font-bold">Добавить товар</h2>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Seller Selection - Only for admin */}
+          {showSellerSelection && sellers && (
+            <div>
+              <label className="block text-sm font-medium mb-2">Продавец *</label>
+              <select
+                {...form.register('sellerId' as any)}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="">Выберите продавца...</option>
+                {sellers.map(seller => (
+                  <option key={seller.id} value={seller.id}>
+                    {seller.full_name}
+                  </option>
+                ))}
+              </select>
+              {form.formState.errors.sellerId && (
+                <p className="text-red-500 text-sm mt-1">{form.formState.errors.sellerId.message}</p>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium mb-2">Название товара</label>
             <input

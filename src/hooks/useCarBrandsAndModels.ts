@@ -3,12 +3,12 @@ import { useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
-interface CarBrand {
+export interface CarBrand {
   id: string;
   name: string;
 }
 
-interface CarModel {
+export interface CarModel {
   id: string;
   name: string;
   brand_id: string;

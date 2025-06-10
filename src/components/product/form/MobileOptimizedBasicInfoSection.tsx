@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ProductFormValues } from "../OptimizedAddProductForm";
+import { ProductFormValues, AdminProductFormValues } from "../OptimizedAddProductForm";
 import OptimizedSelect from "@/components/ui/OptimizedSelect";
 
 interface MobileOptimizedBasicInfoSectionProps {
-  form: UseFormReturn<ProductFormValues>;
+  form: UseFormReturn<ProductFormValues | AdminProductFormValues>;
   sellers?: Array<{id: string, full_name: string}>;
   searchSellerTerm?: string;
   setSearchSellerTerm?: (term: string) => void;
@@ -42,14 +42,14 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {showSellerSelection && (
         <FormField
           control={form.control}
-          name="sellerId"
+          name="sellerId" as any
           render={({ field }) => (
             <FormItem>
               <FormLabel>Продавец *</FormLabel>
               <FormControl>
                 <OptimizedSelect
                   options={sellerOptions}
-                  value={field.value}
+                  value={field.value || ""}
                   onValueChange={field.onChange}
                   placeholder="Выберите продавца..."
                   searchPlaceholder="Поиск продавца..."
@@ -104,7 +104,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
 
         <FormField
           control={form.control}
-          name="placeNumber"
+          name="place_number"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Количество мест *</FormLabel>
@@ -145,7 +145,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {/* Delivery Price */}
       <FormField
         control={form.control}
-        name="deliveryPrice"
+        name="delivery_price"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Стоимость доставки (AED)</FormLabel>
