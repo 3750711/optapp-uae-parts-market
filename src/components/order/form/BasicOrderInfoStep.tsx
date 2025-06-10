@@ -5,9 +5,10 @@ import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { OrderFormData } from '@/hooks/useOrderForm';
-import { useProfiles } from '@/hooks/useProfiles';
 import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
 import { useOptimizedBrandSearch } from '@/hooks/useOptimizedBrandSearch';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface BasicOrderInfoStepProps {
   formData: OrderFormData;
@@ -29,13 +30,23 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
   const [searchBrandTerm, setSearchBrandTerm] = useState('');
   const [searchModelTerm, setSearchModelTerm] = useState('');
 
-  // Загружаем покупателей
-  const { data: profiles = [] } = useProfiles({
-    userType: 'buyer',
-    enabled: true
-  });
+  // Загружаем покупателей напрямую из Supabase
+  const { data: buyers = [] } = useQuery({
+    queryKey: ['buyers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_type', 'buyer')
+        .order('full_name');
 
-  const buyers = profiles.filter(profile => profile.user_type === 'buyer');
+      if (error) {
+        console.error('Error fetching buyers:', error);
+        throw error;
+      }
+      return data || [];
+    }
+  });
 
   // Загружаем бренды и модели
   const {
