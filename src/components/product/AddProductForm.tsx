@@ -1,3 +1,4 @@
+
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -75,7 +76,7 @@ interface AddProductFormProps {
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
   // Admin-specific props
-  sellers?: Array<{id: string, full_name: string}>;
+  sellers?: Array<{id: string, full_name: string, opt_id?: string}>;
   showSellerSelection?: boolean;
 }
 
@@ -111,6 +112,15 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
     setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete));
   };
 
+  // Sort sellers by OPT ID alphabetically
+  const sortedSellers = React.useMemo(() => {
+    return [...sellers].sort((a, b) => {
+      const optIdA = a.opt_id || '';
+      const optIdB = b.opt_id || '';
+      return optIdA.localeCompare(optIdB);
+    });
+  }, [sellers]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -131,9 +141,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
                       <SelectValue placeholder="Выберите продавца" />
                     </SelectTrigger>
                     <SelectContent className="max-h-[300px]">
-                      {sellers.map((seller) => (
+                      {sortedSellers.map((seller) => (
                         <SelectItem key={seller.id} value={seller.id}>
-                          {seller.full_name}
+                          {seller.opt_id ? `${seller.opt_id} - ${seller.full_name}` : seller.full_name}
                         </SelectItem>
                       ))}
                     </SelectContent>

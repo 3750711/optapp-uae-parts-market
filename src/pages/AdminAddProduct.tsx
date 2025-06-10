@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -26,7 +25,7 @@ const AdminAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sellers, setSellers] = useState<{ id: string; full_name: string }[]>([]);
+  const [sellers, setSellers] = useState<{ id: string; full_name: string; opt_id: string }[]>([]);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
@@ -89,12 +88,12 @@ const AdminAddProduct = () => {
     }
   }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
 
-  // Fetch sellers
+  // Fetch sellers with OPT ID
   useEffect(() => {
     const fetchSellers = async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, opt_id')
         .eq('user_type', 'seller')
         .order('full_name');
 
