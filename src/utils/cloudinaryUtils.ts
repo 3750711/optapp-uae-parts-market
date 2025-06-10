@@ -163,16 +163,27 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
       return null;
     }
     
-    // Skip transformation part if exists (anything with commas or underscores after upload)
+    // Start looking for public_id after upload
     let publicIdIndex = uploadIndex + 1;
     
-    // Skip transformation parameters (they contain commas, underscores, colons)
-    while (publicIdIndex < urlParts.length && 
-           (urlParts[publicIdIndex].includes(',') || 
-            urlParts[publicIdIndex].includes('_') ||
-            urlParts[publicIdIndex].includes(':') ||
-            urlParts[publicIdIndex].startsWith('v') && /^v\d+$/.test(urlParts[publicIdIndex]))) {
-      publicIdIndex++;
+    // Skip transformation parameters and version
+    while (publicIdIndex < urlParts.length) {
+      const part = urlParts[publicIdIndex];
+      
+      // Skip transformation parameters (contain commas, underscores, colons)
+      if (part.includes(',') || part.includes('_') && part.includes(':')) {
+        publicIdIndex++;
+        continue;
+      }
+      
+      // Skip version (starts with 'v' followed by numbers)
+      if (/^v\d+$/.test(part)) {
+        publicIdIndex++;
+        continue;
+      }
+      
+      // This should be the start of public_id
+      break;
     }
     
     if (publicIdIndex >= urlParts.length) {
@@ -180,9 +191,8 @@ export const extractPublicIdFromUrl = (cloudinaryUrl: string): string | null => 
       return null;
     }
     
+    // Join remaining parts as public_id and remove file extension
     const publicIdWithExtension = urlParts.slice(publicIdIndex).join('/');
-    
-    // Remove file extension
     const publicIdFinal = publicIdWithExtension.replace(/\.[^/.]+$/, '');
     
     console.log('✅ Extracted public_id:', {

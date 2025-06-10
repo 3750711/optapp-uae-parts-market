@@ -31,7 +31,7 @@ export const getCatalogImageUrl = (
     const extractedPublicId = extractPublicIdFromUrl(cloudinaryUrl);
     if (extractedPublicId) {
       const optimizedUrl = getProductImageUrl(extractedPublicId, 'card');
-      console.log('✅ Using optimized from extracted public_id:', optimizedUrl);
+      console.log('✅ Using optimized from extracted cloudinary_url public_id:', optimizedUrl);
       return optimizedUrl;
     }
   }
@@ -44,6 +44,10 @@ export const getCatalogImageUrl = (
       console.log('✅ Using optimized from original URL public_id:', optimizedUrl);
       return optimizedUrl;
     }
+    
+    // If extraction failed but it's still a Cloudinary URL, use it as-is
+    console.log('⚠️ Using original Cloudinary URL (extraction failed):', originalUrl);
+    return originalUrl;
   }
 
   // Priority 4: Use original URL if available and not a fallback

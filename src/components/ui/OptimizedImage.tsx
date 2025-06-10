@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
+import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
 
 interface OptimizedImageProps {
   src: string;
@@ -29,62 +30,76 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   size = 'card'
 }) => {
   const [imageError, setImageError] = useState(false);
+  const [fallbackUsed, setFallbackUsed] = useState(false);
 
   const handleImageError = () => {
-    setImageError(true);
+    console.log('🔴 Image error for:', src);
+    if (!fallbackUsed) {
+      setFallbackUsed(true);
+    } else {
+      setImageError(true);
+    }
     onError?.();
   };
 
-  // Get optimized image URL with Cloudinary priority
-  const optimizedSrc = getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl);
-  
-  console.log('🎨 OptimizedImage using:', {
+  const handleImageLoad = () => {
+    console.log('✅ Image loaded:', src);
+    onLoad?.();
+  };
+
+  // Try to get a usable public_id
+  const workingPublicId = cloudinaryPublicId || 
+    (cloudinaryUrl ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
+    (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
+
+  console.log('🎨 OptimizedImage analysis:', {
     originalSrc: src,
     cloudinaryPublicId,
     cloudinaryUrl,
-    optimizedSrc,
-    imageError
+    workingPublicId,
+    imageError,
+    fallbackUsed
   });
 
-  // If we have cloudinary public_id, use CloudinaryImage component for full optimization
-  if (cloudinaryPublicId && !imageError) {
-    console.log('🔧 Using CloudinaryImage component for:', cloudinaryPublicId);
+  // If we have a working public_id and no errors, use CloudinaryImage
+  if (workingPublicId && !imageError && !fallbackUsed) {
     return (
       <CloudinaryImage
-        publicId={cloudinaryPublicId}
+        publicId={workingPublicId}
         alt={alt}
         size={size}
         className={className}
         priority={priority}
-        onLoad={onLoad}
+        onLoad={handleImageLoad}
         onError={handleImageError}
         fallbackSrc="/placeholder.svg"
       />
     );
   }
 
-  // Use optimized URL directly
-  if (optimizedSrc && optimizedSrc !== '/placeholder.svg' && !imageError) {
+  // Use original/optimized URL with fallback handling
+  const imageUrl = fallbackUsed ? '/placeholder.svg' : (getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl));
+
+  if (imageError || imageUrl === '/placeholder.svg') {
     return (
       <img
-        src={optimizedSrc}
+        src="/placeholder.svg"
         alt={alt}
         className={`${className} object-contain`}
-        onLoad={onLoad}
-        onError={handleImageError}
+        onLoad={handleImageLoad}
         loading={priority ? 'eager' : 'lazy'}
         sizes={sizes}
       />
     );
   }
 
-  // Final fallback
   return (
     <img
-      src="/placeholder.svg"
+      src={imageUrl}
       alt={alt}
       className={`${className} object-contain`}
-      onLoad={onLoad}
+      onLoad={handleImageLoad}
+      onError={handleImageError}
       loading={priority ? 'eager' : 'lazy'}
       sizes={sizes}
     />
