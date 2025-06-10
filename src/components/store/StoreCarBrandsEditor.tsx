@@ -38,12 +38,17 @@ const StoreCarBrandsEditor: React.FC<StoreCarBrandsEditorProps> = ({ storeId }) 
           return;
         }
 
-        const brandIds = [...new Set(storeBrands?.map(sb => sb.car_brand_id) || [])];
+        // Properly type the data and filter out null values
+        const brandIds = [...new Set(
+          storeBrands
+            ?.map(sb => sb.car_brand_id)
+            .filter((id): id is string => id !== null) || []
+        )];
         setSelectedCarBrands(brandIds);
 
         const modelsByBrand: {[brandId: string]: string[]} = {};
         storeBrands?.forEach(sb => {
-          if (sb.car_model_id) {
+          if (sb.car_model_id && sb.car_brand_id) {
             if (!modelsByBrand[sb.car_brand_id]) {
               modelsByBrand[sb.car_brand_id] = [];
             }
