@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import {
@@ -104,16 +105,6 @@ const AdminCarCatalog = () => {
     filteredModelsCount
   } = useAllCarBrands();
 
-  // Filter brands based on search term
-  const filteredBrands = brands.filter(brand => 
-    brand.name.toLowerCase().includes(brandSearchTerm.toLowerCase())
-  );
-
-  // Filter models based on search term and selected brand
-  const filteredModels = brandModels.filter(model => 
-    model.name.toLowerCase().includes(modelSearchTerm.toLowerCase())
-  );
-
   // Form for adding/editing a brand
   const brandForm = useForm<BrandFormValues>({
     resolver: zodResolver(brandSchema),
@@ -195,7 +186,7 @@ const AdminCarCatalog = () => {
         title: "Марка добавлена",
         description: "Новая марка автомобиля успешно добавлена.",
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-brands'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-car-brands'] });
       setAddBrandDialogOpen(false);
       brandForm.reset();
     },
@@ -239,7 +230,7 @@ const AdminCarCatalog = () => {
         title: "Марка обновлена",
         description: "Марка автомобиля успешно обновлена.",
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-brands'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-car-brands'] });
       setAddBrandDialogOpen(false);
       setSelectedBrandForEdit(null);
       brandForm.reset();
@@ -287,8 +278,8 @@ const AdminCarCatalog = () => {
       }
       
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-brands'] });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-car-brands'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-car-models'] });
       setIsDeleteAlertOpen(false);
       setBrandToDelete(null);
     },
@@ -331,7 +322,7 @@ const AdminCarCatalog = () => {
         title: "Модель добавлена",
         description: "Новая модель автомобиля успешно добавлена.",
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', selectedBrand] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-car-models', selectedBrand] });
       setAddModelDialogOpen(false);
       modelForm.reset();
     },
@@ -376,7 +367,7 @@ const AdminCarCatalog = () => {
         title: "Модель обновлена",
         description: "Модель автомобиля успешно обновлена.",
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', selectedBrand] });
+      queryClient.invalidateQueries({ queryKey: ['admin-all-car-models', selectedBrand] });
       setAddModelDialogOpen(false);
       setSelectedModelForEdit(null);
       modelForm.reset();
@@ -835,5 +826,3 @@ const AdminCarCatalog = () => {
 };
 
 export default AdminCarCatalog;
-
-</edits_to_apply>
