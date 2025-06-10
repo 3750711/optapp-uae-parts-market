@@ -1,10 +1,12 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useOptimizedProfiles } from "@/hooks/useOptimizedProfiles";
+import { useOptimizedAdminAccess } from "@/hooks/useOptimizedAdminAccess";
 import { ProfileShort, SellerProfile, OrderFormData, DeliveryMethod, OrderStatus, OrderCreatedType } from "./types";
 
 export const useOrderFormLogic = () => {
@@ -13,15 +15,8 @@ export const useOrderFormLogic = () => {
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const [createdOrder, setCreatedOrder] = useState<any>(null);
-  const [buyerProfiles, setBuyerProfiles] = useState<ProfileShort[]>([]);
-  const [sellerProfiles, setSellerProfiles] = useState<SellerProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedSeller, setSelectedSeller] = useState<SellerProfile | null>(null);
-  
-  // New states for initialization
-  const [isInitializing, setIsInitializing] = useState(true);
-  const [initializationError, setInitializationError] = useState<string | null>(null);
-  const [hasAdminAccess, setHasAdminAccess] = useState(false);
   
   // New states for tracking order creation stages
   const [creationStage, setCreationStage] = useState<string>('');
@@ -31,12 +26,14 @@ export const useOrderFormLogic = () => {
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   
+  // Используем оптимизированные хуки
+  const { hasAdminAccess, isInitializing, initializationError } = useOptimizedAdminAccess(user?.id);
+  const { buyerProfiles, sellerProfiles, isLoading: isLoadingProfiles, error: profilesError } = useOptimizedProfiles(user?.id);
+  
   const { 
     brands, 
     brandModels, 
     selectBrand,
-    findBrandIdByName,
-    findModelIdByName, 
     isLoading: isLoadingCarData 
   } = useCarBrandsAndModels();
 
@@ -64,108 +61,17 @@ export const useOrderFormLogic = () => {
     delivery_price: "",
   });
 
-  // Check admin access on component mount
+  // Handle profiles loading error
   useEffect(() => {
-    const checkAdminAccess = async () => {
-      try {
-        console.log('🔐 Checking admin access for user:', user?.id);
-        
-        if (!user?.id) {
-          console.error('❌ No user ID found');
-          setInitializationError('Не удалось определить пользователя');
-          setIsInitializing(false);
-          return;
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) {
-          console.error('❌ Error fetching user profile:', profileError);
-          setInitializationError('Ошибка при проверке прав доступа');
-          setIsInitializing(false);
-          return;
-        }
-
-        if (profile?.user_type !== 'admin') {
-          console.error('❌ User is not admin:', profile?.user_type);
-          setInitializationError('Недостаточно прав для доступа к этой странице');
-          setIsInitializing(false);
-          return;
-        }
-
-        console.log('✅ Admin access confirmed');
-        setHasAdminAccess(true);
-      } catch (error) {
-        console.error('💥 Exception checking admin access:', error);
-        setInitializationError('Произошла ошибка при проверке прав доступа');
-        setIsInitializing(false);
-      }
-    };
-
-    checkAdminAccess();
-  }, [user?.id]);
-
-  // Fetch profiles with error handling
-  useEffect(() => {
-    if (!hasAdminAccess) return;
-
-    const fetchProfiles = async () => {
-      try {
-        console.log('📋 Starting to fetch profiles...');
-        
-        // Fetch buyer profiles
-        console.log('👥 Fetching buyer profiles...');
-        const { data: buyersData, error: buyersError } = await supabase
-          .from("profiles")
-          .select("id, opt_id, full_name")
-          .eq("user_type", "buyer")
-          .not("opt_id", "is", null);
-        
-        if (buyersError) {
-          console.error("❌ Error fetching buyer profiles:", buyersError);
-          throw new Error(`Ошибка загрузки покупателей: ${buyersError.message}`);
-        }
-        
-        console.log('✅ Buyer profiles loaded:', buyersData?.length || 0);
-        setBuyerProfiles(buyersData || []);
-        
-        // Fetch seller profiles
-        console.log('🏪 Fetching seller profiles...');
-        const { data: sellersData, error: sellersError } = await supabase
-          .from("profiles")
-          .select("id, opt_id, full_name, telegram")
-          .eq("user_type", "seller");
-        
-        if (sellersError) {
-          console.error("❌ Error fetching seller profiles:", sellersError);
-          throw new Error(`Ошибка загрузки продавцов: ${sellersError.message}`);
-        }
-        
-        console.log('✅ Seller profiles loaded:', sellersData?.length || 0);
-        setSellerProfiles(sellersData || []);
-        
-        console.log('🎉 All profiles loaded successfully');
-        setIsInitializing(false);
-      } catch (error) {
-        console.error("💥 Exception fetching profiles:", error);
-        const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка при загрузке данных";
-        setInitializationError(errorMessage);
-        setIsInitializing(false);
-        
-        toast({
-          title: "Ошибка загрузки",
-          description: errorMessage,
-          variant: "destructive",
-        });
-      }
-    };
-
-    fetchProfiles();
-  }, [hasAdminAccess]);
+    if (profilesError) {
+      console.error('💥 Profiles loading error:', profilesError);
+      toast({
+        title: "Ошибка загрузки",
+        description: "Не удалось загрузить список пользователей",
+        variant: "destructive",
+      });
+    }
+  }, [profilesError]);
 
   // New function to parse title for brand information
   const parseTitleForBrand = useCallback((title: string) => {
@@ -408,7 +314,7 @@ export const useOrderFormLogic = () => {
       price: parseFloat(formData.price),
       place_number: parseInt(formData.place_number),
       seller_id: formData.sellerId,
-      order_seller_name: finalSellerName, // Используем строго валидированное имя
+      order_seller_name: finalSellerName,
       seller_opt_id: selectedSeller?.opt_id || null,
       buyer_id: buyerData.id,
       brand: formData.brand || '',
@@ -703,7 +609,7 @@ export const useOrderFormLogic = () => {
     createdOrder,
     brands,
     brandModels,
-    isLoadingCarData,
+    isLoadingCarData: isLoadingCarData || isLoadingProfiles,
     searchBrandTerm,
     setSearchBrandTerm,
     searchModelTerm,
@@ -727,3 +633,5 @@ export const useOrderFormLogic = () => {
     hasAdminAccess
   };
 };
+
+export default useOrderFormLogic;

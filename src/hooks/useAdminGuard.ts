@@ -3,10 +3,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { devLog } from '@/utils/performanceUtils';
 
 export const useAdminGuard = (redirectOnFail: boolean = true) => {
-  const { user, profile, isLoading: authLoading, isAdmin, isCheckingAdmin } = useAuth();
+  const { user, profile, isLoading, isAdmin } = useAuth();
 
   // Simple state calculation without complex effects
-  const isLoading = authLoading || isCheckingAdmin;
   const hasUser = !!user;
   const hasProfile = !!profile;
   const hasAdminAccess = isAdmin === true;
@@ -15,7 +14,8 @@ export const useAdminGuard = (redirectOnFail: boolean = true) => {
     hasUser,
     hasProfile,
     isLoading,
-    hasAdminAccess
+    hasAdminAccess,
+    userType: profile?.user_type
   });
 
   return {
