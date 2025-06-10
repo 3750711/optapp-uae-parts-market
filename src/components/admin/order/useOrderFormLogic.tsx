@@ -25,30 +25,21 @@ export const useOrderFormLogic = () => {
   
   const { 
     brands, 
-    allModels,
+    brandModels, 
+    selectBrand,
     findBrandIdByName,
     findModelIdByName, 
     isLoading: isLoadingCarData 
   } = useCarBrandsAndModels();
 
-  // Filter models based on selected brand and search term
+  // Filter brands and models based on search terms
   const filteredBrands = brands.filter(brand => 
     brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
   );
 
-  // Get models for currently selected brand in form
-  const getModelsForBrand = useCallback((brandId: string) => {
-    if (!brandId || !allModels) return [];
-    return allModels.filter(model => model.brand_id === brandId);
-  }, [allModels]);
-
-  const filteredModels = useCallback((brandId: string) => {
-    const brandModels = getModelsForBrand(brandId);
-    if (!searchModelTerm) return brandModels;
-    return brandModels.filter(model => 
-      model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
-    );
-  }, [getModelsForBrand, searchModelTerm]);
+  const filteredModels = brandModels.filter(model => 
+    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+  );
   
   const [formData, setFormData] = useState<OrderFormData>({
     title: "",
@@ -81,10 +72,13 @@ export const useOrderFormLogic = () => {
           brandId: brand.id,
           brand: brand.name
         }));
+        
+        // Load models for this brand
+        selectBrand(brand.id);
         break;
       }
     }
-  }, [brands]);
+  }, [brands, selectBrand]);
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -136,6 +130,8 @@ export const useOrderFormLogic = () => {
   // Handle brand and model changes
   useEffect(() => {
     if (formData.brandId) {
+      selectBrand(formData.brandId);
+      
       // Set the brand name when brandId changes
       const selectedBrand = brands.find(brand => brand.id === formData.brandId);
       if (selectedBrand) {
@@ -147,9 +143,8 @@ export const useOrderFormLogic = () => {
       
       // Reset model if the brand has changed
       if (formData.modelId) {
-        const currentBrandModels = getModelsForBrand(formData.brandId);
-        const modelBelongsToBrand = currentBrandModels.some(model => 
-          model.id === formData.modelId
+        const modelBelongsToBrand = brandModels.some(model => 
+          model.id === formData.modelId && model.brand_id === formData.brandId
         );
         
         if (!modelBelongsToBrand) {
@@ -161,12 +156,12 @@ export const useOrderFormLogic = () => {
         }
       }
     }
-  }, [formData.brandId, brands, getModelsForBrand, formData.modelId]);
+  }, [formData.brandId, brands, brandModels, selectBrand]);
   
   // Update model name when modelId changes
   useEffect(() => {
     if (formData.modelId) {
-      const selectedModel = allModels.find(model => model.id === formData.modelId);
+      const selectedModel = brandModels.find(model => model.id === formData.modelId);
       if (selectedModel) {
         setFormData(prev => ({
           ...prev,
@@ -174,7 +169,7 @@ export const useOrderFormLogic = () => {
         }));
       }
     }
-  }, [formData.modelId, allModels]);
+  }, [formData.modelId, brandModels]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -643,8 +638,7 @@ export const useOrderFormLogic = () => {
     isLoading,
     createdOrder,
     brands,
-    allModels,
-    getModelsForBrand,
+    brandModels,
     isLoadingCarData,
     searchBrandTerm,
     setSearchBrandTerm,
@@ -665,5 +659,3 @@ export const useOrderFormLogic = () => {
     creationProgress
   };
 };
-
-export default useOrderFormLogic;
