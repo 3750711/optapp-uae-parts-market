@@ -1,4 +1,3 @@
-
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { z } from "zod";
@@ -49,6 +48,7 @@ export const productSchema = z.object({
   deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
     message: "Стоимость доставки должна быть числом",
   }),
+  sellerId: z.string().optional(), // Add sellerId for admin use
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
