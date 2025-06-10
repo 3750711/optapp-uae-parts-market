@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 // Список путей где должны загружаться автомобильные данные
 const CAR_DATA_PATHS = [
   '/catalog',
+  '/admin/car-catalog',
   '/seller/add-product',
   '/admin/add-product',
   '/admin/create-order',
