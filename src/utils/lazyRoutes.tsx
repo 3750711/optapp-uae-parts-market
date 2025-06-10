@@ -1,61 +1,272 @@
 
-import React, { Suspense } from 'react';
-import { Loader2 } from "lucide-react";
+import { lazy } from 'react';
 
-// Loading component to show while lazy components are loading
-const PageLoader = () => (
-  <div className="flex items-center justify-center min-h-[60vh]">
-    <div className="text-center">
-      <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
-      <div className="mt-4 text-gray-500">Загрузка...</div>
-    </div>
-  </div>
-);
-
-// Helper function to create lazy loaded routes with better error handling
-export function lazyLoad(importFunc: () => Promise<any>) {
-  const LazyComponent = React.lazy(() => {
-    return importFunc()
-      .catch(error => {
-        console.error("Error loading component:", error);
-        // Return a module with a default component that shows the error
-        return {
-          default: () => (
-            <div className="p-6 max-w-md mx-auto bg-white rounded-xl shadow-md">
-              <h2 className="text-red-600 text-xl font-bold">Error Loading Component</h2>
-              <p className="mt-2 text-gray-600">There was a problem loading this component.</p>
-              <p className="mt-2 text-sm text-gray-500">Please try refreshing the page.</p>
-            </div>
-          )
-        };
-      });
-  });
-  
-  return () => (
-    <Suspense fallback={<PageLoader />}>
-      <LazyComponent />
-    </Suspense>
-  );
-}
-
-// Pre-defined lazy loaded pages
-export const LazyProductDetail = lazyLoad(() => import('../pages/ProductDetail'));
-export const LazyCatalog = lazyLoad(() => import('../pages/Catalog'));
-export const LazySellerListings = lazyLoad(() => import('../pages/SellerListings'));
-export const LazySellerAddProduct = lazyLoad(() => import('../pages/SellerAddProduct'));
-export const LazyIndex = lazyLoad(() => import('../pages/Index'));
-export const LazySellerRegister = lazyLoad(() => import('../pages/SellerRegister'));
-export const LazyPublicSellerProfile = lazyLoad(() => import('../pages/PublicSellerProfile'));
-export const LazyBuyerGuide = lazyLoad(() => import('../pages/BuyerGuide'));
+const Index = lazy(() => import('@/pages/Index'));
+const About = lazy(() => import('@/pages/About'));
+const Contact = lazy(() => import('@/pages/Contact'));
+const Catalog = lazy(() => import('@/pages/Catalog'));
+const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
+const Profile = lazy(() => import('@/pages/Profile'));
+const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
+const SellerListings = lazy(() => import('@/pages/SellerListings'));
+const SellerAddProduct = lazy(() => import('@/pages/SellerAddProduct'));
+const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));
+const SellerOrders = lazy(() => import('@/pages/SellerOrders'));
+const SellerOrderDetails = lazy(() => import('@/pages/SellerOrderDetails'));
+const SellerSellProduct = lazy(() => import('@/pages/SellerSellProduct'));
+const SellerProfile = lazy(() => import('@/pages/SellerProfile'));
+const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
+const BuyerCreateOrder = lazy(() => import('@/pages/BuyerCreateOrder'));
+const BuyerOrders = lazy(() => import('@/pages/BuyerOrders'));
+const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
+const Stores = lazy(() => import('@/pages/Stores'));
+const StoreDetail = lazy(() => import('@/pages/StoreDetail'));
+const CreateStore = lazy(() => import('@/pages/CreateStore'));
+const Requests = lazy(() => import('@/pages/Requests'));
+const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
+const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
+const NotFound = lazy(() => import('@/pages/NotFound'));
+const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
+const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 
 // Admin pages
-export const LazyAdminDashboard = lazyLoad(() => import('../pages/AdminDashboard'));
-export const LazyAdminProducts = lazyLoad(() => import('../pages/AdminProducts'));
-export const LazyAdminOrders = lazyLoad(() => import('../pages/AdminOrders'));
-export const LazyAdminUsers = lazyLoad(() => import('../pages/AdminUsers'));
-export const LazyAdminEvents = lazyLoad(() => import('../pages/AdminEvents'));
-export const LazyAdminStores = lazyLoad(() => import('../pages/AdminStores'));
-export const LazyAdminCarCatalog = lazyLoad(() => import('../pages/AdminCarCatalog'));
-export const LazyAdminAddProduct = lazyLoad(() => import('../pages/AdminAddProduct'));
-export const LazyAdminLogistics = lazyLoad(() => import('../pages/AdminLogistics'));
-export const LazyAdminFreeOrder = lazyLoad(() => import('../pages/AdminFreeOrder'));
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
+const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
+const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
+const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
+const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
+const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
+const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
+const AdminStores = lazy(() => import('@/pages/AdminStores'));
+const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
+const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
+const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
+const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
+
+export const routes = [
+  {
+    path: "/",
+    element: <Index />,
+  },
+  {
+    path: "/about",
+    element: <About />,
+  },
+  {
+    path: "/contact",
+    element: <Contact />,
+  },
+  {
+    path: "/catalog",
+    element: <Catalog />,
+  },
+  {
+    path: "/product/:id",
+    element: <ProductDetail />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
+  },
+  {
+    path: "/seller/register",
+    element: <SellerRegister />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
+  },
+  {
+    path: "/verify-email",
+    element: <VerifyEmail />,
+  },
+  {
+    path: "/profile",
+    element: <Profile />,
+    protected: true,
+  },
+  {
+    path: "/seller/dashboard",
+    element: <SellerDashboard />,
+    protected: true,
+  },
+  {
+    path: "/seller/listings",
+    element: <SellerListings />,
+    protected: true,
+  },
+  {
+    path: "/seller/add-product",
+    element: <SellerAddProduct />,
+    protected: true,
+  },
+  {
+    path: "/seller/create-order",
+    element: <SellerCreateOrder />,
+    protected: true,
+  },
+  {
+    path: "/seller/orders",
+    element: <SellerOrders />,
+    protected: true,
+  },
+  {
+    path: "/seller/orders/:id",
+    element: <SellerOrderDetails />,
+    protected: true,
+  },
+  {
+    path: "/seller/sell-product/:id",
+    element: <SellerSellProduct />,
+    protected: true,
+  },
+  {
+    path: "/seller/profile",
+    element: <SellerProfile />,
+    protected: true,
+  },
+  {
+    path: "/seller/:id",
+    element: <PublicSellerProfile />,
+  },
+  {
+    path: "/buyer/create-order",
+    element: <BuyerCreateOrder />,
+    protected: true,
+  },
+  {
+    path: "/buyer/orders",
+    element: <BuyerOrders />,
+    protected: true,
+  },
+  {
+    path: "/buyer/guide",
+    element: <BuyerGuide />,
+  },
+  {
+    path: "/stores",
+    element: <Stores />,
+  },
+  {
+    path: "/store/:id",
+    element: <StoreDetail />,
+  },
+  {
+    path: "/create-store",
+    element: <CreateStore />,
+    protected: true,
+  },
+  {
+    path: "/requests",
+    element: <Requests />,
+  },
+  {
+    path: "/create-request",
+    element: <CreateRequest />,
+    protected: true,
+  },
+  {
+    path: "/request/:id",
+    element: <RequestDetail />,
+  },
+  {
+    path: "/orders",
+    element: <OrdersRedirect />,
+    protected: true,
+  },
+  {
+    path: "/order/:id",
+    element: <OrderDetails />,
+  },
+  // Admin routes
+  {
+    path: "/admin/dashboard",
+    element: <AdminDashboard />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/users",
+    element: <AdminUsers />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/products",
+    element: <AdminProducts />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/add-product",
+    element: <AdminAddProduct />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/orders",
+    element: <AdminOrders />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/free-order",
+    element: <AdminFreeOrder />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/create-order/:productId",
+    element: <AdminCreateOrderFromProduct />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/stores",
+    element: <AdminStores />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/car-catalog",
+    element: <AdminCarCatalog />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/logistics",
+    element: <AdminLogistics />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/events",
+    element: <AdminEvents />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/generate-og-image",
+    element: <GenerateOGImage />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+];
