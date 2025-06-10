@@ -1,7 +1,8 @@
 
 import React, { useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import ProductGrid, { ViewMode } from '@/components/product/ProductGrid';
+import ProductGrid from '@/components/product/ProductGrid';
+import { ViewMode } from '@/components/product/UnifiedProductGrid';
 import RequestPartsPromo from '@/components/catalog/RequestPartsPromo';
 import ProductSkeleton from '@/components/catalog/ProductSkeleton';
 import { useIntersection } from '@/hooks/useIntersection';
