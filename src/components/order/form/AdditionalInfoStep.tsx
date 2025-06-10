@@ -164,11 +164,10 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
                         {images.map((url, index) => (
                           <div key={index} className="relative group">
                             <CloudinaryImage
-                              src={url}
+                              publicId={url}
                               alt={`Image ${index + 1}`}
-                              width={100}
-                              height={100}
-                              className="object-cover rounded-md border border-gray-300"
+                              size="thumbnail"
+                              className="w-[100px] h-[100px] object-cover rounded-md border border-gray-300"
                             />
                             <button
                               type="button"
