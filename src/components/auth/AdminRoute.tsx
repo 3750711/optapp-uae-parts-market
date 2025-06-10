@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAdminGuard } from '@/hooks/useAdminGuard';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -16,24 +16,18 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { 
-    isChecking, 
-    hasAdminAccess, 
-    needsLogin, 
-    needsProfile, 
-    accessDenied 
-  } = useAdminGuard(false);
+  const { user, profile, isLoading, isAdmin } = useAuth();
 
   devLog('AdminRoute render:', {
-    isChecking,
-    hasAdminAccess,
-    needsLogin,
-    needsProfile,
-    accessDenied
+    hasUser: !!user,
+    hasProfile: !!profile,
+    isLoading,
+    isAdmin,
+    userType: profile?.user_type
   });
 
-  // Show loading state
-  if (isChecking) {
+  // Show loading state only while auth is initializing
+  if (isLoading) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -45,12 +39,12 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // Redirect to login if not authenticated
-  if (needsLogin) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Show access denied with user-friendly message
-  if (accessDenied) {
+  // Show access denied if not admin (profile loaded but not admin)
+  if (profile && isAdmin === false) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -71,12 +65,12 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Show content if all checks pass
-  if (hasAdminAccess) {
+  // Show content if admin access confirmed
+  if (isAdmin === true) {
     return <>{children}</>;
   }
 
-  // Fallback loading state
+  // Fallback loading state for edge cases
   return fallback || (
     <div className="flex items-center justify-center min-h-screen">
       <Loader2 className="h-8 w-8 animate-spin" />

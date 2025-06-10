@@ -1,7 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { getCachedAdminRights } from '@/utils/performanceUtils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileShort {
   id: string;
@@ -14,10 +14,9 @@ interface SellerProfile extends ProfileShort {
 }
 
 export const useOptimizedProfiles = (userId?: string) => {
-  // Проверяем кэшированные права администратора
-  const cachedAdminRights = userId ? getCachedAdminRights(userId) : null;
+  const { isAdmin } = useAuth();
   
-  // Загружаем профили покупателей с кэшированием на 5 минут
+  // Загружаем профили покупателей только если пользователь админ
   const {
     data: buyerProfiles = [],
     isLoading: isBuyersLoading,
@@ -43,10 +42,10 @@ export const useOptimizedProfiles = (userId?: string) => {
     },
     staleTime: 1000 * 60 * 5, // 5 минут кэш
     gcTime: 1000 * 60 * 10, // 10 минут в памяти
-    enabled: cachedAdminRights === true || cachedAdminRights === null, // Загружаем только если есть права или неизвестно
+    enabled: isAdmin === true, // Загружаем только если точно известно что пользователь админ
   });
 
-  // Загружаем профили продавцов с кэшированием на 5 минут
+  // Загружаем профили продавцов только если пользователь админ
   const {
     data: sellerProfiles = [],
     isLoading: isSellersLoading,
@@ -71,7 +70,7 @@ export const useOptimizedProfiles = (userId?: string) => {
     },
     staleTime: 1000 * 60 * 5, // 5 минут кэш
     gcTime: 1000 * 60 * 10, // 10 минут в памяти
-    enabled: cachedAdminRights === true || cachedAdminRights === null,
+    enabled: isAdmin === true,
   });
 
   return {

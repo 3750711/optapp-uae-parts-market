@@ -313,7 +313,7 @@ export const useOrderFormLogic = () => {
       price: parseFloat(formData.price),
       place_number: parseInt(formData.place_number),
       seller_id: formData.sellerId,
-      order_seller_name: finalSellerName, // Используем строго валидированное имя
+      order_seller_name: finalSellerName,
       seller_opt_id: selectedSeller?.opt_id || null,
       buyer_id: buyerData.id,
       brand: formData.brand || '',
@@ -634,3 +634,5 @@ export const useOrderFormLogic = () => {
 };
 
 export default useOrderFormLogic;
+
+```
