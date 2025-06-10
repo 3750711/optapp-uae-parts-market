@@ -47,10 +47,16 @@ const AdminProducts = () => {
   const fetchProducts = useCallback(async ({ pageParam = 1 }) => {
     let query = supabase
       .from('products')
-      .select('*', { count: 'exact' })
+      .select(`
+        *,
+        product_images(id, url, is_primary)
+      `, { count: 'exact' })
       .order('created_at', { ascending: false })
       .range((pageParam - 1) * PAGE_SIZE, pageParam * PAGE_SIZE - 1);
 
+    // Add ordering for product_images to ensure primary images come first
+    // Note: Supabase will handle the ordering of related data
+    
     if (searchTerm) {
       query = query.ilike('title', `%${searchTerm}%`);
     }
@@ -82,11 +88,21 @@ const AdminProducts = () => {
       throw error;
     }
 
+    // Sort product_images so primary images come first
+    const dataWithSortedImages = data?.map(product => ({
+      ...product,
+      product_images: product.product_images?.sort((a: any, b: any) => {
+        if (a.is_primary && !b.is_primary) return -1;
+        if (!a.is_primary && b.is_primary) return 1;
+        return 0;
+      })
+    }));
+
     const totalCount = count || 0;
     const totalPages = Math.ceil(totalCount / PAGE_SIZE);
     setHasNextPage(pageParam < totalPages);
 
-    return { data, totalPages };
+    return { data: dataWithSortedImages, totalPages };
   }, [searchTerm, statusFilter, dateRange, priceRange]);
 
   const {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -145,7 +144,12 @@ export const useCatalogProducts = ({
         
         let query = supabase
           .from('products')
-          .select('*, product_images(url, is_primary), cloudinary_public_id, cloudinary_url');
+          .select(`
+            *, 
+            product_images(url, is_primary), 
+            cloudinary_public_id, 
+            cloudinary_url
+          `);
 
         // Apply sorting
         query = buildSortQuery(query, sortBy);
@@ -190,8 +194,18 @@ export const useCatalogProducts = ({
           throw new Error(`Ошибка загрузки товаров: ${error.message}`);
         }
         
-        console.log('✅ Products fetched successfully:', data?.length, 'items');
-        return data || [];
+        // Sort product_images so primary images come first
+        const dataWithSortedImages = data?.map(product => ({
+          ...product,
+          product_images: product.product_images?.sort((a: any, b: any) => {
+            if (a.is_primary && !b.is_primary) return -1;
+            if (!a.is_primary && b.is_primary) return 1;
+            return 0;
+          })
+        }));
+        
+        console.log('✅ Products fetched successfully:', dataWithSortedImages?.length, 'items');
+        return dataWithSortedImages || [];
       } catch (error) {
         console.error('💥 Error in queryFn:', error);
         // Show user-friendly error message
