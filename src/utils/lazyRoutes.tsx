@@ -34,72 +34,20 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 
-// Admin pages - исправляем импорты с более надежной обработкой ошибок
-const AdminDashboard = lazy(() => 
-  import('@/pages/AdminDashboard').catch(() => 
-    import('@/pages/AdminDashboard').then(module => ({ default: module.default }))
-  )
-);
-const AdminUsers = lazy(() => 
-  import('@/pages/AdminUsers').catch(() => 
-    import('@/pages/AdminUsers').then(module => ({ default: module.default }))
-  )
-);
-const AdminProducts = lazy(() => 
-  import('@/pages/AdminProducts').catch(() => 
-    import('@/pages/AdminProducts').then(module => ({ default: module.default }))
-  )
-);
-const AdminAddProduct = lazy(() => 
-  import('@/pages/AdminAddProduct').catch(() => 
-    import('@/pages/AdminAddProduct').then(module => ({ default: module.default }))
-  )
-);
-const AdminOrders = lazy(() => 
-  import('@/pages/AdminOrders').catch(() => 
-    import('@/pages/AdminOrders').then(module => ({ default: module.default }))
-  )
-);
-const AdminOrderDetails = lazy(() => 
-  import('@/pages/AdminOrderDetails').catch(() => 
-    import('@/pages/AdminOrderDetails').then(module => ({ default: module.default }))
-  )
-);
-const AdminFreeOrder = lazy(() => 
-  import('@/pages/AdminFreeOrder').catch(() => 
-    import('@/pages/AdminFreeOrder').then(module => ({ default: module.default }))
-  )
-);
-const AdminCreateOrderFromProduct = lazy(() => 
-  import('@/pages/AdminCreateOrderFromProduct').catch(() => 
-    import('@/pages/AdminCreateOrderFromProduct').then(module => ({ default: module.default }))
-  )
-);
-const AdminStores = lazy(() => 
-  import('@/pages/AdminStores').catch(() => 
-    import('@/pages/AdminStores').then(module => ({ default: module.default }))
-  )
-);
-const AdminCarCatalog = lazy(() => 
-  import('@/pages/AdminCarCatalog').catch(() => 
-    import('@/pages/AdminCarCatalog').then(module => ({ default: module.default }))
-  )
-);
-const AdminLogistics = lazy(() => 
-  import('@/pages/AdminLogistics').catch(() => 
-    import('@/pages/AdminLogistics').then(module => ({ default: module.default }))
-  )
-);
-const AdminEvents = lazy(() => 
-  import('@/pages/AdminEvents').catch(() => 
-    import('@/pages/AdminEvents').then(module => ({ default: module.default }))
-  )
-);
-const GenerateOGImage = lazy(() => 
-  import('@/pages/GenerateOGImage').catch(() => 
-    import('@/pages/GenerateOGImage').then(module => ({ default: module.default }))
-  )
-);
+// Admin pages - упрощенные импорты без сложной логики catch()
+const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
+const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
+const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
+const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
+const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
+const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
+const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
+const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
+const AdminStores = lazy(() => import('@/pages/AdminStores'));
+const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
+const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
+const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
+const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
 
 export const routes = [
   {
@@ -244,7 +192,7 @@ export const routes = [
     path: "/order/:id",
     element: <OrderDetails />,
   },
-  // Admin routes - исправленные маршруты
+  // Admin routes - упрощенные маршруты
   {
     path: "/admin",
     element: <AdminDashboard />,

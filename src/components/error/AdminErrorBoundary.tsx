@@ -34,7 +34,8 @@ export class AdminErrorBoundary extends Component<Props, State> {
     
     const isModuleLoadError = error.message.includes('loading dynamically imported module') ||
                              error.message.includes('Failed to fetch dynamically imported module') ||
-                             error.message.includes('Loading chunk');
+                             error.message.includes('Loading chunk') ||
+                             error.name === 'ChunkLoadError';
     
     return { 
       hasError: true, 
@@ -47,22 +48,34 @@ export class AdminErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('AdminErrorBoundary caught an error:', error, errorInfo);
     
+    // Расширенное логирование для диагностики
+    console.group('🔍 Admin Error Details');
+    console.error('Error:', error.message);
+    console.error('Error name:', error.name);
+    console.error('Stack:', error.stack);
+    console.error('Component stack:', errorInfo.componentStack);
+    console.error('Error Info:', errorInfo);
+    console.error('Current pathname:', window.location.pathname);
+    console.error('User agent:', navigator.userAgent);
+    console.error('Timestamp:', new Date().toISOString());
+    console.groupEnd();
+    
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
 
-    // Логируем административные ошибки отдельно с улучшенной диагностикой
-    console.warn('Admin panel error details:', {
-      error: error.message,
-      stack: error.stack,
-      component: errorInfo.componentStack,
-      timestamp: new Date().toISOString(),
-      pathname: window.location.pathname,
-      isModuleError: this.state.isModuleLoadError,
-    });
+    // Дополнительная диагностика для модульных ошибок
+    if (this.state.isModuleLoadError) {
+      console.warn('🚨 Module loading error detected. This might be caused by:');
+      console.warn('- Network connectivity issues');
+      console.warn('- Application update in progress');
+      console.warn('- Browser cache issues');
+      console.warn('- Circular dependencies in code');
+    }
   }
 
   handleRetry = () => {
+    console.log('🔄 Retrying from AdminErrorBoundary');
     this.setState({ 
       hasError: false, 
       error: null, 
@@ -72,6 +85,7 @@ export class AdminErrorBoundary extends Component<Props, State> {
   };
 
   handleReload = () => {
+    console.log('🔄 Reloading page from AdminErrorBoundary');
     window.location.reload();
   };
 
@@ -103,9 +117,9 @@ export class AdminErrorBoundary extends Component<Props, State> {
           <div className="p-6 max-w-md mx-auto">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Ошибка загрузки модуля</AlertTitle>
+              <AlertTitle>Ошибка загрузки административной панели</AlertTitle>
               <AlertDescription>
-                Не удалось загрузить компонент. Это может быть связано с проблемами сети или обновлением приложения.
+                Не удалось загрузить компонент администратора. Попробуйте перезагрузить страницу или очистить кеш браузера.
               </AlertDescription>
             </Alert>
             <div className="flex gap-2 mt-4">
@@ -140,6 +154,9 @@ export class AdminErrorBoundary extends Component<Props, State> {
                   <summary className="cursor-pointer">Техническая информация</summary>
                   <pre className="mt-1 whitespace-pre-wrap break-words">
                     {this.state.error.message}
+                    {process.env.NODE_ENV === 'development' && this.state.error.stack && (
+                      `\n\nStack:\n${this.state.error.stack}`
+                    )}
                   </pre>
                 </details>
               )}
