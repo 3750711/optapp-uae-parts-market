@@ -31,13 +31,14 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
-  // Приоритетно используем превью товара, если его нет - фото из базы данных
+  // Используем точно такую же логику приоритетов, как в каталоге
   const { primaryImage, cloudinaryUrl } = useMemo(() => {
     console.log('🖼️ AdminProductCard processing images for product:', product.id, {
       product_url: product.product_url,
       product_images: product.product_images,
       cloudinary_url: product.cloudinary_url,
-      cloudinary_public_id: product.cloudinary_public_id
+      cloudinary_public_id: product.cloudinary_public_id,
+      product_image: (product as any).image
     });
 
     // Приоритет 1: Превью товара (product_url)
@@ -49,20 +50,28 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
       };
     }
 
-    // Приоритет 2: Фото из базы данных (как раньше)
+    // Приоритет 2: Фото из базы данных (product_images)
     const primaryImg = product.product_images?.find(img => img.is_primary);
     const fallbackImg = product.product_images?.[0];
     
+    // Приоритет 3: Точно такой же порядок fallback, как в каталоге
     const imageUrl = primaryImg?.url || 
                     fallbackImg?.url || 
                     product.cloudinary_url ||
+                    (product as any).image ||
                     '/placeholder.svg';
 
-    const extractedCloudinaryUrl = primaryImg?.url || fallbackImg?.url || product.cloudinary_url || null;
+    const extractedCloudinaryUrl = primaryImg?.url || 
+                                  fallbackImg?.url || 
+                                  product.cloudinary_url || 
+                                  ((product as any).image && (product as any).image.includes('cloudinary.com') ? (product as any).image : null) ||
+                                  null;
 
     console.log('✅ AdminProductCard final image selection:', {
       primaryImageUrl: primaryImg?.url,
       fallbackImageUrl: fallbackImg?.url,
+      cloudinaryUrl: product.cloudinary_url,
+      productImage: (product as any).image,
       finalImageUrl: imageUrl,
       extractedCloudinaryUrl
     });
@@ -71,7 +80,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
       primaryImage: imageUrl,
       cloudinaryUrl: extractedCloudinaryUrl
     };
-  }, [product.product_url, product.product_images, product.cloudinary_url, product.cloudinary_public_id]);
+  }, [product.product_url, product.product_images, product.cloudinary_url, product.cloudinary_public_id, (product as any).image]);
 
   const getProductCardBackground = (status: string) => {
     switch (status) {
