@@ -4,7 +4,6 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
-import { devLog } from '@/utils/performanceUtils';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -29,14 +28,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
   
-  // Refs to prevent unnecessary re-renders
+  // Ref для предотвращения повторных вызовов
+  const fetchingProfileRef = useRef(false);
   const mountedRef = useRef(true);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
-    if (!mountedRef.current) return null;
+    // Предотвращаем повторные вызовы
+    if (fetchingProfileRef.current || !mountedRef.current) {
+      console.log('AuthContext: Skipping profile fetch (already fetching or unmounted)');
+      return null;
+    }
+
+    fetchingProfileRef.current = true;
     
     try {
-      devLog('AuthContext: Fetching user profile and admin status for:', userId);
+      console.log('AuthContext: Fetching profile for user:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -45,20 +51,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       if (error || !mountedRef.current) {
-        console.error('AuthContext: Error fetching user profile:', error);
+        console.error('AuthContext: Error fetching profile:', error);
         return null;
       }
       
-      if (data) {
+      if (data && mountedRef.current) {
         setProfile(data);
         
-        // Напрямую определяем админские права из профиля
+        // Определяем админские права
         const hasAdminAccess = data.user_type === 'admin';
         setIsAdmin(hasAdminAccess);
         
-        devLog('AuthContext: Profile loaded, isAdmin:', hasAdminAccess);
+        console.log('AuthContext: Profile loaded, isAdmin:', hasAdminAccess);
         
-        // Check if first login welcome should be shown
+        // Проверяем first login
         if (data.email.endsWith('@g.com') && !data.first_login_completed) {
           setShowFirstLoginWelcome(true);
         }
@@ -70,6 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('AuthContext: Exception while fetching profile:', error);
       return null;
+    } finally {
+      fetchingProfileRef.current = false;
     }
   }, []);
 
@@ -81,7 +89,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshAdminStatus = useCallback(async () => {
     if (user && mountedRef.current) {
-      // Просто перезагружаем профиль, админский статус установится автоматически
       await fetchUserProfile(user.id);
     }
   }, [user, fetchUserProfile]);
@@ -94,8 +101,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshProfile]);
 
   const signOut = useCallback(async () => {
-    setIsLoading(true);
-    
     try {
       await supabase.auth.signOut();
       
@@ -106,24 +111,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowFirstLoginWelcome(false);
     } catch (error) {
       console.error('AuthContext: Error during sign out:', error);
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
-  // Main auth effect - simplified and optimized
+  // Главный эффект аутентификации - упрощенный и оптимизированный
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
     
     const setupAuth = async () => {
       try {
-        devLog('AuthContext: Setting up auth...');
+        console.log('AuthContext: Setting up auth...');
         
-        // Get initial session
+        // Получаем текущую сессию
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
-        if (error || !mounted) {
+        if (error) {
           console.error("AuthContext: Error getting session:", error);
           if (mounted) setIsLoading(false);
           return;
@@ -134,22 +137,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession?.user ?? null);
           
           if (currentSession?.user) {
-            devLog('AuthContext: User found, fetching profile...');
+            console.log('AuthContext: User found, fetching profile...');
             await fetchUserProfile(currentSession.user.id);
           } else {
-            devLog('AuthContext: No user found');
+            console.log('AuthContext: No user found');
+            setProfile(null);
             setIsAdmin(false);
           }
           
+          // Важно: устанавливаем isLoading в false только после завершения всех операций
           setIsLoading(false);
         }
         
-        // Set up auth state change listener
+        // Устанавливаем слушатель изменений auth состояния
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
             if (!mounted) return;
             
-            devLog('AuthContext: Auth state changed:', event);
+            console.log('AuthContext: Auth state changed:', event);
             
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
@@ -179,9 +184,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       mountedRef.current = false;
     };
-  }, []); // Minimal dependencies
+  }, []); // Только один раз при монтировании
 
-  // Memoize context value to prevent unnecessary re-renders
+  // Мемоизируем контекст для предотвращения лишних ре-рендеров
   const contextValue = useMemo(() => ({
     user,
     session,

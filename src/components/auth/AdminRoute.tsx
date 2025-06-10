@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { devLog } from '@/utils/performanceUtils';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -18,7 +17,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 }) => {
   const { user, profile, isLoading, isAdmin } = useAuth();
 
-  devLog('AdminRoute render:', {
+  console.log('AdminRoute state:', {
     hasUser: !!user,
     hasProfile: !!profile,
     isLoading,
@@ -26,7 +25,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     userType: profile?.user_type
   });
 
-  // Show loading state only while auth is initializing
+  // Loading state - только если данные действительно загружаются
   if (isLoading) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
@@ -38,13 +37,35 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Redirect to login if not authenticated
+  // Не авторизован - перенаправляем на логин
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // Show access denied if not admin (profile loaded but not admin)
-  if (profile && isAdmin === false) {
+  // Нет профиля - показываем ошибку (не должно происходить)
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+        <div className="max-w-md w-full space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Ошибка загрузки профиля пользователя.
+            </AlertDescription>
+          </Alert>
+          <Button 
+            onClick={() => window.location.reload()}
+            className="w-full"
+          >
+            Перезагрузить страницу
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Нет прав администратора
+  if (!isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -65,15 +86,6 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Show content if admin access confirmed
-  if (isAdmin === true) {
-    return <>{children}</>;
-  }
-
-  // Fallback loading state for edge cases
-  return fallback || (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loader2 className="h-8 w-8 animate-spin" />
-    </div>
-  );
+  // Все проверки пройдены - показываем контент
+  return <>{children}</>;
 };
