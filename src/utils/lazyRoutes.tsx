@@ -1,55 +1,104 @@
 
 import { lazy } from 'react';
 
-// Простой стандартный lazy loading без дополнительной обработки ошибок
-const Index = lazy(() => import('@/pages/Index'));
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const Catalog = lazy(() => import('@/pages/Catalog'));
-const About = lazy(() => import('@/pages/About'));
-const Contact = lazy(() => import('@/pages/Contact'));
-const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
-const Profile = lazy(() => import('@/pages/Profile'));
-const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
-const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
-const SellerListings = lazy(() => import('@/pages/SellerListings'));
-const SellerAddProduct = lazy(() => import('@/pages/SellerAddProduct'));
-const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));
-const SellerOrders = lazy(() => import('@/pages/SellerOrders'));
-const SellerOrderDetails = lazy(() => import('@/pages/SellerOrderDetails'));
-const SellerSellProduct = lazy(() => import('@/pages/SellerSellProduct'));
-const SellerProfile = lazy(() => import('@/pages/SellerProfile'));
-const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
-const BuyerCreateOrder = lazy(() => import('@/pages/BuyerCreateOrder'));
-const BuyerOrders = lazy(() => import('@/pages/BuyerOrders'));
-const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
-const Stores = lazy(() => import('@/pages/Stores'));
-const StoreDetail = lazy(() => import('@/pages/StoreDetail'));
-const CreateStore = lazy(() => import('@/pages/CreateStore'));
-const Requests = lazy(() => import('@/pages/Requests'));
-const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
-const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
-const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
-const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
-const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
-const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
-const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
-const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
-const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
-const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
-const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
-const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
-const AdminStores = lazy(() => import('@/pages/AdminStores'));
-const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
-const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
-const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
-const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
+// Улучшенная функция создания lazy компонентов с обработкой ошибок
+const createLazyComponent = (importFunc: () => Promise<any>, componentName: string) => {
+  return lazy(async () => {
+    try {
+      const module = await importFunc();
+      return module;
+    } catch (error) {
+      console.error(`Error loading ${componentName}:`, error);
+      // Возвращаем fallback компонент при ошибке
+      return {
+        default: () => (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="text-lg font-medium text-gray-900 mb-2">
+                Ошибка загрузки компонента
+              </div>
+              <div className="text-sm text-gray-600 mb-4">
+                Компонент {componentName} не удалось загрузить
+              </div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                Перезагрузить страницу
+              </button>
+            </div>
+          </div>
+        )
+      };
+    }
+  });
+};
 
-// Простая конфигурация маршрутов без pre-created элементов
+// Критические компоненты - загружаются немедленно
+const Index = createLazyComponent(() => import('@/pages/Index'), 'Index');
+const Login = createLazyComponent(() => import('@/pages/Login'), 'Login');
+const Register = createLazyComponent(() => import('@/pages/Register'), 'Register');
+const Catalog = createLazyComponent(() => import('@/pages/Catalog'), 'Catalog');
+
+// Основные компоненты
+const About = createLazyComponent(() => import('@/pages/About'), 'About');
+const Contact = createLazyComponent(() => import('@/pages/Contact'), 'Contact');
+const ProductDetail = createLazyComponent(() => import('@/pages/ProductDetail'), 'ProductDetail');
+const ForgotPassword = createLazyComponent(() => import('@/pages/ForgotPassword'), 'ForgotPassword');
+const ResetPassword = createLazyComponent(() => import('@/pages/ResetPassword'), 'ResetPassword');
+const VerifyEmail = createLazyComponent(() => import('@/pages/VerifyEmail'), 'VerifyEmail');
+const Profile = createLazyComponent(() => import('@/pages/Profile'), 'Profile');
+
+// Продавцы
+const SellerRegister = createLazyComponent(() => import('@/pages/SellerRegister'), 'SellerRegister');
+const SellerDashboard = createLazyComponent(() => import('@/pages/SellerDashboard'), 'SellerDashboard');
+const SellerListings = createLazyComponent(() => import('@/pages/SellerListings'), 'SellerListings');
+const SellerAddProduct = createLazyComponent(() => import('@/pages/SellerAddProduct'), 'SellerAddProduct');
+const SellerCreateOrder = createLazyComponent(() => import('@/pages/SellerCreateOrder'), 'SellerCreateOrder');
+const SellerOrders = createLazyComponent(() => import('@/pages/SellerOrders'), 'SellerOrders');
+const SellerOrderDetails = createLazyComponent(() => import('@/pages/SellerOrderDetails'), 'SellerOrderDetails');
+const SellerSellProduct = createLazyComponent(() => import('@/pages/SellerSellProduct'), 'SellerSellProduct');
+const SellerProfile = createLazyComponent(() => import('@/pages/SellerProfile'), 'SellerProfile');
+const PublicSellerProfile = createLazyComponent(() => import('@/pages/PublicSellerProfile'), 'PublicSellerProfile');
+
+// Покупатели
+const BuyerCreateOrder = createLazyComponent(() => import('@/pages/BuyerCreateOrder'), 'BuyerCreateOrder');
+const BuyerOrders = createLazyComponent(() => import('@/pages/BuyerOrders'), 'BuyerOrders');
+const BuyerGuide = createLazyComponent(() => import('@/pages/BuyerGuide'), 'BuyerGuide');
+
+// Магазины
+const Stores = createLazyComponent(() => import('@/pages/Stores'), 'Stores');
+const StoreDetail = createLazyComponent(() => import('@/pages/StoreDetail'), 'StoreDetail');
+const CreateStore = createLazyComponent(() => import('@/pages/CreateStore'), 'CreateStore');
+
+// Заявки
+const Requests = createLazyComponent(() => import('@/pages/Requests'), 'Requests');
+const CreateRequest = createLazyComponent(() => import('@/pages/CreateRequest'), 'CreateRequest');
+const RequestDetail = createLazyComponent(() => import('@/pages/RequestDetail'), 'RequestDetail');
+
+// Заказы
+const OrdersRedirect = createLazyComponent(() => import('@/pages/OrdersRedirect'), 'OrdersRedirect');
+const OrderDetails = createLazyComponent(() => import('@/pages/OrderDetails'), 'OrderDetails');
+
+// Админ компоненты - разделены для лучшего chunk splitting
+const AdminDashboard = createLazyComponent(() => import('@/pages/AdminDashboard'), 'AdminDashboard');
+const AdminUsers = createLazyComponent(() => import('@/pages/AdminUsers'), 'AdminUsers');
+const AdminProducts = createLazyComponent(() => import('@/pages/AdminProducts'), 'AdminProducts');
+const AdminAddProduct = createLazyComponent(() => import('@/pages/AdminAddProduct'), 'AdminAddProduct');
+const AdminOrders = createLazyComponent(() => import('@/pages/AdminOrders'), 'AdminOrders');
+const AdminOrderDetails = createLazyComponent(() => import('@/pages/AdminOrderDetails'), 'AdminOrderDetails');
+const AdminFreeOrder = createLazyComponent(() => import('@/pages/AdminFreeOrder'), 'AdminFreeOrder');
+const AdminCreateOrderFromProduct = createLazyComponent(() => import('@/pages/AdminCreateOrderFromProduct'), 'AdminCreateOrderFromProduct');
+const AdminStores = createLazyComponent(() => import('@/pages/AdminStores'), 'AdminStores');
+const AdminCarCatalog = createLazyComponent(() => import('@/pages/AdminCarCatalog'), 'AdminCarCatalog');
+const AdminLogistics = createLazyComponent(() => import('@/pages/AdminLogistics'), 'AdminLogistics');
+const AdminEvents = createLazyComponent(() => import('@/pages/AdminEvents'), 'AdminEvents');
+const GenerateOGImage = createLazyComponent(() => import('@/pages/GenerateOGImage'), 'GenerateOGImage');
+
+// 404
+const NotFound = createLazyComponent(() => import('@/pages/NotFound'), 'NotFound');
+
+// Конфигурация маршрутов без изменений
 export const routeConfigs = [
   // Критические маршруты
   { path: "/", component: Index },
@@ -118,18 +167,8 @@ export const routeConfigs = [
   { path: "*", component: NotFound },
 ];
 
-// Простая функция предзагрузки критических компонентов
+// Упрощенная функция предзагрузки - только для критически важных компонентов
 export const preloadCriticalRoutes = () => {
-  // Предзагружаем дополнительные компоненты через 2 секунды
-  setTimeout(() => {
-    import('@/pages/About');
-    import('@/pages/Contact');
-    import('@/pages/ProductDetail');
-  }, 2000);
-  
-  // Предзагружаем больше компонентов через 5 секунд
-  setTimeout(() => {
-    import('@/pages/Profile');
-    import('@/pages/Stores');
-  }, 5000);
+  // Убираем автоматическую предзагрузку, чтобы избежать chunk loading errors
+  console.log('🚀 Critical routes loaded, lazy loading other components on demand');
 };

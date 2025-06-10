@@ -1,11 +1,12 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
-import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
-import ProductSearchAndFilters from '@/components/admin/ProductSearchAndFilters';
-import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
+import AdminProductsHeader from '@/components/admin/products/AdminProductsHeader';
+import AdminProductsFilters from '@/components/admin/products/AdminProductsFilters';
+import AdminProductsContent from '@/components/admin/products/AdminProductsContent';
+import AdminProductsActions from '@/components/admin/products/AdminProductsActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 
@@ -114,64 +115,12 @@ const AdminProducts = () => {
     initialPageParam: 0,
   });
 
-  const handleBulkStatusChange = async (status: string) => {
-    if (selectedProducts.length === 0) return;
-
-    try {
-      const { error } = await supabase
-        .from('products')
-        .update({ status })
-        .in('id', selectedProducts);
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно",
-        description: `Статус ${selectedProducts.length} товаров изменен на "${status}"`,
-      });
-
-      setSelectedProducts([]);
-      refetch();
-    } catch (error) {
-      console.error('Error updating products:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось изменить статус товаров",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (selectedProducts.length === 0) return;
-
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .in('id', selectedProducts);
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно",
-        description: `${selectedProducts.length} товаров удалено`,
-      });
-
-      setSelectedProducts([]);
-      refetch();
-    } catch (error) {
-      console.error('Error deleting products:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить товары",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+  // Use the actions hook
+  const { handleBulkStatusChange, handleBulkDelete } = AdminProductsActions({
+    selectedProducts,
+    setSelectedProducts,
+    refetch
+  });
 
   const handleDelete = async (id: string) => {
     setDeleteProductId(id);
@@ -221,13 +170,9 @@ const AdminProducts = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold">Управление товарами</h1>
-        </div>
+        <AdminProductsHeader />
 
-        {/* Search and Filters */}
-        <ProductSearchAndFilters
+        <AdminProductsFilters
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           statusFilter={statusFilter}
@@ -238,18 +183,13 @@ const AdminProducts = () => {
           setPriceRange={setPriceRange}
           clearFilters={clearFilters}
           isLoading={isLoading}
-        />
-
-        {/* Selected Products Actions */}
-        <SelectedProductsActions
-          selectedCount={selectedProducts.length}
-          onStatusChange={handleBulkStatusChange}
-          onDelete={handleBulkDelete}
+          selectedProducts={selectedProducts}
+          onBulkStatusChange={handleBulkStatusChange}
+          onBulkDelete={handleBulkDelete}
           onClearSelection={() => setSelectedProducts([])}
         />
 
-        {/* Products Grid */}
-        <ProductsGrid
+        <AdminProductsContent
           products={allProducts}
           selectedProducts={selectedProducts}
           onProductSelect={setSelectedProducts}
@@ -262,28 +202,14 @@ const AdminProducts = () => {
           isDeleting={isDeleting}
           deleteProductId={deleteProductId}
           onStatusChange={handleStatusChange}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          fetchNextPage={fetchNextPage}
+          searchTerm={searchTerm}
+          statusFilter={statusFilter}
+          dateRange={dateRange}
+          priceRange={priceRange}
         />
-        
-        {hasNextPage && (
-          <LoadMoreTrigger
-            onLoadMore={() => fetchNextPage()}
-            isLoading={isFetchingNextPage}
-            hasNextPage={hasNextPage}
-          />
-        )}
-
-        {/* Empty State */}
-        {!isLoading && allProducts.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-500 text-lg mb-2">Товары не найдены</div>
-            <div className="text-gray-400">
-              {searchTerm || statusFilter !== 'all' || dateRange.from || dateRange.to 
-                ? 'Попробуйте изменить фильтры поиска'
-                : 'Начните с добавления первого товара'
-              }
-            </div>
-          </div>
-        )}
       </div>
     </AdminLayout>
   );

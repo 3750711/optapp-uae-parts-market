@@ -14,6 +14,7 @@ interface State {
   error: Error | null;
   isPermissionError: boolean;
   isModuleLoadError: boolean;
+  isChunkLoadError: boolean;
 }
 
 export class AdminErrorBoundary extends Component<Props, State> {
@@ -23,7 +24,8 @@ export class AdminErrorBoundary extends Component<Props, State> {
       hasError: false, 
       error: null, 
       isPermissionError: false,
-      isModuleLoadError: false
+      isModuleLoadError: false,
+      isChunkLoadError: false
     };
   }
 
@@ -34,14 +36,18 @@ export class AdminErrorBoundary extends Component<Props, State> {
     
     const isModuleLoadError = error.message.includes('loading dynamically imported module') ||
                              error.message.includes('Failed to fetch dynamically imported module') ||
-                             error.message.includes('Loading chunk') ||
                              error.name === 'ChunkLoadError';
+
+    const isChunkLoadError = error.message.includes('Loading chunk') ||
+                            error.message.includes('ChunkLoadError') ||
+                            error.name === 'ChunkLoadError';
     
     return { 
       hasError: true, 
       error,
       isPermissionError,
-      isModuleLoadError
+      isModuleLoadError,
+      isChunkLoadError
     };
   }
 
@@ -64,13 +70,19 @@ export class AdminErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // Дополнительная диагностика для модульных ошибок
-    if (this.state.isModuleLoadError) {
-      console.warn('🚨 Module loading error detected. This might be caused by:');
+    // Специальная обработка chunk loading errors
+    if (this.state.isChunkLoadError || this.state.isModuleLoadError) {
+      console.warn('🚨 Chunk/Module loading error detected. This might be caused by:');
       console.warn('- Network connectivity issues');
       console.warn('- Application update in progress');
       console.warn('- Browser cache issues');
+      console.warn('- Large chunk size issues');
       console.warn('- Circular dependencies in code');
+      
+      // Попытка автоматического восстановления
+      setTimeout(() => {
+        this.handleRecovery();
+      }, 1000);
     }
   }
 
@@ -80,13 +92,32 @@ export class AdminErrorBoundary extends Component<Props, State> {
       hasError: false, 
       error: null, 
       isPermissionError: false,
-      isModuleLoadError: false
+      isModuleLoadError: false,
+      isChunkLoadError: false
     });
   };
 
   handleReload = () => {
     console.log('🔄 Reloading page from AdminErrorBoundary');
     window.location.reload();
+  };
+
+  handleRecovery = async () => {
+    console.log('🔧 Attempting automatic recovery...');
+    try {
+      // Очистить кеши
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+      }
+      
+      // Принудительная перезагрузка
+      window.location.reload();
+    } catch (recoveryError) {
+      console.error('❌ Recovery failed:', recoveryError);
+      // Fallback: обычная перезагрузка
+      window.location.reload();
+    }
   };
 
   render() {
@@ -112,14 +143,17 @@ export class AdminErrorBoundary extends Component<Props, State> {
         );
       }
 
-      if (this.state.isModuleLoadError) {
+      if (this.state.isChunkLoadError || this.state.isModuleLoadError) {
         return (
           <div className="p-6 max-w-md mx-auto">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Ошибка загрузки административной панели</AlertTitle>
+              <AlertTitle>Ошибка загрузки административного модуля</AlertTitle>
               <AlertDescription>
-                Не удалось загрузить компонент администратора. Попробуйте перезагрузить страницу или очистить кеш браузера.
+                Не удалось загрузить компонент администратора. Это может быть связано с обновлением приложения или проблемами сети.
+                <div className="mt-2 text-xs text-gray-600">
+                  Автоматическое восстановление будет выполнено через несколько секунд...
+                </div>
               </AlertDescription>
             </Alert>
             <div className="flex gap-2 mt-4">
