@@ -1,5 +1,5 @@
 
-import { useAuth } from '@/contexts/OptimizedAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { devLog } from '@/utils/performanceUtils';
 
 export const useAdminGuard = (redirectOnFail: boolean = true) => {

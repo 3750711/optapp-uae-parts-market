@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/OptimizedAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { devLog } from '@/utils/performanceUtils';
 
 export const useOptimizedAdminAccess = (userId?: string) => {
