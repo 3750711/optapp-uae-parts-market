@@ -3,17 +3,17 @@ import React from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AdminProductsActionsProps {
+interface UseAdminProductsActionsProps {
   selectedProducts: string[];
   setSelectedProducts: (products: string[]) => void;
   refetch: () => void;
 }
 
-const AdminProductsActions: React.FC<AdminProductsActionsProps> = ({
+export const useAdminProductsActions = ({
   selectedProducts,
   setSelectedProducts,
   refetch
-}) => {
+}: UseAdminProductsActionsProps) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const handleBulkStatusChange = async (status: string) => {
@@ -77,5 +77,3 @@ const AdminProductsActions: React.FC<AdminProductsActionsProps> = ({
 
   return { handleBulkStatusChange, handleBulkDelete, isDeleting };
 };
-
-export default AdminProductsActions;

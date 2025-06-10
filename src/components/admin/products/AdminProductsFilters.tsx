@@ -20,8 +20,8 @@ interface AdminProductsFiltersProps {
   clearFilters: () => void;
   isLoading: boolean;
   selectedProducts: string[];
-  onBulkStatusChange: (status: string) => void;
-  onBulkDelete: () => void;
+  onBulkStatusChange: (status: string) => Promise<void>;
+  onBulkDelete: () => Promise<void>;
   onClearSelection: () => void;
 }
 

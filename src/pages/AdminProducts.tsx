@@ -6,7 +6,7 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import AdminProductsHeader from '@/components/admin/products/AdminProductsHeader';
 import AdminProductsFilters from '@/components/admin/products/AdminProductsFilters';
 import AdminProductsContent from '@/components/admin/products/AdminProductsContent';
-import AdminProductsActions from '@/components/admin/products/AdminProductsActions';
+import { useAdminProductsActions } from '@/hooks/useAdminProductsActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 
@@ -116,7 +116,7 @@ const AdminProducts = () => {
   });
 
   // Use the actions hook
-  const { handleBulkStatusChange, handleBulkDelete } = AdminProductsActions({
+  const { handleBulkStatusChange, handleBulkDelete } = useAdminProductsActions({
     selectedProducts,
     setSelectedProducts,
     refetch
