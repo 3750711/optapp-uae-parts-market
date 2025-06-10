@@ -16,8 +16,8 @@ interface CarModel {
 
 export function useCarBrandsAndModels() {
   const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
-
-  // Загружаем бренды
+  
+  // Changed query key from 'admin' to 'catalog' to be more appropriate
   const { 
     data: brands = [], 
     isLoading: isBrandsLoading,
@@ -36,22 +36,25 @@ export function useCarBrandsAndModels() {
         throw error;
       }
       console.log('Fetched car brands:', data);
-      return data as CarBrand[] || [];
+      return data as CarBrand[] || []; // Ensure we return an empty array if data is null
     }
   });
 
-  // Загружаем ВСЕ модели сразу
+  // Changed query key from 'admin' to 'catalog' for consistency
   const { 
-    data: allModels = [],
+    data: brandModels = [],
     isLoading: isModelsLoading,
     error: modelsError
   } = useQuery({
-    queryKey: ['catalog', 'car-models'],
+    queryKey: ['catalog', 'car-models', selectedBrand],
     queryFn: async () => {
-      console.log('Fetching all car models');
+      if (!selectedBrand) return [];
+      
+      console.log('Fetching car models for brand ID:', selectedBrand);
       const { data, error } = await supabase
         .from('car_models')
         .select('*')
+        .eq('brand_id', selectedBrand)
         .order('name');
 
       if (error) {
@@ -59,33 +62,15 @@ export function useCarBrandsAndModels() {
         throw error;
       }
       console.log('Fetched car models:', data);
-      return data as CarModel[] || [];
-    }
+      return data as CarModel[] || []; // Ensure we return an empty array if data is null
+    },
+    enabled: !!selectedBrand,
   });
 
-  // Фильтрация моделей по выбранному бренду (для обратной совместимости)
-  const brandModels = selectedBrand 
-    ? allModels.filter(model => model.brand_id === selectedBrand)
-    : [];
-
-  // Функция выбора бренда
   const selectBrand = useCallback((brandId: string | null) => {
+    console.log('Selecting brand:', brandId);
     setSelectedBrand(brandId);
   }, []);
-
-  // Helper function to find brand name by ID
-  const findBrandNameById = useCallback((brandId: string | null) => {
-    if (!brandId || !brands || brands.length === 0) return null;
-    const brand = brands.find(b => b.id === brandId);
-    return brand?.name || null;
-  }, [brands]);
-
-  // Helper function to find model name by ID
-  const findModelNameById = useCallback((modelId: string | null) => {
-    if (!modelId || !allModels || allModels.length === 0) return null;
-    const model = allModels.find(m => m.id === modelId);
-    return model?.name || null;
-  }, [allModels]);
 
   // Helper function to find brand ID by name
   const findBrandIdByName = useCallback((brandName: string) => {
@@ -96,32 +81,45 @@ export function useCarBrandsAndModels() {
   
   // Helper function to find model ID by name and brand ID
   const findModelIdByName = useCallback((modelName: string | null, brandId: string) => {
-    if (!brandId || !modelName || !allModels || allModels.length === 0) return null;
+    if (!brandId || !modelName || !brandModels || brandModels.length === 0) return null;
     
-    const model = allModels.find(
+    const model = brandModels.find(
       m => m.brand_id === brandId && m.name.toLowerCase() === modelName.toLowerCase()
     );
     return model?.id || null;
-  }, [allModels]);
+  }, [brandModels]);
 
-  // Helper to validate if a model belongs to a brand
+  // New helper to find brand name by ID
+  const findBrandNameById = useCallback((brandId: string | null) => {
+    if (!brandId || !brands || brands.length === 0) return null;
+    const brand = brands.find(b => b.id === brandId);
+    return brand?.name || null;
+  }, [brands]);
+
+  // New helper to find model name by ID
+  const findModelNameById = useCallback((modelId: string | null) => {
+    if (!modelId || !brandModels || brandModels.length === 0) return null;
+    const model = brandModels.find(m => m.id === modelId);
+    return model?.name || null;
+  }, [brandModels]);
+
+  // New helper to validate if a model belongs to a brand
   const validateModelBrand = useCallback((modelId: string, brandId: string) => {
-    if (!allModels || allModels.length === 0 || !modelId || !brandId) return false;
-    return allModels.some(model => model.id === modelId && model.brand_id === brandId);
-  }, [allModels]);
+    if (!brandModels || brandModels.length === 0 || !modelId || !brandId) return false;
+    return brandModels.some(model => model.id === modelId && model.brand_id === brandId);
+  }, [brandModels]);
 
   return {
     brands: brands || [],
-    allModels: allModels || [],
-    brandModels, // Добавляем для обратной совместимости
-    selectedBrand, // Добавляем для обратной совместимости
-    selectBrand, // Добавляем для обратной совместимости
+    brandModels: brandModels || [],
+    selectedBrand,
+    selectBrand,
     isLoading: isBrandsLoading || isModelsLoading,
     error: brandsError || modelsError,
     findBrandIdByName,
     findModelIdByName,
-    findBrandNameById,
-    findModelNameById,
+    findBrandNameById, // New helper
+    findModelNameById, // New helper
     validateModelBrand
   };
 }

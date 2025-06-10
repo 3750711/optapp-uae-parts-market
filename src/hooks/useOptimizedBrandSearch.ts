@@ -15,31 +15,34 @@ interface Model {
 
 export const useOptimizedBrandSearch = (
   brands: Brand[],
-  models: Model[], // Уже отфильтрованные модели для выбранного бренда
+  brandModels: Model[],
   searchBrandTerm: string,
-  searchModelTerm: string
+  searchModelTerm: string,
+  watchBrandId: string
 ) => {
   // Популярные бренды
-  const popularBrandIds = useMemo(() => {
-    const popularBrands = [
-      "toyota", "honda", "ford", "chevrolet", "nissan", 
-      "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
-    ];
-    
-    if (!brands || brands.length === 0) return [];
-    return brands
-      .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
-      .map(brand => brand.id);
-  }, [brands]);
+  const popularBrands = [
+    "toyota", "honda", "ford", "chevrolet", "nissan", 
+    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
+  ];
+
+  const popularBrandIds = brands
+    .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
+    .map(brand => brand.id);
 
   const brandSearch = useEnhancedSearch({
-    items: brands || [],
+    items: brands,
     searchTerm: searchBrandTerm,
     popularItems: popularBrandIds
   });
 
+  // Модели для выбранного бренда
+  const brandFilteredModels = useMemo(() => {
+    return brandModels.filter(model => model.brand_id === watchBrandId);
+  }, [brandModels, watchBrandId]);
+
   const modelSearch = useEnhancedSearch({
-    items: models || [],
+    items: brandFilteredModels,
     searchTerm: searchModelTerm
   });
 
@@ -48,7 +51,9 @@ export const useOptimizedBrandSearch = (
     filteredModels: modelSearch.filteredItems,
     brandResultCount: brandSearch.resultCount,
     modelResultCount: modelSearch.resultCount,
-    hasValidBrands: brands && brands.length > 0,
-    hasValidModels: models && models.length > 0
+    debouncedBrandSearch: brandSearch.debouncedSearch,
+    debouncedModelSearch: modelSearch.debouncedSearch,
+    isBrandSearching: brandSearch.isSearching,
+    isModelSearching: modelSearch.isSearching
   };
 };

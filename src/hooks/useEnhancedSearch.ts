@@ -1,5 +1,6 @@
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useState, useCallback } from 'react';
+import { useDebounceSearch } from './useDebounceSearch';
 
 interface SearchableItem {
   id: string;
@@ -19,6 +20,7 @@ export const useEnhancedSearch = <T extends SearchableItem>({
   filterFn,
   popularItems = []
 }: UseEnhancedSearchProps<T>) => {
+  const debouncedSearch = useDebounceSearch(searchTerm, 300);
   
   const defaultFilterFn = useCallback((item: T, search: string) => 
     item.name.toLowerCase().includes(search.toLowerCase()), 
@@ -26,12 +28,7 @@ export const useEnhancedSearch = <T extends SearchableItem>({
   );
 
   const filteredItems = useMemo(() => {
-    // Проверяем, что items существует и не пустой
-    if (!items || items.length === 0) {
-      return [];
-    }
-
-    if (!searchTerm) {
+    if (!debouncedSearch) {
       // Group popular items first when no search
       if (popularItems.length > 0) {
         const popular = items.filter(item => popularItems.includes(item.id));
@@ -42,7 +39,7 @@ export const useEnhancedSearch = <T extends SearchableItem>({
     }
 
     const filtered = items.filter(item => 
-      (filterFn || defaultFilterFn)(item, searchTerm)
+      (filterFn || defaultFilterFn)(item, debouncedSearch)
     );
 
     // Even in search results, show popular items first
@@ -53,12 +50,13 @@ export const useEnhancedSearch = <T extends SearchableItem>({
     }
 
     return filtered;
-  }, [items, searchTerm, filterFn, defaultFilterFn, popularItems]);
+  }, [items, debouncedSearch, filterFn, defaultFilterFn, popularItems]);
 
   return {
     filteredItems,
+    debouncedSearch,
     resultCount: filteredItems.length,
     hasResults: filteredItems.length > 0,
-    isSearching: false // Убрали дебаунсинг
+    isSearching: searchTerm !== debouncedSearch
   };
 };

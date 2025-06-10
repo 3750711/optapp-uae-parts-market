@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, Phone, Mail, MessageCircle } from 'lucide-react';
+import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Share2, Download, Calendar, Star, Phone, Mail, MessageCircle } from 'lucide-react';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -215,7 +216,7 @@ const OrderDetails = () => {
                 </div>
               </div>
               
-              {/* Action Buttons - Removed Share button */}
+              {/* Action Buttons */}
               <div className="flex items-center gap-2">
                 {isAdmin && (
                   <Button
@@ -233,6 +234,10 @@ const OrderDetails = () => {
                     )}
                   </Button>
                 )}
+                <Button variant="outline" size="sm">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Поделиться
+                </Button>
               </div>
             </div>
           </div>

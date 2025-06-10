@@ -1,71 +1,36 @@
 
-import React from 'react';
+import React, { forwardRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-interface TouchOptimizedInputProps {
-  id?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  required?: boolean;
+interface TouchOptimizedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   touched?: boolean;
-  error?: string | null;
+  error?: string;
   success?: boolean;
-  type?: string;
-  className?: string;
-  min?: string;
-  max?: string;
-  step?: string;
-  inputMode?: 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
-  disabled?: boolean;
 }
 
-const TouchOptimizedInput: React.FC<TouchOptimizedInputProps> = ({
-  id,
-  value,
-  onChange,
-  placeholder,
-  required = false,
-  touched = false,
-  error = null,
-  success = false,
-  type = "text",
-  className,
-  min,
-  max,
-  step,
-  inputMode,
-  disabled = false,
-  ...props
-}) => {
-  return (
-    <div className="w-full">
+const TouchOptimizedInput = forwardRef<HTMLInputElement, TouchOptimizedInputProps>(
+  ({ className, touched, error, success, ...props }, ref) => {
+    return (
       <Input
-        id={id}
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        min={min}
-        max={max}
-        step={step}
-        inputMode={inputMode}
-        disabled={disabled}
+        ref={ref}
         className={cn(
-          "w-full",
-          touched && error && "border-red-500 focus:border-red-500",
-          touched && success && "border-green-500 focus:border-green-500",
+          // Мобильная оптимизация
+          "min-h-[44px] text-base leading-normal",
+          "touch-manipulation select-text",
+          "focus:ring-2 focus:ring-offset-1",
+          // Состояния валидации
+          error && "border-destructive focus:border-destructive focus:ring-destructive/20",
+          success && "border-green-500 focus:border-green-500 focus:ring-green-500/20",
+          touched && !error && !success && "border-blue-500",
           className
         )}
         {...props}
       />
-      {touched && error && (
-        <p className="mt-1 text-sm text-red-600">{error}</p>
-      )}
-    </div>
-  );
-};
+    );
+  }
+);
+
+TouchOptimizedInput.displayName = "TouchOptimizedInput";
 
 export default TouchOptimizedInput;

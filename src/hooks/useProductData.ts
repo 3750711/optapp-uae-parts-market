@@ -1,47 +1,64 @@
 
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { OrderFormData } from './useOrderForm';
 
 interface UseProductDataProps {
   productId?: string | null;
-  onDataLoaded: (data: any) => void;
+  onDataLoaded?: (data: Partial<OrderFormData>) => void;
 }
 
 export const useProductData = ({ productId, onDataLoaded }: UseProductDataProps) => {
-  useEffect(() => {
-    if (!productId) return;
+  const [isLoading, setIsLoading] = useState(false);
+  const [productData, setProductData] = useState<any>(null);
 
-    const loadProductData = async () => {
+  useEffect(() => {
+    const fetchProductData = async () => {
+      if (!productId) return;
+
+      setIsLoading(true);
       try {
-        const { data, error } = await supabase
+        const { data: product, error } = await supabase
           .from('products')
-          .select('*')
+          .select('*, seller:profiles!products_seller_id_fkey(opt_id)')
           .eq('id', productId)
           .single();
 
         if (error) {
-          console.error('Error loading product data:', error);
+          console.error('Error fetching product:', error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить данные товара",
+            variant: "destructive",
+          });
           return;
         }
 
-        if (data) {
-          onDataLoaded({
-            title: data.title,
-            price: data.price?.toString() || '',
-            description: data.description || '',
-            brand: data.brand || '',
-            model: data.model || '',
-            brandId: data.brand_id || '',
-            modelId: data.model_id || '',
-            delivery_price: data.delivery_price?.toString() || '',
-            place_number: data.place_number?.toString() || '1'
-          });
+        if (product) {
+          setProductData(product);
+          const formData = {
+            title: product.title,
+            price: product.price.toString(),
+            brand: product.brand || "",
+            model: product.model || "",
+            optid_created: product.optid_created || "",
+            seller_opt_id: product.seller?.opt_id || "",
+          };
+          onDataLoaded?.(formData);
         }
       } catch (error) {
-        console.error('Error loading product data:', error);
+        console.error('Unexpected error fetching product:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    loadProductData();
+    fetchProductData();
   }, [productId, onDataLoaded]);
+
+  return {
+    productData,
+    isLoading,
+  };
 };

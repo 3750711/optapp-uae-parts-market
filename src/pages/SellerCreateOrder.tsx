@@ -43,15 +43,11 @@ const SellerCreateOrder = () => {
     setVideos,
     guardedSubmit,
     resetForm,
-    markOrderAsCreated,
   } = useOrderForm({ productId });
 
   const { submitOrder } = useOrderSubmission({
     productId,
-    onOrderCreated: (order) => {
-      setCreatedOrder(order);
-      markOrderAsCreated(); // Отключаем автосохранение после создания заказа
-    }
+    onOrderCreated: setCreatedOrder
   });
 
   // Load product data if productId exists
@@ -60,7 +56,7 @@ const SellerCreateOrder = () => {
     onDataLoaded: (data) => {
       Object.entries(data).forEach(([key, value]) => {
         if (value) {
-          handleInputChange(key, String(value));
+          handleInputChange(key, value);
         }
       });
     }
@@ -155,8 +151,7 @@ const SellerCreateOrder = () => {
                   onInputChange={handleInputChange}
                   onImageUpload={handleImageUpload}
                   onImageDelete={handleImageDelete}
-                  onVideoUpload={handleVideoUpload}
-                  onVideoDelete={handleVideoDelete}
+                  setVideos={setVideos}
                 />
               </CardContent>
               
