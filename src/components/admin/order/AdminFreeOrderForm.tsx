@@ -1,16 +1,16 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
 import { useOrderFormLogic } from "@/components/admin/order/useOrderFormLogic";
-import { OrderFormFields } from "@/components/admin/order/OrderFormFields";
+import { SellerOrderFormFields } from "@/components/admin/order/SellerOrderFormFields";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
-import { Loader } from "lucide-react";
+import { Loader, AlertCircle, Shield } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { toast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export const AdminFreeOrderForm = () => {
   const {
@@ -40,14 +40,16 @@ export const AdminFreeOrderForm = () => {
     resetForm,
     navigate,
     parseTitleForBrand,
-    // New states for progress tracking
     creationStage,
-    creationProgress
+    creationProgress,
+    // New initialization states
+    isInitializing,
+    initializationError,
+    hasAdminAccess
   } = useOrderFormLogic();
 
-  // Добавляем защиту от дублирующих отправок
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
-    timeout: 10000, // Увеличиваем время для создания заказа
+    timeout: 10000,
     onDuplicateSubmit: () => {
       toast({
         title: "Заказ создается",
@@ -57,8 +59,74 @@ export const AdminFreeOrderForm = () => {
     }
   });
 
-  // Create form instance for shadcn/ui Form component
   const form = useForm();
+
+  // Show initialization error
+  if (initializationError) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Ошибка инициализации</AlertTitle>
+          <AlertDescription>{initializationError}</AlertDescription>
+        </Alert>
+        <Button 
+          onClick={() => navigate('/admin/dashboard')}
+          variant="outline"
+          className="w-full"
+        >
+          Вернуться в панель администратора
+        </Button>
+      </div>
+    );
+  }
+
+  // Show loading skeleton during initialization
+  if (isInitializing) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Loader className="h-4 w-4 animate-spin" />
+          <span className="text-sm text-gray-600">Загрузка данных...</span>
+        </div>
+        
+        <div className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <Skeleton className="h-20 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!hasAdminAccess) {
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <Shield className="h-4 w-4" />
+          <AlertTitle>Доступ запрещен</AlertTitle>
+          <AlertDescription>
+            У вас нет прав для доступа к этой странице. Обратитесь к администратору.
+          </AlertDescription>
+        </Alert>
+        <Button 
+          onClick={() => navigate('/profile')}
+          variant="outline"
+          className="w-full"
+        >
+          Вернуться в профиль
+        </Button>
+      </div>
+    );
+  }
 
   const onImagesUpload = (urls: string[]) => {
     handleImageUpload(urls);
@@ -76,13 +144,10 @@ export const AdminFreeOrderForm = () => {
     navigate('/admin/dashboard');
   };
 
-  // Обработчик для данных из товара
   const handleDataFromProduct = (productData: any) => {
     console.log("Product data received:", productData);
-    // Дополнительная обработка, если нужна
   };
 
-  // Защищенный обработчик отправки формы
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     guardedSubmit(async () => {
@@ -90,7 +155,6 @@ export const AdminFreeOrderForm = () => {
     });
   };
   
-  // Get stage message based on current creation stage
   const getStageMessage = () => {
     switch (creationStage) {
       case 'validating':
@@ -126,12 +190,9 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
-  // Instead of using the shadcn Form component with required form props,
-  // we'll use a regular form element since we're managing form state
-  // with our custom hook
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <OrderFormFields
+      <SellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
         buyerProfiles={buyerProfiles}
