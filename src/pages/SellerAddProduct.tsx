@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useConditionalCarData } from "@/hooks/useConditionalCarData";
+import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -49,16 +49,15 @@ const SellerAddProduct = () => {
   const isInitializedRef = useRef(false);
   const draftLoadedRef = useRef(false);
   
-  // Условная загрузка автомобильных данных
+  // Use the new hook that loads all car brands and models
   const { 
     brands, 
     brandModels, 
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
-    isLoading: isLoadingCarData,
-    shouldLoadCarData
-  } = useConditionalCarData();
+    isLoading: isLoadingCarData
+  } = useAllCarBrands();
 
   // Create schema for seller (showSellerSelection = false)
   const sellerProductSchema = useMemo(() => createProductSchema, []);
@@ -77,12 +76,12 @@ const SellerAddProduct = () => {
     mode: "onChange",
   });
 
-  // Initialize our title parser only if car data should load
+  // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
-    shouldLoadCarData ? brands : [],
-    shouldLoadCarData ? brandModels : [],
-    shouldLoadCarData ? findBrandIdByName : () => null,
-    shouldLoadCarData ? findModelIdByName : () => null
+    brands,
+    brandModels,
+    findBrandIdByName,
+    findModelIdByName
   );
 
   // Get form data for autosave - use getValues instead of watch to avoid reactivity
@@ -132,7 +131,7 @@ const SellerAddProduct = () => {
 
   // Handle title changes with debounce - only if car data should load
   const handleTitleChange = useCallback((title: string) => {
-    if (shouldLoadCarData && title && brands.length > 0 && !watchBrandId && isInitializedRef.current) {
+    if (title && brands.length > 0 && !watchBrandId && isInitializedRef.current) {
       console.log("Parsing title for auto-detection:", title);
       const { brandId, modelId } = parseProductTitle(title);
       
@@ -149,22 +148,22 @@ const SellerAddProduct = () => {
         });
       }
     }
-  }, [shouldLoadCarData, brands, parseProductTitle, form, watchBrandId, toast]);
+  }, [brands, parseProductTitle, form, watchBrandId, toast]);
 
   // Debounced title processing
   useEffect(() => {
-    if (!isInitializedRef.current || !watchTitle || !shouldLoadCarData) return;
+    if (!isInitializedRef.current || !watchTitle) return;
     
     const timeoutId = setTimeout(() => {
       handleTitleChange(watchTitle);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [watchTitle, handleTitleChange, shouldLoadCarData]);
+  }, [watchTitle, handleTitleChange]);
 
   // Handle brand and model changes - only if car data should load
   useEffect(() => {
-    if (!isInitializedRef.current || !shouldLoadCarData) return;
+    if (!isInitializedRef.current) return;
     
     if (watchBrandId) {
       selectBrand(watchBrandId);
@@ -187,7 +186,7 @@ const SellerAddProduct = () => {
         form.setValue("modelId", "", { shouldValidate: false });
       }
     }
-  }, [shouldLoadCarData, watchBrandId, watchModelId, selectBrand, form, brandModels]);
+  }, [watchBrandId, watchModelId, selectBrand, form, brandModels]);
 
   // Unified image upload handler
   const handleImageUpload = useCallback((urls: string[]) => {
@@ -248,7 +247,7 @@ const SellerAddProduct = () => {
       let brandName = null;
       let modelName = null;
       
-      if (shouldLoadCarData && values.brandId) {
+      if (values.brandId) {
         const selectedBrand = brands.find(brand => brand.id === values.brandId);
         brandName = selectedBrand?.name || null;
         
@@ -395,6 +394,15 @@ const SellerAddProduct = () => {
     };
   }, [imageUrls]);
 
+  // Filter brands and models based on search terms
+  const filteredBrands = brands.filter(brand =>
+    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+  );
+
+  const filteredModels = brandModels.filter(model =>
+    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+  );
+
   return (
     <GlobalErrorBoundary>
       <Layout>
@@ -446,8 +454,7 @@ const SellerAddProduct = () => {
                   </Badge>
                 </CardTitle>
                 <CardDescription>
-                  Заполните все поля и добавьте фотографии для размещения вашего товара на маркетплейсе.
-                  Изображения автоматически обрабатываются через Cloudinary для оптимальной производительности.
+                  Заполните все поля для создания товара. Товар будет отправлен на модерацию.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -458,7 +465,7 @@ const SellerAddProduct = () => {
                   imageUrls={imageUrls}
                   videoUrls={videoUrls}
                   brands={brands}
-                  brandModels={brandModels}
+                  brandModels={filteredModels}
                   isLoadingCarData={isLoadingCarData}
                   watchBrandId={form.watch("brandId")}
                   searchBrandTerm={searchBrandTerm}
@@ -470,7 +477,7 @@ const SellerAddProduct = () => {
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
                   onImageDelete={handleImageDelete}
-                  showSellerSelection={false} // Hide seller selection for normal sellers
+                  showSellerSelection={false}
                 />
               </CardContent>
             </Card>

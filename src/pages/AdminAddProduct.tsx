@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -6,7 +7,7 @@ import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import AddProductForm, { ProductFormValues, productSchema } from "@/components/product/AddProductForm";
 
@@ -30,7 +31,7 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
-  // Use our custom hook for car brands and models
+  // Use the new hook that loads all car brands and models
   const { 
     brands, 
     brandModels, 
@@ -39,7 +40,7 @@ const AdminAddProduct = () => {
     findModelIdByName, 
     isLoading: isLoadingCarData,
     validateModelBrand 
-  } = useCarBrandsAndModels();
+  } = useAllCarBrands();
 
   // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
