@@ -35,7 +35,6 @@ const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 
 // Admin pages
-const AdminRedirect = lazy(() => import('@/pages/AdminRedirect'));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
@@ -193,10 +192,10 @@ export const routes = [
     path: "/order/:id",
     element: <OrderDetails />,
   },
-  // Admin routes
+  // Admin routes - direct redirect to dashboard
   {
     path: "/admin",
-    element: <AdminRedirect />,
+    element: <AdminDashboard />,
     protected: true,
     adminOnly: true,
   },
