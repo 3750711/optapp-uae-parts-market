@@ -52,6 +52,22 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
+  // Initialize form first
+  const form = useForm<AdminProductFormValues>({
+    resolver: zodResolver(adminProductSchema),
+    defaultValues: {
+      title: "",
+      price: "",
+      brandId: "",
+      modelId: "",
+      placeNumber: "1",
+      description: "",
+      deliveryPrice: "0",
+      sellerId: "",
+    },
+    mode: "onChange",
+  });
+  
   // Use our custom hook for car brands and models
   const { 
     brands, 
@@ -75,21 +91,6 @@ const AdminAddProduct = () => {
     findBrandIdByName,
     findModelIdByName
   );
-
-  const form = useForm<AdminProductFormValues>({
-    resolver: zodResolver(adminProductSchema),
-    defaultValues: {
-      title: "",
-      price: "",
-      brandId: "",
-      modelId: "",
-      placeNumber: "1",
-      description: "",
-      deliveryPrice: "0",
-      sellerId: "",
-    },
-    mode: "onChange",
-  });
 
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
@@ -403,3 +404,5 @@ const AdminAddProduct = () => {
 };
 
 export default AdminAddProduct;
+
+</edits_to_apply>
