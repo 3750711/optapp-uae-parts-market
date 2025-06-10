@@ -12,24 +12,20 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 // Import all lazy routes
 import { routes } from '@/utils/lazyRoutes';
 
-// Create a client with improved error handling
+// Optimized React Query configuration for better performance
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      gcTime: 1000 * 60 * 30, // 30 minutes
-      retry: (failureCount, error: any) => {
-        // Don't retry on 4xx errors except 408, 429
-        if (error?.status >= 400 && error?.status < 500 && error?.status !== 408 && error?.status !== 429) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 1000 * 30, // 30 seconds instead of 5 minutes for faster UI
+      gcTime: 1000 * 60 * 10, // 10 minutes instead of 30
+      retry: 1, // Reduced from 3 for faster failure handling
+      retryDelay: 1000, // Fixed 1 second delay instead of exponential
+      refetchOnWindowFocus: false, // Prevent unnecessary refetches
+      refetchOnMount: 'always', // Always refetch on mount for fresh data
     },
     mutations: {
-      retry: 1,
-      retryDelay: 1000,
+      retry: 0, // No retries for mutations by default
+      retryDelay: 500,
     },
   },
 });
@@ -44,14 +40,11 @@ const LoadingFallback = () => (
   </div>
 );
 
-// Global error handler for unhandled promise rejections
+// Only log critical unhandled rejections in production
 window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled promise rejection:', event.reason);
-  
-  // Prevent default browser behavior
   event.preventDefault();
   
-  // Log to analytics if available
   if (window.gtag) {
     window.gtag('event', 'exception', {
       description: `Unhandled promise rejection: ${event.reason}`,
@@ -84,11 +77,9 @@ function App() {
                             key={index}
                             path={path}
                             element={
-                              <GlobalErrorBoundary isAdminRoute={true}>
-                                <AdminRoute>
-                                  {element}
-                                </AdminRoute>
-                              </GlobalErrorBoundary>
+                              <AdminRoute>
+                                {element}
+                              </AdminRoute>
                             }
                           />
                         );
@@ -100,11 +91,9 @@ function App() {
                             key={index}
                             path={path}
                             element={
-                              <GlobalErrorBoundary>
-                                <ProtectedRoute>
-                                  {element}
-                                </ProtectedRoute>
-                              </GlobalErrorBoundary>
+                              <ProtectedRoute>
+                                {element}
+                              </ProtectedRoute>
                             }
                           />
                         );
@@ -114,11 +103,7 @@ function App() {
                         <Route
                           key={index}
                           path={path}
-                          element={
-                            <GlobalErrorBoundary>
-                              {element}
-                            </GlobalErrorBoundary>
-                          }
+                          element={element}
                         />
                       );
                     })}

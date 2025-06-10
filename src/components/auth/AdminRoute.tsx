@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
-import { AdminErrorBoundary } from '@/components/error/AdminErrorBoundary';
+import { devLog } from '@/utils/performanceUtils';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -18,7 +18,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   const { user, isLoading: authLoading } = useAuth();
   const { isAdmin, isChecking, hasAdminAccess } = useAdminGuard(false);
 
-  console.log('AdminRoute state:', {
+  devLog('AdminRoute state:', {
     user: !!user,
     authLoading,
     isChecking,
@@ -26,7 +26,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     hasAdminAccess
   });
 
-  // Показываем загрузку пока идет проверка аутентификации или прав админа
+  // Show loading while checking authentication or admin rights
   if (authLoading || isChecking) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
@@ -38,22 +38,18 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Если пользователь не авторизован, редиректим на логин
+  // If user is not authenticated, redirect to login
   if (!user) {
-    console.log('AdminRoute: No user, redirecting to login');
+    devLog('AdminRoute: No user, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  // Если нет прав администратора, редиректим на профиль
+  // If no admin access, redirect to profile
   if (!hasAdminAccess) {
-    console.log('AdminRoute: No admin access, redirecting to profile');
+    devLog('AdminRoute: No admin access, redirecting to profile');
     return <Navigate to="/profile" replace />;
   }
 
-  // Если все проверки пройдены, рендерим админский контент
-  return (
-    <AdminErrorBoundary>
-      {children}
-    </AdminErrorBoundary>
-  );
+  // If all checks pass, render admin content
+  return <>{children}</>;
 };

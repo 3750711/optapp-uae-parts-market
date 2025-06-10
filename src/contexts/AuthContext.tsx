@@ -1,9 +1,10 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
+import { devLog, devError } from '@/utils/performanceUtils';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -25,9 +26,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
 
-  async function fetchUserProfile(userId: string) {
+  const fetchUserProfile = useCallback(async (userId: string) => {
     try {
-      console.log("AuthContext: Fetching profile for user:", userId);
+      devLog("AuthContext: Fetching profile for user:", userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -40,14 +41,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
       
-      console.log("AuthContext: Fetched profile data:", data);
+      devLog("AuthContext: Fetched profile data:", data);
       
       if (data) {
         setProfile(data);
         
         // Check if first login welcome should be shown
         if (data.email.endsWith('@g.com') && !data.first_login_completed) {
-          console.log("AuthContext: First login detected for @g.com user");
+          devLog("AuthContext: First login detected for @g.com user");
           setShowFirstLoginWelcome(true);
         }
         return data;
@@ -58,28 +59,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('AuthContext: Exception while fetching profile:', error);
       return null;
     }
-  }
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user) {
-      console.log("AuthContext: Refreshing profile for user:", user.id);
+      devLog("AuthContext: Refreshing profile for user:", user.id);
       await fetchUserProfile(user.id);
     }
-  };
+  }, [user, fetchUserProfile]);
 
-  const handleFirstLoginComplete = (completed: boolean) => {
+  const handleFirstLoginComplete = useCallback((completed: boolean) => {
     if (completed) {
       setShowFirstLoginWelcome(false);
       refreshProfile();
     }
-  };
+  }, [refreshProfile]);
 
   useEffect(() => {
     let mounted = true;
     
     const setupAuth = async () => {
       try {
-        console.log("AuthContext: Setting up authentication");
+        devLog("AuthContext: Setting up authentication");
         
         // Get initial session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession?.user ?? null);
           
           if (currentSession?.user) {
-            console.log("AuthContext: Initial user found, fetching profile");
+            devLog("AuthContext: Initial user found, fetching profile");
             await fetchUserProfile(currentSession.user.id);
           }
           
@@ -109,16 +110,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (event, currentSession) => {
             if (!mounted) return;
             
-            console.log("AuthContext: Auth state changed:", event, currentSession?.user?.id);
+            devLog("AuthContext: Auth state changed:", event, currentSession?.user?.id);
             
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
-              console.log("AuthContext: User authenticated, fetching profile");
+              devLog("AuthContext: User authenticated, fetching profile");
               await fetchUserProfile(currentSession.user.id);
             } else {
-              console.log("AuthContext: User not authenticated, clearing profile");
+              devLog("AuthContext: User not authenticated, clearing profile");
               setProfile(null);
               setShowFirstLoginWelcome(false);
             }
@@ -126,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
 
         return () => {
-          console.log("AuthContext: Cleaning up auth subscription");
+          devLog("AuthContext: Cleaning up auth subscription");
           subscription.unsubscribe();
         };
       } catch (error) {
@@ -142,36 +143,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [fetchUserProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     setIsLoading(true);
     
     try {
-      console.log("AuthContext: Signing out user");
+      devLog("AuthContext: Signing out user");
       await supabase.auth.signOut();
       
       setUser(null);
       setSession(null);
       setProfile(null);
       setShowFirstLoginWelcome(false);
-      console.log("AuthContext: Sign out successful");
+      devLog("AuthContext: Sign out successful");
     } catch (error) {
       console.error('AuthContext: Error during sign out:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    profile,
+    isLoading,
+    signOut,
+    refreshProfile
+  }), [user, session, profile, isLoading, signOut, refreshProfile]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      session, 
-      profile, 
-      isLoading, 
-      signOut,
-      refreshProfile 
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
       <FirstLoginWelcome 
         isOpen={showFirstLoginWelcome}

@@ -1,21 +1,21 @@
-
 import { lazy } from 'react';
+import { devError, devLog } from '@/utils/performanceUtils';
 
-// Utility function to add retry logic to lazy imports
-const lazyWithRetry = (importFunc: () => Promise<any>, retries = 3) => {
+// Utility function to add retry logic to lazy imports with optimized logging
+const lazyWithRetry = (importFunc: () => Promise<any>, retries = 2) => { // Reduced retries
   return lazy(() => {
     const attemptImport = (attemptsLeft: number): Promise<any> => {
       return importFunc().catch((error) => {
-        console.error('Failed to load module:', error);
+        devError('Failed to load module:', error);
         
         if (attemptsLeft > 0) {
-          console.log(`Retrying module load... (${attemptsLeft} attempts left)`);
+          devLog(`Retrying module load... (${attemptsLeft} attempts left)`);
           return new Promise((resolve, reject) => {
             setTimeout(() => {
               attemptImport(attemptsLeft - 1)
                 .then(resolve)
                 .catch(reject);
-            }, 1000);
+            }, 500); // Reduced delay
           });
         }
         
@@ -27,7 +27,7 @@ const lazyWithRetry = (importFunc: () => Promise<any>, retries = 3) => {
   });
 };
 
-// Regular pages
+// Regular pages with reduced retry count
 const Index = lazyWithRetry(() => import('@/pages/Index'));
 const About = lazyWithRetry(() => import('@/pages/About'));
 const Contact = lazyWithRetry(() => import('@/pages/Contact'));
@@ -62,20 +62,20 @@ const NotFound = lazyWithRetry(() => import('@/pages/NotFound'));
 const OrdersRedirect = lazyWithRetry(() => import('@/pages/OrdersRedirect'));
 const OrderDetails = lazyWithRetry(() => import('@/pages/OrderDetails'));
 
-// Admin pages with higher retry count due to complexity
-const AdminDashboard = lazyWithRetry(() => import('@/pages/AdminDashboard'), 5);
-const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'), 5);
-const AdminProducts = lazyWithRetry(() => import('@/pages/AdminProducts'), 5);
-const AdminAddProduct = lazyWithRetry(() => import('@/pages/AdminAddProduct'), 5);
-const AdminOrders = lazyWithRetry(() => import('@/pages/AdminOrders'), 5);
-const AdminOrderDetails = lazyWithRetry(() => import('@/pages/AdminOrderDetails'), 5);
-const AdminFreeOrder = lazyWithRetry(() => import('@/pages/AdminFreeOrder'), 5);
-const AdminCreateOrderFromProduct = lazyWithRetry(() => import('@/pages/AdminCreateOrderFromProduct'), 5);
-const AdminStores = lazyWithRetry(() => import('@/pages/AdminStores'), 5);
-const AdminCarCatalog = lazyWithRetry(() => import('@/pages/AdminCarCatalog'), 5);
-const AdminLogistics = lazyWithRetry(() => import('@/pages/AdminLogistics'), 5);
-const AdminEvents = lazyWithRetry(() => import('@/pages/AdminEvents'), 5);
-const GenerateOGImage = lazyWithRetry(() => import('@/pages/GenerateOGImage'), 5);
+// Admin pages with standard retry count
+const AdminDashboard = lazyWithRetry(() => import('@/pages/AdminDashboard'), 2);
+const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'), 2);
+const AdminProducts = lazyWithRetry(() => import('@/pages/AdminProducts'), 2);
+const AdminAddProduct = lazyWithRetry(() => import('@/pages/AdminAddProduct'), 2);
+const AdminOrders = lazyWithRetry(() => import('@/pages/AdminOrders'), 2);
+const AdminOrderDetails = lazyWithRetry(() => import('@/pages/AdminOrderDetails'), 2);
+const AdminFreeOrder = lazyWithRetry(() => import('@/pages/AdminFreeOrder'), 2);
+const AdminCreateOrderFromProduct = lazyWithRetry(() => import('@/pages/AdminCreateOrderFromProduct'), 2);
+const AdminStores = lazyWithRetry(() => import('@/pages/AdminStores'), 2);
+const AdminCarCatalog = lazyWithRetry(() => import('@/pages/AdminCarCatalog'), 2);
+const AdminLogistics = lazyWithRetry(() => import('@/pages/AdminLogistics'), 2);
+const AdminEvents = lazyWithRetry(() => import('@/pages/AdminEvents'), 2);
+const GenerateOGImage = lazyWithRetry(() => import('@/pages/GenerateOGImage'), 2);
 
 export const routes = [
   {
