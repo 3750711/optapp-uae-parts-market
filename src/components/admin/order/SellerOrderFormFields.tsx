@@ -177,7 +177,7 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         buyerProfiles={buyerProfiles}
         sellerProfiles={sellerProfiles}
         disabled={disabled}
-        hideSeller={true}
+        hideSeller={false}
       />
 
       <OrderDetailsSection
