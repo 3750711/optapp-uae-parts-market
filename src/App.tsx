@@ -1,5 +1,4 @@
-
-import React, { Suspense } from 'react';
+import React, { Suspense, useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
@@ -9,109 +8,148 @@ import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
-// Import all lazy routes
-import { routes } from '@/utils/lazyRoutes';
+// Import optimized lazy routes
+import { routes, preloadCriticalRoutes } from '@/utils/lazyRoutes';
 
-// Optimized React Query configuration for better performance
-const queryClient = new QueryClient({
+// Оптимизированная конфигурация React Query
+const createQueryClient = () => new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30 seconds instead of 5 minutes for faster UI
-      gcTime: 1000 * 60 * 10, // 10 minutes instead of 30
-      retry: 1, // Reduced from 3 for faster failure handling
-      retryDelay: 1000, // Fixed 1 second delay instead of exponential
-      refetchOnWindowFocus: false, // Prevent unnecessary refetches
-      refetchOnMount: 'always', // Always refetch on mount for fresh data
+      staleTime: 1000 * 60 * 5, // 5 минут для стабильных данных
+      gcTime: 1000 * 60 * 30, // 30 минут для кэша
+      retry: (failureCount, error: any) => {
+        // Умная логика повторов
+        if (error?.status === 404 || error?.status === 403) return false;
+        return failureCount < 2;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: false,
+      refetchOnMount: false, // Используем кэш при монтировании
+      refetchOnReconnect: true, // Обновляем при восстановлении соединения
     },
     mutations: {
-      retry: 0, // No retries for mutations by default
-      retryDelay: 500,
+      retry: 1,
+      retryDelay: 1000,
     },
   },
 });
 
-// Enhanced loading fallback component
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
+// Мемоизированный компонент загрузки
+const LoadingFallback = React.memo(() => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50">
     <div className="text-center">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-optapp-yellow mx-auto mb-4"></div>
-      <p className="text-gray-600">Загрузка...</p>
+      <p className="text-gray-600 text-sm">Загрузка...</p>
     </div>
   </div>
-);
+));
 
-// Only log critical unhandled rejections in production
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-  event.preventDefault();
+LoadingFallback.displayName = 'LoadingFallback';
+
+// Оптимизированный обработчик ошибок
+const setupErrorHandling = () => {
+  if (typeof window === 'undefined') return;
   
-  if (window.gtag) {
-    window.gtag('event', 'exception', {
-      description: `Unhandled promise rejection: ${event.reason}`,
-      fatal: false,
-    });
+  window.addEventListener('unhandledrejection', (event) => {
+    // Логируем только критические ошибки
+    if (event.reason?.name !== 'ChunkLoadError') {
+      console.error('Unhandled promise rejection:', event.reason);
+      
+      // Аналитика только в продакшене
+      if (process.env.NODE_ENV === 'production' && window.gtag) {
+        window.gtag('event', 'exception', {
+          description: `Unhandled rejection: ${event.reason?.message || event.reason}`,
+          fatal: false,
+        });
+      }
+    }
+    event.preventDefault();
+  });
+};
+
+// Инициализируем обработку ошибок один раз
+setupErrorHandling();
+
+// Мемоизированный компонент маршрута
+const RouteComponent = React.memo(({ route, index }: { route: any; index: number }) => {
+  const { path, element, protected: isProtected, adminOnly } = route;
+  
+  if (adminOnly) {
+    return (
+      <Route
+        key={index}
+        path={path}
+        element={
+          <AdminRoute>
+            {element}
+          </AdminRoute>
+        }
+      />
+    );
   }
+  
+  if (isProtected) {
+    return (
+      <Route
+        key={index}
+        path={path}
+        element={
+          <ProtectedRoute>
+            {element}
+          </ProtectedRoute>
+        }
+      />
+    );
+  }
+  
+  return (
+    <Route
+      key={index}
+      path={path}
+      element={element}
+    />
+  );
 });
 
+RouteComponent.displayName = 'RouteComponent';
+
 function App() {
+  // Мемоизируем QueryClient для предотвращения пересоздания
+  const queryClient = useMemo(() => createQueryClient(), []);
+  
+  // Мемоизируем маршруты
+  const renderedRoutes = useMemo(() => 
+    routes.map((route, index) => (
+      <RouteComponent key={route.path || index} route={route} index={index} />
+    )), 
+    [routes]
+  );
+
+  // Предзагружаем критические маршруты после инициализации
+  React.useEffect(() => {
+    preloadCriticalRoutes();
+  }, []);
+
   return (
     <GlobalErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
       <HelmetProvider>
         <QueryClientProvider client={queryClient}>
-          <AuthProvider>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="system"
-              enableSystem
-              disableTransitionOnChange
-            >
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <AuthProvider>
               <Router>
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
-                    {routes.map((route, index) => {
-                      const { path, element, protected: isProtected, adminOnly } = route;
-                      
-                      if (adminOnly) {
-                        return (
-                          <Route
-                            key={index}
-                            path={path}
-                            element={
-                              <AdminRoute>
-                                {element}
-                              </AdminRoute>
-                            }
-                          />
-                        );
-                      }
-                      
-                      if (isProtected) {
-                        return (
-                          <Route
-                            key={index}
-                            path={path}
-                            element={
-                              <ProtectedRoute>
-                                {element}
-                              </ProtectedRoute>
-                            }
-                          />
-                        );
-                      }
-                      
-                      return (
-                        <Route
-                          key={index}
-                          path={path}
-                          element={element}
-                        />
-                      );
-                    })}
+                    {renderedRoutes}
                   </Routes>
                 </Suspense>
               </Router>
-            </ThemeProvider>
-          </AuthProvider>
+            </AuthProvider>
+          </ThemeProvider>
         </QueryClientProvider>
       </HelmetProvider>
     </GlobalErrorBoundary>
