@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,7 @@ import {
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
-import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
+import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 import {
   Breadcrumb,
   BreadcrumbList,
@@ -400,7 +399,7 @@ const SellerAddProduct = () => {
   }, [imageUrls]);
 
   return (
-    <ErrorBoundary>
+    <GlobalErrorBoundary>
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
@@ -481,7 +480,7 @@ const SellerAddProduct = () => {
           </div>
         </div>
       </Layout>
-    </ErrorBoundary>
+    </GlobalErrorBoundary>
   );
 };
 
