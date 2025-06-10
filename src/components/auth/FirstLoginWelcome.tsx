@@ -9,7 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { User, Lock, Mail, Shield, CheckCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/OptimizedAuthContext';
 import EmailVerificationForm from './EmailVerificationForm';
 
 interface FirstLoginWelcomeProps {
