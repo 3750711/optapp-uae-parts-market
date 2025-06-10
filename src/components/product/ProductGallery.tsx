@@ -51,7 +51,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       <div className="mb-4 relative group">
         <div className="w-full min-h-[400px] bg-gray-50 rounded-lg border flex items-center justify-center p-4">
           <div 
-            className="max-w-full max-h-full cursor-pointer relative overflow-hidden"
+            className="w-full h-full cursor-pointer relative overflow-hidden flex items-center justify-center"
             onClick={handleMainImageClick}
           >
             {isVideo(activeMedia) ? (

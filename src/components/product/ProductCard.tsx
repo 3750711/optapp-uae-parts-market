@@ -137,7 +137,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   <OptimizedImage
                     src={index === 0 ? primaryImage : imageUrl}
                     alt={`${product.title} ${index + 1}`}
-                    className="max-w-full max-h-full object-contain"
+                    className="w-full h-full object-contain"
                     onError={handleImageError}
                     onLoad={handleImageLoad}
                     priority={index === 0}
@@ -171,7 +171,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <OptimizedImage
             src={primaryImage}
             alt={product.title}
-            className="max-w-full max-h-full object-contain transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
             onError={handleImageError}
             onLoad={handleImageLoad}
             priority={false}

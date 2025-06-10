@@ -124,7 +124,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
             <OptimizedImage
               src={primaryImage}
               alt={product.title}
-              className="max-w-full max-h-full object-contain"
+              className="w-full h-full object-contain"
               cloudinaryPublicId={product.cloudinary_public_id || undefined}
               cloudinaryUrl={cloudinaryUrl || undefined}
               size="detail"
