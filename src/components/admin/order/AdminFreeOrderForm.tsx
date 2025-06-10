@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
@@ -51,6 +52,7 @@ export const AdminFreeOrderForm = () => {
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
     timeout: 10000,
     onDuplicateSubmit: () => {
+      console.error('🚫 AdminFreeOrderForm: Duplicate submission attempt blocked');
       toast({
         title: "Заказ создается",
         description: "Пожалуйста подождите, заказ уже создается",
@@ -61,17 +63,41 @@ export const AdminFreeOrderForm = () => {
 
   const form = useForm();
 
+  // Enhanced error logging
+  React.useEffect(() => {
+    if (initializationError) {
+      console.error('🔥 AdminFreeOrderForm: Initialization error:', initializationError);
+      console.error('🔍 Current location:', window.location.href);
+      console.error('🔍 Has admin access:', hasAdminAccess);
+    }
+  }, [initializationError, hasAdminAccess]);
+
   // Show initialization error
   if (initializationError) {
+    console.error('🚨 AdminFreeOrderForm: Rendering initialization error state');
     return (
       <div className="space-y-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Ошибка инициализации</AlertTitle>
-          <AlertDescription>{initializationError}</AlertDescription>
+          <AlertDescription>
+            {initializationError}
+            {process.env.NODE_ENV === 'development' && (
+              <details className="mt-2 text-xs">
+                <summary className="cursor-pointer">Техническая информация</summary>
+                <pre className="mt-1 whitespace-pre-wrap break-words">
+                  Location: {window.location.href}
+                  {'\n'}Admin Access: {String(hasAdminAccess)}
+                </pre>
+              </details>
+            )}
+          </AlertDescription>
         </Alert>
         <Button 
-          onClick={() => navigate('/admin/dashboard')}
+          onClick={() => {
+            console.log('🔄 AdminFreeOrderForm: Navigating back to admin dashboard');
+            navigate('/admin/dashboard');
+          }}
           variant="outline"
           className="w-full"
         >
@@ -83,6 +109,7 @@ export const AdminFreeOrderForm = () => {
 
   // Show loading skeleton during initialization
   if (isInitializing) {
+    console.log('⏳ AdminFreeOrderForm: Rendering initialization loading state');
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-2 mb-4">
@@ -108,6 +135,7 @@ export const AdminFreeOrderForm = () => {
 
   // Show access denied if not admin
   if (!hasAdminAccess) {
+    console.warn('🔒 AdminFreeOrderForm: Access denied - user is not admin');
     return (
       <div className="space-y-4">
         <Alert variant="destructive">
@@ -118,7 +146,10 @@ export const AdminFreeOrderForm = () => {
           </AlertDescription>
         </Alert>
         <Button 
-          onClick={() => navigate('/profile')}
+          onClick={() => {
+            console.log('🔄 AdminFreeOrderForm: Redirecting unauthorized user to profile');
+            navigate('/profile');
+          }}
           variant="outline"
           className="w-full"
         >
@@ -129,29 +160,44 @@ export const AdminFreeOrderForm = () => {
   }
 
   const onImagesUpload = (urls: string[]) => {
+    console.log('📸 AdminFreeOrderForm: Images uploaded:', urls.length);
     handleImageUpload(urls);
   };
 
   const onVideoUpload = (urls: string[]) => {
+    console.log('🎥 AdminFreeOrderForm: Videos uploaded:', urls.length);
     setVideos((prev) => [...prev, ...urls]);
   };
 
   const onVideoDelete = (url: string) => {
+    console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
     setVideos((prev) => prev.filter((v) => v !== url));
   };
 
   const handleGoBack = () => {
+    console.log('⬅️ AdminFreeOrderForm: Going back to dashboard');
     navigate('/admin/dashboard');
   };
 
   const handleDataFromProduct = (productData: any) => {
-    console.log("Product data received:", productData);
+    console.log("📦 AdminFreeOrderForm: Product data received:", productData);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('📤 AdminFreeOrderForm: Form submission initiated');
     guardedSubmit(async () => {
-      await originalHandleSubmit(e);
+      try {
+        await originalHandleSubmit(e);
+        console.log('✅ AdminFreeOrderForm: Form submitted successfully');
+      } catch (error) {
+        console.error('❌ AdminFreeOrderForm: Form submission failed:', error);
+        toast({
+          title: "Ошибка создания заказа",
+          description: "Произошла ошибка при создании заказа. Попробуйте еще раз.",
+          variant: "destructive",
+        });
+      }
     });
   };
   
@@ -179,6 +225,7 @@ export const AdminFreeOrderForm = () => {
   const isFormDisabled = isLoading || !canSubmit;
 
   if (createdOrder) {
+    console.log('🎉 AdminFreeOrderForm: Rendering created order view');
     return (
       <CreatedOrderView
         order={createdOrder}
@@ -190,6 +237,7 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
+  console.log('📝 AdminFreeOrderForm: Rendering form');
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <SellerOrderFormFields
