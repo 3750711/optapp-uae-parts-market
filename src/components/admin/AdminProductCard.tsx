@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -67,9 +68,11 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     .filter(Boolean)
     .join(' • ');
 
-  // Get image with Cloudinary support
+  // Use the same image selection logic as in catalog
   const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
                       product.product_images?.[0]?.url || 
+                      product.cloudinary_url ||
+                      (product as any).image ||
                       '/placeholder.svg';
 
   const handleEditSuccess = () => {
@@ -89,6 +92,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
               alt={product.title}
               className="w-full h-full object-contain"
               cloudinaryPublicId={product.cloudinary_public_id || undefined}
+              cloudinaryUrl={product.cloudinary_url || undefined}
               size="thumbnail"
             />
           </AspectRatio>
