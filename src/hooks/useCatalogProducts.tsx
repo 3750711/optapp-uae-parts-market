@@ -111,10 +111,7 @@ export const useCatalogProducts = ({
       sortBy,
       isAdmin
     };
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('📋 Обновление фильтров:', filtersObj);
-    }
+    console.log('📋 Catalog filters updated:', filtersObj);
     return filtersObj;
   }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
@@ -134,17 +131,16 @@ export const useCatalogProducts = ({
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🔎 Выполнение поискового запроса с фильтрами:', {
-            searchQuery: filters.activeSearchTerm,
-            selectedBrandName: filters.selectedBrandName,
-            selectedModelName: filters.selectedModelName,
-            hideSoldProducts: filters.hideSoldProducts,
-            page: pageParam,
-            from,
-            to
-          });
-        }
+        console.log('🔎 Executing product search with:', {
+          searchQuery: filters.activeSearchTerm,
+          selectedBrandName: filters.selectedBrandName,
+          selectedModelName: filters.selectedModelName,
+          hideSoldProducts: filters.hideSoldProducts,
+          page: pageParam,
+          from,
+          to,
+          isAdmin: filters.isAdmin
+        });
         
         let query = supabase
           .from('products')
@@ -169,6 +165,7 @@ export const useCatalogProducts = ({
 
         query = buildSortQuery(query, sortBy);
 
+        // Apply status filters
         if (filters.hideSoldProducts) {
           query = query.eq('status', 'active');
         } else {
@@ -179,6 +176,7 @@ export const useCatalogProducts = ({
           }
         }
 
+        // Apply search filters
         if (filters.activeSearchTerm) {
           const searchTerm = filters.activeSearchTerm.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
@@ -194,13 +192,12 @@ export const useCatalogProducts = ({
 
         query = query.range(from, to);
 
+        console.log('📡 Starting Supabase query...');
         const { data, error } = await query;
         
         if (error) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('❌ Ошибка загрузки товаров:', error);
-          }
-          throw new Error(`Ошибка загрузки товаров: ${error.message}`);
+          console.error('❌ Supabase query error:', error);
+          throw new Error(`Database query failed: ${error.message}`);
         }
         
         const dataWithSortedImages = data?.map(product => ({
@@ -212,18 +209,19 @@ export const useCatalogProducts = ({
           })
         }));
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Товары успешно загружены:', dataWithSortedImages?.length, 'элементов');
-        }
+        console.log('✅ Products loaded successfully:', {
+          count: dataWithSortedImages?.length || 0,
+          hasData: (dataWithSortedImages?.length || 0) > 0,
+          firstProduct: dataWithSortedImages?.[0]?.title
+        });
+        
         return dataWithSortedImages || [];
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('💥 Ошибка в queryFn:', error);
-        }
+        console.error('💥 Product loading error:', error);
         if (error instanceof Error) {
           throw new Error(error.message);
         } else {
-          throw new Error('Произошла неизвестная ошибка при загрузке товаров');
+          throw new Error('Unknown error occurred while loading products');
         }
       }
     },
@@ -231,10 +229,11 @@ export const useCatalogProducts = ({
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 180000,
-    gcTime: 300000,
+    staleTime: 30000, // Reduced from 3 minutes to 30 seconds for better data freshness
+    gcTime: 60000, // Reduced garbage collection time
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
+      console.log(`⚠️ Query retry attempt ${failureCount + 1}:`, error);
       return failureCount < 2;
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000)
@@ -242,6 +241,7 @@ export const useCatalogProducts = ({
 
   useEffect(() => {
     if (isError && error) {
+      console.error('❌ Product loading error in useEffect:', error);
       toast({
         title: "Ошибка загрузки товаров",
         description: error instanceof Error ? error.message : "Не удалось загрузить товары",
@@ -254,7 +254,7 @@ export const useCatalogProducts = ({
   
   const mappedProducts: ProductProps[] = useMemo(() => {
     try {
-      return allProducts.map((product) => {
+      const mapped = allProducts.map((product) => {
         const typedProduct = product as unknown as ProductType;
         
         return {
@@ -278,10 +278,16 @@ export const useCatalogProducts = ({
           }))
         } as ProductProps;
       });
+      
+      console.log('🔄 Products mapped:', {
+        originalCount: allProducts.length,
+        mappedCount: mapped.length,
+        hasValidData: mapped.length > 0
+      });
+      
+      return mapped;
     } catch (mappingError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Ошибка маппинга товаров:', mappingError);
-      }
+      console.error('❌ Product mapping error:', mappingError);
       return [];
     }
   }, [allProducts]);
@@ -293,6 +299,12 @@ export const useCatalogProducts = ({
     for (let i = 0; i < mappedProducts.length; i += chunkSize) {
       chunks.push(mappedProducts.slice(i, i + chunkSize));
     }
+    
+    console.log('📦 Product chunks created:', {
+      totalProducts: mappedProducts.length,
+      chunksCount: chunks.length,
+      chunkSize
+    });
     
     return chunks;
   }, [mappedProducts]);

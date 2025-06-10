@@ -67,13 +67,27 @@ const Catalog: React.FC = () => {
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
+  // Debug logging for catalog state
+  useEffect(() => {
+    console.log('📊 Catalog state:', {
+      isLoading,
+      isError,
+      productsCount: mappedProducts.length,
+      hasNextPage,
+      isFetchingNextPage,
+      activeSearchTerm,
+      selectedBrand,
+      selectedModel,
+      hideSoldProducts
+    });
+  }, [isLoading, isError, mappedProducts.length, hasNextPage, isFetchingNextPage, activeSearchTerm, selectedBrand, selectedModel, hideSoldProducts]);
+
   const handleRetry = async () => {
+    console.log('🔄 Manual retry triggered');
     try {
       await refetch();
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Retry failed:', error);
-      }
+      console.error('❌ Retry failed:', error);
     }
   };
 
@@ -178,7 +192,7 @@ const Catalog: React.FC = () => {
         )}
 
         {!shouldLoadCarData && (
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="flex-1">
               <form onSubmit={handleEnhancedSearchSubmit} className="flex gap-2">
                 <input
@@ -191,6 +205,15 @@ const Catalog: React.FC = () => {
                 <Button type="submit">
                   Поиск
                 </Button>
+                {searchTerm && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleClearSearch}
+                  >
+                    Очистить
+                  </Button>
+                )}
               </form>
             </div>
           </div>
@@ -222,7 +245,12 @@ const Catalog: React.FC = () => {
         />
 
         {isLoading ? (
-          <CatalogSkeleton />
+          <div>
+            <CatalogSkeleton />
+            <div className="text-center mt-4 text-gray-500">
+              Загрузка товаров...
+            </div>
+          </div>
         ) : isError ? (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -243,6 +271,10 @@ const Catalog: React.FC = () => {
           <>
             {mappedProducts.length > 0 ? (
               <>
+                <div className="mb-4 text-sm text-gray-600">
+                  Найдено товаров: {mappedProducts.length}
+                </div>
+                
                 {productChunks.map((chunk, index) => (
                   <UnifiedProductGrid 
                     key={index} 
@@ -280,19 +312,30 @@ const Catalog: React.FC = () => {
                     </svg>
                   </div>
                   <h3 className="text-xl font-medium text-gray-900 mb-2">
-                    Ничего не найдено
+                    Товары не найдены
                   </h3>
                   <p className="text-gray-500 mb-6">
-                    Попробуйте изменить параметры поиска или фильтры
+                    {hasAnyFilters 
+                      ? "Попробуйте изменить параметры поиска или фильтры" 
+                      : "В настоящее время товары отсутствуют"
+                    }
                   </p>
-                  <Button onClick={handleClearAll}>
-                    Сбросить фильтры
-                  </Button>
+                  {hasAnyFilters && (
+                    <Button onClick={handleClearAll}>
+                      Сбросить фильтры
+                    </Button>
+                  )}
+                  <div className="mt-4">
+                    <Button onClick={handleRetry} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Обновить
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
 
-            {allProductsLoaded && (
+            {allProductsLoaded && mappedProducts.length > 0 && (
               <div className="text-center py-6 text-gray-500">
                 Вы просмотрели все товары
               </div>
