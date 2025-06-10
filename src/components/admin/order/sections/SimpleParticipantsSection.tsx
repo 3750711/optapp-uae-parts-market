@@ -31,14 +31,18 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
   disabled = false,
   hideSeller = false,
 }) => {
-  // Sort buyers alphabetically by OPT_ID
+  // Sort buyers by OPT_ID
   const sortedBuyers = React.useMemo(() => {
     return [...buyerProfiles].sort((a, b) => a.opt_id.localeCompare(b.opt_id));
   }, [buyerProfiles]);
 
-  // Sort sellers alphabetically by name
+  // Sort sellers by OPT_ID (handle cases where opt_id might be null/undefined)
   const sortedSellers = React.useMemo(() => {
-    return [...sellerProfiles].sort((a, b) => a.full_name.localeCompare(b.full_name));
+    return [...sellerProfiles].sort((a, b) => {
+      const aOptId = a.opt_id || '';
+      const bOptId = b.opt_id || '';
+      return aOptId.localeCompare(bOptId);
+    });
   }, [sellerProfiles]);
 
   return (
