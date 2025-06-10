@@ -721,5 +721,3 @@ const AdminCreateOrderFromProduct = () => {
 };
 
 export default AdminCreateOrderFromProduct;
-
-}
