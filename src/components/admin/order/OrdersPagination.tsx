@@ -74,7 +74,7 @@ export const OrdersPagination: React.FC<OrdersPaginationProps> = ({
         </Button>
 
         {getVisiblePages().map((page, index) => (
-          <React.Fragment key={index}>
+          <div key={index}>
             {page === 'dots' ? (
               <Button variant="ghost" size="sm" disabled className="cursor-default">
                 <MoreHorizontal className="h-4 w-4 text-gray-400" />
@@ -93,7 +93,7 @@ export const OrdersPagination: React.FC<OrdersPaginationProps> = ({
                 {page}
               </Button>
             )}
-          </React.Fragment>
+          </div>
         ))}
 
         <Button

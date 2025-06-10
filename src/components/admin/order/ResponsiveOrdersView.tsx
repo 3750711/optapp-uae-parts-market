@@ -1,13 +1,29 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { VirtualizedOrdersList } from './VirtualizedOrdersList';
-import { MobileOrderCard } from './MobileOrderCard';
-import { CompactMobileOrderCard } from './CompactMobileOrderCard';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { Button } from '@/components/ui/button';
-import { Grid, List, Eye } from 'lucide-react';
-import { useState } from 'react';
+import { Grid, List } from 'lucide-react';
+import { ComponentFallback, EmptyState } from './FallbackComponents';
+
+// Lazy imports with fallback
+const VirtualizedOrdersList = React.lazy(() => 
+  import('./VirtualizedOrdersList').catch(() => ({ 
+    default: () => <ComponentFallback componentName="VirtualizedOrdersList" /> 
+  }))
+);
+
+const MobileOrderCard = React.lazy(() => 
+  import('./MobileOrderCard').catch(() => ({ 
+    default: () => <ComponentFallback componentName="MobileOrderCard" /> 
+  }))
+);
+
+const CompactMobileOrderCard = React.lazy(() => 
+  import('./CompactMobileOrderCard').catch(() => ({ 
+    default: () => <ComponentFallback componentName="CompactMobileOrderCard" /> 
+  }))
+);
 
 interface ResponsiveOrdersViewProps {
   orders: Order[];
@@ -33,17 +49,56 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
   const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>(isMobile ? 'list' : 'grid');
 
-  if (orders.length === 0) {
+  // Memoize orders to prevent unnecessary re-renders
+  const memoizedOrders = useMemo(() => orders, [orders]);
+
+  if (!memoizedOrders || memoizedOrders.length === 0) {
     return (
-      <div className="col-span-3 text-center py-20">
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-8">
-          <p className="text-lg text-muted-foreground">
-            Нет заказов для отображения
-          </p>
-        </div>
-      </div>
+      <EmptyState 
+        message="Нет заказов для отображения"
+        description="Попробуйте изменить фильтры поиска или создать новый заказ"
+      />
     );
   }
+
+  const renderMobileCard = (order: Order) => {
+    try {
+      if (viewMode === 'compact') {
+        return (
+          <React.Suspense fallback={<ComponentFallback componentName="CompactMobileOrderCard" />}>
+            <CompactMobileOrderCard
+              key={order.id}
+              order={order}
+              isSelected={selectedOrders.includes(order.id)}
+              onSelect={onSelectOrder || (() => {})}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onViewDetails={onViewDetails}
+              onQuickAction={onQuickAction}
+            />
+          </React.Suspense>
+        );
+      } else {
+        return (
+          <React.Suspense fallback={<ComponentFallback componentName="MobileOrderCard" />}>
+            <MobileOrderCard
+              key={order.id}
+              order={order}
+              isSelected={selectedOrders.includes(order.id)}
+              onSelect={onSelectOrder || (() => {})}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onViewDetails={onViewDetails}
+              onQuickAction={onQuickAction}
+            />
+          </React.Suspense>
+        );
+      }
+    } catch (error) {
+      console.error('Error rendering mobile card:', error);
+      return <ComponentFallback componentName="MobileOrderCard" />;
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -76,7 +131,7 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
         <div className="flex items-center justify-between bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium text-muted-foreground">
-              Найдено: {orders.length}
+              Найдено: {memoizedOrders.length}
             </span>
           </div>
           
@@ -106,57 +161,24 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
       {/* Orders Display */}
       {isMobile ? (
         <div className="space-y-3">
-          {orders.map((order) => 
-            viewMode === 'compact' ? (
-              <CompactMobileOrderCard
-                key={order.id}
-                order={order}
-                isSelected={selectedOrders.includes(order.id)}
-                onSelect={onSelectOrder || (() => {})}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onViewDetails={onViewDetails}
-                onQuickAction={onQuickAction}
-              />
-            ) : (
-              <MobileOrderCard
-                key={order.id}
-                order={order}
-                isSelected={selectedOrders.includes(order.id)}
-                onSelect={onSelectOrder || (() => {})}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                onViewDetails={onViewDetails}
-                onQuickAction={onQuickAction}
-              />
-            )
-          )}
+          {memoizedOrders.map((order) => renderMobileCard(order))}
         </div>
       ) : viewMode === 'list' ? (
         <div className="space-y-4">
-          {orders.map((order) => (
-            <MobileOrderCard
-              key={order.id}
-              order={order}
-              isSelected={selectedOrders.includes(order.id)}
-              onSelect={onSelectOrder || (() => {})}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onViewDetails={onViewDetails}
-              onQuickAction={onQuickAction}
-            />
-          ))}
+          {memoizedOrders.map((order) => renderMobileCard(order))}
         </div>
       ) : (
-        <VirtualizedOrdersList
-          orders={orders}
-          selectedOrders={selectedOrders}
-          onSelectOrder={onSelectOrder}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onViewDetails={onViewDetails}
-          containerHeight={containerHeight}
-        />
+        <React.Suspense fallback={<ComponentFallback componentName="VirtualizedOrdersList" />}>
+          <VirtualizedOrdersList
+            orders={memoizedOrders}
+            selectedOrders={selectedOrders}
+            onSelectOrder={onSelectOrder}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
+            containerHeight={containerHeight}
+          />
+        </React.Suspense>
       )}
     </div>
   );

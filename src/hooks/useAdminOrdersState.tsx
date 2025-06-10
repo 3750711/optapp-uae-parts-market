@@ -6,16 +6,32 @@ import { SortField, SortDirection } from "@/components/admin/order/SortingContro
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
+interface AdminOrdersSettings {
+  statusFilter: StatusFilterType;
+  sortField: SortField;
+  sortDirection: SortDirection;
+  pageSize: number;
+}
+
 export const useAdminOrdersState = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
 
-  // Settings from localStorage
-  const { settings, updateSettings } = useLocalStorageSettings('admin-orders-settings');
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>(settings.statusFilter as StatusFilterType);
-  const [sortField, setSortField] = useState<SortField>(settings.sortField as SortField);
-  const [sortDirection, setSortDirection] = useState<SortDirection>(settings.sortDirection as SortDirection);
+  // Settings from localStorage with proper typing
+  const { settings, updateSettings } = useLocalStorageSettings<AdminOrdersSettings>(
+    'admin-orders-settings',
+    {
+      statusFilter: 'all' as StatusFilterType,
+      sortField: 'created_at' as SortField,
+      sortDirection: 'desc' as SortDirection,
+      pageSize: 10
+    }
+  );
+
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>(settings.statusFilter);
+  const [sortField, setSortField] = useState<SortField>(settings.sortField);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(settings.sortDirection);
   const pageSize = settings.pageSize;
 
   const handleSearch = useCallback(() => {

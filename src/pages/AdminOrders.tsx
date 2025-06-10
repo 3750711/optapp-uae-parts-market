@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { ResponsiveOrdersView } from "@/components/admin/order/ResponsiveOrdersView";
 import { OrdersPagination } from "@/components/admin/order/OrdersPagination";
@@ -10,7 +9,7 @@ import { BulkActionsBar } from "@/components/admin/order/BulkActionsBar";
 import { MobileBulkActionsBar } from "@/components/admin/order/MobileBulkActionsBar";
 import { AdminOrdersHeader } from "@/components/admin/order/AdminOrdersHeader";
 import { AdminOrdersDialogs } from "@/components/admin/order/AdminOrdersDialogs";
-import { OrderCardSkeleton } from "@/components/admin/order/LoadingStates";
+import { LoadingIndicator, EmptyState } from "@/components/admin/order/FallbackComponents";
 import { useOptimizedOrdersQuery } from "@/hooks/useOptimizedOrdersQuery";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -42,7 +41,7 @@ const AdminOrders = () => {
   // Debounce search term for better performance
   const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
 
-  const { data, isLoading, refetch } = useOptimizedOrdersQuery({
+  const { data, isLoading, error, refetch } = useOptimizedOrdersQuery({
     statusFilter,
     searchTerm: debouncedSearchTerm,
     page: currentPage,
@@ -83,6 +82,20 @@ const AdminOrders = () => {
     handleOrderStatusChange,
   } = useOrderActions(orders, selectedOrders, refetch);
 
+  // Error boundary for the entire page
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="container mx-auto py-8">
+          <EmptyState 
+            message="Ошибка загрузки заказов"
+            description="Попробуйте обновить страницу или обратитесь к администратору"
+          />
+        </div>
+      </AdminLayout>
+    );
+  }
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -102,10 +115,8 @@ const AdminOrders = () => {
               onRefetch={refetch}
               totalCount={totalCount}
             />
-            <CardContent className="space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <OrderCardSkeleton key={i} />
-              ))}
+            <CardContent className="p-6">
+              <LoadingIndicator message="Загружаем заказы..." />
             </CardContent>
           </Card>
         </div>
@@ -159,24 +170,28 @@ const AdminOrders = () => {
             />
             
             {/* Responsive Pagination */}
-            {isMobile ? (
-              <MobilePagination
-                currentPage={currentPage}
-                totalCount={totalCount}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-                hasNextPage={hasNextPage}
-                hasPreviousPage={hasPreviousPage}
-              />
-            ) : (
-              <OrdersPagination
-                currentPage={currentPage}
-                totalCount={totalCount}
-                pageSize={pageSize}
-                onPageChange={handlePageChange}
-                hasNextPage={hasNextPage}
-                hasPreviousPage={hasPreviousPage}
-              />
+            {totalCount > 0 && (
+              <>
+                {isMobile ? (
+                  <MobilePagination
+                    currentPage={currentPage}
+                    totalCount={totalCount}
+                    pageSize={pageSize}
+                    onPageChange={handlePageChange}
+                    hasNextPage={hasNextPage}
+                    hasPreviousPage={hasPreviousPage}
+                  />
+                ) : (
+                  <OrdersPagination
+                    currentPage={currentPage}
+                    totalCount={totalCount}
+                    pageSize={pageSize}
+                    onPageChange={handlePageChange}
+                    hasNextPage={hasNextPage}
+                    hasPreviousPage={hasPreviousPage}
+                  />
+                )}
+              </>
             )}
           </CardContent>
         </Card>
