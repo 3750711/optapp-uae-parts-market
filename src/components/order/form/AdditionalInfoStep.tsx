@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CloudinaryImage } from '@/components/ui/CloudinaryImage';
+import CloudinaryImage from '@/components/ui/CloudinaryImage';
 import { Badge } from '@/components/ui/badge';
 import { ImageIcon, X, Plus, Upload, Film, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
