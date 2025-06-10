@@ -2,7 +2,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
-import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
+import { useOrderFormLogic } from "@/components/admin/order/useOrderFormLogic";
 import { SellerOrderFormFields } from "@/components/admin/order/SellerOrderFormFields";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { Loader, AlertCircle, Shield } from "lucide-react";
@@ -47,7 +47,7 @@ export const AdminFreeOrderForm = () => {
     isInitializing,
     initializationError,
     hasAdminAccess
-  } = useAdminOrderFormLogic();
+  } = useOrderFormLogic();
 
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
     timeout: 10000,
