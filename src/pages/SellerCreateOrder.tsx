@@ -43,11 +43,15 @@ const SellerCreateOrder = () => {
     setVideos,
     guardedSubmit,
     resetForm,
+    markOrderAsCreated,
   } = useOrderForm({ productId });
 
   const { submitOrder } = useOrderSubmission({
     productId,
-    onOrderCreated: setCreatedOrder
+    onOrderCreated: (order) => {
+      setCreatedOrder(order);
+      markOrderAsCreated(); // Отключаем автосохранение после создания заказа
+    }
   });
 
   // Load product data if productId exists

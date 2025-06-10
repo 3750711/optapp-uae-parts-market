@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Database } from '@/integrations/supabase/types';
 import { useFormAutosave } from '@/hooks/useFormAutosave';
@@ -48,6 +49,7 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [orderCreated, setOrderCreated] = useState(false);
 
   // Simple validation functions
   const validateField = (field: string, value: string): string | null => {
@@ -59,11 +61,15 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
       case 'price':
         if (!value) return 'Укажите цену';
         const price = parseFloat(value);
-        // Updated validation to allow 0 and negative prices
         if (isNaN(price)) return 'Цена должна быть числом';
         return null;
       case 'buyerOptId':
         if (!value) return 'Выберите покупателя';
+        return null;
+      case 'place_number':
+        if (!value) return 'Укажите количество мест';
+        const places = parseInt(value);
+        if (isNaN(places) || places < 1) return 'Количество мест должно быть больше 0';
         return null;
       default:
         return null;
@@ -81,12 +87,12 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     return validateField(field, String(value));
   };
 
-  // Auto-save functionality
+  // Auto-save functionality - только если заказ не создан
   const { loadSavedData, clearSavedData, hasUnsavedChanges } = useFormAutosave({
     key: `seller_order_${productId || 'new'}`,
     data: { formData, images, videos },
     delay: 30000,
-    enabled: true
+    enabled: !orderCreated // Автосохранение отключается после создания заказа
   });
 
   // Submission guard
@@ -155,22 +161,30 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     setImages([]);
     setVideos([]);
     setTouchedFields(new Set());
+    setOrderCreated(false);
+    clearSavedData();
+  };
+
+  const markOrderAsCreated = () => {
+    setOrderCreated(true);
     clearSavedData();
   };
 
   // Load saved data on mount
   useEffect(() => {
-    const savedData = loadSavedData();
-    if (savedData && savedData.formData) {
-      setFormData(savedData.formData);
-      if (savedData.images) setImages(savedData.images);
-      if (savedData.videos) setVideos(savedData.videos);
-      toast({
-        title: "Восстановлены данные",
-        description: "Форма восстановлена из автосохранения",
-      });
+    if (!orderCreated) {
+      const savedData = loadSavedData();
+      if (savedData && savedData.formData) {
+        setFormData(savedData.formData);
+        if (savedData.images) setImages(savedData.images);
+        if (savedData.videos) setVideos(savedData.videos);
+        toast({
+          title: "Восстановлены данные",
+          description: "Форма восстановлена из автосохранения",
+        });
+      }
     }
-  }, [loadSavedData]);
+  }, [loadSavedData, orderCreated]);
 
   return {
     formData,
@@ -179,7 +193,7 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     touchedFields,
     isSubmitting,
     canSubmit,
-    hasUnsavedChanges,
+    hasUnsavedChanges: hasUnsavedChanges && !orderCreated,
     isFieldValid,
     getFieldError,
     handleInputChange,
@@ -191,5 +205,6 @@ export const useOrderForm = ({ productId, initialData }: UseOrderFormProps = {})
     setVideos,
     guardedSubmit,
     resetForm,
+    markOrderAsCreated,
   };
 };

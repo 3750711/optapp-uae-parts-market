@@ -53,7 +53,6 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
         });
         
         if (uploadedUrls.length > 0) {
-          // ИСПРАВЛЕНО: передаем массив URL-ов напрямую
           onImageUpload(uploadedUrls);
         }
       } catch (error) {
@@ -69,7 +68,6 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
   };
 
   const handleVideoUpload = (urls: string[]) => {
-    // ИСПРАВЛЕНО: объединяем существующие и новые видео
     setVideos([...videos, ...urls]);
   };
 
@@ -88,6 +86,8 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
           </Label>
           <TouchOptimizedInput 
             id="place_number"
+            type="number"
+            min="1"
             value={formData.place_number}
             onChange={(e) => onInputChange('place_number', e.target.value)}
             placeholder="1"
@@ -107,8 +107,8 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="self_pickup">Самовывоз</SelectItem>
-              <SelectItem value="courier">Курьер</SelectItem>
-              <SelectItem value="post">Почта</SelectItem>
+              <SelectItem value="cargo_rf">Cargo РФ</SelectItem>
+              <SelectItem value="cargo_kz">Cargo KZ</SelectItem>
             </SelectContent>
           </Select>
         </div>
