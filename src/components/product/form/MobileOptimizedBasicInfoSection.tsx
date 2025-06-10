@@ -38,6 +38,30 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
 
   return (
     <div className="grid grid-cols-1 gap-4">
+      {/* Seller Selection - Only for admin */}
+      {showSellerSelection && (
+        <FormField
+          control={form.control}
+          name="sellerId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Продавец *</FormLabel>
+              <FormControl>
+                <OptimizedSelect
+                  options={sellerOptions}
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  placeholder="Выберите продавца..."
+                  searchPlaceholder="Поиск продавца..."
+                  disabled={false}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+
       {/* Title */}
       <FormField
         control={form.control}
@@ -71,7 +95,6 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
                   placeholder="100"
                   {...field}
                   className="text-base"
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                 />
               </FormControl>
               <FormMessage />
@@ -81,7 +104,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
 
         <FormField
           control={form.control}
-          name="place_number"
+          name="placeNumber"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Количество мест *</FormLabel>
@@ -91,7 +114,6 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
                   placeholder="1"
                   {...field}
                   className="text-base"
-                  onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
                 />
               </FormControl>
               <FormMessage />
@@ -123,7 +145,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {/* Delivery Price */}
       <FormField
         control={form.control}
-        name="delivery_price"
+        name="deliveryPrice"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Стоимость доставки (AED)</FormLabel>
@@ -133,7 +155,6 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
                 placeholder="0"
                 {...field}
                 className="text-base"
-                onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
               />
             </FormControl>
             <FormMessage />
