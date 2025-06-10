@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -15,6 +14,15 @@ import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilter
 import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
+import { useDebounce } from "@/hooks/useDebounce";
+import { ProductCard } from "@/components/product/ProductCard";
+import { ProductListItem } from "@/components/product/ProductListItem";
+import { ViewToggle } from "@/components/catalog/ViewToggle";
+import { ProductSorting } from "@/components/catalog/ProductSorting";
+import { Loader2, Package } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CatalogSEO } from '@/components/catalog/CatalogSEO';
+import { RequestPartsPromo } from '@/components/catalog/RequestPartsPromo';
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -146,6 +154,12 @@ const Catalog: React.FC = () => {
 
   const allProductsLoaded = mappedProducts.length > 0 && !hasNextPage && !isFetchingNextPage;
 
+  const handleLoadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
   return (
     <Layout>
       <Helmet>
@@ -153,7 +167,10 @@ const Catalog: React.FC = () => {
         <meta name="description" content="Browse our wide selection of products." />
       </Helmet>
 
-      <div className="container mx-auto py-8 space-y-6">
+      <div className="container mx-auto px-4 py-8">
+        {/* SEO */}
+        <CatalogSEO />
+
         {/* Breadcrumb */}
         <CatalogBreadcrumb
           searchQuery={activeSearchTerm}
@@ -307,6 +324,27 @@ const Catalog: React.FC = () => {
               </div>
             )}
           </>
+        )}
+
+        {/* Load more button */}
+        {hasNextPage && (
+          <div className="mt-8 text-center">
+            <Button 
+              onClick={handleLoadMore}
+              disabled={isFetchingNextPage}
+              variant="outline"
+              size="lg"
+            >
+              {isFetchingNextPage ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Загрузка...
+                </>
+              ) : (
+                'Загрузить еще'
+              )}
+            </Button>
+          </div>
         )}
       </div>
     </Layout>

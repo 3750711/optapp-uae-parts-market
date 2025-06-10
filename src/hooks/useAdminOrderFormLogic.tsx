@@ -12,7 +12,7 @@ import { OrderFormData } from '@/components/admin/order/types';
 export interface AdminOrderFormLogicReturn {
   // Form data
   formData: OrderFormData;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+  handleInputChange: (field: string, value: string) => void;
   
   // Images and videos
   images: string[];
@@ -189,11 +189,11 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     }
   }, []);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  // Fixed handleInputChange with proper signature for SellerOrderFormFields
+  const handleInputChange = useCallback((field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [field]: value
     }));
   }, []);
 

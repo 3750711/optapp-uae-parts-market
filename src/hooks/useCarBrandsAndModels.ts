@@ -178,6 +178,29 @@ export const useCarBrandsAndModels = (initialBrandId?: string) => {
     enabled: !!selectedBrandId,
   });
 
+  // Load all models for backward compatibility
+  const {
+    data: allModelsData,
+    isLoading: isLoadingAllModels
+  } = useQuery({
+    queryKey: ['all-car-models'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('car_models')
+        .select('id, name, brand_id')
+        .order('name', { ascending: true });
+      
+      if (error) {
+        console.error('❌ Ошибка загрузки всех моделей автомобилей:', error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    staleTime: 15 * 60 * 1000,
+    gcTime: 60 * 60 * 1000,
+  });
+
   // Сбрасываем страницу и выбранную модель при изменении поисковых запросов или выбранного бренда
   useEffect(() => {
     setBrandsPage(0);
@@ -201,15 +224,38 @@ export const useCarBrandsAndModels = (initialBrandId?: string) => {
     return model?.name || null;
   }, [modelsData]);
 
+  // Additional functions for backward compatibility
+  const findBrandIdByName = useCallback((brandName: string | null): string | null => {
+    if (!brandName || !brandsData) return null;
+    const brand = brandsData.find(brand => brand.name.toLowerCase() === brandName.toLowerCase());
+    return brand?.id || null;
+  }, [brandsData]);
+
+  const findModelIdByName = useCallback((modelName: string | null): string | null => {
+    if (!modelName || !allModelsData) return null;
+    const model = allModelsData.find(model => model.name.toLowerCase() === modelName.toLowerCase());
+    return model?.id || null;
+  }, [allModelsData]);
+
+  const validateModelBrand = useCallback((modelId: string, brandId: string): boolean => {
+    if (!allModelsData) return false;
+    const model = allModelsData.find(m => m.id === modelId);
+    return model?.brand_id === brandId;
+  }, [allModelsData]);
+
   return {
     brands: brandsData || [],
     brandModels: modelsData || [],
+    allModels: allModelsData || [], // For backward compatibility
     isLoadingBrands,
     isLoadingModels,
+    isLoading: isLoadingBrands || isLoadingModels || isLoadingAllModels, // Combined loading state
     brandsError,
     modelsError,
     selectedBrandId,
+    selectedBrand: selectedBrandId, // Alias for backward compatibility
     setSelectedBrandId,
+    selectBrand: setSelectedBrandId, // Alias for backward compatibility
     refetchBrands,
     refetchModels,
     brandSearchTerm,
@@ -223,6 +269,9 @@ export const useCarBrandsAndModels = (initialBrandId?: string) => {
     hasMoreBrands: (brandsData?.length || 0) === BRANDS_PER_PAGE,
     hasMoreModels: (modelsData?.length || 0) === MODELS_PER_PAGE,
     findBrandNameById,
-    findModelNameById
+    findModelNameById,
+    findBrandIdByName,
+    findModelIdByName,
+    validateModelBrand
   };
 };

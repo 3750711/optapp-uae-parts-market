@@ -26,46 +26,34 @@ export const useConditionalCarData = () => {
   }, [location.pathname]);
   
   // Используем хук загрузки автомобильных данных с условным включением
-  const {
-    brands,
-    brandModels,
-    selectedBrandId,
-    setSelectedBrandId,
-    isLoadingBrands,
-    isLoadingModels,
-    findBrandNameById,
-    findModelNameById,
-    brandSearchTerm,
-    setBrandSearchTerm,
-    modelSearchTerm,
-    setModelSearchTerm,
-    brandsPage,
-    setBrandsPage,
-    modelsPage,
-    setModelsPage,
-    hasMoreBrands,
-    hasMoreModels
-  } = useCarBrandsAndModels();
+  const carData = useCarBrandsAndModels();
   
   return {
     shouldLoadCarData: shouldLoadData,
-    brands: shouldLoadData ? brands : [],
-    brandModels: shouldLoadData ? brandModels : [],
-    selectedBrand: selectedBrandId,
-    selectBrand: setSelectedBrandId,
-    isLoadingBrands: shouldLoadData && isLoadingBrands,
-    isLoadingModels: shouldLoadData && isLoadingModels,
-    findBrandNameById,
-    findModelNameById,
-    brandSearchTerm,
-    setBrandSearchTerm,
-    modelSearchTerm,
-    setModelSearchTerm,
-    brandsPage,
-    setBrandsPage,
-    modelsPage,
-    setModelsPage,
-    hasMoreBrands,
-    hasMoreModels
+    brands: shouldLoadData ? carData.brands : [],
+    brandModels: shouldLoadData ? carData.brandModels : [],
+    allModels: shouldLoadData ? carData.allModels : [], // Proxy allModels
+    selectedBrandId: carData.selectedBrandId,
+    selectedBrand: carData.selectedBrand, // Proxy alias
+    setSelectedBrandId: carData.setSelectedBrandId,
+    selectBrand: carData.selectBrand, // Proxy alias
+    isLoadingBrands: shouldLoadData && carData.isLoadingBrands,
+    isLoadingModels: shouldLoadData && carData.isLoadingModels,
+    isLoading: shouldLoadData && carData.isLoading, // Proxy combined loading state
+    findBrandNameById: carData.findBrandNameById,
+    findModelNameById: carData.findModelNameById,
+    findBrandIdByName: carData.findBrandIdByName, // Proxy new function
+    findModelIdByName: carData.findModelIdByName, // Proxy new function
+    validateModelBrand: carData.validateModelBrand, // Proxy new function
+    brandSearchTerm: carData.brandSearchTerm,
+    setBrandSearchTerm: carData.setBrandSearchTerm,
+    modelSearchTerm: carData.modelSearchTerm,
+    setModelSearchTerm: carData.setModelSearchTerm,
+    brandsPage: carData.brandsPage,
+    setBrandsPage: carData.setBrandsPage,
+    modelsPage: carData.modelsPage,
+    setModelsPage: carData.setModelsPage,
+    hasMoreBrands: carData.hasMoreBrands,
+    hasMoreModels: carData.hasMoreModels
   };
 };
