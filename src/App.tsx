@@ -1,3 +1,4 @@
+
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,8 +9,8 @@ import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 
-// Import optimized routes
-import { routes, preloadCriticalRoutes } from '@/utils/lazyRoutes';
+// Import simplified route configs
+import { routeConfigs, preloadCriticalRoutes } from '@/utils/lazyRoutes';
 
 // Оптимизированная конфигурация React Query
 const createQueryClient = () => new QueryClient({
@@ -34,7 +35,7 @@ const createQueryClient = () => new QueryClient({
   },
 });
 
-// Мемоизированный компонент загрузки
+// Простой компонент загрузки
 const LoadingFallback = React.memo(() => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
     <div className="text-center">
@@ -46,79 +47,6 @@ const LoadingFallback = React.memo(() => (
 
 LoadingFallback.displayName = 'LoadingFallback';
 
-// Оптимизированный обработчик ошибок
-const setupErrorHandling = () => {
-  if (typeof window === 'undefined') return;
-  
-  window.addEventListener('unhandledrejection', (event) => {
-    // Логируем только критические ошибки
-    if (event.reason?.name !== 'ChunkLoadError') {
-      console.error('Unhandled promise rejection:', event.reason);
-      
-      // Аналитика только в продакшене
-      if (process.env.NODE_ENV === 'production' && window.gtag) {
-        window.gtag('event', 'exception', {
-          description: `Unhandled rejection: ${event.reason?.message || event.reason}`,
-          fatal: false,
-        });
-      }
-    }
-    event.preventDefault();
-  });
-};
-
-// Инициализируем обработку ошибок один раз
-setupErrorHandling();
-
-// Компонент маршрута с защитой от ошибок
-const RouteComponent = React.memo(({ route, index }: { route: any; index: number }) => {
-  const { path, element, protected: isProtected, adminOnly } = route;
-  
-  // Проверяем валидность элемента
-  if (!element || element === undefined) {
-    console.error(`Route "${path}" has undefined element at index ${index}`);
-    return null; // Возвращаем null вместо невалидного Route
-  }
-  
-  if (adminOnly) {
-    return (
-      <Route
-        key={path || index}
-        path={path}
-        element={
-          <AdminRoute>
-            {element}
-          </AdminRoute>
-        }
-      />
-    );
-  }
-  
-  if (isProtected) {
-    return (
-      <Route
-        key={path || index}
-        path={path}
-        element={
-          <ProtectedRoute>
-            {element}
-          </ProtectedRoute>
-        }
-      />
-    );
-  }
-  
-  return (
-    <Route
-      key={path || index}
-      path={path}
-      element={element}
-    />
-  );
-});
-
-RouteComponent.displayName = 'RouteComponent';
-
 function App() {
   // Создаем QueryClient один раз
   const [queryClient] = React.useState(() => createQueryClient());
@@ -126,17 +54,6 @@ function App() {
   // Предзагружаем критические маршруты после инициализации
   React.useEffect(() => {
     preloadCriticalRoutes();
-  }, []);
-
-  // Фильтруем валидные маршруты
-  const validRoutes = React.useMemo(() => {
-    return routes.filter((route, index) => {
-      if (!route || !route.element || route.element === undefined) {
-        console.warn(`Skipping invalid route at index ${index}:`, route);
-        return false;
-      }
-      return true;
-    });
   }, []);
 
   return (
@@ -153,9 +70,45 @@ function App() {
               <Router>
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
-                    {validRoutes.map((route, index) => (
-                      <RouteComponent key={route.path || index} route={route} index={index} />
-                    ))}
+                    {routeConfigs.map((route, index) => {
+                      const { path, component: Component, protected: isProtected, adminOnly } = route;
+                      
+                      if (adminOnly) {
+                        return (
+                          <Route
+                            key={path}
+                            path={path}
+                            element={
+                              <AdminRoute>
+                                <Component />
+                              </AdminRoute>
+                            }
+                          />
+                        );
+                      }
+                      
+                      if (isProtected) {
+                        return (
+                          <Route
+                            key={path}
+                            path={path}
+                            element={
+                              <ProtectedRoute>
+                                <Component />
+                              </ProtectedRoute>
+                            }
+                          />
+                        );
+                      }
+                      
+                      return (
+                        <Route
+                          key={path}
+                          path={path}
+                          element={<Component />}
+                        />
+                      );
+                    })}
                   </Routes>
                 </Suspense>
               </Router>
