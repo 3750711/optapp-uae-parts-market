@@ -4,7 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
-import { devLog, devError } from '@/utils/performanceUtils';
+import { devLog, devError, getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -13,8 +13,11 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
+  isAdmin: boolean | null;
+  isCheckingAdmin: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  refreshAdminStatus: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +27,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [isCheckingAdmin, setIsCheckingAdmin] = useState(false);
   const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
 
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -61,12 +66,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Оптимизированная проверка админских прав с кешированием
+  const checkAdminRights = useCallback(async (userId: string, forceRefresh = false) => {
+    if (!userId) {
+      setIsAdmin(false);
+      return false;
+    }
+
+    setIsCheckingAdmin(true);
+    
+    try {
+      // Проверяем кеш, если не принудительное обновление
+      if (!forceRefresh) {
+        const cached = getCachedAdminRights(userId);
+        if (cached !== null) {
+          devLog("AuthContext: Using cached admin rights:", cached);
+          setIsAdmin(cached);
+          setIsCheckingAdmin(false);
+          return cached;
+        }
+      }
+
+      // Проверяем по профилю (быстрее чем RPC)
+      if (profile?.user_type === 'admin') {
+        setIsAdmin(true);
+        setCachedAdminRights(userId, true);
+        setIsCheckingAdmin(false);
+        return true;
+      }
+
+      // Если профиль есть и не админ, кешируем результат
+      if (profile && profile.user_type !== 'admin') {
+        setIsAdmin(false);
+        setCachedAdminRights(userId, false);
+        setIsCheckingAdmin(false);
+        return false;
+      }
+
+      // Fallback к RPC только если профиль еще не загружен
+      devLog("AuthContext: Checking admin via RPC for user:", userId);
+      const { data, error } = await supabase.rpc('is_admin');
+      
+      if (error) {
+        console.error('AuthContext: Error checking admin status:', error);
+        setIsAdmin(false);
+        setIsCheckingAdmin(false);
+        return false;
+      }
+
+      const hasAdminAccess = data === true;
+      setIsAdmin(hasAdminAccess);
+      setCachedAdminRights(userId, hasAdminAccess);
+      setIsCheckingAdmin(false);
+      return hasAdminAccess;
+    } catch (error) {
+      console.error('AuthContext: Error in admin check:', error);
+      setIsAdmin(false);
+      setIsCheckingAdmin(false);
+      return false;
+    }
+  }, [profile]);
+
   const refreshProfile = useCallback(async () => {
     if (user) {
       devLog("AuthContext: Refreshing profile for user:", user.id);
       await fetchUserProfile(user.id);
     }
   }, [user, fetchUserProfile]);
+
+  const refreshAdminStatus = useCallback(async () => {
+    if (user) {
+      devLog("AuthContext: Force refreshing admin status");
+      await checkAdminRights(user.id, true);
+    }
+  }, [user, checkAdminRights]);
 
   const handleFirstLoginComplete = useCallback((completed: boolean) => {
     if (completed) {
@@ -99,7 +172,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (currentSession?.user) {
             devLog("AuthContext: Initial user found, fetching profile");
-            await fetchUserProfile(currentSession.user.id);
+            const profileData = await fetchUserProfile(currentSession.user.id);
+            if (profileData) {
+              // Проверяем админские права после загрузки профиля
+              await checkAdminRights(currentSession.user.id);
+            }
           }
           
           setIsLoading(false);
@@ -117,11 +194,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (currentSession?.user) {
               devLog("AuthContext: User authenticated, fetching profile");
-              await fetchUserProfile(currentSession.user.id);
+              const profileData = await fetchUserProfile(currentSession.user.id);
+              if (profileData) {
+                // Проверяем админские права после загрузки профиля
+                await checkAdminRights(currentSession.user.id);
+              }
             } else {
-              devLog("AuthContext: User not authenticated, clearing profile");
+              devLog("AuthContext: User not authenticated, clearing data");
               setProfile(null);
+              setIsAdmin(null);
               setShowFirstLoginWelcome(false);
+              clearAdminCache();
             }
           }
         );
@@ -143,7 +226,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, checkAdminRights]);
+
+  // Проверяем админские права когда профиль обновляется
+  useEffect(() => {
+    if (user && profile && isAdmin === null && !isCheckingAdmin) {
+      checkAdminRights(user.id);
+    }
+  }, [user, profile, isAdmin, isCheckingAdmin, checkAdminRights]);
 
   const signOut = useCallback(async () => {
     setIsLoading(true);
@@ -155,7 +245,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(null);
       setSession(null);
       setProfile(null);
+      setIsAdmin(null);
       setShowFirstLoginWelcome(false);
+      clearAdminCache();
       devLog("AuthContext: Sign out successful");
     } catch (error) {
       console.error('AuthContext: Error during sign out:', error);
@@ -170,9 +262,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     profile,
     isLoading,
+    isAdmin,
+    isCheckingAdmin,
     signOut,
-    refreshProfile
-  }), [user, session, profile, isLoading, signOut, refreshProfile]);
+    refreshProfile,
+    refreshAdminStatus
+  }), [user, session, profile, isLoading, isAdmin, isCheckingAdmin, signOut, refreshProfile, refreshAdminStatus]);
 
   return (
     <AuthContext.Provider value={contextValue}>

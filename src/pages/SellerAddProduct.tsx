@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { useFormAutosave } from "@/hooks/useFormAutosave";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
@@ -32,7 +32,6 @@ import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
-import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();
@@ -50,15 +49,16 @@ const SellerAddProduct = () => {
   const isInitializedRef = useRef(false);
   const draftLoadedRef = useRef(false);
   
-  // Use our custom hook for car brands and models
+  // Условная загрузка автомобильных данных
   const { 
     brands, 
     brandModels, 
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
-    isLoading: isLoadingCarData 
-  } = useCarBrandsAndModels();
+    isLoading: isLoadingCarData,
+    shouldLoadCarData
+  } = useConditionalCarData();
 
   // Create schema for seller (showSellerSelection = false)
   const sellerProductSchema = useMemo(() => createProductSchema, []);
@@ -77,12 +77,12 @@ const SellerAddProduct = () => {
     mode: "onChange",
   });
 
-  // Initialize our title parser
+  // Initialize our title parser only if car data should load
   const { parseProductTitle } = useProductTitleParser(
-    brands,
-    brandModels,
-    findBrandIdByName,
-    findModelIdByName
+    shouldLoadCarData ? brands : [],
+    shouldLoadCarData ? brandModels : [],
+    shouldLoadCarData ? findBrandIdByName : () => null,
+    shouldLoadCarData ? findModelIdByName : () => null
   );
 
   // Get form data for autosave - use getValues instead of watch to avoid reactivity
@@ -130,9 +130,9 @@ const SellerAddProduct = () => {
     }
   }, [loadSavedData, form, isSubmitting]);
 
-  // Handle title changes with debounce
+  // Handle title changes with debounce - only if car data should load
   const handleTitleChange = useCallback((title: string) => {
-    if (title && brands.length > 0 && !watchBrandId && isInitializedRef.current) {
+    if (shouldLoadCarData && title && brands.length > 0 && !watchBrandId && isInitializedRef.current) {
       console.log("Parsing title for auto-detection:", title);
       const { brandId, modelId } = parseProductTitle(title);
       
@@ -149,22 +149,22 @@ const SellerAddProduct = () => {
         });
       }
     }
-  }, [brands, parseProductTitle, form, watchBrandId, toast]);
+  }, [shouldLoadCarData, brands, parseProductTitle, form, watchBrandId, toast]);
 
   // Debounced title processing
   useEffect(() => {
-    if (!isInitializedRef.current || !watchTitle) return;
+    if (!isInitializedRef.current || !watchTitle || !shouldLoadCarData) return;
     
     const timeoutId = setTimeout(() => {
       handleTitleChange(watchTitle);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [watchTitle, handleTitleChange]);
+  }, [watchTitle, handleTitleChange, shouldLoadCarData]);
 
-  // Handle brand and model changes
+  // Handle brand and model changes - only if car data should load
   useEffect(() => {
-    if (!isInitializedRef.current) return;
+    if (!isInitializedRef.current || !shouldLoadCarData) return;
     
     if (watchBrandId) {
       selectBrand(watchBrandId);
@@ -187,7 +187,7 @@ const SellerAddProduct = () => {
         form.setValue("modelId", "", { shouldValidate: false });
       }
     }
-  }, [watchBrandId, watchModelId, selectBrand, form, brandModels]);
+  }, [shouldLoadCarData, watchBrandId, watchModelId, selectBrand, form, brandModels]);
 
   // Unified image upload handler
   const handleImageUpload = useCallback((urls: string[]) => {
@@ -244,23 +244,18 @@ const SellerAddProduct = () => {
     setIsSubmitting(true);
 
     try {
-      // Get brand and model names for the database
-      const selectedBrand = brands.find(brand => brand.id === values.brandId);
-      
-      // Model is optional
+      // Get brand and model names for the database (only if car data loaded)
+      let brandName = null;
       let modelName = null;
-      if (values.modelId) {
-        const selectedModel = brandModels.find(model => model.id === values.modelId);
-        modelName = selectedModel?.name || null;
-      }
-
-      if (!selectedBrand) {
-        toast({
-          title: "Ошибка",
-          description: "Выбранная марка не найдена",
-          variant: "destructive",
-        });
-        return;
+      
+      if (shouldLoadCarData && values.brandId) {
+        const selectedBrand = brands.find(brand => brand.id === values.brandId);
+        brandName = selectedBrand?.name || null;
+        
+        if (values.modelId) {
+          const selectedModel = brandModels.find(model => model.id === values.modelId);
+          modelName = selectedModel?.name || null;
+        }
       }
 
       console.log('🏭 Creating product with seller automatically assigned...', {
@@ -270,6 +265,8 @@ const SellerAddProduct = () => {
         imageCount: imageUrls.length,
         videoCount: videoUrls.length,
         primaryImage,
+        brandName,
+        modelName,
         timestamp: new Date().toISOString()
       });
       
@@ -280,7 +277,7 @@ const SellerAddProduct = () => {
           title: values.title,
           price: values.price,
           condition: "Новый",
-          brand: selectedBrand.name,
+          brand: brandName,
           model: modelName,
           description: values.description || null,
           seller_id: user.id, // Automatically assign current user as seller

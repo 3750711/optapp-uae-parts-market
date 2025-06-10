@@ -2,14 +2,14 @@
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useAdminAccess = () => {
-  const { profile } = useAuth();
+  const { isAdmin } = useAuth();
   
   return {
-    isAdmin: profile?.user_type === 'admin',
+    isAdmin: isAdmin === true,
     // Add a function to check if a user can view a specific product status
     canViewProductStatus: (status: string) => {
       // Admins can view all product statuses
-      if (profile?.user_type === 'admin') {
+      if (isAdmin === true) {
         return true;
       }
       

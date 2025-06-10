@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -11,7 +12,7 @@ import CatalogBreadcrumb from "@/components/catalog/CatalogBreadcrumb";
 import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
 
@@ -19,15 +20,16 @@ const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
 
-  // Car brands and models
+  // Условная загрузка автомобильных данных только для каталога
   const {
     brands,
     brandModels,
     selectedBrand,
     selectBrand,
     findBrandNameById,
-    findModelNameById
-  } = useCarBrandsAndModels();
+    findModelNameById,
+    shouldLoadCarData
+  } = useConditionalCarData();
 
   // Selected model state
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -142,23 +144,45 @@ const Catalog: React.FC = () => {
           selectedModelName={selectedModelName}
         />
 
-        {/* Объединённый блок поиска и фильтров */}
-        <CatalogSearchAndFilters 
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          activeSearchTerm={activeSearchTerm}
-          onSearch={handleSearch}
-          onClearSearch={handleClearSearch}
-          onSearchSubmit={handleEnhancedSearchSubmit}
-          selectedBrand={selectedBrand}
-          selectBrand={selectBrand}
-          selectedModel={selectedModel}
-          setSelectedModel={setSelectedModel}
-          brands={brands}
-          brandModels={brandModels}
-          hideSoldProducts={hideSoldProducts}
-          setHideSoldProducts={setHideSoldProducts}
-        />
+        {/* Объединённый блок поиска и фильтров - только если автомобильные данные загружены */}
+        {shouldLoadCarData && (
+          <CatalogSearchAndFilters 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            activeSearchTerm={activeSearchTerm}
+            onSearch={handleSearch}
+            onClearSearch={handleClearSearch}
+            onSearchSubmit={handleEnhancedSearchSubmit}
+            selectedBrand={selectedBrand}
+            selectBrand={selectBrand}
+            selectedModel={selectedModel}
+            setSelectedModel={setSelectedModel}
+            brands={brands}
+            brandModels={brandModels}
+            hideSoldProducts={hideSoldProducts}
+            setHideSoldProducts={setHideSoldProducts}
+          />
+        )}
+
+        {/* Базовый поиск если автомобильные данные не загружаются */}
+        {!shouldLoadCarData && (
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <form onSubmit={handleEnhancedSearchSubmit} className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Поиск товаров..."
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <Button type="submit">
+                  Поиск
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
 
         {/* Active Filters */}
         {hasAnyFilters && (
