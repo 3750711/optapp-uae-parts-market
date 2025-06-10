@@ -63,18 +63,15 @@ export const useCatalogProducts = ({
   const { isAdmin } = useAdminAccess();
   const isInitialRender = useRef(true);
   
-  // Используем внешние значения марки/модели если они предоставлены, иначе используем внутреннее состояние
   const [internalSelectedBrand, setInternalSelectedBrand] = useState<string | null>(null);
   const [internalSelectedModel, setInternalSelectedModel] = useState<string | null>(null);
 
   const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
   const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : internalSelectedModel;
 
-  // Конвертируем ID марок и моделей в имена для запроса к базе данных
   const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
   const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
 
-  // Автоматически применяем дебаунсированный поисковый запрос
   useEffect(() => {
     if (isInitialRender.current) {
       isInitialRender.current = false;
@@ -86,7 +83,6 @@ export const useCatalogProducts = ({
     }
   }, [debouncedSearchTerm, activeSearchTerm]);
 
-  // Функция для построения сортировочного запроса
   const buildSortQuery = (query: any, sortOption: SortOption) => {
     switch (sortOption) {
       case 'newest':
@@ -106,7 +102,6 @@ export const useCatalogProducts = ({
     }
   };
 
-  // Мемоизируем фильтры
   const filters = useMemo(() => {
     const filtersObj = {
       activeSearchTerm,
@@ -116,11 +111,13 @@ export const useCatalogProducts = ({
       sortBy,
       isAdmin
     };
-    console.log('📋 Обновление фильтров:', filtersObj);
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📋 Обновление фильтров:', filtersObj);
+    }
     return filtersObj;
   }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
-  // Используем React Query для загрузки данных с бесконечной прокруткой
   const {
     data,
     fetchNextPage,
@@ -137,17 +134,18 @@ export const useCatalogProducts = ({
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
         
-        console.log('🔎 Выполнение поискового запроса с фильтрами:', {
-          searchQuery: filters.activeSearchTerm,
-          selectedBrandName: filters.selectedBrandName,
-          selectedModelName: filters.selectedModelName,
-          hideSoldProducts: filters.hideSoldProducts,
-          page: pageParam,
-          from,
-          to
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔎 Выполнение поискового запроса с фильтрами:', {
+            searchQuery: filters.activeSearchTerm,
+            selectedBrandName: filters.selectedBrandName,
+            selectedModelName: filters.selectedModelName,
+            hideSoldProducts: filters.hideSoldProducts,
+            page: pageParam,
+            from,
+            to
+          });
+        }
         
-        // Строим запрос с оптимизированными колонками - выбираем только то, что нужно
         let query = supabase
           .from('products')
           .select(`
@@ -169,10 +167,8 @@ export const useCatalogProducts = ({
             product_images(url, is_primary)
           `);
 
-        // Применяем сортировку
         query = buildSortQuery(query, sortBy);
 
-        // Применяем фильтрацию по статусу
         if (filters.hideSoldProducts) {
           query = query.eq('status', 'active');
         } else {
@@ -183,35 +179,30 @@ export const useCatalogProducts = ({
           }
         }
 
-        // Применяем поисковые фильтры с оптимизированным поиском
         if (filters.activeSearchTerm) {
           const searchTerm = filters.activeSearchTerm.trim();
-          // Используем более эффективную комбинацию OR условий
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
         }
 
-        // Применяем фильтр по марке
         if (filters.selectedBrandName) {
           query = query.eq('brand', filters.selectedBrandName);
         }
 
-        // Применяем фильтр по модели
         if (filters.selectedModelName) {
           query = query.eq('model', filters.selectedModelName);
         }
 
-        // Устанавливаем диапазон для пагинации
         query = query.range(from, to);
 
-        // Делаем единственный запрос к базе данных
         const { data, error } = await query;
         
         if (error) {
-          console.error('❌ Ошибка загрузки товаров:', error);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('❌ Ошибка загрузки товаров:', error);
+          }
           throw new Error(`Ошибка загрузки товаров: ${error.message}`);
         }
         
-        // Сортируем изображения так, чтобы первичные изображения были первыми
         const dataWithSortedImages = data?.map(product => ({
           ...product,
           product_images: product.product_images?.sort((a: any, b: any) => {
@@ -221,10 +212,14 @@ export const useCatalogProducts = ({
           })
         }));
         
-        console.log('✅ Товары успешно загружены:', dataWithSortedImages?.length, 'элементов');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Товары успешно загружены:', dataWithSortedImages?.length, 'элементов');
+        }
         return dataWithSortedImages || [];
       } catch (error) {
-        console.error('💥 Ошибка в queryFn:', error);
+        if (process.env.NODE_ENV === 'development') {
+          console.error('💥 Ошибка в queryFn:', error);
+        }
         if (error instanceof Error) {
           throw new Error(error.message);
         } else {
@@ -236,16 +231,15 @@ export const useCatalogProducts = ({
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 180000, // Оставляем данные актуальными на 3 минуты
-    gcTime: 300000, // Удерживаем в кэше 5 минут
+    staleTime: 180000,
+    gcTime: 300000,
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      return failureCount < 2; // Ограничиваем повторные попытки до 2
+      return failureCount < 2;
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000)
   });
 
-  // Обрабатываем ошибки с уведомлениями toast
   useEffect(() => {
     if (isError && error) {
       toast({
@@ -256,10 +250,8 @@ export const useCatalogProducts = ({
     }
   }, [isError, error, toast]);
 
-  // Получаем все товары из всех страниц
   const allProducts = data?.pages.flat() || [];
   
-  // Преобразуем товары в нужный формат
   const mappedProducts: ProductProps[] = useMemo(() => {
     try {
       return allProducts.map((product) => {
@@ -287,12 +279,13 @@ export const useCatalogProducts = ({
         } as ProductProps;
       });
     } catch (mappingError) {
-      console.error('❌ Ошибка маппинга товаров:', mappingError);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('❌ Ошибка маппинга товаров:', mappingError);
+      }
       return [];
     }
   }, [allProducts]);
 
-  // Логика разбиения на чанки для лучшей производительности
   const productChunks = useMemo(() => {
     const chunkSize = 12;
     const chunks = [];

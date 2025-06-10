@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
-import ProductGrid from "@/components/product/ProductGrid";
+import UnifiedProductGrid from "@/components/product/UnifiedProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
@@ -15,15 +15,12 @@ import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilter
 import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
-import { useDebounce } from "@/hooks/useDebounce";
-import { Loader2, Package } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
 
-  // Условная загрузка автомобильных данных только для каталога
   const {
     brands,
     brandModels,
@@ -34,13 +31,9 @@ const Catalog: React.FC = () => {
     shouldLoadCarData
   } = useConditionalCarData();
 
-  // Selected model state
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-
-  // Search history
   const { addToHistory } = useSearchHistory();
 
-  // Use the updated hook with external brand/model values and helper functions
   const {
     searchTerm,
     setSearchTerm,
@@ -65,10 +58,9 @@ const Catalog: React.FC = () => {
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 500 // Устанавливаем время дебаунсинга для поисковых запросов
+    debounceTime: 500
   });
 
-  // Load more when the loadMoreRef is visible
   React.useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
@@ -79,11 +71,12 @@ const Catalog: React.FC = () => {
     try {
       await refetch();
     } catch (error) {
-      console.error('Retry failed:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Retry failed:', error);
+      }
     }
   };
 
-  // Обработчик выбора элемента из истории поиска
   const handleSelectFromHistory = useCallback((item: SearchHistoryItem) => {
     setSearchTerm(item.query);
     
@@ -97,13 +90,11 @@ const Catalog: React.FC = () => {
       if (modelId) setSelectedModel(modelId);
     }
     
-    // Автоматически запускаем поиск
     setTimeout(() => {
       handleSearch();
     }, 100);
   }, [brands, brandModels, handleSearch, selectBrand]);
 
-  // Enhanced search handlers
   const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm.trim()) {
@@ -114,7 +105,6 @@ const Catalog: React.FC = () => {
     handleSearchSubmit(e);
   }, [searchTerm, selectedBrand, selectedModel, findBrandNameById, findModelNameById, addToHistory, handleSearchSubmit]);
 
-  // Clear handlers
   const handleClearBrand = useCallback(() => {
     selectBrand(null);
     setSelectedModel(null);
@@ -135,11 +125,9 @@ const Catalog: React.FC = () => {
     setHideSoldProducts(false);
   }, [handleClearSearch, selectBrand, setHideSoldProducts]);
 
-  // Get brand and model names for display
   const selectedBrandName = findBrandNameById(selectedBrand);
   const selectedModelName = findModelNameById(selectedModel);
 
-  // Check if we have any active filters
   const hasAnyFilters = !!(
     activeSearchTerm || 
     selectedBrandName || 
@@ -163,14 +151,12 @@ const Catalog: React.FC = () => {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
         <CatalogBreadcrumb
           searchQuery={activeSearchTerm}
           selectedBrandName={selectedBrandName}
           selectedModelName={selectedModelName}
         />
 
-        {/* Объединённый блок поиска и фильтров - только если автомобильные данные загружены */}
         {shouldLoadCarData && (
           <CatalogSearchAndFilters 
             searchTerm={searchTerm}
@@ -191,7 +177,6 @@ const Catalog: React.FC = () => {
           />
         )}
 
-        {/* Базовый поиск если автомобильные данные не загружаются */}
         {!shouldLoadCarData && (
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
@@ -211,7 +196,6 @@ const Catalog: React.FC = () => {
           </div>
         )}
 
-        {/* Active Filters */}
         {hasAnyFilters && (
           <ActiveFilters
             searchQuery={activeSearchTerm}
@@ -226,7 +210,6 @@ const Catalog: React.FC = () => {
           />
         )}
 
-        {/* Sticky Filters for Mobile */}
         <StickyFilters
           searchQuery={searchTerm}
           setSearchQuery={setSearchTerm}
@@ -238,7 +221,6 @@ const Catalog: React.FC = () => {
           handleSearchSubmit={handleEnhancedSearchSubmit}
         />
 
-        {/* Product Grid or Skeleton */}
         {isLoading ? (
           <CatalogSkeleton />
         ) : isError ? (
@@ -262,7 +244,7 @@ const Catalog: React.FC = () => {
             {mappedProducts.length > 0 ? (
               <>
                 {productChunks.map((chunk, index) => (
-                  <ProductGrid 
+                  <UnifiedProductGrid 
                     key={index} 
                     products={chunk} 
                     viewMode="list"
@@ -318,7 +300,6 @@ const Catalog: React.FC = () => {
           </>
         )}
 
-        {/* Load more button */}
         {hasNextPage && (
           <div className="mt-8 text-center">
             <Button 
