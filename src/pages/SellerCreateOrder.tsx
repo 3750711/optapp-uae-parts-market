@@ -4,111 +4,137 @@ import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { OrderConfirmationCard } from "@/components/order/OrderConfirmationCard";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Save } from "lucide-react";
+import { Save, Loader } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
-// Import new components and hooks
-import { useOrderForm } from "@/hooks/useOrderForm";
-import { useOrderSubmission } from "@/hooks/useOrderSubmission";
-import { useProductData } from "@/hooks/useProductData";
-import BasicOrderInfoStep from "@/components/order/form/BasicOrderInfoStep";
-import AdditionalInfoStep from "@/components/order/form/AdditionalInfoStep";
+// Import admin components and hooks
+import { useOrderFormLogic } from "@/components/admin/order/useOrderFormLogic";
+import { OrderFormFields } from "@/components/admin/order/OrderFormFields";
+import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
+import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { toast } from "@/hooks/use-toast";
 
 const SellerCreateOrder = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const productId = searchParams.get('productId');
   const isMobile = useIsMobile();
-  
-  const [createdOrder, setCreatedOrder] = useState<any>(null);
+  const { user } = useAuth();
 
-  // Use custom hooks for form logic
   const {
     formData,
     images,
     videos,
-    touchedFields,
-    isSubmitting,
-    canSubmit,
-    hasUnsavedChanges,
-    isFieldValid,
-    getFieldError,
-    handleInputChange,
-    handleImageUpload,
-    handleImageDelete,
-    handleVideoUpload,
-    handleVideoDelete,
+    buyerProfiles,
+    sellerProfiles,
+    selectedSeller,
+    isLoading,
+    createdOrder,
+    brands,
+    brandModels,
+    isLoadingCarData,
+    searchBrandTerm,
+    setSearchBrandTerm,
+    searchModelTerm,
+    setSearchModelTerm,
+    filteredBrands,
+    filteredModels,
     setImages,
     setVideos,
-    guardedSubmit,
+    handleInputChange,
+    handleImageUpload,
+    handleOrderUpdate,
+    handleSubmit: originalHandleSubmit,
     resetForm,
-    markOrderAsCreated,
-  } = useOrderForm({ productId });
+    parseTitleForBrand,
+    creationStage,
+    creationProgress
+  } = useOrderFormLogic();
 
-  const { submitOrder } = useOrderSubmission({
-    productId,
-    onOrderCreated: (order) => {
-      setCreatedOrder(order);
-      markOrderAsCreated(); // Отключаем автосохранение после создания заказа
-    }
-  });
-
-  // Load product data if productId exists
-  useProductData({
-    productId,
-    onDataLoaded: (data) => {
-      Object.entries(data).forEach(([key, value]) => {
-        if (value) {
-          handleInputChange(key, String(value));
-        }
+  // Add submission guard
+  const { guardedSubmit, canSubmit } = useSubmissionGuard({
+    timeout: 10000,
+    onDuplicateSubmit: () => {
+      toast({
+        title: "Заказ создается",
+        description: "Пожалуйста подождите, заказ уже создается",
+        variant: "destructive",
       });
     }
   });
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Auto-set current user as seller when component mounts
+  React.useEffect(() => {
+    if (user && user.id && !formData.sellerId) {
+      handleInputChange('sellerId', user.id);
+    }
+  }, [user, formData.sellerId, handleInputChange]);
+
+  const onImagesUpload = (urls: string[]) => {
+    handleImageUpload(urls);
+  };
+
+  const onVideoUpload = (urls: string[]) => {
+    setVideos((prev) => [...prev, ...urls]);
+  };
+
+  const onVideoDelete = (url: string) => {
+    setVideos((prev) => prev.filter((v) => v !== url));
+  };
+
+  const handleGoBack = () => {
+    navigate('/seller/dashboard');
+  };
+
+  const handleDataFromProduct = (productData: any) => {
+    console.log("Product data received:", productData);
+  };
+
+  // Protected form submission handler
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    await guardedSubmit(async () => {
-      await submitOrder(formData, images, videos);
+    guardedSubmit(async () => {
+      await originalHandleSubmit(e);
     });
   };
 
-  const handleOrderUpdate = (updatedOrder: any) => {
-    setCreatedOrder(updatedOrder);
+  // Get stage message based on current creation stage
+  const getStageMessage = () => {
+    switch (creationStage) {
+      case 'validating':
+        return 'Проверка данных формы...';
+      case 'fetching_buyer':
+        return 'Поиск профиля покупателя...';
+      case 'creating_order':
+        return 'Создание заказа в базе данных...';
+      case 'fetching_order':
+        return 'Получение данных созданного заказа...';
+      case 'saving_videos':
+        return 'Сохранение видео...';
+      case 'sending_notification':
+        return 'Отправка уведомления...';
+      case 'completed':
+        return 'Заказ успешно создан!';
+      default:
+        return 'Создание заказа...';
+    }
   };
 
-  const handleNewOrder = () => {
-    setCreatedOrder(null);
-    resetForm();
-  };
+  const isFormDisabled = isLoading || !canSubmit;
 
   if (createdOrder) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-8">
-          <div className="mb-6 flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/seller/dashboard')}
-              className="mr-4 min-h-[44px]"
-            >
-              Вернуться в панель
-            </Button>
-            <Button 
-              onClick={handleNewOrder}
-              className="min-h-[44px]"
-            >
-              Создать новый заказ
-            </Button>
-          </div>
-          <OrderConfirmationCard 
-            order={createdOrder} 
-            images={images}
-            videos={videos}
-            onOrderUpdate={handleOrderUpdate}
-          />
-        </div>
+        <CreatedOrderView
+          order={createdOrder}
+          images={images}
+          onBack={handleGoBack}
+          onNewOrder={resetForm}
+          onOrderUpdate={handleOrderUpdate}
+        />
       </Layout>
     );
   }
@@ -126,10 +152,10 @@ const SellerCreateOrder = () => {
                     Заполните информацию о заказе
                   </CardDescription>
                 </div>
-                {hasUnsavedChanges && (
+                {isLoading && (
                   <div className="flex items-center text-orange-600 text-sm">
                     <Save className="h-4 w-4 mr-1" />
-                    Автосохранение
+                    Создание заказа
                   </div>
                 )}
               </div>
@@ -137,47 +163,82 @@ const SellerCreateOrder = () => {
             
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-8">
-                {/* Основная информация, цена и покупатель - все в одном компоненте */}
-                <BasicOrderInfoStep
+                <OrderFormFields
                   formData={formData}
-                  touchedFields={touchedFields}
-                  onInputChange={handleInputChange}
-                  isFieldValid={isFieldValid}
-                  getFieldError={getFieldError}
-                  isMobile={isMobile}
+                  handleInputChange={handleInputChange}
+                  buyerProfiles={buyerProfiles}
+                  sellerProfiles={sellerProfiles}
+                  selectedSeller={selectedSeller}
+                  brands={brands}
+                  brandModels={brandModels}
+                  isLoadingCarData={isLoadingCarData}
+                  searchBrandTerm={searchBrandTerm}
+                  setSearchBrandTerm={setSearchBrandTerm}
+                  searchModelTerm={searchModelTerm}
+                  setSearchModelTerm={setSearchModelTerm}
+                  filteredBrands={filteredBrands}
+                  filteredModels={filteredModels}
+                  parseTitleForBrand={parseTitleForBrand}
+                  onImagesUpload={onImagesUpload}
+                  onDataFromProduct={handleDataFromProduct}
+                  disabled={isFormDisabled}
                 />
-
-                {/* Дополнительная информация */}
-                <AdditionalInfoStep
-                  formData={formData}
+                
+                <MediaUploadSection 
                   images={images}
                   videos={videos}
-                  onInputChange={handleInputChange}
-                  onImageUpload={handleImageUpload}
-                  onImageDelete={handleImageDelete}
-                  onVideoUpload={handleVideoUpload}
-                  onVideoDelete={handleVideoDelete}
+                  onImagesUpload={onImagesUpload}
+                  onVideoUpload={onVideoUpload}
+                  onVideoDelete={onVideoDelete}
+                  disabled={isFormDisabled}
                 />
               </CardContent>
               
               <CardFooter>
-                <div className="flex justify-end w-full gap-4">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => navigate('/seller/dashboard')}
-                    disabled={isSubmitting}
-                    className={isMobile ? "min-h-[44px]" : ""}
-                  >
-                    Отмена
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || !canSubmit}
-                    className={isMobile ? "min-h-[44px]" : ""}
-                  >
-                    {isSubmitting ? "Создание..." : "Создать заказ"}
-                  </Button>
+                <div className="flex flex-col space-y-4 w-full">
+                  {isLoading && (
+                    <div className="border rounded-md p-4 bg-gray-50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Loader className="mr-2 h-4 w-4 animate-spin" />
+                          <span className="font-medium">{getStageMessage()}</span>
+                        </div>
+                        <span className="text-sm text-gray-500">{creationProgress}%</span>
+                      </div>
+                      <Progress value={creationProgress} className="h-2" />
+                      {creationStage === 'completed' && (
+                        <div className="text-sm text-gray-600">
+                          Уведомление в Telegram будет отправлено в фоновом режиме.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-end w-full gap-4">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => navigate('/seller/dashboard')}
+                      disabled={isFormDisabled}
+                      className={isMobile ? "min-h-[44px]" : ""}
+                    >
+                      Отмена
+                    </Button>
+                    <Button
+                      type="submit"
+                      disabled={isFormDisabled}
+                      className={isMobile ? "min-h-[44px]" : ""}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader className="mr-2 h-4 w-4 animate-spin" />
+                          Создание заказа...
+                        </>
+                      ) : (
+                        "Создать заказ"
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </CardFooter>
             </form>

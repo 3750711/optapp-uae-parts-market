@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import OptimizedSelect from "@/components/ui/OptimizedSelect";
 import { ProfileShort, SellerProfile } from "../types";
 
 interface ParticipantsSectionProps {
@@ -12,6 +12,7 @@ interface ParticipantsSectionProps {
   buyerProfiles: ProfileShort[];
   sellerProfiles: SellerProfile[];
   disabled?: boolean;
+  hideSeller?: boolean; // New prop to hide seller selection
 }
 
 export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
@@ -22,70 +23,54 @@ export const ParticipantsSection: React.FC<ParticipantsSectionProps> = ({
   buyerProfiles,
   sellerProfiles,
   disabled = false,
+  hideSeller = false,
 }) => {
-  // Sort buyer profiles by opt_id alphabetically
-  const sortedBuyerProfiles = [...buyerProfiles].sort((a, b) => {
-    const optIdA = a.opt_id || '';
-    const optIdB = b.opt_id || '';
-    return optIdA.localeCompare(optIdB);
-  });
+  const buyerOptions = React.useMemo(() => {
+    return buyerProfiles.map(buyer => ({
+      value: buyer.opt_id,
+      label: `${buyer.full_name} (${buyer.opt_id})`,
+      searchText: `${buyer.full_name} ${buyer.opt_id}`
+    }));
+  }, [buyerProfiles]);
 
-  // Sort seller profiles by opt_id alphabetically
-  const sortedSellerProfiles = [...sellerProfiles].sort((a, b) => {
-    const optIdA = a.opt_id || '';
-    const optIdB = b.opt_id || '';
-    return optIdA.localeCompare(optIdB);
-  });
+  const sellerOptions = React.useMemo(() => {
+    return sellerProfiles.map(seller => ({
+      value: seller.id,
+      label: seller.full_name,
+      searchText: seller.full_name
+    }));
+  }, [sellerProfiles]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div className="space-y-2">
-        <Label htmlFor="buyerOptId">OPT_ID получателя *</Label>
-        <Select
-          value={buyerOptId}
-          onValueChange={onBuyerOptIdChange}
-          required
-          disabled={disabled}
-        >
-          <SelectTrigger id="buyerOptId" className="bg-white">
-            <SelectValue placeholder="Выберите OPT_ID покупателя" />
-          </SelectTrigger>
-          <SelectContent>
-            {sortedBuyerProfiles.length === 0 ? (
-              <SelectItem value="no_data">Нет данных</SelectItem>
-            ) : (
-              sortedBuyerProfiles.map((p) => (
-                <SelectItem key={p.opt_id} value={p.opt_id}>
-                  {p.opt_id} {p.full_name ? `- ${p.full_name}` : ""}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="sellerId">Продавец *</Label>
-        <Select
-          value={sellerId}
-          onValueChange={onSellerIdChange}
-          required
-          disabled={disabled}
-        >
-          <SelectTrigger id="sellerId" className="bg-white">
-            <SelectValue placeholder="Выберите продавца" />
-          </SelectTrigger>
-          <SelectContent>
-            {sortedSellerProfiles.length === 0 ? (
-              <SelectItem value="no_data">Нет данных</SelectItem>
-            ) : (
-              sortedSellerProfiles.map((p) => (
-                <SelectItem key={p.id} value={p.id}>
-                  {p.opt_id || "Без OPT_ID"} {p.full_name ? `- ${p.full_name}` : ""}
-                </SelectItem>
-              ))
-            )}
-          </SelectContent>
-        </Select>
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold">Участники заказа</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
+          <OptimizedSelect
+            options={buyerOptions}
+            value={buyerOptId}
+            onValueChange={onBuyerOptIdChange}
+            placeholder="Выберите покупателя..."
+            searchPlaceholder="Поиск по имени или OPT_ID..."
+            disabled={disabled}
+          />
+        </div>
+
+        {!hideSeller && (
+          <div>
+            <Label htmlFor="sellerId">Продавец *</Label>
+            <OptimizedSelect
+              options={sellerOptions}
+              value={sellerId}
+              onValueChange={onSellerIdChange}
+              placeholder="Выберите продавца..."
+              searchPlaceholder="Поиск продавца..."
+              disabled={disabled}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -84,7 +84,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
             <div>
               <label className="block text-sm font-medium mb-2">Продавец *</label>
               <select
-                {...form.register('sellerId' as any)}
+                {...(form.register as any)('sellerId')}
                 className="w-full p-2 border rounded-md"
               >
                 <option value="">Выберите продавца...</option>
@@ -106,7 +106,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
             <label className="block text-sm font-medium mb-2">Название товара</label>
             <input
               type="text"
-              {...form.register('title')}
+              {...(form.register as any)('title')}
               className="w-full p-2 border rounded-md"
               placeholder="Введите название товара"
             />
@@ -119,7 +119,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
             <label className="block text-sm font-medium mb-2">Цена</label>
             <input
               type="number"
-              {...form.register('price', { valueAsNumber: true })}
+              {...(form.register as any)('price', { valueAsNumber: true })}
               className="w-full p-2 border rounded-md"
               placeholder="Введите цену"
             />
@@ -132,7 +132,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
             <label className="block text-sm font-medium mb-2">Количество мест</label>
             <input
               type="number"
-              {...form.register('place_number', { valueAsNumber: true })}
+              {...(form.register as any)('place_number', { valueAsNumber: true })}
               className="w-full p-2 border rounded-md"
               placeholder="Количество мест"
             />
@@ -142,7 +142,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
             <label className="block text-sm font-medium mb-2">Стоимость доставки</label>
             <input
               type="number"
-              {...form.register('delivery_price', { valueAsNumber: true })}
+              {...(form.register as any)('delivery_price', { valueAsNumber: true })}
               className="w-full p-2 border rounded-md"
               placeholder="Стоимость доставки"
             />
@@ -152,7 +152,7 @@ const OptimizedAddProductForm: React.FC<OptimizedAddProductFormProps> = ({
         <div>
           <label className="block text-sm font-medium mb-2">Описание</label>
           <textarea
-            {...form.register('description')}
+            {...(form.register as any)('description')}
             className="w-full p-2 border rounded-md"
             rows={4}
             placeholder="Описание товара"
