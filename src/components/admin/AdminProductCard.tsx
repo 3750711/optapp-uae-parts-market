@@ -73,7 +73,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                       '/placeholder.svg';
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
+    queryClient.invalidateQueries({ queryKey: ['products'] });
     setIsEditDialogOpen(false);
   };
 
@@ -165,7 +165,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
                 }
-                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
               />
               
               <AlertDialog>
@@ -211,7 +211,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                       Опубликовать
                     </Button>
                   }
-                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })}
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
                 />
               )}
             </div>
