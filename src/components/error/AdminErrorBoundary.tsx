@@ -40,11 +40,13 @@ export class AdminErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // Логируем административные ошибки отдельно
-    console.warn('Admin panel error:', {
+    // Логируем административные ошибки отдельно с улучшенной диагностикой
+    console.warn('Admin panel error details:', {
       error: error.message,
       stack: error.stack,
       component: errorInfo.componentStack,
+      timestamp: new Date().toISOString(),
+      pathname: window.location.pathname,
     });
   }
 
@@ -82,6 +84,14 @@ export class AdminErrorBoundary extends Component<Props, State> {
             <AlertTitle>Ошибка в административной панели</AlertTitle>
             <AlertDescription>
               Произошла ошибка при выполнении административной операции.
+              {this.state.error && (
+                <details className="mt-2 text-xs">
+                  <summary className="cursor-pointer">Техническая информация</summary>
+                  <pre className="mt-1 whitespace-pre-wrap break-words">
+                    {this.state.error.message}
+                  </pre>
+                </details>
+              )}
             </AlertDescription>
           </Alert>
           <div className="flex gap-2 mt-4">

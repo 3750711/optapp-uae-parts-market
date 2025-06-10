@@ -1,4 +1,3 @@
-
 import { lazy } from 'react';
 
 const Index = lazy(() => import('@/pages/Index'));
@@ -36,11 +35,13 @@ const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
 const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
 
 // Admin pages
+const AdminRedirect = lazy(() => import('@/pages/AdminRedirect'));
 const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
+const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
 const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
 const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
 const AdminStores = lazy(() => import('@/pages/AdminStores'));
@@ -194,6 +195,12 @@ export const routes = [
   },
   // Admin routes
   {
+    path: "/admin",
+    element: <AdminRedirect />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
     path: "/admin/dashboard",
     element: <AdminDashboard />,
     protected: true,
@@ -220,6 +227,12 @@ export const routes = [
   {
     path: "/admin/orders",
     element: <AdminOrders />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: "/admin/orders/:id",
+    element: <AdminOrderDetails />,
     protected: true,
     adminOnly: true,
   },

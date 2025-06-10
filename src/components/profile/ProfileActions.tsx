@@ -80,7 +80,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
             
             {profile.user_type === 'seller' && (
               <Button 
-                className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 onClick={() => navigate('/seller/profile')}
               >
                 <UserCog className="h-4 w-4 mr-2" /> Панель продавца
@@ -89,7 +89,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) =
             
             {isAdmin && (
               <Button 
-                className="w-full bg-purple-600 hover:bg-purple-700"
+                className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
                 onClick={() => navigate('/admin')}
               >
                 <Settings className="h-4 w-4 mr-2" /> Панель администратора
