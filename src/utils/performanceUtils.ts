@@ -1,154 +1,105 @@
+// Дополнительные функции для добавления в ваш существующий performanceUtils.ts
 
-// Performance utilities for optimized logging and caching
-const isDevelopment = process.env.NODE_ENV === 'development';
-
-// Minimal logging - completely disabled in production
-export const devLog = (...args: any[]) => {
-  // Completely disable in production for better performance
-  if (!isDevelopment) return;
-  
-  // Even in development, only log critical information
-  if (args[0]?.includes?.('AdminGuard') || args[0]?.includes?.('AuthContext')) {
-    console.log(...args);
-  }
-};
-
-export const devError = (...args: any[]) => {
-  if (isDevelopment) {
-    console.error(...args);
-  }
-};
-
-export const devWarn = (...args: any[]) => {
-  if (isDevelopment) {
-    console.warn(...args);
-  }
-};
-
-// Performance monitoring
-export const perfMark = (name: string) => {
-  if (isDevelopment && typeof performance !== 'undefined') {
-    performance.mark(name);
-  }
-};
-
-export const perfMeasure = (name: string, startMark: string, endMark: string) => {
-  if (isDevelopment && typeof performance !== 'undefined') {
-    try {
-      performance.measure(name, startMark, endMark);
-      const measure = performance.getEntriesByName(name, 'measure')[0];
-      console.log(`⚡ ${name}: ${measure.duration.toFixed(2)}ms`);
-    } catch (error) {
-      // Silently fail if marks don't exist
-    }
-  }
-};
-
-// Optimized admin rights caching with memory cache
-const ADMIN_CACHE_KEY = 'admin_rights_cache';
-const ADMIN_CACHE_DURATION = 1000 * 60 * 15; // Reduced to 15 minutes
-
-interface AdminCacheData {
-  isAdmin: boolean;
-  timestamp: number;
-  userId: string;
-}
-
-// In-memory cache for faster access
-const memoryCache = new Map<string, AdminCacheData>();
-
-export const getCachedAdminRights = (userId: string): boolean | null => {
-  try {
-    // Check memory cache first
-    const memoryKey = `admin_${userId}`;
-    const memoryCached = memoryCache.get(memoryKey);
-    
-    if (memoryCached && Date.now() - memoryCached.timestamp < ADMIN_CACHE_DURATION) {
-      return memoryCached.isAdmin;
-    }
-
-    // Fallback to sessionStorage
-    const cached = sessionStorage.getItem(ADMIN_CACHE_KEY);
-    if (!cached) return null;
-
-    const data: AdminCacheData = JSON.parse(cached);
-    
-    if (
-      data.userId === userId &&
-      Date.now() - data.timestamp < ADMIN_CACHE_DURATION
-    ) {
-      // Update memory cache
-      memoryCache.set(memoryKey, data);
-      return data.isAdmin;
-    }
-    
-    // Clear expired cache
-    sessionStorage.removeItem(ADMIN_CACHE_KEY);
-    memoryCache.delete(memoryKey);
-    return null;
-  } catch (error) {
-    console.error('Error reading admin cache:', error);
-    return null;
-  }
-};
-
-export const setCachedAdminRights = (userId: string, isAdmin: boolean): void => {
-  try {
-    const data: AdminCacheData = {
-      isAdmin,
-      timestamp: Date.now(),
-      userId
-    };
-    
-    // Set in memory cache immediately
-    const memoryKey = `admin_${userId}`;
-    memoryCache.set(memoryKey, data);
-    
-    // Async storage write to avoid blocking
-    setTimeout(() => {
-      try {
-        sessionStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(data));
-      } catch (error) {
-        console.error('Error setting admin cache:', error);
-      }
-    }, 0);
-  } catch (error) {
-    console.error('Error setting admin cache:', error);
-  }
-};
-
-export const clearAdminCache = (): void => {
-  try {
-    // Clear memory cache
-    memoryCache.clear();
-    
-    // Async clear storage
-    setTimeout(() => {
-      try {
-        sessionStorage.removeItem(ADMIN_CACHE_KEY);
-      } catch (error) {
-        console.error('Error clearing admin cache:', error);
-      }
-    }, 0);
-  } catch (error) {
-    console.error('Error clearing admin cache:', error);
-  }
-};
-
-// Optimized debounce with immediate cleanup
-export const debounce = <T extends (...args: any[]) => any>(
+// Throttle функция для ограничения частоты вызовов
+export const throttle = <T extends (...args: any[]) => any>(
   func: T,
-  wait: number
+  limit: number
 ): ((...args: Parameters<T>) => void) => {
-  let timeout: NodeJS.Timeout;
-  
-  const debounced = (...args: Parameters<T>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
+  let inThrottle: boolean;
+  return (...args: Parameters<T>) => {
+    if (!inThrottle) {
+      func(...args);
+      inThrottle = true;
+      setTimeout(() => inThrottle = false, limit);
+    }
   };
+};
+
+// Измерение времени выполнения
+export const measureTime = (label: string) => {
+  const start = performance.now();
+  return {
+    end: () => {
+      const end = performance.now();
+      if (isDevelopment) {
+        console.log(`⏱️ ${label}: ${(end - start).toFixed(2)}ms`);
+      }
+      return end - start;
+    }
+  };
+};
+
+// Простой мониторинг производительности
+export const monitorPerformance = () => {
+  if (!isDevelopment || typeof window === 'undefined') return;
+
+  // Мониторинг времени загрузки
+  window.addEventListener('load', () => {
+    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    console.log('📊 Performance metrics:', {
+      'DOM Content Loaded': `${navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart}ms`,
+      'Load Complete': `${navigation.loadEventEnd - navigation.loadEventStart}ms`,
+      'Total Load Time': `${navigation.loadEventEnd - navigation.fetchStart}ms`
+    });
+  });
+
+  // Мониторинг больших задач
+  if ('PerformanceObserver' in window) {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.duration > 50) { // Задачи дольше 50ms
+            console.warn(`🐌 Long task detected: ${entry.name} (${entry.duration.toFixed(2)}ms)`);
+          }
+        }
+      });
+      observer.observe({ entryTypes: ['longtask'] });
+    } catch (error) {
+      devError('Failed to setup performance observer:', error);
+    }
+  }
+};
+
+// Предзагрузка критических ресурсов
+export const preloadCriticalResources = () => {
+  if (typeof window === 'undefined') return;
   
-  // Add cleanup method
-  (debounced as any).cancel = () => clearTimeout(timeout);
+  const criticalResources = [
+    // Добавьте пути к критическим ресурсам вашего приложения
+    // '/assets/critical.css',
+    // '/fonts/main-font.woff2'
+  ];
+
+  criticalResources.forEach(resource => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.href = resource;
+    
+    if (resource.endsWith('.css')) {
+      link.as = 'style';
+    } else if (resource.endsWith('.js')) {
+      link.as = 'script';
+    } else if (resource.includes('font')) {
+      link.as = 'font';
+      link.crossOrigin = 'anonymous';
+    }
+    
+    document.head.appendChild(link);
+  });
+};
+
+// Инициализация всех оптимизаций производительности
+export const initPerformanceOptimizations = () => {
+  if (typeof window === 'undefined') return;
   
-  return debounced;
+  monitorPerformance();
+  
+  // Запускаем оптимизации после загрузки DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      preloadCriticalResources();
+    });
+  } else {
+    preloadCriticalResources();
+  }
 };
