@@ -10,31 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
-import OptimizedAddProductForm, { ProductFormValues } from "@/components/product/OptimizedAddProductForm";
+import OptimizedAddProductForm, { ProductFormValues, createProductSchema } from "@/components/product/OptimizedAddProductForm";
 
 // Admin product schema with required sellerId
-const adminProductSchema = z.object({
-  title: z.string().min(3, {
-    message: "Название должно содержать не менее 3 символов",
-  }),
-  price: z.string().min(1, {
-    message: "Укажите цену товара",
-  }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Цена должна быть положительным числом",
-  }),
-  brandId: z.string().min(1, {
-    message: "Выберите марку автомобиля",
-  }),
-  modelId: z.string().optional(),
-  placeNumber: z.string().min(1, {
-    message: "Укажите количество мест",
-  }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, {
-    message: "Количество мест должно быть целым положительным числом",
-  }),
-  description: z.string().optional(),
-  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
-    message: "Стоимость доставки должна быть числом",
-  }),
+const adminProductSchema = createProductSchema.extend({
   sellerId: z.string().min(1, {
     message: "Выберите продавца",
   }),
@@ -76,12 +55,12 @@ const AdminAddProduct = () => {
     resolver: zodResolver(adminProductSchema),
     defaultValues: {
       title: "",
-      price: "",
+      price: 0,
       brandId: "",
       modelId: "",
-      placeNumber: "1",
+      place_number: 1,
       description: "",
-      deliveryPrice: "0",
+      delivery_price: 0,
       sellerId: "",
     },
     mode: "onChange",
@@ -250,7 +229,7 @@ const AdminAddProduct = () => {
         .from('products')
         .insert({
           title: values.title,
-          price: parseFloat(values.price),
+          price: values.price,
           condition: "Новый",
           brand: selectedBrand.name,
           model: modelName,
@@ -258,8 +237,8 @@ const AdminAddProduct = () => {
           seller_id: values.sellerId,
           seller_name: selectedSeller.full_name,
           status: 'active',
-          place_number: parseInt(values.placeNumber),
-          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+          place_number: values.place_number || 1,
+          delivery_price: values.delivery_price || 0,
         })
         .select()
         .single();

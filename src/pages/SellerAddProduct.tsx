@@ -62,18 +62,18 @@ const SellerAddProduct = () => {
   } = useCarBrandsAndModels();
 
   // Create schema for seller (showSellerSelection = false)
-  const sellerProductSchema = useMemo(() => createProductSchema(false), []);
+  const sellerProductSchema = useMemo(() => createProductSchema, []);
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(sellerProductSchema),
     defaultValues: {
       title: "",
-      price: "",
+      price: 0,
       brandId: "",
       modelId: "",
-      placeNumber: "1",
+      place_number: 1,
       description: "",
-      deliveryPrice: "0",
+      delivery_price: 0,
     },
     mode: "onChange",
   });
@@ -279,7 +279,7 @@ const SellerAddProduct = () => {
         .from('products')
         .insert({
           title: values.title,
-          price: parseFloat(values.price),
+          price: values.price,
           condition: "Новый",
           brand: selectedBrand.name,
           model: modelName,
@@ -287,8 +287,8 @@ const SellerAddProduct = () => {
           seller_id: user.id, // Automatically assign current user as seller
           seller_name: profile?.full_name || '',
           status: 'pending',
-          place_number: parseInt(values.placeNumber),
-          delivery_price: values.deliveryPrice ? parseFloat(values.deliveryPrice) : 0,
+          place_number: values.place_number || 1,
+          delivery_price: values.delivery_price || 0,
         })
         .select()
         .single();
