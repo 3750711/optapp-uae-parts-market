@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -68,7 +67,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     .filter(Boolean)
     .join(' • ');
 
-  // Use the same image selection logic as in catalog
+  // Use EXACT same image selection logic as in catalog
   const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
                       product.product_images?.[0]?.url || 
                       product.cloudinary_url ||
