@@ -14,7 +14,7 @@ import { ProductFormValues, AdminProductFormValues } from "../OptimizedAddProduc
 import OptimizedSelect from "@/components/ui/OptimizedSelect";
 
 interface MobileOptimizedBasicInfoSectionProps {
-  form: UseFormReturn<ProductFormValues | AdminProductFormValues>;
+  form: UseFormReturn<ProductFormValues> | UseFormReturn<AdminProductFormValues>;
   sellers?: Array<{id: string, full_name: string}>;
   searchSellerTerm?: string;
   setSearchSellerTerm?: (term: string) => void;
@@ -42,7 +42,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {showSellerSelection && (
         <FormField
           control={form.control}
-          name="sellerId" as keyof (ProductFormValues | AdminProductFormValues)
+          name={"sellerId" as any}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Продавец *</FormLabel>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -11,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, Phone, Mail, MessageCircle } from 'lucide-react';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const SellerOrderDetails = () => {
@@ -142,6 +142,7 @@ const SellerOrderDetails = () => {
 
   const isSeller = order.seller_id === user?.id;
   const isSelfOrder = order.seller_id === order.buyer_id;
+  // Объединяем видео из поля video_url и из таблицы order_videos
   const allVideos = [...(order.video_url || []), ...videos];
   const allImages = [...(order.images || []), ...images];
 
@@ -365,28 +366,13 @@ const SellerOrderDetails = () => {
                     </div>
                   )}
 
-                  {/* Videos */}
+                  {/* Videos - используем OptimizedOrderVideos компонент */}
                   {allVideos.length > 0 && (
                     <div>
-                      <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
-                        <Film className="h-4 w-4" />
-                        Видео ({allVideos.length})
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {allVideos.map((videoUrl, index) => (
-                          <div key={index} className="relative group aspect-video rounded-lg overflow-hidden bg-black border">
-                            <video 
-                              src={videoUrl}
-                              controls
-                              className="w-full h-full object-contain"
-                              preload="metadata"
-                            />
-                            <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
-                              Видео {index + 1}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <OptimizedOrderVideos 
+                        videos={allVideos}
+                        orderNumber={order.order_number?.toString()}
+                      />
                     </div>
                   )}
                 </CardContent>
