@@ -31,30 +31,20 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
-  // Используем точно такую же логику приоритетов, как в каталоге
+  // Исправленная логика: убираем product_url из приоритетов изображений
   const { primaryImage, cloudinaryUrl } = useMemo(() => {
     console.log('🖼️ AdminProductCard processing images for product:', product.id, {
-      product_url: product.product_url,
       product_images: product.product_images,
       cloudinary_url: product.cloudinary_url,
       cloudinary_public_id: product.cloudinary_public_id,
       product_image: (product as any).image
     });
 
-    // Приоритет 1: Превью товара (product_url)
-    if (product.product_url && product.product_url.trim() !== '') {
-      console.log('✅ Using product preview URL:', product.product_url);
-      return {
-        primaryImage: product.product_url,
-        cloudinaryUrl: product.product_url.includes('cloudinary.com') ? product.product_url : null
-      };
-    }
-
-    // Приоритет 2: Фото из базы данных (product_images)
+    // Приоритет 1: Фото из базы данных (product_images)
     const primaryImg = product.product_images?.find(img => img.is_primary);
     const fallbackImg = product.product_images?.[0];
     
-    // Приоритет 3: Точно такой же порядок fallback, как в каталоге
+    // Приоритет 2: Cloudinary URL или legacy image поле
     const imageUrl = primaryImg?.url || 
                     fallbackImg?.url || 
                     product.cloudinary_url ||
@@ -80,7 +70,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
       primaryImage: imageUrl,
       cloudinaryUrl: extractedCloudinaryUrl
     };
-  }, [product.product_url, product.product_images, product.cloudinary_url, product.cloudinary_public_id, (product as any).image]);
+  }, [product.product_images, product.cloudinary_url, product.cloudinary_public_id, (product as any).image]);
 
   const getProductCardBackground = (status: string) => {
     switch (status) {
