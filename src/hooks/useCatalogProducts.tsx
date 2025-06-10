@@ -1,10 +1,12 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 export type ProductType = {
   id: string;
@@ -41,6 +43,7 @@ interface UseCatalogProductsProps {
   externalSelectedModel?: string | null;
   findBrandNameById?: (brandId: string | null) => string | null;
   findModelNameById?: (modelId: string | null) => string | null;
+  debounceTime?: number;
 }
 
 export const useCatalogProducts = ({ 
@@ -49,26 +52,41 @@ export const useCatalogProducts = ({
   externalSelectedBrand = null,
   externalSelectedModel = null,
   findBrandNameById,
-  findModelNameById
+  findModelNameById,
+  debounceTime = 500
 }: UseCatalogProductsProps = {}) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounceValue(searchTerm, debounceTime);
   const [activeSearchTerm, setActiveSearchTerm] = useState('');
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
-
-  // Use external brand/model values if provided, otherwise use internal state
+  const isInitialRender = useRef(true);
+  
+  // Используем внешние значения марки/модели если они предоставлены, иначе используем внутреннее состояние
   const [internalSelectedBrand, setInternalSelectedBrand] = useState<string | null>(null);
   const [internalSelectedModel, setInternalSelectedModel] = useState<string | null>(null);
 
   const selectedBrand = externalSelectedBrand !== undefined ? externalSelectedBrand : internalSelectedBrand;
   const selectedModel = externalSelectedModel !== undefined ? externalSelectedModel : internalSelectedModel;
 
-  // Convert brand and model IDs to names for database query
+  // Конвертируем ID марок и моделей в имена для запроса к базе данных
   const selectedBrandName = findBrandNameById ? findBrandNameById(selectedBrand) : selectedBrand;
   const selectedModelName = findModelNameById ? findModelNameById(selectedModel) : selectedModel;
 
-  // Helper function to build sort query
+  // Автоматически применяем дебаунсированный поисковый запрос
+  useEffect(() => {
+    if (isInitialRender.current) {
+      isInitialRender.current = false;
+      return;
+    }
+    
+    if (debouncedSearchTerm !== activeSearchTerm) {
+      setActiveSearchTerm(debouncedSearchTerm);
+    }
+  }, [debouncedSearchTerm, activeSearchTerm]);
+
+  // Функция для построения сортировочного запроса
   const buildSortQuery = (query: any, sortOption: SortOption) => {
     switch (sortOption) {
       case 'newest':
@@ -88,7 +106,7 @@ export const useCatalogProducts = ({
     }
   };
 
-  // Memoize filters
+  // Мемоизируем фильтры
   const filters = useMemo(() => {
     const filtersObj = {
       activeSearchTerm,
@@ -98,11 +116,11 @@ export const useCatalogProducts = ({
       sortBy,
       isAdmin
     };
-    console.log('📋 Filters updated:', filtersObj);
+    console.log('📋 Обновление фильтров:', filtersObj);
     return filtersObj;
   }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
-  // Use React Query for data fetching with infinite scroll
+  // Используем React Query для загрузки данных с бесконечной прокруткой
   const {
     data,
     fetchNextPage,
@@ -119,7 +137,7 @@ export const useCatalogProducts = ({
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
         
-        console.log('🔎 Executing search query with filters:', {
+        console.log('🔎 Выполнение поискового запроса с фильтрами:', {
           searchQuery: filters.activeSearchTerm,
           selectedBrandName: filters.selectedBrandName,
           selectedModelName: filters.selectedModelName,
@@ -129,72 +147,71 @@ export const useCatalogProducts = ({
           to
         });
         
-        // Test Supabase connection first
-        const { data: testConnection, error: connectionError } = await supabase
-          .from('products')
-          .select('count')
-          .limit(1);
-          
-        if (connectionError) {
-          console.error('❌ Supabase connection error:', connectionError);
-          throw new Error(`Ошибка подключения к базе данных: ${connectionError.message}`);
-        }
-        
-        console.log('✅ Supabase connection test successful');
-        
+        // Строим запрос с оптимизированными колонками - выбираем только то, что нужно
         let query = supabase
           .from('products')
           .select(`
-            *, 
-            product_images(url, is_primary), 
+            id, 
+            title, 
+            price, 
+            condition,
+            brand, 
+            model,
+            seller_name,
+            seller_id,
+            status,
+            created_at,
+            rating_seller,
+            delivery_price,
+            optid_created,
             cloudinary_public_id, 
-            cloudinary_url
+            cloudinary_url,
+            product_images(url, is_primary)
           `);
 
-        // Apply sorting
+        // Применяем сортировку
         query = buildSortQuery(query, sortBy);
 
-        // Apply status filtering
+        // Применяем фильтрацию по статусу
         if (filters.hideSoldProducts) {
           query = query.eq('status', 'active');
-          console.log('🔍 Filtering for active products only');
         } else {
           if (filters.isAdmin) {
             query = query.in('status', ['active', 'sold', 'pending', 'archived']);
-            console.log('👑 Admin view: showing all statuses');
           } else {
             query = query.in('status', ['active', 'sold']);
-            console.log('👤 Regular user view: showing active and sold');
           }
         }
 
-        // Apply search filters
+        // Применяем поисковые фильтры с оптимизированным поиском
         if (filters.activeSearchTerm) {
           const searchTerm = filters.activeSearchTerm.trim();
+          // Используем более эффективную комбинацию OR условий
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
-          console.log('🔍 Applied text search:', searchTerm);
         }
 
-        // Apply brand filter - now using text name instead of ID
+        // Применяем фильтр по марке
         if (filters.selectedBrandName) {
           query = query.eq('brand', filters.selectedBrandName);
-          console.log('🏷️ Applied brand filter:', filters.selectedBrandName);
         }
 
-        // Apply model filter - now using text name instead of ID
+        // Применяем фильтр по модели
         if (filters.selectedModelName) {
           query = query.eq('model', filters.selectedModelName);
-          console.log('🚗 Applied model filter:', filters.selectedModelName);
         }
 
-        const { data, error } = await query.range(from, to);
+        // Устанавливаем диапазон для пагинации
+        query = query.range(from, to);
+
+        // Делаем единственный запрос к базе данных
+        const { data, error } = await query;
         
         if (error) {
-          console.error('❌ Error fetching products:', error);
+          console.error('❌ Ошибка загрузки товаров:', error);
           throw new Error(`Ошибка загрузки товаров: ${error.message}`);
         }
         
-        // Sort product_images so primary images come first
+        // Сортируем изображения так, чтобы первичные изображения были первыми
         const dataWithSortedImages = data?.map(product => ({
           ...product,
           product_images: product.product_images?.sort((a: any, b: any) => {
@@ -204,11 +221,10 @@ export const useCatalogProducts = ({
           })
         }));
         
-        console.log('✅ Products fetched successfully:', dataWithSortedImages?.length, 'items');
+        console.log('✅ Товары успешно загружены:', dataWithSortedImages?.length, 'элементов');
         return dataWithSortedImages || [];
       } catch (error) {
-        console.error('💥 Error in queryFn:', error);
-        // Show user-friendly error message
+        console.error('💥 Ошибка в queryFn:', error);
         if (error instanceof Error) {
           throw new Error(error.message);
         } else {
@@ -220,19 +236,18 @@ export const useCatalogProducts = ({
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 180000,
+    staleTime: 180000, // Оставляем данные актуальными на 3 минуты
+    gcTime: 300000, // Удерживаем в кэше 5 минут
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      console.log(`🔄 Retry attempt ${failureCount} for error:`, error);
-      return failureCount < 2; // Reduced retries to avoid endless loops
+      return failureCount < 2; // Ограничиваем повторные попытки до 2
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000)
   });
 
-  // Handle errors with toast notifications
+  // Обрабатываем ошибки с уведомлениями toast
   useEffect(() => {
     if (isError && error) {
-      console.error('🚨 Query error detected:', error);
       toast({
         title: "Ошибка загрузки товаров",
         description: error instanceof Error ? error.message : "Не удалось загрузить товары",
@@ -241,10 +256,10 @@ export const useCatalogProducts = ({
     }
   }, [isError, error, toast]);
 
-  // Get all products from all pages
+  // Получаем все товары из всех страниц
   const allProducts = data?.pages.flat() || [];
   
-  // Map products to the correct format
+  // Преобразуем товары в нужный формат
   const mappedProducts: ProductProps[] = useMemo(() => {
     try {
       return allProducts.map((product) => {
@@ -272,12 +287,12 @@ export const useCatalogProducts = ({
         } as ProductProps;
       });
     } catch (mappingError) {
-      console.error('❌ Error mapping products:', mappingError);
+      console.error('❌ Ошибка маппинга товаров:', mappingError);
       return [];
     }
   }, [allProducts]);
 
-  // Chunking logic for better performance
+  // Логика разбиения на чанки для лучшей производительности
   const productChunks = useMemo(() => {
     const chunkSize = 12;
     const chunks = [];
@@ -298,7 +313,6 @@ export const useCatalogProducts = ({
 
   const handleSearch = useCallback(() => {
     setActiveSearchTerm(searchTerm);
-    console.log('🔍 Search executed:', searchTerm);
   }, [searchTerm]);
 
   const handleSearchSubmit = useCallback((e: React.FormEvent) => {

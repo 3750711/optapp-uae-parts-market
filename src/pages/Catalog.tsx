@@ -13,7 +13,7 @@ import ActiveFilters from "@/components/catalog/ActiveFilters";
 import StickyFilters from "@/components/catalog/StickyFilters";
 import CatalogSearchAndFilters from "@/components/catalog/CatalogSearchAndFilters";
 import { useConditionalCarData } from "@/hooks/useConditionalCarData";
-import { useSearchHistory } from "@/hooks/useSearchHistory";
+import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
 
 const Catalog: React.FC = () => {
@@ -61,7 +61,8 @@ const Catalog: React.FC = () => {
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
-    findModelNameById
+    findModelNameById,
+    debounceTime: 500 // Устанавливаем время дебаунсинга для поисковых запросов
   });
 
   // Load more when the loadMoreRef is visible
@@ -79,9 +80,25 @@ const Catalog: React.FC = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    fetchNextPage();
-  };
+  // Обработчик выбора элемента из истории поиска
+  const handleSelectFromHistory = useCallback((item: SearchHistoryItem) => {
+    setSearchTerm(item.query);
+    
+    if (item.brand && brands.length > 0) {
+      const brandId = brands.find(b => b.name === item.brand)?.id;
+      if (brandId) selectBrand(brandId);
+    }
+    
+    if (item.model && brandModels.length > 0) {
+      const modelId = brandModels.find(m => m.name === item.model)?.id;
+      if (modelId) setSelectedModel(modelId);
+    }
+    
+    // Автоматически запускаем поиск
+    setTimeout(() => {
+      handleSearch();
+    }, 100);
+  }, [brands, brandModels, handleSearch, selectBrand]);
 
   // Enhanced search handlers
   const handleEnhancedSearchSubmit = useCallback((e: React.FormEvent) => {
@@ -161,6 +178,7 @@ const Catalog: React.FC = () => {
             brandModels={brandModels}
             hideSoldProducts={hideSoldProducts}
             setHideSoldProducts={setHideSoldProducts}
+            onSelectFromHistory={handleSelectFromHistory}
           />
         )}
 
@@ -254,7 +272,7 @@ const Catalog: React.FC = () => {
                           <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                         </div>
                       ) : (
-                        <Button onClick={handleLoadMore} className="bg-primary hover:bg-primary/90">
+                        <Button onClick={fetchNextPage} className="bg-primary hover:bg-primary/90">
                           Загрузить ещё
                         </Button>
                       )}

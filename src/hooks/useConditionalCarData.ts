@@ -1,58 +1,71 @@
 
-import { useCarBrandsAndModels } from './useCarBrandsAndModels';
 import { useLocation } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useCarBrandsAndModels } from './useCarBrandsAndModels';
+import { useState, useEffect } from 'react';
 
-// Страницы где нужны автомобильные данные
-const CAR_DATA_ROUTES = [
+// Список путей где должны загружаться автомобильные данные
+const CAR_DATA_PATHS = [
   '/catalog',
   '/seller/add-product',
   '/admin/add-product',
-  '/admin/create-order-from-product',
+  '/admin/create-order',
   '/seller/create-order',
   '/buyer/create-order',
-  '/admin/free-order'
+  '/admin/free-order',
+  '/admin/order'
 ];
 
-/**
- * Условный хук для загрузки автомобильных данных
- * Загружает данные только на страницах где они действительно нужны
- */
 export const useConditionalCarData = () => {
   const location = useLocation();
+  const [shouldLoadData, setShouldLoadData] = useState(false);
   
-  // Определяем нужно ли загружать автомобильные данные
-  const shouldLoadCarData = useMemo(() => {
-    return CAR_DATA_ROUTES.some(route => 
-      location.pathname.startsWith(route) || 
-      location.pathname.includes('/admin/create-order/') // динамические роуты
-    );
+  // Проверяем, нужно ли загружать данные на текущем пути
+  useEffect(() => {
+    const shouldLoad = CAR_DATA_PATHS.some(path => location.pathname.startsWith(path));
+    setShouldLoadData(shouldLoad);
   }, [location.pathname]);
-
-  // Загружаем данные только если нужно
-  const carDataHook = useCarBrandsAndModels();
   
-  // Если данные не нужны, возвращаем пустые массивы и состояние "не загружается"
-  if (!shouldLoadCarData) {
-    return {
-      brands: [],
-      allModels: [],
-      brandModels: [],
-      selectedBrand: null,
-      selectBrand: () => {},
-      isLoading: false,
-      error: null,
-      findBrandIdByName: () => null,
-      findModelIdByName: () => null,
-      findBrandNameById: () => null,
-      findModelNameById: () => null,
-      validateModelBrand: () => false,
-      shouldLoadCarData: false
-    };
-  }
-
+  // Используем хук загрузки автомобильных данных с условным включением
+  const {
+    brands,
+    brandModels,
+    selectedBrandId,
+    setSelectedBrandId,
+    isLoadingBrands,
+    isLoadingModels,
+    findBrandNameById,
+    findModelNameById,
+    brandSearchTerm,
+    setBrandSearchTerm,
+    modelSearchTerm,
+    setModelSearchTerm,
+    brandsPage,
+    setBrandsPage,
+    modelsPage,
+    setModelsPage,
+    hasMoreBrands,
+    hasMoreModels
+  } = useCarBrandsAndModels();
+  
   return {
-    ...carDataHook,
-    shouldLoadCarData: true
+    shouldLoadCarData: shouldLoadData,
+    brands: shouldLoadData ? brands : [],
+    brandModels: shouldLoadData ? brandModels : [],
+    selectedBrand: selectedBrandId,
+    selectBrand: setSelectedBrandId,
+    isLoadingBrands: shouldLoadData && isLoadingBrands,
+    isLoadingModels: shouldLoadData && isLoadingModels,
+    findBrandNameById,
+    findModelNameById,
+    brandSearchTerm,
+    setBrandSearchTerm,
+    modelSearchTerm,
+    setModelSearchTerm,
+    brandsPage,
+    setBrandsPage,
+    modelsPage,
+    setModelsPage,
+    hasMoreBrands,
+    hasMoreModels
   };
 };

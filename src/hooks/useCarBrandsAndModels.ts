@@ -1,7 +1,8 @@
 
-import { useCallback, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useDebounceValue } from './useDebounceValue';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface CarBrand {
   id: string;
@@ -14,114 +15,214 @@ export interface CarModel {
   brand_id: string;
 }
 
-export function useCarBrandsAndModels() {
-  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+const BRANDS_PER_PAGE = 30;
+const MODELS_PER_PAGE = 30;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 часа в миллисекундах
 
-  // Загружаем бренды
-  const { 
-    data: brands = [], 
-    isLoading: isBrandsLoading,
-    error: brandsError
-  } = useQuery({
-    queryKey: ['catalog', 'car-brands'],
-    queryFn: async () => {
-      console.log('Fetching car brands');
-      const { data, error } = await supabase
-        .from('car_brands')
-        .select('*')
-        .order('name');
+// Функция для сохранения в localStorage с контролем версии и временем истечения
+const saveToCache = (key: string, value: any) => {
+  try {
+    const item = {
+      value,
+      timestamp: Date.now(),
+      version: 1 // Увеличивайте при изменении структуры данных
+    };
+    localStorage.setItem(key, JSON.stringify(item));
+  } catch (error) {
+    console.warn('Ошибка сохранения в localStorage:', error);
+  }
+};
 
-      if (error) {
-        console.error('Error fetching car brands:', error);
-        throw error;
-      }
-      console.log('Fetched car brands:', data);
-      return data as CarBrand[] || [];
-    }
-  });
-
-  // Загружаем ВСЕ модели сразу
-  const { 
-    data: allModels = [],
-    isLoading: isModelsLoading,
-    error: modelsError
-  } = useQuery({
-    queryKey: ['catalog', 'car-models'],
-    queryFn: async () => {
-      console.log('Fetching all car models');
-      const { data, error } = await supabase
-        .from('car_models')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching car models:', error);
-        throw error;
-      }
-      console.log('Fetched car models:', data);
-      return data as CarModel[] || [];
-    }
-  });
-
-  // Фильтрация моделей по выбранному бренду (для обратной совместимости)
-  const brandModels = selectedBrand 
-    ? allModels.filter(model => model.brand_id === selectedBrand)
-    : [];
-
-  // Функция выбора бренда
-  const selectBrand = useCallback((brandId: string | null) => {
-    setSelectedBrand(brandId);
-  }, []);
-
-  // Helper function to find brand name by ID
-  const findBrandNameById = useCallback((brandId: string | null) => {
-    if (!brandId || !brands || brands.length === 0) return null;
-    const brand = brands.find(b => b.id === brandId);
-    return brand?.name || null;
-  }, [brands]);
-
-  // Helper function to find model name by ID
-  const findModelNameById = useCallback((modelId: string | null) => {
-    if (!modelId || !allModels || allModels.length === 0) return null;
-    const model = allModels.find(m => m.id === modelId);
-    return model?.name || null;
-  }, [allModels]);
-
-  // Helper function to find brand ID by name
-  const findBrandIdByName = useCallback((brandName: string) => {
-    if (!brandName || !brands || brands.length === 0) return null;
-    const brand = brands.find(b => b.name.toLowerCase() === brandName.toLowerCase());
-    return brand?.id || null;
-  }, [brands]);
-  
-  // Helper function to find model ID by name and brand ID
-  const findModelIdByName = useCallback((modelName: string | null, brandId: string) => {
-    if (!brandId || !modelName || !allModels || allModels.length === 0) return null;
+// Функция для загрузки из localStorage с проверкой срока годности
+const loadFromCache = (key: string) => {
+  try {
+    const itemString = localStorage.getItem(key);
+    if (!itemString) return null;
     
-    const model = allModels.find(
-      m => m.brand_id === brandId && m.name.toLowerCase() === modelName.toLowerCase()
-    );
-    return model?.id || null;
-  }, [allModels]);
+    const item = JSON.parse(itemString);
+    
+    // Проверяем версию и срок годности
+    if (item.version !== 1 || Date.now() - item.timestamp > CACHE_DURATION) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    
+    return item.value;
+  } catch (error) {
+    localStorage.removeItem(key);
+    return null;
+  }
+};
 
-  // Helper to validate if a model belongs to a brand
-  const validateModelBrand = useCallback((modelId: string, brandId: string) => {
-    if (!allModels || allModels.length === 0 || !modelId || !brandId) return false;
-    return allModels.some(model => model.id === modelId && model.brand_id === brandId);
-  }, [allModels]);
+export const useCarBrandsAndModels = (initialBrandId?: string) => {
+  const [brandSearchTerm, setBrandSearchTerm] = useState('');
+  const debouncedBrandSearchTerm = useDebounceValue(brandSearchTerm, 300);
+  
+  const [modelSearchTerm, setModelSearchTerm] = useState('');
+  const debouncedModelSearchTerm = useDebounceValue(modelSearchTerm, 300);
+  
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(initialBrandId || null);
+  const [brandsPage, setBrandsPage] = useState(0);
+  const [modelsPage, setModelsPage] = useState(0);
+
+  // Загрузка брендов с кэшированием, пагинацией и поиском
+  const {
+    data: brandsData,
+    isLoading: isLoadingBrands,
+    error: brandsError,
+    refetch: refetchBrands
+  } = useQuery({
+    queryKey: ['car-brands', debouncedBrandSearchTerm, brandsPage],
+    queryFn: async () => {
+      // Пытаемся загрузить из кэша только для первой страницы без поиска
+      if (brandsPage === 0 && !debouncedBrandSearchTerm) {
+        const cached = loadFromCache('car-brands');
+        if (cached) {
+          console.log('🗄️ Загружены марки автомобилей из кэша');
+          return cached;
+        }
+      }
+      
+      console.log('🔍 Загрузка марок автомобилей из базы данных', { 
+        search: debouncedBrandSearchTerm, 
+        page: brandsPage 
+      });
+      
+      // Строим запрос с поиском и пагинацией
+      let query = supabase
+        .from('car_brands')
+        .select('id, name')
+        .order('name', { ascending: true })
+        .range(brandsPage * BRANDS_PER_PAGE, (brandsPage + 1) * BRANDS_PER_PAGE - 1);
+      
+      // Добавляем поиск при необходимости
+      if (debouncedBrandSearchTerm) {
+        query = query.ilike('name', `%${debouncedBrandSearchTerm}%`);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('❌ Ошибка загрузки марок автомобилей:', error);
+        throw error;
+      }
+      
+      // Кэшируем только результаты первой страницы без поиска
+      if (brandsPage === 0 && !debouncedBrandSearchTerm) {
+        saveToCache('car-brands', data);
+      }
+      
+      return data || [];
+    },
+    staleTime: 15 * 60 * 1000, // 15 минут
+    gcTime: 60 * 60 * 1000, // 1 час
+  });
+
+  // Загрузка моделей для выбранного бренда с кэшированием, пагинацией и поиском
+  const {
+    data: modelsData,
+    isLoading: isLoadingModels,
+    error: modelsError,
+    refetch: refetchModels
+  } = useQuery({
+    queryKey: ['car-models', selectedBrandId, debouncedModelSearchTerm, modelsPage],
+    queryFn: async () => {
+      // Если бренд не выбран, возвращаем пустой массив
+      if (!selectedBrandId) return [];
+      
+      // Пытаемся загрузить из кэша только для первой страницы без поиска
+      const cacheKey = `car-models-${selectedBrandId}`;
+      if (modelsPage === 0 && !debouncedModelSearchTerm) {
+        const cached = loadFromCache(cacheKey);
+        if (cached) {
+          console.log('🗄️ Загружены модели автомобилей из кэша', { brandId: selectedBrandId });
+          return cached;
+        }
+      }
+      
+      console.log('🔍 Загрузка моделей автомобилей из базы данных', { 
+        brandId: selectedBrandId,
+        search: debouncedModelSearchTerm,
+        page: modelsPage
+      });
+      
+      // Строим запрос с поиском и пагинацией
+      let query = supabase
+        .from('car_models')
+        .select('id, name, brand_id')
+        .eq('brand_id', selectedBrandId)
+        .order('name', { ascending: true })
+        .range(modelsPage * MODELS_PER_PAGE, (modelsPage + 1) * MODELS_PER_PAGE - 1);
+      
+      // Добавляем поиск при необходимости
+      if (debouncedModelSearchTerm) {
+        query = query.ilike('name', `%${debouncedModelSearchTerm}%`);
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        console.error('❌ Ошибка загрузки моделей автомобилей:', error);
+        throw error;
+      }
+      
+      // Кэшируем только результаты первой страницы без поиска
+      if (modelsPage === 0 && !debouncedModelSearchTerm) {
+        saveToCache(cacheKey, data);
+      }
+      
+      return data || [];
+    },
+    staleTime: 15 * 60 * 1000, // 15 минут
+    gcTime: 60 * 60 * 1000, // 1 час
+    enabled: !!selectedBrandId,
+  });
+
+  // Сбрасываем страницу и выбранную модель при изменении поисковых запросов или выбранного бренда
+  useEffect(() => {
+    setBrandsPage(0);
+  }, [debouncedBrandSearchTerm]);
+  
+  useEffect(() => {
+    setModelsPage(0);
+  }, [debouncedModelSearchTerm, selectedBrandId]);
+
+  // Новая функция для поиска бренда по ID
+  const findBrandNameById = useCallback((brandId: string | null): string | null => {
+    if (!brandId || !brandsData) return null;
+    const brand = brandsData.find(brand => brand.id === brandId);
+    return brand?.name || null;
+  }, [brandsData]);
+
+  // Новая функция для поиска модели по ID
+  const findModelNameById = useCallback((modelId: string | null): string | null => {
+    if (!modelId || !modelsData) return null;
+    const model = modelsData.find(model => model.id === modelId);
+    return model?.name || null;
+  }, [modelsData]);
 
   return {
-    brands: brands || [],
-    allModels: allModels || [],
-    brandModels, // Добавляем для обратной совместимости
-    selectedBrand, // Добавляем для обратной совместимости
-    selectBrand, // Добавляем для обратной совместимости
-    isLoading: isBrandsLoading || isModelsLoading,
-    error: brandsError || modelsError,
-    findBrandIdByName,
-    findModelIdByName,
+    brands: brandsData || [],
+    brandModels: modelsData || [],
+    isLoadingBrands,
+    isLoadingModels,
+    brandsError,
+    modelsError,
+    selectedBrandId,
+    setSelectedBrandId,
+    refetchBrands,
+    refetchModels,
+    brandSearchTerm,
+    setBrandSearchTerm,
+    modelSearchTerm,
+    setModelSearchTerm,
+    brandsPage,
+    setBrandsPage,
+    modelsPage,
+    setModelsPage,
+    hasMoreBrands: (brandsData?.length || 0) === BRANDS_PER_PAGE,
+    hasMoreModels: (modelsData?.length || 0) === MODELS_PER_PAGE,
     findBrandNameById,
-    findModelNameById,
-    validateModelBrand
+    findModelNameById
   };
-}
+};

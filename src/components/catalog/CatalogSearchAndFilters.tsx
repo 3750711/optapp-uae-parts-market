@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import SearchBar from '@/components/admin/filters/SearchBar';
-import ActiveSearchDisplay from '@/components/admin/filters/ActiveSearchDisplay';
+import { SearchHistoryItem } from '@/hooks/useSearchHistory';
+import EnhancedSearchBar from './EnhancedSearchBar';
 
 interface CatalogSearchAndFiltersProps {
   searchTerm: string;
@@ -24,6 +24,7 @@ interface CatalogSearchAndFiltersProps {
   brandModels: { id: string; name: string }[];
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
+  onSelectFromHistory?: (item: SearchHistoryItem) => void;
 }
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
@@ -40,27 +41,26 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   brands,
   brandModels,
   hideSoldProducts,
-  setHideSoldProducts
+  setHideSoldProducts,
+  onSelectFromHistory
 }) => {
   return (
     <Card className="mb-4">
       <div className="p-4 space-y-4">
-        {/* Поисковая строка */}
-        <SearchBar 
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          onSearch={onSearch}
-          onClear={onClearSearch}
-          activeSearchTerm={activeSearchTerm}
-          placeholder="Поиск по названию, бренду, модели..."
+        {/* Улучшенный поиск с автозавершением */}
+        <EnhancedSearchBar 
+          searchQuery={searchTerm}
+          setSearchQuery={setSearchTerm}
+          handleSearchSubmit={onSearchSubmit}
+          selectedBrandName={selectedBrand ? brands.find(b => b.id === selectedBrand)?.name : null}
+          selectedModelName={selectedModel ? brandModels.find(m => m.id === selectedModel)?.name : null}
+          onSelectFromHistory={onSelectFromHistory}
+          suggestions={[
+            'фары', 'тормозные диски', 'масляный фильтр', 'амортизаторы',
+            'стеклоочистители', 'свечи зажигания', 'ремень ГРМ', 'сцепление'
+          ]}
         />
         
-        {/* Активный поиск */}
-        <ActiveSearchDisplay 
-          searchTerm={activeSearchTerm} 
-          onClear={onClearSearch} 
-        />
-
         {/* Фильтры марки и модели с ссылкой на руководство */}
         <div className="flex flex-col sm:flex-row gap-3">
           {/* Brand select */}
