@@ -1,8 +1,8 @@
 
 import * as React from "react"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000 // Уменьшено с 1000000 до 5 секунд
+const TOAST_LIMIT = 3 // Увеличено с 1 до 3
+const TOAST_REMOVE_DELAY = 5000
 
 type ToasterToast = {
   id: string
@@ -55,10 +55,13 @@ const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
+    console.log('⏭️ Toast already in remove queue:', toastId);
     return
   }
 
+  console.log('⏰ Adding toast to remove queue:', toastId);
   const timeout = setTimeout(() => {
+    console.log('⏳ Remove timeout triggered for toast:', toastId);
     toastTimeouts.delete(toastId)
     dispatch({
       type: "REMOVE_TOAST",
@@ -72,12 +75,14 @@ const addToRemoveQueue = (toastId: string) => {
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
+      console.log('➕ Adding toast:', action.toast.id);
       return {
         ...state,
         toasts: [action.toast, ...state.toasts].slice(0, TOAST_LIMIT),
       }
 
     case "UPDATE_TOAST":
+      console.log('📝 Updating toast:', action.toast.id);
       return {
         ...state,
         toasts: state.toasts.map((t) =>
@@ -89,10 +94,23 @@ export const reducer = (state: State, action: Action): State => {
       const { toastId } = action
       console.log('🗑️ Dismissing toast:', toastId);
 
+      // Очистить существующий таймаут если есть
+      if (toastId && toastTimeouts.has(toastId)) {
+        console.log('🚫 Clearing existing timeout for toast:', toastId);
+        clearTimeout(toastTimeouts.get(toastId));
+        toastTimeouts.delete(toastId);
+      }
+
       if (toastId) {
         addToRemoveQueue(toastId)
       } else {
+        // Закрыть все toast'ы
+        console.log('🗑️ Dismissing all toasts');
         state.toasts.forEach((toast) => {
+          if (toastTimeouts.has(toast.id)) {
+            clearTimeout(toastTimeouts.get(toast.id));
+            toastTimeouts.delete(toast.id);
+          }
           addToRemoveQueue(toast.id)
         })
       }
@@ -110,13 +128,24 @@ export const reducer = (state: State, action: Action): State => {
       }
     }
     case "REMOVE_TOAST":
-      console.log('✖️ Removing toast:', action.toastId);
+      console.log('✖️ Removing toast from state:', action.toastId);
       if (action.toastId === undefined) {
+        console.log('✖️ Removing all toasts from state');
+        // Очистить все таймауты
+        toastTimeouts.forEach((timeout) => clearTimeout(timeout));
+        toastTimeouts.clear();
         return {
           ...state,
           toasts: [],
         }
       }
+      
+      // Убедиться что таймаут удален
+      if (toastTimeouts.has(action.toastId)) {
+        clearTimeout(toastTimeouts.get(action.toastId));
+        toastTimeouts.delete(action.toastId);
+      }
+      
       return {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
@@ -129,6 +158,7 @@ const listeners: Array<(state: State) => void> = []
 let memoryState: State = { toasts: [] }
 
 function dispatch(action: Action) {
+  console.log('🔄 Dispatching action:', action.type, action);
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
     listener(memoryState)
@@ -139,12 +169,16 @@ type Toast = Omit<ToasterToast, "id">
 
 function toast({ ...props }: Toast) {
   const id = genId()
+  console.log('🍞 Creating toast:', id, props);
 
-  const update = (props: ToasterToast) =>
+  const update = (props: ToasterToast) => {
+    console.log('📝 Updating toast via function:', id, props);
     dispatch({
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
+  }
+  
   const dismiss = () => {
     console.log('👆 Toast dismiss called for:', id);
     dispatch({ type: "DISMISS_TOAST", toastId: id });
@@ -171,22 +205,26 @@ function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
+    console.log('🔌 Adding toast listener');
     listeners.push(setState)
     return () => {
+      console.log('🔌 Removing toast listener');
       const index = listeners.indexOf(setState)
       if (index > -1) {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, []) // Убрал state из зависимостей
+
+  const dismiss = React.useCallback((toastId?: string) => {
+    console.log('🎯 Manual toast dismiss called for:', toastId);
+    dispatch({ type: "DISMISS_TOAST", toastId });
+  }, [])
 
   return {
     ...state,
     toast,
-    dismiss: (toastId?: string) => {
-      console.log('🎯 Manual toast dismiss called for:', toastId);
-      dispatch({ type: "DISMISS_TOAST", toastId });
-    },
+    dismiss,
   }
 }
 
