@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -119,7 +120,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
         className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
       >
         <div className="relative p-2">
-          <div className="bg-white rounded-md overflow-hidden min-h-[200px] flex items-center justify-center">
+          <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
             <OptimizedImage
               src={primaryImage}
               alt={product.title}
@@ -277,3 +278,4 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 };
 
 export default AdminProductCard;
+

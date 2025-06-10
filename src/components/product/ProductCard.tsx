@@ -167,7 +167,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <OptimizedImage
           src={primaryImage}
           alt={product.title}
-          className="w-full h-full transition-transform duration-300 group-hover:scale-105 object-contain bg-gray-50"
+          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
           onError={handleImageError}
           onLoad={handleImageLoad}
           priority={false}
@@ -196,7 +196,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         className="flex-1 flex flex-col"
       >
         <div className="relative flex-shrink-0">
-          <div className="bg-gray-50 min-h-[180px] flex items-center justify-center">
+          <div className="w-full h-48 bg-gray-50">
             {renderImageContent()}
           </div>
           {getStatusBadge(product.status)}
