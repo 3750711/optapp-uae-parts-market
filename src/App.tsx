@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -76,33 +75,15 @@ const RouteComponent = React.memo(({ route, index }: { route: any; index: number
   const { path, element, protected: isProtected, adminOnly } = route;
   
   // Проверяем валидность элемента
-  if (!element) {
+  if (!element || element === undefined) {
     console.error(`Route "${path}" has undefined element at index ${index}`);
-    return (
-      <Route
-        key={index}
-        path={path}
-        element={
-          <div className="flex items-center justify-center min-h-screen">
-            <div className="text-center">
-              <p className="text-red-600 mb-2">Ошибка загрузки страницы</p>
-              <button 
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-blue-500 text-white rounded"
-              >
-                Обновить
-              </button>
-            </div>
-          </div>
-        }
-      />
-    );
+    return null; // Возвращаем null вместо невалидного Route
   }
   
   if (adminOnly) {
     return (
       <Route
-        key={index}
+        key={path || index}
         path={path}
         element={
           <AdminRoute>
@@ -116,7 +97,7 @@ const RouteComponent = React.memo(({ route, index }: { route: any; index: number
   if (isProtected) {
     return (
       <Route
-        key={index}
+        key={path || index}
         path={path}
         element={
           <ProtectedRoute>
@@ -129,7 +110,7 @@ const RouteComponent = React.memo(({ route, index }: { route: any; index: number
   
   return (
     <Route
-      key={index}
+      key={path || index}
       path={path}
       element={element}
     />
@@ -147,6 +128,17 @@ function App() {
     preloadCriticalRoutes();
   }, []);
 
+  // Фильтруем валидные маршруты
+  const validRoutes = React.useMemo(() => {
+    return routes.filter((route, index) => {
+      if (!route || !route.element || route.element === undefined) {
+        console.warn(`Skipping invalid route at index ${index}:`, route);
+        return false;
+      }
+      return true;
+    });
+  }, []);
+
   return (
     <GlobalErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
       <HelmetProvider>
@@ -161,7 +153,7 @@ function App() {
               <Router>
                 <Suspense fallback={<LoadingFallback />}>
                   <Routes>
-                    {routes.map((route, index) => (
+                    {validRoutes.map((route, index) => (
                       <RouteComponent key={route.path || index} route={route} index={index} />
                     ))}
                   </Routes>

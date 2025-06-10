@@ -1,4 +1,3 @@
-
 import { lazy, ReactElement } from 'react';
 import { devError, devLog } from '@/utils/performanceUtils';
 
@@ -6,7 +5,12 @@ import { devError, devLog } from '@/utils/performanceUtils';
 const createLazyComponent = (importFunc: () => Promise<any>, componentName: string) => {
   return lazy(async () => {
     try {
-      return await importFunc();
+      const module = await importFunc();
+      // Проверяем что модуль имеет default export
+      if (!module || !module.default) {
+        throw new Error(`Component ${componentName} has no default export`);
+      }
+      return module;
     } catch (error: any) {
       devError(`Failed to load component ${componentName}:`, error);
       
@@ -20,37 +24,63 @@ const createLazyComponent = (importFunc: () => Promise<any>, componentName: stri
         
         try {
           await new Promise(resolve => setTimeout(resolve, 1000));
-          return await importFunc();
+          const retryModule = await importFunc();
+          if (!retryModule || !retryModule.default) {
+            throw new Error(`Component ${componentName} has no default export after retry`);
+          }
+          return retryModule;
         } catch (retryError) {
           devError(`Retry failed for ${componentName}:`, retryError);
-          
-          return {
-            default: () => (
-              <div className="flex items-center justify-center min-h-screen">
-                <div className="text-center">
-                  <div className="mb-4">
-                    <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                    </svg>
-                    <p className="text-gray-800 mb-2">Ошибка загрузки компонента {componentName}</p>
-                    <p className="text-gray-600 text-sm mb-4">Возможно, доступна новая версия приложения</p>
-                  </div>
-                  <button 
-                    onClick={() => window.location.reload()} 
-                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    Обновить страницу
-                  </button>
-                </div>
-              </div>
-            )
-          };
         }
       }
       
-      throw error;
+      // Возвращаем fallback компонент вместо выброса ошибки
+      return {
+        default: () => (
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <div className="mb-4">
+                <svg className="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <p className="text-gray-800 mb-2">Ошибка загрузки компонента {componentName}</p>
+                <p className="text-gray-600 text-sm mb-4">Возможно, доступна новая версия приложения</p>
+              </div>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              >
+                Обновить страницу
+              </button>
+            </div>
+          </div>
+        )
+      };
     }
   });
+};
+
+// Функция для безопасного создания элемента маршрута
+const createRouteElement = (LazyComponent: React.LazyExoticComponent<any>): ReactElement => {
+  try {
+    return <LazyComponent />;
+  } catch (error) {
+    devError('Failed to create route element:', error);
+    // Возвращаем fallback элемент
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Ошибка создания маршрута</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            Обновить
+          </button>
+        </div>
+      </div>
+    );
+  }
 };
 
 // Создаем все lazy компоненты сразу
@@ -109,252 +139,252 @@ interface RouteConfig {
   adminOnly?: boolean;
 }
 
-// Конфигурация маршрутов с прямыми React элементами
+// Конфигурация маршрутов с безопасным созданием элементов
 export const routes: RouteConfig[] = [
   // Критические маршруты
   {
     path: "/",
-    element: <Index />,
+    element: createRouteElement(Index),
   },
   {
     path: "/login", 
-    element: <Login />,
+    element: createRouteElement(Login),
   },
   {
     path: "/register",
-    element: <Register />,
+    element: createRouteElement(Register),
   },
   {
     path: "/catalog",
-    element: <Catalog />,
+    element: createRouteElement(Catalog),
   },
   
   // Основные маршруты
   {
     path: "/about",
-    element: <About />,
+    element: createRouteElement(About),
   },
   {
     path: "/contact",
-    element: <Contact />,
+    element: createRouteElement(Contact),
   },
   {
     path: "/product/:id",
-    element: <ProductDetail />,
+    element: createRouteElement(ProductDetail),
   },
   {
     path: "/forgot-password",
-    element: <ForgotPassword />,
+    element: createRouteElement(ForgotPassword),
   },
   {
     path: "/reset-password",
-    element: <ResetPassword />,
+    element: createRouteElement(ResetPassword),
   },
   {
     path: "/verify-email",
-    element: <VerifyEmail />,
+    element: createRouteElement(VerifyEmail),
   },
   {
     path: "/profile",
-    element: <Profile />,
+    element: createRouteElement(Profile),
     protected: true,
   },
   
   // Продавцы
   {
     path: "/seller/register",
-    element: <SellerRegister />,
+    element: createRouteElement(SellerRegister),
   },
   {
     path: "/seller/dashboard",
-    element: <SellerDashboard />,
+    element: createRouteElement(SellerDashboard),
     protected: true,
   },
   {
     path: "/seller/listings",
-    element: <SellerListings />,
+    element: createRouteElement(SellerListings),
     protected: true,
   },
   {
     path: "/seller/add-product",
-    element: <SellerAddProduct />,
+    element: createRouteElement(SellerAddProduct),
     protected: true,
   },
   {
     path: "/seller/create-order",
-    element: <SellerCreateOrder />,
+    element: createRouteElement(SellerCreateOrder),
     protected: true,
   },
   {
     path: "/seller/orders",
-    element: <SellerOrders />,
+    element: createRouteElement(SellerOrders),
     protected: true,
   },
   {
     path: "/seller/orders/:id",
-    element: <SellerOrderDetails />,
+    element: createRouteElement(SellerOrderDetails),
     protected: true,
   },
   {
     path: "/seller/sell-product/:id",
-    element: <SellerSellProduct />,
+    element: createRouteElement(SellerSellProduct),
     protected: true,
   },
   {
     path: "/seller/profile",
-    element: <SellerProfile />,
+    element: createRouteElement(SellerProfile),
     protected: true,
   },
   {
     path: "/seller/:id",
-    element: <PublicSellerProfile />,
+    element: createRouteElement(PublicSellerProfile),
   },
   
   // Покупатели
   {
     path: "/buyer/create-order",
-    element: <BuyerCreateOrder />,
+    element: createRouteElement(BuyerCreateOrder),
     protected: true,
   },
   {
     path: "/buyer/orders",
-    element: <BuyerOrders />,
+    element: createRouteElement(BuyerOrders),
     protected: true,
   },
   {
     path: "/buyer/guide",
-    element: <BuyerGuide />,
+    element: createRouteElement(BuyerGuide),
   },
   
   // Магазины
   {
     path: "/stores",
-    element: <Stores />,
+    element: createRouteElement(Stores),
   },
   {
     path: "/store/:id",
-    element: <StoreDetail />,
+    element: createRouteElement(StoreDetail),
   },
   {
     path: "/create-store",
-    element: <CreateStore />,
+    element: createRouteElement(CreateStore),
     protected: true,
   },
   
   // Заявки
   {
     path: "/requests",
-    element: <Requests />,
+    element: createRouteElement(Requests),
   },
   {
     path: "/create-request",
-    element: <CreateRequest />,
+    element: createRouteElement(CreateRequest),
     protected: true,
   },
   {
     path: "/request/:id",
-    element: <RequestDetail />,
+    element: createRouteElement(RequestDetail),
   },
   
   // Заказы
   {
     path: "/orders",
-    element: <OrdersRedirect />,
+    element: createRouteElement(OrdersRedirect),
     protected: true,
   },
   {
     path: "/order/:id",
-    element: <OrderDetails />,
+    element: createRouteElement(OrderDetails),
   },
   
   // Админ маршруты
   {
     path: "/admin",
-    element: <AdminDashboard />,
+    element: createRouteElement(AdminDashboard),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/dashboard",
-    element: <AdminDashboard />,
+    element: createRouteElement(AdminDashboard),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/users",
-    element: <AdminUsers />,
+    element: createRouteElement(AdminUsers),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/products",
-    element: <AdminProducts />,
+    element: createRouteElement(AdminProducts),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/add-product",
-    element: <AdminAddProduct />,
+    element: createRouteElement(AdminAddProduct),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/orders",
-    element: <AdminOrders />,
+    element: createRouteElement(AdminOrders),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/orders/:id",
-    element: <AdminOrderDetails />,
+    element: createRouteElement(AdminOrderDetails),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/free-order",
-    element: <AdminFreeOrder />,
+    element: createRouteElement(AdminFreeOrder),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/create-order-from-product",
-    element: <AdminCreateOrderFromProduct />,
+    element: createRouteElement(AdminCreateOrderFromProduct),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/create-order/:productId",
-    element: <AdminCreateOrderFromProduct />,
+    element: createRouteElement(AdminCreateOrderFromProduct),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/stores",
-    element: <AdminStores />,
+    element: createRouteElement(AdminStores),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/car-catalog",
-    element: <AdminCarCatalog />,
+    element: createRouteElement(AdminCarCatalog),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/logistics",
-    element: <AdminLogistics />,
+    element: createRouteElement(AdminLogistics),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/admin/events",
-    element: <AdminEvents />,
+    element: createRouteElement(AdminEvents),
     protected: true,
     adminOnly: true,
   },
   {
     path: "/generate-og-image",
-    element: <GenerateOGImage />,
+    element: createRouteElement(GenerateOGImage),
     protected: true,
     adminOnly: true,
   },
@@ -362,9 +392,9 @@ export const routes: RouteConfig[] = [
   // 404
   {
     path: "*",
-    element: <NotFound />,
+    element: createRouteElement(NotFound),
   },
-];
+].filter(route => route.element !== null); // Фильтруем null элементы
 
 // Функция предзагрузки критических компонентов
 export const preloadCriticalRoutes = () => {
