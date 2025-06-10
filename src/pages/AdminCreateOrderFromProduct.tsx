@@ -9,7 +9,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ChevronRight, User, Package, UserCheck, ShoppingCart, AlertTriangle } from "lucide-react";
-import SimpleProductSearchFilters, { SearchFilters } from "@/components/admin/SimpleProductSearchFilters";
+import ProductSearchAndFilters, { SearchFilters } from "@/components/admin/ProductSearchAndFilters";
 import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
 import { OrderConfirmImagesDialog } from "@/components/order/OrderConfirmImagesDialog";
 import { useNavigate } from "react-router-dom";
@@ -573,7 +573,7 @@ const AdminCreateOrderFromProduct = () => {
             </CardHeader>
             <CardContent>
               {/* Компонент поиска и фильтров */}
-              <SimpleProductSearchFilters
+              <ProductSearchAndFilters
                 onSearchChange={handleSearchChange}
                 onClearFilters={handleClearFilters}
               />
