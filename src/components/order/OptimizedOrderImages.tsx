@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { ChevronLeft, ChevronRight, Eye, Download } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface OptimizedOrderImagesProps {
   images: string[];
@@ -64,6 +64,9 @@ const OptimizedOrderImages: React.FC<OptimizedOrderImagesProps> = ({ images }) =
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-[80%] md:max-w-[70%] lg:max-w-[60%] xl:max-w-[50%] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Просмотр изображений заказа</DialogTitle>
+          </DialogHeader>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {images.map((url, index) => (
               <div key={index} className="relative">

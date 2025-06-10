@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -95,6 +96,10 @@ const DialogFooter = ({
 )
 DialogFooter.displayName = "DialogFooter"
 
+// ACCESSIBILITY NOTE: DialogTitle is required for screen reader users!
+// If you want to hide the title visually, wrap it with VisuallyHidden:
+// import { VisuallyHidden } from "@/components/ui/visually-hidden"
+// <VisuallyHidden><DialogTitle>Title for screen readers</DialogTitle></VisuallyHidden>
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
