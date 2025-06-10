@@ -1,6 +1,5 @@
 
 import React, { useState } from "react";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, ZoomIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,15 +49,15 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     <div className="w-full">
       {/* Main Image */}
       <div className="mb-4 relative group">
-        <AspectRatio ratio={4 / 3}>
+        <div className="w-full min-h-[400px] bg-gray-50 rounded-lg border flex items-center justify-center p-4">
           <div 
-            className="w-full h-full cursor-pointer relative overflow-hidden rounded-lg border"
+            className="max-w-full max-h-full cursor-pointer relative overflow-hidden"
             onClick={handleMainImageClick}
           >
             {isVideo(activeMedia) ? (
               <video
                 src={activeMedia}
-                className="w-full h-full object-contain"
+                className="max-w-full max-h-full object-contain"
                 controls
                 preload="metadata"
               />
@@ -66,7 +65,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               <img
                 src={activeMedia}
                 alt={title}
-                className="w-full h-full object-contain"
+                className="max-w-full max-h-full object-contain"
               />
             )}
             
@@ -77,7 +76,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               </div>
             )}
           </div>
-        </AspectRatio>
+        </div>
       </div>
 
       {/* Thumbnails */}
@@ -86,7 +85,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
           {allMedia.map((media, index) => (
             <div 
               key={index}
-              className={`aspect-square cursor-pointer overflow-hidden rounded-md border-2 transition-all ${
+              className={`h-20 cursor-pointer overflow-hidden rounded-md border-2 transition-all bg-gray-50 flex items-center justify-center ${
                 activeMedia === media 
                   ? 'border-primary ring-2 ring-primary/30' 
                   : 'border-gray-200 hover:border-gray-300'
@@ -94,10 +93,10 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
               onClick={() => handleThumbnailClick(media)}
             >
               {isVideo(media) ? (
-                <div className="relative w-full h-full">
+                <div className="relative w-full h-full flex items-center justify-center">
                   <video
                     src={media}
-                    className="w-full h-full object-cover"
+                    className="max-w-full max-h-full object-contain"
                     preload="metadata"
                   />
                   <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
@@ -110,7 +109,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 <img
                   src={media}
                   alt={`${title} - изображение ${index + 1}`}
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                 />
               )}
             </div>

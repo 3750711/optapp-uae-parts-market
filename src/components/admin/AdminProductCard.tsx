@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -119,16 +120,16 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
         className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
       >
         <div className="relative p-2">
-          <AspectRatio ratio={1/1} className="bg-white rounded-md overflow-hidden">
+          <div className="bg-white rounded-md overflow-hidden min-h-[200px] flex items-center justify-center">
             <OptimizedImage
               src={primaryImage}
               alt={product.title}
-              className="w-full h-full object-contain"
+              className="max-w-full max-h-full object-contain"
               cloudinaryPublicId={product.cloudinary_public_id || undefined}
               cloudinaryUrl={cloudinaryUrl || undefined}
-              size="thumbnail"
+              size="detail"
             />
-          </AspectRatio>
+          </div>
           <Badge 
             className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
           >
