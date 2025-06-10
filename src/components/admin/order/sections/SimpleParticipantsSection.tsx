@@ -80,7 +80,7 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
               <SelectContent className="max-h-[300px]">
                 {sortedSellers.map(seller => (
                   <SelectItem key={seller.id} value={seller.id}>
-                    {seller.full_name}
+                    {seller.full_name} {seller.opt_id ? `(${seller.opt_id})` : ''}
                   </SelectItem>
                 ))}
               </SelectContent>
