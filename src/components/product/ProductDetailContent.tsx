@@ -33,15 +33,6 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
 }) => {
-  const handleTelegramContact = (message?: string) => {
-    if (message) {
-      const telegramUrl = `https://t.me/${product.telegram_url}?text=${encodeURIComponent(message)}`;
-      window.open(telegramUrl, '_blank');
-    } else {
-      window.open(`https://t.me/${product.telegram_url}`, '_blank');
-    }
-  };
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       {/* Gallery section - now includes videos */}
@@ -63,26 +54,12 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
         />
         
         <ContactButtons 
-          onContactTelegram={handleTelegramContact}
-          onContactWhatsApp={() => window.open(`https://wa.me/${product.phone_url}`, '_blank')}
-          telegramUrl={product.telegram_url}
-          product={{
-            id: product.id,
-            title: product.title,
-            price: Number(product.price),
-            brand: product.brand || "",
-            model: product.model || "",
-            description: product.description,
-            optid_created: product.optid_created,
-            seller_id: product.seller_id,
-            seller_name: product.seller_name,
-            lot_number: product.lot_number,
-            status: product.status,
-            delivery_price: product.delivery_price || 0,
-          }}
-          deliveryMethod={deliveryMethod}
-          onDeliveryMethodChange={onDeliveryMethodChange}
-          sellerCommunicationRating={sellerProfile?.communication_ability}
+          sellerPhone={sellerProfile?.phone}
+          sellerTelegram={sellerProfile?.telegram}
+          sellerId={product.seller_id}
+          productTitle={product.title}
+          isVerified={sellerProfile?.opt_status === 'verified'}
+          verificationStatus={sellerProfile?.opt_status}
         />
         
         <SellerInfo 

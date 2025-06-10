@@ -1,11 +1,12 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { ProductsGrid } from '@/components/admin/productGrid/ProductsGrid';
-import { LoadMoreTrigger } from '@/components/admin/productGrid/LoadMoreTrigger';
-import { ProductSearchAndFilters } from '@/components/admin/ProductSearchAndFilters';
-import { SelectedProductsActions } from '@/components/admin/filters/SelectedProductsActions';
+import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
+import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
+import ProductSearchAndFilters from '@/components/admin/ProductSearchAndFilters';
+import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -91,18 +92,16 @@ const AdminProducts = () => {
     data,
     isLoading,
     refetch,
-    fetchNextPage,
+    isError,
+    error,
   } = useQuery({
     queryKey: ['products', searchTerm, statusFilter, dateRange, priceRange, currentPage],
     queryFn: () => fetchProducts({ pageParam: 1 }),
-    onSuccess: () => {
-      setCurrentPage(1);
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      const nextPage = allPages.length + 1;
-      return nextPage <= lastPage.totalPages ? nextPage : undefined;
-    },
   });
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, dateRange, priceRange]);
 
   const handleBulkStatusChange = async (status: string) => {
     if (selectedProducts.length === 0) return;
@@ -188,6 +187,15 @@ const AdminProducts = () => {
     setPriceRange({ min: 0, max: 100000 });
   };
 
+  const handleDelete = (id: string) => {
+    // Implementation for single product delete
+    console.log('Delete product:', id);
+  };
+
+  const handleStatusChange = () => {
+    refetch();
+  };
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -228,36 +236,25 @@ const AdminProducts = () => {
         )}
 
         {/* Products Grid */}
-        {isLoading && currentPage === 1 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow-sm border animate-pulse">
-                <div className="aspect-video bg-gray-200 rounded-t-lg"></div>
-                <div className="p-4 space-y-3">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-8 bg-gray-200 rounded"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <ProductsGrid
-              products={filteredProducts}
-              selectedProducts={selectedProducts}
-              onProductSelect={setSelectedProducts}
-              onProductUpdate={refetch}
-            />
-            
-            {hasNextPage && (
-              <LoadMoreTrigger
-                onLoadMore={loadMore}
-                isLoading={isLoadingMore}
-                hasNextPage={hasNextPage}
-              />
-            )}
-          </>
+        <ProductsGrid
+          products={filteredProducts}
+          isLoading={isLoading}
+          isError={isError}
+          error={error}
+          refetch={refetch}
+          onDelete={handleDelete}
+          isDeleting={false}
+          deleteProductId={null}
+          onStatusChange={handleStatusChange}
+        />
+        
+        {hasNextPage && (
+          <LoadMoreTrigger
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isLoadingMore}
+            innerRef={React.createRef()}
+            onLoadMore={loadMore}
+          />
         )}
 
         {/* Empty State */}

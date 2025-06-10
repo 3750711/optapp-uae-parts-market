@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { MessageCircle, Phone, Copy, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -54,6 +53,10 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       return;
     }
     action();
+  };
+
+  const handleGoToLogin = () => {
+    window.location.href = '/login';
   };
 
   const formatPhone = (phone: string) => {
@@ -214,8 +217,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       <AuthDialog 
         open={showAuthDialog}
         onOpenChange={setShowAuthDialog}
-        sellerId={sellerId}
-        productTitle={productTitle}
+        onGoToLogin={handleGoToLogin}
       />
     </div>
   );
