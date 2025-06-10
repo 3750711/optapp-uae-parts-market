@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -231,11 +231,11 @@ export const useCloudinaryVideoUpload = () => {
     }
   };
 
-  // Memoize clearProgress to prevent unnecessary re-renders and useEffect triggers
-  const clearProgress = useCallback(() => {
+  // Simple clearProgress function without useCallback to prevent dependency issues
+  const clearProgress = () => {
     console.log('🧹 Clearing upload progress');
     setUploadProgress([]);
-  }, []);
+  };
 
   return {
     uploadVideo,

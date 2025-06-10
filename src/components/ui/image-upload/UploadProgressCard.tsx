@@ -1,5 +1,5 @@
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,39 +36,41 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
   isUploading,
   onClearProgress
 }) => {
-  // Memoize the clear handler to prevent unnecessary re-renders
-  const handleClearProgress = useCallback(() => {
-    console.log('🗑️ Force clearing upload progress');
+  // Simple clear handler without useCallback to prevent dependency issues
+  const handleClearProgress = () => {
+    console.log('🗑️ Force clearing upload progress - button clicked');
     onClearProgress();
-  }, [onClearProgress]);
+  };
 
-  // Auto-hide after successful uploads with improved logic
+  // Auto-hide after successful uploads with simplified logic
   useEffect(() => {
     if (uploadProgress.length === 0 || isUploading) {
+      console.log('⏭️ Skipping auto-clear: no progress or still uploading', {
+        progressLength: uploadProgress.length,
+        isUploading
+      });
       return;
     }
 
-    // Simplified success condition check
-    const completedFiles = uploadProgress.filter(p => p.status === 'success' || p.status === 'error');
+    // Simple success condition check
     const successfulFiles = uploadProgress.filter(p => p.status === 'success');
-    const isAllCompleted = completedFiles.length === uploadProgress.length;
     const hasSuccessfulUploads = successfulFiles.length > 0;
+    const allCompleted = uploadProgress.every(p => p.status === 'success' || p.status === 'error');
     
-    console.log('📊 Upload progress check:', {
+    console.log('📊 Upload progress auto-clear check:', {
       totalFiles: uploadProgress.length,
-      completedFiles: completedFiles.length,
       successfulFiles: successfulFiles.length,
-      isAllCompleted,
       hasSuccessfulUploads,
+      allCompleted,
       isUploading
     });
 
     // Auto-clear only if all uploads are completed and at least one was successful
-    if (isAllCompleted && hasSuccessfulUploads) {
+    if (allCompleted && hasSuccessfulUploads) {
       console.log('⏰ Setting auto-clear timer for 2 seconds');
       const timer = setTimeout(() => {
         console.log('✨ Auto-clearing upload progress after successful uploads');
-        handleClearProgress();
+        onClearProgress();
       }, 2000);
       
       return () => {
@@ -76,7 +78,7 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
         clearTimeout(timer);
       };
     }
-  }, [uploadProgress, isUploading, handleClearProgress]);
+  }, [uploadProgress, isUploading, onClearProgress]);
 
   if (uploadProgress.length === 0) return null;
 
@@ -90,7 +92,7 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
   const uploadingCount = uploadProgress.filter(p => p.status === 'uploading').length;
 
   return (
-    <Card className="bg-slate-50 border-slate-200">
+    <Card className="bg-slate-50 border-slate-200 relative">
       <CardContent className="pt-4 pb-4 space-y-3">
         {/* Progress Bar */}
         <div className="space-y-2">
@@ -101,12 +103,12 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">{Math.round(overallProgress)}%</span>
-              {/* Force close button - always visible */}
+              {/* Force close button - always visible with high z-index */}
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleClearProgress}
-                className="h-6 w-6 p-0 hover:bg-red-100"
+                className="h-6 w-6 p-0 hover:bg-red-100 relative z-10"
                 title="Закрыть"
               >
                 <X className="h-3 w-3" />
@@ -145,7 +147,7 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
               variant="ghost"
               size="sm"
               onClick={handleClearProgress}
-              className="h-8 px-2 text-xs"
+              className="h-8 px-2 text-xs relative z-10"
             >
               <Trash2 className="h-3 w-3 mr-1" />
               Очистить

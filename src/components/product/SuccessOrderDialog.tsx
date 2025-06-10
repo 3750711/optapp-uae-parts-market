@@ -40,6 +40,20 @@ const SuccessOrderDialog = ({
   sellerInfo,
   enhanced = false 
 }: SuccessOrderDialogProps) => {
+  console.log('📞 SuccessOrderDialog render:', { open, orderNumber, enhanced });
+
+  const handleClose = () => {
+    console.log('✖️ SuccessOrderDialog close button clicked');
+    onClose();
+  };
+
+  const handleOpenChange = (isOpen: boolean) => {
+    console.log('🔄 SuccessOrderDialog onOpenChange:', isOpen);
+    if (!isOpen) {
+      onClose();
+    }
+  };
+
   // Если передана расширенная информация, используем новый компонент
   if (enhanced && orderInfo && sellerInfo) {
     return (
@@ -54,7 +68,7 @@ const SuccessOrderDialog = ({
 
   // Оригинальный простой диалог для обратной совместимости
   return (
-    <AlertDialog open={open}>
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-[500px]">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-2xl text-center mb-4">
@@ -72,7 +86,7 @@ const SuccessOrderDialog = ({
         </AlertDialogHeader>
         <AlertDialogFooter className="mt-6">
           <Button 
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
           >
             Все понял
