@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -56,18 +55,23 @@ const AdminAddProduct = () => {
   // Use our custom hook for car brands and models
   const { 
     brands, 
-    brandModels, 
-    selectBrand,
+    allModels,
     findBrandIdByName,
     findModelIdByName, 
     isLoading: isLoadingCarData,
     validateModelBrand 
   } = useCarBrandsAndModels();
 
+  // Get models for currently selected brand
+  const getModelsForBrand = React.useCallback((brandId: string) => {
+    if (!brandId || !allModels) return [];
+    return allModels.filter(model => model.brand_id === brandId);
+  }, [allModels]);
+
   // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
     brands,
-    brandModels,
+    getModelsForBrand(form.watch("brandId") || ""),
     findBrandIdByName,
     findModelIdByName
   );
@@ -109,7 +113,7 @@ const AdminAddProduct = () => {
         });
       }
     }
-  }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
+  }, [watchTitle, brands, parseProductTitle, form, watchBrandId, toast]);
 
   // Fetch sellers
   useEffect(() => {
@@ -136,29 +140,26 @@ const AdminAddProduct = () => {
     fetchSellers();
   }, [toast]);
 
-  // When brand changes, reset model selection and update models list
+  // When brand changes, reset model selection if needed
   useEffect(() => {
-    if (watchBrandId) {
-      selectBrand(watchBrandId);
-      
-      if (watchModelId) {
-        const modelBelongsToBrand = validateModelBrand(watchModelId, watchBrandId);
-        if (!modelBelongsToBrand) {
-          form.setValue("modelId", "");
-        }
+    if (watchBrandId && watchModelId) {
+      const modelBelongsToBrand = validateModelBrand(watchModelId, watchBrandId);
+      if (!modelBelongsToBrand) {
+        form.setValue("modelId", "");
       }
     }
-  }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
+  }, [watchBrandId, form, validateModelBrand, watchModelId]);
 
-  // Validate model when brandModels change
+  // Validate model when brand changes
   useEffect(() => {
-    if (watchModelId && brandModels.length > 0) {
-      const modelExists = brandModels.some(model => model.id === watchModelId);
+    if (watchModelId && watchBrandId) {
+      const currentBrandModels = getModelsForBrand(watchBrandId);
+      const modelExists = currentBrandModels.some(model => model.id === watchModelId);
       if (!modelExists) {
         form.setValue("modelId", "");
       }
     }
-  }, [brandModels, watchModelId, form]);
+  }, [watchBrandId, watchModelId, form, getModelsForBrand]);
 
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
     console.log('📷 New images uploaded:', {
@@ -213,7 +214,7 @@ const AdminAddProduct = () => {
       // Model is optional
       let modelName = null;
       if (values.modelId) {
-        const selectedModel = brandModels.find(model => model.id === values.modelId);
+        const selectedModel = getModelsForBrand(values.brandId).find(model => model.id === values.modelId);
         modelName = selectedModel?.name || null;
       }
 
@@ -380,9 +381,9 @@ const AdminAddProduct = () => {
             imageUrls={imageUrls}
             videoUrls={videoUrls}
             brands={brands}
-            brandModels={brandModels}
+            brandModels={getModelsForBrand(watchBrandId || "")}
             isLoadingCarData={isLoadingCarData}
-            watchBrandId={form.watch("brandId")}
+            watchBrandId={watchBrandId}
             searchBrandTerm={searchBrandTerm}
             setSearchBrandTerm={setSearchBrandTerm}
             searchModelTerm={searchModelTerm}

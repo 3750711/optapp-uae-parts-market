@@ -29,15 +29,13 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
 
   const {
     brands,
-    brandModels,
-    selectedBrand,
-    selectBrand,
+    allModels,
     isLoading,
     findBrandNameById,
     findModelNameById
   } = useCarBrandsAndModels();
 
-  // Фильтрация брендов по поисковому запросу
+  // Filter brands based on search term
   const filteredBrands = useMemo(() => {
     if (!searchBrandTerm) return brands;
     return brands.filter(brand => 
@@ -45,42 +43,38 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
     );
   }, [brands, searchBrandTerm]);
 
-  // Фильтрация моделей по поисковому запросу
+  // Get models for current brand and filter by search term
   const filteredModels = useMemo(() => {
+    if (!formData.brandId || !allModels) return [];
+    
+    const brandModels = allModels.filter(model => model.brand_id === formData.brandId);
+    
     if (!searchModelTerm) return brandModels;
     return brandModels.filter(model => 
       model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
     );
-  }, [brandModels, searchModelTerm]);
+  }, [allModels, formData.brandId, searchModelTerm]);
 
-  // Обработчик изменения бренда
+  // Handle brand change
   const handleBrandChange = (brandId: string) => {
     const brand = brands.find(b => b.id === brandId);
     if (brand) {
       onInputChange('brandId', brandId);
       onInputChange('brand', brand.name);
-      selectBrand(brandId);
-      // Сбрасываем модель при смене бренда
+      // Reset model when brand changes
       onInputChange('modelId', '');
       onInputChange('model', '');
     }
   };
 
-  // Обработчик изменения модели
+  // Handle model change
   const handleModelChange = (modelId: string) => {
-    const model = brandModels.find(m => m.id === modelId);
+    const model = filteredModels.find(m => m.id === modelId);
     if (model) {
       onInputChange('modelId', modelId);
       onInputChange('model', model.name);
     }
   };
-
-  // Синхронизация выбранного бренда с формой
-  React.useEffect(() => {
-    if (formData.brandId && formData.brandId !== selectedBrand) {
-      selectBrand(formData.brandId);
-    }
-  }, [formData.brandId, selectedBrand, selectBrand]);
 
   const getSmartHints = (fieldName: string, value: string) => {
     const hints = [];
@@ -133,10 +127,6 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             </SelectTrigger>
             <SelectContent 
               className="bg-white border border-gray-200 shadow-md max-h-60"
-              showSearch={true}
-              searchPlaceholder="Поиск бренда..."
-              searchValue={searchBrandTerm}
-              onSearchChange={setSearchBrandTerm}
             >
               {filteredBrands.map((brand) => (
                 <SelectItem 
@@ -170,10 +160,6 @@ const BasicInfoStep: React.FC<BasicInfoStepProps> = ({
             </SelectTrigger>
             <SelectContent 
               className="bg-white border border-gray-200 shadow-md max-h-60"
-              showSearch={true}
-              searchPlaceholder="Поиск модели..."
-              searchValue={searchModelTerm}
-              onSearchChange={setSearchModelTerm}
             >
               {filteredModels.map((model) => (
                 <SelectItem 

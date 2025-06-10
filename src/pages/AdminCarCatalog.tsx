@@ -88,12 +88,11 @@ const AdminCarCatalog = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [selectedBrandForModels, setSelectedBrandForModels] = useState<string>("");
   
   const { 
     brands, 
-    brandModels, 
-    selectBrand, 
-    selectedBrand,
+    allModels,
     isLoading: isLoadingCarData
   } = useCarBrandsAndModels();
 
@@ -102,10 +101,17 @@ const AdminCarCatalog = () => {
     brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
   );
 
-  // Filter models based on search term and selected brand
-  const filteredModels = brandModels.filter(model => 
-    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
-  );
+  // Get models for selected brand and filter by search term
+  const filteredModels = React.useMemo(() => {
+    if (!selectedBrandForModels || !allModels) return [];
+    
+    const brandModels = allModels.filter(model => model.brand_id === selectedBrandForModels);
+    
+    if (!searchModelTerm) return brandModels;
+    return brandModels.filter(model => 
+      model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+    );
+  }, [allModels, selectedBrandForModels, searchModelTerm]);
 
   // Form for adding/editing a brand
   const brandForm = useForm<BrandFormValues>({
@@ -127,13 +133,13 @@ const AdminCarCatalog = () => {
   // Effect to update model form when editing
   React.useEffect(() => {
     if (selectedModelForEdit) {
-      const modelToEdit = brandModels.find(model => model.id === selectedModelForEdit);
+      const modelToEdit = filteredModels.find(model => model.id === selectedModelForEdit);
       if (modelToEdit) {
         modelForm.setValue("name", modelToEdit.name);
         modelForm.setValue("brandId", modelToEdit.brand_id);
       }
     }
-  }, [selectedModelForEdit, brandModels, modelForm]);
+  }, [selectedModelForEdit, filteredModels, modelForm]);
 
   // Effect to update brand form when editing
   React.useEffect(() => {
@@ -275,8 +281,8 @@ const AdminCarCatalog = () => {
       });
       
       // Clear selection if the deleted brand was selected
-      if (selectedBrand === brandId) {
-        selectBrand("");
+      if (selectedBrandForModels === brandId) {
+        setSelectedBrandForModels("");
       }
       
       // Invalidate queries to refresh data
@@ -324,7 +330,7 @@ const AdminCarCatalog = () => {
         title: "Модель добавлена",
         description: "Новая модель автомобиля успешно добавлена.",
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', selectedBrand] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', selectedBrandForModels] });
       setAddModelDialogOpen(false);
       modelForm.reset();
     },
@@ -369,7 +375,7 @@ const AdminCarCatalog = () => {
         title: "Модель обновлена",
         description: "Модель автомобиля успешно обновлена.",
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', selectedBrand] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'car-models', selectedBrandForModels] });
       setAddModelDialogOpen(false);
       setSelectedModelForEdit(null);
       modelForm.reset();
@@ -689,17 +695,17 @@ const AdminCarCatalog = () => {
               <div className="flex justify-between items-center">
                 <CardTitle>Модели автомобилей</CardTitle>
                 <span className="text-sm text-gray-500">
-                  {selectedBrand ? 
-                    `${brandModels.length} моделей для выбранной марки` : 
+                  {selectedBrandForModels ? 
+                    `${filteredModels.length} моделей для выбранной марки` : 
                     'Выберите марку'
                   }
                 </span>
               </div>
               <div className="flex flex-col gap-2">
                 <Select
-                  value={selectedBrand || ""}
+                  value={selectedBrandForModels || ""}
                   onValueChange={(value) => {
-                    selectBrand(value);
+                    setSelectedBrandForModels(value);
                     setSearchModelTerm("");
                   }}
                 >
@@ -712,7 +718,7 @@ const AdminCarCatalog = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {selectedBrand && (
+                {selectedBrandForModels && (
                   <Input
                     placeholder="Поиск модели..."
                     value={searchModelTerm}
@@ -727,11 +733,11 @@ const AdminCarCatalog = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Название</TableHead>
-                      <TableHead className="w-24 text-right">Действия</TableHead>
+                      <TableHead className="w-32 text-right">Действия</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {!selectedBrand ? (
+                    {!selectedBrandForModels ? (
                       <TableRow>
                         <TableCell colSpan={2} className="text-center py-8">
                           <div className="flex flex-col justify-center items-center gap-2">
@@ -763,13 +769,15 @@ const AdminCarCatalog = () => {
                         <TableRow key={model.id}>
                           <TableCell className="font-medium">{model.name}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditModel(model.id)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEditModel(model.id)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
