@@ -1,5 +1,5 @@
 
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/OptimizedAuthContext';
 
 export const useAdminAccess = () => {
   const { isAdmin } = useAuth();
