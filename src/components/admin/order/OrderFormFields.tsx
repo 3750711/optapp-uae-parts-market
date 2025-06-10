@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
 import SellerProductsDialog from "./SellerProductsDialog";
@@ -5,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { ProductInfoSection } from "./sections/ProductInfoSection";
 import { CarBrandModelSection } from "./sections/CarBrandModelSection";
 import { PricingSection } from "./sections/PricingSection";
-import { ParticipantsSection } from "./sections/ParticipantsSection";
+import { SimpleParticipantsSection } from "./sections/SimpleParticipantsSection";
 import { SellerInfoSection } from "./sections/SellerInfoSection";
 import { OrderDetailsSection } from "./sections/OrderDetailsSection";
 
@@ -176,7 +177,7 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         disabled={disabled}
       />
 
-      <ParticipantsSection
+      <SimpleParticipantsSection
         buyerOptId={formData.buyerOptId}
         sellerId={formData.sellerId}
         onBuyerOptIdChange={(value) => handleInputChange("buyerOptId", value)}

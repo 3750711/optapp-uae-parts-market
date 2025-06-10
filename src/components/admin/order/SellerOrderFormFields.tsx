@@ -6,7 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { ProductInfoSection } from "./sections/ProductInfoSection";
 import { CarBrandModelSection } from "./sections/CarBrandModelSection";
 import { PricingSection } from "./sections/PricingSection";
-import { ParticipantsSection } from "./sections/ParticipantsSection";
+import { SimpleParticipantsSection } from "./sections/SimpleParticipantsSection";
 import { OrderDetailsSection } from "./sections/OrderDetailsSection";
 
 interface SellerOrderFormFieldsProps {
@@ -169,7 +169,7 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         disabled={disabled}
       />
 
-      <ParticipantsSection
+      <SimpleParticipantsSection
         buyerOptId={formData.buyerOptId}
         sellerId={formData.sellerId}
         onBuyerOptIdChange={(value) => handleInputChange("buyerOptId", value)}
@@ -177,7 +177,7 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         buyerProfiles={buyerProfiles}
         sellerProfiles={sellerProfiles}
         disabled={disabled}
-        hideSeller={true} // Hide seller selection for seller users
+        hideSeller={true}
       />
 
       <OrderDetailsSection
