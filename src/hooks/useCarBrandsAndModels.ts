@@ -1,5 +1,5 @@
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -36,25 +36,22 @@ export function useCarBrandsAndModels() {
         throw error;
       }
       console.log('Fetched car brands:', data);
-      return data as CarBrand[] || []; // Ensure we return an empty array if data is null
+      return data as CarBrand[] || [];
     }
   });
 
-  // Changed query key from 'admin' to 'catalog' for consistency
+  // Загружаем ВСЕ модели сразу, а не только для выбранного бренда
   const { 
-    data: brandModels = [],
+    data: allModels = [],
     isLoading: isModelsLoading,
     error: modelsError
   } = useQuery({
-    queryKey: ['catalog', 'car-models', selectedBrand],
+    queryKey: ['catalog', 'car-models'],
     queryFn: async () => {
-      if (!selectedBrand) return [];
-      
-      console.log('Fetching car models for brand ID:', selectedBrand);
+      console.log('Fetching all car models');
       const { data, error } = await supabase
         .from('car_models')
         .select('*')
-        .eq('brand_id', selectedBrand)
         .order('name');
 
       if (error) {
@@ -62,10 +59,14 @@ export function useCarBrandsAndModels() {
         throw error;
       }
       console.log('Fetched car models:', data);
-      return data as CarModel[] || []; // Ensure we return an empty array if data is null
-    },
-    enabled: !!selectedBrand,
+      return data as CarModel[] || [];
+    }
   });
+
+  // Фильтруем модели для выбранного бренда
+  const brandModels = allModels.filter(model => 
+    selectedBrand ? model.brand_id === selectedBrand : false
+  );
 
   const selectBrand = useCallback((brandId: string | null) => {
     console.log('Selecting brand:', brandId);
@@ -81,13 +82,13 @@ export function useCarBrandsAndModels() {
   
   // Helper function to find model ID by name and brand ID
   const findModelIdByName = useCallback((modelName: string | null, brandId: string) => {
-    if (!brandId || !modelName || !brandModels || brandModels.length === 0) return null;
+    if (!brandId || !modelName || !allModels || allModels.length === 0) return null;
     
-    const model = brandModels.find(
+    const model = allModels.find(
       m => m.brand_id === brandId && m.name.toLowerCase() === modelName.toLowerCase()
     );
     return model?.id || null;
-  }, [brandModels]);
+  }, [allModels]);
 
   // New helper to find brand name by ID
   const findBrandNameById = useCallback((brandId: string | null) => {
@@ -98,28 +99,29 @@ export function useCarBrandsAndModels() {
 
   // New helper to find model name by ID
   const findModelNameById = useCallback((modelId: string | null) => {
-    if (!modelId || !brandModels || brandModels.length === 0) return null;
-    const model = brandModels.find(m => m.id === modelId);
+    if (!modelId || !allModels || allModels.length === 0) return null;
+    const model = allModels.find(m => m.id === modelId);
     return model?.name || null;
-  }, [brandModels]);
+  }, [allModels]);
 
   // New helper to validate if a model belongs to a brand
   const validateModelBrand = useCallback((modelId: string, brandId: string) => {
-    if (!brandModels || brandModels.length === 0 || !modelId || !brandId) return false;
-    return brandModels.some(model => model.id === modelId && model.brand_id === brandId);
-  }, [brandModels]);
+    if (!allModels || allModels.length === 0 || !modelId || !brandId) return false;
+    return allModels.some(model => model.id === modelId && model.brand_id === brandId);
+  }, [allModels]);
 
   return {
     brands: brands || [],
-    brandModels: brandModels || [],
+    brandModels: brandModels || [], // Фильтрованные модели для выбранного бренда
+    allModels: allModels || [], // Все модели
     selectedBrand,
     selectBrand,
     isLoading: isBrandsLoading || isModelsLoading,
     error: brandsError || modelsError,
     findBrandIdByName,
     findModelIdByName,
-    findBrandNameById, // New helper
-    findModelNameById, // New helper
+    findBrandNameById,
+    findModelNameById,
     validateModelBrand
   };
 }

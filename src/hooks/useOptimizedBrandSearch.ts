@@ -18,7 +18,7 @@ export const useOptimizedBrandSearch = (
   brandModels: Model[],
   searchBrandTerm: string,
   searchModelTerm: string,
-  watchBrandId: string
+  selectedBrandId: string // Используем напрямую brandId из формы
 ) => {
   // Популярные бренды
   const popularBrands = [
@@ -26,20 +26,26 @@ export const useOptimizedBrandSearch = (
     "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
   ];
 
-  const popularBrandIds = brands
-    .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
-    .map(brand => brand.id);
+  const popularBrandIds = useMemo(() => {
+    if (!brands || brands.length === 0) return [];
+    return brands
+      .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
+      .map(brand => brand.id);
+  }, [brands]);
 
   const brandSearch = useEnhancedSearch({
-    items: brands,
+    items: brands || [],
     searchTerm: searchBrandTerm,
     popularItems: popularBrandIds
   });
 
-  // Модели для выбранного бренда
+  // Модели для выбранного бренда - используем selectedBrandId напрямую
   const brandFilteredModels = useMemo(() => {
-    return brandModels.filter(model => model.brand_id === watchBrandId);
-  }, [brandModels, watchBrandId]);
+    if (!brandModels || brandModels.length === 0 || !selectedBrandId) {
+      return [];
+    }
+    return brandModels.filter(model => model.brand_id === selectedBrandId);
+  }, [brandModels, selectedBrandId]);
 
   const modelSearch = useEnhancedSearch({
     items: brandFilteredModels,
@@ -51,9 +57,9 @@ export const useOptimizedBrandSearch = (
     filteredModels: modelSearch.filteredItems,
     brandResultCount: brandSearch.resultCount,
     modelResultCount: modelSearch.resultCount,
-    debouncedBrandSearch: brandSearch.debouncedSearch,
-    debouncedModelSearch: modelSearch.debouncedSearch,
     isBrandSearching: brandSearch.isSearching,
-    isModelSearching: modelSearch.isSearching
+    isModelSearching: modelSearch.isSearching,
+    hasValidBrands: brands && brands.length > 0,
+    hasValidModels: brandFilteredModels.length > 0
   };
 };
