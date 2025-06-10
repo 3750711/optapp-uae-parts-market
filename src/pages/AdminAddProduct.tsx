@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -52,6 +53,16 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
+  // Use our custom hook for car brands and models
+  const { 
+    brands, 
+    allModels,
+    findBrandIdByName,
+    findModelIdByName, 
+    isLoading: isLoadingCarData,
+    validateModelBrand 
+  } = useCarBrandsAndModels();
+
   // Initialize form first
   const form = useForm<AdminProductFormValues>({
     resolver: zodResolver(adminProductSchema),
@@ -67,16 +78,6 @@ const AdminAddProduct = () => {
     },
     mode: "onChange",
   });
-  
-  // Use our custom hook for car brands and models
-  const { 
-    brands, 
-    allModels,
-    findBrandIdByName,
-    findModelIdByName, 
-    isLoading: isLoadingCarData,
-    validateModelBrand 
-  } = useCarBrandsAndModels();
 
   // Get models for currently selected brand
   const getModelsForBrand = React.useCallback((brandId: string) => {
@@ -404,5 +405,3 @@ const AdminAddProduct = () => {
 };
 
 export default AdminAddProduct;
-
-</edits_to_apply>
