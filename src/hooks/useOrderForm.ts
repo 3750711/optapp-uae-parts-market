@@ -12,6 +12,8 @@ export interface OrderFormData {
   modelId: string;
   buyerPhone: string;
   buyerName: string;
+  buyerOptId: string;
+  delivery_price: string;
   [key: string]: string;
 }
 
@@ -29,7 +31,9 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     brandId: '',
     modelId: '',
     buyerPhone: '',
-    buyerName: ''
+    buyerName: '',
+    buyerOptId: '',
+    delivery_price: ''
   });
 
   const [images, setImages] = useState<string[]>([]);
@@ -74,6 +78,7 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     const value = formData[field];
     if (field === 'title') return value.length >= 3;
     if (field === 'price') return parseFloat(value) > 0;
+    if (field === 'buyerOptId') return value.length > 0;
     return true;
   }, [formData]);
 
@@ -86,6 +91,9 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
     }
     if (field === 'price' && parseFloat(value) <= 0) {
       return 'Цена должна быть больше 0';
+    }
+    if (field === 'buyerOptId' && value.length === 0) {
+      return 'OPT_ID обязателен';
     }
     return null;
   }, [formData, touchedFields]);
@@ -100,7 +108,9 @@ export const useOrderForm = ({ productId }: UseOrderFormProps) => {
       brandId: '',
       modelId: '',
       buyerPhone: '',
-      buyerName: ''
+      buyerName: '',
+      buyerOptId: '',
+      delivery_price: ''
     });
     setImages([]);
     setVideos([]);

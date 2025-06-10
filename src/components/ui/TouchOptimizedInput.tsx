@@ -14,6 +14,11 @@ interface TouchOptimizedInputProps {
   success?: boolean;
   type?: string;
   className?: string;
+  min?: string;
+  max?: string;
+  step?: string;
+  inputMode?: 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
+  disabled?: boolean;
 }
 
 const TouchOptimizedInput: React.FC<TouchOptimizedInputProps> = ({
@@ -27,6 +32,11 @@ const TouchOptimizedInput: React.FC<TouchOptimizedInputProps> = ({
   success = false,
   type = "text",
   className,
+  min,
+  max,
+  step,
+  inputMode,
+  disabled = false,
   ...props
 }) => {
   return (
@@ -38,6 +48,11 @@ const TouchOptimizedInput: React.FC<TouchOptimizedInputProps> = ({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
+        min={min}
+        max={max}
+        step={step}
+        inputMode={inputMode}
+        disabled={disabled}
         className={cn(
           "w-full",
           touched && error && "border-red-500 focus:border-red-500",

@@ -3,7 +3,7 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import CarBrandModelSelector from './CarBrandModelSelector';
+import SimpleCarSelector from '@/components/ui/SimpleCarSelector';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -71,11 +71,10 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             value={formData.title}
             onChange={(e) => onInputChange('title', e.target.value)}
             placeholder="Введите наименование товара"
-            className={!isFieldValid('title') && touchedFields.has('title') ? "border-red-500" : ""}
+            touched={touchedFields.has('title')}
+            error={getFieldError('title')}
+            success={touchedFields.has('title') && isFieldValid('title')}
           />
-          {getFieldError('title') && (
-            <p className="text-sm text-red-500">{getFieldError('title')}</p>
-          )}
         </div>
 
         {/* Цена */}
@@ -91,11 +90,11 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             value={formData.price}
             onChange={(e) => onInputChange('price', e.target.value)}
             placeholder="0.00"
-            className={!isFieldValid('price') && touchedFields.has('price') ? "border-red-500" : ""}
+            inputMode="decimal"
+            touched={touchedFields.has('price')}
+            error={getFieldError('price')}
+            success={touchedFields.has('price') && isFieldValid('price')}
           />
-          {getFieldError('price') && (
-            <p className="text-sm text-red-500">{getFieldError('price')}</p>
-          )}
         </div>
       </div>
 
@@ -134,7 +133,7 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
       <div className="space-y-4">
         <h4 className="text-md font-medium">Информация об автомобиле</h4>
         
-        <CarBrandModelSelector
+        <SimpleCarSelector
           brandId={formData.brandId}
           modelId={formData.modelId}
           onBrandChange={handleBrandChange}
