@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,9 +8,6 @@ import ProductSearchAndFilters from '@/components/admin/ProductSearchAndFilters'
 import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 interface Product {
   id: string;
@@ -227,15 +223,8 @@ const AdminProducts = () => {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
           <h1 className="text-2xl font-bold">Управление товарами</h1>
-          <Button 
-            onClick={() => navigate('/admin/add-product')}
-            className="w-full sm:w-auto"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Добавить товар
-          </Button>
         </div>
 
         {/* Search and Filters */}
