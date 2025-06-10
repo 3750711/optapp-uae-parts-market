@@ -243,6 +243,12 @@ export const routes = [
     adminOnly: true,
   },
   {
+    path: "/admin/create-order-from-product",
+    element: <AdminCreateOrderFromProduct />,
+    protected: true,
+    adminOnly: true,
+  },
+  {
     path: "/admin/create-order/:productId",
     element: <AdminCreateOrderFromProduct />,
     protected: true,

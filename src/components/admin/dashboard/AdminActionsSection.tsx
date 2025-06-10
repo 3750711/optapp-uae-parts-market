@@ -30,24 +30,24 @@ const AdminActionsSection: React.FC = () => {
       subtitle: "Управление каталогом автомобилей",
       icon: Car,
       link: "/admin/car-catalog",
-      bgColor: "bg-optapp-yellow",
-      textColor: "text-optapp-dark"
+      bgColor: "bg-secondary",
+      textColor: "text-secondary-foreground"
     },
     {
       title: "Создать свободный заказ",
       subtitle: "Создать заказ без привязки к объявлению",
       icon: FileText,
       link: "/admin/free-order",
-      bgColor: "bg-green-500",
-      textColor: "text-white"
+      bgColor: "bg-accent",
+      textColor: "text-accent-foreground"
     },
     {
       title: "Создать заказ из товара",
       subtitle: "Создать заказ на основе существующего товара",
       icon: ShoppingCart,
       link: "/admin/create-order-from-product",
-      bgColor: "bg-pink-500",
-      textColor: "text-white"
+      bgColor: "bg-destructive",
+      textColor: "text-destructive-foreground"
     }
   ];
 
