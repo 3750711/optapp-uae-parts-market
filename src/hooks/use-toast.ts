@@ -1,8 +1,7 @@
-
 import * as React from "react"
 
-const TOAST_LIMIT = 3 // Reduced from 5
-const TOAST_REMOVE_DELAY = 1500 // Reduced from 2000
+const TOAST_LIMIT = 3
+const TOAST_REMOVE_DELAY = 1500
 
 type ToasterToast = {
   id: string
@@ -69,6 +68,14 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
+// Функция для очистки всех таймаутов
+const clearAllTimeouts = () => {
+  toastTimeouts.forEach((timeout) => {
+    clearTimeout(timeout)
+  })
+  toastTimeouts.clear()
+}
+
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
@@ -110,11 +117,20 @@ export const reducer = (state: State, action: Action): State => {
     }
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
+        // Очищаем все таймауты при удалении всех тостов
+        clearAllTimeouts()
         return {
           ...state,
           toasts: [],
         }
       }
+      
+      // Очищаем конкретный таймаут при удалении тоста
+      if (toastTimeouts.has(action.toastId)) {
+        clearTimeout(toastTimeouts.get(action.toastId)!)
+        toastTimeouts.delete(action.toastId)
+      }
+      
       return {
         ...state,
         toasts: state.toasts.filter((t) => t.id !== action.toastId),
@@ -122,7 +138,6 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-// Optimized listeners management
 const listeners = new Set<(state: State) => void>()
 
 let memoryState: State = { toasts: [] }
@@ -134,7 +149,7 @@ function dispatch(action: Action) {
       listener(memoryState)
     } catch (error) {
       console.error('Toast listener error:', error)
-      listeners.delete(listener) // Remove broken listeners
+      listeners.delete(listener)
     }
   })
 }
@@ -149,8 +164,9 @@ function toast({ ...props }: Toast) {
       type: "UPDATE_TOAST",
       toast: { ...props, id },
     })
+  
   const dismiss = () => {
-    dispatch({ type: "DISMISS_TOAST", toastId: id });
+    dispatch({ type: "DISMISS_TOAST", toastId: id })
   }
 
   dispatch({
@@ -162,6 +178,14 @@ function toast({ ...props }: Toast) {
       variant: props.variant || "default",
     },
   })
+
+  // Автоматическое закрытие через 4 секунды (если не указано иное)
+  const autoClose = props.autoClose !== false // по умолчанию true
+  if (autoClose) {
+    setTimeout(() => {
+      dismiss()
+    }, 4000)
+  }
 
   return {
     id: id,
@@ -175,8 +199,13 @@ function useToast() {
 
   React.useEffect(() => {
     listeners.add(setState)
+    
     return () => {
       listeners.delete(setState)
+      // Очищаем все таймауты при размонтировании
+      if (listeners.size === 0) {
+        clearAllTimeouts()
+      }
     }
   }, [])
 
@@ -184,8 +213,12 @@ function useToast() {
     ...state,
     toast,
     dismiss: (toastId?: string) => {
-      dispatch({ type: "DISMISS_TOAST", toastId });
+      dispatch({ type: "DISMISS_TOAST", toastId })
     },
+    // Добавляем метод для полной очистки
+    clear: () => {
+      dispatch({ type: "REMOVE_TOAST" })
+    }
   }
 }
 
