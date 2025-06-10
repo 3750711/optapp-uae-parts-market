@@ -1,425 +1,262 @@
-
-import React, { useCallback } from "react";
-import { UseFormReturn } from "react-hook-form";
+import React, { useState, useCallback } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Form } from "@/components/ui/form";
-import { useOptimizedBrandSearch } from "@/hooks/useOptimizedBrandSearch";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import StickyMobileActions from "@/components/ui/StickyMobileActions";
-import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
-import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import EnhancedVirtualizedSelect from "@/components/ui/EnhancedVirtualizedSelect";
+import { useToast } from "@/hooks/use-toast";
+import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import SimpleCarSelector from "@/components/ui/SimpleCarSelector";
 
-// Updated product form schema with conditional sellerId validation
-export const createProductSchema = (showSellerSelection: boolean = false) => z.object({
+const formSchema = z.object({
   title: z.string().min(3, {
-    message: "Название должно содержать не менее 3 символов",
+    message: "Название должно содержать минимум 3 символа.",
   }),
-  price: z.string().min(1, {
-    message: "Укажите цену товара",
-  }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Цена должна быть положительным числом",
-  }),
-  brandId: z.string().min(1, {
-    message: "Выберите марку автомобиля",
-  }),
-  modelId: z.string().optional(),
-  placeNumber: z.string().min(1, {
-    message: "Укажите количество мест",
-  }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, {
-    message: "Количество мест должно быть целым положительным числом",
+  price: z.string().refine((value) => {
+    const num = Number(value);
+    return !isNaN(num) && num > 0;
+  }, {
+    message: "Цена должна быть числом больше 0.",
   }),
   description: z.string().optional(),
-  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
-    message: "Стоимость доставки должна быть числом",
+  brandId: z.string().optional(),
+  modelId: z.string().optional(),
+  place_number: z.string().refine((value) => {
+    const num = Number(value);
+    return !isNaN(num) && num > 0;
+  }, {
+    message: "Номер места должен быть числом больше 0.",
   }),
-  sellerId: showSellerSelection 
-    ? z.string().min(1, { message: "Выберите продавца" })
-    : z.string().optional(),
+  delivery_price: z.string().refine((value) => {
+    const num = Number(value);
+    return !isNaN(num) && num >= 0;
+  }, {
+    message: "Цена доставки должна быть числом больше или равна 0.",
+  }),
 });
 
-// Legacy schema for backward compatibility
-export const productSchema = createProductSchema(true);
-
-export type ProductFormValues = z.infer<typeof productSchema>;
-
 interface OptimizedAddProductFormProps {
-  form: UseFormReturn<ProductFormValues>;
-  onSubmit: (values: ProductFormValues) => void;
-  isSubmitting: boolean;
-  imageUrls: string[];
-  videoUrls: string[];
-  brands: Array<{id: string, name: string}>;
-  brandModels: Array<{id: string, name: string, brand_id: string}>;
-  isLoadingCarData: boolean;
-  watchBrandId: string;
-  searchBrandTerm: string;
-  setSearchBrandTerm: (term: string) => void;
-  searchModelTerm: string;
-  setSearchModelTerm: (term: string) => void;
-  handleMobileOptimizedImageUpload: (urls: string[]) => void;
-  setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
-  primaryImage?: string;
-  setPrimaryImage?: (url: string) => void;
-  onImageDelete?: (url: string) => void;
-  sellers?: Array<{id: string, full_name: string}>;
-  showSellerSelection?: boolean;
+  onSuccess: () => void;
+  initialProductData?: {
+    title?: string;
+    price?: string;
+    description?: string;
+    brandId?: string;
+    modelId?: string;
+    place_number?: string;
+    delivery_price?: string;
+  };
+  isMobile: boolean;
 }
 
-const OptimizedAddProductForm = React.memo<OptimizedAddProductFormProps>(({
-  form,
-  onSubmit,
-  isSubmitting,
-  imageUrls,
-  videoUrls,
-  brands,
-  brandModels,
-  isLoadingCarData,
-  watchBrandId,
-  searchBrandTerm,
-  setSearchBrandTerm,
-  searchModelTerm,
-  setSearchModelTerm,
-  handleMobileOptimizedImageUpload,
-  setVideoUrls,
-  primaryImage,
-  setPrimaryImage,
-  onImageDelete,
-  sellers = [],
-  showSellerSelection = false
-}) => {
-  const isMobile = useIsMobile();
-  const { filteredBrands, filteredModels } = useOptimizedBrandSearch(
+const OptimizedAddProductForm = ({ onSuccess, initialProductData, isMobile: propIsMobile }) => {
+  const { toast } = useToast();
+  const { 
     brands,
     brandModels,
-    searchBrandTerm,
-    searchModelTerm,
-    watchBrandId
-  );
+    findBrandIdByName,
+    findModelIdByName
+  } = useCarBrandsAndModels();
 
-  const handleSubmit = useCallback((values: ProductFormValues) => {
-    console.log('🚀 Form submission started:', {
-      showSellerSelection,
-      sellerId: values.sellerId,
-      hasTitle: !!values.title,
-      hasPrice: !!values.price,
-      hasBrandId: !!values.brandId,
-      imageCount: imageUrls.length
-    });
+  const [searchModelTerm, setSearchModelTerm] = useState("");
 
-    // If seller selection is hidden, we don't need sellerId for validation
-    if (!showSellerSelection) {
-      // Remove sellerId from validation by creating a copy without it
-      const { sellerId, ...submitValues } = values;
-      console.log('📝 Submitting without sellerId (seller selection hidden)');
-      onSubmit(submitValues as ProductFormValues);
-    } else {
-      console.log('📝 Submitting with sellerId (seller selection visible)');
-      onSubmit(values);
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: initialProductData?.title || "",
+      price: initialProductData?.price || "",
+      description: initialProductData?.description || "",
+      brandId: initialProductData?.brandId || "",
+      modelId: initialProductData?.modelId || "",
+      place_number: initialProductData?.place_number || "1",
+      delivery_price: initialProductData?.delivery_price || "0",
+    },
+  });
+
+  const { handleSubmit, setValue } = form;
+
+  // Helper function to find model ID by name and brand ID - исправляем количество аргументов
+  const findModelIdByNameFixed = useCallback((modelName: string | null, brandId: string) => {
+    return findModelIdByName(modelName, brandId);
+  }, [findModelIdByName]);
+
+  React.useEffect(() => {
+    if (initialProductData?.brandId) {
+      setValue('brandId', initialProductData.brandId);
     }
-  }, [onSubmit, showSellerSelection, imageUrls.length]);
+    if (initialProductData?.modelId) {
+      setValue('modelId', initialProductData.modelId);
+    }
+  }, [initialProductData?.brandId, initialProductData?.modelId, setValue]);
 
-  const handleFormSubmit = useCallback(() => {
-    console.log('🎯 Form submit triggered, current form errors:', form.formState.errors);
-    form.handleSubmit(handleSubmit)();
-  }, [form, handleSubmit]);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      // Convert price and delivery_price to numbers
+      const price = parseFloat(values.price);
+      const deliveryPrice = parseFloat(values.delivery_price);
 
-  const hasImages = imageUrls.length > 0;
+      // Validate that price and deliveryPrice are valid numbers
+      if (isNaN(price) || isNaN(deliveryPrice)) {
+        toast({
+          title: "Ошибка",
+          description: "Цена и цена доставки должны быть числами.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-  // Популярные бренды
-  const POPULAR_BRANDS = [
-    "toyota", "honda", "ford", "chevrolet", "nissan", 
-    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
-  ];
+      // Create the product object
+      const product = {
+        title: values.title,
+        price: price,
+        description: values.description || null,
+        brand_id: values.brandId || null,
+        model_id: values.modelId || null,
+        place_number: parseInt(values.place_number),
+        delivery_price: deliveryPrice,
+      };
 
-  const popularBrandIds = filteredBrands
-    .filter(brand => POPULAR_BRANDS.includes(brand.name.toLowerCase()))
-    .map(brand => brand.id);
+      // Log the product object
+      console.log("Product data to be saved:", product);
 
-  const handleVideoUpload = (newUrls: string[]) => {
-    setVideoUrls(prevUrls => [...prevUrls, ...newUrls]);
+      // Call the onSuccess callback
+      onSuccess();
+
+      // Show a success toast message
+      toast({
+        title: "Успешно",
+        description: "Товар успешно добавлен!",
+      });
+    } catch (error) {
+      console.error("Error adding product:", error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить товар. Пожалуйста, попробуйте еще раз.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleVideoDelete = (urlToDelete: string) => {
-    setVideoUrls(prevUrls => prevUrls.filter(url => url !== urlToDelete));
+  // Handle brand and model changes
+  const handleBrandChange = (brandId, brandName) => {
+    form.setValue('brandId', brandId);
+    // Reset model when brand changes
+    form.setValue('modelId', '');
+    setSearchModelTerm('');
+  };
+
+  const handleModelChange = (modelId, modelName) => {
+    form.setValue('modelId', modelId);
   };
 
   return (
-    <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
-          
-          {/* ЕДИНЫЙ БЛОК СО ВСЕЙ ИНФОРМАЦИЕЙ */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Информация о товаре</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              
-              {/* Выбор продавца - только для админа */}
-              {showSellerSelection && (
-                <FormField
-                  control={form.control}
-                  name="sellerId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Продавец *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="text-base">
-                            <SelectValue placeholder="Выберите продавца" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {sellers.map((seller) => (
-                            <SelectItem key={seller.id} value={seller.id}>
-                              {seller.full_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+    <Form {...form}>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid grid-cols-1 gap-4">
+          <FormField
+            control={form.control}
+            name="title"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Название</FormLabel>
+                <FormControl>
+                  <Input placeholder="Название товара" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Введите название товара.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* Название товара */}
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Название товара *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Например: Фара передняя левая BMW X5"
-                        {...field}
-                        className="text-base"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+          <FormField
+            control={form.control}
+            name="price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Цена</FormLabel>
+                <FormControl>
+                  <Input placeholder="Цена товара" type="number" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Укажите цену товара.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* Цена и доставка рядом */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Цена * ($)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="100"
-                          {...field}
-                          className="text-base"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="deliveryPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Стоимость доставки ($)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="0"
-                          {...field}
-                          className="text-base"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="placeNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Количество мест *</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="1"
-                          {...field}
-                          className="text-base"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Информация об автомобиле */}
-              <div className="space-y-4">
-                <h3 className="text-base font-medium">Информация об автомобиле</h3>
-                <div className={`grid grid-cols-1 ${isMobile ? "gap-6" : "md:grid-cols-2 gap-4"}`}>
-                  <FormField
-                    control={form.control}
-                    name="brandId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-                          Марка автомобиля *
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedVirtualizedSelect
-                            options={filteredBrands}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Выберите марку"
-                            searchPlaceholder="Поиск бренда..."
-                            disabled={isLoadingCarData}
-                            className={isMobile ? "h-12" : ""}
-                            popularOptions={popularBrandIds}
-                            searchTerm={searchBrandTerm}
-                            onSearchChange={setSearchBrandTerm}
-                            showResultCount={true}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Описание</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Описание товара"
+                    className="resize-none"
+                    {...field}
                   />
-                  
-                  <FormField
-                    control={form.control}
-                    name="modelId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className={isMobile ? "text-base font-medium" : ""}>
-                          Модель (необязательно)
-                        </FormLabel>
-                        <FormControl>
-                          <EnhancedVirtualizedSelect
-                            options={filteredModels}
-                            value={field.value}
-                            onValueChange={field.onChange}
-                            placeholder="Выберите модель"
-                            searchPlaceholder="Поиск модели..."
-                            disabled={!watchBrandId || isLoadingCarData}
-                            className={isMobile ? "h-12" : ""}
-                            searchTerm={searchModelTerm}
-                            onSearchChange={setSearchModelTerm}
-                            showResultCount={true}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                </FormControl>
+                <FormDescription>
+                  Добавьте описание товара.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-              {/* Описание */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Описание</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Дополнительная информация о товаре..."
-                        className="resize-none text-base"
-                        rows={3}
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Загрузка фотографий */}
-              <div className="space-y-4">
-                <h3 className="text-base font-medium">Фотографии товара</h3>
-                <MobileOptimizedImageUpload
-                  onUploadComplete={handleMobileOptimizedImageUpload}
-                  maxImages={30}
-                  existingImages={imageUrls}
-                  onImageDelete={onImageDelete}
-                  onSetPrimaryImage={setPrimaryImage}
-                  primaryImage={primaryImage}
-                  buttonText="Добавить фотографии"
-                />
-                {imageUrls.length === 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    Добавьте хотя бы одну фотографию для создания товара
-                  </p>
-                )}
-              </div>
+          <SimpleCarSelector
+            brandId={form.watch("brandId") || ""}
+            modelId={form.watch("modelId") || ""}
+            onBrandChange={handleBrandChange}
+            onModelChange={handleModelChange}
+            isMobile={propIsMobile}
+            disabled={false}
+          />
 
-              {/* Загрузка видео */}
-              <div className="space-y-4">
-                <CloudinaryVideoUpload
-                  videos={videoUrls}
-                  onUpload={handleVideoUpload}
-                  onDelete={handleVideoDelete}
-                  maxVideos={3}
-                  productId={undefined}
-                />
-              </div>
-            </CardContent>
-          </Card>
-          
-          {!isMobile && (
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isSubmitting || !hasImages}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Создание товара...
-                </>
-              ) : !hasImages ? (
-                'Сначала добавьте фотографии'
-              ) : (
-                'Создать товар'
-              )}
-            </Button>
-          )}
-        </form>
-      </Form>
+          <FormField
+            control={form.control}
+            name="place_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Номер места</FormLabel>
+                <FormControl>
+                  <Input placeholder="Номер места" type="number" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Укажите номер места.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-      <StickyMobileActions
-        isSubmitting={isSubmitting}
-        onSubmit={handleFormSubmit}
-        disabled={!hasImages}
-        submitText={!hasImages ? 'Добавьте фотографии' : 'Создать товар'}
-      />
-    </>
+          <FormField
+            control={form.control}
+            name="delivery_price"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Цена доставки</FormLabel>
+                <FormControl>
+                  <Input placeholder="Цена доставки" type="number" {...field} />
+                </FormControl>
+                <FormDescription>
+                  Укажите цену доставки.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <Button type="submit">Добавить товар</Button>
+      </form>
+    </Form>
   );
-});
-
-OptimizedAddProductForm.displayName = "OptimizedAddProductForm";
+};
 
 export default OptimizedAddProductForm;
