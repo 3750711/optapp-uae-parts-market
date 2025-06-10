@@ -31,11 +31,11 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           Фотографии товара
         </h3>
         <ImageUpload
-          value={images}
-          onChange={onImageUpload}
+          images={images}
+          onUpload={onImageUpload}
           onDelete={onImageDelete}
           disabled={disabled}
-          maxFiles={10}
+          maxImages={10}
         />
       </div>
 
@@ -44,11 +44,11 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
           Видео товара (необязательно)
         </h3>
         <CloudinaryVideoUpload
-          value={videos}
-          onChange={onVideoUpload}
+          videos={videos}
+          onUpload={onVideoUpload}
           onDelete={onVideoDelete}
           disabled={disabled}
-          maxFiles={3}
+          maxVideos={3}
         />
       </div>
     </div>

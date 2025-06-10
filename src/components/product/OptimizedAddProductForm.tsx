@@ -34,6 +34,19 @@ const productSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
+// Export schema creation function for external use
+export const createProductSchema = (showSellerSelection: boolean = false) => {
+  const baseSchema = productSchema;
+  
+  if (showSellerSelection) {
+    return baseSchema.extend({
+      sellerId: z.string().min(1, 'Выберите продавца'),
+    });
+  }
+  
+  return baseSchema;
+};
+
 interface OptimizedAddProductFormProps {
   onSuccess?: (productId: string) => void;
   initialProductData?: Partial<Product>;
