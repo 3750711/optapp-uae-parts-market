@@ -1,8 +1,8 @@
 
 import * as React from "react"
 
-const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 5000 // Уменьшено с 1000000 до 5 секунд
+const TOAST_LIMIT = 5 // Увеличено с 1 до 5 для множественных уведомлений
+const TOAST_REMOVE_DELAY = 5000
 
 type ToasterToast = {
   id: string
@@ -87,7 +87,6 @@ export const reducer = (state: State, action: Action): State => {
 
     case "DISMISS_TOAST": {
       const { toastId } = action
-      console.log('🗑️ Dismissing toast:', toastId);
 
       if (toastId) {
         addToRemoveQueue(toastId)
@@ -110,7 +109,6 @@ export const reducer = (state: State, action: Action): State => {
       }
     }
     case "REMOVE_TOAST":
-      console.log('✖️ Removing toast:', action.toastId);
       if (action.toastId === undefined) {
         return {
           ...state,
@@ -146,7 +144,6 @@ function toast({ ...props }: Toast) {
       toast: { ...props, id },
     })
   const dismiss = () => {
-    console.log('👆 Toast dismiss called for:', id);
     dispatch({ type: "DISMISS_TOAST", toastId: id });
   }
 
@@ -178,13 +175,12 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, []) // Убрал state из зависимостей
 
   return {
     ...state,
     toast,
     dismiss: (toastId?: string) => {
-      console.log('🎯 Manual toast dismiss called for:', toastId);
       dispatch({ type: "DISMISS_TOAST", toastId });
     },
   }
