@@ -1,402 +1,277 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { useToast } from "@/hooks/use-toast";
-import { useIntersection } from '@/hooks/useIntersection';
-import RefactoredProductSearchFilters from '@/components/admin/RefactoredProductSearchFilters';
-import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
-import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
+import { ProductsGrid } from '@/components/admin/productGrid/ProductsGrid';
+import { LoadMoreTrigger } from '@/components/admin/productGrid/LoadMoreTrigger';
+import { ProductSearchAndFilters } from '@/components/admin/ProductSearchAndFilters';
+import { SelectedProductsActions } from '@/components/admin/filters/SelectedProductsActions';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { RefreshCcw } from 'lucide-react';
-import { useProductFilters } from '@/hooks/useProductFilters';
+import { Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const PRODUCTS_PER_PAGE = 20;
+interface Product {
+  id: string;
+  created_at: string;
+  title: string;
+  price: number;
+  status: string;
+  [key: string]: any;
+}
+
+interface DateRange {
+  from: Date | null;
+  to: Date | null;
+}
+
+const PAGE_SIZE = 12;
 
 const AdminProducts = () => {
-  // Clear localStorage on page load to ensure fresh state
-  useEffect(() => {
-    console.log('AdminProducts mounted - checking localStorage state');
-  }, []);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
+  const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
+  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasNextPage, setHasNextPage] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  
-  // Search state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeSearchTerm, setActiveSearchTerm] = useState('');
-  
-  // Seller filter state
-  const [selectedSellerId, setSelectedSellerId] = useState('');
-  const [sellers, setSellers] = useState<Array<{ id: string; name: string; }>>([]);
-  
-  // Reference for the loading trigger element
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  // Using the intersection observer to detect when user scrolls to the bottom
-  const isIntersecting = useIntersection(loadMoreRef, '200px');
-  
-  // Функция для выполнения рефетча данных, будет передана в useProductFilters
-  const refetchProducts = useCallback(() => {
-    console.log('Refetching products with latest sort settings');
-    queryClient.resetQueries({ queryKey: ['admin', 'products'] });
-  }, [queryClient]);
-  
-  // Use our custom hook for filters - simplified version without filters
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
+
+  const fetchProducts = useCallback(async ({ pageParam = 1 }) => {
+    let query = supabase
+      .from('products')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((pageParam - 1) * PAGE_SIZE, pageParam * PAGE_SIZE - 1);
+
+    if (searchTerm) {
+      query = query.ilike('title', `%${searchTerm}%`);
+    }
+
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+
+    if (dateRange.from) {
+      query = query.gte('created_at', dateRange.from.toISOString());
+    }
+
+    if (dateRange.to) {
+      query = query.lte('created_at', dateRange.to.toISOString());
+    }
+
+    if (priceRange.min > 0) {
+      query = query.gte('price', priceRange.min);
+    }
+
+    if (priceRange.max < 100000) {
+      query = query.lte('price', priceRange.max);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('Error fetching products:', error);
+      throw error;
+    }
+
+    const totalCount = count || 0;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+    setHasNextPage(pageParam < totalPages);
+
+    return { data, totalPages };
+  }, [searchTerm, statusFilter, dateRange, priceRange]);
+
   const {
-    sortField,
-    sortOrder,
-    setSortField,
-    setSortOrder,
-    resetAllFilters
-  } = useProductFilters([], refetchProducts);
-  
-  // Log the current sort settings whenever they change
-  useEffect(() => {
-    console.log('Current sort settings:', { sortField, sortOrder });
-  }, [sortField, sortOrder]);
+    data,
+    isLoading,
+    refetch,
+    fetchNextPage,
+  } = useQuery({
+    queryKey: ['products', searchTerm, statusFilter, dateRange, priceRange, currentPage],
+    queryFn: () => fetchProducts({ pageParam: 1 }),
+    onSuccess: () => {
+      setCurrentPage(1);
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const nextPage = allPages.length + 1;
+      return nextPage <= lastPage.totalPages ? nextPage : undefined;
+    },
+  });
 
-  // Fetch sellers list for the filter
-  useEffect(() => {
-    const fetchSellers = async () => {
-      try {
-        console.log('Fetching sellers...');
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name')
-          .eq('user_type', 'seller')
-          .not('full_name', 'is', null)
-          .order('full_name');
+  const handleBulkStatusChange = async (status: string) => {
+    if (selectedProducts.length === 0) return;
 
-        if (error) {
-          console.error('Error fetching sellers:', error);
-          toast({
-            variant: "destructive",
-            title: "Ошибка",
-            description: "Не удалось загрузить список продавцов"
-          });
-          return;
-        }
-
-        console.log('Raw sellers data:', data);
-
-        const sellersData = data?.map(seller => ({
-          id: seller.id,
-          name: seller.full_name || 'Неизвестный продавец'
-        })) || [];
-
-        console.log('Processed sellers data:', sellersData);
-        setSellers(sellersData);
-      } catch (error) {
-        console.error('Error fetching sellers:', error);
-        toast({
-          variant: "destructive",
-          title: "Ошибка",
-          description: "Произошла ошибка при загрузке продавцов"
-        });
-      }
-    };
-
-    fetchSellers();
-  }, [toast]);
-  
-  // Удаление товара - оптимизировано с useCallback
-  const handleDeleteProduct = useCallback(async (productId: string) => {
-    if (isDeleting) return; // Предотвращаем множественные запросы
-    
     try {
-      setIsDeleting(true);
-      setDeleteProductId(productId);
-      
+      const { error } = await supabase
+        .from('products')
+        .update({ status })
+        .in('id', selectedProducts);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно",
+        description: `Статус ${selectedProducts.length} товаров изменен на "${status}"`,
+      });
+
+      setSelectedProducts([]);
+      refetch();
+    } catch (error) {
+      console.error('Error updating products:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось изменить статус товаров",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProducts.length === 0) return;
+
+    try {
       const { error } = await supabase
         .from('products')
         .delete()
-        .eq('id', productId);
+        .in('id', selectedProducts);
 
-      if (error) {
-        throw new Error(error.message);
-      } else {
-        toast({
-          title: "Успех",
-          description: "Товар успешно удален",
-          group: "product-delete" // Группировка похожих уведомлений
-        });
-        
-        queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-      }
-    } catch (error) {
+      if (error) throw error;
+
       toast({
-        variant: "destructive",
+        title: "Успешно",
+        description: `${selectedProducts.length} товаров удалено`,
+      });
+
+      setSelectedProducts([]);
+      refetch();
+    } catch (error) {
+      console.error('Error deleting products:', error);
+      toast({
         title: "Ошибка",
-        description: "Не удалось удалить товар: " + (error instanceof Error ? error.message : String(error)),
-        group: "product-delete-error" // Группировка ошибок удаления
+        description: "Не удалось удалить товары",
+        variant: "destructive",
       });
-      console.error('Error deleting product:', error);
-    } finally {
-      setIsDeleting(false);
-      setDeleteProductId(null);
     }
-  }, [isDeleting, queryClient, toast]);
+  };
 
-  // Handle search
-  const handleSearch = useCallback(() => {
-    if (searchTerm.trim()) {
-      setActiveSearchTerm(searchTerm.trim());
-      // Reset pagination when searching
-      queryClient.resetQueries({ queryKey: ['admin', 'products'] });
-    }
-  }, [searchTerm, queryClient]);
+  const filteredProducts = useMemo(() => {
+    return data?.data || [];
+  }, [data]);
 
-  // Clear search
-  const handleClearSearch = useCallback(() => {
-    setSearchTerm('');
-    setActiveSearchTerm('');
-    queryClient.resetQueries({ queryKey: ['admin', 'products'] });
-  }, [queryClient]);
+  const loadMore = async () => {
+    if (isLoadingMore || !hasNextPage) return;
+    setIsLoadingMore(true);
+    setCurrentPage(prev => prev + 1);
 
-  // Reset all filters including seller filter
-  const handleResetAllFilters = useCallback(() => {
-    setSelectedSellerId('');
-    resetAllFilters();
-  }, [resetAllFilters]);
-
-  // Ключ запроса с зависимостями сортировки, поиска и фильтра продавца
-  const queryKey = useMemo(() => ['admin', 'products', sortField, sortOrder, activeSearchTerm, selectedSellerId], 
-    [sortField, sortOrder, activeSearchTerm, selectedSellerId]);
-
-  // Формирование функции запроса с правильной сортировкой и фильтром продавца
-  const queryFn = useCallback(async ({ pageParam = 1 }) => {
     try {
-      console.log('Executing query with parameters:', { 
-        sortField, sortOrder,
-        searchTerm: activeSearchTerm,
-        selectedSellerId,
-        pageParam
-      });
-      
-      // Calculate the start and end range for pagination
-      const from = (pageParam - 1) * PRODUCTS_PER_PAGE;
-      const to = from + PRODUCTS_PER_PAGE - 1;
-      
-      let query = supabase
-        .from('products')
-        .select(`
-          *,
-          product_images(url, is_primary),
-          profiles(full_name, rating, opt_id)
-        `);
-
-      // Apply search if active
-      if (activeSearchTerm) {
-        query = query.or(`title.ilike.%${activeSearchTerm}%,description.ilike.%${activeSearchTerm}%,brand.ilike.%${activeSearchTerm}%,model.ilike.%${activeSearchTerm}%,optid_created.ilike.%${activeSearchTerm}%,lot_number.eq.${!isNaN(parseInt(activeSearchTerm)) ? parseInt(activeSearchTerm) : 0}`);
-      }
-
-      // Apply seller filter if selected
-      if (selectedSellerId) {
-        query = query.eq('seller_id', selectedSellerId);
-      }
-
-      // Updated sorting logic for status and price
-      if (sortField === 'status') {
-        console.log('Applying special status sorting, order:', sortOrder);
-        
-        // Define status order based on sortOrder - FIXED with new values
-        const statusOrder = sortOrder === 'asc' ? 
-          { pending: 1, active: 2, sold: 3, archived: 4 } : 
-          { archived: 0, sold: 1, active: 2, pending: 3 };
-        
-        console.log('Status order mapping:', statusOrder);
-        
-        // For status, we need to get all data and sort it manually since we need custom ordering
-        const { data, error } = await query.order('created_at', { ascending: false });
-        
-        if (error) {
-          console.error('Error fetching products:', error);
-          throw new Error(error.message);
-        }
-        
-        // Логирование перед сортировкой
-        if (data && data.length > 0) {
-          console.log('First few products before sorting:');
-          data.slice(0, 3).forEach((p, i) => console.log(`${i+1}. id=${p.id}, status=${p.status}`));
-        }
-        
-        // Sort all data by status using our custom order
-        const sortedData = data ? [...data].sort((a, b) => {
-          const aValue = statusOrder[a.status as keyof typeof statusOrder] || 999;
-          const bValue = statusOrder[b.status as keyof typeof statusOrder] || 999;
-          return aValue - bValue;
-        }) : [];
-        
-        // Логирование после сортировки
-        if (sortedData.length > 0) {
-          console.log('First few products AFTER sorting:');
-          sortedData.slice(0, 3).forEach((p, i) => console.log(`${i+1}. id=${p.id}, status=${p.status}`));
-        }
-        
-        console.log(`Sorted by status - Status of first item: ${sortedData[0]?.status}`);
-        
-        // Take only the slice we need for pagination
-        const paginatedData = sortedData.slice(from, to + 1);
-        const hasMore = from + PRODUCTS_PER_PAGE < sortedData.length;
-        
-        return {
-          products: paginatedData,
-          nextPage: hasMore ? pageParam + 1 : undefined
-        };
-      }
-      else if (sortField === 'price') {
-        // For price, we can use server-side sorting which is more efficient
-        console.log(`Applying price sorting, order: ${sortOrder}`);
-        
-        // Add the sort order to the query
-        query = query.order(sortField, { ascending: sortOrder === 'asc' });
-        
-        // Get the paginated data
-        const { data, error } = await query.range(from, to);
-        
-        if (error) {
-          console.error('Error fetching products:', error);
-          throw new Error(error.message);
-        }
-        
-        console.log(`Sorted by price - First item price: ${data?.[0]?.price}`);
-        
-        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
-        return {
-          products: data || [],
-          nextPage: hasMore ? pageParam + 1 : undefined
-        };
-      }
-      else {
-        // Fallback to default sorting
-        console.log(`Using default sorting by created_at, desc`);
-        
-        // Default sort by created_at desc
-        query = query.order('created_at', { ascending: false });
-        
-        const { data, error } = await query.range(from, to);
-        
-        if (error) {
-          console.error('Error fetching products:', error);
-          throw new Error(error.message);
-        }
-        
-        const hasMore = data && data.length === PRODUCTS_PER_PAGE;
-        return {
-          products: data || [],
-          nextPage: hasMore ? pageParam + 1 : undefined
-        };
+      const nextPageData = await fetchProducts({ pageParam: currentPage + 1 });
+      if (nextPageData) {
+        setHasNextPage(currentPage + 1 < nextPageData.totalPages);
       }
     } catch (error) {
-      console.error('Critical error fetching products:', error);
-      let errorMessage = 'Unknown error';
-      
-      if (error instanceof Error) {
-        errorMessage = error.message;
-        console.error('Error stack:', error.stack);
-      } else {
-        console.error('Unknown error type:', error);
-      }
-      
-      throw new Error(errorMessage);
+      console.error("Failed to load more products", error);
+    } finally {
+      setIsLoadingMore(false);
     }
-  }, [sortField, sortOrder, activeSearchTerm, selectedSellerId]);
+  };
 
-  // Query products with filters
-  const {
-    data: productsData,
-    isLoading,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage,
-    refetch,
-    isError,
-    error
-  } = useInfiniteQuery({
-    queryKey,
-    queryFn,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
-    initialPageParam: 1,
-    staleTime: 30000, // Данные считаются свежими в течение 30 секунд
-    refetchOnWindowFocus: false, // Не обновлять при фокусе окна
-  });
-
-  // Flatten the pages of products into a single array - мемоизация для предотвращения повторных вычислений
-  const products = useMemo(() => 
-    productsData?.pages?.flatMap(page => page.products) || [], 
-    [productsData?.pages]
-  );
-
-  // Log product count and first product status whenever products change
-  useEffect(() => {
-    if (products.length > 0) {
-      console.log(`Products loaded: ${products.length}, first product status: ${products[0]?.status}`);
-    }
-  }, [products]);
-
-  // Обработчик обновления статуса продукта
-  const handleStatusChange = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ['admin', 'products'] });
-  }, [queryClient]);
-
-  // Load more products when the user scrolls to the bottom or clicks the load more button
-  useEffect(() => {
-    if (isIntersecting && hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
-
-  // Updated to add manual load more functionality
-  const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      console.log('Manually loading more products...');
-      fetchNextPage();
-    }
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setDateRange({ from: null, to: null });
+    setPriceRange({ min: 0, max: 100000 });
+  };
 
   return (
     <AdminLayout>
-      <div className="space-y-4">
-        {/* Фильтры и сортировка */}
-        <RefactoredProductSearchFilters
-          sortField={sortField}
-          sortOrder={sortOrder}
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h1 className="text-2xl font-bold">Управление товарами</h1>
+          <Button 
+            onClick={() => navigate('/admin/add-product')}
+            className="w-full sm:w-auto"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить товар
+          </Button>
+        </div>
+
+        {/* Search and Filters */}
+        <ProductSearchAndFilters
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          activeSearchTerm={activeSearchTerm}
-          products={products}
-          setSortField={setSortField}
-          setSortOrder={setSortOrder}
-          resetAllFilters={handleResetAllFilters}
-          onSearch={handleSearch}
-          onClearSearch={handleClearSearch}
-          selectedSellerId={selectedSellerId}
-          setSelectedSellerId={setSelectedSellerId}
-          sellers={sellers}
+          statusFilter={statusFilter}
+          setStatusFilter={setStatusFilter}
+          dateRange={dateRange}
+          setDateRange={setDateRange}
+          priceRange={priceRange}
+          setPriceRange={setPriceRange}
+          clearFilters={clearFilters}
+          isLoading={isLoading}
         />
 
-        {/* Сетка товаров */}
-        <ProductsGrid 
-          products={products}
-          isLoading={isLoading}
-          isError={isError}
-          error={error}
-          refetch={refetch}
-          onDelete={handleDeleteProduct}
-          isDeleting={isDeleting}
-          deleteProductId={deleteProductId}
-          onStatusChange={handleStatusChange}
-        />
-        
-        {/* Loading indicator, intersection observer target, and load more button */}
-        <LoadMoreTrigger 
-          hasNextPage={hasNextPage} 
-          isFetchingNextPage={isFetchingNextPage} 
-          innerRef={loadMoreRef}
-          onLoadMore={handleLoadMore}
-        />
+        {/* Selected Products Actions */}
+        {selectedProducts.length > 0 && (
+          <SelectedProductsActions
+            selectedCount={selectedProducts.length}
+            onStatusChange={handleBulkStatusChange}
+            onDelete={handleBulkDelete}
+            onClearSelection={() => setSelectedProducts([])}
+          />
+        )}
+
+        {/* Products Grid */}
+        {isLoading && currentPage === 1 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow-sm border animate-pulse">
+                <div className="aspect-video bg-gray-200 rounded-t-lg"></div>
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-8 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <ProductsGrid
+              products={filteredProducts}
+              selectedProducts={selectedProducts}
+              onProductSelect={setSelectedProducts}
+              onProductUpdate={refetch}
+            />
+            
+            {hasNextPage && (
+              <LoadMoreTrigger
+                onLoadMore={loadMore}
+                isLoading={isLoadingMore}
+                hasNextPage={hasNextPage}
+              />
+            )}
+          </>
+        )}
+
+        {/* Empty State */}
+        {!isLoading && filteredProducts.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-500 text-lg mb-2">Товары не найдены</div>
+            <div className="text-gray-400">
+              {searchTerm || statusFilter !== 'all' || dateRange.from || dateRange.to 
+                ? 'Попробуйте изменить фильтры поиска'
+                : 'Начните с добавления первого товара'
+              }
+            </div>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
