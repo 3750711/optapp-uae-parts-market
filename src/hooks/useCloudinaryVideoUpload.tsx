@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -185,6 +185,7 @@ export const useCloudinaryVideoUpload = () => {
     files: File[],
     productId?: string
   ): Promise<string[]> => {
+    console.log('🎬 Starting multiple video upload:', { fileCount: files.length });
     setIsUploading(true);
     const uploadedUrls: string[] = [];
 
@@ -209,6 +210,11 @@ export const useCloudinaryVideoUpload = () => {
         });
       }
 
+      console.log('🎉 Multiple video upload completed:', {
+        totalFiles: files.length,
+        successfulUploads: uploadedUrls.length
+      });
+
       return uploadedUrls;
     } catch (error) {
       console.error('Error uploading multiple videos:', error);
@@ -219,13 +225,17 @@ export const useCloudinaryVideoUpload = () => {
       });
       return [];
     } finally {
+      // Set isUploading to false BEFORE clearing progress to ensure proper auto-hide logic
+      console.log('🏁 Setting isUploading to false');
       setIsUploading(false);
     }
   };
 
-  const clearProgress = () => {
+  // Memoize clearProgress to prevent unnecessary re-renders and useEffect triggers
+  const clearProgress = useCallback(() => {
+    console.log('🧹 Clearing upload progress');
     setUploadProgress([]);
-  };
+  }, []);
 
   return {
     uploadVideo,

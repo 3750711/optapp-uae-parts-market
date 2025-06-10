@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,7 +9,8 @@ import {
   XCircle, 
   RefreshCw, 
   Trash2, 
-  Cloud 
+  Cloud,
+  X
 } from "lucide-react";
 
 interface UploadProgress {
@@ -35,22 +36,47 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
   isUploading,
   onClearProgress
 }) => {
-  // Auto-hide after successful uploads
+  // Memoize the clear handler to prevent unnecessary re-renders
+  const handleClearProgress = useCallback(() => {
+    console.log('🗑️ Force clearing upload progress');
+    onClearProgress();
+  }, [onClearProgress]);
+
+  // Auto-hide after successful uploads with improved logic
   useEffect(() => {
-    if (uploadProgress.length > 0 && !isUploading) {
-      const allSuccess = uploadProgress.every(p => p.status === 'success');
-      const hasErrors = uploadProgress.some(p => p.status === 'error');
-      
-      if (allSuccess && !hasErrors) {
-        // Auto-clear after 2 seconds if all uploads are successful
-        const timer = setTimeout(() => {
-          onClearProgress();
-        }, 2000);
-        
-        return () => clearTimeout(timer);
-      }
+    if (uploadProgress.length === 0 || isUploading) {
+      return;
     }
-  }, [uploadProgress, isUploading, onClearProgress]);
+
+    // Simplified success condition check
+    const completedFiles = uploadProgress.filter(p => p.status === 'success' || p.status === 'error');
+    const successfulFiles = uploadProgress.filter(p => p.status === 'success');
+    const isAllCompleted = completedFiles.length === uploadProgress.length;
+    const hasSuccessfulUploads = successfulFiles.length > 0;
+    
+    console.log('📊 Upload progress check:', {
+      totalFiles: uploadProgress.length,
+      completedFiles: completedFiles.length,
+      successfulFiles: successfulFiles.length,
+      isAllCompleted,
+      hasSuccessfulUploads,
+      isUploading
+    });
+
+    // Auto-clear only if all uploads are completed and at least one was successful
+    if (isAllCompleted && hasSuccessfulUploads) {
+      console.log('⏰ Setting auto-clear timer for 2 seconds');
+      const timer = setTimeout(() => {
+        console.log('✨ Auto-clearing upload progress after successful uploads');
+        handleClearProgress();
+      }, 2000);
+      
+      return () => {
+        console.log('🚫 Clearing auto-clear timer');
+        clearTimeout(timer);
+      };
+    }
+  }, [uploadProgress, isUploading, handleClearProgress]);
 
   if (uploadProgress.length === 0) return null;
 
@@ -73,7 +99,19 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
               <Cloud className="h-4 w-4 text-blue-500" />
               <span className="font-medium">Загрузка в Cloudinary</span>
             </div>
-            <span className="text-sm font-medium">{Math.round(overallProgress)}%</span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{Math.round(overallProgress)}%</span>
+              {/* Force close button - always visible */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleClearProgress}
+                className="h-6 w-6 p-0 hover:bg-red-100"
+                title="Закрыть"
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
           <Progress value={overallProgress} className="h-2" />
         </div>
@@ -101,12 +139,12 @@ export const UploadProgressCard: React.FC<UploadProgressCardProps> = ({
             )}
           </div>
 
-          {/* Clear Progress Button */}
-          {!isUploading && uploadProgress.every(p => p.status === 'success' || p.status === 'error') && (
+          {/* Clear Progress Button - only show when not uploading */}
+          {!isUploading && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={onClearProgress}
+              onClick={handleClearProgress}
               className="h-8 px-2 text-xs"
             >
               <Trash2 className="h-3 w-3 mr-1" />
