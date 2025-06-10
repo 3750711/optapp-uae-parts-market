@@ -60,7 +60,7 @@ const SellerCreateOrder = () => {
     onDataLoaded: (data) => {
       Object.entries(data).forEach(([key, value]) => {
         if (value) {
-          handleInputChange(key, value);
+          handleInputChange(key, String(value));
         }
       });
     }
@@ -155,7 +155,8 @@ const SellerCreateOrder = () => {
                   onInputChange={handleInputChange}
                   onImageUpload={handleImageUpload}
                   onImageDelete={handleImageDelete}
-                  setVideos={setVideos}
+                  onVideoUpload={handleVideoUpload}
+                  onVideoDelete={handleVideoDelete}
                 />
               </CardContent>
               
