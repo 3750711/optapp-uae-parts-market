@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -15,6 +15,8 @@ interface CarModel {
 }
 
 export function useCarBrandsAndModels() {
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
+
   // Загружаем бренды
   const { 
     data: brands = [], 
@@ -61,6 +63,16 @@ export function useCarBrandsAndModels() {
     }
   });
 
+  // Фильтрованные модели для выбранного бренда
+  const brandModels = selectedBrand 
+    ? allModels.filter(model => model.brand_id === selectedBrand)
+    : [];
+
+  // Функция выбора бренда
+  const selectBrand = useCallback((brandId: string | null) => {
+    setSelectedBrand(brandId);
+  }, []);
+
   // Helper function to find brand name by ID
   const findBrandNameById = useCallback((brandId: string | null) => {
     if (!brandId || !brands || brands.length === 0) return null;
@@ -100,6 +112,9 @@ export function useCarBrandsAndModels() {
 
   return {
     brands: brands || [],
+    brandModels,
+    selectedBrand,
+    selectBrand,
     allModels: allModels || [],
     isLoading: isBrandsLoading || isModelsLoading,
     error: brandsError || modelsError,
