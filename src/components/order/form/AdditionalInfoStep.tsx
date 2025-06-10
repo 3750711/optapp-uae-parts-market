@@ -82,7 +82,7 @@ const AdditionalInfoStep: React.FC<AdditionalInfoStepProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="place_number" className={isMobile ? "text-base font-medium" : ""}>
-            Номер места
+            Количество мест
           </Label>
           <TouchOptimizedInput 
             id="place_number"
