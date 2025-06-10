@@ -1,8 +1,6 @@
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Star } from "lucide-react";
 import { 
@@ -198,9 +196,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
         className="flex-1 flex flex-col"
       >
         <div className="relative flex-shrink-0">
-          <AspectRatio ratio={16 / 9} className="bg-gray-50">
+          <div className="bg-gray-50 min-h-[180px] flex items-center justify-center">
             {renderImageContent()}
-          </AspectRatio>
+          </div>
           {getStatusBadge(product.status)}
           {product.lot_number && (
             <Badge 

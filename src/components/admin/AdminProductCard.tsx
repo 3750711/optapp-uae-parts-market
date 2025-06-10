@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,6 @@ import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Product } from '@/types/product';
 import { useQueryClient } from '@tanstack/react-query';
-import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
@@ -119,7 +119,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
         className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
       >
         <div className="relative p-2">
-          <AspectRatio ratio={1/1} className="bg-white rounded-md overflow-hidden">
+          <div className="bg-white rounded-md overflow-hidden min-h-[200px] flex items-center justify-center">
             <OptimizedImage
               src={primaryImage}
               alt={product.title}
@@ -128,7 +128,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
               cloudinaryUrl={cloudinaryUrl || undefined}
               size="thumbnail"
             />
-          </AspectRatio>
+          </div>
           <Badge 
             className={`absolute top-2 right-2 ${getStatusBadgeColor(product.status)}`}
           >
