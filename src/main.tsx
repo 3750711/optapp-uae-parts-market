@@ -1,3 +1,4 @@
+
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import { ToastProvider } from "@/hooks/use-toast"
@@ -124,6 +125,7 @@ createRoot(document.getElementById("root")!).render(
                       <Route path="/seller/create-order" element={<SellerCreateOrder />} />
                       <Route path="/seller/sell-product" element={<SellerSellProduct />} />
                       <Route path="/seller/orders" element={<SellerOrders />} />
+                      <Route path="/seller/orders/:id" element={<OrderDetails />} />
                       
                       {/* Admin routes */}
                       <Route path="/admin" element={

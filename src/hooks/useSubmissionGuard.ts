@@ -1,46 +1,35 @@
 
 import { useState, useCallback, useRef } from 'react';
 
-interface SubmissionGuardConfig {
+interface UseSubmissionGuardProps {
   timeout?: number;
   onDuplicateSubmit?: () => void;
 }
 
-export const useSubmissionGuard = (config: SubmissionGuardConfig = {}) => {
-  const { timeout = 3000, onDuplicateSubmit } = config;
+export const useSubmissionGuard = ({ 
+  timeout = 5000, 
+  onDuplicateSubmit 
+}: UseSubmissionGuardProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [lastSubmitTime, setLastSubmitTime] = useState<number | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const guardedSubmit = useCallback(async (submitFn: () => Promise<void> | void) => {
-    const now = Date.now();
-    
-    // Проверяем, не слишком ли быстро повторная отправка
-    if (lastSubmitTime && (now - lastSubmitTime) < 1000) {
-      onDuplicateSubmit?.();
-      return;
-    }
-
+  const guardedSubmit = useCallback(async (submitFunction: () => Promise<void>) => {
     if (isSubmitting) {
       onDuplicateSubmit?.();
       return;
     }
 
     setIsSubmitting(true);
-    setLastSubmitTime(now);
-
-    // Устанавливаем таймаут для автоматического сброса
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
     
+    // Устанавливаем таймаут для автоматического сброса состояния
     timeoutRef.current = setTimeout(() => {
       setIsSubmitting(false);
     }, timeout);
 
     try {
-      await submitFn();
+      await submitFunction();
     } catch (error) {
+      console.error('Submission error:', error);
       throw error;
     } finally {
       if (timeoutRef.current) {
@@ -48,20 +37,13 @@ export const useSubmissionGuard = (config: SubmissionGuardConfig = {}) => {
       }
       setIsSubmitting(false);
     }
-  }, [isSubmitting, lastSubmitTime, timeout, onDuplicateSubmit]);
+  }, [isSubmitting, timeout, onDuplicateSubmit]);
 
-  const resetGuard = useCallback(() => {
-    setIsSubmitting(false);
-    setLastSubmitTime(null);
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-  }, []);
+  const canSubmit = !isSubmitting;
 
   return {
-    isSubmitting,
     guardedSubmit,
-    resetGuard,
-    canSubmit: !isSubmitting
+    canSubmit,
+    isSubmitting
   };
 };
