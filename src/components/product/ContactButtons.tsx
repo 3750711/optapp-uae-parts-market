@@ -9,7 +9,6 @@ import { AuthDialog } from './seller/AuthDialog';
 interface ContactButtonsProps {
   sellerPhone?: string;
   sellerTelegram?: string;
-  sellerId: string;
   productTitle: string;
   isVerified?: boolean;
   verificationStatus?: string;
@@ -18,7 +17,6 @@ interface ContactButtonsProps {
 const ContactButtons: React.FC<ContactButtonsProps> = ({
   sellerPhone,
   sellerTelegram,
-  sellerId,
   productTitle,
   isVerified = false,
   verificationStatus = 'pending'
@@ -214,8 +212,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
       <AuthDialog 
         open={showAuthDialog}
         onOpenChange={setShowAuthDialog}
-        sellerId={sellerId}
-        productTitle={productTitle}
       />
     </div>
   );

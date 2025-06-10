@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 interface AuthDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGoToLogin: () => void;
+  onGoToLogin?: () => void;
 }
 
 export const AuthDialog: React.FC<AuthDialogProps> = ({
@@ -14,6 +14,14 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
   onOpenChange,
   onGoToLogin
 }) => {
+  const handleGoToLogin = () => {
+    if (onGoToLogin) {
+      onGoToLogin();
+    } else {
+      window.location.href = '/login';
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -24,7 +32,7 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-center">
-          <Button onClick={onGoToLogin} className="w-full sm:w-auto">
+          <Button onClick={handleGoToLogin} className="w-full sm:w-auto">
             Войти / Зарегистрироваться
           </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">

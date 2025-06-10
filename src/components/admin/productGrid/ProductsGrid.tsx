@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '@/types/product';
 import AdminProductCard from '@/components/admin/AdminProductCard';
@@ -9,6 +8,9 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface ProductsGridProps {
   products: Product[];
+  selectedProducts: string[];
+  onProductSelect: (selectedProducts: string[]) => void;
+  onProductUpdate: () => void;
   isLoading: boolean;
   isError: boolean;
   error: unknown;
@@ -22,6 +24,9 @@ interface ProductsGridProps {
 
 const ProductsGrid: React.FC<ProductsGridProps> = ({
   products,
+  selectedProducts,
+  onProductSelect,
+  onProductUpdate,
   isLoading,
   isError,
   error,

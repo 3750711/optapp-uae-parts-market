@@ -3,6 +3,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
@@ -31,62 +32,64 @@ const LoadingFallback = () => (
 function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <Router>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {routes.map((route, index) => {
-                    const { path, element, protected: isProtected, adminOnly } = route;
-                    
-                    if (adminOnly) {
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <Router>
+                <Suspense fallback={<LoadingFallback />}>
+                  <Routes>
+                    {routes.map((route, index) => {
+                      const { path, element, protected: isProtected, adminOnly } = route;
+                      
+                      if (adminOnly) {
+                        return (
+                          <Route
+                            key={index}
+                            path={path}
+                            element={
+                              <AdminRoute>
+                                {element}
+                              </AdminRoute>
+                            }
+                          />
+                        );
+                      }
+                      
+                      if (isProtected) {
+                        return (
+                          <Route
+                            key={index}
+                            path={path}
+                            element={
+                              <ProtectedRoute>
+                                {element}
+                              </ProtectedRoute>
+                            }
+                          />
+                        );
+                      }
+                      
                       return (
                         <Route
                           key={index}
                           path={path}
-                          element={
-                            <AdminRoute>
-                              {element}
-                            </AdminRoute>
-                          }
+                          element={element}
                         />
                       );
-                    }
-                    
-                    if (isProtected) {
-                      return (
-                        <Route
-                          key={index}
-                          path={path}
-                          element={
-                            <ProtectedRoute>
-                              {element}
-                            </ProtectedRoute>
-                          }
-                        />
-                      );
-                    }
-                    
-                    return (
-                      <Route
-                        key={index}
-                        path={path}
-                        element={element}
-                      />
-                    );
-                  })}
-                </Routes>
-              </Suspense>
-            </Router>
-          </ThemeProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+                    })}
+                  </Routes>
+                </Suspense>
+              </Router>
+            </ThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 }

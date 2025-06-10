@@ -1,11 +1,12 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { ProductsGrid } from '@/components/admin/productGrid/ProductsGrid';
-import { LoadMoreTrigger } from '@/components/admin/productGrid/LoadMoreTrigger';
-import { ProductSearchAndFilters } from '@/components/admin/ProductSearchAndFilters';
-import { SelectedProductsActions } from '@/components/admin/filters/SelectedProductsActions';
+import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
+import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
+import ProductSearchAndFilters from '@/components/admin/ProductSearchAndFilters';
+import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -91,17 +92,9 @@ const AdminProducts = () => {
     data,
     isLoading,
     refetch,
-    fetchNextPage,
   } = useQuery({
     queryKey: ['products', searchTerm, statusFilter, dateRange, priceRange, currentPage],
     queryFn: () => fetchProducts({ pageParam: 1 }),
-    onSuccess: () => {
-      setCurrentPage(1);
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      const nextPage = allPages.length + 1;
-      return nextPage <= lastPage.totalPages ? nextPage : undefined;
-    },
   });
 
   const handleBulkStatusChange = async (status: string) => {
