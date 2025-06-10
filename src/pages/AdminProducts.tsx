@@ -35,7 +35,6 @@ const AdminProducts = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { toast } = useToast();
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
