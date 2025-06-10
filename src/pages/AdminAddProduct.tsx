@@ -9,11 +9,10 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
 import { useProductTitleParser } from "@/utils/productTitleParser";
-import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
-import OptimizedAddProductForm, { ProductFormValues, createProductSchema } from "@/components/product/OptimizedAddProductForm";
+import AddProductForm, { ProductFormValues, productSchema } from "@/components/product/AddProductForm";
 
 // Admin product schema with required sellerId
-const adminProductSchema = createProductSchema.extend({
+const adminProductSchema = productSchema.extend({
   sellerId: z.string().min(1, {
     message: "Выберите продавца",
   }),
@@ -55,12 +54,12 @@ const AdminAddProduct = () => {
     resolver: zodResolver(adminProductSchema),
     defaultValues: {
       title: "",
-      price: 0,
+      price: "",
       brandId: "",
       modelId: "",
-      place_number: 1,
+      placeNumber: "1",
       description: "",
-      delivery_price: 0,
+      deliveryPrice: "",
       sellerId: "",
     },
     mode: "onChange",
@@ -169,7 +168,16 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Enhanced product creation with Cloudinary data (no preview generation)
+  // Filter brands and models based on search terms
+  const filteredBrands = brands.filter(brand =>
+    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+  );
+
+  const filteredModels = brandModels.filter(model =>
+    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+  );
+
+  // Enhanced product creation with Cloudinary data
   const createProduct = async (values: AdminProductFormValues) => {
     if (imageUrls.length === 0) {
       toast({
@@ -224,12 +232,12 @@ const AdminAddProduct = () => {
         timestamp: new Date().toISOString()
       });
       
-      // Create product using standard Supabase insert (RLS now allows admin to create for any seller)
+      // Create product using standard Supabase insert
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
           title: values.title,
-          price: values.price,
+          price: Number(values.price),
           condition: "Новый",
           brand: selectedBrand.name,
           model: modelName,
@@ -237,8 +245,8 @@ const AdminAddProduct = () => {
           seller_id: values.sellerId,
           seller_name: selectedSeller.full_name,
           status: 'active',
-          place_number: values.place_number || 1,
-          delivery_price: values.delivery_price || 0,
+          place_number: Number(values.placeNumber) || 1,
+          delivery_price: Number(values.deliveryPrice) || 0,
         })
         .select()
         .single();
@@ -265,7 +273,7 @@ const AdminAddProduct = () => {
         }
       }
 
-      // Extract public_id from primary image and update product with Cloudinary data (no preview)
+      // Extract public_id from primary image and update product with Cloudinary data
       if (primaryImage) {
         try {
           console.log('🎨 Extracting public_id from primary image:', primaryImage);
@@ -279,7 +287,7 @@ const AdminAddProduct = () => {
               cloudinaryUrl: primaryImage
             });
 
-            // Update product with Cloudinary data (no preview URL)
+            // Update product with Cloudinary data
             const { error: updateError } = await supabase
               .from('products')
               .update({
@@ -352,7 +360,7 @@ const AdminAddProduct = () => {
         <div className="max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
           
-          <OptimizedAddProductForm
+          <AddProductForm
             form={form as any}
             onSubmit={createProduct as any}
             isSubmitting={isSubmitting}
@@ -366,11 +374,12 @@ const AdminAddProduct = () => {
             setSearchBrandTerm={setSearchBrandTerm}
             searchModelTerm={searchModelTerm}
             setSearchModelTerm={setSearchModelTerm}
+            filteredBrands={filteredBrands}
+            filteredModels={filteredModels}
             handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
             setVideoUrls={setVideoUrls}
             primaryImage={primaryImage}
             setPrimaryImage={setPrimaryImage}
-            onImageDelete={removeImage}
             sellers={sellers}
             showSellerSelection={true}
           />

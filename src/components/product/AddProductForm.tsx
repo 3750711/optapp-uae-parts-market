@@ -74,6 +74,9 @@ interface AddProductFormProps {
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
+  // Admin-specific props
+  sellers?: Array<{id: string, full_name: string}>;
+  showSellerSelection?: boolean;
 }
 
 const AddProductForm: React.FC<AddProductFormProps> = ({
@@ -96,7 +99,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   handleMobileOptimizedImageUpload,
   setVideoUrls,
   primaryImage,
-  setPrimaryImage
+  setPrimaryImage,
+  sellers = [],
+  showSellerSelection = false
 }) => {
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
@@ -109,6 +114,37 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Seller Selection - only for admin */}
+        {showSellerSelection && (
+          <FormField
+            control={form.control}
+            name="sellerId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Продавец</FormLabel>
+                <FormControl>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите продавца" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-[300px]">
+                      {sellers.map((seller) => (
+                        <SelectItem key={seller.id} value={seller.id}>
+                          {seller.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
+
         <div className="space-y-4">
           <FormField
             control={form.control}
@@ -292,6 +328,9 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
             onUploadComplete={handleMobileOptimizedImageUpload}
             maxImages={30}
             existingImages={imageUrls}
+            primaryImage={primaryImage}
+            onSetPrimaryImage={setPrimaryImage}
+            productId={userId}
           />
         </div>
         
