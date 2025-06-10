@@ -1,53 +1,74 @@
 import { lazy } from 'react';
 
-const Index = lazy(() => import('@/pages/Index'));
-const About = lazy(() => import('@/pages/About'));
-const Contact = lazy(() => import('@/pages/Contact'));
-const Catalog = lazy(() => import('@/pages/Catalog'));
-const ProductDetail = lazy(() => import('@/pages/ProductDetail'));
-const Login = lazy(() => import('@/pages/Login'));
-const Register = lazy(() => import('@/pages/Register'));
-const SellerRegister = lazy(() => import('@/pages/SellerRegister'));
-const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('@/pages/VerifyEmail'));
-const Profile = lazy(() => import('@/pages/Profile'));
-const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
-const SellerListings = lazy(() => import('@/pages/SellerListings'));
-const SellerAddProduct = lazy(() => import('@/pages/SellerAddProduct'));
-const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));
-const SellerOrders = lazy(() => import('@/pages/SellerOrders'));
-const SellerOrderDetails = lazy(() => import('@/pages/SellerOrderDetails'));
-const SellerSellProduct = lazy(() => import('@/pages/SellerSellProduct'));
-const SellerProfile = lazy(() => import('@/pages/SellerProfile'));
-const PublicSellerProfile = lazy(() => import('@/pages/PublicSellerProfile'));
-const BuyerCreateOrder = lazy(() => import('@/pages/BuyerCreateOrder'));
-const BuyerOrders = lazy(() => import('@/pages/BuyerOrders'));
-const BuyerGuide = lazy(() => import('@/pages/BuyerGuide'));
-const Stores = lazy(() => import('@/pages/Stores'));
-const StoreDetail = lazy(() => import('@/pages/StoreDetail'));
-const CreateStore = lazy(() => import('@/pages/CreateStore'));
-const Requests = lazy(() => import('@/pages/Requests'));
-const CreateRequest = lazy(() => import('@/pages/CreateRequest'));
-const RequestDetail = lazy(() => import('@/pages/RequestDetail'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
-const OrdersRedirect = lazy(() => import('@/pages/OrdersRedirect'));
-const OrderDetails = lazy(() => import('@/pages/OrderDetails'));
+// Utility function to add retry logic to lazy imports
+const lazyWithRetry = (importFunc: () => Promise<any>, retries = 3) => {
+  return lazy(() => 
+    importFunc().catch((error) => {
+      console.error('Failed to load module:', error);
+      
+      if (retries > 0) {
+        console.log(`Retrying module load... (${retries} attempts left)`);
+        return new Promise(resolve => {
+          setTimeout(() => {
+            resolve(lazyWithRetry(importFunc, retries - 1).render.bind(lazyWithRetry(importFunc, retries - 1)));
+          }, 1000);
+        });
+      }
+      
+      throw error;
+    })
+  );
+};
 
-// Admin pages - упрощенные импорты без сложной логики catch()
-const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
-const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
-const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
-const AdminAddProduct = lazy(() => import('@/pages/AdminAddProduct'));
-const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
-const AdminOrderDetails = lazy(() => import('@/pages/AdminOrderDetails'));
-const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
-const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
-const AdminStores = lazy(() => import('@/pages/AdminStores'));
-const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
-const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
-const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
-const GenerateOGImage = lazy(() => import('@/pages/GenerateOGImage'));
+// Regular pages
+const Index = lazyWithRetry(() => import('@/pages/Index'));
+const About = lazyWithRetry(() => import('@/pages/About'));
+const Contact = lazyWithRetry(() => import('@/pages/Contact'));
+const Catalog = lazyWithRetry(() => import('@/pages/Catalog'));
+const ProductDetail = lazyWithRetry(() => import('@/pages/ProductDetail'));
+const Login = lazyWithRetry(() => import('@/pages/Login'));
+const Register = lazyWithRetry(() => import('@/pages/Register'));
+const SellerRegister = lazyWithRetry(() => import('@/pages/SellerRegister'));
+const ForgotPassword = lazyWithRetry(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazyWithRetry(() => import('@/pages/ResetPassword'));
+const VerifyEmail = lazyWithRetry(() => import('@/pages/VerifyEmail'));
+const Profile = lazyWithRetry(() => import('@/pages/Profile'));
+const SellerDashboard = lazyWithRetry(() => import('@/pages/SellerDashboard'));
+const SellerListings = lazyWithRetry(() => import('@/pages/SellerListings'));
+const SellerAddProduct = lazyWithRetry(() => import('@/pages/SellerAddProduct'));
+const SellerCreateOrder = lazyWithRetry(() => import('@/pages/SellerCreateOrder'));
+const SellerOrders = lazyWithRetry(() => import('@/pages/SellerOrders'));
+const SellerOrderDetails = lazyWithRetry(() => import('@/pages/SellerOrderDetails'));
+const SellerSellProduct = lazyWithRetry(() => import('@/pages/SellerSellProduct'));
+const SellerProfile = lazyWithRetry(() => import('@/pages/SellerProfile'));
+const PublicSellerProfile = lazyWithRetry(() => import('@/pages/PublicSellerProfile'));
+const BuyerCreateOrder = lazyWithRetry(() => import('@/pages/BuyerCreateOrder'));
+const BuyerOrders = lazyWithRetry(() => import('@/pages/BuyerOrders'));
+const BuyerGuide = lazyWithRetry(() => import('@/pages/BuyerGuide'));
+const Stores = lazyWithRetry(() => import('@/pages/Stores'));
+const StoreDetail = lazyWithRetry(() => import('@/pages/StoreDetail'));
+const CreateStore = lazyWithRetry(() => import('@/pages/CreateStore'));
+const Requests = lazyWithRetry(() => import('@/pages/Requests'));
+const CreateRequest = lazyWithRetry(() => import('@/pages/CreateRequest'));
+const RequestDetail = lazyWithRetry(() => import('@/pages/RequestDetail'));
+const NotFound = lazyWithRetry(() => import('@/pages/NotFound'));
+const OrdersRedirect = lazyWithRetry(() => import('@/pages/OrdersRedirect'));
+const OrderDetails = lazyWithRetry(() => import('@/pages/OrderDetails'));
+
+// Admin pages with higher retry count due to complexity
+const AdminDashboard = lazyWithRetry(() => import('@/pages/AdminDashboard'), 5);
+const AdminUsers = lazyWithRetry(() => import('@/pages/AdminUsers'), 5);
+const AdminProducts = lazyWithRetry(() => import('@/pages/AdminProducts'), 5);
+const AdminAddProduct = lazyWithRetry(() => import('@/pages/AdminAddProduct'), 5);
+const AdminOrders = lazyWithRetry(() => import('@/pages/AdminOrders'), 5);
+const AdminOrderDetails = lazyWithRetry(() => import('@/pages/AdminOrderDetails'), 5);
+const AdminFreeOrder = lazyWithRetry(() => import('@/pages/AdminFreeOrder'), 5);
+const AdminCreateOrderFromProduct = lazyWithRetry(() => import('@/pages/AdminCreateOrderFromProduct'), 5);
+const AdminStores = lazyWithRetry(() => import('@/pages/AdminStores'), 5);
+const AdminCarCatalog = lazyWithRetry(() => import('@/pages/AdminCarCatalog'), 5);
+const AdminLogistics = lazyWithRetry(() => import('@/pages/AdminLogistics'), 5);
+const AdminEvents = lazyWithRetry(() => import('@/pages/AdminEvents'), 5);
+const GenerateOGImage = lazyWithRetry(() => import('@/pages/GenerateOGImage'), 5);
 
 export const routes = [
   {
@@ -192,7 +213,7 @@ export const routes = [
     path: "/order/:id",
     element: <OrderDetails />,
   },
-  // Admin routes - упрощенные маршруты
+  // Admin routes
   {
     path: "/admin",
     element: <AdminDashboard />,

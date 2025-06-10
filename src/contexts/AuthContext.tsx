@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function fetchUserProfile(userId: string) {
     try {
-      console.log("AuthContext: Attempting to fetch profile for user:", userId);
+      console.log("AuthContext: Fetching profile for user:", userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('AuthContext: Error fetching user profile:', error);
-        return;
+        return null;
       }
       
       console.log("AuthContext: Fetched profile data:", data);
@@ -45,16 +45,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data) {
         setProfile(data);
         
-        // Проверяем, нужно ли показать окно первого входа
+        // Check if first login welcome should be shown
         if (data.email.endsWith('@g.com') && !data.first_login_completed) {
           console.log("AuthContext: First login detected for @g.com user");
           setShowFirstLoginWelcome(true);
         }
-      } else {
-        console.error('AuthContext: No profile data found for user:', userId);
+        return data;
       }
+      
+      return null;
     } catch (error) {
       console.error('AuthContext: Exception while fetching profile:', error);
+      return null;
     }
   }
 
@@ -68,7 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const handleFirstLoginComplete = (completed: boolean) => {
     if (completed) {
       setShowFirstLoginWelcome(false);
-      // Обновляем профиль для получения актуальных данных
       refreshProfile();
     }
   };
@@ -80,45 +81,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log("AuthContext: Setting up authentication");
         
-        // Set up the auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, currentSession) => {
-            if (!mounted) return;
-            
-            console.log("AuthContext: Auth state changed:", event, currentSession?.user?.id);
-            
-            // Update local session state
-            setSession(currentSession);
-            setUser(currentSession?.user ?? null);
-            
-            // Handle profile fetch after session change
-            if (currentSession?.user) {
-              console.log("AuthContext: User authenticated, fetching profile");
-              setTimeout(() => {
-                if (mounted) {
-                  fetchUserProfile(currentSession.user.id);
-                }
-              }, 100);
-            } else {
-              console.log("AuthContext: User not authenticated, clearing profile");
-              setProfile(null);
-              setShowFirstLoginWelcome(false);
-            }
-            
-            // Set loading to false after handling auth state change
-            if (mounted) {
-              setIsLoading(false);
-            }
-          }
-        );
-
-        // Check for existing session
+        // Get initial session
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error("AuthContext: Error getting session:", error);
-        } else {
-          console.log("AuthContext: Initial session check:", currentSession?.user?.id);
+          if (mounted) {
+            setIsLoading(false);
+          }
+          return;
         }
         
         if (mounted) {
@@ -127,17 +98,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (currentSession?.user) {
             console.log("AuthContext: Initial user found, fetching profile");
-            setTimeout(() => {
-              if (mounted) {
-                fetchUserProfile(currentSession.user.id);
-              }
-            }, 100);
-          } else {
-            // No user found, set loading to false immediately
-            setIsLoading(false);
+            await fetchUserProfile(currentSession.user.id);
           }
+          
+          setIsLoading(false);
         }
         
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (event, currentSession) => {
+            if (!mounted) return;
+            
+            console.log("AuthContext: Auth state changed:", event, currentSession?.user?.id);
+            
+            setSession(currentSession);
+            setUser(currentSession?.user ?? null);
+            
+            if (currentSession?.user) {
+              console.log("AuthContext: User authenticated, fetching profile");
+              await fetchUserProfile(currentSession.user.id);
+            } else {
+              console.log("AuthContext: User not authenticated, clearing profile");
+              setProfile(null);
+              setShowFirstLoginWelcome(false);
+            }
+          }
+        );
+
         return () => {
           console.log("AuthContext: Cleaning up auth subscription");
           subscription.unsubscribe();
@@ -164,7 +151,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("AuthContext: Signing out user");
       await supabase.auth.signOut();
       
-      // Clear all states after logout
       setUser(null);
       setSession(null);
       setProfile(null);

@@ -4,12 +4,12 @@ import AdminLayout from '@/components/admin/AdminLayout';
 import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
 import { AdminFreeOrderForm } from '@/components/admin/order/AdminFreeOrderForm';
 import { Card, CardContent } from '@/components/ui/card';
-import { AdminErrorBoundary } from '@/components/error/AdminErrorBoundary';
+import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 
 const AdminFreeOrder = () => {
   return (
     <AdminLayout>
-      <AdminErrorBoundary>
+      <GlobalErrorBoundary isAdminRoute={true}>
         <div className="space-y-4 md:space-y-6">
           <DashboardHeader title="Создание свободного заказа" />
           <Card>
@@ -18,7 +18,7 @@ const AdminFreeOrder = () => {
             </CardContent>
           </Card>
         </div>
-      </AdminErrorBoundary>
+      </GlobalErrorBoundary>
     </AdminLayout>
   );
 };
