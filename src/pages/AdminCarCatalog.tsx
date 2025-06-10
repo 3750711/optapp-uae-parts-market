@@ -50,13 +50,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, Pencil, AlertCircle, Trash2 } from "lucide-react";
+import { Loader2, Plus, Pencil, AlertCircle, Trash2, Search } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // Schema for adding a new brand
@@ -84,27 +84,34 @@ const AdminCarCatalog = () => {
   const [addModelDialogOpen, setAddModelDialogOpen] = useState(false);
   const [selectedBrandForEdit, setSelectedBrandForEdit] = useState<string | null>(null);
   const [selectedModelForEdit, setSelectedModelForEdit] = useState<string | null>(null);
-  const [searchBrandTerm, setSearchBrandTerm] = useState("");
-  const [searchModelTerm, setSearchModelTerm] = useState("");
   const [brandToDelete, setBrandToDelete] = useState<string | null>(null);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   
+  // Используем новый хук для загрузки всех данных
   const { 
     brands, 
     brandModels, 
-    selectBrand, 
     selectedBrand,
-    isLoading: isLoadingCarData
-  } = useCarBrandsAndModels();
+    selectBrand,
+    isLoading: isLoadingCarData,
+    brandSearchTerm,
+    setBrandSearchTerm,
+    modelSearchTerm,
+    setModelSearchTerm,
+    totalBrands,
+    totalModels,
+    filteredBrandsCount,
+    filteredModelsCount
+  } = useAllCarBrands();
 
   // Filter brands based on search term
   const filteredBrands = brands.filter(brand => 
-    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
+    brand.name.toLowerCase().includes(brandSearchTerm.toLowerCase())
   );
 
   // Filter models based on search term and selected brand
   const filteredModels = brandModels.filter(model => 
-    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
+    model.name.toLowerCase().includes(modelSearchTerm.toLowerCase())
   );
 
   // Form for adding/editing a brand
@@ -433,7 +440,14 @@ const AdminCarCatalog = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-2">Каталог автомобилей</h1>
-            <p className="text-gray-500">Управление марками и моделями автомобилей</p>
+            <p className="text-gray-500">
+              Управление марками и моделями автомобилей
+              {totalBrands > 0 && (
+                <span className="ml-2 text-sm">
+                  (Всего: {totalBrands} марок)
+                </span>
+              )}
+            </p>
           </div>
           <div className="mt-4 md:mt-0 flex flex-col sm:flex-row gap-3">
             <Dialog open={addBrandDialogOpen} onOpenChange={setAddBrandDialogOpen}>
@@ -614,14 +628,22 @@ const AdminCarCatalog = () => {
             <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
                 <CardTitle>Марки автомобилей</CardTitle>
-                <span className="text-sm text-gray-500">{brands.length} марок</span>
+                <span className="text-sm text-gray-500">
+                  {filteredBrandsCount !== totalBrands 
+                    ? `${filteredBrandsCount} из ${totalBrands}` 
+                    : `${totalBrands} марок`
+                  }
+                </span>
               </div>
-              <Input
-                placeholder="Поиск марки..."
-                className="mt-2"
-                value={searchBrandTerm}
-                onChange={(e) => setSearchBrandTerm(e.target.value)}
-              />
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Поиск марки..."
+                  className="pl-10"
+                  value={brandSearchTerm}
+                  onChange={(e) => setBrandSearchTerm(e.target.value)}
+                />
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <div className="max-h-96 overflow-auto">
@@ -642,17 +664,28 @@ const AdminCarCatalog = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : filteredBrands.length === 0 ? (
+                    ) : brands.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={2} className="text-center py-8">
                           <div className="flex flex-col justify-center items-center gap-2">
                             <AlertCircle className="h-6 w-6 text-gray-400" />
-                            <span>Марки не найдены</span>
+                            <span>
+                              {brandSearchTerm ? 'Марки не найдены по запросу' : 'Марки не найдены'}
+                            </span>
+                            {brandSearchTerm && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setBrandSearchTerm('')}
+                              >
+                                Очистить поиск
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredBrands.map((brand) => (
+                      brands.map((brand) => (
                         <TableRow key={brand.id}>
                           <TableCell className="font-medium">{brand.name}</TableCell>
                           <TableCell className="text-right">
@@ -689,10 +722,11 @@ const AdminCarCatalog = () => {
               <div className="flex justify-between items-center">
                 <CardTitle>Модели автомобилей</CardTitle>
                 <span className="text-sm text-gray-500">
-                  {selectedBrand ? 
-                    `${brandModels.length} моделей для выбранной марки` : 
-                    'Выберите марку'
-                  }
+                  {selectedBrand ? (
+                    filteredModelsCount !== totalModels 
+                      ? `${filteredModelsCount} из ${totalModels}` 
+                      : `${totalModels} моделей`
+                  ) : 'Выберите марку'}
                 </span>
               </div>
               <div className="flex flex-col gap-2">
@@ -700,7 +734,7 @@ const AdminCarCatalog = () => {
                   value={selectedBrand || ""}
                   onValueChange={(value) => {
                     selectBrand(value);
-                    setSearchModelTerm("");
+                    setModelSearchTerm("");
                   }}
                 >
                   <SelectTrigger>
@@ -713,11 +747,15 @@ const AdminCarCatalog = () => {
                   </SelectContent>
                 </Select>
                 {selectedBrand && (
-                  <Input
-                    placeholder="Поиск модели..."
-                    value={searchModelTerm}
-                    onChange={(e) => setSearchModelTerm(e.target.value)}
-                  />
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder="Поиск модели..."
+                      className="pl-10"
+                      value={modelSearchTerm}
+                      onChange={(e) => setModelSearchTerm(e.target.value)}
+                    />
+                  </div>
                 )}
               </div>
             </CardHeader>
@@ -749,17 +787,28 @@ const AdminCarCatalog = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ) : filteredModels.length === 0 ? (
+                    ) : brandModels.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={2} className="text-center py-8">
                           <div className="flex flex-col justify-center items-center gap-2">
                             <AlertCircle className="h-6 w-6 text-gray-400" />
-                            <span>Модели не найдены</span>
+                            <span>
+                              {modelSearchTerm ? 'Модели не найдены по запросу' : 'Модели не найдены'}
+                            </span>
+                            {modelSearchTerm && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setModelSearchTerm('')}
+                              >
+                                Очистить поиск
+                              </Button>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredModels.map((model) => (
+                      brandModels.map((model) => (
                         <TableRow key={model.id}>
                           <TableCell className="font-medium">{model.name}</TableCell>
                           <TableCell className="text-right">
@@ -786,3 +835,5 @@ const AdminCarCatalog = () => {
 };
 
 export default AdminCarCatalog;
+
+</edits_to_apply>
