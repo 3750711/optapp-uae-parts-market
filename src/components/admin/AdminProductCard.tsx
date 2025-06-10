@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,42 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
+  // Use EXACT same memoized image logic as in catalog
+  const { primaryImage, cloudinaryUrl } = useMemo(() => {
+    console.log('🖼️ AdminProductCard processing images for product:', product.id, {
+      product_images: product.product_images,
+      cloudinary_url: product.cloudinary_url,
+      cloudinary_public_id: product.cloudinary_public_id,
+      image: (product as any).image
+    });
+
+    // Find primary image
+    const primaryImg = product.product_images?.find(img => img.is_primary);
+    const fallbackImg = product.product_images?.[0];
+    
+    // Priority order for image URL (same as catalog)
+    const imageUrl = primaryImg?.url || 
+                    fallbackImg?.url || 
+                    product.cloudinary_url ||
+                    (product as any).image ||
+                    '/placeholder.svg';
+
+    // Extract cloudinaryUrl from primary image for OptimizedImage (same as catalog)
+    const extractedCloudinaryUrl = primaryImg?.url || fallbackImg?.url || product.cloudinary_url || null;
+
+    console.log('✅ AdminProductCard final image selection:', {
+      primaryImageUrl: primaryImg?.url,
+      fallbackImageUrl: fallbackImg?.url,
+      finalImageUrl: imageUrl,
+      extractedCloudinaryUrl
+    });
+
+    return {
+      primaryImage: imageUrl,
+      cloudinaryUrl: extractedCloudinaryUrl
+    };
+  }, [product.product_images, product.cloudinary_url, product.cloudinary_public_id, (product as any).image]);
+
   const getProductCardBackground = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-[#FEF7CD]';
@@ -67,13 +104,6 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     .filter(Boolean)
     .join(' • ');
 
-  // Use EXACT same image selection logic as in catalog
-  const primaryImage = product.product_images?.find(img => img.is_primary)?.url || 
-                      product.product_images?.[0]?.url || 
-                      product.cloudinary_url ||
-                      (product as any).image ||
-                      '/placeholder.svg';
-
   const handleEditSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ['products'] });
     setIsEditDialogOpen(false);
@@ -91,7 +121,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
               alt={product.title}
               className="w-full h-full object-contain"
               cloudinaryPublicId={product.cloudinary_public_id || undefined}
-              cloudinaryUrl={product.cloudinary_url || undefined}
+              cloudinaryUrl={cloudinaryUrl || undefined}
               size="thumbnail"
             />
           </AspectRatio>
