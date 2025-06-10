@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import TouchOptimizedInput from '@/components/ui/TouchOptimizedInput';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
+import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
 import { useOptimizedBrandSearch } from '@/hooks/useOptimizedBrandSearch';
@@ -54,7 +54,8 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
     brandModels,
     selectBrand,
     findBrandNameById,
-    findModelNameById
+    findModelNameById,
+    isLoading: isLoadingCarData
   } = useCarBrandsAndModels();
 
   // Оптимизированный поиск
@@ -68,6 +69,16 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
     searchModelTerm,
     formData.brandId
   );
+
+  // Популярные бренды
+  const popularBrands = [
+    "toyota", "honda", "ford", "chevrolet", "nissan", 
+    "hyundai", "kia", "volkswagen", "bmw", "mercedes-benz"
+  ];
+
+  const popularBrandIds = brands
+    .filter(brand => popularBrands.includes(brand.name.toLowerCase()))
+    .map(brand => brand.id);
 
   const handleBrandChange = (brandId: string) => {
     onInputChange('brandId', brandId);
@@ -167,26 +178,19 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             <Label htmlFor="brand" className={isMobile ? "text-base font-medium" : ""}>
               Бренд
             </Label>
-            <Select
+            <EnhancedVirtualizedSelect
+              options={filteredBrands}
               value={formData.brandId}
               onValueChange={handleBrandChange}
-            >
-              <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
-                <SelectValue placeholder="Выберите бренд" />
-              </SelectTrigger>
-              <SelectContent 
-                showSearch={true}
-                searchPlaceholder="Поиск бренда..."
-                searchValue={searchBrandTerm}
-                onSearchChange={setSearchBrandTerm}
-              >
-                {filteredBrands.map((brand) => (
-                  <SelectItem key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder="Выберите бренд"
+              searchPlaceholder="Поиск бренда..."
+              disabled={isLoadingCarData}
+              className={isMobile ? "h-12" : ""}
+              popularOptions={popularBrandIds}
+              searchTerm={searchBrandTerm}
+              onSearchChange={setSearchBrandTerm}
+              showResultCount={true}
+            />
           </div>
 
           {/* Модель с поиском */}
@@ -194,27 +198,18 @@ const BasicOrderInfoStep: React.FC<BasicOrderInfoStepProps> = ({
             <Label htmlFor="model" className={isMobile ? "text-base font-medium" : ""}>
               Модель
             </Label>
-            <Select
+            <EnhancedVirtualizedSelect
+              options={filteredModels}
               value={formData.modelId}
               onValueChange={handleModelChange}
-              disabled={!formData.brandId}
-            >
-              <SelectTrigger className={isMobile ? "h-12 text-base" : ""}>
-                <SelectValue placeholder={formData.brandId ? "Выберите модель" : "Сначала выберите бренд"} />
-              </SelectTrigger>
-              <SelectContent 
-                showSearch={true}
-                searchPlaceholder="Поиск модели..."
-                searchValue={searchModelTerm}
-                onSearchChange={setSearchModelTerm}
-              >
-                {filteredModels.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              placeholder={formData.brandId ? "Выберите модель" : "Сначала выберите бренд"}
+              searchPlaceholder="Поиск модели..."
+              disabled={!formData.brandId || isLoadingCarData}
+              className={isMobile ? "h-12" : ""}
+              searchTerm={searchModelTerm}
+              onSearchChange={setSearchModelTerm}
+              showResultCount={true}
+            />
           </div>
         </div>
       </div>
