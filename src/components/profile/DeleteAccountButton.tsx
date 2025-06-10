@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   AlertDialog,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Trash2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 
 export const DeleteAccountButton: React.FC = () => {
   const [open, setOpen] = useState(false);

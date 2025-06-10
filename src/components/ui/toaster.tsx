@@ -10,24 +10,13 @@ import {
 import { useToast } from "@/hooks/use-toast"
 
 export function Toaster() {
-  const { toasts, dismiss } = useToast()
+  const { toasts } = useToast()
 
   return (
     <ToastProvider>
       {toasts.map(function ({ id, title, description, action, ...props }) {
-        const handleOpenChange = (open: boolean) => {
-          console.log('🔄 Toast onOpenChange:', id, open);
-          if (!open) {
-            dismiss(id);
-          }
-        };
-
         return (
-          <Toast 
-            key={id} 
-            {...props}
-            onOpenChange={handleOpenChange}
-          >
+          <Toast key={id} {...props}>
             <div className="grid gap-1">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (
