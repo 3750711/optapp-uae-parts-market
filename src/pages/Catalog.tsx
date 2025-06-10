@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -15,14 +16,8 @@ import { useConditionalCarData } from "@/hooks/useConditionalCarData";
 import { useSearchHistory, SearchHistoryItem } from "@/hooks/useSearchHistory";
 import Layout from "@/components/layout/Layout";
 import { useDebounce } from "@/hooks/useDebounce";
-import { ProductCard } from "@/components/product/ProductCard";
-import { ProductListItem } from "@/components/product/ProductListItem";
-import { ViewToggle } from "@/components/catalog/ViewToggle";
-import { ProductSorting } from "@/components/catalog/ProductSorting";
 import { Loader2, Package } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CatalogSEO } from '@/components/catalog/CatalogSEO';
-import { RequestPartsPromo } from '@/components/catalog/RequestPartsPromo';
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -168,9 +163,6 @@ const Catalog: React.FC = () => {
       </Helmet>
 
       <div className="container mx-auto px-4 py-8">
-        {/* SEO */}
-        <CatalogSEO />
-
         {/* Breadcrumb */}
         <CatalogBreadcrumb
           searchQuery={activeSearchTerm}
@@ -289,7 +281,7 @@ const Catalog: React.FC = () => {
                           <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
                         </div>
                       ) : (
-                        <Button onClick={fetchNextPage} className="bg-primary hover:bg-primary/90">
+                        <Button onClick={handleLoadMore} className="bg-primary hover:bg-primary/90">
                           Загрузить ещё
                         </Button>
                       )}

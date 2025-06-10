@@ -8,9 +8,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Save, Loader } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-// Import admin components and hooks
-import { useOrderFormLogic } from "@/components/admin/order/useOrderFormLogic";
-import { OrderFormFields } from "@/components/admin/order/OrderFormFields";
+// Import admin components and hooks - FIXED: Use the correct hook
+import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
+import { SellerOrderFormFields } from "@/components/admin/order/SellerOrderFormFields";
 import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { useAuth } from "@/contexts/AuthContext";
@@ -52,7 +52,7 @@ const SellerCreateOrder = () => {
     parseTitleForBrand,
     creationStage,
     creationProgress
-  } = useOrderFormLogic();
+  } = useAdminOrderFormLogic();
 
   // Add submission guard
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
@@ -163,7 +163,7 @@ const SellerCreateOrder = () => {
             
             <form onSubmit={handleSubmit}>
               <CardContent className="space-y-8">
-                <OrderFormFields
+                <SellerOrderFormFields
                   formData={formData}
                   handleInputChange={handleInputChange}
                   buyerProfiles={buyerProfiles}

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,7 +91,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
   // Set initial selected model when brand models are loaded
   useEffect(() => {
     if (selectedBrand && brandModels.length > 0 && product.model) {
-      const modelId = findModelIdByName(product.model, selectedBrand);
+      const modelId = findModelIdByName(product.model);
       if (modelId) {
         setSelectedModelId(modelId);
       }
