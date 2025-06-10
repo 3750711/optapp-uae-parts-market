@@ -1,7 +1,8 @@
+
 import * as React from "react"
 
-const TOAST_LIMIT = 5
-const TOAST_REMOVE_DELAY = 2000
+const TOAST_LIMIT = 3 // Reduced from 5
+const TOAST_REMOVE_DELAY = 1500 // Reduced from 2000
 
 type ToasterToast = {
   id: string
@@ -121,14 +122,20 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
-const listeners: Array<(state: State) => void> = []
+// Optimized listeners management
+const listeners = new Set<(state: State) => void>()
 
 let memoryState: State = { toasts: [] }
 
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
-    listener(memoryState)
+    try {
+      listener(memoryState)
+    } catch (error) {
+      console.error('Toast listener error:', error)
+      listeners.delete(listener) // Remove broken listeners
+    }
   })
 }
 
@@ -167,12 +174,9 @@ function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
-    listeners.push(setState)
+    listeners.add(setState)
     return () => {
-      const index = listeners.indexOf(setState)
-      if (index > -1) {
-        listeners.splice(index, 1)
-      }
+      listeners.delete(setState)
     }
   }, [])
 

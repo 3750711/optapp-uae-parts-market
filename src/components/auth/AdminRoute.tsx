@@ -2,8 +2,9 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAdminGuard } from '@/hooks/useAdminGuard';
-import { useAuth } from '@/contexts/AuthContext';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { devLog } from '@/utils/performanceUtils';
 
 interface AdminRouteProps {
@@ -15,19 +16,24 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, isLoading: authLoading } = useAuth();
-  const { isAdmin, isChecking, hasAdminAccess } = useAdminGuard(false);
+  const { 
+    isChecking, 
+    hasAdminAccess, 
+    needsLogin, 
+    needsProfile, 
+    accessDenied 
+  } = useAdminGuard(false);
 
-  devLog('AdminRoute state:', {
-    user: !!user,
-    authLoading,
+  devLog('AdminRoute render:', {
     isChecking,
-    isAdmin,
-    hasAdminAccess
+    hasAdminAccess,
+    needsLogin,
+    needsProfile,
+    accessDenied
   });
 
-  // Show loading while checking authentication or admin rights
-  if (authLoading || isChecking) {
+  // Show loading state
+  if (isChecking) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -38,18 +44,42 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // If user is not authenticated, redirect to login
-  if (!user) {
-    devLog('AdminRoute: No user, redirecting to login');
+  // Redirect to login if not authenticated
+  if (needsLogin) {
     return <Navigate to="/login" replace />;
   }
 
-  // If no admin access, redirect to profile
-  if (!hasAdminAccess) {
-    devLog('AdminRoute: No admin access, redirecting to profile');
-    return <Navigate to="/profile" replace />;
+  // Show access denied with user-friendly message
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+        <div className="max-w-md w-full space-y-4">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              У вас нет прав администратора для доступа к этой странице.
+            </AlertDescription>
+          </Alert>
+          <Button 
+            onClick={() => window.location.href = '/profile'}
+            className="w-full"
+          >
+            Вернуться в профиль
+          </Button>
+        </div>
+      </div>
+    );
   }
 
-  // If all checks pass, render admin content
-  return <>{children}</>;
+  // Show content if all checks pass
+  if (hasAdminAccess) {
+    return <>{children}</>;
+  }
+
+  // Fallback loading state
+  return fallback || (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin" />
+    </div>
+  );
 };
