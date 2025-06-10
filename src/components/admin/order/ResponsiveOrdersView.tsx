@@ -6,24 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Grid, List } from 'lucide-react';
 import { ComponentFallback, EmptyState } from './FallbackComponents';
 
-// Lazy imports with fallback
-const VirtualizedOrdersList = React.lazy(() => 
-  import('./VirtualizedOrdersList').catch(() => ({ 
-    default: () => <ComponentFallback componentName="VirtualizedOrdersList" /> 
-  }))
-);
-
-const MobileOrderCard = React.lazy(() => 
-  import('./MobileOrderCard').catch(() => ({ 
-    default: () => <ComponentFallback componentName="MobileOrderCard" /> 
-  }))
-);
-
-const CompactMobileOrderCard = React.lazy(() => 
-  import('./CompactMobileOrderCard').catch(() => ({ 
-    default: () => <ComponentFallback componentName="CompactMobileOrderCard" /> 
-  }))
-);
+// Direct imports instead of lazy loading to avoid TypeScript issues
+import { VirtualizedOrdersList } from './VirtualizedOrdersList';
+import { MobileOrderCard } from './MobileOrderCard';
+import { CompactMobileOrderCard } from './CompactMobileOrderCard';
 
 interface ResponsiveOrdersViewProps {
   orders: Order[];
@@ -65,33 +51,29 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
     try {
       if (viewMode === 'compact') {
         return (
-          <React.Suspense fallback={<ComponentFallback componentName="CompactMobileOrderCard" />}>
-            <CompactMobileOrderCard
-              key={order.id}
-              order={order}
-              isSelected={selectedOrders.includes(order.id)}
-              onSelect={onSelectOrder || (() => {})}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onViewDetails={onViewDetails}
-              onQuickAction={onQuickAction}
-            />
-          </React.Suspense>
+          <CompactMobileOrderCard
+            key={order.id}
+            order={order}
+            isSelected={selectedOrders.includes(order.id)}
+            onSelect={onSelectOrder || (() => {})}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
+            onQuickAction={onQuickAction}
+          />
         );
       } else {
         return (
-          <React.Suspense fallback={<ComponentFallback componentName="MobileOrderCard" />}>
-            <MobileOrderCard
-              key={order.id}
-              order={order}
-              isSelected={selectedOrders.includes(order.id)}
-              onSelect={onSelectOrder || (() => {})}
-              onEdit={onEdit}
-              onDelete={onDelete}
-              onViewDetails={onViewDetails}
-              onQuickAction={onQuickAction}
-            />
-          </React.Suspense>
+          <MobileOrderCard
+            key={order.id}
+            order={order}
+            isSelected={selectedOrders.includes(order.id)}
+            onSelect={onSelectOrder || (() => {})}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            onViewDetails={onViewDetails}
+            onQuickAction={onQuickAction}
+          />
         );
       }
     } catch (error) {
@@ -168,17 +150,15 @@ export const ResponsiveOrdersView: React.FC<ResponsiveOrdersViewProps> = ({
           {memoizedOrders.map((order) => renderMobileCard(order))}
         </div>
       ) : (
-        <React.Suspense fallback={<ComponentFallback componentName="VirtualizedOrdersList" />}>
-          <VirtualizedOrdersList
-            orders={memoizedOrders}
-            selectedOrders={selectedOrders}
-            onSelectOrder={onSelectOrder}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onViewDetails={onViewDetails}
-            containerHeight={containerHeight}
-          />
-        </React.Suspense>
+        <VirtualizedOrdersList
+          orders={memoizedOrders}
+          selectedOrders={selectedOrders}
+          onSelectOrder={onSelectOrder}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onViewDetails={onViewDetails}
+          containerHeight={containerHeight}
+        />
       )}
     </div>
   );
