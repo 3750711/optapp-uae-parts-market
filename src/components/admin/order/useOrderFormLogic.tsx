@@ -408,7 +408,7 @@ export const useOrderFormLogic = () => {
       setCreationStage('fetching_buyer');
       setCreationProgress(20);
       
-      console.log("=== Получение данных покупателя ===");
+      console.log("=== Получение данных покупателя ===\");
       console.log("Buyer OPT ID:", formData.buyerOptId);
 
       const { data: buyerData, error: buyerError } = await supabase
@@ -665,5 +665,3 @@ export const useOrderFormLogic = () => {
     creationProgress
   };
 };
-
-}
