@@ -1,5 +1,6 @@
+
 import React, { useState, useMemo, useCallback } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
@@ -34,9 +35,6 @@ const AdminProducts = () => {
   const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
   const [priceRange, setPriceRange] = useState({ min: 0, max: 100000 });
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasNextPage, setHasNextPage] = useState(true);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [deleteProductId, setDeleteProductId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -44,7 +42,7 @@ const AdminProducts = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
 
-  const fetchProducts = useCallback(async ({ pageParam = 1 }) => {
+  const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
     let query = supabase
       .from('products')
       .select(`
@@ -52,11 +50,8 @@ const AdminProducts = () => {
         product_images(id, url, is_primary)
       `, { count: 'exact' })
       .order('created_at', { ascending: false })
-      .range((pageParam - 1) * PAGE_SIZE, pageParam * PAGE_SIZE - 1);
+      .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
-    // Add ordering for product_images to ensure primary images come first
-    // Note: Supabase will handle the ordering of related data
-    
     if (searchTerm) {
       query = query.ilike('title', `%${searchTerm}%`);
     }
@@ -98,22 +93,30 @@ const AdminProducts = () => {
       })
     }));
 
-    const totalCount = count || 0;
-    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
-    setHasNextPage(pageParam < totalPages);
-
-    return { data: dataWithSortedImages, totalPages };
+    return { 
+      data: dataWithSortedImages || [], 
+      count: count || 0 
+    };
   }, [searchTerm, statusFilter, dateRange, priceRange]);
 
   const {
     data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading,
     isError,
     error,
     refetch,
-  } = useQuery({
-    queryKey: ['products', searchTerm, statusFilter, dateRange, priceRange, currentPage],
-    queryFn: () => fetchProducts({ pageParam: 1 }),
+  } = useInfiniteQuery({
+    queryKey: ['products', searchTerm, statusFilter, dateRange, priceRange],
+    queryFn: fetchProducts,
+    getNextPageParam: (lastPage, allPages) => {
+      const totalItems = allPages.reduce((sum, page) => sum + page.data.length, 0);
+      const totalCount = lastPage.count;
+      return totalItems < totalCount ? allPages.length : undefined;
+    },
+    initialPageParam: 0,
   });
 
   const handleBulkStatusChange = async (status: string) => {
@@ -209,26 +212,9 @@ const AdminProducts = () => {
     refetch();
   };
 
-  const filteredProducts = useMemo(() => {
-    return data?.data || [];
+  const allProducts = useMemo(() => {
+    return data?.pages.flatMap(page => page.data) || [];
   }, [data]);
-
-  const loadMore = async () => {
-    if (isLoadingMore || !hasNextPage) return;
-    setIsLoadingMore(true);
-    setCurrentPage(prev => prev + 1);
-
-    try {
-      const nextPageData = await fetchProducts({ pageParam: currentPage + 1 });
-      if (nextPageData) {
-        setHasNextPage(currentPage + 1 < nextPageData.totalPages);
-      }
-    } catch (error) {
-      console.error("Failed to load more products", error);
-    } finally {
-      setIsLoadingMore(false);
-    }
-  };
 
   const clearFilters = () => {
     setSearchTerm('');
@@ -276,7 +262,7 @@ const AdminProducts = () => {
 
         {/* Products Grid */}
         <ProductsGrid
-          products={filteredProducts}
+          products={allProducts}
           selectedProducts={selectedProducts}
           onProductSelect={setSelectedProducts}
           onProductUpdate={refetch}
@@ -292,14 +278,14 @@ const AdminProducts = () => {
         
         {hasNextPage && (
           <LoadMoreTrigger
-            onLoadMore={loadMore}
-            isLoading={isLoadingMore}
+            onLoadMore={() => fetchNextPage()}
+            isLoading={isFetchingNextPage}
             hasNextPage={hasNextPage}
           />
         )}
 
         {/* Empty State */}
-        {!isLoading && filteredProducts.length === 0 && (
+        {!isLoading && allProducts.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-500 text-lg mb-2">Товары не найдены</div>
             <div className="text-gray-400">
