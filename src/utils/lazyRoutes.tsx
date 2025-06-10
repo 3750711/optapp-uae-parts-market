@@ -3,25 +3,28 @@ import { lazy } from 'react';
 
 // Utility function to add retry logic to lazy imports
 const lazyWithRetry = (importFunc: () => Promise<any>, retries = 3) => {
-  return lazy(() => 
-    importFunc().catch((error) => {
-      console.error('Failed to load module:', error);
-      
-      if (retries > 0) {
-        console.log(`Retrying module load... (${retries} attempts left)`);
-        return new Promise((resolve, reject) => {
-          setTimeout(() => {
-            lazyWithRetry(importFunc, retries - 1)
-              .type()
-              .then(resolve)
-              .catch(reject);
-          }, 1000);
-        });
-      }
-      
-      throw error;
-    })
-  );
+  return lazy(() => {
+    const attemptImport = (attemptsLeft: number): Promise<any> => {
+      return importFunc().catch((error) => {
+        console.error('Failed to load module:', error);
+        
+        if (attemptsLeft > 0) {
+          console.log(`Retrying module load... (${attemptsLeft} attempts left)`);
+          return new Promise((resolve, reject) => {
+            setTimeout(() => {
+              attemptImport(attemptsLeft - 1)
+                .then(resolve)
+                .catch(reject);
+            }, 1000);
+          });
+        }
+        
+        throw error;
+      });
+    };
+    
+    return attemptImport(retries);
+  });
 };
 
 // Regular pages
