@@ -7,7 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
-interface DateRange {
+export interface DateRange {
   from: Date | null;
   to: Date | null;
 }
@@ -53,13 +53,21 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ value, onChange, disa
               mode="range"
               defaultMonth={value.from || new Date()}
               selected={{
-                from: value.from,
-                to: value.to,
+                from: value.from || undefined,
+                to: value.to || undefined,
               }}
               onSelect={(selectedDateRange) => {
-                onChange(selectedDateRange || { from: null, to: null });
+                if (selectedDateRange) {
+                  onChange({
+                    from: selectedDateRange.from || null,
+                    to: selectedDateRange.to || null
+                  });
+                } else {
+                  onChange({ from: null, to: null });
+                }
               }}
               numberOfMonths={2}
+              className="pointer-events-auto"
             />
           </PopoverContent>
         </Popover>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Slider } from "@/components/ui/slider";
 
-interface PriceRange {
+export interface PriceRange {
   min: number;
   max: number;
 }

@@ -8,16 +8,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import PriceRangeFilter from '@/components/admin/filters/PriceRangeFilter';
-import DateRangeFilter from '@/components/admin/filters/DateRangeFilter';
+import PriceRangeFilter, { PriceRange } from '@/components/admin/filters/PriceRangeFilter';
+import DateRangeFilter, { DateRange } from '@/components/admin/filters/DateRangeFilter';
 import StatusFilter from '@/components/admin/filters/StatusFilter';
 import { FiltersState } from '@/hooks/useProductFilters';
-import { DateRange } from '@/components/admin/filters/DateRangeFilter';
 
 interface FiltersPopoverProps {
   filters: FiltersState;
-  priceRange: [number, number];
-  setPriceRange: (range: [number, number]) => void;
+  priceRange: PriceRange;
+  setPriceRange: (range: PriceRange) => void;
   maxPrice: number;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
@@ -25,7 +24,7 @@ interface FiltersPopoverProps {
   setStatusFilter: (status: string | null) => void;
   resetAllFilters: () => void;
   applyFilters: () => void;
-  disabled?: boolean; // Add the disabled prop
+  disabled?: boolean;
 }
 
 const FiltersPopover: React.FC<FiltersPopoverProps> = ({
@@ -39,12 +38,11 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
   setStatusFilter,
   resetAllFilters,
   applyFilters,
-  disabled = false // Default to false if not provided
+  disabled = false
 }) => {
-  // Since FiltersState is now empty, we need a different way to determine if filters are active
   const hasActiveFilters = Boolean(
-    priceRange?.[0] !== 0 || 
-    priceRange?.[1] !== maxPrice || 
+    priceRange?.min !== 0 || 
+    priceRange?.max !== maxPrice || 
     dateRange?.from || 
     dateRange?.to || 
     statusFilter
@@ -74,21 +72,24 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
           
           {/* Price Range Filter */}
           <PriceRangeFilter 
-            priceRange={priceRange}
+            value={priceRange}
             maxPrice={maxPrice}
             onChange={setPriceRange}
+            disabled={disabled}
           />
           
           {/* Date Range Filter */}
           <DateRangeFilter 
-            dateRange={dateRange}
+            value={dateRange}
             onChange={setDateRange}
+            disabled={disabled}
           />
           
           {/* Status Filter */}
           <StatusFilter 
-            statusFilter={statusFilter}
-            onChange={setStatusFilter}
+            value={statusFilter || 'all'}
+            onChange={(status) => setStatusFilter(status === 'all' ? null : status)}
+            disabled={disabled}
           />
           
           {/* Action Buttons */}
@@ -97,12 +98,14 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
               variant="outline" 
               size="sm"
               onClick={resetAllFilters}
+              disabled={disabled}
             >
               Сбросить
             </Button>
             <Button 
               size="sm"
               onClick={applyFilters}
+              disabled={disabled}
             >
               Применить
             </Button>
