@@ -1,11 +1,9 @@
+
 import { lazy } from 'react';
 
-// Критические админ страницы - загружаем сразу без lazy
+// Critical admin pages - load immediately without lazy loading
 import AdminDashboard from '@/pages/AdminDashboard';
 import OptimizedAdminAddProduct from '@/pages/OptimizedAdminAddProduct';
-
-// Import оптимизированных route configs
-import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
 
 export const routeConfigs = [
   // Public routes
@@ -51,26 +49,8 @@ export const routeConfigs = [
     protected: false,
     adminOnly: false,
   },
-  {
-    path: '/faq',
-    component: lazy(() => import('@/pages/FAQ')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/terms',
-    component: lazy(() => import('@/pages/Terms')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/privacy',
-    component: lazy(() => import('@/pages/Privacy')),
-    protected: false,
-    adminOnly: false,
-  },
   
-  // Admin routes - критические страницы без lazy loading
+  // Admin routes - critical pages without lazy loading
   {
     path: '/admin',
     component: AdminDashboard,
@@ -79,7 +59,7 @@ export const routeConfigs = [
   },
   {
     path: '/admin/add-product',
-    component: OptimizedAdminAddProduct, // Используем оптимизированную версию
+    component: OptimizedAdminAddProduct,
     protected: true,
     adminOnly: true,
   },
@@ -121,12 +101,6 @@ export const routeConfigs = [
     protected: true,
     adminOnly: true,
   },
-  {
-    path: '/admin/settings',
-    component: lazy(() => import('@/pages/AdminSettings')),
-    protected: true,
-    adminOnly: true,
-  },
   
   // User routes
   {
@@ -136,20 +110,14 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/orders',
-    component: lazy(() => import('@/pages/UserOrders')),
+    path: '/buyer-orders',
+    component: lazy(() => import('@/pages/BuyerOrders')),
     protected: true,
     adminOnly: false,
   },
   {
-    path: '/order/:id',
-    component: lazy(() => import('@/pages/OrderDetail')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/settings',
-    component: lazy(() => import('@/pages/UserSettings')),
+    path: '/order-details/:id',
+    component: lazy(() => import('@/pages/OrderDetails')),
     protected: true,
     adminOnly: false,
   },
@@ -162,8 +130,8 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/seller/products',
-    component: lazy(() => import('@/pages/SellerProducts')),
+    path: '/seller/listings',
+    component: lazy(() => import('@/pages/SellerListings')),
     protected: true,
     adminOnly: false,
   },
@@ -176,12 +144,6 @@ export const routeConfigs = [
   {
     path: '/seller/orders',
     component: lazy(() => import('@/pages/SellerOrders')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/seller/settings',
-    component: lazy(() => import('@/pages/SellerSettings')),
     protected: true,
     adminOnly: false,
   },
@@ -201,11 +163,10 @@ export const routeConfigs = [
   },
 ];
 
-// Обновленная функция предзагрузки для админ панели
+// Preload admin routes
 export const preloadAdminRoutes = () => {
   console.log('🔄 Preloading admin routes...');
   
-  // Предзагружаем только некритические админ страницы
   const adminRoutes = [
     () => import('@/pages/AdminUsers'),
     () => import('@/pages/AdminProducts'), 
@@ -218,7 +179,7 @@ export const preloadAdminRoutes = () => {
   return Promise.allSettled(adminRoutes.map(route => route()));
 };
 
-// Предзагрузка критических маршрутов
+// Preload critical routes
 export const preloadCriticalRoutes = () => {
   console.log('🔄 Preloading critical routes...');
   
@@ -233,13 +194,13 @@ export const preloadCriticalRoutes = () => {
   return Promise.allSettled(criticalRoutes.map(route => route()));
 };
 
-// Предзагрузка маршрутов продавца
+// Preload seller routes
 export const preloadSellerRoutes = () => {
   console.log('🔄 Preloading seller routes...');
   
   const sellerRoutes = [
     () => import('@/pages/SellerDashboard'),
-    () => import('@/pages/SellerProducts'),
+    () => import('@/pages/SellerListings'),
     () => import('@/pages/SellerAddProduct'),
     () => import('@/pages/SellerOrders'),
   ];
