@@ -33,6 +33,17 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
 }) => {
+  // Отладочная информация для проверки данных продавца
+  console.log('ProductDetailContent seller data:', {
+    productPhone: product.phone_url,
+    productTelegram: product.telegram_url,
+    sellerProfilePhone: sellerProfile?.phone,
+    sellerProfileTelegram: sellerProfile?.telegram,
+    sellerProfile: sellerProfile,
+    sellerName,
+    optStatus: sellerProfile?.opt_status
+  });
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       {/* Gallery section - now includes videos */}

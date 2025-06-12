@@ -26,6 +26,16 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // Отладочная информация
+  console.log('ContactButtons props:', {
+    sellerPhone,
+    sellerTelegram,
+    productTitle,
+    isVerified,
+    verificationStatus,
+    user: user ? 'authenticated' : 'not authenticated'
+  });
+
   const handleCopyPhone = () => {
     if (sellerPhone) {
       navigator.clipboard.writeText(sellerPhone);
@@ -55,20 +65,16 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
   };
 
   const formatPhone = (phone: string) => {
-    // Remove any non-digit characters
     const cleaned = phone.replace(/\D/g, '');
     
-    // Format as +971 XX XXX XXXX for UAE numbers
     if (cleaned.startsWith('971') && cleaned.length === 12) {
       return `+${cleaned.slice(0, 3)} ${cleaned.slice(3, 5)} ${cleaned.slice(5, 8)} ${cleaned.slice(8)}`;
     }
     
-    // Return original if not UAE format
     return phone;
   };
 
   const formatTelegram = (telegram: string) => {
-    // Remove @ if present and add it back
     const cleaned = telegram.replace(/^@/, '');
     return `@${cleaned}`;
   };
@@ -84,7 +90,6 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     return `https://wa.me/${cleaned}?text=${message}`;
   };
 
-  // Show verification warning for unverified sellers
   const showVerificationWarning = verificationStatus === 'blocked' || 
     (verificationStatus === 'pending' && !isVerified);
 
@@ -113,6 +118,65 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
     );
   }
 
+  // Показываем информацию о наличии контактов даже для неавторизованных пользователей
+  const hasContacts = sellerPhone || sellerTelegram;
+  
+  if (!user && hasContacts) {
+    return (
+      <div className="space-y-3">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="text-sm font-medium text-blue-800 mb-2">
+            Контакты продавца доступны
+          </h3>
+          <p className="text-sm text-blue-700 mb-3">
+            Для связи с продавцом необходимо авторизоваться
+          </p>
+          
+          {/* Превью доступных контактов */}
+          <div className="space-y-2 mb-3">
+            {sellerPhone && (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <Phone className="h-4 w-4" />
+                <span>Телефон и WhatsApp доступны</span>
+              </div>
+            )}
+            {sellerTelegram && (
+              <div className="flex items-center gap-2 text-sm text-blue-600">
+                <MessageCircle className="h-4 w-4" />
+                <span>Telegram доступен</span>
+              </div>
+            )}
+          </div>
+          
+          <Button 
+            onClick={() => setShowAuthDialog(true)}
+            className="w-full"
+            size="sm"
+          >
+            Войти для связи с продавцом
+          </Button>
+        </div>
+
+        <AuthDialog 
+          open={showAuthDialog}
+          onOpenChange={setShowAuthDialog}
+        />
+      </div>
+    );
+  }
+
+  // Если нет контактов вообще
+  if (!hasContacts) {
+    return (
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <p className="text-sm text-gray-600">
+          Контактная информация продавца не указана
+        </p>
+      </div>
+    );
+  }
+
+  // Основной рендер для авторизованных пользователей с контактами
   return (
     <div className="space-y-3">
       {/* Phone Section */}
@@ -147,7 +211,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleContactAction(handleCopyPhone)}
+                  onClick={handleCopyPhone}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -155,7 +219,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
               
               <div className="grid grid-cols-2 gap-2">
                 <Button
-                  onClick={() => handleContactAction(() => window.open(`tel:${sellerPhone}`))}
+                  onClick={() => window.open(`tel:${sellerPhone}`)}
                   className="bg-blue-600 hover:bg-blue-700"
                   size="sm"
                 >
@@ -164,7 +228,7 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
                 </Button>
                 
                 <Button
-                  onClick={() => handleContactAction(() => window.open(getWhatsAppUrl(sellerPhone), '_blank'))}
+                  onClick={() => window.open(getWhatsAppUrl(sellerPhone), '_blank')}
                   className="bg-green-600 hover:bg-green-700"
                   size="sm"
                 >
@@ -186,14 +250,14 @@ const ContactButtons: React.FC<ContactButtonsProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => handleContactAction(handleCopyTelegram)}
+              onClick={handleCopyTelegram}
             >
               <Copy className="h-4 w-4" />
             </Button>
           </div>
           
           <Button
-            onClick={() => handleContactAction(() => window.open(getTelegramUrl(sellerTelegram), '_blank'))}
+            onClick={() => window.open(getTelegramUrl(sellerTelegram), '_blank')}
             className="w-full bg-blue-500 hover:bg-blue-600"
             size="sm"
           >
