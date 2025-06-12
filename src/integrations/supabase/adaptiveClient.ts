@@ -2,17 +2,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Используем тип от существующего клиента для совместимости
+type SupabaseClientType = SupabaseClient<Database, 'public', any>;
+
 interface AdaptiveSupabaseOptions {
   primaryUrl: string;
   primaryKey: string;
   proxyUrl?: string;
-  client?: SupabaseClient<Database>;
+  client?: SupabaseClientType;
 }
 
 export class AdaptiveSupabaseClient {
-  private primaryClient: SupabaseClient<Database>;
-  private proxyClient?: SupabaseClient<Database>;
-  private currentClient: SupabaseClient<Database>;
+  private primaryClient: SupabaseClientType;
+  private proxyClient?: SupabaseClientType;
+  private currentClient: SupabaseClientType;
   private isUsingProxy = false;
 
   constructor(options: AdaptiveSupabaseOptions) {
@@ -29,7 +32,7 @@ export class AdaptiveSupabaseClient {
     }
   }
 
-  async testConnection(client: SupabaseClient<Database>): Promise<boolean> {
+  async testConnection(client: SupabaseClientType): Promise<boolean> {
     try {
       const { error } = await client.from('profiles').select('id').limit(1);
       return !error;
@@ -62,7 +65,7 @@ export class AdaptiveSupabaseClient {
     console.log('Switched to primary client');
   }
 
-  get client(): SupabaseClient<Database> {
+  get client(): SupabaseClientType {
     return this.currentClient;
   }
 
