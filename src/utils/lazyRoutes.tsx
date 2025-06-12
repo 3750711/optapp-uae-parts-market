@@ -5,6 +5,9 @@ import { lazy } from 'react';
 import AdminDashboard from '@/pages/AdminDashboard';
 import OptimizedAdminAddProduct from '@/pages/OptimizedAdminAddProduct';
 
+// OrdersRedirect component for handling order redirects
+import OrdersRedirect from '@/pages/OrdersRedirect';
+
 export const routeConfigs = [
   // Public routes
   {
@@ -14,14 +17,14 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/login',
-    component: lazy(() => import('@/pages/Login')),
+    path: '/about',
+    component: lazy(() => import('@/pages/About')),
     protected: false,
     adminOnly: false,
   },
   {
-    path: '/register',
-    component: lazy(() => import('@/pages/Register')),
+    path: '/contact',
+    component: lazy(() => import('@/pages/Contact')),
     protected: false,
     adminOnly: false,
   },
@@ -37,16 +40,80 @@ export const routeConfigs = [
     protected: false,
     adminOnly: false,
   },
+  
+  // Authentication routes
   {
-    path: '/about',
-    component: lazy(() => import('@/pages/About')),
+    path: '/login',
+    component: lazy(() => import('@/pages/Login')),
     protected: false,
     adminOnly: false,
   },
   {
-    path: '/contact',
-    component: lazy(() => import('@/pages/Contact')),
+    path: '/register',
+    component: lazy(() => import('@/pages/Register')),
     protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-register',
+    component: lazy(() => import('@/pages/SellerRegister')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/forgot-password',
+    component: lazy(() => import('@/pages/ForgotPassword')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/reset-password',
+    component: lazy(() => import('@/pages/ResetPassword')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/verify-email',
+    component: lazy(() => import('@/pages/VerifyEmail')),
+    protected: false,
+    adminOnly: false,
+  },
+  
+  // Stores and requests routes
+  {
+    path: '/stores',
+    component: lazy(() => import('@/pages/Stores')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/store/:id',
+    component: lazy(() => import('@/pages/StoreDetail')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/create-store',
+    component: lazy(() => import('@/pages/CreateStore')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/requests',
+    component: lazy(() => import('@/pages/Requests')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/request/:id',
+    component: lazy(() => import('@/pages/RequestDetail')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/create-request',
+    component: lazy(() => import('@/pages/CreateRequest')),
+    protected: true,
     adminOnly: false,
   },
   
@@ -84,6 +151,24 @@ export const routeConfigs = [
     adminOnly: true,
   },
   {
+    path: '/admin/order-details/:id',
+    component: lazy(() => import('@/pages/AdminOrderDetails')),
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: '/admin/free-order',
+    component: lazy(() => import('@/pages/AdminFreeOrder')),
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: '/admin/create-order-from-product/:id',
+    component: lazy(() => import('@/pages/AdminCreateOrderFromProduct')),
+    protected: true,
+    adminOnly: true,
+  },
+  {
     path: '/admin/stores',
     component: lazy(() => import('@/pages/AdminStores')),
     protected: true,
@@ -98,6 +183,12 @@ export const routeConfigs = [
   {
     path: '/admin/logistics',
     component: lazy(() => import('@/pages/AdminLogistics')),
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: '/admin/car-catalog',
+    component: lazy(() => import('@/pages/AdminCarCatalog')),
     protected: true,
     adminOnly: true,
   },
@@ -116,9 +207,21 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
+    path: '/buyer-create-order',
+    component: lazy(() => import('@/pages/BuyerCreateOrder')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
     path: '/order-details/:id',
     component: lazy(() => import('@/pages/OrderDetails')),
     protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/buyer-guide',
+    component: lazy(() => import('@/pages/BuyerGuide')),
+    protected: false,
     adminOnly: false,
   },
   
@@ -147,6 +250,59 @@ export const routeConfigs = [
     protected: true,
     adminOnly: false,
   },
+  {
+    path: '/seller/order-details/:id',
+    component: lazy(() => import('@/pages/SellerOrderDetails')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-create-order',
+    component: lazy(() => import('@/pages/SellerCreateOrder')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-sell-product',
+    component: lazy(() => import('@/pages/SellerSellProduct')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-profile',
+    component: lazy(() => import('@/pages/SellerProfile')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/public-seller-profile/:id',
+    component: lazy(() => import('@/pages/PublicSellerProfile')),
+    protected: false,
+    adminOnly: false,
+  },
+  
+  // Utility and redirect routes
+  {
+    path: '/orders',
+    component: OrdersRedirect,
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller/products',
+    component: () => {
+      window.location.replace('/seller/listings');
+      return null;
+    },
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/generate-og-image',
+    component: lazy(() => import('@/pages/GenerateOGImage')),
+    protected: false,
+    adminOnly: false,
+  },
   
   // Error routes
   {
@@ -171,9 +327,13 @@ export const preloadAdminRoutes = () => {
     () => import('@/pages/AdminUsers'),
     () => import('@/pages/AdminProducts'), 
     () => import('@/pages/AdminOrders'),
+    () => import('@/pages/AdminOrderDetails'),
+    () => import('@/pages/AdminFreeOrder'),
+    () => import('@/pages/AdminCreateOrderFromProduct'),
     () => import('@/pages/AdminStores'),
     () => import('@/pages/AdminEvents'),
     () => import('@/pages/AdminLogistics'),
+    () => import('@/pages/AdminCarCatalog'),
   ];
 
   return Promise.allSettled(adminRoutes.map(route => route()));
@@ -189,6 +349,9 @@ export const preloadCriticalRoutes = () => {
     () => import('@/pages/Register'),
     () => import('@/pages/Catalog'),
     () => import('@/pages/Profile'),
+    () => import('@/pages/ProductDetail'),
+    () => import('@/pages/About'),
+    () => import('@/pages/Contact'),
   ];
   
   return Promise.allSettled(criticalRoutes.map(route => route()));
@@ -203,7 +366,44 @@ export const preloadSellerRoutes = () => {
     () => import('@/pages/SellerListings'),
     () => import('@/pages/SellerAddProduct'),
     () => import('@/pages/SellerOrders'),
+    () => import('@/pages/SellerOrderDetails'),
+    () => import('@/pages/SellerCreateOrder'),
+    () => import('@/pages/SellerSellProduct'),
+    () => import('@/pages/SellerProfile'),
+    () => import('@/pages/PublicSellerProfile'),
   ];
   
   return Promise.allSettled(sellerRoutes.map(route => route()));
+};
+
+// Preload authentication routes
+export const preloadAuthRoutes = () => {
+  console.log('🔄 Preloading auth routes...');
+  
+  const authRoutes = [
+    () => import('@/pages/Login'),
+    () => import('@/pages/Register'),
+    () => import('@/pages/SellerRegister'),
+    () => import('@/pages/ForgotPassword'),
+    () => import('@/pages/ResetPassword'),
+    () => import('@/pages/VerifyEmail'),
+  ];
+  
+  return Promise.allSettled(authRoutes.map(route => route()));
+};
+
+// Preload store and request routes
+export const preloadStoreRoutes = () => {
+  console.log('🔄 Preloading store and request routes...');
+  
+  const storeRoutes = [
+    () => import('@/pages/Stores'),
+    () => import('@/pages/StoreDetail'),
+    () => import('@/pages/CreateStore'),
+    () => import('@/pages/Requests'),
+    () => import('@/pages/RequestDetail'),
+    () => import('@/pages/CreateRequest'),
+  ];
+  
+  return Promise.allSettled(storeRoutes.map(route => route()));
 };
