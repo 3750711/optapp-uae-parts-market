@@ -70,8 +70,8 @@ export default defineConfig(({ mode }) => ({
           ],
           'admin-orders': [
             'src/pages/AdminOrders.tsx',
-            'src/hooks/useOptimizedOrdersQuery.ts',
-            'src/hooks/useOrderActions.ts'
+            'src/hooks/useOptimizedOrdersQuery.tsx',
+            'src/hooks/useOrderActions.tsx'
           ],
           
           // Продавец чанки
