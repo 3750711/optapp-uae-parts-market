@@ -1,9 +1,8 @@
-
 import { lazy } from 'react';
 
 // Critical admin pages - load immediately without lazy loading
 import AdminDashboard from '@/pages/AdminDashboard';
-import OptimizedAdminAddProduct from '@/pages/OptimizedAdminAddProduct';
+import AdminAddProduct from '@/pages/AdminAddProduct';
 
 // OrdersRedirect component for handling order redirects
 import OrdersRedirect from '@/pages/OrdersRedirect';
@@ -126,7 +125,7 @@ export const routeConfigs = [
   },
   {
     path: '/admin/add-product',
-    component: OptimizedAdminAddProduct,
+    component: AdminAddProduct,
     protected: true,
     adminOnly: true,
   },
