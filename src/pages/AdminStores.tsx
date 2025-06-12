@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -9,9 +8,11 @@ import {
   Table, TableBody, TableHead, 
   TableHeader, TableRow 
 } from '@/components/ui/table';
-import { Store } from 'lucide-react';
+import { Store, AlertTriangle, RefreshCw } from 'lucide-react';
 import { StoreTag } from '@/types/store';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import StoreTableRow from '@/components/admin/stores/StoreTableRow';
 import StoreEditDialog from '@/components/admin/stores/StoreEditDialog';
 import StoreDeleteDialog from '@/components/admin/stores/StoreDeleteDialog';
@@ -56,8 +57,8 @@ const AdminStores = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [storeToDelete, setStoreToDelete] = useState<StoreWithDetails | null>(null);
   
-  // Fetch stores with related data
-  const { data: stores, isLoading, refetch } = useQuery({
+  // Fetch stores with related data и улучшенной обработкой ошибок
+  const { data: stores, isLoading, error, refetch } = useQuery({
     queryKey: ['admin', 'stores'],
     queryFn: async () => {
       console.log('🔄 Fetching stores data...');
@@ -115,7 +116,55 @@ const AdminStores = () => {
     enabled: isAdmin,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5,
+    retry: (failureCount, error: any) => {
+      // Не повторяем при ошибках доступа
+      if (error?.message?.includes('permission') || error?.code === 'PGRST301') {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  // Показываем сообщение об отсутствии прав доступа
+  if (!isAdmin) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-screen p-4">
+          <Alert variant="destructive" className="max-w-md">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              У вас нет прав для просмотра магазинов. Требуются права администратора.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // Показываем ошибку загрузки с возможностью повтора
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="space-y-4 md:space-y-6 p-4 md:p-6">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Управление магазинами</h1>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>Ошибка загрузки магазинов: {error.message}</span>
+              <Button 
+                onClick={() => refetch()}
+                variant="outline"
+                size="sm"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Повторить
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const handleEditStore = async (store: StoreWithDetails) => {
     setSelectedStore(store);

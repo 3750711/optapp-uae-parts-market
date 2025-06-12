@@ -2,8 +2,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Users, Package, ShoppingCart, Truck } from 'lucide-react';
+import { Users, Package, ShoppingCart, Truck, AlertTriangle } from 'lucide-react';
 import DashboardMetricCard from './DashboardMetricCard';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AdminMetrics {
   total_users: number;
@@ -15,7 +16,7 @@ interface AdminMetrics {
 }
 
 const AdminMetricsSection: React.FC = () => {
-  const { data: metrics, isLoading } = useQuery({
+  const { data: metrics, isLoading, error, refetch } = useQuery({
     queryKey: ['admin', 'metrics-optimized'],
     queryFn: async () => {
       console.log('🔍 Fetching admin metrics with single RPC call...');
@@ -36,7 +37,32 @@ const AdminMetricsSection: React.FC = () => {
     staleTime: 1000 * 60 * 5, // 5 минут кэш
     gcTime: 1000 * 60 * 10, // 10 минут в памяти
     refetchOnWindowFocus: false,
+    retry: (failureCount, error: any) => {
+      // Не повторяем при ошибках доступа
+      if (error?.message?.includes('Only administrators')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
+
+  // Показываем ошибку, если есть проблемы с загрузкой
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="flex items-center justify-between">
+          <span>Ошибка загрузки метрик: {error.message}</span>
+          <button 
+            onClick={() => refetch()}
+            className="ml-2 text-sm underline hover:no-underline"
+          >
+            Повторить
+          </button>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   const metricsData = [
     {

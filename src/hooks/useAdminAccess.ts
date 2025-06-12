@@ -2,20 +2,39 @@
 import { useAuth } from '@/contexts/AuthContext';
 
 export const useAdminAccess = () => {
-  const { isAdmin } = useAuth();
+  const { isAdmin, profile } = useAuth();
+  
+  console.log('🔍 useAdminAccess:', { isAdmin, userType: profile?.user_type });
   
   return {
+    // Строгая проверка админских прав
     isAdmin: isAdmin === true,
-    // Add a function to check if a user can view a specific product status
+    
+    // Функция для проверки возможности просмотра статуса продукта
     canViewProductStatus: (status: string) => {
-      // Admins can view all product statuses
+      // Админы могут видеть все статусы продуктов
       if (isAdmin === true) {
         return true;
       }
       
-      // Non-admins can only view active or sold products
-      // unless they are the seller of the product
+      // Не-админы могут видеть только активные или проданные товары
+      // если они не являются продавцом этого товара
       return ['active', 'sold'].includes(status);
+    },
+    
+    // Функция для проверки возможности управления пользователями
+    canManageUsers: () => {
+      return isAdmin === true;
+    },
+    
+    // Функция для проверки возможности управления заказами
+    canManageOrders: () => {
+      return isAdmin === true;
+    },
+    
+    // Функция для проверки возможности управления товарами
+    canManageProducts: () => {
+      return isAdmin === true;
     }
   };
 };

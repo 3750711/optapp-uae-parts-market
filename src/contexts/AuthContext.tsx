@@ -33,11 +33,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const initTimeoutRef = useRef<NodeJS.Timeout>();
   const queryClient = useQueryClient();
 
+  // Исправленная функция проверки админских прав
+  const checkAdminRights = useCallback(async (userId: string) => {
+    try {
+      console.log('🔍 Checking admin rights for user:', userId);
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('user_type')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('❌ Error checking admin rights:', error);
+        return false;
+      }
+      
+      const hasAdminAccess = profile?.user_type === 'admin';
+      console.log('✅ Admin rights check result:', hasAdminAccess);
+      
+      return hasAdminAccess;
+    } catch (error) {
+      console.error('💥 Exception in admin rights check:', error);
+      return false;
+    }
+  }, []);
+
   // Упрощенная функция загрузки профиля
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!mountedRef.current) return null;
 
     try {
+      console.log('📥 Fetching user profile for:', userId);
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, full_name, user_type, opt_id, verification_status, opt_status, first_login_completed, phone, telegram, location, avatar_url, company_name')
@@ -45,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.error('❌ Error fetching profile:', error);
         if (mountedRef.current) {
           setProfile(null);
           setIsAdmin(false);
@@ -54,10 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data && mountedRef.current) {
+        console.log('✅ Profile loaded successfully:', data.email);
         setProfile(data);
         
-        // Простая проверка админских прав
-        const hasAdminAccess = data.user_type === 'admin';
+        // Проверяем админские права
+        const hasAdminAccess = await checkAdminRights(userId);
         setIsAdmin(hasAdminAccess);
         
         // Предзагружаем данные для админов с задержкой
@@ -77,36 +106,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return null;
     } catch (error) {
-      console.error('Exception while fetching profile:', error);
+      console.error('💥 Exception while fetching profile:', error);
       if (mountedRef.current) {
         setProfile(null);
         setIsAdmin(false);
       }
       return null;
     }
-  }, []);
+  }, [checkAdminRights]);
 
   // Предзагрузка админских данных
   const preloadAdminData = useCallback(async () => {
     try {
+      console.log('🚀 Preloading admin data...');
+      
       // Проверяем, есть ли уже данные в кэше
-      const cachedData = queryClient.getQueryData(['admin', 'add-product-data']);
-      if (cachedData) {
+      const cachedMetrics = queryClient.getQueryData(['admin', 'metrics-optimized']);
+      const cachedProductData = queryClient.getQueryData(['admin', 'add-product-data']);
+      
+      if (cachedMetrics && cachedProductData) {
+        console.log('✅ Admin data already cached');
         return;
       }
 
-      // Предзагружаем данные
-      await queryClient.prefetchQuery({
-        queryKey: ['admin', 'add-product-data'],
-        queryFn: async () => {
-          const { data, error } = await supabase.rpc('get_admin_add_product_data');
-          if (error) throw error;
-          return data;
-        },
-        staleTime: 1000 * 60 * 15, // 15 минут
-      });
+      // Предзагружаем метрики
+      if (!cachedMetrics) {
+        await queryClient.prefetchQuery({
+          queryKey: ['admin', 'metrics-optimized'],
+          queryFn: async () => {
+            const { data, error } = await supabase.rpc('get_admin_metrics');
+            if (error) throw error;
+            return data;
+          },
+          staleTime: 1000 * 60 * 5, // 5 минут
+        });
+      }
+
+      // Предзагружаем данные для добавления продуктов
+      if (!cachedProductData) {
+        await queryClient.prefetchQuery({
+          queryKey: ['admin', 'add-product-data'],
+          queryFn: async () => {
+            const { data, error } = await supabase.rpc('get_admin_add_product_data');
+            if (error) throw error;
+            return data;
+          },
+          staleTime: 1000 * 60 * 15, // 15 минут
+        });
+      }
+      
+      console.log('✅ Admin data preloaded successfully');
     } catch (error) {
-      console.warn('Failed to preload admin data:', error);
+      console.warn('⚠️ Failed to preload admin data:', error);
     }
   }, [queryClient]);
 
@@ -119,10 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshAdminStatus = useCallback(async () => {
     if (user && mountedRef.current) {
       setIsLoading(true);
-      await fetchUserProfile(user.id);
+      const hasAdminAccess = await checkAdminRights(user.id);
+      setIsAdmin(hasAdminAccess);
       setIsLoading(false);
     }
-  }, [user, fetchUserProfile]);
+  }, [user, checkAdminRights]);
 
   const handleFirstLoginComplete = useCallback((completed: boolean) => {
     if (completed) {
@@ -133,6 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
+      console.log('👋 Signing out user...');
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -140,10 +193,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAdmin(null);
       setShowFirstLoginWelcome(false);
       setIsLoading(false);
+      
+      // Очищаем кэш при выходе
+      queryClient.clear();
+      console.log('✅ User signed out successfully');
     } catch (error) {
-      console.error('Error during sign out:', error);
+      console.error('❌ Error during sign out:', error);
     }
-  }, []);
+  }, [queryClient]);
 
   // Упрощенная инициализация auth с увеличенным timeout до 5 секунд
   useEffect(() => {
@@ -153,17 +210,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Увеличенный timeout до 5 секунд для медленных соединений
     initTimeoutRef.current = setTimeout(() => {
       if (mounted && mountedRef.current) {
-        console.warn('Auth initialization timeout reached (5s)');
+        console.warn('⏰ Auth initialization timeout reached (5s)');
         setIsLoading(false);
       }
     }, 5000);
     
     const setupAuth = async () => {
       try {
+        console.log('🔑 Setting up auth...');
+        
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error("Error getting session:", error);
+          console.error("❌ Error getting session:", error);
           if (mounted) {
             setSession(null);
             setUser(null);
@@ -197,6 +256,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (event, currentSession) => {
             if (!mounted) return;
             
+            console.log('🔄 Auth state changed:', event);
+            
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
@@ -214,7 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error("Error setting up auth:", error);
+        console.error("💥 Error setting up auth:", error);
         if (mounted) {
           setIsLoading(false);
         }
