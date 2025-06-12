@@ -1,7 +1,7 @@
 
 import { lazy } from 'react';
 
-// Критические админ страницы - загружаем сразу без lazy
+// Critical admin pages - load immediately without lazy loading
 import AdminDashboard from '@/pages/AdminDashboard';
 import OptimizedAdminAddProduct from '@/pages/OptimizedAdminAddProduct';
 
@@ -22,24 +22,6 @@ export const routeConfigs = [
   {
     path: '/register',
     component: lazy(() => import('@/pages/Register')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/forgot-password',
-    component: lazy(() => import('@/pages/ForgotPassword')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/reset-password',
-    component: lazy(() => import('@/pages/ResetPassword')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/verify-email',
-    component: lazy(() => import('@/pages/VerifyEmail')),
     protected: false,
     adminOnly: false,
   },
@@ -67,56 +49,8 @@ export const routeConfigs = [
     protected: false,
     adminOnly: false,
   },
-  {
-    path: '/stores',
-    component: lazy(() => import('@/pages/Stores')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/store/:id',
-    component: lazy(() => import('@/pages/StoreDetail')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/create-store',
-    component: lazy(() => import('@/pages/CreateStore')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/requests',
-    component: lazy(() => import('@/pages/Requests')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/request/:id',
-    component: lazy(() => import('@/pages/RequestDetail')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/create-request',
-    component: lazy(() => import('@/pages/CreateRequest')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/buyer-guide',
-    component: lazy(() => import('@/pages/BuyerGuide')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/seller-register',
-    component: lazy(() => import('@/pages/SellerRegister')),
-    protected: false,
-    adminOnly: false,
-  },
   
-  // Admin routes - критические страницы без lazy loading
+  // Admin routes - critical pages without lazy loading
   {
     path: '/admin',
     component: AdminDashboard,
@@ -126,12 +60,6 @@ export const routeConfigs = [
   {
     path: '/admin/add-product',
     component: OptimizedAdminAddProduct,
-    protected: true,
-    adminOnly: true,
-  },
-  {
-    path: '/admin/free-order',
-    component: lazy(() => import('@/pages/AdminFreeOrder')),
     protected: true,
     adminOnly: true,
   },
@@ -193,12 +121,6 @@ export const routeConfigs = [
     protected: true,
     adminOnly: false,
   },
-  {
-    path: '/orders',
-    component: lazy(() => import('@/pages/OrdersRedirect')),
-    protected: true,
-    adminOnly: false,
-  },
   
   // Seller routes
   {
@@ -225,12 +147,6 @@ export const routeConfigs = [
     protected: true,
     adminOnly: false,
   },
-  {
-    path: '/seller/order/:id',
-    component: lazy(() => import('@/pages/SellerOrderDetails')),
-    protected: true,
-    adminOnly: false,
-  },
   
   // Error routes
   {
@@ -247,11 +163,10 @@ export const routeConfigs = [
   },
 ];
 
-// Обновленная функция предзагрузки для админ панели
+// Preload admin routes
 export const preloadAdminRoutes = () => {
   console.log('🔄 Preloading admin routes...');
   
-  // Предзагружаем только некритические админ страницы
   const adminRoutes = [
     () => import('@/pages/AdminUsers'),
     () => import('@/pages/AdminProducts'), 
@@ -259,13 +174,12 @@ export const preloadAdminRoutes = () => {
     () => import('@/pages/AdminStores'),
     () => import('@/pages/AdminEvents'),
     () => import('@/pages/AdminLogistics'),
-    () => import('@/pages/AdminFreeOrder'),
   ];
 
   return Promise.allSettled(adminRoutes.map(route => route()));
 };
 
-// Предзагрузка критических маршрутов
+// Preload critical routes
 export const preloadCriticalRoutes = () => {
   console.log('🔄 Preloading critical routes...');
   
@@ -280,7 +194,7 @@ export const preloadCriticalRoutes = () => {
   return Promise.allSettled(criticalRoutes.map(route => route()));
 };
 
-// Предзагрузка маршрутов продавца
+// Preload seller routes
 export const preloadSellerRoutes = () => {
   console.log('🔄 Preloading seller routes...');
   
