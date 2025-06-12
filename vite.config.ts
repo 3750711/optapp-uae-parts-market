@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -57,7 +58,7 @@ export default defineConfig(({ mode }) => ({
           'admin-core': [
             'src/pages/AdminDashboard.tsx',
             'src/components/admin/AdminLayout.tsx',
-            'src/pages/OptimizedAdminAddProduct.tsx' // Добавляем оптимизированную версию
+            'src/pages/AdminAddProduct.tsx'
           ],
           'admin-users': [
             'src/pages/AdminUsers.tsx',
@@ -81,7 +82,7 @@ export default defineConfig(({ mode }) => ({
           ],
           'seller-products': [
             'src/pages/SellerAddProduct.tsx',
-            'src/components/product/OptimizedAddProductForm.tsx'
+            'src/components/product/AddProductForm.tsx'
           ],
           'seller-orders': [
             'src/pages/SellerOrders.tsx',
