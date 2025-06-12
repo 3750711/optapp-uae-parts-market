@@ -1,8 +1,8 @@
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -15,8 +15,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, profile, isLoading, isAdmin, refreshAdminStatus } = useAuth();
-  const [timeoutReached, setTimeoutReached] = useState(false);
+  const { user, profile, isLoading, isAdmin } = useAuth();
 
   // Мемоизируем состояние для избежания лишних ре-рендеров
   const authState = useMemo(() => ({
@@ -27,47 +26,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     userType: profile?.user_type
   }), [user, profile, isLoading, isAdmin]);
 
-  // Уменьшенный timeout до 7 секунд
-  useEffect(() => {
-    if (isLoading) {
-      const timeoutId = setTimeout(() => {
-        setTimeoutReached(true);
-      }, 7000);
-
-      return () => clearTimeout(timeoutId);
-    } else {
-      setTimeoutReached(false);
-    }
-  }, [isLoading]);
-
-  // Обработчик повторной попытки
-  const handleRetry = () => {
-    setTimeoutReached(false);
-    refreshAdminStatus();
-  };
-
-  // Если достигнут timeout, показываем кнопку повтора
-  if (timeoutReached) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
-        <div className="max-w-md w-full space-y-4">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Превышено время ожидания загрузки. Попробуйте обновить страницу.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={handleRetry} className="w-full">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Попробовать снова
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  // Состояние загрузки
-  if (isLoading) {
+  // Состояние загрузки - используем простой spinner без timeout
+  if (authState.isLoading) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -106,7 +66,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // Проверка админских прав
-  if (isAdmin === false) {
+  if (authState.isAdmin === false) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -127,8 +87,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // isAdmin === null - состояние неопределенности
-  if (isAdmin === null) {
+  // isAdmin === null - ждем проверки прав (но без отдельного состояния загрузки)
+  if (authState.isAdmin === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

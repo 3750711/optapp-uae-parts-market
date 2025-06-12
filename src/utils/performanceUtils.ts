@@ -2,6 +2,14 @@
 // Environment check
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+// Declare global gtag for analytics
+declare global {
+  interface Window {
+    gtag?: (command: string, eventName: string, parameters: Record<string, any>) => void;
+    __webpack_require__?: any;
+  }
+}
+
 // Development logging functions
 export const devLog = (...args: any[]) => {
   if (isDevelopment) {
@@ -59,8 +67,8 @@ export const monitorChunkLoading = () => {
       });
       
       // Можно отправить метрику в аналитику
-      if (typeof gtag !== 'undefined') {
-        (gtag as any)('event', 'chunk_load_error', {
+      if (window.gtag) {
+        window.gtag('event', 'chunk_load_error', {
           error_filename: event.filename,
           error_message: event.message
         });
@@ -70,7 +78,7 @@ export const monitorChunkLoading = () => {
 
   // Отслеживание загрузки модулей
   const originalImport = window.__webpack_require__?.l;
-  if (originalImport) {
+  if (originalImport && window.__webpack_require__) {
     window.__webpack_require__.l = function(url: string, done: Function, key?: string, chunkId?: string) {
       const startTime = performance.now();
       
@@ -99,8 +107,8 @@ export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
   }
   
   // Отправляем метрики в аналитику если доступно
-  if (typeof gtag !== 'undefined') {
-    (gtag as any)('event', 'lazy_component_load', {
+  if (window.gtag) {
+    window.gtag('event', 'lazy_component_load', {
       component_name: componentName,
       load_time: Math.round(loadTime),
       custom_map: {
@@ -112,7 +120,7 @@ export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
 
 // Admin cache functions
 const ADMIN_CACHE_KEY = 'admin_rights_cache';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 3 * 60 * 1000; // Уменьшили до 3 минут
 
 interface AdminCacheData {
   isAdmin: boolean;

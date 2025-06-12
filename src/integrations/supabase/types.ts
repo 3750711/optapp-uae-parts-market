@@ -1044,6 +1044,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_admin_metrics: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_email_by_opt_id: {
         Args:
           | { p_opt_id: string }
