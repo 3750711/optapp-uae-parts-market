@@ -14,12 +14,12 @@ interface UseEnhancedProductsStateProps {
 
 const PAGE_SIZE = 12;
 
-export const useEnhancedProductsState = ({
-  pageSize = PAGE_SIZE,
-  initialFilters = {}
-}: UseEnhancedProductsStateProps = {}) => {
+export const useEnhancedProductsState = (props: UseEnhancedProductsStateProps = {}) => {
+  const { pageSize = PAGE_SIZE, initialFilters = {} } = props;
   
-  // Filters and search state
+  // Filters and search state - инициализируем первыми
+  const filtersState = useProductsFilters({ initialFilters });
+  
   const {
     searchTerm,
     debouncedSearchTerm,
@@ -33,9 +33,16 @@ export const useEnhancedProductsState = ({
     setSellerFilter,
     clearFilters,
     hasActiveFilters
-  } = useProductsFilters({ initialFilters });
+  } = filtersState;
 
-  // Products query
+  // Products query - используем стабильные значения
+  const productsQuery = useProductsQuery({
+    debouncedSearchTerm,
+    statusFilter,
+    sellerFilter,
+    pageSize
+  });
+
   const {
     products,
     isLoading,
@@ -45,21 +52,18 @@ export const useEnhancedProductsState = ({
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage
-  } = useProductsQuery({
-    debouncedSearchTerm,
-    statusFilter,
-    sellerFilter,
-    pageSize
-  });
+  } = productsQuery;
 
   // Sellers query
+  const sellersQuery = useSellersQuery();
   const {
     data: allSellers = [],
     isLoading: isSellersLoading
-  } = useSellersQuery();
+  } = sellersQuery;
 
   // Selection state
-  const { selectedProducts, setSelectedProducts } = useProductsSelection();
+  const selectionState = useProductsSelection();
+  const { selectedProducts, setSelectedProducts } = selectionState;
 
   return {
     // Products data

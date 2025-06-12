@@ -12,8 +12,9 @@ interface UseProductsFiltersProps {
 export const useProductsFilters = ({
   initialFilters = {}
 }: UseProductsFiltersProps = {}) => {
-  const [statusFilter, setStatusFilter] = useState(initialFilters.status || 'all');
-  const [sellerFilter, setSellerFilter] = useState(initialFilters.sellerId || 'all');
+  // Инициализируем состояние безопасно
+  const [statusFilter, setStatusFilter] = useState(() => initialFilters.status || 'all');
+  const [sellerFilter, setSellerFilter] = useState(() => initialFilters.sellerId || 'all');
 
   const {
     searchTerm,
