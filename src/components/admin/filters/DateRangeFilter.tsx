@@ -14,12 +14,11 @@ export interface DateRange {
 }
 
 interface DateRangeFilterProps {
-  value: DateRange;
-  onChange: (range: DateRange) => void;
-  disabled?: boolean;
+  dateRange: DateRange;
+  onChange: (range: DateRange | null) => void;
 }
 
-const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ value, onChange, disabled = false }) => {
+const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ dateRange, onChange }) => {
   return (
     <div className="space-y-2">
       <label className="text-sm">Дата создания</label>
@@ -28,20 +27,19 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ value, onChange, disa
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              disabled={disabled}
               className={cn(
                 "justify-start text-left font-normal",
-                !value.from && !value.to && "text-muted-foreground"
+                !dateRange.from && !dateRange.to && "text-muted-foreground"
               )}
             >
               <Calendar className="mr-2 h-4 w-4" />
-              {value.from ? (
-                value.to ? (
+              {dateRange.from ? (
+                dateRange.to ? (
                   <>
-                    {format(value.from, "dd/MM/yyyy")} - {format(value.to, "dd/MM/yyyy")}
+                    {format(dateRange.from, "dd/MM/yyyy")} - {format(dateRange.to, "dd/MM/yyyy")}
                   </>
                 ) : (
-                  format(value.from, "dd/MM/yyyy")
+                  format(dateRange.from, "dd/MM/yyyy")
                 )
               ) : (
                 "Выберите даты"
@@ -52,10 +50,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ value, onChange, disa
             <CalendarComponent
               initialFocus
               mode="range"
-              defaultMonth={value.from || new Date()}
+              defaultMonth={dateRange.from || new Date()}
               selected={{
-                from: value.from,
-                to: value.to,
+                from: dateRange.from,
+                to: dateRange.to,
               }}
               onSelect={(selectedDateRange) => {
                 onChange(selectedDateRange || { from: null, to: null });

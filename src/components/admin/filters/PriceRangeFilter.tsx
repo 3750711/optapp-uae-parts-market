@@ -3,40 +3,30 @@ import React from 'react';
 import { Slider } from "@/components/ui/slider";
 
 interface PriceRangeFilterProps {
-  value: { min: number; max: number };
-  onChange: (range: { min: number; max: number }) => void;
-  disabled?: boolean;
+  priceRange: [number, number];
+  maxPrice: number;
+  onChange: (value: [number, number]) => void;
 }
 
 const PriceRangeFilter: React.FC<PriceRangeFilterProps> = ({ 
-  value, 
-  onChange,
-  disabled = false
+  priceRange, 
+  maxPrice, 
+  onChange 
 }) => {
-  const maxPrice = 100000; // Default max price
-  
-  const handleSliderChange = (sliderValue: number[]) => {
-    onChange({
-      min: sliderValue[0],
-      max: sliderValue[1]
-    });
-  };
-
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-sm">Диапазон цен ($)</label>
         <div className="text-xs text-muted-foreground">
-          {value.min} - {value.max}
+          {priceRange[0]} - {priceRange[1]}
         </div>
       </div>
       <Slider
-        value={[value.min, value.max]}
+        value={priceRange}
         min={0}
         max={maxPrice}
         step={10}
-        onValueChange={handleSliderChange}
-        disabled={disabled}
+        onValueChange={(value: [number, number]) => onChange(value)}
         className="py-4"
       />
     </div>

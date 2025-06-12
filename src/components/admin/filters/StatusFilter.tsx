@@ -9,25 +9,23 @@ import {
 } from "@/components/ui/select";
 
 interface StatusFilterProps {
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
+  statusFilter: string | null;
+  onChange: (value: string | null) => void;
 }
 
-const StatusFilter: React.FC<StatusFilterProps> = ({ value, onChange, disabled = false }) => {
+const StatusFilter: React.FC<StatusFilterProps> = ({ statusFilter, onChange }) => {
   return (
     <div className="space-y-2">
       <label className="text-sm">Статус товара</label>
       <Select
-        value={value || ""}
-        onValueChange={(newValue) => onChange(newValue || "all")}
-        disabled={disabled}
+        value={statusFilter || ""}
+        onValueChange={(value) => onChange(value || null)}
       >
         <SelectTrigger>
           <SelectValue placeholder="Все статусы" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Все статусы</SelectItem>
+          <SelectItem value="">Все статусы</SelectItem>
           <SelectItem value="pending">Ожидает проверки</SelectItem>
           <SelectItem value="sold">Продан</SelectItem>
           <SelectItem value="active">Опубликован</SelectItem>

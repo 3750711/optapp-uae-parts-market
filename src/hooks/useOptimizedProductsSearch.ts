@@ -26,29 +26,21 @@ export const useOptimizedProductsSearch = ({
   // Определяем, идет ли поиск
   useEffect(() => {
     const searching = searchTerm !== debouncedSearchTerm && searchTerm.length > 0;
-    console.log('🔍 Search state update:', { 
-      searchTerm, 
-      debouncedSearchTerm, 
-      searching 
-    });
     setIsSearching(searching);
   }, [searchTerm, debouncedSearchTerm]);
 
   // Уведомляем о изменении поискового запроса
   useEffect(() => {
-    console.log('🔍 Debounced search term changed:', debouncedSearchTerm);
     if (onSearchChange) {
       onSearchChange(debouncedSearchTerm);
     }
   }, [debouncedSearchTerm, onSearchChange]);
 
   const clearSearch = useCallback(() => {
-    console.log('🧹 Clearing search term');
     setSearchTerm('');
   }, []);
 
   const updateSearchTerm = useCallback((term: string) => {
-    console.log('📝 Updating search term:', term);
     setSearchTerm(term);
   }, []);
 
