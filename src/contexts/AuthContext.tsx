@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
-import { useAdminDataPreloader } from '@/hooks/useAdminDataPreloader';
+import { useQueryClient } from '@tanstack/react-query';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const initTimeoutRef = useRef<NodeJS.Timeout>();
+  const queryClient = useQueryClient();
 
   // Быстрая проверка из localStorage при инициализации
   const quickCheckFromCache = useCallback(() => {
@@ -101,6 +103,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return hasAdminAccess;
   }, []);
 
+  // Предзагрузка данных для админ панели
+  const preloadAdminData = useCallback(async () => {
+    try {
+      console.log('🔄 Preloading admin add product data...');
+      
+      // Проверяем, есть ли уже данные в кэше
+      const cachedData = queryClient.getQueryData(['admin', 'add-product-data']);
+      if (cachedData) {
+        console.log('✅ Admin add product data already cached');
+        return;
+      }
+
+      // Предзагружаем данные
+      await queryClient.prefetchQuery({
+        queryKey: ['admin', 'add-product-data'],
+        queryFn: async () => {
+          const { data, error } = await supabase.rpc('get_admin_add_product_data');
+          if (error) throw error;
+          return data;
+        },
+        staleTime: 1000 * 60 * 15, // 15 минут
+      });
+
+      console.log('✅ Admin add product data preloaded');
+    } catch (error) {
+      console.warn('⚠️ Failed to preload admin add product data:', error);
+    }
+  }, [queryClient]);
+
   // Оптимизированная функция загрузки профиля
   const fetchUserProfile = useCallback(async (userId: string, forceRefresh = false) => {
     if (fetchingRef.current || !mountedRef.current) {
@@ -134,6 +165,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const hasAdminAccess = checkAdminRights(data.id, data.user_type);
         setIsAdmin(hasAdminAccess);
         
+        // Предзагружаем данные для админ панели, если пользователь админ
+        if (hasAdminAccess) {
+          // Предзагружаем с небольшой задержкой, чтобы не блокировать основную загрузку
+          setTimeout(preloadAdminData, 1000);
+        }
+        
         // Проверяем first login
         if (data.email.endsWith('@g.com') && !data.first_login_completed) {
           setShowFirstLoginWelcome(true);
@@ -153,7 +190,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       fetchingRef.current = false;
     }
-  }, [cacheProfile, checkAdminRights]);
+  }, [cacheProfile, checkAdminRights, preloadAdminData]);
 
   const refreshProfile = useCallback(async () => {
     if (user && mountedRef.current) {
@@ -191,9 +228,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error during sign out:', error);
     }
   }, [clearProfileCache]);
-
-  // Добавляем предзагрузку данных для админов
-  useAdminDataPreloader();
 
   // Основная логика инициализации auth с уменьшенным timeout
   useEffect(() => {
