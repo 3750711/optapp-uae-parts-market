@@ -10,6 +10,9 @@ export const useAdminAccess = () => {
     // Строгая проверка админских прав
     isAdmin: isAdmin === true,
     
+    // Проверка в процессе загрузки
+    isCheckingAdmin: isAdmin === null,
+    
     // Функция для проверки возможности просмотра статуса продукта
     canViewProductStatus: (status: string) => {
       // Админы могут видеть все статусы продуктов
@@ -18,7 +21,6 @@ export const useAdminAccess = () => {
       }
       
       // Не-админы могут видеть только активные или проданные товары
-      // если они не являются продавцом этого товара
       return ['active', 'sold'].includes(status);
     },
     
@@ -34,6 +36,11 @@ export const useAdminAccess = () => {
     
     // Функция для проверки возможности управления товарами
     canManageProducts: () => {
+      return isAdmin === true;
+    },
+    
+    // Функция для проверки доступа к админским функциям
+    hasAdminAccess: () => {
       return isAdmin === true;
     }
   };

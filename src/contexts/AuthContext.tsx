@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,36 +29,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showFirstLoginWelcome, setShowFirstLoginWelcome] = useState(false);
   
   const mountedRef = useRef(true);
-  const initTimeoutRef = useRef<NodeJS.Timeout>();
   const queryClient = useQueryClient();
 
-  // Исправленная функция проверки админских прав
-  const checkAdminRights = useCallback(async (userId: string) => {
+  // Улучшенная функция проверки админских прав с fallback
+  const checkAdminRights = useCallback(async (userId: string, retryCount = 0): Promise<boolean> => {
     try {
-      console.log('🔍 Checking admin rights for user:', userId);
+      console.log('🔍 Checking admin rights for user:', userId, 'attempt:', retryCount + 1);
       
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('user_type')
-        .eq('id', userId)
-        .single();
+      // Используем новую безопасную функцию
+      const { data: isAdminResult, error } = await supabase.rpc('is_admin_user');
       
       if (error) {
-        console.error('❌ Error checking admin rights:', error);
-        return false;
+        console.error('❌ Error checking admin rights via RPC:', error);
+        
+        // Fallback: прямой запрос к профилю
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', userId)
+          .single();
+        
+        if (profileError) {
+          console.error('❌ Fallback profile query also failed:', profileError);
+          
+          // Если это первая попытка и ошибка связана с JWT, попробуем обновить сессию
+          if (retryCount === 0 && profileError.message?.includes('JWT')) {
+            console.log('🔄 Attempting to refresh session...');
+            const { error: refreshError } = await supabase.auth.refreshSession();
+            if (!refreshError) {
+              return checkAdminRights(userId, retryCount + 1);
+            }
+          }
+          
+          return false;
+        }
+        
+        const hasAdminAccess = profile?.user_type === 'admin';
+        console.log('✅ Fallback admin rights check result:', hasAdminAccess);
+        return hasAdminAccess;
       }
       
-      const hasAdminAccess = profile?.user_type === 'admin';
-      console.log('✅ Admin rights check result:', hasAdminAccess);
-      
-      return hasAdminAccess;
+      console.log('✅ Admin rights check result:', isAdminResult);
+      return isAdminResult || false;
     } catch (error) {
       console.error('💥 Exception in admin rights check:', error);
       return false;
     }
   }, []);
 
-  // Упрощенная функция загрузки профиля
+  // Улучшенная функция загрузки профиля
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!mountedRef.current) return null;
 
@@ -68,12 +86,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, email, full_name, user_type, opt_id, verification_status, opt_status, first_login_completed, phone, telegram, location, avatar_url, company_name')
+        .select('*')
         .eq('id', userId)
         .single();
       
       if (error) {
         console.error('❌ Error fetching profile:', error);
+        
+        // Если ошибка связана с JWT, попробуем обновить сессию
+        if (error.message?.includes('JWT')) {
+          console.log('🔄 JWT error detected, refreshing session...');
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError && mountedRef.current) {
+            // Повторная попытка загрузки профиля
+            return fetchUserProfile(userId);
+          }
+        }
+        
         if (mountedRef.current) {
           setProfile(null);
           setIsAdmin(false);
@@ -91,18 +120,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Проверяем админские права
         const hasAdminAccess = await checkAdminRights(userId);
-        setIsAdmin(hasAdminAccess);
-        
-        // Предзагружаем данные для админов с задержкой
-        if (hasAdminAccess) {
-          setTimeout(() => {
-            preloadAdminData();
-          }, 1000);
-        }
-        
-        // Проверяем first login
-        if (data.email.endsWith('@g.com') && !data.first_login_completed) {
-          setShowFirstLoginWelcome(true);
+        if (mountedRef.current) {
+          setIsAdmin(hasAdminAccess);
+          
+          // Предзагружаем данные для админов
+          if (hasAdminAccess) {
+            setTimeout(() => {
+              preloadAdminData();
+            }, 1000);
+          }
+          
+          // Проверяем first login
+          if (data.email.endsWith('@g.com') && !data.first_login_completed) {
+            setShowFirstLoginWelcome(true);
+          }
         }
         
         return data;
@@ -175,8 +206,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user && mountedRef.current) {
       setIsLoading(true);
       const hasAdminAccess = await checkAdminRights(user.id);
-      setIsAdmin(hasAdminAccess);
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsAdmin(hasAdminAccess);
+        setIsLoading(false);
+      }
     }
   }, [user, checkAdminRights]);
 
@@ -206,24 +239,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [queryClient]);
 
-  // Упрощенная инициализация auth с увеличенным timeout до 5 секунд
+  // Улучшенная инициализация auth
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
-    
-    // Увеличенный timeout до 5 секунд для медленных соединений
-    initTimeoutRef.current = setTimeout(() => {
-      if (mounted && mountedRef.current) {
-        console.warn('⏰ Auth initialization timeout reached (5s)');
-        setIsLoading(false);
-      }
-    }, 5000);
     
     const setupAuth = async () => {
       try {
         console.log('🔑 Setting up auth...');
         
-        // Проверяем текущий JWT токен
+        // Получаем текущую сессию
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
         console.log('🔐 Session check result:', {
@@ -231,8 +256,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userId: currentSession?.user?.id,
           userEmail: currentSession?.user?.email,
           accessToken: currentSession?.access_token ? 'present' : 'missing',
-          refreshToken: currentSession?.refresh_token ? 'present' : 'missing',
-          expiresAt: currentSession?.expires_at,
           error: error?.message
         });
         
@@ -260,10 +283,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           setIsLoading(false);
-          
-          if (initTimeoutRef.current) {
-            clearTimeout(initTimeoutRef.current);
-          }
         }
         
         // Устанавливаем слушатель изменений auth состояния
@@ -306,10 +325,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       mountedRef.current = false;
-      
-      if (initTimeoutRef.current) {
-        clearTimeout(initTimeoutRef.current);
-      }
     };
   }, [fetchUserProfile]);
 
