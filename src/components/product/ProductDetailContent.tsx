@@ -51,14 +51,8 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
         <ProductInfo 
           product={product} 
           onProductUpdate={onProductUpdate}
-        />
-        
-        <ContactButtons 
-          sellerPhone={product.phone_url}
-          sellerTelegram={product.telegram_url}
-          productTitle={product.title}
-          isVerified={sellerProfile?.opt_status === 'verified'}
-          verificationStatus={sellerProfile?.opt_status || 'pending'}
+          deliveryMethod={deliveryMethod}
+          onDeliveryMethodChange={onDeliveryMethodChange}
         />
         
         <SellerInfo 
@@ -77,7 +71,15 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
           }}
           seller_name={sellerName}
           seller_id={product.seller_id}
-        />
+        >
+          <ContactButtons 
+            sellerPhone={product.phone_url || sellerProfile?.phone}
+            sellerTelegram={product.telegram_url || sellerProfile?.telegram}
+            productTitle={product.title}
+            isVerified={sellerProfile?.opt_status === 'verified'}
+            verificationStatus={sellerProfile?.opt_status || 'pending'}
+          />
+        </SellerInfo>
         
         {(product.brand || product.model || product.lot_number) && (
           <ProductSpecifications 

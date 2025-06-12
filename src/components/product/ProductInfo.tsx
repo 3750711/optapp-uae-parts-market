@@ -2,21 +2,33 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Package2, Truck } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Package2, Truck, ShoppingCart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
+import OrderConfirmationDialog from "./OrderConfirmationDialog";
 import { Product } from "@/types/product";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 interface ProductInfoProps {
   product: Product;
   onProductUpdate: () => void;
+  deliveryMethod: Database["public"]["Enums"]["delivery_method"];
+  onDeliveryMethodChange: (method: Database["public"]["Enums"]["delivery_method"]) => void;
 }
 
-const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) => {
+const ProductInfo: React.FC<ProductInfoProps> = ({ 
+  product, 
+  onProductUpdate, 
+  deliveryMethod, 
+  onDeliveryMethodChange 
+}) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
   const { toast } = useToast();
@@ -24,6 +36,43 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
   const isOwner = user?.id === product.seller_id;
 
   const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
+
+  const handleOrderConfirm = async (orderData: { text_order?: string }) => {
+    setIsSubmittingOrder(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          product_id: product.id,
+          buyer_id: user?.id,
+          seller_id: product.seller_id,
+          delivery_method: deliveryMethod,
+          text_order: orderData.text_order,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Заказ создан!",
+        description: "Ваш заказ успешно создан и отправлен продавцу.",
+      });
+
+      setShowOrderDialog(false);
+      navigate('/buyer-orders');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать заказ. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingOrder(false);
+    }
+  };
 
   const getStatusBadge = () => {
     switch (product.status) {
@@ -113,6 +162,20 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
         )}
       </div>
       
+      {/* Кнопка "Купить" */}
+      {!isOwner && product.status === 'active' && user && (
+        <div className="mb-6">
+          <Button
+            onClick={() => setShowOrderDialog(true)}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 text-lg"
+            size="lg"
+          >
+            <ShoppingCart className="mr-2 h-5 w-5" />
+            Купить товар
+          </Button>
+        </div>
+      )}
+      
       <div className="mb-6 space-y-4">
         <h3 className="font-medium mb-3 flex items-center">
           <AlertCircle className="h-4 w-4 mr-1.5 text-muted-foreground" />
@@ -126,6 +189,30 @@ const ProductInfo: React.FC<ProductInfoProps> = ({ product, onProductUpdate }) =
           <span>Количество мест для отправки: {product.place_number || 1}</span>
         </div>
       </div>
+
+      {/* Order Confirmation Dialog */}
+      <OrderConfirmationDialog
+        open={showOrderDialog}
+        onOpenChange={setShowOrderDialog}
+        onConfirm={handleOrderConfirm}
+        isSubmitting={isSubmittingOrder}
+        product={{
+          id: product.id,
+          title: product.title,
+          brand: product.brand || "",
+          model: product.model || "",
+          price: product.price,
+          description: product.description,
+          optid_created: product.optid_created,
+          seller_id: product.seller_id,
+          seller_name: product.seller_name,
+          lot_number: product.lot_number,
+          delivery_price: product.delivery_price,
+        }}
+        profile={profile}
+        deliveryMethod={deliveryMethod}
+        onDeliveryMethodChange={onDeliveryMethodChange}
+      />
     </div>
   );
 };
