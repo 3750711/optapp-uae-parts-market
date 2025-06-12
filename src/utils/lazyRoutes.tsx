@@ -1,11 +1,9 @@
+
 import { lazy } from 'react';
 
 // Критические админ страницы - загружаем сразу без lazy
 import AdminDashboard from '@/pages/AdminDashboard';
 import OptimizedAdminAddProduct from '@/pages/OptimizedAdminAddProduct';
-
-// Import оптимизированных route configs
-import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
 
 export const routeConfigs = [
   // Public routes
@@ -48,24 +46,6 @@ export const routeConfigs = [
   {
     path: '/contact',
     component: lazy(() => import('@/pages/Contact')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/faq',
-    component: lazy(() => import('@/pages/FAQ')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/terms',
-    component: lazy(() => import('@/pages/Terms')),
-    protected: false,
-    adminOnly: false,
-  },
-  {
-    path: '/privacy',
-    component: lazy(() => import('@/pages/Privacy')),
     protected: false,
     adminOnly: false,
   },
@@ -121,12 +101,6 @@ export const routeConfigs = [
     protected: true,
     adminOnly: true,
   },
-  {
-    path: '/admin/settings',
-    component: lazy(() => import('@/pages/AdminSettings')),
-    protected: true,
-    adminOnly: true,
-  },
   
   // User routes
   {
@@ -137,19 +111,13 @@ export const routeConfigs = [
   },
   {
     path: '/orders',
-    component: lazy(() => import('@/pages/UserOrders')),
+    component: lazy(() => import('@/pages/BuyerOrders')),
     protected: true,
     adminOnly: false,
   },
   {
     path: '/order/:id',
-    component: lazy(() => import('@/pages/OrderDetail')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/settings',
-    component: lazy(() => import('@/pages/UserSettings')),
+    component: lazy(() => import('@/pages/OrderDetails')),
     protected: true,
     adminOnly: false,
   },
@@ -163,7 +131,7 @@ export const routeConfigs = [
   },
   {
     path: '/seller/products',
-    component: lazy(() => import('@/pages/SellerProducts')),
+    component: lazy(() => import('@/pages/SellerListings')),
     protected: true,
     adminOnly: false,
   },
@@ -176,12 +144,6 @@ export const routeConfigs = [
   {
     path: '/seller/orders',
     component: lazy(() => import('@/pages/SellerOrders')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/seller/settings',
-    component: lazy(() => import('@/pages/SellerSettings')),
     protected: true,
     adminOnly: false,
   },
@@ -239,7 +201,7 @@ export const preloadSellerRoutes = () => {
   
   const sellerRoutes = [
     () => import('@/pages/SellerDashboard'),
-    () => import('@/pages/SellerProducts'),
+    () => import('@/pages/SellerListings'),
     () => import('@/pages/SellerAddProduct'),
     () => import('@/pages/SellerOrders'),
   ];
