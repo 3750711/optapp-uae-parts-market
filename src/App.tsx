@@ -12,27 +12,26 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 // Import оптимизированных route configs
 import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
 
-// Оптимизированная конфигурация React Query с умным кэшированием
+// Оптимизированная конфигурация React Query с простым кэшированием
 const createQueryClient = () => new QueryClient({
   defaultOptions: {
     queries: {
-      // Общие настройки
       retry: (failureCount, error: any) => {
-        // Не повторяем 404 и 403 ошибки
         if (error?.status === 404 || error?.status === 403) return false;
-        // Для админ панели больше попыток
         return failureCount < 3;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       
-      // Настройки кэширования по умолчанию
+      // Простые настройки кэширования без функций
       staleTime: 1000 * 60 * 5, // 5 минут по умолчанию
+      gcTime: 1000 * 60 * 15, // 15 минут в памяти
       
-      gcTime: 1000 * 60 * 15, // 15 минут в памяти по умолчанию
-      
-      refetchOnMount: true, // По умолчанию всегда обновляем при монтировании
+      refetchOnMount: (query) => {
+        const dataAge = Date.now() - (query.state.dataUpdatedAt || 0);
+        return dataAge > 1000 * 60 * 2; // Обновляем если старше 2 минут
+      },
     },
     mutations: {
       retry: 2,

@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -57,7 +56,8 @@ export default defineConfig(({ mode }) => ({
           // Админ чанки - разделяем для лучшей производительности
           'admin-core': [
             'src/pages/AdminDashboard.tsx',
-            'src/components/admin/AdminLayout.tsx'
+            'src/components/admin/AdminLayout.tsx',
+            'src/pages/OptimizedAdminAddProduct.tsx' // Добавляем оптимизированную версию
           ],
           'admin-users': [
             'src/pages/AdminUsers.tsx',
@@ -70,8 +70,8 @@ export default defineConfig(({ mode }) => ({
           ],
           'admin-orders': [
             'src/pages/AdminOrders.tsx',
-            'src/hooks/useOptimizedOrdersQuery.ts',
-            'src/hooks/useOrderActions.ts'
+            'src/hooks/useOptimizedOrdersQuery.tsx',
+            'src/hooks/useOrderActions.tsx'
           ],
           
           // Продавец чанки

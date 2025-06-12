@@ -5,100 +5,69 @@ import { supabase } from '@/integrations/supabase/client';
 import { Users, Package, ShoppingCart, Truck } from 'lucide-react';
 import DashboardMetricCard from './DashboardMetricCard';
 
+interface AdminMetrics {
+  total_users: number;
+  pending_users: number;
+  total_products: number;
+  pending_products: number;
+  total_orders: number;
+  non_processed_orders: number;
+}
+
 const AdminMetricsSection: React.FC = () => {
-  const { data: userCount, isLoading: isLoadingUsers } = useQuery({
-    queryKey: ['admin', 'user-count'],
+  const { data: metrics, isLoading } = useQuery({
+    queryKey: ['admin', 'metrics-optimized'],
     queryFn: async () => {
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-      return count;
-    }
+      console.log('🔍 Fetching admin metrics with single RPC call...');
+      const startTime = performance.now();
+      
+      const { data, error } = await supabase.rpc('get_admin_metrics');
+      
+      if (error) {
+        console.error('❌ Error fetching admin metrics:', error);
+        throw error;
+      }
+
+      const endTime = performance.now();
+      console.log(`✅ Admin metrics loaded in ${(endTime - startTime).toFixed(2)}ms`);
+      
+      return data as AdminMetrics;
+    },
+    staleTime: 1000 * 60 * 5, // 5 минут кэш
+    gcTime: 1000 * 60 * 10, // 10 минут в памяти
+    refetchOnWindowFocus: false,
   });
 
-  const { data: totalProductCount, isLoading: isLoadingTotalProducts } = useQuery({
-    queryKey: ['admin', 'total-product-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true });
-      return count;
-    }
-  });
-
-  const { data: pendingProductCount, isLoading: isLoadingPendingProducts } = useQuery({
-    queryKey: ['admin', 'pending-product-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('products')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      return count;
-    }
-  });
-
-  const { data: orderCount, isLoading: isLoadingOrders } = useQuery({
-    queryKey: ['admin', 'order-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true });
-      return count;
-    }
-  });
-
-  const { data: nonProcessedOrderCount, isLoading: isLoadingNonProcessedOrders } = useQuery({
-    queryKey: ['admin', 'non-processed-order-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('orders')
-        .select('*', { count: 'exact', head: true })
-        .neq('status', 'processed');
-      return count;
-    }
-  });
-
-  const { data: pendingUsersCount, isLoading: isLoadingPendingUsers } = useQuery({
-    queryKey: ['admin', 'pending-users-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('verification_status', 'pending');
-      return count;
-    }
-  });
-
-  const metrics = [
+  const metricsData = [
     {
       title: "Пользователи",
-      value: userCount || 0,
+      value: metrics?.total_users || 0,
       description: "Всего зарегистрированных пользователей",
       icon: Users,
       link: "/admin/users",
-      highlight: (pendingUsersCount || 0) > 0,
-      warningText: (pendingUsersCount || 0) > 0 ? `(${pendingUsersCount} ожидает)` : null,
-      isLoading: isLoadingUsers
+      highlight: (metrics?.pending_users || 0) > 0,
+      warningText: (metrics?.pending_users || 0) > 0 ? `(${metrics?.pending_users} ожидает)` : null,
+      isLoading
     },
     {
       title: "Товары",
-      value: totalProductCount || 0,
+      value: metrics?.total_products || 0,
       description: "Всего товаров в каталоге",
       icon: Package,
       link: "/admin/products",
-      highlight: (pendingProductCount || 0) > 0,
-      warningText: (pendingProductCount || 0) > 0 ? `(${pendingProductCount} ожидает проверки)` : null,
-      isLoading: isLoadingTotalProducts || isLoadingPendingProducts
+      highlight: (metrics?.pending_products || 0) > 0,
+      warningText: (metrics?.pending_products || 0) > 0 ? `(${metrics?.pending_products} ожидает проверки)` : null,
+      isLoading
     },
     {
       title: "Заказы",
-      value: orderCount || 0,
+      value: metrics?.total_orders || 0,
       description: "Всего оформленных заказов",
       icon: ShoppingCart,
       link: "/admin/orders",
-      highlight: (nonProcessedOrderCount || 0) > 0,
-      warningText: (nonProcessedOrderCount || 0) > 0 ? `(${nonProcessedOrderCount} не зарегистрировано)` : null,
-      isLoading: isLoadingOrders || isLoadingNonProcessedOrders
+      highlight: (metrics?.non_processed_orders || 0) > 0,
+      warningText: (metrics?.non_processed_orders || 0) > 0 ? `(${metrics?.non_processed_orders} не зарегистрировано)` : null,
+      isLoading
     },
     {
       title: "Логистика",
@@ -112,7 +81,7 @@ const AdminMetricsSection: React.FC = () => {
 
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-      {metrics.map((metric, index) => (
+      {metricsData.map((metric, index) => (
         <DashboardMetricCard
           key={index}
           title={metric.title}
