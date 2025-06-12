@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Search, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { SearchHistoryItem } from '@/hooks/useSearchHistory';
-import EnhancedSearchBar from './EnhancedSearchBar';
+import SearchBar from './SearchBar';
 
 interface CatalogSearchAndFiltersProps {
   searchTerm: string;
@@ -24,7 +23,7 @@ interface CatalogSearchAndFiltersProps {
   brandModels: { id: string; name: string }[];
   hideSoldProducts: boolean;
   setHideSoldProducts: (hide: boolean) => void;
-  onSelectFromHistory?: (item: SearchHistoryItem) => void;
+  onSelectFromHistory?: (item: any) => void;
 }
 
 const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
@@ -41,24 +40,18 @@ const CatalogSearchAndFilters: React.FC<CatalogSearchAndFiltersProps> = ({
   brands,
   brandModels,
   hideSoldProducts,
-  setHideSoldProducts,
-  onSelectFromHistory
+  setHideSoldProducts
 }) => {
   return (
     <Card className="mb-4">
       <div className="p-4 space-y-4">
-        {/* Улучшенный поиск с автозавершением */}
-        <EnhancedSearchBar 
+        {/* Простой поиск */}
+        <SearchBar 
           searchQuery={searchTerm}
           setSearchQuery={setSearchTerm}
           handleSearchSubmit={onSearchSubmit}
           selectedBrandName={selectedBrand ? brands.find(b => b.id === selectedBrand)?.name : null}
           selectedModelName={selectedModel ? brandModels.find(m => m.id === selectedModel)?.name : null}
-          onSelectFromHistory={onSelectFromHistory}
-          suggestions={[
-            'фары', 'тормозные диски', 'масляный фильтр', 'амортизаторы',
-            'стеклоочистители', 'свечи зажигания', 'ремень ГРМ', 'сцепление'
-          ]}
         />
         
         {/* Фильтры марки и модели с ссылкой на руководство */}

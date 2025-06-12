@@ -1,11 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSearchHistory, SearchHistoryItem } from '@/hooks/useSearchHistory';
-import SearchHistory from './SearchHistory';
 
 interface SearchBarProps {
   searchQuery: string;
@@ -13,27 +11,15 @@ interface SearchBarProps {
   handleSearchSubmit: (e: React.FormEvent) => void;
   selectedBrandName?: string | null;
   selectedModelName?: string | null;
-  onSelectFromHistory?: (item: SearchHistoryItem) => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   searchQuery, 
   setSearchQuery, 
-  handleSearchSubmit,
-  selectedBrandName,
-  selectedModelName,
-  onSelectFromHistory
+  handleSearchSubmit
 }) => {
   const isMobile = useIsMobile();
   const [isFocused, setIsFocused] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  
-  const {
-    searchHistory,
-    addToHistory,
-    removeFromHistory,
-    clearHistory
-  } = useSearchHistory();
   
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -43,35 +29,17 @@ const SearchBar: React.FC<SearchBarProps> = ({
     e.preventDefault();
     handleSearchSubmit(e);
     
-    // Добавляем в историю при отправке формы
-    if (searchQuery.trim()) {
-      addToHistory(searchQuery, selectedBrandName || undefined, selectedModelName || undefined);
-    }
-    
-    setShowHistory(false);
     if (isMobile) {
       (document.activeElement as HTMLElement)?.blur();
     }
   };
 
-  const handleHistoryItemSelect = (item: SearchHistoryItem) => {
-    setSearchQuery(item.query);
-    setShowHistory(false);
-    
-    if (onSelectFromHistory) {
-      onSelectFromHistory(item);
-    }
-  };
-
   const handleFocus = () => {
     setIsFocused(true);
-    setShowHistory(searchHistory.length > 0);
   };
 
   const handleBlur = () => {
     setIsFocused(false);
-    // Задержка чтобы клик по истории успел сработать
-    setTimeout(() => setShowHistory(false), 150);
   };
   
   return (
@@ -126,15 +94,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
           </Button>
         </div>
       </form>
-
-      {/* История поиска */}
-      <SearchHistory
-        history={searchHistory}
-        onSelectHistoryItem={handleHistoryItemSelect}
-        onRemoveItem={removeFromHistory}
-        onClearHistory={clearHistory}
-        isVisible={showHistory}
-      />
     </div>
   );
 };
