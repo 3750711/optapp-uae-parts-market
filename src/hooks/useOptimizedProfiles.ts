@@ -22,27 +22,32 @@ export const useOptimizedProfiles = (userId?: string) => {
     isLoading: isBuyersLoading,
     error: buyersError
   } = useQuery({
-    queryKey: ['admin', 'buyer-profiles'],
+    queryKey: ['admin', 'buyer-profiles-optimized'],
     queryFn: async () => {
       console.log('🔍 Fetching buyer profiles with optimization...');
+      const startTime = performance.now();
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('id, opt_id, full_name')
         .eq('user_type', 'buyer')
         .not('opt_id', 'is', null)
-        .limit(100); // Лимитируем результат
+        .order('full_name')
+        .limit(200); // Увеличил лимит до 200
 
       if (error) {
         console.error('❌ Error fetching buyer profiles:', error);
         throw error;
       }
 
-      console.log('✅ Buyer profiles loaded:', data?.length || 0);
+      const endTime = performance.now();
+      console.log(`✅ Buyer profiles loaded in ${(endTime - startTime).toFixed(2)}ms:`, data?.length || 0);
       return data as ProfileShort[] || [];
     },
-    staleTime: 1000 * 60 * 5, // 5 минут кэш
-    gcTime: 1000 * 60 * 10, // 10 минут в памяти
-    enabled: isAdmin === true, // Загружаем только если точно известно что пользователь админ
+    staleTime: 1000 * 60 * 15, // Увеличено до 15 минут кэш
+    gcTime: 1000 * 60 * 30, // 30 минут в памяти
+    enabled: isAdmin === true,
+    refetchOnWindowFocus: false,
   });
 
   // Загружаем профили продавцов только если пользователь админ
@@ -51,26 +56,31 @@ export const useOptimizedProfiles = (userId?: string) => {
     isLoading: isSellersLoading,
     error: sellersError
   } = useQuery({
-    queryKey: ['admin', 'seller-profiles'],
+    queryKey: ['admin', 'seller-profiles-optimized'],
     queryFn: async () => {
       console.log('🔍 Fetching seller profiles with optimization...');
+      const startTime = performance.now();
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('id, opt_id, full_name, telegram')
         .eq('user_type', 'seller')
-        .limit(100); // Лимитируем результат
+        .order('full_name')
+        .limit(200); // Увеличил лимит до 200
 
       if (error) {
         console.error('❌ Error fetching seller profiles:', error);
         throw error;
       }
 
-      console.log('✅ Seller profiles loaded:', data?.length || 0);
+      const endTime = performance.now();
+      console.log(`✅ Seller profiles loaded in ${(endTime - startTime).toFixed(2)}ms:`, data?.length || 0);
       return data as SellerProfile[] || [];
     },
-    staleTime: 1000 * 60 * 5, // 5 минут кэш
-    gcTime: 1000 * 60 * 10, // 10 минут в памяти
+    staleTime: 1000 * 60 * 15, // Увеличено до 15 минут кэш
+    gcTime: 1000 * 60 * 30, // 30 минут в памяти
     enabled: isAdmin === true,
+    refetchOnWindowFocus: false,
   });
 
   return {

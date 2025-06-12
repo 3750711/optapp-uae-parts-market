@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -57,12 +58,10 @@ const AdminUsers = () => {
 
   // Handle editing user
   const handleEditUser = (user: ProfileType) => {
-    console.log("Setting editing user:", user);
     setEditingUser(user);
   };
 
   const handleEditDialogClose = () => {
-    console.log("Closing edit dialog, invalidating cache");
     queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     setEditingUser(null);
   };
@@ -74,11 +73,15 @@ const AdminUsers = () => {
         switch (e.key) {
           case 'a':
             e.preventDefault();
-            handleSelectAll(users.map(user => user.id));
+            if (users.length > 0) {
+              handleSelectAll(users.map(user => user.id));
+            }
             break;
           case 'e':
             e.preventDefault();
-            handleExportUsers(users);
+            if (users.length > 0) {
+              handleExportUsers(users);
+            }
             break;
           case 'f':
             e.preventDefault();
@@ -92,6 +95,7 @@ const AdminUsers = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [selectedUsers.length]);
 
+  // Оптимизированный запрос для подсчета ожидающих пользователей
   const { data: pendingUsersCount } = useQuery({
     queryKey: ['admin', 'users', 'pending-count'],
     queryFn: async () => {
@@ -102,17 +106,30 @@ const AdminUsers = () => {
       
       if (error) throw error;
       return count || 0;
-    }
+    },
+    staleTime: 2 * 60 * 1000, // 2 минуты кэш для счетчика
+    gcTime: 5 * 60 * 1000, // 5 минут в памяти
   });
 
+  // Оптимизированный основной запрос пользователей
   const { data: usersData, isLoading } = useQuery({
     queryKey: ['admin', 'users', filters, sortField, sortDirection, debouncedSearch, currentPage, pageSize],
     queryFn: async () => {
+      console.log('Fetching users with optimized query...');
+      const startTime = performance.now();
+      
+      // Выбираем только необходимые поля для списка
+      const selectFields = [
+        'id', 'email', 'full_name', 'company_name', 'opt_id', 'phone', 'telegram',
+        'user_type', 'verification_status', 'opt_status', 'rating', 'communication_ability',
+        'created_at', 'avatar_url', 'location'
+      ].join(', ');
+
       let query = supabase
         .from('profiles')
-        .select('*', { count: 'exact' });
+        .select(selectFields, { count: 'exact' });
       
-      // Apply filters
+      // Apply filters with optimized conditions
       if (filters.status !== 'all') {
         query = query.eq('verification_status', filters.status);
       }
@@ -125,8 +142,20 @@ const AdminUsers = () => {
         query = query.eq('opt_status', filters.optStatus);
       }
 
-      if (debouncedSearch) {
-        query = query.or(`full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%,opt_id.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%,telegram.ilike.%${debouncedSearch}%`);
+      // Оптимизированный поиск с использованием full-text search индекса
+      if (debouncedSearch && debouncedSearch.length >= 2) {
+        const searchTerm = debouncedSearch.trim();
+        
+        // Используем full-text search для быстрого поиска
+        if (searchTerm.length >= 3) {
+          query = query.textSearch('fts', `'${searchTerm}':*`, {
+            type: 'websearch',
+            config: 'russian'
+          });
+        } else {
+          // Для коротких запросов используем простой LIKE
+          query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,opt_id.ilike.%${searchTerm}%`);
+        }
       }
 
       // Rating filters
@@ -155,34 +184,42 @@ const AdminUsers = () => {
         .order(sortField, { ascending: sortDirection === 'asc' })
         .range(from, to);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Users query error:', error);
+        throw error;
+      }
+      
+      const endTime = performance.now();
+      console.log(`Users query completed in ${(endTime - startTime).toFixed(2)}ms`);
+      
       return { 
         users: data as ProfileType[], 
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / pageSize)
       };
     },
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // Увеличено до 10 минут
+    gcTime: 15 * 60 * 1000, // Увеличено до 15 минут
+    refetchOnWindowFocus: false, // Отключаем автообновление при фокусе
   });
 
   const users = usersData?.users || [];
   const totalCount = usersData?.totalCount || 0;
   const totalPages = usersData?.totalPages || 1;
 
-  const wrappedHandleBulkAction = (action: string) => {
+  const wrappedHandleBulkAction = useCallback((action: string) => {
     handleBulkAction(action, selectedUsers).then(() => {
       handleClearSelection();
     });
-  };
+  }, [handleBulkAction, selectedUsers, handleClearSelection]);
 
-  const wrappedHandleExportUsers = () => {
+  const wrappedHandleExportUsers = useCallback(() => {
     handleExportUsers(users);
-  };
+  }, [handleExportUsers, users]);
 
-  const wrappedHandleSelectAll = () => {
+  const wrappedHandleSelectAll = useCallback(() => {
     handleSelectAll(users.map(user => user.id));
-  };
+  }, [handleSelectAll, users]);
 
   return (
     <AdminLayout>
@@ -224,7 +261,7 @@ const AdminUsers = () => {
                     onQuickAction={handleContextAction}
                     onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
                     onEdit={handleEditUser}
-                    onRating={() => {}} // Removed rating dialog functionality
+                    onRating={() => {}}
                     onOptStatusChange={handleOptStatusChange}
                   />
                 ))}

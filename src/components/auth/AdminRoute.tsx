@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
@@ -18,23 +18,21 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   const { user, profile, isLoading, isAdmin, refreshAdminStatus } = useAuth();
   const [timeoutReached, setTimeoutReached] = useState(false);
 
-  console.log('AdminRoute render:', {
+  // Мемоизируем состояние для избежания лишних ре-рендеров
+  const authState = useMemo(() => ({
     hasUser: !!user,
     hasProfile: !!profile,
     isLoading,
     isAdmin,
-    timeoutReached,
-    userType: profile?.user_type,
-    timestamp: new Date().toISOString()
-  });
+    userType: profile?.user_type
+  }), [user, profile, isLoading, isAdmin]);
 
-  // Timeout для предотвращения бесконечной загрузки
+  // Уменьшенный timeout до 7 секунд
   useEffect(() => {
     if (isLoading) {
       const timeoutId = setTimeout(() => {
-        console.warn('AdminRoute: Loading timeout reached (10s)');
         setTimeoutReached(true);
-      }, 10000);
+      }, 7000);
 
       return () => clearTimeout(timeoutId);
     } else {
@@ -44,7 +42,6 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 
   // Обработчик повторной попытки
   const handleRetry = () => {
-    console.log('AdminRoute: Manual retry triggered');
     setTimeoutReached(false);
     refreshAdminStatus();
   };
@@ -69,7 +66,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Состояние загрузки - показываем только если действительно загружается
+  // Состояние загрузки
   if (isLoading) {
     return fallback || (
       <div className="flex items-center justify-center min-h-screen">
@@ -82,14 +79,12 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // Не авторизован - перенаправляем на логин
-  if (!user) {
-    console.log('AdminRoute: No user, redirecting to login');
+  if (!authState.hasUser) {
     return <Navigate to="/login" replace />;
   }
 
   // Нет профиля - показываем ошибку
-  if (!profile) {
-    console.error('AdminRoute: No profile found for authenticated user');
+  if (!authState.hasProfile) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -110,9 +105,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // Проверка админских прав - важно: проверяем точное значение false, а не falsy
+  // Проверка админских прав
   if (isAdmin === false) {
-    console.warn('AdminRoute: User has no admin rights');
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -133,9 +127,8 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     );
   }
 
-  // isAdmin === null - состояние неопределенности (должно быть кратковременным)
+  // isAdmin === null - состояние неопределенности
   if (isAdmin === null) {
-    console.log('AdminRoute: Admin status is null, showing loading');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -147,6 +140,5 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // isAdmin === true - показываем контент
-  console.log('AdminRoute: Access granted, rendering children');
   return <>{children}</>;
 };

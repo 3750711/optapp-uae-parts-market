@@ -20,6 +20,11 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Ключи для localStorage
+const PROFILE_CACHE_KEY = 'auth_profile_cache';
+const PROFILE_CACHE_TIMESTAMP_KEY = 'auth_profile_cache_timestamp';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -32,27 +37,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const mountedRef = useRef(true);
   const initTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Безопасная функция загрузки профиля с обработкой ошибок
-  const fetchUserProfile = useCallback(async (userId: string) => {
+  // Функция для кэширования профиля
+  const cacheProfile = useCallback((profileData: Profile) => {
+    try {
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profileData));
+      localStorage.setItem(PROFILE_CACHE_TIMESTAMP_KEY, Date.now().toString());
+    } catch (error) {
+      console.warn('Failed to cache profile:', error);
+    }
+  }, []);
+
+  // Функция для получения кэшированного профиля
+  const getCachedProfile = useCallback((): Profile | null => {
+    try {
+      const cached = localStorage.getItem(PROFILE_CACHE_KEY);
+      const timestamp = localStorage.getItem(PROFILE_CACHE_TIMESTAMP_KEY);
+      
+      if (!cached || !timestamp) return null;
+      
+      const age = Date.now() - parseInt(timestamp);
+      if (age > CACHE_DURATION) {
+        localStorage.removeItem(PROFILE_CACHE_KEY);
+        localStorage.removeItem(PROFILE_CACHE_TIMESTAMP_KEY);
+        return null;
+      }
+      
+      return JSON.parse(cached);
+    } catch (error) {
+      console.warn('Failed to get cached profile:', error);
+      return null;
+    }
+  }, []);
+
+  // Функция для очистки кэша профиля
+  const clearProfileCache = useCallback(() => {
+    try {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+      localStorage.removeItem(PROFILE_CACHE_TIMESTAMP_KEY);
+    } catch (error) {
+      console.warn('Failed to clear profile cache:', error);
+    }
+  }, []);
+
+  // Оптимизированная функция загрузки профиля с кэшированием
+  const fetchUserProfile = useCallback(async (userId: string, forceRefresh = false) => {
     if (fetchingRef.current || !mountedRef.current) {
-      console.log('AuthContext: Skipping profile fetch (already fetching or unmounted)');
       return null;
     }
 
+    // Проверяем кэш, если не принудительное обновление
+    if (!forceRefresh) {
+      const cachedProfile = getCachedProfile();
+      if (cachedProfile && cachedProfile.id === userId) {
+        console.log('Using cached profile');
+        if (mountedRef.current) {
+          setProfile(cachedProfile);
+          setIsAdmin(cachedProfile.user_type === 'admin');
+        }
+        return cachedProfile;
+      }
+    }
+
     fetchingRef.current = true;
-    console.log('AuthContext: Starting profile fetch for user:', userId);
+    console.log('Fetching fresh profile for user:', userId);
     
     try {
+      // Оптимизированный запрос - загружаем только необходимые поля
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, full_name, user_type, opt_id, verification_status, opt_status, first_login_completed, phone, telegram, location, avatar_url, company_name')
         .eq('id', userId)
         .single();
       
       if (error) {
         console.error('AuthContext: Error fetching profile:', error);
         
-        // В случае ошибки устанавливаем безопасные значения
         if (mountedRef.current) {
           setProfile(null);
           setIsAdmin(false);
@@ -61,18 +120,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data && mountedRef.current) {
-        console.log('AuthContext: Profile loaded successfully:', {
-          userId: data.id,
-          userType: data.user_type,
-          fullName: data.full_name
-        });
+        console.log('AuthContext: Profile loaded successfully');
         
         setProfile(data);
+        cacheProfile(data); // Кэшируем профиль
         
         const hasAdminAccess = data.user_type === 'admin';
         setIsAdmin(hasAdminAccess);
-        
-        console.log('AuthContext: Admin status set to:', hasAdminAccess);
         
         // Проверяем first login
         if (data.email.endsWith('@g.com') && !data.first_login_completed) {
@@ -86,7 +140,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('AuthContext: Exception while fetching profile:', error);
       
-      // В случае исключения устанавливаем безопасные значения
       if (mountedRef.current) {
         setProfile(null);
         setIsAdmin(false);
@@ -95,11 +148,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       fetchingRef.current = false;
     }
-  }, []);
+  }, [getCachedProfile, cacheProfile]);
 
   const refreshProfile = useCallback(async () => {
     if (user && mountedRef.current) {
-      await fetchUserProfile(user.id);
+      await fetchUserProfile(user.id, true); // Принудительное обновление
     }
   }, [user, fetchUserProfile]);
 
@@ -107,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('AuthContext: Manual admin status refresh triggered');
     if (user && mountedRef.current) {
       setIsLoading(true);
-      await fetchUserProfile(user.id);
+      await fetchUserProfile(user.id, true); // Принудительное обновление
       setIsLoading(false);
     }
   }, [user, fetchUserProfile]);
@@ -131,26 +184,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowFirstLoginWelcome(false);
       setIsLoading(false);
       
+      // Очищаем кэш при выходе
+      clearProfileCache();
+      
       console.log('AuthContext: Sign out completed');
     } catch (error) {
       console.error('AuthContext: Error during sign out:', error);
     }
-  }, []);
+  }, [clearProfileCache]);
 
-  // Основная логика инициализации auth
+  // Основная логика инициализации auth с уменьшенным timeout
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
     
     console.log('AuthContext: Starting auth initialization');
     
-    // Timeout для предотвращения бесконечной загрузки
+    // Уменьшенный timeout до 7 секунд
     initTimeoutRef.current = setTimeout(() => {
       if (mounted && mountedRef.current) {
         console.warn('AuthContext: Initialization timeout reached, forcing isLoading = false');
         setIsLoading(false);
       }
-    }, 15000);
+    }, 7000);
     
     const setupAuth = async () => {
       try {
@@ -181,12 +237,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.log('AuthContext: No user found');
             setProfile(null);
             setIsAdmin(false);
+            clearProfileCache(); // Очищаем кэш если нет пользователя
           }
           
-          // Важно: устанавливаем isLoading в false только после завершения всех операций
           setIsLoading(false);
           
-          // Очищаем timeout, так как инициализация завершена
           if (initTimeoutRef.current) {
             clearTimeout(initTimeoutRef.current);
           }
@@ -203,12 +258,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
-              // Не сбрасываем isLoading здесь, так как это может быть просто обновление токена
               await fetchUserProfile(currentSession.user.id);
             } else {
               setProfile(null);
               setIsAdmin(false);
               setShowFirstLoginWelcome(false);
+              clearProfileCache();
             }
           }
         );
@@ -234,7 +289,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(initTimeoutRef.current);
       }
     };
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, clearProfileCache]);
 
   // Мемоизируем контекст для предотвращения лишних ре-рендеров
   const contextValue = useMemo(() => ({
