@@ -1,11 +1,9 @@
+
 import { lazy } from 'react';
 
 // Критические админ страницы - загружаем сразу без lazy
 import AdminDashboard from '@/pages/AdminDashboard';
 import OptimizedAdminAddProduct from '@/pages/OptimizedAdminAddProduct';
-
-// Import оптимизированных route configs
-import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
 
 export const routeConfigs = [
   // Public routes
@@ -24,6 +22,24 @@ export const routeConfigs = [
   {
     path: '/register',
     component: lazy(() => import('@/pages/Register')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/forgot-password',
+    component: lazy(() => import('@/pages/ForgotPassword')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/reset-password',
+    component: lazy(() => import('@/pages/ResetPassword')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/verify-email',
+    component: lazy(() => import('@/pages/VerifyEmail')),
     protected: false,
     adminOnly: false,
   },
@@ -52,20 +68,50 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/faq',
-    component: lazy(() => import('@/pages/FAQ')),
+    path: '/stores',
+    component: lazy(() => import('@/pages/Stores')),
     protected: false,
     adminOnly: false,
   },
   {
-    path: '/terms',
-    component: lazy(() => import('@/pages/Terms')),
+    path: '/store/:id',
+    component: lazy(() => import('@/pages/StoreDetail')),
     protected: false,
     adminOnly: false,
   },
   {
-    path: '/privacy',
-    component: lazy(() => import('@/pages/Privacy')),
+    path: '/create-store',
+    component: lazy(() => import('@/pages/CreateStore')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/requests',
+    component: lazy(() => import('@/pages/Requests')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/request/:id',
+    component: lazy(() => import('@/pages/RequestDetail')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/create-request',
+    component: lazy(() => import('@/pages/CreateRequest')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/buyer-guide',
+    component: lazy(() => import('@/pages/BuyerGuide')),
+    protected: false,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-register',
+    component: lazy(() => import('@/pages/SellerRegister')),
     protected: false,
     adminOnly: false,
   },
@@ -79,7 +125,13 @@ export const routeConfigs = [
   },
   {
     path: '/admin/add-product',
-    component: OptimizedAdminAddProduct, // Используем оптимизированную версию
+    component: OptimizedAdminAddProduct,
+    protected: true,
+    adminOnly: true,
+  },
+  {
+    path: '/admin/free-order',
+    component: lazy(() => import('@/pages/AdminFreeOrder')),
     protected: true,
     adminOnly: true,
   },
@@ -121,12 +173,6 @@ export const routeConfigs = [
     protected: true,
     adminOnly: true,
   },
-  {
-    path: '/admin/settings',
-    component: lazy(() => import('@/pages/AdminSettings')),
-    protected: true,
-    adminOnly: true,
-  },
   
   // User routes
   {
@@ -136,20 +182,20 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
+    path: '/buyer-orders',
+    component: lazy(() => import('@/pages/BuyerOrders')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/order-details/:id',
+    component: lazy(() => import('@/pages/OrderDetails')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
     path: '/orders',
-    component: lazy(() => import('@/pages/UserOrders')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/order/:id',
-    component: lazy(() => import('@/pages/OrderDetail')),
-    protected: true,
-    adminOnly: false,
-  },
-  {
-    path: '/settings',
-    component: lazy(() => import('@/pages/UserSettings')),
+    component: lazy(() => import('@/pages/OrdersRedirect')),
     protected: true,
     adminOnly: false,
   },
@@ -162,8 +208,8 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/seller/products',
-    component: lazy(() => import('@/pages/SellerProducts')),
+    path: '/seller/listings',
+    component: lazy(() => import('@/pages/SellerListings')),
     protected: true,
     adminOnly: false,
   },
@@ -180,8 +226,8 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/seller/settings',
-    component: lazy(() => import('@/pages/SellerSettings')),
+    path: '/seller/order/:id',
+    component: lazy(() => import('@/pages/SellerOrderDetails')),
     protected: true,
     adminOnly: false,
   },
@@ -213,6 +259,7 @@ export const preloadAdminRoutes = () => {
     () => import('@/pages/AdminStores'),
     () => import('@/pages/AdminEvents'),
     () => import('@/pages/AdminLogistics'),
+    () => import('@/pages/AdminFreeOrder'),
   ];
 
   return Promise.allSettled(adminRoutes.map(route => route()));
@@ -239,7 +286,7 @@ export const preloadSellerRoutes = () => {
   
   const sellerRoutes = [
     () => import('@/pages/SellerDashboard'),
-    () => import('@/pages/SellerProducts'),
+    () => import('@/pages/SellerListings'),
     () => import('@/pages/SellerAddProduct'),
     () => import('@/pages/SellerOrders'),
   ];
