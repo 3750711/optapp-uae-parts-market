@@ -19,7 +19,7 @@ export const SellerContactSection: React.FC<SellerContactSectionProps> = ({
 
   if (user) {
     return (
-      <div className="grid grid-cols-1 gap-2 mt-4">
+      <div className="space-y-4 mt-4">
         {children}
       </div>
     );
