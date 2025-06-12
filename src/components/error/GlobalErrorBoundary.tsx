@@ -3,17 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-
-// Extend Window types for gtag
-declare global {
-  interface Window {
-    gtag?: (
-      command: string,
-      eventName: string,
-      parameters: Record<string, any>
-    ) => void;
-  }
-}
+import { reportCriticalError } from '@/utils/errorReporting';
 
 interface Props {
   children: ReactNode;
@@ -69,32 +59,27 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.group('🔍 GlobalErrorBoundary Error Details');
-    console.error('Error:', error.message);
-    console.error('Error name:', error.name);
-    console.error('Stack:', error.stack);
-    console.error('Component stack:', errorInfo.componentStack);
-    console.error('Current pathname:', window.location.pathname);
-    console.error('Timestamp:', new Date().toISOString());
-    console.groupEnd();
+    // Отправляем ошибку в систему мониторинга
+    reportCriticalError(error, {
+      componentStack: errorInfo.componentStack,
+      isAdminRoute: this.props.isAdminRoute,
+      pathname: window.location.pathname,
+      userAgent: navigator.userAgent,
+    });
+
+    // Диспатчим кастомный event для дополнительного мониторинга
+    window.dispatchEvent(new CustomEvent('react-error', {
+      detail: {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo.componentStack,
+      }
+    }));
     
     this.setState({ errorInfo });
     
-    // Send error to analytics if available
-    if (window.gtag) {
-      window.gtag('event', 'exception', {
-        description: error.message,
-        fatal: false,
-        custom_map: {
-          component_stack: errorInfo.componentStack,
-          is_admin_route: this.props.isAdminRoute
-        }
-      });
-    }
-
     // Auto-handle chunk load errors
     if (this.state.isModuleLoadError) {
-      console.log('🔄 Auto-handling chunk load error...');
       this.handleChunkError();
     }
   }
@@ -105,37 +90,31 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
-        console.log('✅ Cleared all caches');
       }
       
       // Clear localStorage and sessionStorage
       localStorage.clear();
       sessionStorage.clear();
-      console.log('✅ Cleared storage');
       
       // Reload the page after a short delay
       setTimeout(() => {
         window.location.reload();
       }, 500);
     } catch (error) {
-      console.error('❌ Error clearing caches:', error);
-      // Force reload anyway
+      console.error('Error clearing caches:', error);
       window.location.reload();
     }
   };
 
   handleReload = () => {
-    console.log('🔄 Manual page reload');
     window.location.reload();
   };
 
   handleGoHome = () => {
-    console.log('🏠 Navigating to home');
     window.location.href = '/';
   };
 
   handleGoToProfile = () => {
-    console.log('👤 Navigating to profile');
     window.location.href = '/profile';
   };
 

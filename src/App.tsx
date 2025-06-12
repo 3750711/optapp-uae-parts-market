@@ -12,7 +12,10 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 // Import оптимизированных route configs
 import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
 
-// Оптимизированная конфигурация React Query с простым кэшированием
+// Импортируем систему мониторинга ошибок
+import '@/utils/errorReporting';
+
+// Оптимизированная конфигурация React Query
 const createQueryClient = () => new QueryClient({
   defaultOptions: {
     queries: {
@@ -23,11 +26,8 @@ const createQueryClient = () => new QueryClient({
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      
-      // Простые настройки кэширования без функций
-      staleTime: 1000 * 60 * 5, // 5 минут по умолчанию
-      gcTime: 1000 * 60 * 15, // 15 минут в памяти
-      
+      staleTime: 1000 * 60 * 5, // 5 минут
+      gcTime: 1000 * 60 * 15, // 15 минут
       refetchOnMount: (query) => {
         const dataAge = Date.now() - (query.state.dataUpdatedAt || 0);
         return dataAge > 1000 * 60 * 2; // Обновляем если старше 2 минут
@@ -56,7 +56,7 @@ function App() {
   // Создаем QueryClient один раз
   const [queryClient] = React.useState(() => createQueryClient());
 
-  // Предзагружаем критические маршруты и отслеживаем роли пользователя
+  // Предзагружаем критические маршруты
   React.useEffect(() => {
     preloadCriticalRoutes();
     
@@ -77,7 +77,6 @@ function App() {
       }
     };
     
-    // Проверяем сразу и потом слушаем изменения
     handleUserRoleChange();
     window.addEventListener('storage', handleUserRoleChange);
     
