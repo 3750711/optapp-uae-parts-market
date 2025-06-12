@@ -68,10 +68,6 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
     setSearchTerm('');
   };
 
-  const handlePriceRangeChange = (value: [number, number]) => {
-    setPriceRange({ min: value[0], max: value[1] });
-  };
-
   return (
     <div className="space-y-4">
       {/* Search */}
@@ -91,21 +87,21 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
       <div className="bg-white p-4 rounded-lg shadow-sm border">
         <div className="flex flex-wrap gap-4">
           <StatusFilter
-            statusFilter={statusFilter}
+            value={statusFilter}
             onChange={setStatusFilter}
             disabled={isLoading}
           />
           
           <DateRangeFilter
-            dateRange={dateRange}
+            value={dateRange}
             onChange={setDateRange}
             disabled={isLoading}
           />
           
           <PriceRangeFilter
-            priceRange={[priceRange.min, priceRange.max]}
-            maxPrice={100000}
-            onChange={handlePriceRangeChange}
+            value={priceRange}
+            onChange={setPriceRange}
+            disabled={isLoading}
           />
           
           {hasActiveFilters && (
