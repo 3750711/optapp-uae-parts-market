@@ -33,14 +33,6 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
   deliveryMethod,
   onDeliveryMethodChange,
 }) => {
-  console.log("ProductDetailContent data:", {
-    productPhone: product.phone_url,
-    productTelegram: product.telegram_url,
-    sellerPhone: sellerProfile?.phone,
-    sellerTelegram: sellerProfile?.telegram,
-    sellerProfile
-  });
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
       {/* Gallery section - now includes videos */}
