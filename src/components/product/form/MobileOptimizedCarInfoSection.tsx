@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { ProductFormValues } from '../OptimizedAddProductForm';
+import { ProductFormValues } from '../AddProductForm';
 import {
   FormControl,
   FormField,

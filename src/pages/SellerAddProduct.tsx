@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,7 +28,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
-import OptimizedAddProductForm, { createProductSchema, ProductFormValues } from "@/components/product/OptimizedAddProductForm";
+import AddProductForm, { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -59,19 +60,16 @@ const SellerAddProduct = () => {
     isLoading: isLoadingCarData
   } = useAllCarBrands();
 
-  // Create schema for seller (showSellerSelection = false)
-  const sellerProductSchema = useMemo(() => createProductSchema, []);
-
   const form = useForm<ProductFormValues>({
-    resolver: zodResolver(sellerProductSchema),
+    resolver: zodResolver(productSchema),
     defaultValues: {
       title: "",
-      price: 0,
+      price: "",
       brandId: "",
       modelId: "",
-      place_number: 1,
+      placeNumber: "1",
       description: "",
-      delivery_price: 0,
+      deliveryPrice: "",
     },
     mode: "onChange",
   });
@@ -274,7 +272,7 @@ const SellerAddProduct = () => {
         .from('products')
         .insert({
           title: values.title,
-          price: values.price,
+          price: Number(values.price),
           condition: "Новый",
           brand: brandName,
           model: modelName,
@@ -282,8 +280,8 @@ const SellerAddProduct = () => {
           seller_id: user.id, // Automatically assign current user as seller
           seller_name: profile?.full_name || '',
           status: 'pending',
-          place_number: values.place_number || 1,
-          delivery_price: values.delivery_price || 0,
+          place_number: Number(values.placeNumber) || 1,
+          delivery_price: Number(values.deliveryPrice) || 0,
         })
         .select()
         .single();
@@ -458,9 +456,9 @@ const SellerAddProduct = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <OptimizedAddProductForm
-                  form={form}
-                  onSubmit={createProduct}
+                <AddProductForm
+                  form={form as any}
+                  onSubmit={createProduct as any}
                   isSubmitting={isSubmitting}
                   imageUrls={imageUrls}
                   videoUrls={videoUrls}
@@ -472,11 +470,12 @@ const SellerAddProduct = () => {
                   setSearchBrandTerm={setSearchBrandTerm}
                   searchModelTerm={searchModelTerm}
                   setSearchModelTerm={setSearchModelTerm}
+                  filteredBrands={filteredBrands}
+                  filteredModels={filteredModels}
                   handleMobileOptimizedImageUpload={handleImageUpload}
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
-                  onImageDelete={handleImageDelete}
                   showSellerSelection={false}
                 />
               </CardContent>

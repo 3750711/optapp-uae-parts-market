@@ -10,8 +10,13 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { ProductFormValues, AdminProductFormValues } from "../OptimizedAddProductForm";
+import { ProductFormValues } from "../AddProductForm";
 import OptimizedSelect from "@/components/ui/OptimizedSelect";
+
+// Define admin form values interface
+interface AdminProductFormValues extends ProductFormValues {
+  sellerId: string;
+}
 
 interface MobileOptimizedBasicInfoSectionProps {
   form: UseFormReturn<ProductFormValues> | UseFormReturn<AdminProductFormValues>;
@@ -104,7 +109,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
 
         <FormField
           control={form.control}
-          name="place_number"
+          name="placeNumber"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Количество мест *</FormLabel>
@@ -145,7 +150,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {/* Delivery Price */}
       <FormField
         control={form.control}
-        name="delivery_price"
+        name="deliveryPrice"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Стоимость доставки (AED)</FormLabel>

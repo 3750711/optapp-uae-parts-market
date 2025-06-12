@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { ProductFormValues } from '../OptimizedAddProductForm';
+import { ProductFormValues } from '../AddProductForm';
 import {
   FormControl,
   FormField,
@@ -58,7 +58,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
 
         <FormField
           control={form.control}
-          name="delivery_price"
+          name="deliveryPrice"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Стоимость доставки ($)</FormLabel>
@@ -79,7 +79,7 @@ const BasicInfoSection = React.memo<BasicInfoSectionProps>(({ form }) => {
 
       <FormField
         control={form.control}
-        name="place_number"
+        name="placeNumber"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Количество мест для отправки</FormLabel>
