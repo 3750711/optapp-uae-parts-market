@@ -1,10 +1,10 @@
-
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { getCachedAdminRights, setCachedAdminRights, clearAdminCache } from '@/utils/performanceUtils';
+import { useAdminDataPreloader } from '@/hooks/useAdminDataPreloader';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -191,6 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error during sign out:', error);
     }
   }, [clearProfileCache]);
+
+  // Добавляем предзагрузку данных для админов
+  useAdminDataPreloader();
 
   // Основная логика инициализации auth с уменьшенным timeout
   useEffect(() => {

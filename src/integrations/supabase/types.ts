@@ -1044,6 +1044,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_admin_add_product_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_admin_metrics: {
         Args: Record<PropertyKey, never>
         Returns: Json
