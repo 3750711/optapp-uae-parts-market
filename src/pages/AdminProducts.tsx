@@ -51,12 +51,16 @@ const AdminProducts = () => {
     refetch
   });
 
-  console.log('🎯 AdminProducts render:', { 
+  console.log('🎯 AdminProducts state:', { 
     productsCount: products.length,
     isLoading,
+    isError,
     searchTerm,
     debouncedSearchTerm,
-    isSearching 
+    isSearching,
+    hasActiveSearch,
+    hasActiveFilters,
+    statusFilter
   });
 
   return (

@@ -58,16 +58,15 @@ export const useEnhancedProductsState = ({
     debounceDelay: 300
   });
 
-  // Fetch function with enhanced error handling
+  // Fetch function with enhanced error handling and debugging
   const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
     try {
-      console.log('🔍 Fetching products:', { 
-        pageParam, 
-        searchTerm: debouncedSearchTerm, 
-        statusFilter,
-        dateRange,
-        priceRange 
-      });
+      console.group('🔍 Fetching products');
+      console.log('📄 Page:', pageParam);
+      console.log('🔤 Search term (debounced):', debouncedSearchTerm);
+      console.log('📊 Status filter:', statusFilter);
+      console.log('📅 Date range:', dateRange);
+      console.log('💰 Price range:', priceRange);
 
       let query = supabase
         .from('products')
@@ -78,37 +77,56 @@ export const useEnhancedProductsState = ({
         .order('created_at', { ascending: false })
         .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
 
-      // Apply filters
-      if (debouncedSearchTerm) {
-        query = query.ilike('title', `%${debouncedSearchTerm}%`);
+      // Apply search filter
+      if (debouncedSearchTerm && debouncedSearchTerm.trim().length > 0) {
+        console.log('🔍 Applying search filter:', debouncedSearchTerm);
+        query = query.or(`title.ilike.%${debouncedSearchTerm}%,brand.ilike.%${debouncedSearchTerm}%,model.ilike.%${debouncedSearchTerm}%`);
       }
 
-      if (statusFilter !== 'all') {
+      // Apply status filter
+      if (statusFilter && statusFilter !== 'all') {
+        console.log('📊 Applying status filter:', statusFilter);
         query = query.eq('status', statusFilter);
       }
 
+      // Apply date range filter
       if (dateRange.from) {
+        console.log('📅 Applying date from filter:', dateRange.from);
         query = query.gte('created_at', dateRange.from.toISOString());
       }
 
       if (dateRange.to) {
-        query = query.lte('created_at', dateRange.to.toISOString());
+        console.log('📅 Applying date to filter:', dateRange.to);
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', toDate.toISOString());
       }
 
+      // Apply price range filter
       if (priceRange.min > 0) {
+        console.log('💰 Applying min price filter:', priceRange.min);
         query = query.gte('price', priceRange.min);
       }
 
       if (priceRange.max < 100000) {
+        console.log('💰 Applying max price filter:', priceRange.max);
         query = query.lte('price', priceRange.max);
       }
 
+      console.log('🚀 Executing query...');
       const { data, error, count } = await query;
 
       if (error) {
-        console.error('❌ Error fetching products:', error);
+        console.error('❌ Query error:', error);
+        console.groupEnd();
         throw error;
       }
+
+      console.log('✅ Query success:', {
+        dataLength: data?.length || 0,
+        totalCount: count,
+        hasMore: count ? (pageParam + 1) * pageSize < count : false
+      });
 
       // Sort product_images so primary images come first
       const dataWithSortedImages = data?.map(product => ({
@@ -120,11 +138,15 @@ export const useEnhancedProductsState = ({
         })
       }));
 
+      console.groupEnd();
+
       return { 
         data: dataWithSortedImages || [], 
         count: count || 0 
       };
     } catch (error) {
+      console.error('❌ Error in fetchProducts:', error);
+      console.groupEnd();
       handleError(error, {
         customMessage: 'Ошибка при загрузке товаров',
         logError: true
@@ -153,6 +175,7 @@ export const useEnhancedProductsState = ({
     },
     initialPageParam: 0,
     retry: (failureCount, error: any) => {
+      console.log('🔄 Query retry attempt:', failureCount, error?.message);
       // Не повторяем при ошибках доступа
       if (error?.message?.includes('permission') || error?.message?.includes('unauthorized')) {
         return false;
@@ -165,11 +188,14 @@ export const useEnhancedProductsState = ({
 
   // Memoized products list
   const allProducts = useMemo(() => {
-    return data?.pages.flatMap(page => page.data) || [];
+    const products = data?.pages.flatMap(page => page.data) || [];
+    console.log('📦 Memoized products count:', products.length);
+    return products;
   }, [data]);
 
   // Clear all filters
   const clearFilters = useCallback(() => {
+    console.log('🧹 Clearing all filters');
     clearSearch();
     setStatusFilter('all');
     setDateRange({ from: null, to: null });
@@ -178,12 +204,21 @@ export const useEnhancedProductsState = ({
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return hasActiveSearch || 
+    const active = hasActiveSearch || 
            statusFilter !== 'all' || 
            dateRange.from !== null || 
            dateRange.to !== null || 
            priceRange.min > 0 || 
            priceRange.max < 100000;
+    
+    console.log('🔍 Has active filters:', active, {
+      hasActiveSearch,
+      statusFilter,
+      dateRange,
+      priceRange
+    });
+    
+    return active;
   }, [hasActiveSearch, statusFilter, dateRange, priceRange]);
 
   return {
