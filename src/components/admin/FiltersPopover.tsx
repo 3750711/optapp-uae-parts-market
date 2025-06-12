@@ -8,20 +8,17 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import PriceRangeFilter, { PriceRange } from '@/components/admin/filters/PriceRangeFilter';
-import DateRangeFilter, { DateRange } from '@/components/admin/filters/DateRangeFilter';
 import StatusFilter from '@/components/admin/filters/StatusFilter';
+import SellerFilter from '@/components/admin/filters/SellerFilter';
 import { FiltersState } from '@/hooks/useProductFilters';
 
 interface FiltersPopoverProps {
   filters: FiltersState;
-  priceRange: PriceRange;
-  setPriceRange: (range: PriceRange) => void;
-  maxPrice: number;
-  dateRange: DateRange;
-  setDateRange: (range: DateRange) => void;
   statusFilter: string | null;
   setStatusFilter: (status: string | null) => void;
+  sellerFilter: string;
+  setSellerFilter: (sellerId: string) => void;
+  sellers: Array<{ id: string; name: string; }>;
   resetAllFilters: () => void;
   applyFilters: () => void;
   disabled?: boolean;
@@ -29,23 +26,18 @@ interface FiltersPopoverProps {
 
 const FiltersPopover: React.FC<FiltersPopoverProps> = ({
   filters,
-  priceRange,
-  setPriceRange,
-  maxPrice,
-  dateRange,
-  setDateRange,
   statusFilter,
   setStatusFilter,
+  sellerFilter,
+  setSellerFilter,
+  sellers,
   resetAllFilters,
   applyFilters,
   disabled = false
 }) => {
   const hasActiveFilters = Boolean(
-    priceRange?.min !== 0 || 
-    priceRange?.max !== maxPrice || 
-    dateRange?.from || 
-    dateRange?.to || 
-    statusFilter
+    statusFilter || 
+    (sellerFilter && sellerFilter !== 'all')
   );
 
   return (
@@ -70,25 +62,18 @@ const FiltersPopover: React.FC<FiltersPopoverProps> = ({
         <div className="space-y-4">
           <h4 className="text-sm font-medium mb-2">Фильтры</h4>
           
-          {/* Price Range Filter */}
-          <PriceRangeFilter 
-            value={priceRange}
-            maxPrice={maxPrice}
-            onChange={setPriceRange}
-            disabled={disabled}
-          />
-          
-          {/* Date Range Filter */}
-          <DateRangeFilter 
-            value={dateRange}
-            onChange={setDateRange}
-            disabled={disabled}
-          />
-          
           {/* Status Filter */}
           <StatusFilter 
             value={statusFilter || 'all'}
             onChange={(status) => setStatusFilter(status === 'all' ? null : status)}
+            disabled={disabled}
+          />
+          
+          {/* Seller Filter */}
+          <SellerFilter 
+            value={sellerFilter}
+            onChange={setSellerFilter}
+            sellers={sellers}
             disabled={disabled}
           />
           

@@ -21,8 +21,7 @@ interface AdminProductsContentProps {
   searchTerm: string;
   debouncedSearchTerm?: string;
   statusFilter: string;
-  dateRange: { from: Date | null; to: Date | null };
-  priceRange: { min: number; max: number };
+  sellerFilter: string;
   hasActiveFilters?: boolean;
 }
 
@@ -41,8 +40,7 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
   searchTerm,
   debouncedSearchTerm,
   statusFilter,
-  dateRange,
-  priceRange,
+  sellerFilter,
   hasActiveFilters = false
 }) => {
   console.log('📦 AdminProductsContent render:', { 

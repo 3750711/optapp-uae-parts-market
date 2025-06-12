@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminProductsHeader from '@/components/admin/products/AdminProductsHeader';
 import AdminProductsFilters from '@/components/admin/products/AdminProductsFilters';
@@ -30,10 +30,8 @@ const AdminProducts = () => {
     hasActiveSearch,
     statusFilter,
     setStatusFilter,
-    dateRange,
-    setDateRange,
-    priceRange,
-    setPriceRange,
+    sellerFilter,
+    setSellerFilter,
     selectedProducts,
     setSelectedProducts,
     clearFilters,
@@ -50,6 +48,20 @@ const AdminProducts = () => {
     setSelectedProducts,
     refetch
   });
+
+  // Extract unique sellers from products
+  const sellers = useMemo(() => {
+    const uniqueSellers = new Map();
+    products.forEach(product => {
+      if (product.seller_id && product.seller_name) {
+        uniqueSellers.set(product.seller_id, {
+          id: product.seller_id,
+          name: product.seller_name
+        });
+      }
+    });
+    return Array.from(uniqueSellers.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
 
   console.log('🎯 AdminProducts render:', { 
     productsCount: products.length,
@@ -70,10 +82,9 @@ const AdminProducts = () => {
             setSearchTerm={updateSearchTerm}
             statusFilter={statusFilter}
             setStatusFilter={setStatusFilter}
-            dateRange={dateRange}
-            setDateRange={setDateRange}
-            priceRange={priceRange}
-            setPriceRange={setPriceRange}
+            sellerFilter={sellerFilter}
+            setSellerFilter={setSellerFilter}
+            sellers={sellers}
             clearFilters={clearFilters}
             isLoading={isLoading}
             isSearching={isSearching}
@@ -100,8 +111,7 @@ const AdminProducts = () => {
             searchTerm={searchTerm}
             debouncedSearchTerm={debouncedSearchTerm}
             statusFilter={statusFilter}
-            dateRange={dateRange}
-            priceRange={priceRange}
+            sellerFilter={sellerFilter}
             hasActiveFilters={hasActiveFilters}
           />
         </div>

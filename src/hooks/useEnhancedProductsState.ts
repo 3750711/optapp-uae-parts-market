@@ -11,25 +11,16 @@ interface Product {
   title: string;
   price: number;
   status: string;
+  seller_id: string;
+  seller_name: string;
   [key: string]: any;
-}
-
-interface DateRange {
-  from: Date | null;
-  to: Date | null;
-}
-
-interface PriceRange {
-  min: number;
-  max: number;
 }
 
 interface UseEnhancedProductsStateProps {
   pageSize?: number;
   initialFilters?: {
     status?: string;
-    dateRange?: DateRange;
-    priceRange?: PriceRange;
+    sellerId?: string;
   };
 }
 
@@ -43,12 +34,7 @@ export const useEnhancedProductsState = ({
   
   // Filters state
   const [statusFilter, setStatusFilter] = useState(initialFilters.status || 'all');
-  const [dateRange, setDateRange] = useState<DateRange>(
-    initialFilters.dateRange || { from: null, to: null }
-  );
-  const [priceRange, setPriceRange] = useState<PriceRange>(
-    initialFilters.priceRange || { min: 0, max: 100000 }
-  );
+  const [sellerFilter, setSellerFilter] = useState(initialFilters.sellerId || 'all');
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
 
   // Search state with debounce
@@ -70,8 +56,7 @@ export const useEnhancedProductsState = ({
         pageParam, 
         searchTerm: debouncedSearchTerm, 
         statusFilter,
-        dateRange,
-        priceRange 
+        sellerFilter
       });
 
       let query = supabase
@@ -92,20 +77,8 @@ export const useEnhancedProductsState = ({
         query = query.eq('status', statusFilter);
       }
 
-      if (dateRange.from) {
-        query = query.gte('created_at', dateRange.from.toISOString());
-      }
-
-      if (dateRange.to) {
-        query = query.lte('created_at', dateRange.to.toISOString());
-      }
-
-      if (priceRange.min > 0) {
-        query = query.gte('price', priceRange.min);
-      }
-
-      if (priceRange.max < 100000) {
-        query = query.lte('price', priceRange.max);
+      if (sellerFilter !== 'all') {
+        query = query.eq('seller_id', sellerFilter);
       }
 
       const { data, error, count } = await query;
@@ -136,7 +109,7 @@ export const useEnhancedProductsState = ({
       });
       throw error;
     }
-  }, [debouncedSearchTerm, statusFilter, dateRange, priceRange, pageSize, handleError]);
+  }, [debouncedSearchTerm, statusFilter, sellerFilter, pageSize, handleError]);
 
   // Infinite query with error handling
   const {
@@ -149,7 +122,7 @@ export const useEnhancedProductsState = ({
     error,
     refetch,
   } = useInfiniteQuery({
-    queryKey: ['admin-products', debouncedSearchTerm, statusFilter, dateRange, priceRange],
+    queryKey: ['admin-products', debouncedSearchTerm, statusFilter, sellerFilter],
     queryFn: fetchProducts,
     getNextPageParam: (lastPage, allPages) => {
       const totalItems = allPages.reduce((sum, page) => sum + page.data.length, 0);
@@ -176,19 +149,15 @@ export const useEnhancedProductsState = ({
   const clearFilters = useCallback(() => {
     clearSearch();
     setStatusFilter('all');
-    setDateRange({ from: null, to: null });
-    setPriceRange({ min: 0, max: 100000 });
+    setSellerFilter('all');
   }, [clearSearch]);
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
     return hasActiveSearch || 
            statusFilter !== 'all' || 
-           dateRange.from !== null || 
-           dateRange.to !== null || 
-           priceRange.min > 0 || 
-           priceRange.max < 100000;
-  }, [hasActiveSearch, statusFilter, dateRange, priceRange]);
+           sellerFilter !== 'all';
+  }, [hasActiveSearch, statusFilter, sellerFilter]);
 
   return {
     // Products data
@@ -212,10 +181,8 @@ export const useEnhancedProductsState = ({
     // Filters state
     statusFilter,
     setStatusFilter,
-    dateRange,
-    setDateRange,
-    priceRange,
-    setPriceRange,
+    sellerFilter,
+    setSellerFilter,
     
     // Selection state
     selectedProducts,

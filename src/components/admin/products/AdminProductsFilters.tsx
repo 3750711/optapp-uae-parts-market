@@ -3,31 +3,19 @@ import React from 'react';
 import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
 import { OptimizedProductSearch } from '@/components/admin/search/OptimizedProductSearch';
 import StatusFilter from '@/components/admin/filters/StatusFilter';
-import DateRangeFilter from '@/components/admin/filters/DateRangeFilter';
-import PriceRangeFilter from '@/components/admin/filters/PriceRangeFilter';
+import SellerFilter from '@/components/admin/filters/SellerFilter';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Filter, X } from "lucide-react";
-
-interface DateRange {
-  from: Date | null;
-  to: Date | null;
-}
-
-interface PriceRange {
-  min: number;
-  max: number;
-}
 
 interface AdminProductsFiltersProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   statusFilter: string;
   setStatusFilter: (status: string) => void;
-  dateRange: DateRange;
-  setDateRange: (range: DateRange) => void;
-  priceRange: PriceRange;
-  setPriceRange: (range: PriceRange) => void;
+  sellerFilter: string;
+  setSellerFilter: (sellerId: string) => void;
+  sellers: Array<{ id: string; name: string; }>;
   clearFilters: () => void;
   isLoading: boolean;
   isSearching?: boolean;
@@ -44,10 +32,9 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
   setSearchTerm,
   statusFilter,
   setStatusFilter,
-  dateRange,
-  setDateRange,
-  priceRange,
-  setPriceRange,
+  sellerFilter,
+  setSellerFilter,
+  sellers,
   clearFilters,
   isLoading,
   isSearching = false,
@@ -94,22 +81,17 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <StatusFilter
               value={statusFilter}
               onChange={setStatusFilter}
               disabled={isLoading}
             />
             
-            <DateRangeFilter
-              value={dateRange}
-              onChange={setDateRange}
-              disabled={isLoading}
-            />
-            
-            <PriceRangeFilter
-              value={priceRange}
-              onChange={setPriceRange}
+            <SellerFilter
+              value={sellerFilter}
+              onChange={setSellerFilter}
+              sellers={sellers}
               disabled={isLoading}
             />
           </div>
