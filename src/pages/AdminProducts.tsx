@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+
+import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminProductsHeader from '@/components/admin/products/AdminProductsHeader';
 import AdminProductsFilters from '@/components/admin/products/AdminProductsFilters';
@@ -31,6 +32,8 @@ const AdminProducts = () => {
     setStatusFilter,
     sellerFilter,
     setSellerFilter,
+    allSellers,
+    isSellersLoading,
     selectedProducts,
     setSelectedProducts,
     clearFilters,
@@ -48,23 +51,9 @@ const AdminProducts = () => {
     refetch
   });
 
-  // Extract unique sellers from products with OPT ID
-  const sellers = useMemo(() => {
-    const uniqueSellers = new Map();
-    products.forEach(product => {
-      if (product.seller_id && product.seller_name) {
-        uniqueSellers.set(product.seller_id, {
-          id: product.seller_id,
-          name: product.seller_name,
-          opt_id: product.seller_opt_id || product.opt_id // поддерживаем разные поля для OPT ID
-        });
-      }
-    });
-    return Array.from(uniqueSellers.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [products]);
-
   console.log('🎯 AdminProducts render:', { 
     productsCount: products.length,
+    sellersCount: allSellers.length,
     isLoading,
     searchTerm,
     debouncedSearchTerm,
@@ -84,9 +73,9 @@ const AdminProducts = () => {
             setStatusFilter={setStatusFilter}
             sellerFilter={sellerFilter}
             setSellerFilter={setSellerFilter}
-            sellers={sellers}
+            sellers={allSellers}
             clearFilters={clearFilters}
-            isLoading={isLoading}
+            isLoading={isLoading || isSellersLoading}
             isSearching={isSearching}
             hasActiveSearch={hasActiveSearch}
             hasActiveFilters={hasActiveFilters}
