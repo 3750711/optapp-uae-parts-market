@@ -4,7 +4,8 @@ import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
 import { Product } from '@/types/product';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Search } from 'lucide-react';
+import { AlertTriangle, Search, Shield, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface AdminProductsContentProps {
   products: Product[];
@@ -49,26 +50,83 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
     isError,
     hasActiveFilters,
     searchTerm,
-    debouncedSearchTerm 
+    debouncedSearchTerm,
+    errorMessage: error instanceof Error ? error.message : String(error)
   });
 
-  // Показываем ошибку, если есть проблемы с загрузкой
+  // Детальная обработка ошибок с диагностической информацией
   if (isError) {
+    const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+    const isAuthError = errorMessage.includes('permission') || 
+                       errorMessage.includes('unauthorized') || 
+                       errorMessage.includes('JWT') ||
+                       errorMessage.includes('PGRST301');
+
     return (
-      <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="flex items-center justify-between">
-          <span>
-            Ошибка загрузки товаров: {error instanceof Error ? error.message : 'Неизвестная ошибка'}
-          </span>
-          <button 
-            onClick={() => refetch()}
-            className="ml-2 text-sm underline hover:no-underline"
-          >
-            Повторить
-          </button>
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription className="space-y-3">
+            <div className="font-medium">
+              {isAuthError ? 'Ошибка доступа' : 'Ошибка загрузки товаров'}
+            </div>
+            <div className="text-sm">
+              {isAuthError ? (
+                <div className="space-y-2">
+                  <p>Проблема с правами доступа к данным. Возможные причины:</p>
+                  <ul className="list-disc list-inside space-y-1 ml-2">
+                    <li>Истек срок действия токена авторизации</li>
+                    <li>Недостаточно прав для просмотра товаров</li>
+                    <li>Проблема с политиками Row Level Security</li>
+                  </ul>
+                </div>
+              ) : (
+                <p>Ошибка: {errorMessage}</p>
+              )}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Button 
+                onClick={() => refetch()}
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Повторить запрос
+              </Button>
+              {isAuthError && (
+                <Button 
+                  onClick={() => window.location.reload()}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Shield className="h-4 w-4" />
+                  Обновить страницу
+                </Button>
+              )}
+            </div>
+          </AlertDescription>
+        </Alert>
+        
+        {/* Диагностическая информация для админов */}
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <details className="text-xs">
+              <summary className="cursor-pointer font-medium mb-2">
+                Техническая информация (для диагностики)
+              </summary>
+              <div className="space-y-1 font-mono text-xs bg-gray-50 p-2 rounded">
+                <div>Ошибка: {errorMessage}</div>
+                <div>Тип ошибки: {isAuthError ? 'Authentication/Authorization' : 'General'}</div>
+                <div>Фильтры: status={statusFilter}, seller={sellerFilter}</div>
+                <div>Поиск: "{debouncedSearchTerm}"</div>
+                <div>Время: {new Date().toLocaleTimeString()}</div>
+              </div>
+            </details>
+          </AlertDescription>
+        </Alert>
+      </div>
     );
   }
 

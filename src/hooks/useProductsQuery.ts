@@ -32,12 +32,37 @@ export const useProductsQuery = ({
 
   const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
     try {
+      // Диагностическая информация о сессии
       console.log('🔍 Fetching products:', { 
         pageParam, 
         searchTerm: debouncedSearchTerm, 
         statusFilter,
         sellerFilter
       });
+
+      // Проверяем текущую сессию
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔐 Current session:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        userEmail: session?.user?.email,
+        sessionError: sessionError?.message
+      });
+
+      // Проверяем профиль пользователя
+      if (session?.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('user_type, email')
+          .eq('id', session.user.id)
+          .single();
+        
+        console.log('👤 User profile:', {
+          userType: profile?.user_type,
+          email: profile?.email,
+          profileError: profileError?.message
+        });
+      }
 
       let query = supabase
         .from('products')
@@ -61,10 +86,25 @@ export const useProductsQuery = ({
         query = query.eq('seller_id', sellerFilter);
       }
 
+      console.log('📡 Executing query...');
       const { data, error, count } = await query;
 
+      console.log('📊 Query result:', {
+        hasData: !!data,
+        dataLength: data?.length || 0,
+        count,
+        error: error?.message,
+        errorCode: error?.code,
+        errorDetails: error?.details
+      });
+
       if (error) {
-        console.error('❌ Error fetching products:', error);
+        console.error('❌ Error fetching products:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
+        });
         throw error;
       }
 
@@ -78,11 +118,14 @@ export const useProductsQuery = ({
         })
       }));
 
+      console.log('✅ Products fetched successfully:', dataWithSortedImages?.length || 0);
+
       return { 
         data: dataWithSortedImages || [], 
         count: count || 0 
       };
     } catch (error) {
+      console.error('💥 Exception in fetchProducts:', error);
       handleError(error, {
         customMessage: 'Ошибка при загрузке товаров',
         logError: true
@@ -101,7 +144,14 @@ export const useProductsQuery = ({
     },
     initialPageParam: 0,
     retry: (failureCount, error: any) => {
-      if (error?.message?.includes('permission') || error?.message?.includes('unauthorized')) {
+      console.log('🔄 Query retry attempt:', { failureCount, errorMessage: error?.message });
+      
+      // Не повторяем запросы при проблемах с авторизацией
+      if (error?.message?.includes('permission') || 
+          error?.message?.includes('unauthorized') ||
+          error?.message?.includes('JWT') ||
+          error?.code === 'PGRST301') {
+        console.log('🚫 Not retrying due to auth error');
         return false;
       }
       return failureCount < 2;
@@ -113,6 +163,14 @@ export const useProductsQuery = ({
   const allProducts = useMemo(() => {
     return queryResult.data?.pages.flatMap(page => page.data) || [];
   }, [queryResult.data]);
+
+  // Логируем состояние запроса
+  console.log('📈 Query state:', {
+    isLoading: queryResult.isLoading,
+    isError: queryResult.isError,
+    error: queryResult.error?.message,
+    productsCount: allProducts.length
+  });
 
   return {
     ...queryResult,

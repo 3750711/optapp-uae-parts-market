@@ -82,7 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data && mountedRef.current) {
-        console.log('✅ Profile loaded successfully:', data.email);
+        console.log('✅ Profile loaded successfully:', {
+          email: data.email,
+          userType: data.user_type,
+          verificationStatus: data.verification_status
+        });
         setProfile(data);
         
         // Проверяем админские права
@@ -219,7 +223,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🔑 Setting up auth...');
         
+        // Проверяем текущий JWT токен
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        console.log('🔐 Session check result:', {
+          hasSession: !!currentSession,
+          userId: currentSession?.user?.id,
+          userEmail: currentSession?.user?.email,
+          accessToken: currentSession?.access_token ? 'present' : 'missing',
+          refreshToken: currentSession?.refresh_token ? 'present' : 'missing',
+          expiresAt: currentSession?.expires_at,
+          error: error?.message
+        });
         
         if (error) {
           console.error("❌ Error getting session:", error);
@@ -256,7 +271,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (event, currentSession) => {
             if (!mounted) return;
             
-            console.log('🔄 Auth state changed:', event);
+            console.log('🔄 Auth state changed:', {
+              event,
+              hasSession: !!currentSession,
+              userId: currentSession?.user?.id
+            });
             
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
