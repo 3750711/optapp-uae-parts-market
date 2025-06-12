@@ -11,13 +11,11 @@ interface SearchState {
 interface UseOptimizedProductsSearchProps {
   initialSearchTerm?: string;
   debounceDelay?: number;
-  onSearchChange?: (term: string) => void;
 }
 
 export const useOptimizedProductsSearch = ({
   initialSearchTerm = '',
-  debounceDelay = 300,
-  onSearchChange
+  debounceDelay = 300
 }: UseOptimizedProductsSearchProps = {}) => {
   const [searchTerm, setSearchTerm] = useState(initialSearchTerm);
   const debouncedSearchTerm = useDebounceValue(searchTerm, debounceDelay);
@@ -28,13 +26,6 @@ export const useOptimizedProductsSearch = ({
     const searching = searchTerm !== debouncedSearchTerm && searchTerm.length > 0;
     setIsSearching(searching);
   }, [searchTerm, debouncedSearchTerm]);
-
-  // Уведомляем о изменении поискового запроса
-  useEffect(() => {
-    if (onSearchChange) {
-      onSearchChange(debouncedSearchTerm);
-    }
-  }, [debouncedSearchTerm, onSearchChange]);
 
   const clearSearch = useCallback(() => {
     setSearchTerm('');

@@ -25,6 +25,10 @@ export const OptimizedProductSearch = memo<OptimizedProductSearchProps>(({
 }) => {
   console.log('🔍 OptimizedProductSearch render:', { searchTerm, isSearching, hasActiveSearch });
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onSearchChange(e.target.value);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Escape' && onClearSearch) {
       onClearSearch();
@@ -43,10 +47,10 @@ export const OptimizedProductSearch = memo<OptimizedProductSearchProps>(({
         </span>
         
         <Input
-          type="search"
+          type="text"
           placeholder={placeholder}
           value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
+          onChange={handleChange}
           onKeyDown={handleKeyDown}
           disabled={disabled}
           className={`w-full pl-10 ${hasActiveSearch && onClearSearch ? 'pr-12' : 'pr-4'} transition-all duration-200`}
