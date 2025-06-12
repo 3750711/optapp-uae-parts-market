@@ -1,14 +1,13 @@
 
-// Environment check
-const isDevelopment = process.env.NODE_ENV === 'development';
-
-// Declare global gtag for analytics
+// Глобальные типы для аналитики
 declare global {
   interface Window {
-    gtag?: (command: string, eventName: string, parameters: Record<string, any>) => void;
-    __webpack_require__?: any;
+    gtag?: (...args: any[]) => void;
   }
 }
+
+// Environment check
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Development logging functions
 export const devLog = (...args: any[]) => {
@@ -52,13 +51,13 @@ export const perfMeasure = (name: string, startMark: string, endMark: string) =>
   }
 };
 
-// Chunk loading monitoring
+// Chunk loading monitoring (адаптировано для Vite)
 export const monitorChunkLoading = () => {
   if (!isDevelopment || typeof window === 'undefined') return;
 
   // Отслеживание ошибок загрузки чанков
   window.addEventListener('error', (event) => {
-    if (event.filename && event.filename.includes('chunk')) {
+    if (event.filename && (event.filename.includes('chunk') || event.filename.includes('assets'))) {
       console.error('🚨 Chunk loading error:', {
         filename: event.filename,
         message: event.message,
@@ -67,7 +66,7 @@ export const monitorChunkLoading = () => {
       });
       
       // Можно отправить метрику в аналитику
-      if (window.gtag) {
+      if (typeof window.gtag !== 'undefined') {
         window.gtag('event', 'chunk_load_error', {
           error_filename: event.filename,
           error_message: event.message
@@ -76,28 +75,35 @@ export const monitorChunkLoading = () => {
     }
   });
 
-  // Отслеживание загрузки модулей
-  const originalImport = window.__webpack_require__?.l;
-  if (originalImport && window.__webpack_require__) {
-    window.__webpack_require__.l = function(url: string, done: Function, key?: string, chunkId?: string) {
+  // Простое отслеживание загрузки модулей для Vite
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const [resource] = args;
+    
+    if (typeof resource === 'string' && resource.includes('assets/')) {
       const startTime = performance.now();
       
-      const wrappedDone = (event?: Event) => {
-        const endTime = performance.now();
-        const loadTime = endTime - startTime;
-        
-        if (event && event.type === 'load') {
-          console.log(`📦 Chunk loaded: ${url.split('/').pop()} in ${loadTime.toFixed(2)}ms`);
-        } else if (event && event.type === 'error') {
-          console.error(`❌ Chunk load failed: ${url.split('/').pop()}`);
-        }
-        
-        return done(event);
-      };
-      
-      return originalImport.call(this, url, wrappedDone, key, chunkId);
-    };
-  }
+      return originalFetch.apply(this, args)
+        .then(response => {
+          const endTime = performance.now();
+          const loadTime = endTime - startTime;
+          
+          if (response.ok) {
+            console.log(`📦 Asset loaded: ${resource.split('/').pop()} in ${loadTime.toFixed(2)}ms`);
+          } else {
+            console.error(`❌ Asset load failed: ${resource.split('/').pop()}`);
+          }
+          
+          return response;
+        })
+        .catch(error => {
+          console.error(`❌ Asset load error: ${resource.split('/').pop()}`, error);
+          throw error;
+        });
+    }
+    
+    return originalFetch.apply(this, args);
+  };
 };
 
 // Lazy loading metrics
@@ -107,7 +113,7 @@ export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
   }
   
   // Отправляем метрики в аналитику если доступно
-  if (window.gtag) {
+  if (typeof window.gtag !== 'undefined') {
     window.gtag('event', 'lazy_component_load', {
       component_name: componentName,
       load_time: Math.round(loadTime),
@@ -120,7 +126,7 @@ export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
 
 // Admin cache functions
 const ADMIN_CACHE_KEY = 'admin_rights_cache';
-const CACHE_DURATION = 3 * 60 * 1000; // Уменьшили до 3 минут
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 interface AdminCacheData {
   isAdmin: boolean;
