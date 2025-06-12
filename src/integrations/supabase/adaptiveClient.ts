@@ -1,9 +1,8 @@
-
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
 // Используем тип от существующего клиента для совместимости
-type SupabaseClientType = SupabaseClient<Database, 'public', any>;
+type SupabaseClientType = SupabaseClient<Database, 'public', any, any>;
 
 interface AdaptiveSupabaseOptions {
   primaryUrl: string;
