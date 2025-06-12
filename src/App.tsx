@@ -8,7 +8,6 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
-import RegionBlockingNotice from '@/components/ui/RegionBlockingNotice';
 
 // Import оптимизированных route configs
 import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
@@ -142,7 +141,6 @@ function App() {
                   </Routes>
                 </Suspense>
               </Router>
-              <RegionBlockingNotice />
             </AuthProvider>
           </ThemeProvider>
         </QueryClientProvider>
