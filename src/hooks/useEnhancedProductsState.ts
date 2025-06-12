@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useMemo } from 'react';
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -61,7 +60,7 @@ export const useEnhancedProductsState = ({
 
         const { data, error } = await supabase
           .from('products')
-          .select('seller_id, seller_name, seller_opt_id, opt_id')
+          .select('seller_id, seller_name, optid_created')
           .not('seller_id', 'is', null)
           .not('seller_name', 'is', null);
 
@@ -77,7 +76,7 @@ export const useEnhancedProductsState = ({
             uniqueSellers.set(product.seller_id, {
               id: product.seller_id,
               name: product.seller_name,
-              opt_id: product.seller_opt_id || product.opt_id
+              opt_id: product.optid_created
             });
           }
         });
@@ -94,7 +93,7 @@ export const useEnhancedProductsState = ({
       }
     },
     staleTime: 1000 * 60 * 5, // 5 minutes cache
-    gcTime: 1000 * 60 * 10, // 10 minutes in memory
+    gcTime: 1000 * 60 * 10, // 10 minutes in memory,
   });
 
   // Fetch function with enhanced error handling
