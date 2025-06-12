@@ -1,4 +1,3 @@
-// Дополнительные функции для добавления в ваш существующий performanceUtils.ts
 
 // Environment check
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -42,6 +41,72 @@ export const perfMeasure = (name: string, startMark: string, endMark: string) =>
     } catch (error) {
       devError('Failed to measure performance:', error);
     }
+  }
+};
+
+// Chunk loading monitoring
+export const monitorChunkLoading = () => {
+  if (!isDevelopment || typeof window === 'undefined') return;
+
+  // Отслеживание ошибок загрузки чанков
+  window.addEventListener('error', (event) => {
+    if (event.filename && event.filename.includes('chunk')) {
+      console.error('🚨 Chunk loading error:', {
+        filename: event.filename,
+        message: event.message,
+        lineno: event.lineno,
+        colno: event.colno
+      });
+      
+      // Можно отправить метрику в аналитику
+      if (typeof gtag !== 'undefined') {
+        (gtag as any)('event', 'chunk_load_error', {
+          error_filename: event.filename,
+          error_message: event.message
+        });
+      }
+    }
+  });
+
+  // Отслеживание загрузки модулей
+  const originalImport = window.__webpack_require__?.l;
+  if (originalImport) {
+    window.__webpack_require__.l = function(url: string, done: Function, key?: string, chunkId?: string) {
+      const startTime = performance.now();
+      
+      const wrappedDone = (event?: Event) => {
+        const endTime = performance.now();
+        const loadTime = endTime - startTime;
+        
+        if (event && event.type === 'load') {
+          console.log(`📦 Chunk loaded: ${url.split('/').pop()} in ${loadTime.toFixed(2)}ms`);
+        } else if (event && event.type === 'error') {
+          console.error(`❌ Chunk load failed: ${url.split('/').pop()}`);
+        }
+        
+        return done(event);
+      };
+      
+      return originalImport.call(this, url, wrappedDone, key, chunkId);
+    };
+  }
+};
+
+// Lazy loading metrics
+export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
+  if (isDevelopment) {
+    console.log(`📊 ${componentName} lazy load time: ${loadTime.toFixed(2)}ms`);
+  }
+  
+  // Отправляем метрики в аналитику если доступно
+  if (typeof gtag !== 'undefined') {
+    (gtag as any)('event', 'lazy_component_load', {
+      component_name: componentName,
+      load_time: Math.round(loadTime),
+      custom_map: {
+        metric1: Math.round(loadTime)
+      }
+    });
   }
 };
 
@@ -107,6 +172,28 @@ export const clearAdminCache = (): void => {
   }
 };
 
+// Query prefetching helpers
+export const prefetchAdminData = async (queryClient: any) => {
+  console.log('🔄 Prefetching admin data...');
+  
+  // Предзагружаем только критические данные для админ панели
+  try {
+    await Promise.allSettled([
+      queryClient.prefetchQuery({
+        queryKey: ['admin', 'users', 'pending-count'],
+        staleTime: 2 * 60 * 1000,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ['admin', 'metrics'],
+        staleTime: 5 * 60 * 1000,
+      })
+    ]);
+    console.log('✅ Admin data prefetched');
+  } catch (error) {
+    console.warn('⚠️ Failed to prefetch admin data:', error);
+  }
+};
+
 // Throttle функция для ограничения частоты вызовов
 export const throttle = <T extends (...args: any[]) => any>(
   func: T,
@@ -128,15 +215,16 @@ export const measureTime = (label: string) => {
   return {
     end: () => {
       const end = performance.now();
+      const duration = end - start;
       if (isDevelopment) {
-        console.log(`⏱️ ${label}: ${(end - start).toFixed(2)}ms`);
+        console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
       }
-      return end - start;
+      return duration;
     }
   };
 };
 
-// Простой мониторинг производительности
+// Улучшенный мониторинг производительности
 export const monitorPerformance = () => {
   if (!isDevelopment || typeof window === 'undefined') return;
 
@@ -165,6 +253,9 @@ export const monitorPerformance = () => {
       devError('Failed to setup performance observer:', error);
     }
   }
+
+  // Мониторинг chunk loading
+  monitorChunkLoading();
 };
 
 // Предзагрузка критических ресурсов
@@ -172,9 +263,8 @@ export const preloadCriticalResources = () => {
   if (typeof window === 'undefined') return;
   
   const criticalResources = [
-    // Добавьте пути к критическим ресурсам вашего приложения
-    // '/assets/critical.css',
-    // '/fonts/main-font.woff2'
+    // CSS файлы
+    '/assets/index.css',
   ];
 
   criticalResources.forEach(resource => {

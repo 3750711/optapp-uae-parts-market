@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
+import { getCachedAdminRights, setCachedAdminRights, clearAdminCache, prefetchAdminData } from '@/utils/performanceUtils';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -23,7 +24,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Ключи для localStorage
 const PROFILE_CACHE_KEY = 'auth_profile_cache';
 const PROFILE_CACHE_TIMESTAMP_KEY = 'auth_profile_cache_timestamp';
-const CACHE_DURATION = 5 * 60 * 1000; // 5 минут
+const CACHE_DURATION = 10 * 60 * 1000; // Увеличено до 10 минут
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -74,12 +75,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.removeItem(PROFILE_CACHE_KEY);
       localStorage.removeItem(PROFILE_CACHE_TIMESTAMP_KEY);
+      clearAdminCache(); // Очищаем также кэш админ прав
     } catch (error) {
       console.warn('Failed to clear profile cache:', error);
     }
   }, []);
 
-  // Оптимизированная функция загрузки профиля с кэшированием
+  // Оптимизированная функция проверки админ прав с кэшированием
+  const checkAdminRights = useCallback((userId: string, userType: string): boolean | null => {
+    // Сначала проверяем кэш
+    const cachedRights = getCachedAdminRights(userId);
+    if (cachedRights !== null) {
+      console.log('Using cached admin rights:', cachedRights);
+      return cachedRights;
+    }
+    
+    // Проверяем по типу пользователя
+    const hasAdminAccess = userType === 'admin';
+    
+    // Кэшируем результат
+    setCachedAdminRights(userId, hasAdminAccess);
+    
+    return hasAdminAccess;
+  }, []);
+
+  // Оптимизированная функция загрузки профиля с улучшенным кэшированием
   const fetchUserProfile = useCallback(async (userId: string, forceRefresh = false) => {
     if (fetchingRef.current || !mountedRef.current) {
       return null;
@@ -92,7 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Using cached profile');
         if (mountedRef.current) {
           setProfile(cachedProfile);
-          setIsAdmin(cachedProfile.user_type === 'admin');
+          
+          // Проверяем админские права с кэшированием
+          const adminRights = checkAdminRights(userId, cachedProfile.user_type);
+          setIsAdmin(adminRights);
         }
         return cachedProfile;
       }
@@ -102,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('Fetching fresh profile for user:', userId);
     
     try {
-      // Оптимизированный запрос - загружаем только необходимые поля
+      // Оптимизированный запрос - только необходимые поля
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, full_name, user_type, opt_id, verification_status, opt_status, first_login_completed, phone, telegram, location, avatar_url, company_name')
@@ -125,7 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(data);
         cacheProfile(data); // Кэшируем профиль
         
-        const hasAdminAccess = data.user_type === 'admin';
+        // Проверяем админские права с кэшированием
+        const hasAdminAccess = checkAdminRights(data.id, data.user_type);
         setIsAdmin(hasAdminAccess);
         
         // Проверяем first login
@@ -148,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       fetchingRef.current = false;
     }
-  }, [getCachedProfile, cacheProfile]);
+  }, [getCachedProfile, cacheProfile, checkAdminRights]);
 
   const refreshProfile = useCallback(async () => {
     if (user && mountedRef.current) {
@@ -160,6 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('AuthContext: Manual admin status refresh triggered');
     if (user && mountedRef.current) {
       setIsLoading(true);
+      // Очищаем кэш прав перед обновлением
+      clearAdminCache();
       await fetchUserProfile(user.id, true); // Принудительное обновление
       setIsLoading(false);
     }
@@ -184,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowFirstLoginWelcome(false);
       setIsLoading(false);
       
-      // Очищаем кэш при выходе
+      // Очищаем все кэши при выходе
       clearProfileCache();
       
       console.log('AuthContext: Sign out completed');
@@ -200,13 +226,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     console.log('AuthContext: Starting auth initialization');
     
-    // Уменьшенный timeout до 7 секунд
+    // Уменьшенный timeout до 5 секунд
     initTimeoutRef.current = setTimeout(() => {
       if (mounted && mountedRef.current) {
         console.warn('AuthContext: Initialization timeout reached, forcing isLoading = false');
         setIsLoading(false);
       }
-    }, 7000);
+    }, 5000);
     
     const setupAuth = async () => {
       try {
@@ -232,12 +258,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           if (currentSession?.user) {
             console.log('AuthContext: User found, fetching profile...');
-            await fetchUserProfile(currentSession.user.id);
+            const profile = await fetchUserProfile(currentSession.user.id);
+            
+            // Предзагружаем админ данные если пользователь админ
+            if (profile?.user_type === 'admin') {
+              // Используем React Query client из контекста если доступно
+              setTimeout(() => {
+                try {
+                  const queryClient = (window as any).__reactQueryClient;
+                  if (queryClient) {
+                    prefetchAdminData(queryClient);
+                  }
+                } catch (error) {
+                  console.warn('Failed to prefetch admin data:', error);
+                }
+              }, 1000);
+            }
           } else {
             console.log('AuthContext: No user found');
             setProfile(null);
             setIsAdmin(false);
-            clearProfileCache(); // Очищаем кэш если нет пользователя
+            clearProfileCache();
           }
           
           setIsLoading(false);

@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -20,18 +21,20 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Optimize chunk splitting for better caching
+    // Оптимизированное разделение чанков для лучшего кэширования и производительности
     rollupOptions: {
       output: {
         manualChunks: {
-          // Core vendor chunks
+          // Основные vendor чанки
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
           'vendor-ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
             '@radix-ui/react-select',
             '@radix-ui/react-toast',
-            '@radix-ui/react-tabs'
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-checkbox',
+            '@radix-ui/react-switch'
           ],
           'vendor-forms': [
             'react-hook-form',
@@ -41,42 +44,103 @@ export default defineConfig(({ mode }) => ({
           'vendor-query': ['@tanstack/react-query'],
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-utils': ['lodash', 'date-fns', 'clsx', 'class-variance-authority'],
+          'vendor-icons': ['lucide-react'],
           
-          // Feature-specific chunks
-          'admin-pages': [
-            'src/pages/AdminDashboard.tsx',
-            'src/pages/AdminUsers.tsx',
-            'src/pages/AdminProducts.tsx',
-            'src/pages/AdminOrders.tsx',
-            'src/pages/AdminStores.tsx'
-          ],
-          'seller-pages': [
-            'src/pages/SellerDashboard.tsx',
-            'src/pages/SellerListings.tsx',
-            'src/pages/SellerAddProduct.tsx',
-            'src/pages/SellerOrders.tsx'
-          ],
-          'auth-pages': [
+          // Критические страницы (не lazy) - группируем отдельно
+          'critical-pages': [
+            'src/pages/Index.tsx',
             'src/pages/Login.tsx',
             'src/pages/Register.tsx',
-            'src/pages/ForgotPassword.tsx',
-            'src/pages/ResetPassword.tsx'
+            'src/pages/Catalog.tsx'
+          ],
+          
+          // Админ чанки - разделяем для лучшей производительности
+          'admin-core': [
+            'src/pages/AdminDashboard.tsx',
+            'src/components/admin/AdminLayout.tsx'
+          ],
+          'admin-users': [
+            'src/pages/AdminUsers.tsx',
+            'src/hooks/useAdminUsersState.ts',
+            'src/hooks/useAdminUsersActions.ts'
+          ],
+          'admin-products': [
+            'src/pages/AdminProducts.tsx',
+            'src/hooks/useAdminProductsActions.ts'
+          ],
+          'admin-orders': [
+            'src/pages/AdminOrders.tsx',
+            'src/hooks/useOptimizedOrdersQuery.ts',
+            'src/hooks/useOrderActions.ts'
+          ],
+          
+          // Продавец чанки
+          'seller-core': [
+            'src/pages/SellerDashboard.tsx',
+            'src/pages/SellerListings.tsx'
+          ],
+          'seller-products': [
+            'src/pages/SellerAddProduct.tsx',
+            'src/components/product/OptimizedAddProductForm.tsx'
+          ],
+          'seller-orders': [
+            'src/pages/SellerOrders.tsx',
+            'src/pages/SellerOrderDetails.tsx'
+          ],
+          
+          // Общие компоненты
+          'shared-components': [
+            'src/components/layout/Header.tsx',
+            'src/components/layout/Footer.tsx',
+            'src/components/auth/ProtectedRoute.tsx'
+          ],
+          
+          // Каталог и продукты
+          'catalog-products': [
+            'src/pages/ProductDetail.tsx',
+            'src/hooks/useOptimizedCatalogProducts.ts'
           ]
         },
-        // Add version hash to chunks for better caching
+        // Оптимизированные имена файлов для кэширования
         chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
+          // Определяем тип чанка для лучшего кэширования
+          if (chunkInfo.name.startsWith('vendor-')) {
+            return `assets/vendor/[name]-[hash].js`;
+          }
+          if (chunkInfo.name.startsWith('admin-')) {
+            return `assets/admin/[name]-[hash].js`;
+          }
+          if (chunkInfo.name.startsWith('seller-')) {
+            return `assets/seller/[name]-[hash].js`;
+          }
           return `assets/[name]-[hash].js`;
         },
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        assetFileNames: (assetInfo) => {
+          // Группируем статические ресурсы
+          if (assetInfo.name?.endsWith('.css')) {
+            return 'assets/css/[name]-[hash][extname]';
+          }
+          if (assetInfo.name?.match(/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i)) {
+            return 'assets/images/[name]-[hash][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        }
       }
     },
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
-    // Enable source maps for better debugging in production
-    sourcemap: mode === 'development'
+    // Увеличиваем лимит размера чанка с предупреждением
+    chunkSizeWarningLimit: 800,
+    // Source maps только для development
+    sourcemap: mode === 'development',
+    // Минификация только для production
+    minify: mode === 'production' ? 'esbuild' : false,
+    // Оптимизация CSS
+    cssCodeSplit: true,
+    // Удаляем console.log в production
+    esbuild: mode === 'production' ? {
+      drop: ['console', 'debugger'],
+    } : undefined,
   },
-  // Optimize dependency pre-bundling
+  // Оптимизированная предварительная сборка зависимостей
   optimizeDeps: {
     include: [
       'react',
@@ -84,9 +148,18 @@ export default defineConfig(({ mode }) => ({
       'react-router-dom',
       '@tanstack/react-query',
       '@supabase/supabase-js',
-      'lucide-react'
+      'lucide-react',
+      'clsx',
+      'class-variance-authority'
     ],
-    // Force re-optimization of dependencies when they change
+    // Исключаем большие библиотеки из предварительной сборки
+    exclude: ['lodash'],
+    // Принудительная оптимизация в development для стабильности
     force: mode === 'development'
+  },
+  // Настройки для лучшей производительности dev сервера
+  esbuild: {
+    target: 'es2020',
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
   }
 }));

@@ -1,9 +1,10 @@
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { Toaster } from "@/components/ui/toaster";
-import { perfMark, perfMeasure } from "@/utils/performanceUtils";
+import { perfMark, perfMeasure, initPerformanceOptimizations } from "@/utils/performanceUtils";
 
 // Маркируем начало инициализации
 perfMark('app-init-start');
@@ -22,7 +23,7 @@ const initErrorMonitoring = async () => {
   }
 };
 
-// Оптимизированная инициализация
+// Оптимизированная инициализация с мониторингом производительности
 const initApp = () => {
   perfMark('dom-setup-start');
   
@@ -52,6 +53,9 @@ const initApp = () => {
   perfMeasure('DOM Setup', 'dom-setup-start', 'dom-setup-end');
   perfMeasure('React Render', 'react-render-start', 'react-render-end');
   perfMeasure('Total App Init', 'app-init-start', 'react-render-end');
+
+  // Инициализируем оптимизации производительности
+  initPerformanceOptimizations();
 
   // Инициализируем мониторинг после рендера (неблокирующе)
   if (process.env.NODE_ENV === 'production') {

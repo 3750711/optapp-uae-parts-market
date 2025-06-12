@@ -1,30 +1,70 @@
 
-import { lazy } from 'react';
+import { lazy, ComponentType } from 'react';
 
-// Улучшенная функция создания lazy компонентов с обработкой ошибок
-const createLazyComponent = (importFunc: () => Promise<any>, componentName: string) => {
+// Retry механизм для загрузки чанков
+const retryChunkLoad = async (fn: () => Promise<any>, retries = 3): Promise<any> => {
+  try {
+    return await fn();
+  } catch (error: any) {
+    if (retries > 0 && error?.name === 'ChunkLoadError') {
+      console.warn(`Chunk load failed, retrying... (${retries} attempts left)`);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return retryChunkLoad(fn, retries - 1);
+    }
+    throw error;
+  }
+};
+
+// Улучшенная функция создания lazy компонентов с retry и error handling
+const createLazyComponent = (importFunc: () => Promise<any>, componentName: string, critical = false) => {
   return lazy(async () => {
     try {
-      const module = await importFunc();
+      const startTime = performance.now();
+      const module = await retryChunkLoad(importFunc);
+      const endTime = performance.now();
+      
+      console.log(`📦 ${componentName} loaded in ${(endTime - startTime).toFixed(2)}ms`);
       return module;
     } catch (error) {
-      console.error(`Error loading ${componentName}:`, error);
-      // Возвращаем fallback компонент при ошибке
+      console.error(`❌ Error loading ${componentName}:`, error);
+      
+      // Для критических компонентов возвращаем более простой fallback
+      if (critical) {
+        return {
+          default: () => (
+            <div className="flex items-center justify-center min-h-screen bg-gray-50">
+              <div className="text-center max-w-md p-6">
+                <div className="text-lg font-medium text-gray-900 mb-4">
+                  Ошибка загрузки
+                </div>
+                <div className="text-sm text-gray-600 mb-6">
+                  Не удалось загрузить {componentName}. Это может быть связано с проблемами сети.
+                </div>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                >
+                  Обновить страницу
+                </button>
+              </div>
+            </div>
+          )
+        };
+      }
+      
+      // Для некритических компонентов простой fallback
       return {
         default: () => (
-          <div className="flex items-center justify-center min-h-screen">
+          <div className="flex items-center justify-center p-8">
             <div className="text-center">
-              <div className="text-lg font-medium text-gray-900 mb-2">
-                Ошибка загрузки компонента
-              </div>
-              <div className="text-sm text-gray-600 mb-4">
-                Компонент {componentName} не удалось загрузить
+              <div className="text-sm text-gray-600 mb-2">
+                Ошибка загрузки компонента {componentName}
               </div>
               <button 
                 onClick={() => window.location.reload()} 
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="text-xs px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               >
-                Перезагрузить страницу
+                Обновить
               </button>
             </div>
           </div>
@@ -34,13 +74,13 @@ const createLazyComponent = (importFunc: () => Promise<any>, componentName: stri
   });
 };
 
-// Критические компоненты - загружаются немедленно
-const Index = createLazyComponent(() => import('@/pages/Index'), 'Index');
-const Login = createLazyComponent(() => import('@/pages/Login'), 'Login');
-const Register = createLazyComponent(() => import('@/pages/Register'), 'Register');
-const Catalog = createLazyComponent(() => import('@/pages/Catalog'), 'Catalog');
+// Критические компоненты - НЕ используют lazy loading
+import Index from '@/pages/Index';
+import Login from '@/pages/Login';
+import Register from '@/pages/Register';
+import Catalog from '@/pages/Catalog';
 
-// Основные компоненты
+// Основные компоненты - lazy loading с retry
 const About = createLazyComponent(() => import('@/pages/About'), 'About');
 const Contact = createLazyComponent(() => import('@/pages/Contact'), 'Contact');
 const ProductDetail = createLazyComponent(() => import('@/pages/ProductDetail'), 'ProductDetail');
@@ -49,7 +89,7 @@ const ResetPassword = createLazyComponent(() => import('@/pages/ResetPassword'),
 const VerifyEmail = createLazyComponent(() => import('@/pages/VerifyEmail'), 'VerifyEmail');
 const Profile = createLazyComponent(() => import('@/pages/Profile'), 'Profile');
 
-// Продавцы
+// Продавцы - группируем в отдельные чанки
 const SellerRegister = createLazyComponent(() => import('@/pages/SellerRegister'), 'SellerRegister');
 const SellerDashboard = createLazyComponent(() => import('@/pages/SellerDashboard'), 'SellerDashboard');
 const SellerListings = createLazyComponent(() => import('@/pages/SellerListings'), 'SellerListings');
@@ -80,8 +120,8 @@ const RequestDetail = createLazyComponent(() => import('@/pages/RequestDetail'),
 const OrdersRedirect = createLazyComponent(() => import('@/pages/OrdersRedirect'), 'OrdersRedirect');
 const OrderDetails = createLazyComponent(() => import('@/pages/OrderDetails'), 'OrderDetails');
 
-// Админ компоненты - разделены для лучшего chunk splitting
-const AdminDashboard = createLazyComponent(() => import('@/pages/AdminDashboard'), 'AdminDashboard');
+// Админ компоненты - разделяем на мелкие чанки для лучшей производительности
+const AdminDashboard = createLazyComponent(() => import('@/pages/AdminDashboard'), 'AdminDashboard', true);
 const AdminUsers = createLazyComponent(() => import('@/pages/AdminUsers'), 'AdminUsers');
 const AdminProducts = createLazyComponent(() => import('@/pages/AdminProducts'), 'AdminProducts');
 const AdminAddProduct = createLazyComponent(() => import('@/pages/AdminAddProduct'), 'AdminAddProduct');
@@ -98,15 +138,15 @@ const GenerateOGImage = createLazyComponent(() => import('@/pages/GenerateOGImag
 // 404
 const NotFound = createLazyComponent(() => import('@/pages/NotFound'), 'NotFound');
 
-// Конфигурация маршрутов без изменений
+// Конфигурация маршрутов - критические без lazy loading
 export const routeConfigs = [
-  // Критические маршруты
+  // Критические маршруты (без lazy loading)
   { path: "/", component: Index },
   { path: "/login", component: Login },
   { path: "/register", component: Register },
   { path: "/catalog", component: Catalog },
   
-  // Основные маршруты
+  // Основные маршруты (с lazy loading)
   { path: "/about", component: About },
   { path: "/contact", component: Contact },
   { path: "/product/:id", component: ProductDetail },
@@ -146,7 +186,7 @@ export const routeConfigs = [
   { path: "/orders", component: OrdersRedirect, protected: true },
   { path: "/order/:id", component: OrderDetails },
   
-  // Админ маршруты
+  // Админ маршруты (с улучшенным lazy loading)
   { path: "/admin", component: AdminDashboard, protected: true, adminOnly: true },
   { path: "/admin/dashboard", component: AdminDashboard, protected: true, adminOnly: true },
   { path: "/admin/users", component: AdminUsers, protected: true, adminOnly: true },
@@ -167,8 +207,37 @@ export const routeConfigs = [
   { path: "*", component: NotFound },
 ];
 
-// Упрощенная функция предзагрузки - только для критически важных компонентов
+// Улучшенная предзагрузка компонентов на основе пользователя
 export const preloadCriticalRoutes = () => {
-  // Убираем автоматическую предзагрузку, чтобы избежать chunk loading errors
-  console.log('🚀 Critical routes loaded, lazy loading other components on demand');
+  console.log('🚀 Preloading critical components...');
+  
+  // Предзагрузка основных компонентов через 2 секунды после загрузки
+  setTimeout(() => {
+    import('@/pages/About');
+    import('@/pages/Contact');
+    import('@/pages/ProductDetail');
+  }, 2000);
+};
+
+// Предзагрузка админ компонентов для админов
+export const preloadAdminRoutes = () => {
+  console.log('🔧 Preloading admin components...');
+  
+  // Предзагружаем админ компоненты с задержкой
+  setTimeout(() => {
+    import('@/pages/AdminUsers');
+    import('@/pages/AdminProducts');
+    import('@/pages/AdminOrders');
+  }, 1000);
+};
+
+// Предзагрузка продавца компонентов
+export const preloadSellerRoutes = () => {
+  console.log('💼 Preloading seller components...');
+  
+  setTimeout(() => {
+    import('@/pages/SellerDashboard');
+    import('@/pages/SellerListings');
+    import('@/pages/SellerOrders');
+  }, 1000);
 };
