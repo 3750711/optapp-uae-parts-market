@@ -1,6 +1,6 @@
-
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 
 export const useOrderActions = (orders: Order[], selectedOrders: string[], refetch: () => void) => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -38,6 +39,16 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     [selectedOrdersData]
   );
 
+  // Функция для полной инвалидации всех связанных кэшей
+  const invalidateAllOrderCaches = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+    queryClient.invalidateQueries({ queryKey: ['admin', 'metrics'] });
+    queryClient.invalidateQueries({ queryKey: ['admin', 'metrics-optimized'] });
+    queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+    queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+  }, [queryClient]);
+
   const handleViewDetails = useCallback((orderId: string) => {
     navigate(`/admin/orders/${orderId}`);
   }, [navigate]);
@@ -57,6 +68,22 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
 
     setBulkActionLoading({ isLoading: true, action: 'изменение статуса' });
     try {
+      // Оптимистично обновляем кэш
+      await queryClient.cancelQueries({ queryKey: ['admin-orders'] });
+      
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.map((order: any) => 
+            selectedOrders.includes(order.id) 
+              ? { ...order, status: newStatus }
+              : order
+          )
+        };
+      });
+
       const promises = selectedOrders.map(orderId =>
         supabase
           .from('orders')
@@ -66,13 +93,17 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
 
       await Promise.all(promises);
       
-      refetch();
+      invalidateAllOrderCaches();
       toast({
         title: "Статусы обновлены",
         description: `Обновлено ${selectedOrders.length} заказов`,
       });
     } catch (error) {
       console.error("Failed to update orders:", error);
+      
+      // Откатываем оптимистичные изменения
+      invalidateAllOrderCaches();
+      
       toast({
         title: "Ошибка",
         description: "Не удалось обновить статусы заказов",
@@ -81,13 +112,26 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     } finally {
       setBulkActionLoading({ isLoading: false, action: '' });
     }
-  }, [selectedOrders, refetch]);
+  }, [selectedOrders, queryClient, invalidateAllOrderCaches]);
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedOrders.length === 0) return;
 
     setBulkActionLoading({ isLoading: true, action: 'удаление заказов' });
     try {
+      // Оптимистично обновляем кэш
+      await queryClient.cancelQueries({ queryKey: ['admin-orders'] });
+      
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.filter((order: any) => !selectedOrders.includes(order.id)),
+          totalCount: Math.max(0, (oldData.totalCount || selectedOrders.length) - selectedOrders.length)
+        };
+      });
+
       const promises = selectedOrders.map(orderId =>
         supabase
           .from('orders')
@@ -97,13 +141,17 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
 
       await Promise.all(promises);
       
-      refetch();
+      invalidateAllOrderCaches();
       toast({
         title: "Заказы удалены",
         description: `Удалено ${selectedOrders.length} заказов`,
       });
     } catch (error) {
       console.error("Failed to delete orders:", error);
+      
+      // Откатываем оптимистичные изменения
+      invalidateAllOrderCaches();
+      
       toast({
         title: "Ошибка",
         description: "Не удалось удалить заказы",
@@ -112,19 +160,32 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     } finally {
       setBulkActionLoading({ isLoading: false, action: '' });
     }
-  }, [selectedOrders, refetch]);
+  }, [selectedOrders, queryClient, invalidateAllOrderCaches]);
 
   const handleSingleOrderDelete = useCallback(async () => {
     if (!selectedOrder) return;
 
     setSingleDeleteLoading(true);
     try {
+      // Оптимистично обновляем кэш
+      await queryClient.cancelQueries({ queryKey: ['admin-orders'] });
+      
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.filter((order: any) => order.id !== selectedOrder.id),
+          totalCount: Math.max(0, (oldData.totalCount || 1) - 1)
+        };
+      });
+
       await supabase
         .from('orders')
         .delete()
         .eq('id', selectedOrder.id);
       
-      refetch();
+      invalidateAllOrderCaches();
       setShowDeleteDialog(false);
       setSelectedOrder(null);
       toast({
@@ -133,6 +194,10 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
       });
     } catch (error) {
       console.error("Failed to delete order:", error);
+      
+      // Откатываем оптимистичные изменения
+      invalidateAllOrderCaches();
+      
       toast({
         title: "Ошибка",
         description: "Не удалось удалить заказ",
@@ -141,22 +206,39 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     } finally {
       setSingleDeleteLoading(false);
     }
-  }, [selectedOrder, refetch]);
+  }, [selectedOrder, queryClient, invalidateAllOrderCaches]);
 
   const handleQuickAction = useCallback(async (orderId: string, action: string) => {
     if (action === 'confirm') {
       try {
+        // Оптимистично обновляем кэш
+        queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+          if (!oldData?.data) return oldData;
+          
+          return {
+            ...oldData,
+            data: oldData.data.map((order: any) => 
+              order.id === orderId 
+                ? { ...order, status: 'admin_confirmed' }
+                : order
+            )
+          };
+        });
+
         await supabase
           .from('orders')
           .update({ status: 'admin_confirmed' })
           .eq('id', orderId);
         
-        refetch();
+        invalidateAllOrderCaches();
         toast({
           title: "Заказ подтвержден",
           description: "Статус заказа обновлен",
         });
       } catch (error) {
+        // Откатываем оптимистичные изменения
+        invalidateAllOrderCaches();
+        
         toast({
           title: "Ошибка",
           description: "Не удалось подтвердить заказ",
@@ -164,7 +246,7 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
         });
       }
     }
-  }, [refetch]);
+  }, [queryClient, invalidateAllOrderCaches]);
 
   const handleExport = useCallback(() => {
     if (selectedOrdersData.length === 0) {
@@ -211,6 +293,20 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
     if (!selectedOrder) return;
     
     try {
+      // Оптимистично обновляем кэш
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.map((order: any) => 
+            order.id === orderId 
+              ? { ...order, status: newStatus }
+              : order
+          )
+        };
+      });
+
       const { data: updatedOrder, error } = await supabase
         .from('orders')
         .update({ status: newStatus })
@@ -239,20 +335,24 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
       }
       
       setShowEditDialog(false);
-      refetch();
+      invalidateAllOrderCaches();
       toast({
         title: "Статус обновлен",
         description: `Статус заказа №${selectedOrder.order_number} обновлен`,
       });
     } catch (error) {
       console.error("Failed to update order status:", error);
+      
+      // Откатываем оптимистичные изменения
+      invalidateAllOrderCaches();
+      
       toast({
         title: "Ошибка",
         description: "Не удалось обновить статус заказа",
         variant: "destructive",
       });
     }
-  }, [selectedOrder, refetch]);
+  }, [selectedOrder, queryClient, invalidateAllOrderCaches]);
 
   return {
     selectedOrder,

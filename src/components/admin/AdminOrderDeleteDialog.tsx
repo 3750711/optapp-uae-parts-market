@@ -56,17 +56,56 @@ export const AdminOrderDeleteDialog: React.FC<AdminOrderDeleteDialogProps> = ({
         .eq('id', order.id);
 
       if (error) throw error;
+      return order.id;
+    },
+    onMutate: async () => {
+      if (!order?.id) return;
+
+      // Отменяем текущие запросы для предотвращения конфликтов
+      await queryClient.cancelQueries({ queryKey: ['admin-orders'] });
+      
+      // Оптимистично обновляем кэш - удаляем заказ из списка
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.filter((existingOrder: any) => existingOrder.id !== order.id),
+          totalCount: Math.max(0, (oldData.totalCount || 1) - 1)
+        };
+      });
+
+      // Также обновляем другие возможные кэши заказов
+      queryClient.setQueryData(['admin-orders'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.filter((existingOrder: any) => existingOrder.id !== order.id)
+        };
+      });
     },
     onSuccess: () => {
+      // Инвалидируем все связанные кэши для обеспечения консистентности
       queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'metrics'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'metrics-optimized'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      
       toast({
         title: "Заказ удален",
         description: "Заказ успешно удален из системы",
       });
       onOpenChange(false);
     },
-    onError: (error) => {
+    onError: (error, variables, context) => {
       console.error('Error deleting order:', error);
+      
+      // В случае ошибки откатываем оптимистичные изменения
+      queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
+      
       toast({
         title: "Ошибка",
         description: "Не удалось удалить заказ",
