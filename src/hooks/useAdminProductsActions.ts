@@ -1,8 +1,8 @@
 
-import React from 'react';
-import { toast } from '@/hooks/use-toast';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
+import { useToast } from '@/hooks/use-toast';
 
 interface UseAdminProductsActionsProps {
   selectedProducts: string[];
@@ -15,9 +15,10 @@ export const useAdminProductsActions = ({
   setSelectedProducts,
   refetch
 }: UseAdminProductsActionsProps) => {
-  const [isDeleting, setIsDeleting] = React.useState(false);
-  const [isUpdatingStatus, setIsUpdatingStatus] = React.useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const { handleError } = useErrorHandler();
+  const { toast } = useToast();
 
   const handleBulkStatusChange = async (status: string) => {
     if (selectedProducts.length === 0) {
@@ -70,7 +71,6 @@ export const useAdminProductsActions = ({
       return;
     }
 
-    // Подтверждение удаления
     const confirmed = window.confirm(
       `Вы уверены, что хотите удалить ${selectedProducts.length} товаров? Это действие нельзя отменить.`
     );

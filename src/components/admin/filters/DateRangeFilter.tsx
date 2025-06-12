@@ -7,18 +7,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 
-// DateRange interface matching what component expects
-export interface DateRange {
+interface DateRange {
   from: Date | null;
-  to?: Date | null;
+  to: Date | null;
 }
 
 interface DateRangeFilterProps {
-  dateRange: DateRange;
-  onChange: (range: DateRange | null) => void;
+  value: DateRange;
+  onChange: (range: DateRange) => void;
+  disabled?: boolean;
 }
 
-const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ dateRange, onChange }) => {
+const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ value, onChange, disabled = false }) => {
   return (
     <div className="space-y-2">
       <label className="text-sm">Дата создания</label>
@@ -27,19 +27,20 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ dateRange, onChange }
           <PopoverTrigger asChild>
             <Button
               variant="outline"
+              disabled={disabled}
               className={cn(
                 "justify-start text-left font-normal",
-                !dateRange.from && !dateRange.to && "text-muted-foreground"
+                !value.from && !value.to && "text-muted-foreground"
               )}
             >
               <Calendar className="mr-2 h-4 w-4" />
-              {dateRange.from ? (
-                dateRange.to ? (
+              {value.from ? (
+                value.to ? (
                   <>
-                    {format(dateRange.from, "dd/MM/yyyy")} - {format(dateRange.to, "dd/MM/yyyy")}
+                    {format(value.from, "dd/MM/yyyy")} - {format(value.to, "dd/MM/yyyy")}
                   </>
                 ) : (
-                  format(dateRange.from, "dd/MM/yyyy")
+                  format(value.from, "dd/MM/yyyy")
                 )
               ) : (
                 "Выберите даты"
@@ -50,10 +51,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({ dateRange, onChange }
             <CalendarComponent
               initialFocus
               mode="range"
-              defaultMonth={dateRange.from || new Date()}
+              defaultMonth={value.from || new Date()}
               selected={{
-                from: dateRange.from,
-                to: dateRange.to,
+                from: value.from,
+                to: value.to,
               }}
               onSelect={(selectedDateRange) => {
                 onChange(selectedDateRange || { from: null, to: null });

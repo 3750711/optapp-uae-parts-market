@@ -19,12 +19,17 @@ interface DateRange {
   to: Date | null;
 }
 
+interface PriceRange {
+  min: number;
+  max: number;
+}
+
 interface UseEnhancedProductsStateProps {
   pageSize?: number;
   initialFilters?: {
     status?: string;
     dateRange?: DateRange;
-    priceRange?: { min: number; max: number };
+    priceRange?: PriceRange;
   };
 }
 
@@ -41,7 +46,7 @@ export const useEnhancedProductsState = ({
   const [dateRange, setDateRange] = useState<DateRange>(
     initialFilters.dateRange || { from: null, to: null }
   );
-  const [priceRange, setPriceRange] = useState(
+  const [priceRange, setPriceRange] = useState<PriceRange>(
     initialFilters.priceRange || { min: 0, max: 100000 }
   );
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
@@ -153,14 +158,13 @@ export const useEnhancedProductsState = ({
     },
     initialPageParam: 0,
     retry: (failureCount, error: any) => {
-      // Не повторяем при ошибках доступа
       if (error?.message?.includes('permission') || error?.message?.includes('unauthorized')) {
         return false;
       }
       return failureCount < 2;
     },
-    staleTime: 1000 * 60 * 2, // 2 минуты
-    gcTime: 1000 * 60 * 5, // 5 минут
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 5,
   });
 
   // Memoized products list

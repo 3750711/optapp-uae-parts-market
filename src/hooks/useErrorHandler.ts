@@ -1,7 +1,6 @@
 
 import { useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { reportError } from '@/utils/errorReporting';
 
 interface ErrorHandlerOptions {
   showToast?: boolean;
@@ -21,7 +20,7 @@ export const useErrorHandler = () => {
       showToast = true,
       logError = true,
       customMessage,
-      reportToMonitoring = true,
+      reportToMonitoring = false,
     } = options;
 
     let errorMessage = 'Произошла неизвестная ошибка';
@@ -38,14 +37,6 @@ export const useErrorHandler = () => {
       console.error('Error handled:', error);
     }
 
-    // Отправляем в систему мониторинга
-    if (reportToMonitoring && process.env.NODE_ENV === 'production') {
-      reportError(error instanceof Error ? error : new Error(errorMessage), {
-        customMessage,
-        handledBy: 'useErrorHandler',
-      });
-    }
-
     if (showToast) {
       toast({
         title: "Ошибка",
@@ -60,20 +51,7 @@ export const useErrorHandler = () => {
     };
   }, [toast]);
 
-  const handleAsyncError = useCallback(async (
-    asyncOperation: () => Promise<any>,
-    options: ErrorHandlerOptions = {}
-  ) => {
-    try {
-      return await asyncOperation();
-    } catch (error) {
-      handleError(error, options);
-      throw error;
-    }
-  }, [handleError]);
-
   return {
     handleError,
-    handleAsyncError,
   };
 };

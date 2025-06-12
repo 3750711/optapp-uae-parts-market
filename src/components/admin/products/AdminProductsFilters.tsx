@@ -1,12 +1,22 @@
 
 import React from 'react';
-import ProductSearchAndFilters from '@/components/admin/ProductSearchAndFilters';
 import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
 import { OptimizedProductSearch } from '@/components/admin/search/OptimizedProductSearch';
+import StatusFilter from '@/components/admin/filters/StatusFilter';
+import DateRangeFilter from '@/components/admin/filters/DateRangeFilter';
+import PriceRangeFilter from '@/components/admin/filters/PriceRangeFilter';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Filter, X } from "lucide-react";
 
 interface DateRange {
   from: Date | null;
   to: Date | null;
+}
+
+interface PriceRange {
+  min: number;
+  max: number;
 }
 
 interface AdminProductsFiltersProps {
@@ -16,8 +26,8 @@ interface AdminProductsFiltersProps {
   setStatusFilter: (status: string) => void;
   dateRange: DateRange;
   setDateRange: (range: DateRange) => void;
-  priceRange: { min: number; max: number };
-  setPriceRange: (range: { min: number; max: number }) => void;
+  priceRange: PriceRange;
+  setPriceRange: (range: PriceRange) => void;
   clearFilters: () => void;
   isLoading: boolean;
   isSearching?: boolean;
@@ -75,19 +85,51 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
         />
       </div>
 
-      {/* Advanced Filters */}
-      <ProductSearchAndFilters
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        dateRange={dateRange}
-        setDateRange={setDateRange}
-        priceRange={priceRange}
-        setPriceRange={setPriceRange}
-        clearFilters={clearFilters}
-        isLoading={isLoading}
-      />
+      {/* Filters */}
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            Фильтры
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatusFilter
+              value={statusFilter}
+              onChange={setStatusFilter}
+              disabled={isLoading}
+            />
+            
+            <DateRangeFilter
+              value={dateRange}
+              onChange={setDateRange}
+              disabled={isLoading}
+            />
+            
+            <PriceRangeFilter
+              value={priceRange}
+              onChange={setPriceRange}
+              disabled={isLoading}
+            />
+          </div>
+          
+          {hasActiveFilters && (
+            <div className="mt-4 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={clearFilters}
+                className="flex items-center gap-2"
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+                Очистить фильтры
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Selected Products Actions */}
       {selectedProducts.length > 0 && (
