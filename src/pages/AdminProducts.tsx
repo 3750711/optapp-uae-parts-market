@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminProductsHeader from '@/components/admin/products/AdminProductsHeader';
@@ -49,14 +48,15 @@ const AdminProducts = () => {
     refetch
   });
 
-  // Extract unique sellers from products
+  // Extract unique sellers from products with OPT ID
   const sellers = useMemo(() => {
     const uniqueSellers = new Map();
     products.forEach(product => {
       if (product.seller_id && product.seller_name) {
         uniqueSellers.set(product.seller_id, {
           id: product.seller_id,
-          name: product.seller_name
+          name: product.seller_name,
+          opt_id: product.seller_opt_id || product.opt_id // поддерживаем разные поля для OPT ID
         });
       }
     });

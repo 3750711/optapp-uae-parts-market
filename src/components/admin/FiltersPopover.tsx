@@ -18,7 +18,7 @@ interface FiltersPopoverProps {
   setStatusFilter: (status: string | null) => void;
   sellerFilter: string;
   setSellerFilter: (sellerId: string) => void;
-  sellers: Array<{ id: string; name: string; }>;
+  sellers: Array<{ id: string; name: string; opt_id?: string; }>;
   resetAllFilters: () => void;
   applyFilters: () => void;
   disabled?: boolean;
