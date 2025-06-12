@@ -1,6 +1,6 @@
 
 import React from "react";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, FieldPath } from "react-hook-form";
 import {
   FormControl,
   FormField,
@@ -18,8 +18,11 @@ interface AdminProductFormValues extends ProductFormValues {
   sellerId: string;
 }
 
+// Union type for the form values
+type FormValues = ProductFormValues | AdminProductFormValues;
+
 interface MobileOptimizedBasicInfoSectionProps {
-  form: UseFormReturn<ProductFormValues> | UseFormReturn<AdminProductFormValues>;
+  form: UseFormReturn<FormValues>;
   sellers?: Array<{id: string, full_name: string}>;
   searchSellerTerm?: string;
   setSearchSellerTerm?: (term: string) => void;
@@ -47,7 +50,7 @@ const MobileOptimizedBasicInfoSection: React.FC<MobileOptimizedBasicInfoSectionP
       {showSellerSelection && (
         <FormField
           control={form.control}
-          name={"sellerId" as any}
+          name={"sellerId" as FieldPath<FormValues>}
           render={({ field }) => (
             <FormItem>
               <FormLabel>Продавец *</FormLabel>
