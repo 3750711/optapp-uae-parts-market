@@ -27,58 +27,12 @@ const createQueryClient = () => new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       
-      // Настройки кэширования в зависимости от типа данных
-      staleTime: (query) => {
-        const queryKey = query.queryKey[0] as string;
-        
-        // Админ данные - кэшируем дольше
-        if (queryKey === 'admin') {
-          return 1000 * 60 * 10; // 10 минут для админ данных
-        }
-        
-        // Профили пользователей - кэшируем дольше
-        if (queryKey === 'profiles' || queryKey === 'profile') {
-          return 1000 * 60 * 15; // 15 минут для профилей
-        }
-        
-        // Продукты каталога - средний кэш
-        if (queryKey === 'products' || queryKey === 'products-infinite-optimized') {
-          return 1000 * 60 * 5; // 5 минут для продуктов
-        }
-        
-        // Заказы - короткий кэш
-        if (queryKey === 'orders') {
-          return 1000 * 60 * 2; // 2 минуты для заказов
-        }
-        
-        // По умолчанию
-        return 1000 * 60 * 5; // 5 минут
-      },
+      // Настройки кэширования по умолчанию
+      staleTime: 1000 * 60 * 5, // 5 минут по умолчанию
       
-      gcTime: (query) => {
-        const queryKey = query.queryKey[0] as string;
-        
-        // Админ данные держим в памяти дольше
-        if (queryKey === 'admin') {
-          return 1000 * 60 * 30; // 30 минут в памяти
-        }
-        
-        // Остальные данные
-        return 1000 * 60 * 15; // 15 минут в памяти
-      },
+      gcTime: 1000 * 60 * 15, // 15 минут в памяти по умолчанию
       
-      refetchOnMount: (query) => {
-        const queryKey = query.queryKey[0] as string;
-        const dataAge = Date.now() - (query.state.dataUpdatedAt || 0);
-        
-        // Для админ данных - не обновляем если данные свежие
-        if (queryKey === 'admin' && dataAge < 1000 * 60 * 5) {
-          return false;
-        }
-        
-        // Для остальных данных - обновляем если старше 2 минут
-        return dataAge > 1000 * 60 * 2;
-      },
+      refetchOnMount: true, // По умолчанию всегда обновляем при монтировании
     },
     mutations: {
       retry: 2,
