@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -45,11 +44,10 @@ const SellerAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
-  
-  // Refs for tracking initialization state
-  const isInitializedRef = useRef(false);
-  const draftLoadedRef = useRef(false);
-  
+
+  // ----> Упростили: refs заменены на обычные useState (гораздо проще):
+  const [draftLoaded, setDraftLoaded] = useState(false);
+
   // Use the new hook that loads all car brands and models
   const { 
     brands, 
@@ -89,7 +87,7 @@ const SellerAddProduct = () => {
   const { loadSavedData, clearSavedData } = useFormAutosave({
     key: 'seller_add_product',
     data: getFormDataForAutosave(),
-    enabled: !isSubmitting && isInitializedRef.current
+    enabled: !isSubmitting
   });
 
   // Breadcrumbs навигация
@@ -102,34 +100,25 @@ const SellerAddProduct = () => {
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
 
-  // Load saved draft on component mount (only once)
   useEffect(() => {
-    if (!draftLoadedRef.current && !isSubmitting) {
-      console.log("Loading saved draft...");
+    if (!draftLoaded && !isSubmitting) {
       const savedData = loadSavedData();
-      
       if (savedData && Object.keys(savedData).length > 0) {
-        console.log("Found saved draft:", savedData);
-        
-        // Set form values without triggering watch reactivity
         Object.entries(savedData).forEach(([key, value]) => {
           if (value && key in form.getValues()) {
             form.setValue(key as keyof ProductFormValues, value as any, { shouldValidate: false });
           }
         });
-        
         setShowDraftSaved(true);
         setTimeout(() => setShowDraftSaved(false), 5000);
       }
-      
-      draftLoadedRef.current = true;
-      isInitializedRef.current = true;
+      setDraftLoaded(true);
     }
-  }, [loadSavedData, form, isSubmitting]);
+  }, [loadSavedData, form, isSubmitting, draftLoaded]);
 
   // Handle title changes with debounce - only if car data should load
   const handleTitleChange = useCallback((title: string) => {
-    if (title && brands.length > 0 && !watchBrandId && isInitializedRef.current) {
+    if (title && brands.length > 0 && !watchBrandId) {
       console.log("Parsing title for auto-detection:", title);
       const { brandId, modelId } = parseProductTitle(title);
       
@@ -150,7 +139,7 @@ const SellerAddProduct = () => {
 
   // Debounced title processing
   useEffect(() => {
-    if (!isInitializedRef.current || !watchTitle) return;
+    if (!watchTitle) return;
     
     const timeoutId = setTimeout(() => {
       handleTitleChange(watchTitle);
@@ -161,7 +150,6 @@ const SellerAddProduct = () => {
 
   // Handle brand and model changes - only if car data should load
   useEffect(() => {
-    if (!isInitializedRef.current) return;
     
     if (watchBrandId) {
       selectBrand(watchBrandId);
@@ -401,9 +389,20 @@ const SellerAddProduct = () => {
     model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
   );
 
-  return (
-    <GlobalErrorBoundary>
-      <Layout>
+  // Fallback UI для загрузки данных по брендам:
+  if (isLoadingCarData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <span>Загрузка данных автомобилей...</span>
+      </div>
+    );
+  }
+
+  // Error Boundary (UI-level)
+  try {
+    return (
+      <GlobalErrorBoundary>
+        <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <Breadcrumb className="mb-6">
@@ -457,8 +456,8 @@ const SellerAddProduct = () => {
               </CardHeader>
               <CardContent>
                 <AddProductForm
-                  form={form as any}
-                  onSubmit={createProduct as any}
+                  form={form}
+                  onSubmit={createProduct}
                   isSubmitting={isSubmitting}
                   imageUrls={imageUrls}
                   videoUrls={videoUrls}
@@ -483,8 +482,16 @@ const SellerAddProduct = () => {
           </div>
         </div>
       </Layout>
-    </GlobalErrorBoundary>
-  );
+      </GlobalErrorBoundary>
+    );
+  } catch (e: any) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="text-red-500 text-lg mb-2">Произошла ошибка при загрузке страницы</div>
+        <div className="text-gray-500">{e?.message}</div>
+      </div>
+    );
+  }
 };
 
 export default SellerAddProduct;

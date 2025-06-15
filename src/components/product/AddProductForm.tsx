@@ -1,6 +1,5 @@
-
 import React from "react";
-import { UseFormReturn } from "react-hook-form";
+import { UseFormReturn, FieldValues } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,30 +25,16 @@ import {
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 
-// Product form schema with zod validation
+// Типизированные значения для формы
 export const productSchema = z.object({
-  title: z.string().min(3, {
-    message: "Название должно содержать не менее 3 символов",
-  }),
-  price: z.string().min(1, {
-    message: "Укажите цену товара",
-  }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Цена должна быть положительным числом",
-  }),
-  brandId: z.string().min(1, {
-    message: "Выберите марку автомобиля",
-  }),
-  modelId: z.string().optional(), // Model is optional
-  placeNumber: z.string().min(1, {
-    message: "Укажите количество мест",
-  }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, {
-    message: "Количество мест должно быть целым положительным числом",
-  }),
+  title: z.string().min(3, { message: "Название должно содержать не менее 3 символов" }),
+  price: z.string().min(1, { message: "Укажите цену товара" }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Цена должна быть положительным числом" }),
+  brandId: z.string().min(1, { message: "Выберите марку автомобиля" }),
+  modelId: z.string().optional(),
+  placeNumber: z.string().min(1, { message: "Укажите количество мест" }).refine((val) => !isNaN(Number(val)) && Number.isInteger(Number(val)) && Number(val) > 0, { message: "Количество мест должно быть целым положительным числом" }),
   description: z.string().optional(),
-  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), {
-    message: "Стоимость доставки должна быть числом",
-  }),
-  sellerId: z.string().optional(), // Add sellerId for admin use
+  deliveryPrice: z.string().optional().refine((val) => val === "" || !isNaN(Number(val)), { message: "Стоимость доставки должна быть числом" }),
+  sellerId: z.string().optional(),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;
@@ -61,22 +46,21 @@ interface AddProductFormProps {
   imageUrls: string[];
   videoUrls: string[];
   userId?: string;
-  brands: Array<{id: string, name: string}>;
-  brandModels: Array<{id: string, name: string, brand_id: string}>;
+  brands: Array<{ id: string, name: string }>;
+  brandModels: Array<{ id: string, name: string, brand_id: string }>;
   isLoadingCarData: boolean;
   watchBrandId: string;
   searchBrandTerm: string;
   setSearchBrandTerm: (term: string) => void;
   searchModelTerm: string;
   setSearchModelTerm: (term: string) => void;
-  filteredBrands: Array<{id: string, name: string}>;
-  filteredModels: Array<{id: string, name: string, brand_id: string}>;
+  filteredBrands: Array<{ id: string, name: string }>;
+  filteredModels: Array<{ id: string, name: string, brand_id: string }>;
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
   setPrimaryImage?: (url: string) => void;
-  // Admin-specific props
-  sellers?: Array<{id: string, full_name: string, opt_id?: string}>;
+  sellers?: Array<{ id: string, full_name: string, opt_id?: string }>;
   showSellerSelection?: boolean;
 }
 
@@ -102,7 +86,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   primaryImage,
   setPrimaryImage,
   sellers = [],
-  showSellerSelection = false
+  showSellerSelection = false,
 }) => {
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
