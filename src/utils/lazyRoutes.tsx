@@ -226,6 +226,12 @@ export const routeConfigs = [
   
   // Seller routes
   {
+    path: '/seller/dashboard',
+    component: lazy(() => import('@/pages/SellerDashboard')),
+    protected: true,
+    adminOnly: false,
+  },
+  {
     path: '/seller',
     component: lazy(() => import('@/pages/SellerDashboard')),
     protected: true,
