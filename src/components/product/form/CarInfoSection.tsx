@@ -10,6 +10,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
+import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 interface Brand {
   id: string;
@@ -39,16 +40,18 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
 }) => {
   const [brandSearchTerm, setBrandSearchTerm] = useState("");
   const [modelSearchTerm, setModelSearchTerm] = useState("");
+  const debouncedBrandSearchTerm = useDebounceValue(brandSearchTerm, 2000);
+  const debouncedModelSearchTerm = useDebounceValue(modelSearchTerm, 2000);
 
   const filteredBrands = useMemo(() => {
-    if (!brandSearchTerm) return brands;
-    return brands.filter(b => b.name.toLowerCase().includes(brandSearchTerm.toLowerCase()));
-  }, [brands, brandSearchTerm]);
+    if (!debouncedBrandSearchTerm) return brands;
+    return brands.filter(b => b.name.toLowerCase().includes(debouncedBrandSearchTerm.toLowerCase()));
+  }, [brands, debouncedBrandSearchTerm]);
 
   const filteredModels = useMemo(() => {
-    if (!modelSearchTerm) return models;
-    return models.filter(m => m.name.toLowerCase().includes(modelSearchTerm.toLowerCase()));
-  }, [models, modelSearchTerm]);
+    if (!debouncedModelSearchTerm) return models;
+    return models.filter(m => m.name.toLowerCase().includes(debouncedModelSearchTerm.toLowerCase()));
+  }, [models, debouncedModelSearchTerm]);
   
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

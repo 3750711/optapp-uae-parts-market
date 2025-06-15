@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -40,7 +39,7 @@ const MediaSection = React.memo<MediaSectionProps>(({
   return (
     <div className="space-y-6">
       {/* Кнопки загрузки */}
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <MobileOptimizedImageUpload
             onUploadComplete={handleMobileOptimizedImageUpload}

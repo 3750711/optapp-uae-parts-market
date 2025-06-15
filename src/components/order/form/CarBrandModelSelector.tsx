@@ -1,8 +1,8 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
+import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 interface CarBrandModelSelectorProps {
   brandId: string;
@@ -21,6 +21,8 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
 }) => {
   const [searchBrandTerm, setSearchBrandTerm] = useState('');
   const [searchModelTerm, setSearchModelTerm] = useState('');
+  const debouncedSearchBrandTerm = useDebounceValue(searchBrandTerm, 2000);
+  const debouncedSearchModelTerm = useDebounceValue(searchModelTerm, 2000);
 
   const {
     brands,
@@ -37,15 +39,15 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
   }, [brandId, selectBrand]);
   
   const filteredBrands = useMemo(() => {
-    if (!searchBrandTerm) return brands;
-    return brands.filter(b => b.name.toLowerCase().includes(searchBrandTerm.toLowerCase()));
-  }, [brands, searchBrandTerm]);
+    if (!debouncedSearchBrandTerm) return brands;
+    return brands.filter(b => b.name.toLowerCase().includes(debouncedSearchBrandTerm.toLowerCase()));
+  }, [brands, debouncedSearchBrandTerm]);
 
   const filteredModels = useMemo(() => {
     // Models for the selected brand are in `brandModels`
-    if (!searchModelTerm) return brandModels;
-    return brandModels.filter(m => m.name.toLowerCase().includes(searchModelTerm.toLowerCase()));
-  }, [brandModels, searchModelTerm]);
+    if (!debouncedSearchModelTerm) return brandModels;
+    return brandModels.filter(m => m.name.toLowerCase().includes(debouncedSearchModelTerm.toLowerCase()));
+  }, [brandModels, debouncedSearchModelTerm]);
   
   const handleBrandChange = useCallback((selectedBrandId: string) => {
     const brand = brands.find(b => b.id === selectedBrandId);
