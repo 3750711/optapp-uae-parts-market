@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -12,6 +13,7 @@ import { useIntersection } from "@/hooks/useIntersection";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import EnhancedSellerListingsSkeleton from "@/components/seller/EnhancedSellerListingsSkeleton";
+import { devLog, devError, prodError, throttledDevLog } from "@/utils/logger";
 
 const SellerListingsContent = () => {
   const { user } = useAuth();
@@ -33,16 +35,14 @@ const SellerListingsContent = () => {
     queryKey: ['seller-products-infinite', user?.id],
     queryFn: async ({ pageParam = 0 }) => {
       if (!user?.id) {
-        console.error('❌ User not authenticated');
+        prodError('User not authenticated in seller listings');
         throw new Error('Пользователь не авторизован');
       }
       
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`📦 Fetching seller products: ${from} to ${to} for user ${user.id}`);
-      }
+      devLog(`📦 Fetching seller products: ${from} to ${to} for user ${user.id}`);
       
       try {
         // Test connection first
@@ -52,7 +52,7 @@ const SellerListingsContent = () => {
           .limit(1);
           
         if (connectionError) {
-          console.error('❌ Database connection error:', connectionError);
+          prodError('Database connection error in seller listings', { error: connectionError });
           throw new Error(`Ошибка подключения: ${connectionError.message}`);
         }
         
@@ -80,16 +80,14 @@ const SellerListingsContent = () => {
           .range(from, to);
 
         if (error) {
-          console.error('❌ Database error:', error);
+          prodError('Database error in seller listings', { error });
           throw new Error(`Ошибка загрузки товаров: ${error.message}`);
         }
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`✅ Successfully fetched ${data?.length || 0} products`);
-        }
+        devLog(`✅ Successfully fetched ${data?.length || 0} products`);
         return data as Product[];
       } catch (dbError) {
-        console.error('💥 Error in seller products query:', dbError);
+        prodError('Error in seller products query', { error: dbError });
         throw dbError;
       }
     },
@@ -97,13 +95,10 @@ const SellerListingsContent = () => {
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    enabled: !!user?.id,
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     retry: (failureCount, error) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`🔄 Seller products retry attempt ${failureCount}:`, error);
-      }
+      throttledDevLog('seller-retry', `🔄 Seller products retry attempt ${failureCount}:`, error);
       return failureCount < 2;
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000),
@@ -112,9 +107,7 @@ const SellerListingsContent = () => {
   });
 
   const handleStatusChange = async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log("Product status changed, applying optimistic update");
-    }
+    devLog("Product status changed, applying optimistic update");
     
     toast({
       title: "Статус обновлен",
@@ -134,9 +127,7 @@ const SellerListingsContent = () => {
 
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage && !isError) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log("Load more element is visible, fetching next page");
-      }
+      devLog("Load more element is visible, fetching next page");
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage, isError]);
@@ -144,12 +135,10 @@ const SellerListingsContent = () => {
   const handleLoadMore = async () => {
     if (hasNextPage && !isFetchingNextPage) {
       try {
-        if (process.env.NODE_ENV === 'development') {
-          console.log("Manual load more triggered");
-        }
+        devLog("Manual load more triggered");
         await fetchNextPage();
       } catch (error) {
-        console.error('Error loading more products:', error);
+        prodError('Error loading more products', { error });
         toast({
           variant: "destructive",
           title: "Ошибка загрузки",
@@ -161,16 +150,14 @@ const SellerListingsContent = () => {
 
   const handleRetry = async () => {
     try {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Retrying seller products fetch...');
-      }
+      devLog('🔄 Retrying seller products fetch...');
       await refetch();
       toast({
         title: "Обновление данных",
         description: "Загружаем ваши товары...",
       });
     } catch (error) {
-      console.error('❌ Retry failed:', error);
+      prodError('Retry failed in seller listings', { error });
       toast({
         variant: "destructive",
         title: "Ошибка",
@@ -182,7 +169,7 @@ const SellerListingsContent = () => {
   // Handle errors with detailed logging
   useEffect(() => {
     if (isError && error) {
-      console.error('🚨 Seller listings error:', error);
+      prodError('Seller listings error', { error });
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
       toast({
         variant: "destructive",
@@ -193,9 +180,7 @@ const SellerListingsContent = () => {
   }, [isError, error]);
 
   const allProducts = data?.pages.flat() || [];
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`📊 Total seller products loaded: ${allProducts.length}`);
-  }
+  throttledDevLog('seller-stats', `📊 Total seller products loaded: ${allProducts.length}`);
 
   const mappedProducts: ProductProps[] = React.useMemo(() => {
     try {
@@ -222,7 +207,7 @@ const SellerListingsContent = () => {
         };
       });
     } catch (mappingError) {
-      console.error('❌ Error mapping seller products:', mappingError);
+      devError('Error mapping seller products:', mappingError);
       return [];
     }
   }, [allProducts, user?.id]);

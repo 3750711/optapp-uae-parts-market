@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
@@ -5,6 +6,7 @@ import { Product } from '@/types/product';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Search, Shield, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { devError, prodError } from '@/utils/logger';
 
 interface AdminProductsContentProps {
   products: Product[];
@@ -43,17 +45,6 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
   sellerFilter,
   hasActiveFilters = false
 }) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📦 AdminProductsContent render:', { 
-      productsCount: products.length,
-      isLoading,
-      isError,
-      hasActiveFilters,
-      searchTerm,
-      debouncedSearchTerm,
-      errorMessage: error instanceof Error ? error.message : String(error)
-    });
-  }
 
   // Детальная обработка ошибок с диагностической информацией
   if (isError) {
@@ -62,6 +53,13 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
                        errorMessage.includes('unauthorized') || 
                        errorMessage.includes('JWT') ||
                        errorMessage.includes('PGRST301');
+
+    // Логируем только критические ошибки
+    if (isAuthError) {
+      prodError('Authentication error in AdminProductsContent', { errorMessage, statusFilter, sellerFilter });
+    } else {
+      devError('AdminProductsContent error:', { errorMessage, statusFilter, sellerFilter });
+    }
 
     return (
       <div className="space-y-4">
@@ -132,9 +130,7 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
   }
 
   const stableOnDelete = useCallback((id: string) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.warn(`[Optimization] Single product delete called for ${id}, but not implemented in this component. This callback is stabilized for memoization.`);
-    }
+    devError(`Single product delete called for ${id}, but not implemented in this component. This callback is stabilized for memoization.`);
   }, []);
 
   return (

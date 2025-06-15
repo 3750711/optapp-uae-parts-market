@@ -7,6 +7,7 @@ import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useDebounceValue } from '@/hooks/useDebounceValue';
+import { devLog, devError, prodError, throttledDevLog, perfStart, perfEnd } from '@/utils/logger';
 
 export type ProductType = {
   id: string;
@@ -111,7 +112,7 @@ export const useCatalogProducts = ({
       sortBy,
       isAdmin
     };
-    console.log('📋 Catalog filters updated:', filtersObj);
+    throttledDevLog('catalog-filters', '📋 Catalog filters updated:', filtersObj);
     return filtersObj;
   }, [activeSearchTerm, hideSoldProducts, selectedBrandName, selectedModelName, sortBy, isAdmin]);
 
@@ -128,10 +129,11 @@ export const useCatalogProducts = ({
     queryKey: ['products-infinite', filters],
     queryFn: async ({ pageParam = 0 }) => {
       try {
+        perfStart('catalog-query');
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
         
-        console.log('🔎 Executing product search with:', {
+        devLog('🔎 Executing product search with:', {
           searchQuery: filters.activeSearchTerm,
           selectedBrandName: filters.selectedBrandName,
           selectedModelName: filters.selectedModelName,
@@ -195,11 +197,10 @@ export const useCatalogProducts = ({
 
         query = query.range(from, to);
 
-        console.log('📡 Starting Supabase query...');
         const { data, error } = await query;
         
         if (error) {
-          console.error('❌ Supabase query error:', error);
+          prodError('Supabase query error in catalog', { error, filters });
           throw new Error(`Database query failed: ${error.message}`);
         }
         
@@ -212,15 +213,16 @@ export const useCatalogProducts = ({
           })
         }));
         
-        console.log('✅ Products loaded successfully:', {
+        devLog('✅ Products loaded successfully:', {
           count: dataWithSortedImages?.length || 0,
           hasData: (dataWithSortedImages?.length || 0) > 0,
           firstProduct: dataWithSortedImages?.[0]?.title
         });
         
+        perfEnd('catalog-query');
         return dataWithSortedImages || [];
       } catch (error) {
-        console.error('💥 Product loading error:', error);
+        prodError('Product loading error in catalog', { error, filters });
         if (error instanceof Error) {
           throw new Error(error.message);
         } else {
@@ -236,7 +238,7 @@ export const useCatalogProducts = ({
     gcTime: 10 * 60 * 1000, // 10 минут
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
-      console.log(`⚠️ Query retry attempt ${failureCount + 1}:`, error);
+      devLog(`⚠️ Query retry attempt ${failureCount + 1}:`, error);
       return failureCount < 2;
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000)
@@ -244,7 +246,7 @@ export const useCatalogProducts = ({
 
   useEffect(() => {
     if (isError && error) {
-      console.error('❌ Product loading error in useEffect:', error);
+      prodError('Product loading error in useEffect', { error });
       toast({
         title: "Ошибка загрузки товаров",
         description: error instanceof Error ? error.message : "Не удалось загрузить товары",
@@ -257,6 +259,8 @@ export const useCatalogProducts = ({
   
   const mappedProducts: ProductProps[] = useMemo(() => {
     try {
+      perfStart('products-mapping');
+      
       const mapped = allProducts.map((product) => {
         const typedProduct = product as unknown as ProductType;
         
@@ -282,15 +286,10 @@ export const useCatalogProducts = ({
         } as ProductProps;
       });
       
-      console.log('🔄 Products mapped:', {
-        originalCount: allProducts.length,
-        mappedCount: mapped.length,
-        hasValidData: mapped.length > 0
-      });
-      
+      perfEnd('products-mapping');
       return mapped;
     } catch (mappingError) {
-      console.error('❌ Product mapping error:', mappingError);
+      devError('Product mapping error:', mappingError);
       return [];
     }
   }, [allProducts]);
@@ -303,7 +302,7 @@ export const useCatalogProducts = ({
       chunks.push(mappedProducts.slice(i, i + chunkSize));
     }
     
-    console.log('📦 Product chunks created:', {
+    throttledDevLog('product-chunks', '📦 Product chunks created:', {
       totalProducts: mappedProducts.length,
       chunksCount: chunks.length,
       chunkSize

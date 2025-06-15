@@ -1,4 +1,6 @@
 
+import { prodError, devError } from '@/utils/logger';
+
 // Error monitoring and chunk load error detection
 interface ErrorMetrics {
   chunkLoadErrors: number;
@@ -35,7 +37,7 @@ class ErrorMonitor {
         };
       }
     } catch (error) {
-      console.warn('Failed to load error metrics:', error);
+      devError('Failed to load error metrics:', error);
     }
   }
 
@@ -43,7 +45,7 @@ class ErrorMonitor {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.metrics));
     } catch (error) {
-      console.warn('Failed to save error metrics:', error);
+      devError('Failed to save error metrics:', error);
     }
   }
 
@@ -57,6 +59,12 @@ class ErrorMonitor {
     window.addEventListener('unhandledrejection', (event) => {
       this.handleError(new Error(event.reason));
     });
+
+    // Listen for critical errors from our logger
+    window.addEventListener('critical-error', ((event: CustomEvent) => {
+      const { message, stack, context } = event.detail;
+      this.handleCriticalError({ message, stack }, context);
+    }) as EventListener);
   }
 
   private isChunkLoadError(error: Error): boolean {
@@ -74,29 +82,44 @@ class ErrorMonitor {
   }
 
   handleError(error: Error) {
-    console.log('📊 ErrorMonitor: Handling error:', error.message);
-
     if (this.isChunkLoadError(error)) {
       this.metrics.chunkLoadErrors++;
       this.metrics.lastChunkError = new Date();
       
-      console.warn('🚨 Chunk load error detected:', {
+      prodError('Chunk load error detected', {
         count: this.metrics.chunkLoadErrors,
-        timestamp: this.metrics.lastChunkError
+        timestamp: this.metrics.lastChunkError,
+        message: error.message
       });
 
       // Auto-recovery for frequent chunk errors
       if (this.shouldTriggerRecovery()) {
-        console.log('🔄 Triggering automatic recovery...');
+        devError('Triggering automatic recovery...');
         this.triggerRecovery();
       }
     } else if (this.isNetworkError(error)) {
       this.metrics.networkErrors++;
+      prodError('Network error detected', { message: error.message });
     } else {
       this.metrics.jsErrors++;
+      devError('JavaScript error:', error);
     }
 
     this.saveMetrics();
+  }
+
+  handleCriticalError(error: { message: string; stack?: string }, context?: Record<string, any>) {
+    // Send critical errors to monitoring service
+    prodError(error.message, context);
+    
+    // Additional critical error handling
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', 'exception', {
+        description: error.message,
+        fatal: true,
+        custom_map: context
+      });
+    }
   }
 
   private shouldTriggerRecovery(): boolean {
@@ -109,7 +132,7 @@ class ErrorMonitor {
 
   private async triggerRecovery() {
     try {
-      console.log('🧹 Clearing caches for recovery...');
+      devError('Clearing caches for recovery...');
       
       // Clear service worker caches
       if ('caches' in window) {
@@ -124,7 +147,7 @@ class ErrorMonitor {
       // Force reload with cache bypass
       window.location.reload();
     } catch (error) {
-      console.error('❌ Recovery failed:', error);
+      prodError('Recovery failed', { error });
       // Fallback: normal reload
       window.location.reload();
     }

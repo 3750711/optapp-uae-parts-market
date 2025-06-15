@@ -1,10 +1,12 @@
 
 import { useAuth } from '@/contexts/AuthContext';
+import { throttledDevLog } from '@/utils/logger';
 
 export const useAdminAccess = () => {
   const { isAdmin, profile } = useAuth();
   
-  console.log('🔍 useAdminAccess:', { isAdmin, userType: profile?.user_type });
+  // Логируем только при изменении статуса, а не на каждый вызов
+  throttledDevLog('admin-access-check', '🔍 useAdminAccess:', { isAdmin, userType: profile?.user_type });
   
   return {
     // Строгая проверка админских прав
