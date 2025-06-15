@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,7 @@ import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedAdminRights, setCachedAdminRights } from '@/utils/performanceUtils';
+import { devLog, devError, prodError } from '@/utils/logger';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -33,66 +33,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const mountedRef = useRef(true);
   const queryClient = useQueryClient();
 
-  // Улучшенная функция проверки админских прав с fallback и кэшированием
-  const checkAdminRights = useCallback(async (userId: string, retryCount = 0): Promise<boolean> => {
-    const cachedRights = getCachedAdminRights(userId);
-    if (cachedRights !== null) {
-      console.log('✅ Admin rights from cache:', cachedRights);
-      return cachedRights;
-    }
-
-    try {
-      console.log('🔍 Checking admin rights for user:', userId, 'attempt:', retryCount + 1);
-      
-      const { data: isAdminResult, error } = await supabase.rpc('is_admin_user');
-      
-      if (error) {
-        console.error('❌ Error checking admin rights via RPC:', error);
-        
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type')
-          .eq('id', userId)
-          .single();
-        
-        if (profileError) {
-          console.error('❌ Fallback profile query also failed:', profileError);
-          
-          if (retryCount === 0 && profileError.message?.includes('JWT')) {
-            console.log('🔄 Attempting to refresh session...');
-            const { error: refreshError } = await supabase.auth.refreshSession();
-            if (!refreshError) {
-              return checkAdminRights(userId, retryCount + 1);
-            }
-          }
-          
-          setCachedAdminRights(userId, false);
-          return false;
-        }
-        
-        const hasAdminAccess = profile?.user_type === 'admin';
-        setCachedAdminRights(userId, hasAdminAccess);
-        console.log('✅ Fallback admin rights check result:', hasAdminAccess);
-        return hasAdminAccess;
-      }
-      
-      const result = isAdminResult || false;
-      setCachedAdminRights(userId, result);
-      console.log('✅ Admin rights check result:', result);
-      return result;
-    } catch (error) {
-      console.error('💥 Exception in admin rights check:', error);
-      setCachedAdminRights(userId, false);
-      return false;
-    }
-  }, []);
-
   // Улучшенная функция загрузки профиля
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!mountedRef.current) return null;
 
     try {
-      console.log('📥 Fetching user profile for:', userId);
+      devLog('📥 Fetching user profile for:', userId);
       
       const { data, error } = await supabase
         .from('profiles')
@@ -101,11 +47,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single();
       
       if (error) {
-        console.error('❌ Error fetching profile:', error);
+        prodError(new Error('Error fetching profile'), { userId, error: error.message });
         
         // Если ошибка связана с JWT, попробуем обновить сессию
         if (error.message?.includes('JWT')) {
-          console.log('🔄 JWT error detected, refreshing session...');
+          devLog('🔄 JWT error detected, refreshing session...');
           const { error: refreshError } = await supabase.auth.refreshSession();
           if (!refreshError && mountedRef.current) {
             // Повторная попытка загрузки профиля
@@ -116,20 +62,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mountedRef.current) {
           setProfile(null);
           setIsAdmin(false);
+          setCachedAdminRights(userId, false);
         }
         return null;
       }
       
       if (data && mountedRef.current) {
-        console.log('✅ Profile loaded successfully:', {
+        devLog('✅ Profile loaded successfully:', {
           email: data.email,
           userType: data.user_type,
           verificationStatus: data.verification_status
         });
         setProfile(data);
         
-        // Проверяем админские права
-        const hasAdminAccess = await checkAdminRights(userId);
+        // Проверяем админские права напрямую из профиля
+        const hasAdminAccess = data.user_type === 'admin';
+        setCachedAdminRights(userId, hasAdminAccess);
+        
         if (mountedRef.current) {
           setIsAdmin(hasAdminAccess);
           
@@ -141,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
           
           // Проверяем first login
-          if (data.email.endsWith('@g.com') && !data.first_login_completed) {
+          if (data.email?.endsWith('@g.com') && !data.first_login_completed) {
             setShowFirstLoginWelcome(true);
           }
         }
@@ -151,26 +100,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return null;
     } catch (error) {
-      console.error('💥 Exception while fetching profile:', error);
+      prodError(new Error('Exception while fetching profile'), { userId, error });
       if (mountedRef.current) {
         setProfile(null);
         setIsAdmin(false);
+        setCachedAdminRights(userId, false);
       }
       return null;
     }
-  }, [checkAdminRights]);
+  }, []);
 
   // Предзагрузка админских данных
   const preloadAdminData = useCallback(async () => {
     try {
-      console.log('🚀 Preloading admin data...');
+      devLog('🚀 Preloading admin data...');
       
       // Проверяем, есть ли уже данные в кэше
       const cachedMetrics = queryClient.getQueryData(['admin', 'metrics-optimized']);
       const cachedProductData = queryClient.getQueryData(['admin', 'add-product-data']);
       
       if (cachedMetrics && cachedProductData) {
-        console.log('✅ Admin data already cached');
+        devLog('✅ Admin data already cached');
         return;
       }
 
@@ -200,9 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
       
-      console.log('✅ Admin data preloaded successfully');
+      devLog('✅ Admin data preloaded successfully');
     } catch (error) {
-      console.warn('⚠️ Failed to preload admin data:', error);
+      devError('⚠️ Failed to preload admin data:', error);
     }
   }, [queryClient]);
 
@@ -215,13 +165,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshAdminStatus = useCallback(async () => {
     if (user && mountedRef.current) {
       setIsLoading(true);
-      const hasAdminAccess = await checkAdminRights(user.id);
+      await refreshProfile();
       if (mountedRef.current) {
-        setIsAdmin(hasAdminAccess);
         setIsLoading(false);
       }
     }
-  }, [user, checkAdminRights]);
+  }, [user, refreshProfile]);
 
   const handleFirstLoginComplete = useCallback((completed: boolean) => {
     if (completed) {
@@ -232,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      console.log('👋 Signing out user...');
+      devLog('👋 Signing out user...');
       await supabase.auth.signOut();
       setUser(null);
       setSession(null);
@@ -243,9 +192,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Очищаем кэш при выходе
       queryClient.clear();
-      console.log('✅ User signed out successfully');
+      devLog('✅ User signed out successfully');
     } catch (error) {
-      console.error('❌ Error during sign out:', error);
+      prodError(new Error('Error during sign out'), { error });
     }
   }, [queryClient]);
 
@@ -256,12 +205,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     const setupAuth = async () => {
       try {
-        console.log('🔑 Setting up auth...');
+        devLog('🔑 Setting up auth...');
         
         // Получаем текущую сессию
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
-        console.log('🔐 Session check result:', {
+        devLog('🔐 Session check result:', {
           hasSession: !!currentSession,
           userId: currentSession?.user?.id,
           userEmail: currentSession?.user?.email,
@@ -270,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         if (error) {
-          console.error("❌ Error getting session:", error);
+          prodError(new Error("Error getting session"), { error: error.message });
           if (mounted) {
             setSession(null);
             setUser(null);
@@ -300,7 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           async (event, currentSession) => {
             if (!mounted) return;
             
-            console.log('🔄 Auth state changed:', {
+            devLog('🔄 Auth state changed:', {
               event,
               hasSession: !!currentSession,
               userId: currentSession?.user?.id
@@ -323,7 +272,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           subscription.unsubscribe();
         };
       } catch (error) {
-        console.error("💥 Error setting up auth:", error);
+        prodError(new Error("Error setting up auth"), { error });
         if (mounted) {
           setIsLoading(false);
         }
