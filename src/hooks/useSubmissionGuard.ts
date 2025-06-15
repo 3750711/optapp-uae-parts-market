@@ -1,5 +1,4 @@
-
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SubmissionGuardOptions {
@@ -15,7 +14,10 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
 
   // Use a ref to get the latest isSubmitting value in the callback without making it a dependency.
   const isSubmittingRef = useRef(isSubmitting);
-  isSubmittingRef.current = isSubmitting;
+  
+  useLayoutEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
 
   const guardedSubmit = useCallback(
     async (submitAction: () => Promise<void>) => {
