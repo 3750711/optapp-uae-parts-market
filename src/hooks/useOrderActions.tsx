@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -5,6 +6,9 @@ import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import * as XLSX from 'xlsx';
+import { prodError } from '@/utils/logger';
+
+const BULK_ACTION_LIMIT = 100;
 
 export const useOrderActions = (orders: Order[], selectedOrders: string[], refetch: () => void) => {
   const navigate = useNavigate();
@@ -66,6 +70,15 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
   const handleBulkStatusChange = useCallback(async (newStatus: string) => {
     if (selectedOrders.length === 0) return;
 
+    if (selectedOrders.length > BULK_ACTION_LIMIT) {
+      toast({
+        title: "Превышен лимит",
+        description: `Вы не можете обработать более ${BULK_ACTION_LIMIT} заказов за раз.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setBulkActionLoading({ isLoading: true, action: 'изменение статуса' });
     try {
       // Оптимистично обновляем кэш
@@ -99,7 +112,11 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
         description: `Обновлено ${selectedOrders.length} заказов`,
       });
     } catch (error) {
-      console.error("Failed to update orders:", error);
+      prodError(error as Error, {
+        context: 'useOrderActions/handleBulkStatusChange',
+        selectedOrders,
+        newStatus,
+      });
       
       // Откатываем оптимистичные изменения
       invalidateAllOrderCaches();
@@ -116,6 +133,15 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedOrders.length === 0) return;
+
+    if (selectedOrders.length > BULK_ACTION_LIMIT) {
+      toast({
+        title: "Превышен лимит",
+        description: `Вы не можете удалить более ${BULK_ACTION_LIMIT} заказов за раз.`,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setBulkActionLoading({ isLoading: true, action: 'удаление заказов' });
     try {
@@ -147,7 +173,10 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
         description: `Удалено ${selectedOrders.length} заказов`,
       });
     } catch (error) {
-      console.error("Failed to delete orders:", error);
+      prodError(error as Error, {
+        context: 'useOrderActions/handleBulkDelete',
+        selectedOrders,
+      });
       
       // Откатываем оптимистичные изменения
       invalidateAllOrderCaches();
@@ -193,7 +222,10 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
         description: `Заказ №${selectedOrder.order_number} удален`,
       });
     } catch (error) {
-      console.error("Failed to delete order:", error);
+      prodError(error as Error, {
+        context: 'useOrderActions/handleSingleOrderDelete',
+        orderId: selectedOrder?.id,
+      });
       
       // Откатываем оптимистичные изменения
       invalidateAllOrderCaches();
@@ -331,7 +363,10 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
           }
         });
       } catch (notifyError) {
-        console.error('Failed to send status update notification:', notifyError);
+        prodError(notifyError as Error, {
+          context: 'useOrderActions/handleOrderStatusChange/notification',
+          orderId: orderId,
+        });
       }
       
       setShowEditDialog(false);
@@ -341,7 +376,11 @@ export const useOrderActions = (orders: Order[], selectedOrders: string[], refet
         description: `Статус заказа №${selectedOrder.order_number} обновлен`,
       });
     } catch (error) {
-      console.error("Failed to update order status:", error);
+      prodError(error as Error, {
+        context: 'useOrderActions/handleOrderStatusChange',
+        orderId,
+        newStatus,
+      });
       
       // Откатываем оптимистичные изменения
       invalidateAllOrderCaches();

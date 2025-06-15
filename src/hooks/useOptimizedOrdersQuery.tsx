@@ -120,7 +120,7 @@ export const useOptimizedOrdersQuery = ({
       if (error) {
         toast({
           title: "Ошибка",
-          description: "Не удалось загрузить заказы",
+          description: `Не удалось загрузить заказы${process.env.NODE_ENV === 'development' ? `: ${error.message}` : ''}`,
           variant: "destructive",
         });
         prodError(new Error("Ошибка загрузки заказов"), {

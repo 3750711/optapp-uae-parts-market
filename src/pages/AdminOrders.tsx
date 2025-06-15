@@ -16,6 +16,7 @@ import { useDebounceValue } from "@/hooks/useDebounceValue";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAdminOrdersState } from "@/hooks/useAdminOrdersState";
 import { useOrderActions } from "@/hooks/useOrderActions";
+import { AdminOrdersErrorBoundary } from "@/components/error/AdminOrdersErrorBoundary";
 
 const AdminOrders = () => {
   const isMobile = useIsMobile();
@@ -128,122 +129,124 @@ const AdminOrders = () => {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-8">
-        <Card className="shadow-lg">
-          <AdminOrdersHeader
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            debouncedSearchTerm={debouncedSearchTerm}
-            onSearch={handleSearch}
-            onClearSearch={clearSearch}
-            statusFilter={statusFilter}
-            onStatusFilterChange={handleStatusFilterChange}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSortChange={handleSortChange}
-            onRefetch={refetch}
-            totalCount={totalCount}
-            isFetching={isFetching}
-          />
-          
-          <CardContent className="p-6">
-            {/* Desktop Bulk Actions */}
-            {!isMobile && (
-              <BulkActionsBar
-                selectedOrders={selectedOrders}
-                allOrders={orders}
-                onSelectAll={() => handleSelectAll(orders.map(order => order.id))}
-                onClearSelection={handleClearSelection}
-                onBulkStatusChange={(status) => {
-                  setConfirmBulkStatus({ open: true, status });
-                }}
-                onBulkDelete={() => setConfirmBulkDelete(true)}
-                onExport={handleExport}
-              />
-            )}
-
-            <ResponsiveOrdersView
-              orders={orders}
-              selectedOrders={selectedOrders}
-              onSelectOrder={handleSelectOrder}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onViewDetails={handleViewDetails}
-              onQuickAction={handleQuickAction}
+      <AdminOrdersErrorBoundary>
+        <div className="container mx-auto py-8">
+          <Card className="shadow-lg">
+            <AdminOrdersHeader
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              debouncedSearchTerm={debouncedSearchTerm}
+              onSearch={handleSearch}
+              onClearSearch={clearSearch}
+              statusFilter={statusFilter}
+              onStatusFilterChange={handleStatusFilterChange}
+              sortField={sortField}
+              sortDirection={sortDirection}
+              onSortChange={handleSortChange}
+              onRefetch={refetch}
+              totalCount={totalCount}
+              isFetching={isFetching}
             />
             
-            {/* Empty state when no results */}
-            {!isLoading && !isFetching && orders.length === 0 && (
-                <EmptyState
-                    message={debouncedSearchTerm || statusFilter !== 'all' ? "Заказы не найдены" : "Нет заказов"}
-                    description={debouncedSearchTerm || statusFilter !== 'all' ? "Попробуйте изменить фильтры или поисковый запрос" : "Здесь будут отображаться созданные заказы"}
+            <CardContent className="p-6">
+              {/* Desktop Bulk Actions */}
+              {!isMobile && (
+                <BulkActionsBar
+                  selectedOrders={selectedOrders}
+                  allOrders={orders}
+                  onSelectAll={() => handleSelectAll(orders.map(order => order.id))}
+                  onClearSelection={handleClearSelection}
+                  onBulkStatusChange={(status) => {
+                    setConfirmBulkStatus({ open: true, status });
+                  }}
+                  onBulkDelete={() => setConfirmBulkDelete(true)}
+                  onExport={handleExport}
                 />
-            )}
+              )}
 
-            {/* Responsive Pagination */}
-            {totalCount > 0 && (
-              <>
-                {isMobile ? (
-                  <MobilePagination
-                    currentPage={currentPage}
-                    totalCount={totalCount}
-                    pageSize={pageSize}
-                    onPageChange={handlePageChange}
-                    hasNextPage={hasNextPage}
-                    hasPreviousPage={hasPreviousPage}
+              <ResponsiveOrdersView
+                orders={orders}
+                selectedOrders={selectedOrders}
+                onSelectOrder={handleSelectOrder}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onViewDetails={handleViewDetails}
+                onQuickAction={handleQuickAction}
+              />
+              
+              {/* Empty state when no results */}
+              {!isLoading && !isFetching && orders.length === 0 && (
+                  <EmptyState
+                      message={debouncedSearchTerm || statusFilter !== 'all' ? "Заказы не найдены" : "Нет заказов"}
+                      description={debouncedSearchTerm || statusFilter !== 'all' ? "Попробуйте изменить фильтры или поисковый запрос" : "Здесь будут отображаться созданные заказы"}
                   />
-                ) : (
-                  <OrdersPagination
-                    currentPage={currentPage}
-                    totalCount={totalCount}
-                    pageSize={pageSize}
-                    onPageChange={handlePageChange}
-                    hasNextPage={hasNextPage}
-                    hasPreviousPage={hasPreviousPage}
-                  />
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+              )}
 
-        {/* Mobile Bulk Actions */}
-        {isMobile && (
-          <MobileBulkActionsBar
-            selectedOrders={selectedOrders}
-            allOrders={orders}
-            onSelectAll={() => handleSelectAll(orders.map(order => order.id))}
-            onClearSelection={handleClearSelection}
-            onBulkStatusChange={(status) => {
-              setConfirmBulkStatus({ open: true, status });
-            }}
-            onBulkDelete={() => setConfirmBulkDelete(true)}
-            onExport={handleExport}
+              {/* Responsive Pagination */}
+              {totalCount > 0 && (
+                <>
+                  {isMobile ? (
+                    <MobilePagination
+                      currentPage={currentPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                      onPageChange={handlePageChange}
+                      hasNextPage={hasNextPage}
+                      hasPreviousPage={hasPreviousPage}
+                    />
+                  ) : (
+                    <OrdersPagination
+                      currentPage={currentPage}
+                      totalCount={totalCount}
+                      pageSize={pageSize}
+                      onPageChange={handlePageChange}
+                      hasNextPage={hasNextPage}
+                      hasPreviousPage={hasPreviousPage}
+                    />
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Mobile Bulk Actions */}
+          {isMobile && (
+            <MobileBulkActionsBar
+              selectedOrders={selectedOrders}
+              allOrders={orders}
+              onSelectAll={() => handleSelectAll(orders.map(order => order.id))}
+              onClearSelection={handleClearSelection}
+              onBulkStatusChange={(status) => {
+                setConfirmBulkStatus({ open: true, status });
+              }}
+              onBulkDelete={() => setConfirmBulkDelete(true)}
+              onExport={handleExport}
+            />
+          )}
+
+          <AdminOrdersDialogs
+            showEditDialog={showEditDialog}
+            setShowEditDialog={setShowEditDialog}
+            selectedOrder={selectedOrder}
+            onOrderStatusChange={handleOrderStatusChange}
+            showDeleteDialog={showDeleteDialog}
+            setShowDeleteDialog={setShowDeleteDialog}
+            confirmBulkDelete={confirmBulkDelete}
+            setConfirmBulkDelete={setConfirmBulkDelete}
+            confirmBulkStatus={confirmBulkStatus}
+            setConfirmBulkStatus={setConfirmBulkStatus}
+            confirmSingleDelete={confirmSingleDelete}
+            setConfirmSingleDelete={setConfirmSingleDelete}
+            bulkActionLoading={bulkActionLoading}
+            singleDeleteLoading={singleDeleteLoading}
+            selectedOrdersCount={selectedOrders.length}
+            totalSelectedValue={totalSelectedValue}
+            onBulkDelete={handleBulkDelete}
+            onBulkStatusChange={handleBulkStatusChange}
+            onSingleOrderDelete={handleSingleOrderDelete}
           />
-        )}
-
-        <AdminOrdersDialogs
-          showEditDialog={showEditDialog}
-          setShowEditDialog={setShowEditDialog}
-          selectedOrder={selectedOrder}
-          onOrderStatusChange={handleOrderStatusChange}
-          showDeleteDialog={showDeleteDialog}
-          setShowDeleteDialog={setShowDeleteDialog}
-          confirmBulkDelete={confirmBulkDelete}
-          setConfirmBulkDelete={setConfirmBulkDelete}
-          confirmBulkStatus={confirmBulkStatus}
-          setConfirmBulkStatus={setConfirmBulkStatus}
-          confirmSingleDelete={confirmSingleDelete}
-          setConfirmSingleDelete={setConfirmSingleDelete}
-          bulkActionLoading={bulkActionLoading}
-          singleDeleteLoading={singleDeleteLoading}
-          selectedOrdersCount={selectedOrders.length}
-          totalSelectedValue={totalSelectedValue}
-          onBulkDelete={handleBulkDelete}
-          onBulkStatusChange={handleBulkStatusChange}
-          onSingleOrderDelete={handleSingleOrderDelete}
-        />
-      </div>
+        </div>
+      </AdminOrdersErrorBoundary>
     </AdminLayout>
   );
 };
