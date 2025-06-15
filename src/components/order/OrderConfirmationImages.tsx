@@ -125,6 +125,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
         productId={orderId}
         disabled={!canEdit}
         buttonText="Загрузить фото подтверждения"
+        disableToast={true}
       />
     </div>
   );

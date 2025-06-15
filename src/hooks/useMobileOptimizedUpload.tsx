@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
 import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
@@ -21,6 +20,7 @@ interface BatchUploadOptions {
   batchDelay?: number;
   maxRetries?: number;
   productId?: string;
+  disableToast?: boolean;
 }
 
 export const useMobileOptimizedUpload = () => {
@@ -247,19 +247,21 @@ export const useMobileOptimizedUpload = () => {
         productId: options.productId
       });
 
-      if (uploadedUrls.length > 0) {
-        toast({
-          title: "Загрузка завершена",
-          description: `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов.`,
-        });
-      }
-
-      if (errors.length > 0) {
-        toast({
-          title: "Ошибки загрузки",
-          description: `Не удалось загрузить ${errors.length} файлов.`,
-          variant: "destructive",
-        });
+      if (!options.disableToast) {
+        if (uploadedUrls.length > 0) {
+          toast({
+            title: "Загрузка завершена",
+            description: `Успешно загружено ${uploadedUrls.length} из ${files.length} файлов.`,
+          });
+        }
+  
+        if (errors.length > 0) {
+          toast({
+            title: "Ошибки загрузки",
+            description: `Не удалось загрузить ${errors.length} файлов.`,
+            variant: "destructive",
+          });
+        }
       }
 
       return uploadedUrls;
@@ -273,11 +275,13 @@ export const useMobileOptimizedUpload = () => {
         productId: options.productId
       });
 
-      toast({
-        title: "Ошибка загрузки",
-        description: "Произошла ошибка при загрузке файлов",
-        variant: "destructive",
-      });
+      if (!options.disableToast) {
+        toast({
+          title: "Ошибка загрузки",
+          description: "Произошла ошибка при загрузке файлов",
+          variant: "destructive",
+        });
+      }
 
       return uploadedUrls;
     } finally {

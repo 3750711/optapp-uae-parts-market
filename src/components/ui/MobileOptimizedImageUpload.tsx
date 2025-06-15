@@ -10,7 +10,7 @@ interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
   maxImages?: number;
   existingImages?: string[];
-  onImageDelete?: (url: string) => void;
+  onImageDelete?: (url:string) => void;
   onSetPrimaryImage?: (url: string) => void;
   primaryImage?: string;
   className?: string;
@@ -20,6 +20,7 @@ interface MobileOptimizedImageUploadProps {
   buttonText?: string;
   buttonIcon?: React.ReactNode;
   disabled?: boolean;
+  disableToast?: boolean;
 }
 
 export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProps> = ({
@@ -36,6 +37,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   buttonText = "Загрузить фотографии",
   buttonIcon = <Upload className="h-4 w-4" />,
   disabled = false,
+  disableToast = false,
 }) => {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,37 +53,27 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     if (existingImages.length + files.length > maxImages) {
-      toast({
-        title: "Превышен лимит",
-        description: `Максимальное количество изображений: ${maxImages}`,
-        variant: "destructive",
-      });
+      if (!disableToast) {
+        toast({
+          title: "Превышен лимит",
+          description: `Максимальное количество изображений: ${maxImages}`,
+          variant: "destructive",
+        });
+      }
       return;
     }
 
-    try {
-      const uploadedUrls = await uploadFilesBatch(Array.from(files), {
-        productId,
-        batchSize: 2,
-        batchDelay: 1000
-      });
-      
-      if (uploadedUrls.length > 0) {
-        onUploadComplete(uploadedUrls);
-        toast({
-          title: "Успех",
-          description: `Загружено ${uploadedUrls.length} изображений`,
-        });
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось загрузить изображения",
-        variant: "destructive",
-      });
+    const uploadedUrls = await uploadFilesBatch(Array.from(files), {
+      productId,
+      batchSize: 2,
+      batchDelay: 1000,
+      disableToast,
+    });
+    
+    if (uploadedUrls.length > 0) {
+      onUploadComplete(uploadedUrls);
     }
-  }, [existingImages.length, maxImages, onUploadComplete, uploadFilesBatch, productId, toast]);
+  }, [existingImages.length, maxImages, onUploadComplete, uploadFilesBatch, productId, toast, disableToast]);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
