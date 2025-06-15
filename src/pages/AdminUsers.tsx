@@ -1,29 +1,23 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent } from "@/components/ui/card";
-import { useNavigate } from 'react-router-dom';
 import { ProfileType } from '@/components/profile/types';
 import { useIsMobile } from "@/hooks/use-mobile";
-import { MobileUserCard } from '@/components/admin/MobileUserCard';
 import { BulkUserActions } from '@/components/admin/BulkUserActions';
 import { EnhancedUserFilters } from '@/components/admin/EnhancedUserFilters';
 import { UsersPagination } from '@/components/admin/UsersPagination';
-import { UsersTableSkeleton } from '@/components/admin/UsersTableSkeleton';
 import { AdminUsersHeader } from '@/components/admin/AdminUsersHeader';
-import { AdminUsersTable } from '@/components/admin/AdminUsersTable';
 import { AdminUsersDialogs } from '@/components/admin/AdminUsersDialogs';
-import { VirtualizedUsersTable } from '@/components/admin/VirtualizedUsersTable';
 import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 import { SafeComponentLoader } from '@/components/admin/SafeComponentLoader';
 import { useAdminUsersState } from '@/hooks/useAdminUsersState';
 import { useAdminUsersActions } from '@/hooks/useAdminUsersActions';
 import { useOptimizedAdminUsers } from '@/hooks/useOptimizedAdminUsers';
+import { AdminUsersContent } from '@/components/admin/AdminUsersContent';
 
 const AdminUsers = () => {
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState(600);
@@ -204,86 +198,24 @@ const AdminUsers = () => {
               </SafeComponentLoader>
               
               <div ref={containerRef}>
-                {isLoading ? (
-                  <UsersTableSkeleton rows={pageSize} isCompact={isCompactMode} />
-                ) : isMobile ? (
-                  <SafeComponentLoader errorMessage="Ошибка отображения мобильных карточек">
-                    <div className="space-y-3">
-                      {users.map((user) => (
-                        <MobileUserCard
-                          key={user.id}
-                          user={user}
-                          isSelected={selectedUsers.includes(user.id)}
-                          onSelect={handleSelectUser}
-                          onQuickAction={handleContextAction}
-                          onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                          onEdit={handleEditUser}
-                          onRating={() => {}}
-                          onOptStatusChange={handleOptStatusChange}
-                        />
-                      ))}
-                    </div>
-                  </SafeComponentLoader>
-                ) : useVirtualization ? (
-                  <SafeComponentLoader 
-                    errorMessage="Ошибка виртуализации"
-                    fallback={
-                      <AdminUsersTable
-                        users={users}
-                        isCompactMode={isCompactMode}
-                        selectedUsers={selectedUsers}
-                        sortField={sortField}
-                        sortDirection={sortDirection}
-                        onSort={handleSort}
-                        onSelectUser={handleSelectUser}
-                        onQuickStatusChange={handleQuickStatusChange}
-                        onOptStatusChange={handleOptStatusChange}
-                        onEditUser={handleEditUser}
-                        onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                        onContextAction={handleContextAction}
-                      />
-                    }
-                  >
-                    <VirtualizedUsersTable
-                      users={users}
-                      height={containerHeight}
-                      isCompactMode={isCompactMode}
-                      selectedUsers={selectedUsers}
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                      onSelectUser={handleSelectUser}
-                      onQuickStatusChange={handleQuickStatusChange}
-                      onOptStatusChange={handleOptStatusChange}
-                      onEditUser={handleEditUser}
-                      onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                      onContextAction={handleContextAction}
-                    />
-                    
-                    {process.env.NODE_ENV === 'development' && (
-                      <div className="text-xs text-green-600 mt-2">
-                        ⚡ Виртуализация активна для {users.length} пользователей
-                      </div>
-                    )}
-                  </SafeComponentLoader>
-                ) : (
-                  <SafeComponentLoader errorMessage="Ошибка таблицы пользователей">
-                    <AdminUsersTable
-                      users={users}
-                      isCompactMode={isCompactMode}
-                      selectedUsers={selectedUsers}
-                      sortField={sortField}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                      onSelectUser={handleSelectUser}
-                      onQuickStatusChange={handleQuickStatusChange}
-                      onOptStatusChange={handleOptStatusChange}
-                      onEditUser={handleEditUser}
-                      onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                      onContextAction={handleContextAction}
-                    />
-                  </SafeComponentLoader>
-                )}
+                <AdminUsersContent
+                  isLoading={isLoading}
+                  isMobile={isMobile}
+                  users={users}
+                  pageSize={pageSize}
+                  isCompactMode={isCompactMode}
+                  useVirtualization={useVirtualization}
+                  containerHeight={containerHeight}
+                  selectedUsers={selectedUsers}
+                  sortField={sortField}
+                  sortDirection={sortDirection}
+                  onSort={handleSort}
+                  onSelectUser={handleSelectUser}
+                  onContextAction={handleContextAction}
+                  onEditUser={handleEditUser}
+                  onQuickStatusChange={handleQuickStatusChange}
+                  onOptStatusChange={handleOptStatusChange}
+                />
               </div>
               
               {!isLoading && users.length > 0 && (
