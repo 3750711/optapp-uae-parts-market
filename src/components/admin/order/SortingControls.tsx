@@ -2,7 +2,7 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 
 export type SortField = 
   | 'created_at' 
@@ -41,14 +41,13 @@ export const SortingControls: React.FC<SortingControlsProps> = ({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground whitespace-nowrap">Сортировка:</span>
+    <div className="flex items-center gap-2 w-full sm:w-auto">
       <Select 
         value={sortField} 
         onValueChange={(value) => onSortChange(value as SortField, sortDirection)}
       >
-        <SelectTrigger className="w-[180px] border-2 transition-colors hover:border-primary/50">
-          <SelectValue />
+        <SelectTrigger className="w-full sm:w-[180px] border-2 transition-colors hover:border-primary/50">
+          <SelectValue placeholder="Сортировка" />
         </SelectTrigger>
         <SelectContent>
           {sortOptions.map(option => (
@@ -70,7 +69,7 @@ export const SortingControls: React.FC<SortingControlsProps> = ({
         ) : (
           <ArrowDown className="h-4 w-4" />
         )}
-        {sortDirection === 'asc' ? 'По возрастанию' : 'По убыванию'}
+        <span className="hidden md:inline">{sortDirection === 'asc' ? 'По возрастанию' : 'По убыванию'}</span>
       </Button>
     </div>
   );

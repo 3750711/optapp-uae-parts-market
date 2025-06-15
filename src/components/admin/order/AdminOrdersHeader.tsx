@@ -61,11 +61,11 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex-1 relative">
+      <div className="flex flex-col sm:flex-row items-center gap-2 w-full">
+        <div className="flex-1 relative w-full">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
-            placeholder="Поиск по названию, бренду, модели, номеру заказа, OPT ID..."
+            placeholder="Поиск..."
             value={props.searchTerm}
             onChange={(e) => props.setSearchTerm(e.target.value)}
             onKeyPress={handleKeyPress}
@@ -82,34 +82,32 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
             </Button>
           )}
         </div>
+        
+        <DateRangeFilter
+          value={props.dateRange}
+          onChange={props.onDateRangeChange}
+        />
+        <Select value={props.statusFilter} onValueChange={props.onStatusFilterChange}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Статус" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Все статусы</SelectItem>
+            <SelectItem value="created">Создан</SelectItem>
+            <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
+            <SelectItem value="admin_confirmed">Подтвержден админом</SelectItem>
+            <SelectItem value="processed">Зарегистрирован</SelectItem>
+            <SelectItem value="shipped">Отправлен</SelectItem>
+            <SelectItem value="delivered">Доставлен</SelectItem>
+            <SelectItem value="cancelled">Отменен</SelectItem>
+          </SelectContent>
+        </Select>
 
-        <div className="flex items-center flex-wrap gap-2">
-          <DateRangeFilter
-            value={props.dateRange}
-            onChange={props.onDateRangeChange}
-          />
-          <Select value={props.statusFilter} onValueChange={props.onStatusFilterChange}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Статус" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Все статусы</SelectItem>
-              <SelectItem value="created">Создан</SelectItem>
-              <SelectItem value="seller_confirmed">Подтвержден продавцом</SelectItem>
-              <SelectItem value="admin_confirmed">Подтвержден админом</SelectItem>
-              <SelectItem value="processed">Зарегистрирован</SelectItem>
-              <SelectItem value="shipped">Отправлен</SelectItem>
-              <SelectItem value="delivered">Доставлен</SelectItem>
-              <SelectItem value="cancelled">Отменен</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <SortingControls
-            sortField={props.sortField}
-            sortDirection={props.sortDirection}
-            onSortChange={props.onSortChange}
-          />
-        </div>
+        <SortingControls
+          sortField={props.sortField}
+          sortDirection={props.sortDirection}
+          onSortChange={props.onSortChange}
+        />
       </div>
       {props.hasActiveFilters && (
         <div className="flex justify-start">
