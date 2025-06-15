@@ -1,4 +1,3 @@
-
 import { lazy } from 'react';
 
 // Critical admin pages - load immediately without lazy loading
@@ -151,7 +150,7 @@ export const routeConfigs = [
     adminOnly: true,
   },
   {
-    path: '/admin/order-details/:id',
+    path: '/admin/orders/:id',
     component: lazy(() => import('@/pages/AdminOrderDetails')),
     protected: true,
     adminOnly: true,

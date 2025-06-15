@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { ResponsiveOrdersView } from "@/components/admin/order/ResponsiveOrdersView";
@@ -19,6 +20,7 @@ import { AdminOrdersErrorBoundary } from "@/components/error/AdminOrdersErrorBou
 
 const AdminOrders = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   const {
     searchTerm,
@@ -78,7 +80,7 @@ const AdminOrders = () => {
     setConfirmSingleDelete,
     selectedOrdersData,
     totalSelectedValue,
-    handleViewDetails,
+    handleViewDetails: _originalHandleViewDetails,
     handleEdit,
     handleDelete,
     handleBulkStatusChange,
@@ -88,6 +90,11 @@ const AdminOrders = () => {
     handleExport,
     handleOrderStatusChange,
   } = useOrderActions(orders, selectedOrders, refetch);
+
+  // Override the navigation logic to use the new route
+  const handleViewDetails = (orderId: string) => {
+    navigate(`/admin/orders/${orderId}`);
+  };
 
   // Error boundary for the entire page
   if (error) {
