@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Select,
   SelectContent,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 interface Option {
   id: string;
@@ -23,8 +24,6 @@ interface SearchableSelectProps {
   searchPlaceholder: string;
   disabled?: boolean;
   className?: string;
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
   onOpenChange?: (open: boolean) => void;
 }
 
@@ -36,10 +35,20 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
   searchPlaceholder,
   disabled = false,
   className = "",
-  searchTerm,
-  onSearchChange,
   onOpenChange
 }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 2000);
+
+  const filteredOptions = useMemo(() => {
+    if (!debouncedSearchTerm) {
+      return options;
+    }
+    return options.filter(option =>
+      option.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+  }, [options, debouncedSearchTerm]);
+  
   const selectedOption = options.find(o => o.id === value);
 
   const handleOpenChange = (open: boolean) => {
@@ -48,7 +57,7 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
     }
     // Сбрасываем поиск при закрытии
     if (!open) {
-      onSearchChange("");
+      setSearchTerm("");
     }
   };
 
@@ -73,14 +82,14 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
               placeholder={searchPlaceholder}
               className="pl-8"
               value={searchTerm}
-              onChange={(e) => onSearchChange(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               onClick={(e) => e.stopPropagation()} // Предотвращаем закрытие дропдауна
             />
           </div>
         </div>
         <div className="max-h-[250px] overflow-y-auto">
-          {options.length > 0 ? (
-            options.map((option) => (
+          {filteredOptions.length > 0 ? (
+            filteredOptions.map((option) => (
               <SelectItem 
                 key={option.id} 
                 value={option.id}

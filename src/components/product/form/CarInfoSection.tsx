@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { ProductFormValues } from '../AddProductForm';
 import {
@@ -10,7 +9,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 interface Brand {
   id: string;
@@ -38,21 +36,6 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
   watchBrandId,
   isLoadingCarData
 }) => {
-  const [brandSearchTerm, setBrandSearchTerm] = useState("");
-  const [modelSearchTerm, setModelSearchTerm] = useState("");
-  const debouncedBrandSearchTerm = useDebounceValue(brandSearchTerm, 2000);
-  const debouncedModelSearchTerm = useDebounceValue(modelSearchTerm, 2000);
-
-  const filteredBrands = useMemo(() => {
-    if (!debouncedBrandSearchTerm) return brands;
-    return brands.filter(b => b.name.toLowerCase().includes(debouncedBrandSearchTerm.toLowerCase()));
-  }, [brands, debouncedBrandSearchTerm]);
-
-  const filteredModels = useMemo(() => {
-    if (!debouncedModelSearchTerm) return models;
-    return models.filter(m => m.name.toLowerCase().includes(debouncedModelSearchTerm.toLowerCase()));
-  }, [models, debouncedModelSearchTerm]);
-  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
@@ -63,14 +46,12 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
             <FormLabel>Марка автомобиля</FormLabel>
             <FormControl>
               <EnhancedVirtualizedSelect
-                options={filteredBrands}
+                options={brands}
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder="Выберите марку"
                 searchPlaceholder="Поиск марки..."
                 disabled={isLoadingCarData}
-                searchTerm={brandSearchTerm}
-                onSearchChange={setBrandSearchTerm}
               />
             </FormControl>
             <FormMessage />
@@ -86,14 +67,12 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
             <FormLabel>Модель (необязательно)</FormLabel>
             <FormControl>
               <EnhancedVirtualizedSelect
-                options={filteredModels}
+                options={models}
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder={watchBrandId ? "Выберите модель" : "Сначала выберите марку"}
                 searchPlaceholder="Поиск модели..."
                 disabled={!watchBrandId || isLoadingCarData}
-                searchTerm={modelSearchTerm}
-                onSearchChange={setModelSearchTerm}
               />
             </FormControl>
             <FormMessage />

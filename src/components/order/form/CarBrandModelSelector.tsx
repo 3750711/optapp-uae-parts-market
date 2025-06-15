@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
 import { useAllCarBrands } from '@/hooks/useAllCarBrands';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
 
 interface CarBrandModelSelectorProps {
   brandId: string;
@@ -19,11 +18,6 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
   onModelChange,
   isMobile = false
 }) => {
-  const [searchBrandTerm, setSearchBrandTerm] = useState('');
-  const [searchModelTerm, setSearchModelTerm] = useState('');
-  const debouncedSearchBrandTerm = useDebounceValue(searchBrandTerm, 2000);
-  const debouncedSearchModelTerm = useDebounceValue(searchModelTerm, 2000);
-
   const {
     brands,
     brandModels,
@@ -38,24 +32,12 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
     }
   }, [brandId, selectBrand]);
   
-  const filteredBrands = useMemo(() => {
-    if (!debouncedSearchBrandTerm) return brands;
-    return brands.filter(b => b.name.toLowerCase().includes(debouncedSearchBrandTerm.toLowerCase()));
-  }, [brands, debouncedSearchBrandTerm]);
-
-  const filteredModels = useMemo(() => {
-    // Models for the selected brand are in `brandModels`
-    if (!debouncedSearchModelTerm) return brandModels;
-    return brandModels.filter(m => m.name.toLowerCase().includes(debouncedSearchModelTerm.toLowerCase()));
-  }, [brandModels, debouncedSearchModelTerm]);
-  
   const handleBrandChange = useCallback((selectedBrandId: string) => {
     const brand = brands.find(b => b.id === selectedBrandId);
     if (brand) {
       onBrandChange(selectedBrandId, brand.name);
       // Сбрасываем модель при смене бренда
       onModelChange('', '');
-      setSearchModelTerm('');
     }
   }, [brands, onBrandChange, onModelChange]);
 
@@ -65,15 +47,6 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
       onModelChange(selectedModelId, model.name);
     }
   }, [brandModels, onModelChange]);
-
-  // Мемоизированные обработчики поиска
-  const handleBrandSearchChange = useCallback((term: string) => {
-    setSearchBrandTerm(term);
-  }, []);
-
-  const handleModelSearchChange = useCallback((term: string) => {
-    setSearchModelTerm(term);
-  }, []);
 
   const hasValidBrands = brands.length > 0;
   const isModelDisabled = !brandId || isLoadingCarData;
@@ -86,15 +59,13 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
           Бренд
         </Label>
         <EnhancedVirtualizedSelect
-          options={filteredBrands}
+          options={brands}
           value={brandId}
           onValueChange={handleBrandChange}
           placeholder="Выберите бренд"
           searchPlaceholder="Поиск бренда..."
           disabled={isLoadingCarData || !hasValidBrands}
           className={isMobile ? "h-12" : ""}
-          searchTerm={searchBrandTerm}
-          onSearchChange={handleBrandSearchChange}
         />
         {isLoadingCarData && (
           <p className="text-xs text-gray-500">Загрузка брендов...</p>
@@ -110,15 +81,13 @@ const CarBrandModelSelector: React.FC<CarBrandModelSelectorProps> = ({
           Модель
         </Label>
         <EnhancedVirtualizedSelect
-          options={filteredModels}
+          options={brandModels}
           value={modelId}
           onValueChange={handleModelChange}
           placeholder={brandId ? "Выберите модель" : "Сначала выберите бренд"}
           searchPlaceholder="Поиск модели..."
           disabled={isModelDisabled}
           className={isMobile ? "h-12" : ""}
-          searchTerm={searchModelTerm}
-          onSearchChange={handleModelSearchChange}
         />
         {isLoadingCarData && brandId && (
           <p className="text-xs text-gray-500">Загрузка моделей...</p>
