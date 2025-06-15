@@ -1,3 +1,4 @@
+
 import { lazy } from 'react';
 
 // Critical admin pages - load immediately without lazy loading
@@ -262,19 +263,19 @@ export const routeConfigs = [
     adminOnly: false,
   },
   {
-    path: '/seller-create-order',
+    path: '/seller/create-order',
     component: lazy(() => import('@/pages/SellerCreateOrder')),
     protected: true,
     adminOnly: false,
   },
   {
-    path: '/seller-sell-product',
+    path: '/seller/sell-product',
     component: lazy(() => import('@/pages/SellerSellProduct')),
     protected: true,
     adminOnly: false,
   },
   {
-    path: '/seller-profile',
+    path: '/seller/profile',
     component: lazy(() => import('@/pages/SellerProfile')),
     protected: true,
     adminOnly: false,
@@ -290,6 +291,33 @@ export const routeConfigs = [
   {
     path: '/orders',
     component: OrdersRedirect,
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-create-order',
+    component: () => {
+      window.location.replace('/seller/create-order');
+      return null;
+    },
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-sell-product',
+    component: () => {
+      window.location.replace('/seller/sell-product');
+      return null;
+    },
+    protected: true,
+    adminOnly: false,
+  },
+  {
+    path: '/seller-profile',
+    component: () => {
+      window.location.replace('/seller/profile');
+      return null;
+    },
     protected: true,
     adminOnly: false,
   },
