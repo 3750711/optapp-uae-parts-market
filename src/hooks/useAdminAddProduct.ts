@@ -170,6 +170,9 @@ export const useAdminAddProduct = () => {
           form.setValue("modelId", "");
         }
       }
+    } else if (form.getValues("modelId")) {
+      // If brand is deselected, clear model
+      form.setValue("modelId", "");
     }
   }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
 
@@ -281,10 +284,10 @@ export const useAdminAddProduct = () => {
     isLoadingCarData,
     searchBrandTerm: brandSearchTerm,
     setSearchBrandTerm,
-    searchModelTerm,
+    searchModelTerm: modelSearchTerm,
     setSearchModelTerm,
     filteredBrands: brandsWithModelCount,
-    filteredModels,
+    filteredModels: brandModels,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
     showDraftSaved,
