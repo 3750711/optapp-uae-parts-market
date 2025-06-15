@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { UseFormReturn, FieldValues, FieldPath } from 'react-hook-form';
-import debounce from 'lodash/debounce';
+import debounce from 'lodash.debounce';
 
 interface ValidationRule<T extends FieldValues> {
   field: FieldPath<T>;
