@@ -1,7 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-// import { useErrorHandler } from '@/hooks/useErrorHandler'; // Убрано
 
 interface Product {
   id: string;
@@ -27,10 +26,8 @@ export const useProductsQuery = ({
   sellerFilter,
   pageSize = 12
 }: UseProductsQueryProps) => {
-  // const { handleError } = useErrorHandler(); // Убрано
 
   const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
-    // Блок try-catch убран, чтобы react-query мог самостоятельно обрабатывать ошибки
     const { data: { session } } = await supabase.auth.getSession();
 
     let query = supabase
@@ -93,14 +90,18 @@ export const useProductsQuery = ({
     },
     initialPageParam: 0,
     retry: (failureCount, error: any) => {
-      console.log('🔄 Query retry attempt:', { failureCount, errorMessage: error?.message });
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Query retry attempt:', { failureCount, errorMessage: error?.message });
+      }
       
       // Не повторяем запросы при проблемах с авторизацией
       if (error?.message?.includes('permission') || 
           error?.message?.includes('unauthorized') ||
           error?.message?.includes('JWT') ||
           error?.code === 'PGRST301') {
-        console.log('🚫 Not retrying due to auth error');
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🚫 Not retrying due to auth error');
+        }
         return false;
       }
       return failureCount < 2;
@@ -114,12 +115,14 @@ export const useProductsQuery = ({
   }, [queryResult.data]);
 
   // Логируем состояние запроса
-  console.log('📈 Query state:', {
-    isLoading: queryResult.isLoading,
-    isError: queryResult.isError,
-    error: queryResult.error?.message,
-    productsCount: allProducts.length
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📈 Query state:', {
+      isLoading: queryResult.isLoading,
+      isError: queryResult.isError,
+      error: queryResult.error?.message,
+      productsCount: allProducts.length
+    });
+  }
 
   return {
     ...queryResult,

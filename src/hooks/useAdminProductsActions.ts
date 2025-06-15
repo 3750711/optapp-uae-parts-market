@@ -1,7 +1,6 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useToast } from '@/hooks/use-toast';
 
 interface UseAdminProductsActionsProps {
@@ -17,7 +16,6 @@ export const useAdminProductsActions = ({
 }: UseAdminProductsActionsProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
-  const { handleError } = useErrorHandler();
   const { toast } = useToast();
 
   const handleBulkStatusChange = async (status: string) => {
@@ -32,7 +30,9 @@ export const useAdminProductsActions = ({
 
     setIsUpdatingStatus(true);
     try {
-      console.log('🔄 Updating status for products:', selectedProducts, 'to:', status);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Updating status for products:', selectedProducts, 'to:', status);
+      }
       
       const { error } = await supabase
         .from('products')
@@ -52,9 +52,11 @@ export const useAdminProductsActions = ({
       setSelectedProducts([]);
       refetch();
     } catch (error) {
-      handleError(error, {
-        customMessage: 'Не удалось изменить статус товаров',
-        logError: true
+      console.error('Error updating bulk status:', error);
+      toast({
+        title: "Ошибка",
+        description: 'Не удалось изменить статус товаров',
+        variant: "destructive",
       });
     } finally {
       setIsUpdatingStatus(false);
@@ -81,7 +83,9 @@ export const useAdminProductsActions = ({
 
     setIsDeleting(true);
     try {
-      console.log('🗑️ Deleting products:', selectedProducts);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🗑️ Deleting products:', selectedProducts);
+      }
       
       const { error } = await supabase
         .from('products')
@@ -101,9 +105,11 @@ export const useAdminProductsActions = ({
       setSelectedProducts([]);
       refetch();
     } catch (error) {
-      handleError(error, {
-        customMessage: 'Не удалось удалить товары',
-        logError: true
+      console.error('Error deleting bulk products:', error);
+      toast({
+        title: "Ошибка",
+        description: 'Не удалось удалить товары',
+        variant: "destructive",
       });
     } finally {
       setIsDeleting(false);

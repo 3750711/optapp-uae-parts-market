@@ -43,15 +43,17 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
   sellerFilter,
   hasActiveFilters = false
 }) => {
-  console.log('📦 AdminProductsContent render:', { 
-    productsCount: products.length,
-    isLoading,
-    isError,
-    hasActiveFilters,
-    searchTerm,
-    debouncedSearchTerm,
-    errorMessage: error instanceof Error ? error.message : String(error)
-  });
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📦 AdminProductsContent render:', { 
+      productsCount: products.length,
+      isLoading,
+      isError,
+      hasActiveFilters,
+      searchTerm,
+      debouncedSearchTerm,
+      errorMessage: error instanceof Error ? error.message : String(error)
+    });
+  }
 
   // Детальная обработка ошибок с диагностической информацией
   if (isError) {
