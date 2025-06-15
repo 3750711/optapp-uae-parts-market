@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -11,9 +12,6 @@ import { useProductTitleParser } from "@/utils/productTitleParser";
 import AddProductForm, { ProductFormValues, productSchema } from "@/components/product/AddProductForm";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
-import { useLazyCarData } from "@/hooks/useLazyCarData";
-import { useAdminAccessValidation } from "@/hooks/useServerAccessValidation";
-import EnhancedMobileCarInfoSection from "@/components/product/form/EnhancedMobileCarInfoSection";
 
 // Admin product schema with required sellerId
 const adminProductSchema = productSchema.extend({
@@ -25,11 +23,6 @@ const adminProductSchema = productSchema.extend({
 type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 const AdminAddProduct = () => {
-  // Серверная валидация прав доступа - ВРЕМЕННО ОТКЛЮЧЕНА ДЛЯ ДИАГНОСТИКИ
-  const { hasAccess, isLoading: isValidatingAccess } = useAdminAccessValidation();
-  const hasAccess = true;
-  const isValidatingAccess = false;
-  
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -40,20 +33,16 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
-  // Используем новый lazy loading хук
+  // Use the new hook that loads all car brands and models
   const { 
     brands, 
     brandModels, 
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
-    isLoadingBrands,
-    isLoadingModels,
     isLoading: isLoadingCarData,
-    validateModelBrand,
-    initializeBrands,
-    brandsLoaded
-  } = useLazyCarData();
+    validateModelBrand 
+  } = useAllCarBrands();
 
   // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
@@ -374,20 +363,6 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Показываем загрузку пока проверяем права доступа
-  if (isValidatingAccess) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
-      </div>
-    );
-  }
-
-  // Если нет доступа, компонент не рендерится (обрабатывается в хуке)
-  if (!hasAccess) {
-    return null;
-  }
-
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
@@ -416,11 +391,6 @@ const AdminAddProduct = () => {
             setPrimaryImage={setPrimaryImage}
             sellers={sellers}
             showSellerSelection={true}
-            // Новые пропсы для улучшенной мобильной версии
-            isLoadingBrands={isLoadingBrands}
-            isLoadingModels={isLoadingModels}
-            initializeBrands={initializeBrands}
-            brandsLoaded={brandsLoaded}
           />
         </div>
       </div>

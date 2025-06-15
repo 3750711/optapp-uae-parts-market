@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/select";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
-import EnhancedMobileCarInfoSection from "./form/EnhancedMobileCarInfoSection";
 
 // Типизированные значения для формы
 export const productSchema = z.object({
@@ -63,10 +62,6 @@ interface AddProductFormProps {
   setPrimaryImage?: (url: string) => void;
   sellers?: Array<{ id: string, full_name: string, opt_id?: string }>;
   showSellerSelection?: boolean;
-  isLoadingBrands?: boolean;
-  isLoadingModels?: boolean;
-  initializeBrands?: () => void;
-  brandsLoaded?: boolean;
 }
 
 const AddProductForm: React.FC<AddProductFormProps> = ({
@@ -92,10 +87,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   setPrimaryImage,
   sellers = [],
   showSellerSelection = false,
-  isLoadingBrands = false,
-  isLoadingModels = false,
-  initializeBrands,
-  brandsLoaded = false,
 }) => {
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
@@ -211,21 +202,81 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         <div className="space-y-4">
           <h3 className="font-medium">Информация об автомобиле</h3>
           
-          {/* Используем улучшенную мобильную версию для выбора автомобиля */}
-          <EnhancedMobileCarInfoSection
-            form={form}
-            brands={filteredBrands}
-            brandModels={filteredModels}
-            searchBrandTerm={searchBrandTerm}
-            setSearchBrandTerm={setSearchBrandTerm}
-            searchModelTerm={searchModelTerm}
-            setSearchModelTerm={setSearchModelTerm}
-            watchBrandId={watchBrandId}
-            isLoadingBrands={isLoadingBrands}
-            isLoadingModels={isLoadingModels}
-            initializeBrands={initializeBrands || (() => {})}
-            brandsLoaded={brandsLoaded}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField
+              control={form.control}
+              name="brandId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Марка автомобиля</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type="text" 
+                      placeholder="Поиск бренда..."
+                      value={searchBrandTerm}
+                      onChange={(e) => setSearchBrandTerm(e.target.value)}
+                      className="mb-1"
+                    />
+                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                  </div>
+                  <FormControl>
+                    <Select
+                      disabled={isLoadingCarData}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger id="brand">
+                        <SelectValue placeholder="Выберите марку" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {filteredBrands.map((brand) => (
+                          <SelectItem key={brand.id} value={brand.id}>{brand.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="modelId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Модель (необязательно)</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type="text" 
+                      placeholder="Поиск модели..."
+                      value={searchModelTerm}
+                      onChange={(e) => setSearchModelTerm(e.target.value)}
+                      className="mb-1"
+                    />
+                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                  </div>
+                  <FormControl>
+                    <Select
+                      disabled={!watchBrandId || isLoadingCarData}
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите модель" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[300px]">
+                        {filteredModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>{model.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
         
         <FormField
