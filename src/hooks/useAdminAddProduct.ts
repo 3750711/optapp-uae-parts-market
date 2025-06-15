@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,12 +34,12 @@ export const useAdminAddProduct = () => {
 
   const { createProductWithTransaction, isCreating } = useAdminProductCreation();
 
-  // Исправляем передачу функций в parseProductTitle
+  // Исправляем передачу функций в parseProductTitle - передаем только необходимые функции
   const { parseProductTitle } = useProductTitleParser(
     brands,
     allModels,
     findBrandIdByName,
-    (modelName: string | null, brandId: string) => findModelIdByName(modelName, brandId)
+    findModelIdByName
   );
 
   const form = useForm<AdminProductFormValues>({
