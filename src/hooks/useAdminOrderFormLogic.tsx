@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -97,8 +96,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const {
     brands,
     brandModels,
-    isLoadingBrands,
-    isLoadingModels,
+    isLoading: isLoadingCarData,
     brandSearchTerm,
     setBrandSearchTerm,
     modelSearchTerm,
@@ -318,7 +316,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     // Car data
     brands,
     brandModels,
-    isLoadingCarData: isLoadingBrands || isLoadingModels,
+    isLoadingCarData,
     searchBrandTerm: brandSearchTerm,
     setSearchBrandTerm: setBrandSearchTerm,
     searchModelTerm: modelSearchTerm,

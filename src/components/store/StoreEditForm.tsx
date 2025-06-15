@@ -14,7 +14,6 @@ import { StoreTag } from "@/types/store";
 import { MapPin } from "lucide-react";
 import StoreLocationPicker from "./StoreLocationPicker";
 import { useAuth } from "@/contexts/AuthContext";
-import StoreCarBrandsEditor from "./StoreCarBrandsEditor";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const storeFormSchema = z.object({
@@ -201,9 +200,8 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full mb-4">
+          <TabsList className="grid grid-cols-1 w-full mb-4">
             <TabsTrigger value="general">Основная информация</TabsTrigger>
-            <TabsTrigger value="car-models">Марки и модели авто</TabsTrigger>
           </TabsList>
           <TabsContent value="general">
             <Form {...form}>
@@ -311,9 +309,6 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
                 </Button>
               </form>
             </Form>
-          </TabsContent>
-          <TabsContent value="car-models">
-            {storeId && <StoreCarBrandsEditor storeId={storeId} />}
           </TabsContent>
         </Tabs>
       </CardContent>
