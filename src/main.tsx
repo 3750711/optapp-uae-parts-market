@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { Toaster } from "@/components/ui/toaster";
+import { initPerformanceOptimizations } from "@/utils/performanceUtils";
 
 // Оптимизированная инициализация приложения
 const initApp = () => {
@@ -27,3 +28,5 @@ const initApp = () => {
 
 // Запускаем приложение
 initApp();
+// Инициализируем мониторинг производительности
+initPerformanceOptimizations();

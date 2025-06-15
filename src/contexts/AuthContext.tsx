@@ -1,9 +1,11 @@
+
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { useQueryClient } from '@tanstack/react-query';
+import { getCachedAdminRights, setCachedAdminRights } from '@/utils/performanceUtils';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -31,18 +33,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const mountedRef = useRef(true);
   const queryClient = useQueryClient();
 
-  // Улучшенная функция проверки админских прав с fallback
+  // Улучшенная функция проверки админских прав с fallback и кэшированием
   const checkAdminRights = useCallback(async (userId: string, retryCount = 0): Promise<boolean> => {
+    const cachedRights = getCachedAdminRights(userId);
+    if (cachedRights !== null) {
+      console.log('✅ Admin rights from cache:', cachedRights);
+      return cachedRights;
+    }
+
     try {
       console.log('🔍 Checking admin rights for user:', userId, 'attempt:', retryCount + 1);
       
-      // Используем новую безопасную функцию
       const { data: isAdminResult, error } = await supabase.rpc('is_admin_user');
       
       if (error) {
         console.error('❌ Error checking admin rights via RPC:', error);
         
-        // Fallback: прямой запрос к профилю
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('user_type')
@@ -52,7 +58,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (profileError) {
           console.error('❌ Fallback profile query also failed:', profileError);
           
-          // Если это первая попытка и ошибка связана с JWT, попробуем обновить сессию
           if (retryCount === 0 && profileError.message?.includes('JWT')) {
             console.log('🔄 Attempting to refresh session...');
             const { error: refreshError } = await supabase.auth.refreshSession();
@@ -61,18 +66,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
           
+          setCachedAdminRights(userId, false);
           return false;
         }
         
         const hasAdminAccess = profile?.user_type === 'admin';
+        setCachedAdminRights(userId, hasAdminAccess);
         console.log('✅ Fallback admin rights check result:', hasAdminAccess);
         return hasAdminAccess;
       }
       
-      console.log('✅ Admin rights check result:', isAdminResult);
-      return isAdminResult || false;
+      const result = isAdminResult || false;
+      setCachedAdminRights(userId, result);
+      console.log('✅ Admin rights check result:', result);
+      return result;
     } catch (error) {
       console.error('💥 Exception in admin rights check:', error);
+      setCachedAdminRights(userId, false);
       return false;
     }
   }, []);

@@ -1,4 +1,3 @@
-
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -25,8 +24,9 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Основные vendor чанки
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-query': ['@tanstack/react-query'],
           'vendor-ui': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
@@ -34,85 +34,16 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-toast',
             '@radix-ui/react-tabs',
             '@radix-ui/react-checkbox',
-            '@radix-ui/react-switch'
+            '@radix-ui/react-switch',
+            'lucide-react',
           ],
-          'vendor-forms': [
-            'react-hook-form',
-            '@hookform/resolvers',
-            'zod'
-          ],
-          'vendor-query': ['@tanstack/react-query'],
-          'vendor-supabase': ['@supabase/supabase-js'],
-          'vendor-utils': ['lodash', 'date-fns', 'clsx', 'class-variance-authority'],
-          'vendor-icons': ['lucide-react'],
-          
-          // Критические страницы (не lazy) - группируем отдельно
-          'critical-pages': [
-            'src/pages/Index.tsx',
-            'src/pages/Login.tsx',
-            'src/pages/Register.tsx',
-            'src/pages/Catalog.tsx'
-          ],
-          
-          // Админ чанки - разделяем для лучшей производительности
-          'admin-core': [
-            'src/pages/AdminDashboard.tsx',
-            'src/components/admin/AdminLayout.tsx',
-            'src/pages/AdminAddProduct.tsx'
-          ],
-          'admin-users': [
-            'src/pages/AdminUsers.tsx',
-            'src/hooks/useAdminUsersState.ts',
-            'src/hooks/useAdminUsersActions.ts'
-          ],
-          'admin-products': [
-            'src/pages/AdminProducts.tsx',
-            'src/hooks/useAdminProductsActions.ts'
-          ],
-          'admin-orders': [
-            'src/pages/AdminOrders.tsx',
-            'src/hooks/useOptimizedOrdersQuery.tsx',
-            'src/hooks/useOrderActions.tsx'
-          ],
-          
-          // Продавец чанки
-          'seller-core': [
-            'src/pages/SellerDashboard.tsx',
-            'src/pages/SellerListings.tsx'
-          ],
-          'seller-products': [
-            'src/pages/SellerAddProduct.tsx',
-            'src/components/product/AddProductForm.tsx'
-          ],
-          'seller-orders': [
-            'src/pages/SellerOrders.tsx',
-            'src/pages/SellerOrderDetails.tsx'
-          ],
-          
-          // Общие компоненты
-          'shared-components': [
-            'src/components/layout/Header.tsx',
-            'src/components/layout/Footer.tsx',
-            'src/components/auth/ProtectedRoute.tsx'
-          ],
-          
-          // Каталог и продукты
-          'catalog-products': [
-            'src/pages/ProductDetail.tsx',
-            'src/hooks/useOptimizedCatalogProducts.ts'
-          ]
+          'vendor-utils': ['zod', 'react-hook-form', 'lodash', 'date-fns', 'clsx', 'class-variance-authority'],
         },
         // Оптимизированные имена файлов для кэширования
         chunkFileNames: (chunkInfo) => {
           // Определяем тип чанка для лучшего кэширования
           if (chunkInfo.name.startsWith('vendor-')) {
             return `assets/vendor/[name]-[hash].js`;
-          }
-          if (chunkInfo.name.startsWith('admin-')) {
-            return `assets/admin/[name]-[hash].js`;
-          }
-          if (chunkInfo.name.startsWith('seller-')) {
-            return `assets/seller/[name]-[hash].js`;
           }
           return `assets/[name]-[hash].js`;
         },
