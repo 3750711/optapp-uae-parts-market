@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
+import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 
 interface SimpleCarSelectorProps {
   brandId: string;
@@ -27,7 +27,7 @@ const SimpleCarSelector: React.FC<SimpleCarSelectorProps> = ({
     isLoading,
     findBrandNameById,
     findModelNameById
-  } = useCarBrandsAndModels();
+  } = useAllCarBrands();
 
   // Фильтрация моделей по выбранному бренду
   const filteredModels = useMemo(() => {

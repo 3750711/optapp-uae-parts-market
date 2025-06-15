@@ -3,7 +3,7 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Car } from 'lucide-react';
-import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
+import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 
 interface StoreCarBrandsSectionProps {
   selectedCarBrands: string[];
@@ -27,7 +27,7 @@ const StoreCarBrandsSection: React.FC<StoreCarBrandsSectionProps> = ({
     brandModels: allCarModels,
     selectBrand,
     isLoading: isBrandsLoading
-  } = useCarBrandsAndModels();
+  } = useAllCarBrands();
 
   return (
     <div className="space-y-4 border-t pt-4">

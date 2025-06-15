@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/product";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useCarBrandsAndModels } from "@/hooks/useCarBrandsAndModels";
+import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import ProductForm from "@/components/product/ProductForm";
 import ProductMediaManager from "@/components/product/ProductMediaManager";
 import { useQueryClient } from "@tanstack/react-query";
@@ -74,7 +73,7 @@ const ProductEditForm: React.FC<ProductEditFormProps> = ({
     findModelIdByName,
     findBrandNameById,
     findModelNameById
-  } = useCarBrandsAndModels();
+  } = useAllCarBrands();
 
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null);
 

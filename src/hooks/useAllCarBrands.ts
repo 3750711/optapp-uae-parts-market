@@ -1,7 +1,6 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 export interface CarBrand {
   id: string;
@@ -16,10 +15,12 @@ export interface CarModel {
 
 export const useAllCarBrands = () => {
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [brandSearchTerm, setBrandSearchTerm] = useState('');
+  const [modelSearchTerm, setModelSearchTerm] = useState('');
 
   // Загрузка всех брендов
   const {
-    data: brands,
+    data: allBrands,
     isLoading: isLoadingBrands,
     error: brandsError
   } = useQuery<CarBrand[]>({
@@ -42,9 +43,9 @@ export const useAllCarBrands = () => {
     staleTime: Infinity, // Кэшируем данные на все время сессии
   });
 
-  // Загрузка всех моделей для выбранного бренда
+  // Загрузка моделей для выбранного бренда
   const {
-    data: brandModels,
+    data: brandModelsForSelected,
     isLoading: isLoadingModels,
     error: modelsError
   } = useQuery<CarModel[]>({
@@ -94,20 +95,36 @@ export const useAllCarBrands = () => {
     staleTime: Infinity,
   });
 
+  const brands = useMemo(() => {
+    const brandList = allBrands || [];
+    if (!brandSearchTerm) return brandList;
+    return brandList.filter(brand =>
+      brand.name.toLowerCase().includes(brandSearchTerm.toLowerCase())
+    );
+  }, [allBrands, brandSearchTerm]);
+  
+  const brandModels = useMemo(() => {
+    const modelList = brandModelsForSelected || [];
+    if (!modelSearchTerm) return modelList;
+    return modelList.filter(model =>
+        model.name.toLowerCase().includes(modelSearchTerm.toLowerCase())
+    );
+  }, [brandModelsForSelected, modelSearchTerm]);
+
   const findBrandNameById = useCallback((brandId: string | null): string | null => {
-    if (!brandId || !brands) return null;
-    return brands.find(brand => brand.id === brandId)?.name || null;
-  }, [brands]);
+    if (!brandId || !allBrands) return null;
+    return allBrands.find(brand => brand.id === brandId)?.name || null;
+  }, [allBrands]);
 
   const findModelNameById = useCallback((modelId: string | null): string | null => {
-    if (!modelId || !brandModels) return null;
-    return brandModels.find(model => model.id === modelId)?.name || null;
-  }, [brandModels]);
+    if (!modelId || !allModels) return null;
+    return allModels.find(model => model.id === modelId)?.name || null;
+  }, [allModels]);
 
   const findBrandIdByName = useCallback((brandName: string | null): string | null => {
-    if (!brandName || !brands) return null;
-    return brands.find(brand => brand.name.toLowerCase() === brandName.toLowerCase())?.id || null;
-  }, [brands]);
+    if (!brandName || !allBrands) return null;
+    return allBrands.find(brand => brand.name.toLowerCase() === brandName.toLowerCase())?.id || null;
+  }, [allBrands]);
 
   const findModelIdByName = useCallback((modelName: string | null): string | null => {
     if (!modelName || !allModels) return null;
@@ -128,10 +145,19 @@ export const useAllCarBrands = () => {
     brandsError,
     modelsError,
     selectBrand: setSelectedBrandId,
+    selectedBrand: selectedBrandId,
     findBrandIdByName,
     findModelIdByName,
     findBrandNameById,
     findModelNameById,
     validateModelBrand,
+    brandSearchTerm,
+    setBrandSearchTerm,
+    modelSearchTerm,
+    setModelSearchTerm,
+    totalBrands: allBrands?.length || 0,
+    totalModels: brandModelsForSelected?.length || 0,
+    filteredBrandsCount: brands.length,
+    filteredModelsCount: brandModels.length,
   };
 };

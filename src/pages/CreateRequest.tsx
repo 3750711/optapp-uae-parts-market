@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useCarBrandsAndModels } from '@/hooks/useCarBrandsAndModels';
+import { useAllCarBrands } from '@/hooks/useAllCarBrands';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -27,7 +28,7 @@ const CreateRequest: React.FC = () => {
     selectedBrand, 
     selectBrand,
     isLoading 
-  } = useCarBrandsAndModels();
+  } = useAllCarBrands();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
