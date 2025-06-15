@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,8 +18,6 @@ export const useAdminAddProduct = () => {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [sellers, setSellers] = useState<{ id: string; full_name: string; opt_id: string }[]>([]);
-  const [searchBrandTerm, setSearchBrandTerm] = useState("");
-  const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -172,6 +169,8 @@ export const useAdminAddProduct = () => {
   }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
 
   useEffect(() => {
+    // This effect is now redundant as validateModelBrand in the above effect handles this.
+    // However, it can serve as a fallback if brandModels loads after a model is already selected.
     if (watchModelId && brandModels.length > 0) {
       const modelExists = brandModels.some(model => model.id === watchModelId);
       if (!modelExists) {
@@ -268,12 +267,6 @@ export const useAdminAddProduct = () => {
     brands,
     brandModels,
     isLoadingCarData,
-    searchBrandTerm,
-    setSearchBrandTerm,
-    searchModelTerm,
-    setSearchModelTerm,
-    filteredBrands,
-    filteredModels,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
     showDraftSaved,

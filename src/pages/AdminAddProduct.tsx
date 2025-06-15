@@ -22,12 +22,6 @@ const AdminAddProduct = () => {
     brands,
     brandModels,
     isLoadingCarData,
-    searchBrandTerm,
-    setSearchBrandTerm,
-    searchModelTerm,
-    setSearchModelTerm,
-    filteredBrands,
-    filteredModels,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
     showDraftSaved,
@@ -64,12 +58,6 @@ const AdminAddProduct = () => {
               brandModels={brandModels}
               isLoadingCarData={isLoadingCarData}
               watchBrandId={form.watch("brandId")}
-              searchBrandTerm={searchBrandTerm}
-              setSearchBrandTerm={setSearchBrandTerm}
-              searchModelTerm={searchModelTerm}
-              setSearchModelTerm={setSearchModelTerm}
-              filteredBrands={filteredBrands}
-              filteredModels={filteredModels}
               handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
               setVideoUrls={setVideoUrls}
               primaryImage={primaryImage}

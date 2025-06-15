@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { ProductFormValues } from '../AddProductForm';
 import {
@@ -24,27 +24,32 @@ interface Model {
 
 interface CarInfoSectionProps {
   form: UseFormReturn<ProductFormValues>;
-  filteredBrands: Brand[];
-  filteredModels: Model[];
-  searchBrandTerm: string;
-  setSearchBrandTerm: (term: string) => void;
-  searchModelTerm: string;
-  setSearchModelTerm: (term: string) => void;
+  brands: Brand[];
+  models: Model[];
   watchBrandId: string;
   isLoadingCarData: boolean;
 }
 
 const CarInfoSection = React.memo<CarInfoSectionProps>(({ 
   form,
-  filteredBrands,
-  filteredModels,
-  searchBrandTerm,
-  setSearchBrandTerm,
-  searchModelTerm,
-  setSearchModelTerm,
+  brands,
+  models,
   watchBrandId,
   isLoadingCarData
 }) => {
+  const [brandSearchTerm, setBrandSearchTerm] = useState("");
+  const [modelSearchTerm, setModelSearchTerm] = useState("");
+
+  const filteredBrands = useMemo(() => {
+    if (!brandSearchTerm) return brands;
+    return brands.filter(b => b.name.toLowerCase().includes(brandSearchTerm.toLowerCase()));
+  }, [brands, brandSearchTerm]);
+
+  const filteredModels = useMemo(() => {
+    if (!modelSearchTerm) return models;
+    return models.filter(m => m.name.toLowerCase().includes(modelSearchTerm.toLowerCase()));
+  }, [models, modelSearchTerm]);
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
@@ -59,11 +64,10 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
                 value={field.value}
                 onValueChange={field.onChange}
                 placeholder="Выберите марку"
-                searchPlaceholder="Поиск бренда..."
+                searchPlaceholder="Поиск марки..."
                 disabled={isLoadingCarData}
-                searchTerm={searchBrandTerm}
-                onSearchChange={setSearchBrandTerm}
-                showResultCount={true}
+                searchTerm={brandSearchTerm}
+                onSearchChange={setBrandSearchTerm}
               />
             </FormControl>
             <FormMessage />
@@ -85,9 +89,8 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
                 placeholder={watchBrandId ? "Выберите модель" : "Сначала выберите марку"}
                 searchPlaceholder="Поиск модели..."
                 disabled={!watchBrandId || isLoadingCarData}
-                searchTerm={searchModelTerm}
-                onSearchChange={setSearchModelTerm}
-                showResultCount={true}
+                searchTerm={modelSearchTerm}
+                onSearchChange={setModelSearchTerm}
               />
             </FormControl>
             <FormMessage />

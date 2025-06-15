@@ -42,13 +42,13 @@ const SellerAddProduct = () => {
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
-  const [searchBrandTerm, setSearchBrandTerm] = useState("");
-  const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   // ----> Упростили: refs заменены на обычные useState (гораздо проще):
-  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [searchBrandTerm, setSearchBrandTerm] = useState("");
+  const [searchModelTerm, setSearchModelTerm] = useState("");
 
   // Use the new hook that loads all car brands and models
   const { 
@@ -57,7 +57,8 @@ const SellerAddProduct = () => {
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
-    isLoading: isLoadingCarData
+    isLoading: isLoadingCarData,
+    allModels, // Needed for title parser
   } = useAllCarBrands();
 
   const form = useForm<ProductFormValues>({
@@ -77,7 +78,7 @@ const SellerAddProduct = () => {
   // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
     brands,
-    brandModels,
+    allModels, // Pass allModels here
     findBrandIdByName,
     findModelIdByName
   );
@@ -478,7 +479,7 @@ const SellerAddProduct = () => {
                   imageUrls={imageUrls}
                   videoUrls={videoUrls}
                   brands={brands}
-                  brandModels={filteredModels}
+                  brandModels={brandModels}
                   isLoadingCarData={isLoadingCarData}
                   watchBrandId={form.watch("brandId")}
                   searchBrandTerm={searchBrandTerm}
