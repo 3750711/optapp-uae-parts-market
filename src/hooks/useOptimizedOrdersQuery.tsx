@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 import { prodError } from "@/utils/logger";
+import { endOfDay } from 'date-fns';
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -32,6 +33,7 @@ interface UseOptimizedOrdersQueryParams {
   pageSize: number;
   sortField?: string;
   sortDirection?: 'asc' | 'desc';
+  dateRange: { from: Date | null, to: Date | null };
 }
 
 interface OrdersResponse {
@@ -47,10 +49,11 @@ export const useOptimizedOrdersQuery = ({
   page,
   pageSize,
   sortField = 'created_at',
-  sortDirection = 'desc'
+  sortDirection = 'desc',
+  dateRange,
 }: UseOptimizedOrdersQueryParams) => {
   return useQuery({
-    queryKey: ['admin-orders-optimized', statusFilter, searchTerm, page, pageSize, sortField, sortDirection],
+    queryKey: ['admin-orders-optimized', statusFilter, searchTerm, page, pageSize, sortField, sortDirection, dateRange],
     queryFn: async (): Promise<OrdersResponse> => {
       const effectivePageSize = Math.min(pageSize, 100);
       const offset = (page - 1) * effectivePageSize;
@@ -88,6 +91,13 @@ export const useOptimizedOrdersQuery = ({
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
+      }
+
+      if (dateRange.from) {
+        query = query.gte('created_at', dateRange.from.toISOString());
+      }
+      if (dateRange.to) {
+        query = query.lte('created_at', endOfDay(dateRange.to).toISOString());
       }
 
       if (searchTerm) {

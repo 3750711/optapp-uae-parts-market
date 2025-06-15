@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Search, X, Filter, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
+import DateRangeFilter, { DateRange } from "@/components/admin/filters/DateRangeFilter";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +40,10 @@ interface MobileAdminOrdersHeaderProps {
   onRefetch: () => void;
   totalCount: number;
   isFetching?: boolean;
+  dateRange: DateRange;
+  onDateRangeChange: (range: DateRange) => void;
+  onClearFilters: () => void;
+  hasActiveFilters: boolean;
 }
 
 export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = ({
@@ -56,6 +60,10 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
   onRefetch,
   totalCount,
   isFetching,
+  dateRange,
+  onDateRangeChange,
+  onClearFilters,
+  hasActiveFilters
 }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -67,8 +75,7 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
     }
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || debouncedSearchTerm;
-  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (debouncedSearchTerm ? 1 : 0);
+  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (debouncedSearchTerm ? 1 : 0) + (dateRange.from || dateRange.to ? 1 : 0);
 
   return (
     <CardHeader className="space-y-3 pb-4">
@@ -138,7 +145,7 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="max-h-[80vh]">
+            <SheetContent side="bottom" className="max-h-[80vh] overflow-y-auto">
               <SheetHeader className="mb-6">
                 <SheetTitle>Фильтры и сортировка</SheetTitle>
                 <SheetDescription>
@@ -147,6 +154,11 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
               </SheetHeader>
 
               <div className="space-y-6">
+                <DateRangeFilter
+                  value={dateRange}
+                  onChange={onDateRangeChange}
+                />
+                
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Статус заказа</label>
                   <Select value={statusFilter} onValueChange={onStatusFilterChange}>
@@ -179,8 +191,8 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
                   <Button 
                     variant="outline" 
                     onClick={() => {
-                      onStatusFilterChange('all');
-                      onClearSearch();
+                      onClearFilters();
+                      setIsFiltersOpen(false);
                     }}
                     className="w-full"
                   >

@@ -39,8 +39,6 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
   onQuickAction
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-
-  const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
 
   return (
@@ -48,27 +46,18 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
       transition-all duration-200 
       ${isSelected ? 'ring-2 ring-primary ring-opacity-50 bg-primary/5' : 'hover:shadow-md'}
     `}>
-      <CardContent className="p-2">
-        {/* Компактный заголовок */}
-        <div className="flex items-center justify-between mb-2">
+      <CardContent className="p-1.5 space-y-1.5">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Checkbox
               checked={isSelected}
               onCheckedChange={() => onSelect(order.id)}
               className="shrink-0"
             />
-            
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1 mb-1 flex-wrap">
-                <Badge variant="outline" className="text-xs shrink-0 font-mono">
-                  №{order.order_number}
-                </Badge>
-              </div>
-              
-              <div className="text-xs font-medium line-clamp-1 mb-1">
-                {order.title || 'Без названия'}
-              </div>
-            </div>
+            <Badge variant="outline" className="text-xs font-mono shrink-0 py-0.5">
+              №{order.order_number}
+            </Badge>
+            <EnhancedOrderStatusBadge status={order.status} size="sm" />
           </div>
           
           <DropdownMenu>
@@ -99,84 +88,61 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
           </DropdownMenu>
         </div>
 
-        {/* Статус и дата в одной строке */}
-        <div className="flex items-center justify-between mb-2">
-          <EnhancedOrderStatusBadge status={order.status} size="sm" />
-          <span className="text-xs text-muted-foreground">
-            {new Date(order.created_at).toLocaleDateString('ru-RU', {
-              day: '2-digit',
-              month: '2-digit'
-            })}
-          </span>
-        </div>
-
-        {/* Основная информация */}
-        <div className="space-y-2">
-          {/* Информация о товаре */}
+        <div>
+          <div className="text-xs font-medium line-clamp-1">
+            {order.title || 'Без названия'}
+          </div>
           {(order.brand || order.model) && (
-            <div className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
+            <div className="text-[11px] text-muted-foreground line-clamp-1">
               {[order.brand, order.model].filter(Boolean).join(' ')}
             </div>
           )}
-
-          {/* Ценовой блок */}
-          <div className="bg-gradient-to-r from-primary/5 to-transparent rounded-lg p-2">
-            <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div>
-                <div className="text-muted-foreground mb-1">Цена</div>
-                <div className="font-bold text-primary">
-                  ${order.price?.toLocaleString() || '0'}
-                </div>
-              </div>
-              
-              {order.delivery_price_confirm && order.delivery_price_confirm > 0 && (
-                <div>
-                  <div className="text-muted-foreground mb-1">Доставка</div>
-                  <div className="font-semibold">
-                    ${order.delivery_price_confirm.toLocaleString()}
-                  </div>
-                </div>
-              )}
-              
-              <div>
-                <div className="text-muted-foreground mb-1">Мест</div>
-                <div className="font-semibold">
-                  {order.place_number || 0}
-                </div>
-              </div>
+        </div>
+        
+        <div className="flex justify-between items-center text-xs bg-muted/30 rounded p-1 flex-wrap gap-x-2 gap-y-1">
+             <div>
+                <span className="text-muted-foreground">Цена: </span>
+                <span className="font-bold text-primary">${order.price?.toLocaleString() || '0'}</span>
             </div>
-          </div>
+            {order.delivery_price_confirm && order.delivery_price_confirm > 0 && (
+                <div>
+                    <span className="text-muted-foreground">Доставка: </span>
+                    <span className="font-semibold">${order.delivery_price_confirm.toLocaleString()}</span>
+                </div>
+            )}
+            <div>
+                <span className="text-muted-foreground">Мест: </span>
+                <span className="font-semibold">{order.place_number || 0}</span>
+            </div>
+        </div>
 
-          {/* Действия */}
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onViewDetails(order.id)}
-              className="flex-1 h-7 text-xs font-medium"
-            >
-              <Eye className="h-3 w-3 mr-1" />
-              Просмотр
-            </Button>
-            
-            <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-              <CollapsibleTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 px-2 text-xs"
-                >
-                  {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                </Button>
-              </CollapsibleTrigger>
-            </Collapsible>
-          </div>
-
-          {/* Расширяемые детали */}
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => onViewDetails(order.id)}
+            className="flex-1 h-6 text-xs font-medium"
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            Просмотр
+          </Button>
+          
           <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-            <CollapsibleContent className="space-y-2">
-              {/* Блок пользователей */}
-              <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 px-2 text-xs"
+              >
+                {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+              </Button>
+            </CollapsibleTrigger>
+          </Collapsible>
+        </div>
+
+        <CollapsibleContent>
+           <div className="pt-1.5 space-y-1.5">
+             <div className="grid grid-cols-2 gap-2 text-xs bg-muted/20 rounded-lg p-2">
                 <div>
                   <div className="text-muted-foreground mb-1 font-medium">Продавец</div>
                   <div className="font-medium truncate">
@@ -201,32 +167,8 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
                   )}
                 </div>
               </div>
-
-              {/* Дополнительная информация */}
-              {order.text_order && order.text_order.trim() && (
-                <div className="bg-blue-50 rounded-lg p-2">
-                  <div className="text-xs text-muted-foreground mb-1 font-medium">
-                    Дополнительная информация
-                  </div>
-                  <p className="text-xs text-gray-700 line-clamp-3 leading-relaxed">
-                    {order.text_order}
-                  </p>
-                </div>
-              )}
-
-              {/* Временная метка */}
-              <div className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1 text-center">
-                Создан: {new Date(order.created_at).toLocaleDateString('ru-RU', {
-                  day: '2-digit',
-                  month: '2-digit',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </div>
+           </div>
+        </CollapsibleContent>
       </CardContent>
     </Card>
   );

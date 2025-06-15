@@ -1,8 +1,8 @@
-
 import { useState, useCallback } from 'react';
 import { Database } from "@/integrations/supabase/types";
 import { useLocalStorageSettings } from "@/hooks/useLocalStorageSettings";
 import { SortField, SortDirection } from "@/components/admin/order/SortingControls";
+import { DateRange } from '@/components/admin/filters/DateRangeFilter';
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -17,6 +17,7 @@ export const useAdminOrdersState = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
+  const [dateRange, setDateRange] = useState<DateRange>({ from: null, to: null });
 
   // Settings from localStorage with proper typing
   const { settings, updateSettings } = useLocalStorageSettings<AdminOrdersSettings>(
@@ -43,8 +44,21 @@ export const useAdminOrdersState = () => {
     setCurrentPage(1);
   }, []);
 
+  const clearFilters = useCallback(() => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setDateRange({ from: null, to: null });
+    setCurrentPage(1);
+    updateSettings({ statusFilter: 'all' });
+  }, [updateSettings]);
+
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
+  }, []);
+
+  const handleDateRangeChange = useCallback((range: DateRange) => {
+    setDateRange(range);
+    setCurrentPage(1);
   }, []);
 
   const handleStatusFilterChange = useCallback((value: StatusFilterType) => {
@@ -85,9 +99,12 @@ export const useAdminOrdersState = () => {
     sortField,
     sortDirection,
     pageSize,
+    dateRange,
     handleSearch,
     clearSearch,
+    clearFilters,
     handlePageChange,
+    handleDateRangeChange,
     handleStatusFilterChange,
     handleSortChange,
     handleSelectOrder,

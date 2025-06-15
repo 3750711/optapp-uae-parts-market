@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileAdminOrdersHeader } from './MobileAdminOrdersHeader';
@@ -10,6 +9,7 @@ import { RefreshCw, Search, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
+import DateRangeFilter, { DateRange } from "@/components/admin/filters/DateRangeFilter";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -27,6 +27,10 @@ interface AdminOrdersHeaderProps {
   onRefetch: () => void;
   totalCount?: number;
   isFetching?: boolean;
+  dateRange: DateRange;
+  onDateRangeChange: (range: DateRange) => void;
+  onClearFilters: () => void;
+  hasActiveFilters: boolean;
 }
 
 export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
@@ -78,7 +82,11 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <DateRangeFilter
+            value={props.dateRange}
+            onChange={props.onDateRangeChange}
+          />
           <Select value={props.statusFilter} onValueChange={props.onStatusFilterChange}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Статус" />
@@ -102,6 +110,14 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
           />
         </div>
       </div>
+      {props.hasActiveFilters && (
+        <div className="flex justify-start">
+          <Button variant="ghost" size="sm" onClick={props.onClearFilters} className="text-muted-foreground">
+            <X className="h-4 w-4 mr-2" />
+            Сбросить все фильтры
+          </Button>
+        </div>
+      )}
     </CardHeader>
   );
 };

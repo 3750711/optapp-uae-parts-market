@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -30,9 +29,12 @@ const AdminOrders = () => {
     sortField,
     sortDirection,
     pageSize,
+    dateRange,
     handleSearch,
     clearSearch,
+    clearFilters,
     handlePageChange,
+    handleDateRangeChange,
     handleStatusFilterChange,
     handleSortChange,
     handleSelectOrder,
@@ -49,13 +51,16 @@ const AdminOrders = () => {
     page: currentPage,
     pageSize,
     sortField,
-    sortDirection
+    sortDirection,
+    dateRange,
   });
 
   const orders = data?.data || [];
   const totalCount = data?.totalCount || 0;
   const hasNextPage = data?.hasNextPage || false;
   const hasPreviousPage = data?.hasPreviousPage || false;
+
+  const hasActiveFilters = statusFilter !== 'all' || !!debouncedSearchTerm || !!dateRange.from || !!dateRange.to;
 
   const {
     selectedOrder,
@@ -117,6 +122,10 @@ const AdminOrders = () => {
               onRefetch={refetch}
               totalCount={0}
               isFetching={isFetching}
+              dateRange={dateRange}
+              onDateRangeChange={handleDateRangeChange}
+              onClearFilters={clearFilters}
+              hasActiveFilters={hasActiveFilters}
             />
             <CardContent className="p-6">
               <OrdersTableSkeleton />
@@ -146,6 +155,10 @@ const AdminOrders = () => {
               onRefetch={refetch}
               totalCount={totalCount}
               isFetching={isFetching}
+              dateRange={dateRange}
+              onDateRangeChange={handleDateRangeChange}
+              onClearFilters={clearFilters}
+              hasActiveFilters={hasActiveFilters}
             />
             
             <CardContent className="p-6">
@@ -177,8 +190,8 @@ const AdminOrders = () => {
               {/* Empty state when no results */}
               {!isLoading && !isFetching && orders.length === 0 && (
                   <EmptyState
-                      message={debouncedSearchTerm || statusFilter !== 'all' ? "Заказы не найдены" : "Нет заказов"}
-                      description={debouncedSearchTerm || statusFilter !== 'all' ? "Попробуйте изменить фильтры или поисковый запрос" : "Здесь будут отображаться созданные заказы"}
+                      message={hasActiveFilters ? "Заказы не найдены" : "Нет заказов"}
+                      description={hasActiveFilters ? "Попробуйте изменить фильтры или поисковый запрос" : "Здесь будут отображаться созданные заказы"}
                   />
               )}
 
