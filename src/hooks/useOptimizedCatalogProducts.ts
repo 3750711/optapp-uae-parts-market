@@ -53,7 +53,7 @@ export const useOptimizedCatalogProducts = ({
   externalSelectedModel = null,
   findBrandNameById,
   findModelNameById,
-  debounceTime = 500
+  debounceTime = 1000
 }: UseOptimizedCatalogProductsProps = {}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounceValue(searchTerm, debounceTime);
@@ -148,6 +148,9 @@ export const useOptimizedCatalogProducts = ({
             product_images(url, is_primary)
           `);
 
+        // Limit images per product
+        query.limit(2, { foreignTable: 'product_images' });
+
         query = buildSortQuery(query, sortBy);
 
         // Apply status filters
@@ -162,7 +165,7 @@ export const useOptimizedCatalogProducts = ({
         }
 
         // Apply search filters
-        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 2) {
+        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
           const searchTerm = filters.activeSearchTerm.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
         }
@@ -206,8 +209,8 @@ export const useOptimizedCatalogProducts = ({
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 2 * 60 * 1000, // 2 минуты для каталога (быстрее обновление)
-    gcTime: 5 * 60 * 1000, // 5 минут в памяти
+    staleTime: 5 * 60 * 1000, // 5 минут
+    gcTime: 10 * 60 * 1000, // 10 минут
     refetchOnWindowFocus: false,
     retry: 2,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 3000)

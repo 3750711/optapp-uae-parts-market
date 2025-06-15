@@ -53,7 +53,7 @@ export const useCatalogProducts = ({
   externalSelectedModel = null,
   findBrandNameById,
   findModelNameById,
-  debounceTime = 500
+  debounceTime = 1000
 }: UseCatalogProductsProps = {}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounceValue(searchTerm, debounceTime);
@@ -163,6 +163,9 @@ export const useCatalogProducts = ({
             product_images(url, is_primary)
           `);
 
+        // Limit images per product
+        query.limit(2, { foreignTable: 'product_images' });
+
         query = buildSortQuery(query, sortBy);
 
         // Apply status filters
@@ -177,7 +180,7 @@ export const useCatalogProducts = ({
         }
 
         // Apply search filters
-        if (filters.activeSearchTerm) {
+        if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
           const searchTerm = filters.activeSearchTerm.trim();
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
         }
@@ -229,8 +232,8 @@ export const useCatalogProducts = ({
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 30000, // Reduced from 3 minutes to 30 seconds for better data freshness
-    gcTime: 60000, // Reduced garbage collection time
+    staleTime: 5 * 60 * 1000, // 5 минут
+    gcTime: 10 * 60 * 1000, // 10 минут
     refetchOnWindowFocus: false,
     retry: (failureCount, error) => {
       console.log(`⚠️ Query retry attempt ${failureCount + 1}:`, error);

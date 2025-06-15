@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-switch',
             'lucide-react',
           ],
-          'vendor-utils': ['zod', 'react-hook-form', 'lodash', 'date-fns', 'clsx', 'class-variance-authority'],
+          'vendor-lodash': ['lodash'],
+          'vendor-utils': ['zod', 'react-hook-form', 'date-fns', 'clsx', 'class-variance-authority'],
         },
         // Оптимизированные имена файлов для кэширования
         chunkFileNames: (chunkInfo) => {
