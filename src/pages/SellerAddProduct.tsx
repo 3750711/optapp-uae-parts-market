@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -237,8 +238,6 @@ const SellerAddProduct = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
       // Get brand and model names for the database (only if car data loaded)
       let brandName = null;
@@ -384,8 +383,6 @@ const SellerAddProduct = () => {
         description: "Не удалось создать товар. Попробуйте позже.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
