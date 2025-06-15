@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -101,6 +102,18 @@ const AdminUsers = () => {
   const totalPages = usersData?.totalPages || 1;
   const pendingUsersCount = usersData?.pendingUsersCount || 0;
 
+  // Debugging log as requested
+  useEffect(() => {
+    if (!isLoading) {
+      console.log('[AdminUsers] Data updated:', { 
+        isLoading, 
+        totalCount, 
+        pendingUsersCount, 
+        fetchedUsers: users.length 
+      });
+    }
+  }, [isLoading, totalCount, pendingUsersCount, users.length]);
+
   // Handle editing user
   const handleEditUser = (user: ProfileType) => {
     setEditingUser(user);
@@ -162,6 +175,8 @@ const AdminUsers = () => {
             <SafeComponentLoader errorMessage="Ошибка загрузки заголовка">
               <AdminUsersHeader
                 pendingUsersCount={pendingUsersCount}
+                totalUsersCount={totalCount}
+                isLoading={isLoading}
                 isCompactMode={isCompactMode}
                 onCompactModeChange={setIsCompactMode}
               />

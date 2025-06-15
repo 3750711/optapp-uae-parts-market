@@ -8,15 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Keyboard } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AdminUsersHeaderProps {
   pendingUsersCount: number | undefined;
+  totalUsersCount: number | undefined;
+  isLoading: boolean;
   isCompactMode: boolean;
   onCompactModeChange: (checked: boolean) => void;
 }
 
 export const AdminUsersHeader: React.FC<AdminUsersHeaderProps> = ({
   pendingUsersCount,
+  totalUsersCount,
+  isLoading,
   isCompactMode,
   onCompactModeChange
 }) => {
@@ -25,10 +30,20 @@ export const AdminUsersHeader: React.FC<AdminUsersHeaderProps> = ({
 
   return (
     <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <CardTitle>Пользователи</CardTitle>
-        {pendingUsersCount && pendingUsersCount > 0 && (
-          <Badge variant="secondary">{pendingUsersCount} ожидает</Badge>
+        {isLoading ? (
+          <>
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-6 w-24" />
+          </>
+        ) : (
+          <>
+            <Badge variant="outline">Всего: {totalUsersCount ?? '...'}</Badge>
+            {pendingUsersCount !== undefined && pendingUsersCount > 0 && (
+              <Badge variant="secondary">{pendingUsersCount} ожидает</Badge>
+            )}
+          </>
         )}
       </div>
       
