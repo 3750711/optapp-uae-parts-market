@@ -9,6 +9,7 @@ import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import debounce from 'lodash.debounce';
+import * as _ from 'lodash';
 
 interface PriceAndBuyerStepProps {
   formData: OrderFormData;
@@ -38,7 +39,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
   const debouncedSearchTerm = useMemo(
-    () => debounce((term: string) => setProfileSearchTerm(term), 300),
+    () => _.debounce((term: string) => setProfileSearchTerm(term), 300),
     []
   );
 
