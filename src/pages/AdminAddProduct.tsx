@@ -4,6 +4,8 @@ import { AdminRoute } from "@/components/auth/AdminRoute";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AddProductForm from "@/components/product/AddProductForm";
 import { useAdminAddProduct } from "@/hooks/useAdminAddProduct";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminAddProduct = () => {
   const {
@@ -27,6 +29,7 @@ const AdminAddProduct = () => {
     filteredModels,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
+    showDraftSaved,
   } = useAdminAddProduct();
 
   return (
@@ -35,6 +38,15 @@ const AdminAddProduct = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
+
+            {showDraftSaved && (
+              <Alert className="mb-6 bg-blue-50 border-blue-200">
+                <AlertCircle className="h-4 w-4 text-blue-700" />
+                <AlertDescription className="text-blue-700">
+                  Загружен сохраненный черновик. Вы можете продолжить заполнение.
+                </AlertDescription>
+              </Alert>
+            )}
             
             <AddProductForm
               form={form}

@@ -52,6 +52,10 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   } = useMobileOptimizedUpload();
 
   const handleFileSelect = useCallback(async (files: FileList) => {
+    const MAX_PHOTO_SIZE_MB = 10;
+    const MAX_PHOTO_SIZE_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
+    const ALLOWED_PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
+
     if (existingImages.length + files.length > maxImages) {
       if (!disableToast) {
         toast({
@@ -63,7 +67,39 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       return;
     }
 
-    const uploadedUrls = await uploadFilesBatch(Array.from(files), {
+    const fileArray = Array.from(files);
+    const validFiles: File[] = [];
+
+    for (const file of fileArray) {
+      if (!ALLOWED_PHOTO_TYPES.includes(file.type.toLowerCase())) {
+        if (!disableToast) {
+          toast({
+            title: "Неверный формат файла",
+            description: `Файл "${file.name}" имеет неподдерживаемый формат.`,
+            variant: "destructive",
+          });
+        }
+        continue;
+      }
+
+      if (file.size > MAX_PHOTO_SIZE_BYTES) {
+        if (!disableToast) {
+          toast({
+            title: "Файл слишком большой",
+            description: `Размер файла "${file.name}" превышает ${MAX_PHOTO_SIZE_MB}MB.`,
+            variant: "destructive",
+          });
+        }
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length === 0) {
+      return;
+    }
+
+    const uploadedUrls = await uploadFilesBatch(validFiles, {
       productId,
       batchSize: 2,
       batchDelay: 1000,

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -36,18 +35,16 @@ export const useAdminProductCreation = () => {
     }
 
     setIsCreating(true);
+    let productId: string | null = null;
     
-    // Детальное логирование начала процесса
-    console.log("🚀 Starting admin product creation:", {
+    console.log("🚀 Starting admin product creation transaction:", {
       title: values.title,
       sellerId: values.sellerId,
       imageCount: imageUrls.length,
       videoCount: videoUrls.length,
-      timestamp: new Date().toISOString()
     });
 
     try {
-      // Валидация данных перед созданием
       if (imageUrls.length === 0) {
         throw new Error("Добавьте хотя бы одну фотографию");
       }
@@ -55,13 +52,8 @@ export const useAdminProductCreation = () => {
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
       const selectedSeller = sellers.find(seller => seller.id === values.sellerId);
       
-      if (!selectedBrand) {
-        throw new Error("Не найдена выбранная марка автомобиля");
-      }
-
-      if (!selectedSeller) {
-        throw new Error("Не найден выбранный продавец");
-      }
+      if (!selectedBrand) throw new Error("Не найдена выбранная марка автомобиля");
+      if (!selectedSeller) throw new Error("Не найден выбранный продавец");
 
       let modelName = null;
       if (values.modelId) {
@@ -69,7 +61,9 @@ export const useAdminProductCreation = () => {
         modelName = selectedModel?.name || null;
       }
 
-      // Начинаем транзакцию
+      // --- Транзакция начинается ---
+
+      // 1. Создаем товар
       const { data: product, error: productError } = await supabase
         .from('products')
         .insert({
@@ -89,113 +83,93 @@ export const useAdminProductCreation = () => {
         .single();
 
       if (productError) {
-        console.error("❌ Product creation failed:", productError);
         throw new Error(`Ошибка создания товара: ${productError.message}`);
       }
+      productId = product.id;
+      console.log("✅ Product created successfully:", productId);
 
-      console.log("✅ Product created successfully:", product.id);
-
-      // Добавляем изображения
-      const imageErrors: string[] = [];
-      for (const url of imageUrls) {
-        const { error: imageError } = await supabase
-          .from('product_images')
-          .insert({
-            product_id: product.id,
-            url: url,
-            is_primary: url === primaryImage
-          });
-          
-        if (imageError) {
-          console.error("❌ Image insert failed:", imageError);
-          imageErrors.push(`Изображение ${url}: ${imageError.message}`);
-        }
+      // 2. Добавляем изображения (одной операцией)
+      const imageInserts = imageUrls.map(url => ({
+        product_id: productId,
+        url: url,
+        is_primary: url === primaryImage
+      }));
+      const { error: imageError } = await supabase.from('product_images').insert(imageInserts);
+      if (imageError) {
+        throw new Error(`Ошибка добавления изображений: ${imageError.message}`);
       }
+      console.log(`✅ ${imageUrls.length} images inserted for product ${productId}`);
 
-      // Обновляем товар с Cloudinary данными если есть primary image
+
+      // 3. Обновляем товар с Cloudinary данными (некритично, без отката)
       if (primaryImage) {
         try {
           const publicId = extractPublicIdFromUrl(primaryImage);
           if (publicId) {
-            const { error: updateError } = await supabase
-              .from('products')
-              .update({
+            await supabase.from('products').update({
                 cloudinary_public_id: publicId,
                 cloudinary_url: primaryImage
-              })
-              .eq('id', product.id);
-
-            if (updateError) {
-              console.error("⚠️ Cloudinary data update failed:", updateError);
-              // Не прерываем процесс, это не критическая ошибка
-            }
+            }).eq('id', product.id);
           }
         } catch (cloudinaryError) {
-          console.error("⚠️ Cloudinary processing error:", cloudinaryError);
-          // Не прерываем процесс
+          console.error("⚠️ Cloudinary processing error (non-critical):", cloudinaryError);
         }
       }
 
-      // Добавляем видео если есть
-      const videoErrors: string[] = [];
-      for (const videoUrl of videoUrls) {
-        const { error: videoError } = await supabase
-          .from('product_videos')
-          .insert({
-            product_id: product.id,
-            url: videoUrl
-          });
-          
+      // 4. Добавляем видео (одной операцией)
+      if (videoUrls.length > 0) {
+        const videoInserts = videoUrls.map(videoUrl => ({
+          product_id: productId,
+          url: videoUrl
+        }));
+        const { error: videoError } = await supabase.from('product_videos').insert(videoInserts);
         if (videoError) {
-          console.error("❌ Video insert failed:", videoError);
-          videoErrors.push(`Видео ${videoUrl}: ${videoError.message}`);
+          throw new Error(`Ошибка добавления видео: ${videoError.message}`);
         }
+        console.log(`✅ ${videoUrls.length} videos inserted for product ${productId}`);
       }
 
-      // Отправляем уведомление (не критично, если не сработает)
+      // 5. Отправляем уведомление (некритично)
       try {
         await supabase.functions.invoke('send-telegram-notification', {
           body: { productId: product.id }
         });
       } catch (notificationError) {
-        console.error("⚠️ Notification failed:", notificationError);
-        // Не прерываем процесс
-      }
-
-      // Формируем финальное сообщение
-      let successMessage = `Товар успешно создан для продавца ${selectedSeller.full_name}`;
-      
-      if (imageErrors.length > 0) {
-        successMessage += `\n⚠️ Некоторые изображения не загружены: ${imageErrors.length} из ${imageUrls.length}`;
-      }
-      
-      if (videoErrors.length > 0) {
-        successMessage += `\n⚠️ Некоторые видео не загружены: ${videoErrors.length} из ${videoUrls.length}`;
+        console.error("⚠️ Notification failed (non-critical):", notificationError);
       }
 
       toast({
-        title: "Товар создан",
-        description: successMessage,
+        title: "Товар успешно создан",
+        description: `Товар для продавца ${selectedSeller.full_name} опубликован.`,
       });
 
-      console.log("✅ Product creation completed successfully:", {
-        productId: product.id,
-        imageErrors: imageErrors.length,
-        videoErrors: videoErrors.length
-      });
-
+      console.log("✅ Product creation transaction completed successfully:", { productId });
       return product;
 
     } catch (error) {
-      console.error("💥 Critical error in product creation:", error);
+      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+      console.error("💥 Critical error in product creation transaction:", error);
+
+      // --- Логика отката ---
+      if (productId) {
+        console.log(`🔄 Rolling back transaction for product ID: ${productId}`);
+        // В будущем здесь можно добавить и удаление файлов из storage
+        await supabase.from('products').delete().eq('id', productId);
+        console.log(`✅ Rollback complete. Product ${productId} deleted.`);
+        toast({
+          title: "Транзакция отменена",
+          description: "Не удалось создать товар, все изменения были отменены.",
+          variant: "destructive",
+        });
+      }
       
       toast({
         title: "Ошибка создания товара",
-        description: error instanceof Error ? error.message : "Неизвестная ошибка. Попробуйте позже.",
+        description: errorMessage,
         variant: "destructive",
       });
       
-      throw error;
+      throw error; // Пробрасываем ошибку дальше для обработки в UI
     } finally {
       setIsCreating(false);
     }

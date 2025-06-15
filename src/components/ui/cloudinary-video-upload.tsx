@@ -4,6 +4,7 @@ import { Video, Upload, X, Loader2, Play, Film } from 'lucide-react';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
 import { cn } from '@/lib/utils';
 import { UploadProgressCard } from '@/components/ui/image-upload/UploadProgressCard';
+import { useToast } from '@/hooks/use-toast';
 
 interface CloudinaryVideoUploadProps {
   videos: string[];
@@ -34,19 +35,58 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { uploadMultipleVideos, isUploading, uploadProgress, clearProgress } = useCloudinaryVideoUpload();
+  const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || isUploading) return;
+
+    const MAX_VIDEO_SIZE_MB = 50;
+    const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+    const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/mov'];
     
     const files = Array.from(e.target.files);
     if (videos.length + files.length > maxVideos) {
-      alert(`Максимальное количество видео: ${maxVideos}`);
+      toast({
+        title: "Превышен лимит",
+        description: `Максимальное количество видео: ${maxVideos}`,
+        variant: "destructive",
+      });
       return;
     }
 
-    console.log('📹 Starting Cloudinary video upload for files:', files.map(f => f.name));
+    const validFiles: File[] = [];
+    for (const file of files) {
+      const fileType = file.type.toLowerCase();
+      // Handle .mov files which sometimes have type 'video/quicktime'
+      const isAllowed = ALLOWED_VIDEO_TYPES.includes(fileType) || (file.name.toLowerCase().endsWith('.mov') && fileType === 'video/quicktime');
+      
+      if (!isAllowed) {
+        toast({
+          title: "Неверный формат файла",
+          description: `Файл "${file.name}" имеет неподдерживаемый формат.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      if (file.size > MAX_VIDEO_SIZE_BYTES) {
+        toast({
+          title: "Файл слишком большой",
+          description: `Размер файла "${file.name}" превышает ${MAX_VIDEO_SIZE_MB}MB.`,
+          variant: "destructive",
+        });
+        continue;
+      }
+      validFiles.push(file);
+    }
     
-    const uploadedUrls = await uploadMultipleVideos(files, productId);
+    if (validFiles.length === 0) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    console.log('📹 Starting Cloudinary video upload for files:', validFiles.map(f => f.name));
+    
+    const uploadedUrls = await uploadMultipleVideos(validFiles, productId);
     
     if (uploadedUrls.length > 0) {
       onUpload(uploadedUrls);

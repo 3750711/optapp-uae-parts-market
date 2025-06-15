@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -9,6 +10,7 @@ import { adminProductSchema, AdminProductFormValues } from "@/schemas/adminProdu
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import { useAdminProductCreation } from "@/hooks/useAdminProductCreation";
+import { useFormAutosave } from "@/hooks/useFormAutosave";
 
 export const useAdminAddProduct = () => {
   const navigate = useNavigate();
@@ -20,6 +22,8 @@ export const useAdminAddProduct = () => {
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
+  const [showDraftSaved, setShowDraftSaved] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(false);
 
   const { 
     brands, 
@@ -57,9 +61,44 @@ export const useAdminAddProduct = () => {
     mode: "onChange",
   });
 
+  const getFormDataForAutosave = useCallback(() => {
+    return {
+      ...form.getValues(),
+      imageUrls,
+      videoUrls,
+      primaryImage,
+    };
+  }, [form, imageUrls, videoUrls, primaryImage]);
+
+  const { loadSavedData, clearSavedData } = useFormAutosave({
+    key: 'admin_add_product_draft',
+    data: getFormDataForAutosave(),
+    enabled: !isSubmitting && !isCreating,
+  });
+
   const watchBrandId = form.watch("brandId");
   const watchModelId = form.watch("modelId");
   const watchTitle = form.watch("title");
+
+  useEffect(() => {
+    if (!draftLoaded && !isSubmitting && !isCreating) {
+      const savedData = loadSavedData();
+      if (savedData && Object.keys(savedData).length > 0) {
+        Object.entries(savedData).forEach(([key, value]) => {
+          if (value && key in form.getValues()) {
+            form.setValue(key as keyof AdminProductFormValues, value as any, { shouldValidate: true });
+          }
+        });
+        if (savedData.imageUrls) setImageUrls(savedData.imageUrls);
+        if (savedData.videoUrls) setVideoUrls(savedData.videoUrls);
+        if (savedData.primaryImage) setPrimaryImage(savedData.primaryImage);
+        
+        setShowDraftSaved(true);
+        setTimeout(() => setShowDraftSaved(false), 5000);
+      }
+      setDraftLoaded(true);
+    }
+  }, [loadSavedData, form, isSubmitting, isCreating, draftLoaded]);
 
   useEffect(() => {
     if (watchTitle && brands.length > 0 && allModels.length > 0 && !watchBrandId) {
@@ -173,6 +212,7 @@ export const useAdminAddProduct = () => {
       });
 
       if (product) {
+        clearSavedData();
         navigate(`/product/${product.id}`);
       }
     } catch (error) {
@@ -205,5 +245,6 @@ export const useAdminAddProduct = () => {
     filteredModels,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
+    showDraftSaved,
   };
 };
