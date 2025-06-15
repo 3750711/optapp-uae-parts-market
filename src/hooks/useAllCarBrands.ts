@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback, useMemo } from 'react';
@@ -158,15 +159,6 @@ export const useAllCarBrands = () => {
     gcTime: 60 * 60 * 1000,
   });
 
-  const brandModelCounts = useMemo(() => {
-    if (!allModelsData) return new Map<string, number>();
-    return allModelsData.reduce((acc, model) => {
-        const count = acc.get(model.brand_id) || 0;
-        acc.set(model.brand_id, count + 1);
-        return acc;
-    }, new Map<string, number>());
-  }, [allModelsData]);
-
   // Фильтрация брендов по поисковому запросу
   const filteredBrands = useMemo(() => {
     if (!brandsData) return [];
@@ -259,7 +251,6 @@ export const useAllCarBrands = () => {
     findBrandIdByName,
     findModelIdByName,
     validateModelBrand,
-    brandModelCounts,
     
     // Статистика
     totalBrands: brandsData?.length || 0,

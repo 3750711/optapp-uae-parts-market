@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { ProductFormValues } from '../AddProductForm';
@@ -13,7 +14,6 @@ import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect
 interface Brand {
   id: string;
   name: string;
-  extraInfo?: string;
 }
 
 interface Model {

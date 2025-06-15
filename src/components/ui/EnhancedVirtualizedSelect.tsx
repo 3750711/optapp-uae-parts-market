@@ -1,4 +1,5 @@
 
+```tsx
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import {
@@ -15,7 +16,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface Option {
   id: string;
   name: string;
-  extraInfo?: string;
 }
 
 interface EnhancedVirtualizedSelectProps {
@@ -177,17 +177,13 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
           className={`
             ${isMobile ? "py-3 text-base" : ""} 
             ${isFocused ? "bg-accent" : ""}
+            ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
           `}
         >
-          <div className="flex justify-between items-center w-full">
-            <span className={`${isPopular && !searchTerm ? "font-medium text-primary" : ""}`}>
-              {getHighlightedText(option.name, searchTerm)}
-              {isPopular && !searchTerm && (
-                <span className="ml-2 text-xs text-muted-foreground">★</span>
-              )}
-            </span>
-            {option.extraInfo && <span className="text-xs text-muted-foreground">{option.extraInfo}</span>}
-          </div>
+          {getHighlightedText(option.name, searchTerm)}
+          {isPopular && !searchTerm && (
+            <span className="ml-2 text-xs text-muted-foreground">★</span>
+          )}
         </SelectItem>
       </div>
     );
@@ -239,17 +235,13 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
                   className={`
                     ${isMobile ? "py-3 text-base" : ""} 
                     ${isFocused ? "bg-accent" : ""}
+                    ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
                   `}
                 >
-                  <div className="flex justify-between items-center w-full">
-                    <span className={`${isPopular && !searchTerm ? "font-medium text-primary" : ""}`}>
-                      {getHighlightedText(option.name, searchTerm)}
-                      {isPopular && !searchTerm && (
-                        <span className="ml-2 text-xs text-muted-foreground">★</span>
-                      )}
-                    </span>
-                    {option.extraInfo && <span className="text-xs text-muted-foreground">{option.extraInfo}</span>}
-                  </div>
+                  {getHighlightedText(option.name, searchTerm)}
+                  {isPopular && !searchTerm && (
+                    <span className="ml-2 text-xs text-muted-foreground">★</span>
+                  )}
                 </SelectItem>
               );
             })}
@@ -310,3 +302,4 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
 };
 
 export default EnhancedVirtualizedSelect;
+```
