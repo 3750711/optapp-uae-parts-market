@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,8 +34,13 @@ import { Badge } from "@/components/ui/badge";
 import { Sparkles } from "lucide-react";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
+import { useLazyCarData } from "@/hooks/useLazyCarData";
+import { useSellerAccessValidation } from "@/hooks/useServerAccessValidation";
 
 const SellerAddProduct = () => {
+  // Серверная валидация прав доступа
+  const { hasAccess, isLoading: isValidatingAccess } = useSellerAccessValidation();
+  
   const navigate = useNavigate();
   const { user, profile } = useAuth();
   const { toast } = useToast();
@@ -47,19 +51,21 @@ const SellerAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
-
-  // ----> Упростили: refs заменены на обычные useState (гораздо проще):
   const [draftLoaded, setDraftLoaded] = useState(false);
 
-  // Use the new hook that loads all car brands and models
+  // Используем новый lazy loading хук
   const { 
     brands, 
     brandModels, 
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
-    isLoading: isLoadingCarData
-  } = useAllCarBrands();
+    isLoadingBrands,
+    isLoadingModels,
+    isLoading: isLoadingCarData,
+    initializeBrands,
+    brandsLoaded
+  } = useLazyCarData();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
@@ -406,8 +412,22 @@ const SellerAddProduct = () => {
     model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
   );
 
-  // Fallback UI для загрузки данных по брендам:
-  if (isLoadingCarData) {
+  // Показываем загрузку пока проверяем права доступа
+  if (isValidatingAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-optapp-yellow"></div>
+      </div>
+    );
+  }
+
+  // Если нет доступа, компонент не рендерится (обрабатывается в хуке)
+  if (!hasAccess) {
+    return null;
+  }
+
+  // Fallback UI для загрузки данных по брендам (но только если они начали загружаться)
+  if (brandsLoaded && isLoadingCarData) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <span>Загрузка данных автомобилей...</span>
@@ -479,20 +499,25 @@ const SellerAddProduct = () => {
                   imageUrls={imageUrls}
                   videoUrls={videoUrls}
                   brands={brands}
-                  brandModels={filteredModels}
+                  brandModels={brandModels}
                   isLoadingCarData={isLoadingCarData}
                   watchBrandId={form.watch("brandId")}
                   searchBrandTerm={searchBrandTerm}
                   setSearchBrandTerm={setSearchBrandTerm}
                   searchModelTerm={searchModelTerm}
                   setSearchModelTerm={setSearchModelTerm}
-                  filteredBrands={filteredBrands}
-                  filteredModels={filteredModels}
+                  filteredBrands={brands}
+                  filteredModels={brandModels}
                   handleMobileOptimizedImageUpload={handleImageUpload}
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
                   showSellerSelection={false}
+                  // Новые пропсы для улучшенной мобильной версии
+                  isLoadingBrands={isLoadingBrands}
+                  isLoadingModels={isLoadingModels}
+                  initializeBrands={initializeBrands}
+                  brandsLoaded={brandsLoaded}
                 />
               </CardContent>
             </Card>
