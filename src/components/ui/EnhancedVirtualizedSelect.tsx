@@ -1,5 +1,4 @@
 
-```tsx
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import {
@@ -302,4 +301,3 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
 };
 
 export default EnhancedVirtualizedSelect;
-```
