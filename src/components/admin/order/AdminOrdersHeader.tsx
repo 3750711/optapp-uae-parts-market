@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MobileAdminOrdersHeader } from './MobileAdminOrdersHeader';
@@ -60,7 +61,7 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
@@ -82,7 +83,7 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
           )}
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center flex-wrap gap-2">
           <DateRangeFilter
             value={props.dateRange}
             onChange={props.onDateRangeChange}
