@@ -13,10 +13,14 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastSubmitTime = useRef<number>(0);
 
+  // Use a ref to get the latest isSubmitting value in the callback without making it a dependency.
+  const isSubmittingRef = useRef(isSubmitting);
+  isSubmittingRef.current = isSubmitting;
+
   const guardedSubmit = useCallback(
     async (submitAction: () => Promise<void>) => {
       const now = Date.now();
-      if (isSubmitting) {
+      if (isSubmittingRef.current) {
         console.warn("Submission in progress.");
         return;
       }
@@ -46,8 +50,8 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
         setTimeout(() => setIsSubmitting(false), 500);
       }
     },
-    [timeout, isSubmitting, onDuplicateSubmit, toast]
+    [timeout, onDuplicateSubmit, toast]
   );
 
-  return { isSubmitting, guardedSubmit };
+  return { isSubmitting, guardedSubmit, canSubmit: !isSubmitting };
 };

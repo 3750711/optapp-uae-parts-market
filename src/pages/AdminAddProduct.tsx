@@ -191,8 +191,6 @@ const AdminAddProduct = () => {
       return;
     }
 
-    setIsSubmitting(true);
-
     try {
       // Get brand and model names for the database
       const selectedBrand = brands.find(brand => brand.id === values.brandId);
@@ -361,8 +359,6 @@ const AdminAddProduct = () => {
         description: "Не удалось создать товар. Попробуйте позже.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
