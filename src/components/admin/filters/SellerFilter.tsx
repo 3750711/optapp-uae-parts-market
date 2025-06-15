@@ -1,12 +1,7 @@
 
 import React from 'react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
 
 interface SellerFilterProps {
   value: string;
@@ -15,39 +10,23 @@ interface SellerFilterProps {
   disabled?: boolean;
 }
 
-const SellerFilter: React.FC<SellerFilterProps> = ({ 
-  value, 
-  onChange, 
-  sellers,
-  disabled = false 
-}) => {
-  const formatSellerName = (seller: { name: string; opt_id?: string }) => {
-    if (seller.opt_id) {
-      return `${seller.name} (${seller.opt_id})`;
-    }
-    return seller.name;
-  };
-
+const SellerFilter: React.FC<SellerFilterProps> = ({ value, onChange, sellers, disabled }) => {
   return (
     <div className="space-y-2">
-      <label className="text-sm">Продавец</label>
-      <Select
-        value={value}
-        onValueChange={onChange}
-        disabled={disabled}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Все продавцы" />
+        <Label htmlFor="seller-filter">Продавец</Label>
+        <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger id="seller-filter">
+            <SelectValue placeholder="Выберите продавца" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Все продавцы</SelectItem>
-          {sellers.map((seller) => (
+            <SelectItem value="all">Все продавцы</SelectItem>
+            {sellers.map(seller => (
             <SelectItem key={seller.id} value={seller.id}>
-              {formatSellerName(seller)}
+                {seller.name} {seller.opt_id ? `(${seller.opt_id})` : ''}
             </SelectItem>
-          ))}
+            ))}
         </SelectContent>
-      </Select>
+        </Select>
     </div>
   );
 };

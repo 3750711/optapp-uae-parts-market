@@ -1,4 +1,3 @@
-
 import React from 'react';
 import SelectedProductsActions from '@/components/admin/filters/SelectedProductsActions';
 import { OptimizedProductSearch } from '@/components/admin/search/OptimizedProductSearch';
@@ -45,14 +44,6 @@ const AdminProductsFilters: React.FC<AdminProductsFiltersProps> = ({
   onBulkDelete,
   onClearSelection
 }) => {
-  console.log('🔍 AdminProductsFilters render:', { 
-    searchTerm, 
-    isSearching, 
-    hasActiveSearch,
-    hasActiveFilters,
-    selectedCount: selectedProducts.length 
-  });
-
   const handleClearSearch = () => {
     setSearchTerm('');
   };

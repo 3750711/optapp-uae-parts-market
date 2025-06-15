@@ -1,4 +1,3 @@
-
 import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import AdminProductsHeader from '@/components/admin/products/AdminProductsHeader';
@@ -49,15 +48,6 @@ const AdminProducts = () => {
     selectedProducts,
     setSelectedProducts,
     refetch
-  });
-
-  console.log('🎯 AdminProducts render:', { 
-    productsCount: products.length,
-    sellersCount: allSellers.length,
-    isLoading,
-    searchTerm,
-    debouncedSearchTerm,
-    isSearching 
   });
 
   return (

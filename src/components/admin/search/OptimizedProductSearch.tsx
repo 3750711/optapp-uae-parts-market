@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,8 +22,6 @@ export const OptimizedProductSearch = memo<OptimizedProductSearchProps>(({
   placeholder = "Поиск товаров...",
   disabled = false
 }) => {
-  console.log('🔍 OptimizedProductSearch render:', { searchTerm, isSearching, hasActiveSearch });
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onSearchChange(e.target.value);
   };

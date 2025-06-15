@@ -1,7 +1,7 @@
 
-import { useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useOptimizedProductsSearch } from './useOptimizedProductsSearch';
+import { useDebounceValue } from './useDebounceValue';
 
 interface UseProductsFiltersProps {
   initialFilters?: {
@@ -11,27 +11,36 @@ interface UseProductsFiltersProps {
 }
 
 export const useProductsFilters = ({
-  // initialFilters is kept for signature compatibility but is unused.
-  // URL is the single source of truth.
   initialFilters = {}
 }: UseProductsFiltersProps = {}) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // Состояние поиска управляется здесь, инициализируется из URL
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
+  const isSearching = searchTerm !== debouncedSearchTerm;
+
+  // Состояния фильтров берутся из URL
   const statusFilter = searchParams.get('status') || 'all';
   const sellerFilter = searchParams.get('seller') || 'all';
-  const initialSearch = searchParams.get('search') || '';
+  
+  const updateSearchTerm = setSearchTerm;
 
-  const {
-    searchTerm,
-    debouncedSearchTerm,
-    isSearching,
-    updateSearchTerm,
-    clearSearch,
-    hasActiveSearch
-  } = useOptimizedProductsSearch({
-    initialSearchTerm: initialSearch,
-    debounceDelay: 300
-  });
+  // Эффект для синхронизации поиска с URL
+  useEffect(() => {
+    const currentSearchInUrl = searchParams.get('search') || '';
+    if (debouncedSearchTerm !== currentSearchInUrl) {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        if (debouncedSearchTerm) {
+          newParams.set('search', debouncedSearchTerm);
+        } else {
+          newParams.delete('search');
+        }
+        return newParams;
+      }, { replace: true });
+    }
+  }, [debouncedSearchTerm, searchParams, setSearchParams]);
 
   const setStatusFilter = useCallback((status: string) => {
     setSearchParams(prev => {
@@ -57,25 +66,16 @@ export const useProductsFilters = ({
     }, { replace: true });
   }, [setSearchParams]);
 
-  useEffect(() => {
-    const currentSearchInUrl = searchParams.get('search') || '';
-    if (debouncedSearchTerm !== currentSearchInUrl) {
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
-        if (debouncedSearchTerm) {
-          newParams.set('search', debouncedSearchTerm);
-        } else {
-          newParams.delete('search');
-        }
-        return newParams;
-      }, { replace: true });
-    }
-  }, [debouncedSearchTerm, searchParams, setSearchParams]);
+  const clearSearch = useCallback(() => {
+    setSearchTerm('');
+  }, []);
 
   const clearFilters = useCallback(() => {
     clearSearch();
     setSearchParams({}, { replace: true });
   }, [clearSearch, setSearchParams]);
+
+  const hasActiveSearch = useMemo(() => debouncedSearchTerm.trim().length > 0, [debouncedSearchTerm]);
 
   const hasActiveFilters = useMemo(() => {
     return hasActiveSearch ||

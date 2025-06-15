@@ -1,12 +1,7 @@
 
 import React from 'react';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from '@/components/ui/label';
 
 interface StatusFilterProps {
   value: string;
@@ -14,24 +9,28 @@ interface StatusFilterProps {
   disabled?: boolean;
 }
 
-const StatusFilter: React.FC<StatusFilterProps> = ({ value, onChange, disabled = false }) => {
+const statusOptions = [
+  { value: 'all', label: 'Все статусы' },
+  { value: 'pending', label: 'Ожидает проверки' },
+  { value: 'active', label: 'Опубликован' },
+  { value: 'sold', label: 'Продан' },
+  { value: 'archived', label: 'Архив' },
+];
+
+const StatusFilter: React.FC<StatusFilterProps> = ({ value, onChange, disabled }) => {
   return (
     <div className="space-y-2">
-      <label className="text-sm">Статус товара</label>
-      <Select
-        value={value}
-        onValueChange={onChange}
-        disabled={disabled}
-      >
-        <SelectTrigger>
-          <SelectValue placeholder="Все статусы" />
+      <Label htmlFor="status-filter">Статус товара</Label>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
+        <SelectTrigger id="status-filter">
+          <SelectValue placeholder="Выберите статус" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Все статусы</SelectItem>
-          <SelectItem value="pending">Ожидает проверки</SelectItem>
-          <SelectItem value="sold">Продан</SelectItem>
-          <SelectItem value="active">Опубликован</SelectItem>
-          <SelectItem value="archived">Архив</SelectItem>
+          {statusOptions.map(option => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
     </div>

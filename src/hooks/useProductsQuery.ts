@@ -1,4 +1,3 @@
-
 import { useCallback, useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,37 +31,7 @@ export const useProductsQuery = ({
 
   const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
     try {
-      // Диагностическая информация о сессии
-      console.log('🔍 Fetching products:', { 
-        pageParam, 
-        searchTerm: debouncedSearchTerm, 
-        statusFilter,
-        sellerFilter
-      });
-
-      // Проверяем текущую сессию
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔐 Current session:', {
-        hasSession: !!session,
-        userId: session?.user?.id,
-        userEmail: session?.user?.email,
-        sessionError: sessionError?.message
-      });
-
-      // Проверяем профиль пользователя
-      if (session?.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('user_type, email')
-          .eq('id', session.user.id)
-          .single();
-        
-        console.log('👤 User profile:', {
-          userType: profile?.user_type,
-          email: profile?.email,
-          profileError: profileError?.message
-        });
-      }
+      const { data: { session } } = await supabase.auth.getSession();
 
       let query = supabase
         .from('products')
@@ -86,17 +55,7 @@ export const useProductsQuery = ({
         query = query.eq('seller_id', sellerFilter);
       }
 
-      console.log('📡 Executing query...');
       const { data, error, count } = await query;
-
-      console.log('📊 Query result:', {
-        hasData: !!data,
-        dataLength: data?.length || 0,
-        count,
-        error: error?.message,
-        errorCode: error?.code,
-        errorDetails: error?.details
-      });
 
       if (error) {
         console.error('❌ Error fetching products:', {
@@ -118,14 +77,11 @@ export const useProductsQuery = ({
         })
       }));
 
-      console.log('✅ Products fetched successfully:', dataWithSortedImages?.length || 0);
-
       return { 
         data: dataWithSortedImages || [], 
         count: count || 0 
       };
     } catch (error) {
-      console.error('💥 Exception in fetchProducts:', error);
       handleError(error, {
         customMessage: 'Ошибка при загрузке товаров',
         logError: true
