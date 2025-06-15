@@ -63,52 +63,53 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
         ? 'bg-red-50 border-red-200'
         : ''
     }`}>
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-start gap-3">
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={() => onSelect(user.id)}
-            className="mt-1"
-          />
-          
-          <UserAvatar user={user} size="md" />
+          <div className="flex flex-col items-center gap-2">
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={() => onSelect(user.id)}
+              className="mt-1"
+            />
+            <UserAvatar user={user} size="md" />
+          </div>
           
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
-                <h3 className="font-semibold text-sm truncate">
+                <h3 className="font-bold text-base truncate">
                   {user.full_name || 'Без имени'}
                 </h3>
                 <p className="text-xs text-muted-foreground truncate">
                   {user.email}
                 </p>
-                {user.company_name && (
-                  <p className="text-xs text-muted-foreground truncate mt-1">
-                    {user.company_name}
-                  </p>
+                {user.opt_id && (
+                  <Badge variant="outline" className="text-xs mt-1.5 font-mono">
+                    OPT: {user.opt_id}
+                  </Badge>
                 )}
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onOpenProfile(user.id)}>
                     <ExternalLink className="mr-2 h-4 w-4" />
-                    Открыть профиль
+                    Профиль
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleEdit}>
                     Редактировать
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleRating}>
-                    Изменить рейтинг
+                    Рейтинг
                   </DropdownMenuItem>
                   {onOptStatusChange && (
                     <DropdownMenuItem onClick={handleOptStatusToggle}>
-                      Переключить OPT статус
+                      Переключить OPT
                     </DropdownMenuItem>
                   )}
                   {user.verification_status !== 'verified' && (
@@ -125,15 +126,15 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
               </DropdownMenu>
             </div>
             
-            <div className="flex flex-wrap gap-2 mt-2">
-              <EnhancedStatusBadge 
-                type="userType" 
-                value={user.user_type} 
+            <div className="flex flex-wrap gap-1.5 mt-2">
+               <EnhancedStatusBadge 
+                type="verification" 
+                value={user.verification_status} 
                 size="sm"
               />
               <EnhancedStatusBadge 
-                type="verification" 
-                value={user.verification_status} 
+                type="userType" 
+                value={user.user_type} 
                 size="sm"
               />
               {user.opt_status && (
@@ -145,7 +146,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
               )}
             </div>
             
-            <div className="flex items-center justify-between mt-3 text-xs text-muted-foreground">
+            <div className="flex items-center justify-between mt-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-1">
                 {user.rating !== null ? (
                   <>
@@ -153,19 +154,11 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                     <span>{user.rating.toFixed(1)}</span>
                   </>
                 ) : (
-                  <span>Без рейтинга</span>
+                  <span className="text-xs">Без рейтинга</span>
                 )}
               </div>
               <span>{new Date(user.created_at).toLocaleDateString('ru-RU')}</span>
             </div>
-            
-            {user.opt_id && (
-              <div className="mt-2">
-                <Badge variant="outline" className="text-xs">
-                  OPT: {user.opt_id}
-                </Badge>
-              </div>
-            )}
           </div>
         </div>
       </CardContent>

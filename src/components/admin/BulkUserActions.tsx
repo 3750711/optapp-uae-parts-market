@@ -42,9 +42,9 @@ export const BulkUserActions: React.FC<BulkUserActionsProps> = ({
   if (selectedCount === 0) return null;
 
   return (
-    <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-4">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
+    <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 sm:p-4 mb-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <div className="flex items-center gap-3">
           <Checkbox
             checked={isAllSelected}
             onCheckedChange={isAllSelected ? onClearSelection : onSelectAll}
@@ -56,22 +56,22 @@ export const BulkUserActions: React.FC<BulkUserActionsProps> = ({
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm">
                 <UserCheck className="h-4 w-4 mr-1" />
-                Действия со статусом
+                Действия
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem onClick={() => onBulkAction('verify')}>
                 <UserCheck className="mr-2 h-4 w-4 text-green-600" />
-                Подтвердить всех
+                Подтвердить
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onBulkAction('block')}>
                 <Ban className="mr-2 h-4 w-4 text-red-600" />
-                Заблокировать всех
+                Заблокировать
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => onBulkAction('pending')}>
                 <UserX className="mr-2 h-4 w-4 text-orange-600" />
