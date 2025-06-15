@@ -26,7 +26,7 @@ export const useOptimizedAdminUsers = (filters: UseOptimizedAdminUsersProps) => 
   return useQuery({
     queryKey: ['admin', 'users-optimized', filters],
     queryFn: async () => {
-      console.log('🔍 Executing optimized users search with pending count...');
+      console.log('🔍 Executing optimized users search with new logic...');
       const startTime = performance.now();
 
       // Rate limiting check
@@ -66,20 +66,18 @@ export const useOptimizedAdminUsers = (filters: UseOptimizedAdminUsersProps) => 
           query = query.eq('opt_status', filters.optStatus);
         }
 
-        // Оптимизированный поиск
-        if (filters.search && filters.search.length >= 2) {
-          const searchTerm = filters.search.trim();
-          
-          if (searchTerm.length >= 3) {
-            // Используем полнотекстовый поиск для длинных запросов
-            query = query.textSearch('fts', `'${searchTerm}':*`, {
-              type: 'websearch',
-              config: 'russian'
-            });
-          } else {
-            // Fallback для коротких запросов
-            query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,opt_id.ilike.%${searchTerm}%`);
-          }
+        // Улучшенный поиск по нескольким полям
+        if (filters.search) {
+          const searchTerm = `%${filters.search.trim().replace(/ +/g, '%')}%`;
+          console.log(`[AdminUsers] Searching for: "${searchTerm}"`);
+          query = query.or(
+            `full_name.ilike.${searchTerm},` +
+            `company_name.ilike.${searchTerm},` +
+            `email.ilike.${searchTerm},` +
+            `opt_id.ilike.${searchTerm},` +
+            `phone.ilike.${searchTerm},` +
+            `telegram.ilike.${searchTerm}`
+          );
         }
 
         // Фильтры по рейтингу
@@ -137,7 +135,7 @@ export const useOptimizedAdminUsers = (filters: UseOptimizedAdminUsersProps) => 
       ]);
 
       const endTime = performance.now();
-      console.log(`✅ Users query with pending count completed in ${(endTime - startTime).toFixed(2)}ms`);
+      console.log(`✅ Users query with new logic completed in ${(endTime - startTime).toFixed(2)}ms. Found ${usersResult.count} users.`);
 
       return {
         users: usersResult.data as ProfileType[],
