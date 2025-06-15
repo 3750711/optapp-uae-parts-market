@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
+// import { useErrorHandler } from '@/hooks/useErrorHandler'; // Убрано
 
 interface Product {
   id: string;
@@ -27,68 +27,61 @@ export const useProductsQuery = ({
   sellerFilter,
   pageSize = 12
 }: UseProductsQueryProps) => {
-  const { handleError } = useErrorHandler();
+  // const { handleError } = useErrorHandler(); // Убрано
 
   const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Блок try-catch убран, чтобы react-query мог самостоятельно обрабатывать ошибки
+    const { data: { session } } = await supabase.auth.getSession();
 
-      let query = supabase
-        .from('products')
-        .select(`
+    let query = supabase
+      .from('products')
+      .select(`
           *,
           product_images(id, url, is_primary)
         `, { count: 'exact' })
-        .order('created_at', { ascending: false })
-        .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
+      .order('created_at', { ascending: false })
+      .range(pageParam * pageSize, (pageParam + 1) * pageSize - 1);
 
-      // Apply filters
-      if (debouncedSearchTerm) {
-        query = query.ilike('title', `%${debouncedSearchTerm}%`);
-      }
-
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
-      }
-
-      if (sellerFilter !== 'all') {
-        query = query.eq('seller_id', sellerFilter);
-      }
-
-      const { data, error, count } = await query;
-
-      if (error) {
-        console.error('❌ Error fetching products:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
-        });
-        throw error;
-      }
-
-      // Sort product_images so primary images come first
-      const dataWithSortedImages = data?.map(product => ({
-        ...product,
-        product_images: product.product_images?.sort((a: any, b: any) => {
-          if (a.is_primary && !b.is_primary) return -1;
-          if (!a.is_primary && b.is_primary) return 1;
-          return 0;
-        })
-      }));
-
-      return { 
-        data: dataWithSortedImages || [], 
-        count: count || 0 
-      };
-    } catch (error) {
-      handleError(error, {
-        customMessage: 'Ошибка при загрузке товаров',
-        logError: true
-      });
-      throw error;
+    // Apply filters
+    if (debouncedSearchTerm) {
+      query = query.ilike('title', `%${debouncedSearchTerm}%`);
     }
-  }, [debouncedSearchTerm, statusFilter, sellerFilter, pageSize, handleError]);
+
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+
+    if (sellerFilter !== 'all') {
+      query = query.eq('seller_id', sellerFilter);
+    }
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error('❌ Error fetching products:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error; // Позволяем react-query обработать ошибку
+    }
+
+    // Sort product_images so primary images come first
+    const dataWithSortedImages = data?.map(product => ({
+      ...product,
+      product_images: product.product_images?.sort((a: any, b: any) => {
+        if (a.is_primary && !b.is_primary) return -1;
+        if (!a.is_primary && b.is_primary) return 1;
+        return 0;
+      })
+    }));
+
+    return { 
+      data: dataWithSortedImages || [], 
+      count: count || 0 
+    };
+  }, [debouncedSearchTerm, statusFilter, sellerFilter, pageSize]);
 
   const queryResult = useInfiniteQuery({
     queryKey: ['admin-products', debouncedSearchTerm, statusFilter, sellerFilter],
