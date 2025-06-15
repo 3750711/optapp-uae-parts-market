@@ -1,8 +1,8 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
+import { prodError } from "@/utils/logger";
 
 type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 
@@ -52,7 +52,8 @@ export const useOptimizedOrdersQuery = ({
   return useQuery({
     queryKey: ['admin-orders-optimized', statusFilter, searchTerm, page, pageSize, sortField, sortDirection],
     queryFn: async (): Promise<OrdersResponse> => {
-      const offset = (page - 1) * pageSize;
+      const effectivePageSize = Math.min(pageSize, 100);
+      const offset = (page - 1) * effectivePageSize;
       
       let query = supabase
         .from('orders')
@@ -74,7 +75,7 @@ export const useOptimizedOrdersQuery = ({
             opt_status
           )
         `, { count: 'exact' })
-        .range(offset, offset + pageSize - 1);
+        .range(offset, offset + effectivePageSize - 1);
 
       // Apply sorting
       if (sortField === 'seller_name') {
@@ -122,12 +123,15 @@ export const useOptimizedOrdersQuery = ({
           description: "Не удалось загрузить заказы",
           variant: "destructive",
         });
-        console.error("Ошибка загрузки заказов:", error);
+        prodError(new Error("Ошибка загрузки заказов"), {
+          context: 'useOptimizedOrdersQuery',
+          error: error.message
+        });
         throw error;
       }
 
       const totalCount = count || 0;
-      const hasNextPage = offset + pageSize < totalCount;
+      const hasNextPage = offset + effectivePageSize < totalCount;
       const hasPreviousPage = page > 1;
 
       return {

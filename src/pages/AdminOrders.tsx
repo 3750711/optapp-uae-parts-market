@@ -9,7 +9,8 @@ import { BulkActionsBar } from "@/components/admin/order/BulkActionsBar";
 import { MobileBulkActionsBar } from "@/components/admin/order/MobileBulkActionsBar";
 import { AdminOrdersHeader } from "@/components/admin/order/AdminOrdersHeader";
 import { AdminOrdersDialogs } from "@/components/admin/order/AdminOrdersDialogs";
-import { LoadingIndicator, EmptyState } from "@/components/admin/order/FallbackComponents";
+import { EmptyState } from "@/components/admin/order/FallbackComponents";
+import { OrdersTableSkeleton } from "@/components/admin/order/OrdersTableSkeleton";
 import { useOptimizedOrdersQuery } from "@/hooks/useOptimizedOrdersQuery";
 import { useDebounceValue } from "@/hooks/useDebounceValue";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -41,7 +42,7 @@ const AdminOrders = () => {
   // Debounce search term for better performance
   const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
 
-  const { data, isLoading, error, refetch } = useOptimizedOrdersQuery({
+  const { data, isLoading, error, refetch, isFetching } = useOptimizedOrdersQuery({
     statusFilter,
     searchTerm: debouncedSearchTerm,
     page: currentPage,
@@ -113,10 +114,11 @@ const AdminOrders = () => {
               sortDirection={sortDirection}
               onSortChange={handleSortChange}
               onRefetch={refetch}
-              totalCount={totalCount}
+              totalCount={0}
+              isFetching={isFetching}
             />
             <CardContent className="p-6">
-              <LoadingIndicator message="Загружаем заказы..." />
+              <OrdersTableSkeleton />
             </CardContent>
           </Card>
         </div>
@@ -141,6 +143,7 @@ const AdminOrders = () => {
             onSortChange={handleSortChange}
             onRefetch={refetch}
             totalCount={totalCount}
+            isFetching={isFetching}
           />
           
           <CardContent className="p-6">
@@ -169,6 +172,14 @@ const AdminOrders = () => {
               onQuickAction={handleQuickAction}
             />
             
+            {/* Empty state when no results */}
+            {!isLoading && !isFetching && orders.length === 0 && (
+                <EmptyState
+                    message={debouncedSearchTerm || statusFilter !== 'all' ? "Заказы не найдены" : "Нет заказов"}
+                    description={debouncedSearchTerm || statusFilter !== 'all' ? "Попробуйте изменить фильтры или поисковый запрос" : "Здесь будут отображаться созданные заказы"}
+                />
+            )}
+
             {/* Responsive Pagination */}
             {totalCount > 0 && (
               <>
