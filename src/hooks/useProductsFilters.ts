@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDebounceValue } from './useDebounceValue';
 
@@ -15,33 +15,29 @@ export const useProductsFilters = ({
 }: UseProductsFiltersProps = {}) => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Состояние поиска управляется здесь, инициализируется из URL
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  // Состояние поиска и фильтров теперь полностью управляется URL
+  const searchTerm = searchParams.get('search') || '';
+  const statusFilter = searchParams.get('status') || 'all';
+  const sellerFilter = searchParams.get('seller') || 'all';
+
+  // Дебаунс применяется к значению из URL для запросов к API
   const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
   const isSearching = searchTerm !== debouncedSearchTerm;
 
-  // Состояния фильтров берутся из URL
-  const statusFilter = searchParams.get('status') || 'all';
-  const sellerFilter = searchParams.get('seller') || 'all';
-  
-  const updateSearchTerm = setSearchTerm;
+  // Функция для обновления поискового запроса в URL
+  const updateSearchTerm = useCallback((term: string) => {
+    setSearchParams(prev => {
+      const newParams = new URLSearchParams(prev);
+      if (term) {
+        newParams.set('search', term);
+      } else {
+        newParams.delete('search');
+      }
+      return newParams;
+    }, { replace: true });
+  }, [setSearchParams]);
 
-  // Эффект для синхронизации поиска с URL
-  useEffect(() => {
-    const currentSearchInUrl = searchParams.get('search') || '';
-    if (debouncedSearchTerm !== currentSearchInUrl) {
-      setSearchParams(prev => {
-        const newParams = new URLSearchParams(prev);
-        if (debouncedSearchTerm) {
-          newParams.set('search', debouncedSearchTerm);
-        } else {
-          newParams.delete('search');
-        }
-        return newParams;
-      }, { replace: true });
-    }
-  }, [debouncedSearchTerm, searchParams, setSearchParams]);
-
+  // Функция для обновления фильтра статуса в URL
   const setStatusFilter = useCallback((status: string) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
@@ -54,6 +50,7 @@ export const useProductsFilters = ({
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Функция для обновления фильтра продавца в URL
   const setSellerFilter = useCallback((seller: string) => {
     setSearchParams(prev => {
       const newParams = new URLSearchParams(prev);
@@ -66,16 +63,18 @@ export const useProductsFilters = ({
     }, { replace: true });
   }, [setSearchParams]);
 
+  // Очистка поиска
   const clearSearch = useCallback(() => {
-    setSearchTerm('');
-  }, []);
+    updateSearchTerm('');
+  }, [updateSearchTerm]);
 
+  // Очистка всех фильтров
   const clearFilters = useCallback(() => {
-    clearSearch();
     setSearchParams({}, { replace: true });
-  }, [clearSearch, setSearchParams]);
+  }, [setSearchParams]);
 
-  const hasActiveSearch = useMemo(() => debouncedSearchTerm.trim().length > 0, [debouncedSearchTerm]);
+  // Мемоизированные значения для определения активных фильтров
+  const hasActiveSearch = useMemo(() => searchTerm.trim().length > 0, [searchTerm]);
 
   const hasActiveFilters = useMemo(() => {
     return hasActiveSearch ||
