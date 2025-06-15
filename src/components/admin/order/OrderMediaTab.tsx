@@ -8,8 +8,8 @@ interface OrderMediaTabProps {
   order: any;
   orderImages: string[];
   orderVideos: string[];
-  onImagesUpload: (urls: string[]) => void;
-  onVideoUpload: (urls: string[]) => void;
+  onImagesChange: (urls: string[]) => void;
+  onVideosChange: (urls: string[]) => void;
   onVideoDelete: (url: string) => void;
 }
 
@@ -17,14 +17,23 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   order,
   orderImages,
   orderVideos,
-  onImagesUpload,
-  onVideoUpload,
+  onImagesChange,
+  onVideosChange,
   onVideoDelete
 }) => {
-  const handleImageDelete = (url: string) => {
-    // Remove from orderImages through parent component
-    const newImages = orderImages.filter(img => img !== url);
-    onImagesUpload(newImages);
+  const handleImageUpload = (uploadedUrls: string[]) => {
+    const newImageList = [...orderImages, ...uploadedUrls];
+    onImagesChange(newImageList);
+  };
+  
+  const handleImageDelete = (urlToDelete: string) => {
+    const newImageList = orderImages.filter(img => img !== urlToDelete);
+    onImagesChange(newImageList);
+  };
+
+  const handleVideoUpload = (uploadedUrls: string[]) => {
+    const newVideoList = [...orderVideos, ...uploadedUrls];
+    onVideosChange(newVideoList);
   };
 
   return (
@@ -35,7 +44,7 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
         </CardHeader>
         <CardContent>
           <MobileOptimizedImageUpload
-            onUploadComplete={onImagesUpload}
+            onUploadComplete={handleImageUpload}
             maxImages={20}
             existingImages={orderImages}
             onImageDelete={handleImageDelete}
@@ -53,7 +62,7 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
         <CardContent>
           <CloudinaryVideoUpload
             videos={orderVideos}
-            onUpload={onVideoUpload}
+            onUpload={handleVideoUpload}
             onDelete={onVideoDelete}
             maxVideos={3}
             productId={order?.id}
