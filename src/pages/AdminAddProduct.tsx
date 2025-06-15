@@ -10,8 +10,7 @@ import { useProductTitleParser } from "@/utils/productTitleParser";
 import AddProductForm, { ProductFormValues, productSchema } from "@/components/product/AddProductForm";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
-import { useLazyCarData } from "@/hooks/useLazyCarData";
-import { useAdminAccessValidation } from "@/hooks/useServerAccessValidation.tsx";
+import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 
 // Admin product schema with required sellerId
 const adminProductSchema = productSchema.extend({
@@ -23,9 +22,6 @@ const adminProductSchema = productSchema.extend({
 type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 const AdminAddProduct = () => {
-  // Серверная валидация прав доступа
-  const { hasAccess, isLoading: isValidatingAccess } = useAdminAccessValidation();
-  
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -36,27 +32,24 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
-  // Используем новый lazy loading хук
+  // Возвращаем хук useAllCarBrands
   const { 
     brands, 
     brandModels, 
+    allModels,
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
-    isLoadingBrands,
-    isLoadingModels,
     isLoading: isLoadingCarData,
-    validateModelBrand,
-    initializeBrands,
-    brandsLoaded
-  } = useLazyCarData();
+    validateModelBrand
+  } = useAllCarBrands();
 
   // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
     brands,
-    brandModels,
+    allModels, // Используем все модели для корректного парсинга
     findBrandIdByName,
-    findModelIdByName
+    () => null // Временная заглушка, т.к. парсер не использует эту функцию
   );
 
   const form = useForm<AdminProductFormValues>({
@@ -80,7 +73,7 @@ const AdminAddProduct = () => {
 
   // When title changes, try to detect brand and model
   useEffect(() => {
-    if (watchTitle && brands.length > 0 && !watchBrandId) {
+    if (watchTitle && brands.length > 0 && allModels.length > 0 && !watchBrandId) {
       const { brandId, modelId } = parseProductTitle(watchTitle);
       
       if (brandId) {
@@ -96,7 +89,7 @@ const AdminAddProduct = () => {
         });
       }
     }
-  }, [watchTitle, brands, brandModels, parseProductTitle, form, watchBrandId, toast]);
+  }, [watchTitle, brands, allModels, parseProductTitle, form, watchBrandId, toast]);
 
   // Fetch sellers with OPT ID
   useEffect(() => {
@@ -370,20 +363,6 @@ const AdminAddProduct = () => {
     }
   };
 
-  // Показываем загрузку пока проверяем права доступа
-  if (isValidatingAccess) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // Если нет доступа, компонент не рендерится (обрабатывается в хуке)
-  if (!hasAccess) {
-    return null;
-  }
-
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
@@ -412,11 +391,6 @@ const AdminAddProduct = () => {
             setPrimaryImage={setPrimaryImage}
             sellers={sellers}
             showSellerSelection={true}
-            // Новые пропсы для улучшенной мобильной версии
-            isLoadingBrands={isLoadingBrands}
-            isLoadingModels={isLoadingModels}
-            initializeBrands={initializeBrands}
-            brandsLoaded={brandsLoaded}
           />
         </div>
       </div>
