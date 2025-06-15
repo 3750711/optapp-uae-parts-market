@@ -1,4 +1,5 @@
 
+```tsx
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import {
@@ -83,6 +84,28 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
     return options.find(option => option.id === value);
   }, [options, value]);
 
+  const getHighlightedText = useCallback((text: string, highlight: string) => {
+    if (!highlight.trim()) {
+      return <span>{text}</span>;
+    }
+    const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedHighlight})`, 'gi');
+    const parts = text.split(regex);
+    
+    // If there's no match, parts will have only one element.
+    if (parts.length <= 1) {
+        return <span>{text}</span>;
+    }
+
+    return (
+        <span>
+            {parts.map((part, i) =>
+                i % 2 === 1 ? <strong key={i} className="font-semibold">{part}</strong> : part
+            )}
+        </span>
+    );
+  }, []);
+
   const shouldVirtualize = filteredOptions.length > 50;
   const itemHeight = isMobile ? 48 : 36;
   const maxHeight = isMobile ? 280 : 300;
@@ -157,7 +180,7 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
             ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
           `}
         >
-          {option.name}
+          {getHighlightedText(option.name, searchTerm)}
           {isPopular && !searchTerm && (
             <span className="ml-2 text-xs text-muted-foreground">★</span>
           )}
@@ -215,7 +238,7 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
                     ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
                   `}
                 >
-                  {option.name}
+                  {getHighlightedText(option.name, searchTerm)}
                   {isPopular && !searchTerm && (
                     <span className="ml-2 text-xs text-muted-foreground">★</span>
                   )}
@@ -279,3 +302,4 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
 };
 
 export default EnhancedVirtualizedSelect;
+```
