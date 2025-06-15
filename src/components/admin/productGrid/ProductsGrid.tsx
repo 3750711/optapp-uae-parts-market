@@ -92,12 +92,24 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     );
   }
 
+  const handleProductSelect = (productId: string) => {
+    onProductSelect((prevSelected) => {
+      if (prevSelected.includes(productId)) {
+        return prevSelected.filter((id) => id !== productId);
+      } else {
+        return [...prevSelected, productId];
+      }
+    });
+  };
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
       {products?.map((product) => (
         <AdminProductCard
           key={product.id}
           product={product}
+          isSelected={selectedProducts.includes(product.id)}
+          onSelect={() => handleProductSelect(product.id)}
           onDelete={onDelete}
           isDeleting={isDeleting && deleteProductId === product.id}
           onStatusChange={onStatusChange}
