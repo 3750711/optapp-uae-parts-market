@@ -1,5 +1,3 @@
-
-
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -14,9 +12,12 @@ import { useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AdminProductCardProps {
   product: Product;
+  isSelected: boolean;
+  onSelect: () => void;
   onDelete: (id: string) => void;
   isDeleting: boolean;
   onStatusChange?: () => void;
@@ -24,6 +25,8 @@ interface AdminProductCardProps {
 
 const AdminProductCard: React.FC<AdminProductCardProps> = ({
   product,
+  isSelected,
+  onSelect,
   onDelete,
   isDeleting,
   onStatusChange
@@ -110,15 +113,25 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     .join(' • ');
 
   const handleEditSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ['products'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-products'] });
     setIsEditDialogOpen(false);
   };
 
   return (
     <>
       <div 
-        className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full`}
+        className={`${getProductCardBackground(product.status)} rounded-lg shadow-sm hover:shadow-md transition-shadow flex flex-col h-full relative ${isSelected ? 'ring-2 ring-primary ring-offset-background' : ''}`}
+        onClick={onSelect}
       >
+        <div 
+            className="absolute top-2 left-2 z-10 bg-background/50 backdrop-blur-sm rounded-sm"
+            onClick={(e) => {
+                e.stopPropagation();
+                onSelect();
+            }}
+        >
+            <Checkbox checked={isSelected} className="m-1" aria-label={`Выбрать товар ${product.title}`} />
+        </div>
         <div className="relative p-2">
           <div className="w-full h-48 bg-gray-50 rounded-md overflow-hidden">
             <OptimizedImage
@@ -203,7 +216,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
                 }
-                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+                onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-products'] })}
               />
               
               <AlertDialog>
@@ -249,7 +262,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
                       Опубликовать
                     </Button>
                   }
-                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['products'] })}
+                  onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-products'] })}
                 />
               )}
             </div>
@@ -278,4 +291,3 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
 };
 
 export default AdminProductCard;
-

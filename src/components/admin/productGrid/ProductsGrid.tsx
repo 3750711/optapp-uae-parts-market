@@ -9,7 +9,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 interface ProductsGridProps {
   products: Product[];
   selectedProducts: string[];
-  onProductSelect: (selectedProducts: string[]) => void;
+  onProductSelect: React.Dispatch<React.SetStateAction<string[]>>;
   onProductUpdate: () => void;
   isLoading: boolean;
   isError: boolean;

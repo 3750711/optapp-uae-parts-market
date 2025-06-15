@@ -1,4 +1,3 @@
-
 import React from 'react';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui/button';
 interface AdminProductsContentProps {
   products: Product[];
   selectedProducts: string[];
-  onProductSelect: (products: string[]) => void;
+  onProductSelect: React.Dispatch<React.SetStateAction<string[]>>;
   onProductUpdate: () => void;
   isLoading: boolean;
   isError: boolean;
