@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/hooks/useOrderForm';
-import debounce from 'lodash/debounce';
+import { debounce } from '@/utils/debounce';
 
 interface PriceAndBuyerStepProps {
   formData: OrderFormData;

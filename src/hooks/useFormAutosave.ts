@@ -1,5 +1,6 @@
+
 import { useEffect, useCallback, useRef } from 'react';
-import debounce from 'lodash/debounce';
+import { debounce } from '@/utils/debounce';
 
 interface AutosaveOptions {
   key: string;
