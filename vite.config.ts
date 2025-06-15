@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -51,7 +52,7 @@ export default defineConfig(({ mode }) => ({
         assetFileNames: (assetInfo) => {
           // Группируем статические ресурсы
           if (assetInfo.name?.endsWith('.css')) {
-            return 'assets/css/[name]-[hash][extname]';
+            return 'assets/[name]-[hash][extname]';
           }
           if (assetInfo.name?.match(/\.(png|jpe?g|svg|gif|tiff|bmp|ico)$/i)) {
             return 'assets/images/[name]-[hash][extname]';
