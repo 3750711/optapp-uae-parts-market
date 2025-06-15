@@ -6,7 +6,7 @@ import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Search, X, SortAsc, SortDesc } from "lucide-react";
+import { RefreshCw, Search, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
@@ -26,6 +26,7 @@ interface AdminOrdersHeaderProps {
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onRefetch: () => void;
   totalCount?: number;
+  isFetching?: boolean;
 }
 
 export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
@@ -46,6 +47,7 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-2">
           <CardTitle className="text-xl font-bold">Заказы</CardTitle>
+          {props.isFetching && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
           {props.debouncedSearchTerm && (
             <Badge variant="secondary" className="text-xs">
               Поиск: "{props.debouncedSearchTerm}"

@@ -4,7 +4,7 @@ import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, X, Filter } from "lucide-react";
+import { Search, X, Filter, RefreshCw } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SortingControls, SortField, SortDirection } from "./SortingControls";
 import { Database } from "@/integrations/supabase/types";
@@ -39,6 +39,7 @@ interface MobileAdminOrdersHeaderProps {
   onSortChange: (field: SortField, direction: SortDirection) => void;
   onRefetch: () => void;
   totalCount: number;
+  isFetching?: boolean;
 }
 
 export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = ({
@@ -53,7 +54,8 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
   sortDirection,
   onSortChange,
   onRefetch,
-  totalCount
+  totalCount,
+  isFetching,
 }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -77,6 +79,7 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
           <Badge variant="secondary" className="text-xs shrink-0">
             {totalCount}
           </Badge>
+          {isFetching && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
         </div>
         
         <div className="flex items-center gap-1 shrink-0">
