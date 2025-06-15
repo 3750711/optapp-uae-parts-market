@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts";
@@ -341,26 +340,6 @@ const Catalog: React.FC = () => {
               </div>
             )}
           </>
-        )}
-
-        {hasNextPage && (
-          <div className="mt-8 text-center">
-            <Button 
-              onClick={handleLoadMore}
-              disabled={isFetchingNextPage}
-              variant="outline"
-              size="lg"
-            >
-              {isFetchingNextPage ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Загрузка...
-                </>
-              ) : (
-                'Загрузить еще'
-              )}
-            </Button>
-          </div>
         )}
       </div>
     </Layout>
