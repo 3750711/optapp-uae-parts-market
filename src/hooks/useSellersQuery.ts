@@ -13,38 +13,29 @@ export const useSellersQuery = () => {
     queryKey: ['admin-products-sellers'],
     queryFn: async (): Promise<Seller[]> => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔍 Fetching all unique sellers...');
+        console.log('🔍 Fetching all sellers from profiles...');
       }
 
       const { data, error } = await supabase
-        .from('products')
-        .select('seller_id, seller_name, optid_created')
-        .not('seller_id', 'is', null)
-        .not('seller_name', 'is', null);
+        .from('profiles')
+        .select('id, full_name, opt_id')
+        .eq('user_type', 'seller')
+        .not('full_name', 'is', null)
+        .order('full_name', { ascending: true });
 
       if (error) {
-        console.error('❌ Error fetching sellers:', error);
+        console.error('❌ Error fetching sellers from profiles:', error);
         throw error;
       }
 
-      // Extract unique sellers
-      const uniqueSellers = new Map();
-      data?.forEach(product => {
-        if (product.seller_id && product.seller_name) {
-          uniqueSellers.set(product.seller_id, {
-            id: product.seller_id,
-            name: product.seller_name,
-            opt_id: product.optid_created
-          });
-        }
-      });
-
-      const sellers = Array.from(uniqueSellers.values()).sort((a: Seller, b: Seller) => 
-        a.name.localeCompare(b.name)
-      );
+      const sellers = data.map(profile => ({
+        id: profile.id,
+        name: profile.full_name || 'Unnamed Seller',
+        opt_id: profile.opt_id || undefined,
+      }));
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Loaded sellers:', sellers.length);
+        console.log('✅ Loaded sellers from profiles:', sellers.length);
       }
       return sellers;
     },
