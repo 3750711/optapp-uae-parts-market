@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Dialog,
@@ -13,6 +14,16 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from '@/integrations/supabase/client';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -23,20 +34,21 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [pendingValues, setPendingValues] = React.useState<UserFormValues | null>(null);
 
-  // Force dialog to be open when user prop is provided
+  if (!user) return null;
+
   const isOpen = !!user;
+  const isConfirmationOpen = !!pendingValues;
 
-  const handleSubmit = async (values: UserFormValues) => {
+  const proceedWithSubmit = async (values: UserFormValues) => {
     try {
       setIsSubmitting(true);
       
       console.log("Submitting user edit for:", user?.id, "with values:", values);
       
-      // Clean up values to prevent empty strings being saved as nulls
       const cleanedValues = Object.entries(values).reduce((acc, [key, value]) => {
         if (key === 'rating' && value) {
-          // Convert rating string to number
           acc[key] = parseFloat(value as string);
         } else {
           acc[key] = value === "" ? null : value;
@@ -44,8 +56,6 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
         return acc;
       }, {} as Record<string, any>);
       
-      // For admin editing, we need to bypass the telegram_edit_count check
-      // This will be handled by the RLS policy, so no need to modify it here
       const { error } = await supabase
         .from('profiles')
         .update(cleanedValues)
@@ -78,44 +88,64 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
     }
   };
 
-  const handleClose = () => {
-    console.log("Closing user edit dialog");
-    if (onSuccess) onSuccess(); // This will set editingUser to null
+  const handleSubmit = async (values: UserFormValues) => {
+    if (!user) return;
+
+    const statusChanged = values.verification_status !== user.verification_status;
+    const typeChanged = values.user_type !== user.user_type;
+
+    if (statusChanged || typeChanged) {
+        setPendingValues(values);
+    } else {
+        await proceedWithSubmit(values);
+    }
   };
 
-  if (!user) return null;
+  const handleConfirmSubmit = async () => {
+    if (pendingValues) {
+        await proceedWithSubmit(pendingValues);
+    }
+    setPendingValues(null);
+  };
+  
+  const handleCancelSubmit = () => {
+    setPendingValues(null);
+  };
 
-  // Mobile version using Sheet
-  if (isMobile) {
-    return (
-      <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-        <SheetContent 
-          side="bottom" 
-          className="h-[95vh] flex flex-col p-0"
-        >
-          <SheetHeader className="px-6 py-4 border-b">
-            <SheetTitle>Редактировать пользователя</SheetTitle>
-            <SheetDescription>
-              Внесите изменения в профиль пользователя и нажмите Сохранить
-            </SheetDescription>
-          </SheetHeader>
-          
-          <div className="flex-1 overflow-y-auto px-6 py-4">
-            <UserEditForm 
-              user={user} 
-              onSubmit={handleSubmit} 
-              isSubmitting={isSubmitting} 
-              onClose={handleClose}
-              isMobile={true}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
+  const handleClose = () => {
+    console.log("Closing user edit dialog");
+    if (onSuccess) onSuccess();
+  };
 
-  // Desktop version using Dialog
-  return (
+  const formElement = (
+    <UserEditForm 
+      user={user} 
+      onSubmit={handleSubmit} 
+      isSubmitting={isSubmitting} 
+      onClose={handleClose}
+      isMobile={isMobile}
+    />
+  );
+
+  const dialogComponent = isMobile ? (
+    <Sheet open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <SheetContent 
+        side="bottom" 
+        className="h-[95vh] flex flex-col p-0"
+      >
+        <SheetHeader className="px-6 py-4 border-b">
+          <SheetTitle>Редактировать пользователя</SheetTitle>
+          <SheetDescription>
+            Внесите изменения в профиль пользователя и нажмите Сохранить
+          </SheetDescription>
+        </SheetHeader>
+        
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          {formElement}
+        </div>
+      </SheetContent>
+    </Sheet>
+  ) : (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -124,14 +154,30 @@ export const UserEditDialog = ({ user, trigger, onSuccess }: UserEditDialogProps
             Внесите изменения в профиль пользователя и нажмите Сохранить
           </DialogDescription>
         </DialogHeader>
-        <UserEditForm 
-          user={user} 
-          onSubmit={handleSubmit} 
-          isSubmitting={isSubmitting} 
-          onClose={handleClose}
-          isMobile={false}
-        />
+        {formElement}
       </DialogContent>
     </Dialog>
+  );
+
+  return (
+    <>
+      {dialogComponent}
+      <AlertDialog open={isConfirmationOpen} onOpenChange={(open) => !open && handleCancelSubmit()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Подтвердите критические изменения</AlertDialogTitle>
+            <AlertDialogDescription>
+              Вы собираетесь изменить статус верификации или тип пользователя. Это может повлиять на права доступа. Вы уверены?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSubmit}>Отмена</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmSubmit} disabled={isSubmitting}>
+              {isSubmitting ? 'Сохранение...' : 'Подтвердить и сохранить'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };

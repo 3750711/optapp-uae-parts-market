@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,13 +21,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from 'lucide-react';
 import { UserEditFormProps, UserFormValues } from "./types";
-import { userFormSchema } from "./schema";
+import { createUserFormSchema } from "./schema";
 
 interface ExtendedUserEditFormProps extends UserEditFormProps {
   isMobile?: boolean;
 }
 
 export const UserEditForm = ({ user, onSubmit, isSubmitting, onClose, isMobile = false }: ExtendedUserEditFormProps) => {
+  const userFormSchema = React.useMemo(() => createUserFormSchema(user), [user]);
+  
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userFormSchema),
     defaultValues: {
