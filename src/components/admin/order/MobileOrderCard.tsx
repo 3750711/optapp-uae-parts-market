@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, CheckCircle, Eye, MoreVertical } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, Camera } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
@@ -13,6 +13,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface MobileOrderCardProps {
   order: Order;
@@ -33,6 +37,24 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
   onViewDetails,
   onQuickAction
 }) => {
+  const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: confirmImages = [] } = useQuery({
+    queryKey: ['confirm-images', order.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('confirm_images')
+        .select('id')
+        .eq('order_id', order.id);
+
+      if (error) {
+        console.error('Error fetching confirm images:', error);
+        return [];
+      };
+      return data || [];
+    },
+  });
+
   const totalValue = Number(order.price || 0) + Number(order.delivery_price_confirm || 0);
   const showConfirmButton = order.status === 'created' || order.status === 'seller_confirmed';
 
@@ -173,8 +195,43 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
             <Eye className="h-3 w-3 mr-1" />
             Просмотр
           </Button>
+          {confirmImages.length > 0 ? (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700"
+              onClick={() => setIsConfirmImagesDialogOpen(true)}
+            >
+              <CheckCircle className="h-4 w-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsConfirmImagesDialogOpen(true)}
+            >
+              <Camera className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </CardContent>
+      <Dialog open={isConfirmImagesDialogOpen} onOpenChange={(isOpen) => {
+        setIsConfirmImagesDialogOpen(isOpen);
+        if (!isOpen) {
+          queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
+        }
+      }}>
+        <DialogContent className="max-w-4xl w-[95vw] rounded-lg">
+          <DialogHeader>
+            <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
+          </DialogHeader>
+          <OrderConfirmationImages 
+            orderId={order.id} 
+            canEdit={true}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };

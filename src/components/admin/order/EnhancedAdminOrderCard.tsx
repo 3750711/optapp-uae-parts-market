@@ -1,7 +1,8 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Edit2, Trash2, CheckCircle, Eye } from "lucide-react";
+import { Edit2, Trash2, CheckCircle, Eye, Camera } from "lucide-react";
 import { Database } from '@/integrations/supabase/types';
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { CompactOrderInfo } from './CompactOrderInfo';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -42,6 +44,7 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
   onViewDetails 
 }) => {
   const queryClient = useQueryClient();
+  const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
   
   // Check if confirmation images exist for this order
   const { data: confirmImages = [] } = useQuery({
@@ -156,7 +159,7 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
   const showRegisterButton = order.status === 'admin_confirmed';
 
   return (
-    <Card className={`${highlightColor} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden`}>
+    <Card className={`${highlightColor} hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group relative overflow-hidden flex flex-col`}>
       <CardHeader className="space-y-3 pb-4">
         <div className="flex justify-between items-start">
           <EnhancedOrderStatusBadge status={order.status} />
@@ -182,7 +185,7 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 flex-grow">
         <CompactOrderInfo order={order} />
 
         {order.text_order && order.text_order.trim() !== "" && (
@@ -192,13 +195,27 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
           </div>
         )}
 
-        {/* Показывать подтверждающие фото только если они есть или есть возможность их добавить */}
-        {confirmImages.length > 0 && (
-          <OrderConfirmationImages 
-            orderId={order.id} 
-            canEdit={true}
-          />
-        )}
+        <div className="border-t pt-3">
+          {confirmImages.length > 0 ? (
+            <div 
+              className="flex items-center text-sm text-green-600 font-medium cursor-pointer"
+              onClick={() => setIsConfirmImagesDialogOpen(true)}
+            >
+              <CheckCircle className="h-4 w-4 mr-2" />
+              <span>Фото-подтверждение есть ({confirmImages.length})</span>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => setIsConfirmImagesDialogOpen(true)}
+            >
+              <Camera className="h-4 w-4 mr-2" />
+              Загрузить фото-подтверждение
+            </Button>
+          )}
+        </div>
       </CardContent>
       
       <div className="p-4 border-t bg-white/50 backdrop-blur-sm flex items-center justify-end gap-2">
@@ -241,6 +258,23 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
+
+      <Dialog open={isConfirmImagesDialogOpen} onOpenChange={(isOpen) => {
+        setIsConfirmImagesDialogOpen(isOpen);
+        if (!isOpen) {
+          queryClient.invalidateQueries({ queryKey: ['confirm-images', order.id] });
+        }
+      }}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
+          </DialogHeader>
+          <OrderConfirmationImages 
+            orderId={order.id} 
+            canEdit={true}
+          />
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
