@@ -549,6 +549,7 @@ export type Database = {
           description_user: string | null
           email: string
           first_login_completed: boolean
+          fts: unknown | null
           full_name: string | null
           id: string
           last_login: string | null
@@ -571,6 +572,7 @@ export type Database = {
           description_user?: string | null
           email: string
           first_login_completed?: boolean
+          fts?: unknown | null
           full_name?: string | null
           id: string
           last_login?: string | null
@@ -593,6 +595,7 @@ export type Database = {
           description_user?: string | null
           email?: string
           first_login_completed?: boolean
+          fts?: unknown | null
           full_name?: string | null
           id?: string
           last_login?: string | null
@@ -994,6 +997,10 @@ export type Database = {
       }
       check_order_number_unique: {
         Args: { p_order_number: number; p_order_id?: string }
+        Returns: boolean
+      }
+      check_search_rate_limit: {
+        Args: { p_user_id: string; p_search_type?: string }
         Returns: boolean
       }
       cleanup_expired_verification_codes: {

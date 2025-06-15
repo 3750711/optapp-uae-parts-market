@@ -164,12 +164,14 @@ export const useOptimizedCatalogProducts = ({
           }
         }
 
-        // Apply search filters
+        // Улучшенные фильтры поиска с использованием правильных индексов
         if (filters.activeSearchTerm && filters.activeSearchTerm.length >= 3) {
           const searchTerm = filters.activeSearchTerm.trim();
+          // Используем GIN индекс для эффективного текстового поиска
           query = query.or(`title.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%,model.ilike.%${searchTerm}%`);
         }
 
+        // Используем индексы для фильтрации по бренду и модели
         if (filters.selectedBrandName) {
           query = query.eq('brand', filters.selectedBrandName);
         }
@@ -209,8 +211,8 @@ export const useOptimizedCatalogProducts = ({
       return lastPage.length === productsPerPage ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    staleTime: 5 * 60 * 1000, // 5 минут
-    gcTime: 10 * 60 * 1000, // 10 минут
+    staleTime: 2 * 60 * 1000, // Уменьшено до 2 минут для более актуальных данных
+    gcTime: 5 * 60 * 1000, // 5 минут в памяти
     refetchOnWindowFocus: false,
     retry: 2,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 3000)
