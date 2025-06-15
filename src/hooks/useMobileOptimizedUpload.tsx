@@ -180,6 +180,17 @@ export const useMobileOptimizedUpload = () => {
     files: File[],
     options: BatchUploadOptions = {}
   ): Promise<string[]> => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (!options.disableToast) {
+        toast({
+          title: "Нет подключения к сети",
+          description: "Проверьте ваше интернет-соединение и попробуйте снова.",
+          variant: "destructive",
+        });
+      }
+      return [];
+    }
+
     const batchSize = options.batchSize || 2;
     const batchDelay = options.batchDelay || 1000;
     

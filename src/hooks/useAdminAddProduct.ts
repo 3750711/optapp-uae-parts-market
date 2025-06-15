@@ -25,6 +25,10 @@ export const useAdminAddProduct = () => {
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
+  // New state for preview dialog
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<AdminProductFormValues | null>(null);
+
   const { 
     brands, 
     brandModels, 
@@ -221,8 +225,35 @@ export const useAdminAddProduct = () => {
     }
   };
   
-  const onSubmit = (values: AdminProductFormValues) => 
-    guardedSubmit(() => handleCreateProduct(values));
+  const handleConfirmPublish = () => {
+    if (previewData) {
+      guardedSubmit(() => handleCreateProduct(previewData));
+    }
+  };
+  
+  const onSubmit = (values: AdminProductFormValues) => {
+    setPreviewData(values);
+    setIsPreviewOpen(true);
+  };
+  
+  const getRichPreviewData = () => {
+    if (!previewData) return null;
+
+    const selectedBrand = brands.find(b => b.id === previewData.brandId);
+    const selectedModel = brandModels.find(m => m.id === previewData.modelId);
+    const selectedSeller = sellers.find(s => s.id === previewData.sellerId);
+
+    return {
+        title: previewData.title,
+        price: previewData.price,
+        description: previewData.description,
+        brandName: selectedBrand?.name,
+        modelName: selectedModel?.name,
+        sellerName: selectedSeller?.full_name,
+        imageUrls,
+        videoUrls,
+    };
+  };
 
   return {
     form,
@@ -246,5 +277,13 @@ export const useAdminAddProduct = () => {
     handleMobileOptimizedImageUpload,
     handleImageDelete,
     showDraftSaved,
+    // --- New props for preview dialog ---
+    isPreviewOpen,
+    closePreview: () => {
+        setIsPreviewOpen(false);
+        setPreviewData(null);
+    },
+    richPreviewData: getRichPreviewData(),
+    handleConfirmPublish,
   };
 };

@@ -6,6 +6,7 @@ import AddProductForm from "@/components/product/AddProductForm";
 import { useAdminAddProduct } from "@/hooks/useAdminAddProduct";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import ProductPreviewDialog from "@/components/admin/ProductPreviewDialog";
 
 const AdminAddProduct = () => {
   const {
@@ -30,6 +31,11 @@ const AdminAddProduct = () => {
     handleMobileOptimizedImageUpload,
     handleImageDelete,
     showDraftSaved,
+    // New props for preview
+    isPreviewOpen,
+    closePreview,
+    richPreviewData,
+    handleConfirmPublish,
   } = useAdminAddProduct();
 
   return (
@@ -74,6 +80,13 @@ const AdminAddProduct = () => {
             />
           </div>
         </div>
+        <ProductPreviewDialog
+          isOpen={isPreviewOpen}
+          onClose={closePreview}
+          onConfirm={handleConfirmPublish}
+          productData={richPreviewData}
+          isSubmitting={isSubmitting}
+        />
       </AdminLayout>
     </AdminRoute>
   );
