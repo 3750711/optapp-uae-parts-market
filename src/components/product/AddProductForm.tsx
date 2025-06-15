@@ -1,6 +1,6 @@
+
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
-import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { Form } from "@/components/ui/form";
@@ -10,7 +10,9 @@ import BasicInfoSection from "./form/BasicInfoSection";
 import CarInfoSection from "./form/CarInfoSection";
 import MediaSection from "./form/MediaSection";
 
-// Типизированные значения для формы
+// Экспортируем базовую схему для seller страниц
+import { z } from "zod";
+
 export const productSchema = z.object({
   title: z.string().min(3, { message: "Название должно содержать не менее 3 символов" }),
   price: z.string().min(1, { message: "Укажите цену товара" }).refine((val) => !isNaN(Number(val)) && Number(val) > 0, { message: "Цена должна быть положительным числом" }),
@@ -24,9 +26,12 @@ export const productSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productSchema>;
 
+// Типы для универсального использования формы
+type FormValues = ProductFormValues | import("@/schemas/adminProductSchema").AdminProductFormValues;
+
 interface AddProductFormProps {
-  form: UseFormReturn<ProductFormValues>;
-  onSubmit: (values: ProductFormValues) => void;
+  form: UseFormReturn<FormValues>;
+  onSubmit: (values: FormValues) => void;
   isSubmitting: boolean;
   imageUrls: string[];
   videoUrls: string[];
@@ -56,7 +61,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   isSubmitting,
   imageUrls,
   videoUrls,
-  userId,
   isLoadingCarData,
   watchBrandId,
   searchBrandTerm,
@@ -109,7 +113,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
               primaryImage={primaryImage}
               onSetPrimaryImage={setPrimaryImage}
               onImageDelete={onImageDelete}
-              productId={userId}
            />
         </FormSectionWrapper>
         

@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
-import { ProductFormValues } from '../AddProductForm';
 import {
   FormControl,
   FormField,
@@ -24,7 +23,7 @@ interface Seller {
 }
 
 interface SellerSelectionSectionProps {
-  form: UseFormReturn<ProductFormValues>;
+  form: UseFormReturn<any>; // Используем any чтобы поддержать оба типа форм
   sellers: Seller[];
 }
 
