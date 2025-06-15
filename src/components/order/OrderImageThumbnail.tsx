@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils';
 interface OrderImageThumbnailProps {
   orderId: string;
   className?: string;
+  size?: 'thumbnail' | 'card' | 'detail' | 'compressed';
 }
 
-export const OrderImageThumbnail: React.FC<OrderImageThumbnailProps> = ({ orderId, className }) => {
-  const { imageUrl, isLoading } = useOrderImage(orderId);
+export const OrderImageThumbnail: React.FC<OrderImageThumbnailProps> = ({ orderId, className, size = 'thumbnail' }) => {
+  const { imageUrl, isLoading } = useOrderImage(orderId, size);
 
   const containerClasses = cn("flex items-center justify-center bg-gray-100 rounded-md shrink-0", className);
 

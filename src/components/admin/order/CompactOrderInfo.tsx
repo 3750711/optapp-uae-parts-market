@@ -52,7 +52,7 @@ export const CompactOrderInfo: React.FC<CompactOrderInfoProps> = ({ order }) => 
     <div className="space-y-3">
       {/* Заголовок и основная информация */}
       <div className="flex gap-4 items-start">
-        <OrderImageThumbnail orderId={order.id} className="h-16 w-16" />
+        <OrderImageThumbnail orderId={order.id} className="h-16 w-16" size="card" />
         <div className="space-y-2 flex-1 min-w-0">
           <div className="flex items-start justify-between">
             <h3 className="font-semibold text-lg leading-tight line-clamp-2 pr-2">

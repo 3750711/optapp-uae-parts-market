@@ -1,4 +1,3 @@
-
 // Cloudinary configuration and utilities
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
 
@@ -46,6 +45,53 @@ export const extractVersionFromUrl = (cloudinaryUrl: string): string | null => {
 
 // Predefined transformations for different use cases
 export const getProductImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
+  const transformations: Record<string, CloudinaryTransformation> = {
+    // ~30KB thumbnail for very small previews
+    thumbnail: {
+      width: 150,
+      height: 150,
+      crop: 'fill',
+      gravity: 'auto',
+      quality: 'auto:low',
+      format: 'auto',
+      dpr: 'auto'
+    },
+    // ~100KB card - optimized for catalog listings
+    card: {
+      width: 400,
+      height: 300,
+      crop: 'fill',
+      gravity: 'auto',
+      quality: 'auto:low',
+      format: 'auto',
+      dpr: 'auto'
+    },
+    // ~300KB detail for product pages
+    detail: {
+      width: 800,
+      height: 600,
+      crop: 'fit',
+      gravity: 'auto',
+      quality: 'auto:good',
+      format: 'auto',
+      dpr: 'auto'
+    },
+    // ~200KB compressed (main storage format)
+    compressed: {
+      width: 600,
+      height: 450,
+      crop: 'fill',
+      gravity: 'auto',
+      quality: 'auto:low',
+      format: 'auto'
+    }
+  };
+  
+  return buildCloudinaryUrl(publicId, transformations[size]);
+};
+
+// Predefined transformations for order images
+export const getOrderImageUrl = (publicId: string, size: 'thumbnail' | 'card' | 'detail' | 'compressed' = 'card'): string => {
   const transformations: Record<string, CloudinaryTransformation> = {
     // ~30KB thumbnail for very small previews
     thumbnail: {

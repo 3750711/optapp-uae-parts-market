@@ -124,7 +124,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
 
         {/* Product Info Block */}
         <div className="flex items-start gap-3 bg-muted/30 rounded-lg p-3">
-          <OrderImageThumbnail orderId={order.id} className="h-12 w-12" />
+          <OrderImageThumbnail orderId={order.id} className="h-12 w-12" size="thumbnail" />
           <div className="flex-1 min-w-0">
             <div className="font-medium text-sm line-clamp-2 mb-1">
               {order.title || 'Без названия'}

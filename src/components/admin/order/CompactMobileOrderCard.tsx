@@ -90,7 +90,7 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
         </div>
 
         <div className="flex items-start gap-2">
-          <OrderImageThumbnail orderId={order.id} className="h-10 w-10" />
+          <OrderImageThumbnail orderId={order.id} className="h-10 w-10" size="thumbnail" />
           <div className="flex-1 min-w-0">
             <div className="text-xs font-medium line-clamp-1">
               {order.title || 'Без названия'}
