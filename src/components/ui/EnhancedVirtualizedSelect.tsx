@@ -40,6 +40,8 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounceValue(searchTerm, 2000);
 
+  const isSearching = searchTerm !== debouncedSearchTerm;
+
   const filteredOptions = useMemo(() => {
     if (!debouncedSearchTerm) {
       return options;
@@ -88,7 +90,11 @@ const EnhancedVirtualizedSelect: React.FC<SearchableSelectProps> = ({
           </div>
         </div>
         <div className="max-h-[250px] overflow-y-auto">
-          {filteredOptions.length > 0 ? (
+          {isSearching ? (
+            <p className="p-4 text-center text-sm text-muted-foreground">
+              Поиск...
+            </p>
+          ) : filteredOptions.length > 0 ? (
             filteredOptions.map((option) => (
               <SelectItem 
                 key={option.id} 
