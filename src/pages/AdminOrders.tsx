@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -13,7 +13,6 @@ import { AdminOrdersDialogs } from "@/components/admin/order/AdminOrdersDialogs"
 import { EmptyState } from "@/components/admin/order/FallbackComponents";
 import { OrdersTableSkeleton } from "@/components/admin/order/OrdersTableSkeleton";
 import { useOptimizedOrdersQuery } from "@/hooks/useOptimizedOrdersQuery";
-import { useDebounceValue } from "@/hooks/useDebounceValue";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAdminOrdersState } from "@/hooks/useAdminOrdersState";
 import { useOrderActions } from "@/hooks/useOrderActions";
@@ -45,12 +44,21 @@ const AdminOrders = () => {
     handleClearSelection,
   } = useAdminOrdersState();
 
-  // Debounce search term for better performance
-  const debouncedSearchTerm = useDebounceValue(searchTerm, 1000);
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
+
+  const handleSearchClick = () => {
+    setActiveSearchTerm(searchTerm);
+    handleSearch();
+  };
+
+  const handleClearSearch = () => {
+    clearSearch();
+    setActiveSearchTerm('');
+  };
 
   const { data, isLoading, error, refetch, isFetching } = useOptimizedOrdersQuery({
     statusFilter,
-    searchTerm: debouncedSearchTerm,
+    searchTerm: activeSearchTerm,
     page: currentPage,
     pageSize,
     sortField,
@@ -63,7 +71,7 @@ const AdminOrders = () => {
   const hasNextPage = data?.hasNextPage || false;
   const hasPreviousPage = data?.hasPreviousPage || false;
 
-  const hasActiveFilters = statusFilter !== 'all' || !!debouncedSearchTerm || !!dateRange.from || !!dateRange.to;
+  const hasActiveFilters = statusFilter !== 'all' || !!activeSearchTerm || !!dateRange.from || !!dateRange.to;
 
   const {
     selectedOrder,
@@ -119,9 +127,9 @@ const AdminOrders = () => {
             <AdminOrdersHeader
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              debouncedSearchTerm={debouncedSearchTerm}
-              onSearch={handleSearch}
-              onClearSearch={clearSearch}
+              activeSearchTerm={activeSearchTerm}
+              onSearch={handleSearchClick}
+              onClearSearch={handleClearSearch}
               statusFilter={statusFilter}
               onStatusFilterChange={handleStatusFilterChange}
               sortField={sortField}
@@ -152,9 +160,9 @@ const AdminOrders = () => {
             <AdminOrdersHeader
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
-              debouncedSearchTerm={debouncedSearchTerm}
-              onSearch={handleSearch}
-              onClearSearch={clearSearch}
+              activeSearchTerm={activeSearchTerm}
+              onSearch={handleSearchClick}
+              onClearSearch={handleClearSearch}
               statusFilter={statusFilter}
               onStatusFilterChange={handleStatusFilterChange}
               sortField={sortField}

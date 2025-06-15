@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,7 @@ type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 interface MobileAdminOrdersHeaderProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  debouncedSearchTerm: string;
+  activeSearchTerm: string;
   onSearch: () => void;
   onClearSearch: () => void;
   statusFilter: StatusFilterType;
@@ -49,7 +50,7 @@ interface MobileAdminOrdersHeaderProps {
 export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = ({
   searchTerm,
   setSearchTerm,
-  debouncedSearchTerm,
+  activeSearchTerm,
   onSearch,
   onClearSearch,
   statusFilter,
@@ -75,7 +76,7 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
     }
   };
 
-  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (debouncedSearchTerm ? 1 : 0) + (dateRange.from || dateRange.to ? 1 : 0);
+  const activeFiltersCount = (statusFilter !== 'all' ? 1 : 0) + (activeSearchTerm ? 1 : 0) + (dateRange.from || dateRange.to ? 1 : 0);
 
   return (
     <CardHeader className="space-y-3 pb-4">
@@ -95,7 +96,7 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="h-9 w-9 p-0 relative">
                 <Search className="h-4 w-4" />
-                {debouncedSearchTerm && (
+                {activeSearchTerm && (
                   <div className="absolute -top-1 -right-1 h-2 w-2 bg-primary rounded-full" />
                 )}
               </Button>
@@ -206,10 +207,10 @@ export const MobileAdminOrdersHeader: React.FC<MobileAdminOrdersHeaderProps> = (
       </div>
 
       {/* Active Search Badge */}
-      {debouncedSearchTerm && (
+      {activeSearchTerm && (
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-xs">
-            Поиск: "{debouncedSearchTerm}"
+            Поиск: "{activeSearchTerm}"
           </Badge>
           <Button
             variant="ghost"

@@ -17,7 +17,7 @@ type StatusFilterType = 'all' | Database['public']['Enums']['order_status'];
 interface AdminOrdersHeaderProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  debouncedSearchTerm: string;
+  activeSearchTerm: string;
   onSearch: () => void;
   onClearSearch: () => void;
   statusFilter: StatusFilterType;
@@ -53,9 +53,9 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
         <div className="flex items-center gap-2">
           <CardTitle className="text-xl font-bold">Заказы</CardTitle>
           {props.isFetching && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
-          {props.debouncedSearchTerm && (
+          {props.activeSearchTerm && (
             <Badge variant="secondary" className="text-xs">
-              Поиск: "{props.debouncedSearchTerm}"
+              Поиск: "{props.activeSearchTerm}"
             </Badge>
           )}
         </div>
@@ -82,6 +82,10 @@ export const AdminOrdersHeader: React.FC<AdminOrdersHeaderProps> = (props) => {
             </Button>
           )}
         </div>
+        
+        <Button onClick={props.onSearch} className="w-full sm:w-auto">
+          Найти
+        </Button>
         
         <DateRangeFilter
           value={props.dateRange}
