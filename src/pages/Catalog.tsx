@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Helmet } from "react-helmet-async";
-import { useCatalogProducts } from "@/hooks/useCatalogProducts";
+import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts";
 import UnifiedProductGrid from "@/components/product/UnifiedProductGrid";
 import CatalogSkeleton from "@/components/catalog/CatalogSkeleton";
 import { Button } from "@/components/ui/button";
@@ -52,13 +52,13 @@ const Catalog: React.FC = () => {
     handleSearch,
     handleSearchSubmit,
     isActiveFilters
-  } = useCatalogProducts({
+  } = useOptimizedCatalogProducts({
     productsPerPage: 8,
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 500
+    debounceTime: 1000
   });
 
   React.useEffect(() => {
