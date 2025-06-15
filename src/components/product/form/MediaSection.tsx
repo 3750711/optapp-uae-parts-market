@@ -40,8 +40,9 @@ const MediaSection = React.memo<MediaSectionProps>(({
   return (
     <div className="space-y-6">
       {/* Кнопки загрузки */}
-      <div className="flex gap-3">
-        <div className="flex-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <Label className="text-base font-medium mb-3 block">Фотографии</Label>
           <MobileOptimizedImageUpload
             onUploadComplete={handleMobileOptimizedImageUpload}
             maxImages={30}
@@ -50,13 +51,13 @@ const MediaSection = React.memo<MediaSectionProps>(({
             onSetPrimaryImage={onSetPrimaryImage}
             primaryImage={primaryImage}
             productId={productId}
-            showOnlyButton={true}
             buttonText="Загрузить фото"
             buttonIcon={<Upload className="h-4 w-4" />}
           />
         </div>
         
-        <div className="flex-1">
+        <div>
+           <Label className="text-base font-medium mb-3 block">Видео</Label>
           <CloudinaryVideoUpload
             videos={videoUrls}
             onUpload={handleVideoUpload}

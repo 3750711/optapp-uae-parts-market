@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, X, Camera, Star, StarOff, RefreshCw } from "lucide-react";
+import { Upload, X, Camera, Star, StarOff, RefreshCw, UploadCloud } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { cn } from "@/lib/utils";
@@ -48,8 +48,8 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     uploadFilesBatch, 
     cancelUpload, 
     clearProgress,
-    isMobileDevice 
   } = useMobileOptimizedUpload();
+  const [isDragging, setIsDragging] = useState(false);
 
   const handleFileSelect = useCallback(async (files: FileList) => {
     const MAX_PHOTO_SIZE_MB = 10;
@@ -110,6 +110,37 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       onUploadComplete(uploadedUrls);
     }
   }, [existingImages.length, maxImages, onUploadComplete, uploadFilesBatch, productId, toast, disableToast]);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (disabled || isUploading) return;
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFileSelect(e.dataTransfer.files);
+      e.dataTransfer.clearData();
+    }
+  }, [disabled, isUploading, handleFileSelect]);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (disabled || isUploading) return;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, [disabled, isUploading]);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
 
   const handleButtonClick = () => {
     fileInputRef.current?.click();
@@ -247,32 +278,48 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
   // Полный компонент (по умолчанию)
   return (
     <div className={cn("space-y-4", className)}>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={handleButtonClick}
-        disabled={disabled || isUploading || existingImages.length >= maxImages}
-        className="w-full h-12"
-      >
-        {isUploading ? (
-          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-        ) : (
-          buttonIcon
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        className={cn(
+          "border-2 border-dashed border-gray-300 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-colors duration-200",
+          { "border-primary bg-primary/5": isDragging && !disabled && !isUploading },
+          { "cursor-not-allowed bg-muted/50": disabled || isUploading },
+          { "hover:border-primary/50 hover:bg-muted/50": !disabled && !isUploading }
         )}
-        {isUploading ? "Загрузка..." : buttonText}
-      </Button>
-      
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={handleFileChange}
-        className="hidden"
-        disabled={disabled}
-      />
+      >
+        <UploadCloud className="h-10 w-10 text-muted-foreground mb-3" />
+        <p className="text-sm text-muted-foreground mb-4">
+          Перетащите файлы сюда или нажмите
+        </p>
+        <Button
+          type="button"
+          onClick={handleButtonClick}
+          disabled={disabled || isUploading || existingImages.length >= maxImages}
+        >
+          {isUploading ? (
+            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <span className="mr-2">{buttonIcon}</span>
+          )}
+          {isUploading ? "Загрузка..." : buttonText}
+        </Button>
+         <p className="text-xs text-muted-foreground mt-3">
+          {existingImages.length} / {maxImages} фото
+        </p>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+          disabled={disabled || isUploading || existingImages.length >= maxImages}
+        />
+      </div>
 
-      {/* Show upload progress */}
       <UploadProgressCard
         uploadProgress={uploadProgress}
         isUploading={isUploading}
@@ -280,7 +327,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         formatFileSize={formatFileSize}
       />
 
-      {/* Cancel button */}
       {canCancel && (
         <Button
           type="button"
@@ -297,44 +343,47 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
       {existingImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {existingImages.map((url, index) => (
-            <div key={index} className="relative aspect-square">
+            <div key={index} className="relative aspect-square group">
               <img
                 src={url}
                 alt={`Uploaded ${index + 1}`}
                 className="w-full h-full object-cover rounded-lg border"
               />
-              
-              <div className="absolute top-2 right-2 flex gap-1">
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 {onSetPrimaryImage && (
                   <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant={primaryImage === url ? "default" : "secondary"}
                     onClick={() => handleSetPrimary(url)}
-                    className="h-6 w-6 p-0"
-                    disabled={disabled}
+                    className="h-8 w-8"
+                    disabled={disabled || primaryImage === url}
+                    aria-label="Сделать главным"
                   >
-                    {primaryImage === url ? (
-                      <Star className="h-3 w-3" />
-                    ) : (
-                      <StarOff className="h-3 w-3" />
-                    )}
+                    <Star className="h-4 w-4" />
                   </Button>
                 )}
                 
                 {onImageDelete && (
                   <Button
                     type="button"
-                    size="sm"
+                    size="icon"
                     variant="destructive"
                     onClick={() => handleDelete(url)}
-                    className="h-6 w-6 p-0"
+                    className="h-8 w-8"
                     disabled={disabled}
+                    aria-label="Удалить"
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-4 w-4" />
                   </Button>
                 )}
               </div>
+              {primaryImage === url && (
+                  <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <Star className="w-3 h-3" />
+                    <span>Главное</span>
+                  </div>
+                )}
             </div>
           ))}
         </div>
