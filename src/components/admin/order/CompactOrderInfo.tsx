@@ -2,6 +2,7 @@
 import React from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Link, Truck, Package, DollarSign } from 'lucide-react';
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 interface OrderData {
   id: string;
@@ -50,21 +51,24 @@ export const CompactOrderInfo: React.FC<CompactOrderInfoProps> = ({ order }) => 
   return (
     <div className="space-y-3">
       {/* Заголовок и основная информация */}
-      <div className="space-y-2">
-        <div className="flex items-start justify-between">
-          <h3 className="font-semibold text-lg leading-tight line-clamp-2">
-            {order.title}
-          </h3>
-          <Badge variant="outline" className="ml-2 font-mono text-xs">
-            №{order.order_number}
-          </Badge>
+      <div className="flex gap-4 items-start">
+        <OrderImageThumbnail orderId={order.id} className="h-16 w-16" />
+        <div className="space-y-2 flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <h3 className="font-semibold text-lg leading-tight line-clamp-2 pr-2">
+              {order.title}
+            </h3>
+            <Badge variant="outline" className="ml-2 font-mono text-xs shrink-0">
+              №{order.order_number}
+            </Badge>
+          </div>
+          
+          {(order.brand || order.model) && (
+            <p className="text-sm text-muted-foreground">
+              {order.brand} {order.model}
+            </p>
+          )}
         </div>
-        
-        {(order.brand || order.model) && (
-          <p className="text-sm text-muted-foreground">
-            {order.brand} {order.model}
-          </p>
-        )}
       </div>
 
       {/* Участники заказа */}

@@ -17,6 +17,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 interface MobileOrderCardProps {
   order: Order;
@@ -122,16 +123,19 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
         </div>
 
         {/* Product Info Block */}
-        <div className="bg-muted/30 rounded-lg p-3">
-          <div className="font-medium text-sm line-clamp-2 mb-1">
-            {order.title || 'Без названия'}
-          </div>
-          
-          {(order.brand || order.model) && (
-            <div className="text-xs text-muted-foreground">
-              {[order.brand, order.model].filter(Boolean).join(' ')}
+        <div className="flex items-start gap-3 bg-muted/30 rounded-lg p-3">
+          <OrderImageThumbnail orderId={order.id} className="h-12 w-12" />
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-sm line-clamp-2 mb-1">
+              {order.title || 'Без названия'}
             </div>
-          )}
+            
+            {(order.brand || order.model) && (
+              <div className="text-xs text-muted-foreground">
+                {[order.brand, order.model].filter(Boolean).join(' ')}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Users Block */}

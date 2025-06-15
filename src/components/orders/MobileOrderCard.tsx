@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { Camera, CheckCircle } from 'lucide-react';
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 const statusColors = {
   created: 'bg-gray-100 text-gray-800',
@@ -90,15 +92,18 @@ const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
         </div>
 
         {/* Информация о товаре */}
-        <div className="bg-gray-50 rounded-lg p-3 mb-3">
-          <div className="font-semibold text-base mb-1 line-clamp-2 text-gray-900">
-            {order.title}
-          </div>
-          <div className="text-sm text-gray-600 mb-2">
-            {order.brand} {order.model}
-          </div>
-          <div className="text-sm text-gray-500">
-            Лот: {order.products?.lot_number || "Н/Д"}
+        <div className="flex items-start gap-3 bg-gray-50 rounded-lg p-3 mb-3">
+          <OrderImageThumbnail orderId={order.id} className="h-12 w-12" />
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-base mb-1 line-clamp-2 text-gray-900">
+              {order.title}
+            </div>
+            <div className="text-sm text-gray-600 mb-2">
+              {order.brand} {order.model}
+            </div>
+            <div className="text-sm text-gray-500">
+              Лот: {order.products?.lot_number || "Н/Д"}
+            </div>
           </div>
         </div>
 

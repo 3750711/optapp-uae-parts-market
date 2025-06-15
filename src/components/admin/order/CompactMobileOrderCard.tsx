@@ -18,6 +18,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { OrderImageThumbnail } from '@/components/order/OrderImageThumbnail';
 
 interface CompactMobileOrderCardProps {
   order: Order;
@@ -88,15 +89,18 @@ export const CompactMobileOrderCard: React.FC<CompactMobileOrderCardProps> = ({
           </DropdownMenu>
         </div>
 
-        <div>
-          <div className="text-xs font-medium line-clamp-1">
-            {order.title || 'Без названия'}
-          </div>
-          {(order.brand || order.model) && (
-            <div className="text-[11px] text-muted-foreground line-clamp-1">
-              {[order.brand, order.model].filter(Boolean).join(' ')}
+        <div className="flex items-start gap-2">
+          <OrderImageThumbnail orderId={order.id} className="h-10 w-10" />
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-medium line-clamp-1">
+              {order.title || 'Без названия'}
             </div>
-          )}
+            {(order.brand || order.model) && (
+              <div className="text-[11px] text-muted-foreground line-clamp-1">
+                {[order.brand, order.model].filter(Boolean).join(' ')}
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="flex justify-between items-center text-xs bg-muted/30 rounded p-1 flex-wrap gap-x-2 gap-y-1">
