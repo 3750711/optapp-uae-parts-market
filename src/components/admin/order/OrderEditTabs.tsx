@@ -13,8 +13,8 @@ interface OrderEditTabsProps {
   form: any;
   orderImages: string[];
   orderVideos: string[];
-  onImagesUpload: (urls: string[]) => void;
-  onVideoUpload: (urls: string[]) => void;
+  onImagesChange: (urls: string[]) => void;
+  onVideosChange: (urls: string[]) => void;
   onVideoDelete: (url: string) => void;
 }
 
@@ -23,8 +23,8 @@ export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
   form,
   orderImages,
   orderVideos,
-  onImagesUpload,
-  onVideoUpload,
+  onImagesChange,
+  onVideosChange,
   onVideoDelete
 }) => {
   const isMobile = useIsMobile();
@@ -91,8 +91,8 @@ export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
           order={order}
           orderImages={orderImages}
           orderVideos={orderVideos}
-          onImagesUpload={onImagesUpload}
-          onVideoUpload={onVideoUpload}
+          onImagesChange={onImagesChange}
+          onVideosChange={onVideosChange}
           onVideoDelete={onVideoDelete}
         />
       </TabsContent>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   Dialog,
@@ -74,7 +73,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
             <div className="flex-1 overflow-y-auto px-6 py-4">
               <OrderEditTabs
-                formControl={form.control}
+                form={form}
                 order={order}
                 orderImages={orderImages}
                 onImagesChange={handleImagesChange}

@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OrderEditHeaderProps {
   order: any;
+  onStatusChange?: (orderId: string, newStatus: string) => Promise<void>;
 }
 
 export const OrderEditHeader: React.FC<OrderEditHeaderProps> = ({ order }) => {
