@@ -15,6 +15,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 interface Option {
   id: string;
   name: string;
+  extraInfo?: string;
 }
 
 interface EnhancedVirtualizedSelectProps {
@@ -176,13 +177,17 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
           className={`
             ${isMobile ? "py-3 text-base" : ""} 
             ${isFocused ? "bg-accent" : ""}
-            ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
           `}
         >
-          {getHighlightedText(option.name, searchTerm)}
-          {isPopular && !searchTerm && (
-            <span className="ml-2 text-xs text-muted-foreground">★</span>
-          )}
+          <div className="flex justify-between items-center w-full">
+            <span className={`${isPopular && !searchTerm ? "font-medium text-primary" : ""}`}>
+              {getHighlightedText(option.name, searchTerm)}
+              {isPopular && !searchTerm && (
+                <span className="ml-2 text-xs text-muted-foreground">★</span>
+              )}
+            </span>
+            {option.extraInfo && <span className="text-xs text-muted-foreground">{option.extraInfo}</span>}
+          </div>
         </SelectItem>
       </div>
     );
@@ -234,13 +239,17 @@ const EnhancedVirtualizedSelect: React.FC<EnhancedVirtualizedSelectProps> = ({
                   className={`
                     ${isMobile ? "py-3 text-base" : ""} 
                     ${isFocused ? "bg-accent" : ""}
-                    ${isPopular && !searchTerm ? "font-medium text-primary" : ""}
                   `}
                 >
-                  {getHighlightedText(option.name, searchTerm)}
-                  {isPopular && !searchTerm && (
-                    <span className="ml-2 text-xs text-muted-foreground">★</span>
-                  )}
+                  <div className="flex justify-between items-center w-full">
+                    <span className={`${isPopular && !searchTerm ? "font-medium text-primary" : ""}`}>
+                      {getHighlightedText(option.name, searchTerm)}
+                      {isPopular && !searchTerm && (
+                        <span className="ml-2 text-xs text-muted-foreground">★</span>
+                      )}
+                    </span>
+                    {option.extraInfo && <span className="text-xs text-muted-foreground">{option.extraInfo}</span>}
+                  </div>
                 </SelectItem>
               );
             })}

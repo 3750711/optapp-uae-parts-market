@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,8 +18,6 @@ export const useAdminAddProduct = () => {
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
   const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [sellers, setSellers] = useState<{ id: string; full_name: string; opt_id: string }[]>([]);
-  const [searchBrandTerm, setSearchBrandTerm] = useState("");
-  const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
@@ -37,7 +34,12 @@ export const useAdminAddProduct = () => {
     findBrandIdByName,
     findModelIdByName, 
     isLoading: isLoadingCarData,
-    validateModelBrand
+    validateModelBrand,
+    brandSearchTerm,
+    setBrandSearchTerm,
+    modelSearchTerm,
+    setModelSearchTerm,
+    brandModelCounts
   } = useAllCarBrands();
 
   const { createProductWithTransaction, isCreating } = useAdminProductCreation();
@@ -180,6 +182,15 @@ export const useAdminAddProduct = () => {
     }
   }, [brandModels, watchModelId, form]);
 
+  const brandsWithModelCount = useMemo(() => {
+    if (!brands) return [];
+    if (!brandModelCounts) return brands;
+    return brands.map(brand => ({
+        ...brand,
+        extraInfo: `(${brandModelCounts.get(brand.id) || 0} моделей)`
+    }));
+  }, [brands, brandModelCounts]);
+
   const handleMobileOptimizedImageUpload = (urls: string[]) => {
     setImageUrls(prevUrls => [...prevUrls, ...urls]);
     if (!primaryImage && urls.length > 0) {
@@ -268,11 +279,11 @@ export const useAdminAddProduct = () => {
     brands,
     brandModels,
     isLoadingCarData,
-    searchBrandTerm,
+    searchBrandTerm: brandSearchTerm,
     setSearchBrandTerm,
     searchModelTerm,
     setSearchModelTerm,
-    filteredBrands,
+    filteredBrands: brandsWithModelCount,
     filteredModels,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
