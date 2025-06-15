@@ -32,7 +32,21 @@ export const useOrderImage = (orderId: string) => {
       if (data?.url) return data.url;
       if (error && error.code !== 'PGRST116') console.error('Error fetching first order image:', error);
 
-      // 3. В качестве запасного варианта, попытка получить изображение из confirm_images
+      // 3. Попытка получить изображение из поля images самой таблицы orders
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('images')
+        .eq('id', orderId)
+        .single();
+
+      if (orderData?.images && orderData.images.length > 0 && orderData.images[0]) {
+        return orderData.images[0];
+      }
+      if (orderError && orderError.code !== 'PGRST116') {
+        console.error('Error fetching from orders.images:', orderError);
+      }
+
+      // 4. В качестве запасного варианта, попытка получить изображение из confirm_images
       ({ data, error } = await supabase
         .from('confirm_images')
         .select('url')
