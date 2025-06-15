@@ -1,5 +1,5 @@
 
-import React, { Suspense, ErrorBoundary } from 'react';
+import React, { Suspense } from 'react';
 import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
 import { Skeleton } from '@/components/ui/skeleton';
 
