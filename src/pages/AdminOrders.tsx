@@ -46,7 +46,7 @@ const AdminOrders = () => {
   } = useAdminOrdersState();
 
   // Debounce search term for better performance
-  const debouncedSearchTerm = useDebounceValue(searchTerm, 500);
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 1000);
 
   const { data, isLoading, error, refetch, isFetching } = useOptimizedOrdersQuery({
     statusFilter,

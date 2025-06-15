@@ -47,7 +47,7 @@ const EnhancedProductSearch = React.memo(({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const debouncedSearchTerm = useDebounceSearch(filters.searchTerm, 500);
+  const debouncedSearchTerm = useDebounceSearch(filters.searchTerm, 1000);
 
   // Загружаем сохраненные фильтры при инициализации
   useEffect(() => {

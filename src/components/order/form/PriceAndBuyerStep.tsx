@@ -39,7 +39,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
   const debouncedSearchTerm = useMemo(
-    () => debounce((term: string) => setProfileSearchTerm(term), 500),
+    () => debounce((term: string) => setProfileSearchTerm(term), 1000),
     []
   );
 
