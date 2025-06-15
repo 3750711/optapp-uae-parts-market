@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
@@ -8,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/hooks/useOrderForm';
-import { debounce } from 'lodash/debounce';
+import debounce from 'lodash/debounce';
 
 interface PriceAndBuyerStepProps {
   formData: OrderFormData;
