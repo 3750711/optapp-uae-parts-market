@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -493,6 +492,7 @@ const SellerAddProduct = () => {
                   primaryImage={primaryImage}
                   setPrimaryImage={setPrimaryImage}
                   showSellerSelection={false}
+                  onImageDelete={handleImageDelete}
                 />
               </CardContent>
             </Card>

@@ -25,6 +25,7 @@ const AdminAddProduct = () => {
     filteredBrands,
     filteredModels,
     handleMobileOptimizedImageUpload,
+    handleImageDelete,
   } = useAdminAddProduct();
 
   return (
@@ -55,6 +56,7 @@ const AdminAddProduct = () => {
             setPrimaryImage={setPrimaryImage}
             sellers={sellers}
             showSellerSelection={true}
+            onImageDelete={handleImageDelete}
           />
         </div>
       </div>

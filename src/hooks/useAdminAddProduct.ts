@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -142,6 +141,14 @@ export const useAdminAddProduct = () => {
     }
   };
 
+  const handleImageDelete = (urlToDelete: string) => {
+    const newImageUrls = imageUrls.filter(url => url !== urlToDelete);
+    setImageUrls(newImageUrls);
+    if (primaryImage === urlToDelete) {
+      setPrimaryImage(newImageUrls.length > 0 ? newImageUrls[0] : "");
+    }
+  };
+
   const filteredBrands = brands.filter(brand =>
     brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
   );
@@ -266,6 +273,6 @@ export const useAdminAddProduct = () => {
     filteredBrands,
     filteredModels,
     handleMobileOptimizedImageUpload,
+    handleImageDelete,
   };
 };
-
