@@ -46,7 +46,8 @@ export const useAdminUsersActions = () => {
         title: "Успех",
         description: "Статус пользователя обновлен"
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      // Исправляем кэш-инвалидацию для оптимизированного хука
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
     }
   };
 
@@ -67,7 +68,8 @@ export const useAdminUsersActions = () => {
         title: "Успех",
         description: "OPT статус пользователя обновлен"
       });
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      // Исправляем кэш-инвалидацию для оптимизированного хука
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
     }
   };
 
@@ -96,7 +98,8 @@ export const useAdminUsersActions = () => {
         description: `Статус ${selectedUsers.length} пользователей обновлен`
       });
       
-      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      // Исправляем кэш-инвалидацию для оптимизированного хука
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users-optimized'] });
     } catch (error) {
       toast({
         title: "Ошибка",

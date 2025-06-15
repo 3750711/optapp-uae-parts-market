@@ -16,6 +16,7 @@ import { AdminUsersTable } from '@/components/admin/AdminUsersTable';
 import { AdminUsersDialogs } from '@/components/admin/AdminUsersDialogs';
 import { VirtualizedUsersTable } from '@/components/admin/VirtualizedUsersTable';
 import { AdminErrorBoundary } from '@/components/admin/AdminErrorBoundary';
+import { SafeComponentLoader } from '@/components/admin/SafeComponentLoader';
 import { useAdminUsersState } from '@/hooks/useAdminUsersState';
 import { useAdminUsersActions } from '@/hooks/useAdminUsersActions';
 import { useOptimizedAdminUsers } from '@/hooks/useOptimizedAdminUsers';
@@ -92,9 +93,9 @@ const AdminUsers = () => {
   // Dialog states
   const [editingUser, setEditingUser] = useState<ProfileType | null>(null);
 
-  // Определяем нужно ли использовать виртуализацию (для списков больше 50 элементов)
+  // Определяем нужно ли использовать виртуализацию (уменьшено до 30 элементов)
   const useVirtualization = useMemo(() => {
-    return !isMobile && (usersData?.users.length || 0) > 50;
+    return !isMobile && (usersData?.users.length || 0) > 30;
   }, [isMobile, usersData?.users.length]);
 
   // Вычисляем высоту контейнера для виртуализации
@@ -174,35 +175,25 @@ const AdminUsers = () => {
       <AdminLayout>
         <div className="container mx-auto py-8">
           <Card className={pendingUsersCount?.totalCount && pendingUsersCount.totalCount > 0 ? 'bg-[#FEC6A1]' : ''}>
-            <AdminUsersHeader
-              pendingUsersCount={pendingUsersCount?.totalCount}
-              isCompactMode={isCompactMode}
-              onCompactModeChange={setIsCompactMode}
-            />
+            <SafeComponentLoader errorMessage="Ошибка загрузки заголовка">
+              <AdminUsersHeader
+                pendingUsersCount={pendingUsersCount?.totalCount}
+                isCompactMode={isCompactMode}
+                onCompactModeChange={setIsCompactMode}
+              />
+            </SafeComponentLoader>
             
             <CardContent className="space-y-4">
-              <AdminErrorBoundary
-                fallback={
-                  <div className="p-4 text-center text-red-600">
-                    Ошибка загрузки фильтров. Попробуйте обновить страницу.
-                  </div>
-                }
-              >
+              <SafeComponentLoader errorMessage="Ошибка загрузки фильтров">
                 <EnhancedUserFilters
                   filters={filters}
                   onFilterChange={handleFilterChange}
                   onClearFilters={handleClearFilters}
                   activeFiltersCount={activeFiltersCount}
                 />
-              </AdminErrorBoundary>
+              </SafeComponentLoader>
 
-              <AdminErrorBoundary
-                fallback={
-                  <div className="p-4 text-center text-red-600">
-                    Ошибка загрузки действий. Попробуйте обновить страницу.
-                  </div>
-                }
-              >
+              <SafeComponentLoader errorMessage="Ошибка загрузки действий">
                 <BulkUserActions
                   selectedUsers={selectedUsers}
                   totalUsers={users.length}
@@ -211,19 +202,13 @@ const AdminUsers = () => {
                   onBulkAction={wrappedHandleBulkAction}
                   onExport={wrappedHandleExportUsers}
                 />
-              </AdminErrorBoundary>
+              </SafeComponentLoader>
               
               <div ref={containerRef}>
                 {isLoading ? (
                   <UsersTableSkeleton rows={pageSize} isCompact={isCompactMode} />
                 ) : isMobile ? (
-                  <AdminErrorBoundary
-                    fallback={
-                      <div className="p-4 text-center text-red-600">
-                        Ошибка отображения пользователей. Попробуйте обновить страницу.
-                      </div>
-                    }
-                  >
+                  <SafeComponentLoader errorMessage="Ошибка отображения мобильных карточек">
                     <div className="space-y-3">
                       {users.map((user) => (
                         <MobileUserCard
@@ -239,27 +224,25 @@ const AdminUsers = () => {
                         />
                       ))}
                     </div>
-                  </AdminErrorBoundary>
+                  </SafeComponentLoader>
                 ) : useVirtualization ? (
-                  <AdminErrorBoundary
+                  <SafeComponentLoader 
+                    errorMessage="Ошибка виртуализации"
                     fallback={
-                      <div className="p-4 text-center text-red-600">
-                        Ошибка виртуализации. Показываем обычную таблицу.
-                        <AdminUsersTable
-                          users={users}
-                          isCompactMode={isCompactMode}
-                          selectedUsers={selectedUsers}
-                          sortField={sortField}
-                          sortDirection={sortDirection}
-                          onSort={handleSort}
-                          onSelectUser={handleSelectUser}
-                          onQuickStatusChange={handleQuickStatusChange}
-                          onOptStatusChange={handleOptStatusChange}
-                          onEditUser={handleEditUser}
-                          onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
-                          onContextAction={handleContextAction}
-                        />
-                      </div>
+                      <AdminUsersTable
+                        users={users}
+                        isCompactMode={isCompactMode}
+                        selectedUsers={selectedUsers}
+                        sortField={sortField}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                        onSelectUser={handleSelectUser}
+                        onQuickStatusChange={handleQuickStatusChange}
+                        onOptStatusChange={handleOptStatusChange}
+                        onEditUser={handleEditUser}
+                        onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
+                        onContextAction={handleContextAction}
+                      />
                     }
                   >
                     <VirtualizedUsersTable
@@ -283,15 +266,9 @@ const AdminUsers = () => {
                         ⚡ Виртуализация активна для {users.length} пользователей
                       </div>
                     )}
-                  </AdminErrorBoundary>
+                  </SafeComponentLoader>
                 ) : (
-                  <AdminErrorBoundary
-                    fallback={
-                      <div className="p-4 text-center text-red-600">
-                        Ошибка таблицы пользователей. Попробуйте обновить страницу.
-                      </div>
-                    }
-                  >
+                  <SafeComponentLoader errorMessage="Ошибка таблицы пользователей">
                     <AdminUsersTable
                       users={users}
                       isCompactMode={isCompactMode}
@@ -306,7 +283,7 @@ const AdminUsers = () => {
                       onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
                       onContextAction={handleContextAction}
                     />
-                  </AdminErrorBoundary>
+                  </SafeComponentLoader>
                 )}
               </div>
               
@@ -332,12 +309,14 @@ const AdminUsers = () => {
             </CardContent>
           </Card>
 
-          <AdminUsersDialogs
-            editingUser={editingUser}
-            ratingUser={null}
-            onEditDialogClose={handleEditDialogClose}
-            onRatingDialogClose={() => {}}
-          />
+          <SafeComponentLoader errorMessage="Ошибка загрузки диалогов">
+            <AdminUsersDialogs
+              editingUser={editingUser}
+              ratingUser={null}
+              onEditDialogClose={handleEditDialogClose}
+              onRatingDialogClose={() => {}}
+            />
+          </SafeComponentLoader>
         </div>
       </AdminLayout>
     </AdminErrorBoundary>
