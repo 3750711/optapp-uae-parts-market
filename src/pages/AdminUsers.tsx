@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -58,7 +57,7 @@ const AdminUsers = () => {
     handleContextAction
   } = useAdminUsersActions();
 
-  // Используем новый оптимизированный хук
+  // Используем единый оптимизированный хук
   const { data: usersData, isLoading } = useOptimizedAdminUsers({
     search: debouncedSearch,
     status: filters.status,
@@ -72,22 +71,6 @@ const AdminUsers = () => {
     sortDirection,
     currentPage,
     pageSize
-  });
-
-  // Оптимизированный запрос для подсчета ожидающих пользователей
-  const { data: pendingUsersCount } = useOptimizedAdminUsers({
-    search: '',
-    status: 'pending',
-    userType: 'all',
-    optStatus: 'all',
-    ratingFrom: '',
-    ratingTo: '',
-    dateFrom: undefined,
-    dateTo: undefined,
-    sortField: 'created_at',
-    sortDirection: 'desc',
-    currentPage: 1,
-    pageSize: 1
   });
   
   // Dialog states
@@ -116,6 +99,7 @@ const AdminUsers = () => {
   const users = usersData?.users || [];
   const totalCount = usersData?.totalCount || 0;
   const totalPages = usersData?.totalPages || 1;
+  const pendingUsersCount = usersData?.pendingUsersCount || 0;
 
   // Handle editing user
   const handleEditUser = (user: ProfileType) => {
@@ -174,10 +158,10 @@ const AdminUsers = () => {
     <AdminErrorBoundary>
       <AdminLayout>
         <div className="container mx-auto py-8">
-          <Card className={pendingUsersCount?.totalCount && pendingUsersCount.totalCount > 0 ? 'bg-[#FEC6A1]' : ''}>
+          <Card className={pendingUsersCount > 0 ? 'bg-[#FEC6A1]' : ''}>
             <SafeComponentLoader errorMessage="Ошибка загрузки заголовка">
               <AdminUsersHeader
-                pendingUsersCount={pendingUsersCount?.totalCount}
+                pendingUsersCount={pendingUsersCount}
                 isCompactMode={isCompactMode}
                 onCompactModeChange={setIsCompactMode}
               />
