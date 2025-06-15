@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
@@ -38,7 +39,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
   const debouncedSearchTerm = useMemo(
-    () => debounce((term: string) => setProfileSearchTerm(term), 300),
+    () => debounce((term: string) => setProfileSearchTerm(term), 500),
     []
   );
 

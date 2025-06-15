@@ -33,7 +33,7 @@ export interface OrderSearchResult {
 }
 
 export const useOrdersSearch = (orders: OrderSearchResult[], searchTerm: string) => {
-  const debouncedSearchTerm = useDebounceSearch(searchTerm, 300);
+  const debouncedSearchTerm = useDebounceSearch(searchTerm, 500);
 
   const filteredOrders = useMemo(() => {
     if (!debouncedSearchTerm || !orders) {

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -45,7 +46,7 @@ const AdminOrders = () => {
   } = useAdminOrdersState();
 
   // Debounce search term for better performance
-  const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 500);
 
   const { data, isLoading, error, refetch, isFetching } = useOptimizedOrdersQuery({
     statusFilter,
