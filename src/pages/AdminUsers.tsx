@@ -102,7 +102,7 @@ const AdminUsers = () => {
     const updateHeight = () => {
       if (containerRef.current) {
         const rect = containerRef.current.getBoundingClientRect();
-        const availableHeight = window.innerHeight - rect.top - 100; // Оставляем место для пагинации
+        const availableHeight = window.innerHeight - rect.top - 100;
         setContainerHeight(Math.max(400, availableHeight));
       }
     };
@@ -245,6 +245,20 @@ const AdminUsers = () => {
                     fallback={
                       <div className="p-4 text-center text-red-600">
                         Ошибка виртуализации. Показываем обычную таблицу.
+                        <AdminUsersTable
+                          users={users}
+                          isCompactMode={isCompactMode}
+                          selectedUsers={selectedUsers}
+                          sortField={sortField}
+                          sortDirection={sortDirection}
+                          onSort={handleSort}
+                          onSelectUser={handleSelectUser}
+                          onQuickStatusChange={handleQuickStatusChange}
+                          onOptStatusChange={handleOptStatusChange}
+                          onEditUser={handleEditUser}
+                          onOpenProfile={(userId) => navigate(`/seller/${userId}`)}
+                          onContextAction={handleContextAction}
+                        />
                       </div>
                     }
                   >

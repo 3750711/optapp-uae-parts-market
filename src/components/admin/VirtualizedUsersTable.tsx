@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { FixedSizeList as List } from 'react-window';
 import { ProfileType } from '@/components/profile/types';
@@ -23,8 +22,8 @@ interface VirtualizedUsersTableProps {
   onContextAction: (userId: string, action: string) => void;
 }
 
-const ROW_HEIGHT = 60; // Высота строки в компактном режиме
-const ROW_HEIGHT_NORMAL = 80; // Высота строки в обычном режиме
+const ROW_HEIGHT = 60;
+const ROW_HEIGHT_NORMAL = 80;
 
 export const VirtualizedUsersTable: React.FC<VirtualizedUsersTableProps> = ({
   users,
@@ -55,6 +54,14 @@ export const VirtualizedUsersTable: React.FC<VirtualizedUsersTableProps> = ({
   const Row = ({ index, style }: { index: number; style: React.CSSProperties }) => {
     const user = users[index];
     
+    if (!user) {
+      return (
+        <div style={style} className="flex items-center justify-center text-gray-500">
+          Ошибка загрузки пользователя
+        </div>
+      );
+    }
+    
     return (
       <div style={style}>
         <AdminUsersTableRow
@@ -72,8 +79,94 @@ export const VirtualizedUsersTable: React.FC<VirtualizedUsersTableProps> = ({
     );
   };
 
-  // Мемоизируем компонент Row для оптимизации
   const MemoizedRow = React.memo(Row);
+
+  // Fallback для случаев когда виртуализация не нужна
+  if (users.length === 0) {
+    return (
+      <div className="w-full">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className={isCompactMode ? 'py-2' : ''}>
+                <div className="flex items-center">
+                  Пользователь
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('email')}
+              >
+                <div className="flex items-center">
+                  Email {renderSortIcon('email')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('opt_id')}
+              >
+                <div className="flex items-center">
+                  OPT_ID {renderSortIcon('opt_id')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('user_type')}
+              >
+                <div className="flex items-center">
+                  Тип {renderSortIcon('user_type')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('verification_status')}
+              >
+                <div className="flex items-center">
+                  Статус {renderSortIcon('verification_status')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('opt_status')}
+              >
+                <div className="flex items-center">
+                  OPT Статус {renderSortIcon('opt_status')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('rating')}
+              >
+                <div className="flex items-center">
+                  Рейтинг {renderSortIcon('rating')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('communication_ability')}
+              >
+                <div className="flex items-center">
+                  Коммуникация {renderSortIcon('communication_ability')}
+                </div>
+              </TableHead>
+              <TableHead 
+                className={`cursor-pointer ${isCompactMode ? 'py-2' : ''}`}
+                onClick={() => onSort('created_at')}
+              >
+                <div className="flex items-center">
+                  Дата регистрации {renderSortIcon('created_at')}
+                </div>
+              </TableHead>
+              <TableHead className={isCompactMode ? 'py-2' : ''}>Действия</TableHead>
+            </TableRow>
+          </TableHeader>
+        </Table>
+        <div className="text-center text-sm text-gray-500 py-8">
+          Нет данных для отображения
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full">
@@ -159,9 +252,10 @@ export const VirtualizedUsersTable: React.FC<VirtualizedUsersTableProps> = ({
       <div className="border border-t-0">
         <List
           height={height}
+          width="100%"
           itemCount={users.length}
           itemSize={itemHeight}
-          overscanCount={5} // Предзагружаем 5 элементов для плавности
+          overscanCount={5}
           itemData={users}
         >
           {MemoizedRow}
