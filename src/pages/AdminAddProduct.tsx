@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -10,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import AddProductForm, { ProductFormValues, productSchema } from "@/components/product/AddProductForm";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 
 // Admin product schema with required sellerId
 const adminProductSchema = productSchema.extend({
@@ -25,7 +26,7 @@ const AdminAddProduct = () => {
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrls, setVideoUrls] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { guardedSubmit, isSubmitting } = useSubmissionGuard();
   const [sellers, setSellers] = useState<{ id: string; full_name: string; opt_id: string }[]>([]);
   const [searchBrandTerm, setSearchBrandTerm] = useState("");
   const [searchModelTerm, setSearchModelTerm] = useState("");
@@ -96,6 +97,8 @@ const AdminAddProduct = () => {
         .from('profiles')
         .select('id, full_name, opt_id')
         .eq('user_type', 'seller')
+        .not('opt_id', 'is', null) // Ensure opt_id is not null
+        .neq('opt_id', '')         // Ensure opt_id is not an empty string
         .order('full_name');
 
       if (error) {
@@ -258,7 +261,8 @@ const AdminAddProduct = () => {
 
       console.log('✅ Product created:', product.id);
 
-      // Add images
+      // Add images with improved error handling
+      const imageInsertErrors: { url: string; error: any }[] = [];
       for (const url of imageUrls) {
         const { error: imageError } = await supabase
           .from('product_images')
@@ -270,15 +274,23 @@ const AdminAddProduct = () => {
           
         if (imageError) {
           console.error('Error adding image:', imageError);
+          imageInsertErrors.push({ url, error: imageError });
         }
+      }
+
+      if (imageInsertErrors.length > 0) {
+        toast({
+            title: "Ошибка при сохранении изображений",
+            description: `Не удалось сохранить ${imageInsertErrors.length} из ${imageUrls.length} изображений. Вы можете добавить их позже через редактирование товара.`,
+            variant: "destructive",
+        });
       }
 
       // Extract public_id from primary image and update product with Cloudinary data
       if (primaryImage) {
         try {
           console.log('🎨 Extracting public_id from primary image:', primaryImage);
-          const publicIdMatch = primaryImage.match(/\/v\d+\/(.+?)(?:\.|$)/);
-          const publicId = publicIdMatch ? publicIdMatch[1] : null;
+          const publicId = extractPublicIdFromUrl(primaryImage);
           
           if (publicId) {
             console.log('📸 Updating product with Cloudinary data:', {
@@ -302,7 +314,7 @@ const AdminAddProduct = () => {
               console.log('✅ Product updated with Cloudinary data');
             }
           } else {
-            console.warn('⚠️ Could not extract public_id from primary image URL');
+            console.warn('⚠️ Could not extract public_id from primary image URL:', primaryImage);
           }
         } catch (error) {
           console.error('💥 Error processing Cloudinary data:', error);
@@ -362,7 +374,7 @@ const AdminAddProduct = () => {
           
           <AddProductForm
             form={form as any}
-            onSubmit={createProduct as any}
+            onSubmit={(values) => guardedSubmit(() => createProduct(values))}
             isSubmitting={isSubmitting}
             imageUrls={imageUrls}
             videoUrls={videoUrls}

@@ -1,49 +1,53 @@
 
 import { useState, useCallback, useRef } from 'react';
+import { useToast } from '@/hooks/use-toast';
 
-interface UseSubmissionGuardProps {
+interface SubmissionGuardOptions {
   timeout?: number;
   onDuplicateSubmit?: () => void;
 }
 
-export const useSubmissionGuard = ({ 
-  timeout = 5000, 
-  onDuplicateSubmit 
-}: UseSubmissionGuardProps) => {
+export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
+  const { timeout = 4000, onDuplicateSubmit } = options;
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSubmitTime = useRef<number>(0);
 
-  const guardedSubmit = useCallback(async (submitFunction: () => Promise<void>) => {
-    if (isSubmitting) {
-      onDuplicateSubmit?.();
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    // Устанавливаем таймаут для автоматического сброса состояния
-    timeoutRef.current = setTimeout(() => {
-      setIsSubmitting(false);
-    }, timeout);
-
-    try {
-      await submitFunction();
-    } catch (error) {
-      console.error('Submission error:', error);
-      throw error;
-    } finally {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+  const guardedSubmit = useCallback(
+    async (submitAction: () => Promise<void>) => {
+      const now = Date.now();
+      if (isSubmitting) {
+        console.warn("Submission in progress.");
+        return;
       }
-      setIsSubmitting(false);
-    }
-  }, [isSubmitting, timeout, onDuplicateSubmit]);
 
-  const canSubmit = !isSubmitting;
+      if (now - lastSubmitTime.current < timeout) {
+        if (onDuplicateSubmit) {
+          onDuplicateSubmit();
+        }
+        toast({
+          title: "Пожалуйста, подождите",
+          description: `Вы можете отправлять форму не чаще, чем раз в ${timeout / 1000} секунды.`,
+          variant: "default",
+        });
+        return;
+      }
 
-  return {
-    guardedSubmit,
-    canSubmit,
-    isSubmitting
-  };
+      setIsSubmitting(true);
+      lastSubmitTime.current = now;
+
+      try {
+        await submitAction();
+      } catch (error) {
+        console.error("Submission action failed:", error);
+        // Errors should be handled inside submitAction, but we catch here as a fallback.
+      } finally {
+        // A short delay to prevent UI flickering on very fast submissions
+        setTimeout(() => setIsSubmitting(false), 500);
+      }
+    },
+    [timeout, isSubmitting, onDuplicateSubmit, toast]
+  );
+
+  return { isSubmitting, guardedSubmit };
 };
