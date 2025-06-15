@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -7,11 +6,12 @@ import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
-import { useAllCarBrands } from "@/hooks/useAllCarBrands";
 import { useProductTitleParser } from "@/utils/productTitleParser";
 import AddProductForm, { ProductFormValues, productSchema } from "@/components/product/AddProductForm";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
+import { useLazyCarData } from "@/hooks/useLazyCarData";
+import { useAdminAccessValidation } from "@/hooks/useServerAccessValidation.tsx";
 
 // Admin product schema with required sellerId
 const adminProductSchema = productSchema.extend({
@@ -23,6 +23,9 @@ const adminProductSchema = productSchema.extend({
 type AdminProductFormValues = z.infer<typeof adminProductSchema>;
 
 const AdminAddProduct = () => {
+  // Серверная валидация прав доступа
+  const { hasAccess, isLoading: isValidatingAccess } = useAdminAccessValidation();
+  
   const navigate = useNavigate();
   const { toast } = useToast();
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -33,16 +36,20 @@ const AdminAddProduct = () => {
   const [searchModelTerm, setSearchModelTerm] = useState("");
   const [primaryImage, setPrimaryImage] = useState<string>("");
   
-  // Use the new hook that loads all car brands and models
+  // Используем новый lazy loading хук
   const { 
     brands, 
     brandModels, 
     selectBrand,
     findBrandIdByName,
     findModelIdByName, 
+    isLoadingBrands,
+    isLoadingModels,
     isLoading: isLoadingCarData,
-    validateModelBrand 
-  } = useAllCarBrands();
+    validateModelBrand,
+    initializeBrands,
+    brandsLoaded
+  } = useLazyCarData();
 
   // Initialize our title parser
   const { parseProductTitle } = useProductTitleParser(
@@ -363,6 +370,20 @@ const AdminAddProduct = () => {
     }
   };
 
+  // Показываем загрузку пока проверяем права доступа
+  if (isValidatingAccess) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Если нет доступа, компонент не рендерится (обрабатывается в хуке)
+  if (!hasAccess) {
+    return null;
+  }
+
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8">
@@ -391,6 +412,11 @@ const AdminAddProduct = () => {
             setPrimaryImage={setPrimaryImage}
             sellers={sellers}
             showSellerSelection={true}
+            // Новые пропсы для улучшенной мобильной версии
+            isLoadingBrands={isLoadingBrands}
+            isLoadingModels={isLoadingModels}
+            initializeBrands={initializeBrands}
+            brandsLoaded={brandsLoaded}
           />
         </div>
       </div>
