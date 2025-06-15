@@ -1,5 +1,6 @@
+
 import { useEffect, useCallback, useRef } from 'react';
-import * as _ from 'lodash';
+import debounce from 'lodash.debounce';
 
 interface AutosaveOptions {
   key: string;
@@ -14,7 +15,7 @@ export const useFormAutosave = ({ key, data, delay = 30000, enabled = true }: Au
 
   // Debounced save function
   const debouncedSave = useCallback(
-    _.debounce((dataToSave: any) => {
+    debounce((dataToSave: any) => {
       try {
         const serializedData = JSON.stringify(dataToSave);
         localStorage.setItem(`autosave_${key}`, serializedData);

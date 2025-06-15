@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,6 @@ import { Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/hooks/useOrderForm';
 import debounce from 'lodash.debounce';
-import * as _ from 'lodash';
 
 interface PriceAndBuyerStepProps {
   formData: OrderFormData;
@@ -39,7 +39,7 @@ const PriceAndBuyerStep: React.FC<PriceAndBuyerStepProps> = ({
   const [isSelectOpen, setIsSelectOpen] = React.useState(false);
 
   const debouncedSearchTerm = useMemo(
-    () => _.debounce((term: string) => setProfileSearchTerm(term), 300),
+    () => debounce((term: string) => setProfileSearchTerm(term), 300),
     []
   );
 

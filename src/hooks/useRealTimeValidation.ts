@@ -1,7 +1,7 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { UseFormReturn, FieldValues, FieldPath } from 'react-hook-form';
 import debounce from 'lodash.debounce';
-import * as _ from 'lodash';
 
 interface ValidationRule<T extends FieldValues> {
   field: FieldPath<T>;
@@ -25,7 +25,7 @@ export const useRealTimeValidation = <T extends FieldValues>(
   const [validationState, setValidationState] = useState<ValidationState>({});
   
   const debouncedValidate = useCallback(
-    _.debounce(async (fieldName: FieldPath<T>, value: any, formData: T) => {
+    debounce(async (fieldName: FieldPath<T>, value: any, formData: T) => {
       const rule = rules.find(r => r.field === fieldName);
       if (!rule) return;
 
