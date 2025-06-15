@@ -109,7 +109,7 @@ export const OrderConfirmationImages: React.FC<OrderConfirmationImagesProps> = (
 
   if (!canEdit && images.length === 0) {
     return (
-      <div className="text-center p-8 text-muted-foreground min-h-[200px] flex items-center justify-center border-2 border-dashed rounded-lg">
+      <div className="text-center p-8 text-muted-foreground min-h-[200px] flex items-center justify-center">
         Подтверждающие фотографии не загружены.
       </div>
     );
