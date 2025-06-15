@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,7 +27,7 @@ export const useProductsQuery = ({
   pageSize = 12
 }: UseProductsQueryProps) => {
 
-  const fetchProducts = useCallback(async ({ pageParam = 0 }) => {
+  const fetchProducts = async ({ pageParam = 0 }) => {
     const { data: { session } } = await supabase.auth.getSession();
 
     let query = supabase
@@ -61,7 +61,7 @@ export const useProductsQuery = ({
         details: error.details,
         hint: error.hint
       });
-      throw error; // Позволяем react-query обработать ошибку
+      throw error;
     }
 
     // Sort product_images so primary images come first
@@ -78,7 +78,7 @@ export const useProductsQuery = ({
       data: dataWithSortedImages || [], 
       count: count || 0 
     };
-  }, [debouncedSearchTerm, statusFilter, sellerFilter, pageSize]);
+  };
 
   const queryResult = useInfiniteQuery({
     queryKey: ['admin-products', debouncedSearchTerm, statusFilter, sellerFilter],
@@ -89,23 +89,6 @@ export const useProductsQuery = ({
       return totalItems < totalCount ? allPages.length : undefined;
     },
     initialPageParam: 0,
-    retry: (failureCount, error: any) => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 Query retry attempt:', { failureCount, errorMessage: error?.message });
-      }
-      
-      // Не повторяем запросы при проблемах с авторизацией
-      if (error?.message?.includes('permission') || 
-          error?.message?.includes('unauthorized') ||
-          error?.message?.includes('JWT') ||
-          error?.code === 'PGRST301') {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('🚫 Not retrying due to auth error');
-        }
-        return false;
-      }
-      return failureCount < 2;
-    },
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 5,
   });
@@ -113,16 +96,6 @@ export const useProductsQuery = ({
   const allProducts = useMemo(() => {
     return queryResult.data?.pages.flatMap(page => page.data) || [];
   }, [queryResult.data]);
-
-  // Логируем состояние запроса
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📈 Query state:', {
-      isLoading: queryResult.isLoading,
-      isError: queryResult.isError,
-      error: queryResult.error?.message,
-      productsCount: allProducts.length
-    });
-  }
 
   return {
     ...queryResult,
