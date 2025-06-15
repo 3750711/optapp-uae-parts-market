@@ -46,10 +46,6 @@ const SellerAddProduct = () => {
   const [showDraftSaved, setShowDraftSaved] = useState(false);
   const [draftLoaded, setDraftLoaded] = useState(false);
 
-  // ----> Упростили: refs заменены на обычные useState (гораздо проще):
-  const [searchBrandTerm, setSearchBrandTerm] = useState("");
-  const [searchModelTerm, setSearchModelTerm] = useState("");
-
   // Use the new hook that loads all car brands and models
   const { 
     brands, 
@@ -397,15 +393,6 @@ const SellerAddProduct = () => {
     };
   }, [imageUrls]);
 
-  // Filter brands and models based on search terms
-  const filteredBrands = brands.filter(brand =>
-    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
-  );
-
-  const filteredModels = brandModels.filter(model =>
-    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
-  );
-
   // Fallback UI для загрузки данных по брендам:
   if (isLoadingCarData) {
     return (
@@ -482,12 +469,6 @@ const SellerAddProduct = () => {
                   brandModels={brandModels}
                   isLoadingCarData={isLoadingCarData}
                   watchBrandId={form.watch("brandId")}
-                  searchBrandTerm={searchBrandTerm}
-                  setSearchBrandTerm={setSearchBrandTerm}
-                  searchModelTerm={searchModelTerm}
-                  setSearchModelTerm={setSearchModelTerm}
-                  filteredBrands={filteredBrands}
-                  filteredModels={filteredModels}
                   handleMobileOptimizedImageUpload={handleImageUpload}
                   setVideoUrls={setVideoUrls}
                   primaryImage={primaryImage}

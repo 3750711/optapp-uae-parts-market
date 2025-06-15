@@ -158,19 +158,11 @@ export const useAdminAddProduct = () => {
   useEffect(() => {
     if (watchBrandId) {
       selectBrand(watchBrandId);
-      
-      if (watchModelId) {
-        const modelBelongsToBrand = validateModelBrand(watchModelId, watchBrandId);
-        if (!modelBelongsToBrand) {
-          form.setValue("modelId", "");
-        }
-      }
+      form.setValue("modelId", ""); // Reset model when brand changes
     }
-  }, [watchBrandId, selectBrand, form, validateModelBrand, watchModelId]);
+  }, [watchBrandId, selectBrand, form]);
 
   useEffect(() => {
-    // This effect is now redundant as validateModelBrand in the above effect handles this.
-    // However, it can serve as a fallback if brandModels loads after a model is already selected.
     if (watchModelId && brandModels.length > 0) {
       const modelExists = brandModels.some(model => model.id === watchModelId);
       if (!modelExists) {
@@ -193,14 +185,6 @@ export const useAdminAddProduct = () => {
       setPrimaryImage(newImageUrls.length > 0 ? newImageUrls[0] : "");
     }
   };
-
-  const filteredBrands = brands.filter(brand =>
-    brand.name.toLowerCase().includes(searchBrandTerm.toLowerCase())
-  );
-
-  const filteredModels = brandModels.filter(model =>
-    model.name.toLowerCase().includes(searchModelTerm.toLowerCase())
-  );
 
   const handleCreateProduct = async (values: AdminProductFormValues) => {
     try {

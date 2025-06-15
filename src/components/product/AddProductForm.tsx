@@ -40,12 +40,6 @@ interface AddProductFormProps {
   brandModels: Array<{ id: string, name: string, brand_id: string }>;
   isLoadingCarData: boolean;
   watchBrandId: string;
-  searchBrandTerm: string;
-  setSearchBrandTerm: (term: string) => void;
-  searchModelTerm: string;
-  setSearchModelTerm: (term: string) => void;
-  filteredBrands: Array<{ id: string, name: string }>;
-  filteredModels: Array<{ id: string, name: string, brand_id: string }>;
   handleMobileOptimizedImageUpload: (urls: string[]) => void;
   setVideoUrls: React.Dispatch<React.SetStateAction<string[]>>;
   primaryImage?: string;
@@ -61,14 +55,10 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   isSubmitting,
   imageUrls,
   videoUrls,
+  brands,
+  brandModels,
   isLoadingCarData,
   watchBrandId,
-  searchBrandTerm,
-  setSearchBrandTerm,
-  searchModelTerm,
-  setSearchModelTerm,
-  filteredBrands,
-  filteredModels,
   handleMobileOptimizedImageUpload,
   setVideoUrls,
   primaryImage,
@@ -93,12 +83,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         <FormSectionWrapper title="Информация об автомобиле">
           <CarInfoSection
             form={form}
-            filteredBrands={filteredBrands}
-            filteredModels={filteredModels}
-            searchBrandTerm={searchBrandTerm}
-            setSearchBrandTerm={setSearchBrandTerm}
-            searchModelTerm={searchModelTerm}
-            setSearchModelTerm={setSearchModelTerm}
+            brands={brands}
+            models={brandModels}
             watchBrandId={watchBrandId}
             isLoadingCarData={isLoadingCarData}
           />
