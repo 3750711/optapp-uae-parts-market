@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, Trash2, Eye, Tag, Hash, Calendar } from "lucide-react";
+import { Edit, Trash2, Eye, Hash, Calendar } from "lucide-react";
 import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
 import { ProductPublishDialog } from '@/components/admin/ProductPublishDialog';
 import { ProductEditDialog } from '@/components/admin/ProductEditDialog';
@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import OptimizedImage from '@/components/ui/OptimizedImage';
 import { Checkbox } from "@/components/ui/checkbox";
+import { useProductImage } from '@/hooks/useProductImage';
 
 interface AdminProductCardProps {
   product: Product;
@@ -23,7 +24,7 @@ interface AdminProductCardProps {
   onStatusChange?: () => void;
 }
 
-const AdminProductCard: React.FC<AdminProductCardProps> = ({
+const AdminProductCardComponent: React.FC<AdminProductCardProps> = ({
   product,
   isSelected,
   onSelect,
@@ -35,46 +36,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   
-  // Исправленная логика: убираем product_url из приоритетов изображений
-  const { primaryImage, cloudinaryUrl } = useMemo(() => {
-    console.log('🖼️ AdminProductCard processing images for product:', product.id, {
-      product_images: product.product_images,
-      cloudinary_url: product.cloudinary_url,
-      cloudinary_public_id: product.cloudinary_public_id,
-      product_image: (product as any).image
-    });
-
-    // Приоритет 1: Фото из базы данных (product_images)
-    const primaryImg = product.product_images?.find(img => img.is_primary);
-    const fallbackImg = product.product_images?.[0];
-    
-    // Приоритет 2: Cloudinary URL или legacy image поле
-    const imageUrl = primaryImg?.url || 
-                    fallbackImg?.url || 
-                    product.cloudinary_url ||
-                    (product as any).image ||
-                    '/placeholder.svg';
-
-    const extractedCloudinaryUrl = primaryImg?.url || 
-                                  fallbackImg?.url || 
-                                  product.cloudinary_url || 
-                                  ((product as any).image && (product as any).image.includes('cloudinary.com') ? (product as any).image : null) ||
-                                  null;
-
-    console.log('✅ AdminProductCard final image selection:', {
-      primaryImageUrl: primaryImg?.url,
-      fallbackImageUrl: fallbackImg?.url,
-      cloudinaryUrl: product.cloudinary_url,
-      productImage: (product as any).image,
-      finalImageUrl: imageUrl,
-      extractedCloudinaryUrl
-    });
-
-    return {
-      primaryImage: imageUrl,
-      cloudinaryUrl: extractedCloudinaryUrl
-    };
-  }, [product.product_images, product.cloudinary_url, product.cloudinary_public_id, (product as any).image]);
+  const { primaryImage, cloudinaryUrl } = useProductImage(product);
 
   const getProductCardBackground = (status: string) => {
     switch (status) {
@@ -289,5 +251,7 @@ const AdminProductCard: React.FC<AdminProductCardProps> = ({
     </>
   );
 };
+
+const AdminProductCard = React.memo(AdminProductCardComponent);
 
 export default AdminProductCard;

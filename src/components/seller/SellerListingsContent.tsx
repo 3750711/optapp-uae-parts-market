@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,7 +40,9 @@ const SellerListingsContent = () => {
       const from = pageParam * productsPerPage;
       const to = from + productsPerPage - 1;
       
-      console.log(`📦 Fetching seller products: ${from} to ${to} for user ${user.id}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📦 Fetching seller products: ${from} to ${to} for user ${user.id}`);
+      }
       
       try {
         // Test connection first
@@ -83,7 +84,9 @@ const SellerListingsContent = () => {
           throw new Error(`Ошибка загрузки товаров: ${error.message}`);
         }
         
-        console.log(`✅ Successfully fetched ${data?.length || 0} products`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`✅ Successfully fetched ${data?.length || 0} products`);
+        }
         return data as Product[];
       } catch (dbError) {
         console.error('💥 Error in seller products query:', dbError);
@@ -98,7 +101,9 @@ const SellerListingsContent = () => {
     staleTime: 10 * 60 * 1000,
     gcTime: 15 * 60 * 1000,
     retry: (failureCount, error) => {
-      console.log(`🔄 Seller products retry attempt ${failureCount}:`, error);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 Seller products retry attempt ${failureCount}:`, error);
+      }
       return failureCount < 2;
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 5000),
@@ -107,18 +112,18 @@ const SellerListingsContent = () => {
   });
 
   const handleStatusChange = async () => {
-    console.log("Product status changed, applying optimistic update");
+    if (process.env.NODE_ENV === 'development') {
+      console.log("Product status changed, applying optimistic update");
+    }
     
     toast({
       title: "Статус обновлен",
       description: "Изменения применены",
     });
-
     queryClient.invalidateQueries({
       queryKey: ['seller-products-infinite', user?.id],
       refetchType: 'none'
     });
-
     setTimeout(() => {
       queryClient.refetchQueries({
         queryKey: ['seller-products-infinite', user?.id],
@@ -129,7 +134,9 @@ const SellerListingsContent = () => {
 
   useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage && !isError) {
-      console.log("Load more element is visible, fetching next page");
+      if (process.env.NODE_ENV === 'development') {
+        console.log("Load more element is visible, fetching next page");
+      }
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage, isError]);
@@ -137,7 +144,9 @@ const SellerListingsContent = () => {
   const handleLoadMore = async () => {
     if (hasNextPage && !isFetchingNextPage) {
       try {
-        console.log("Manual load more triggered");
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Manual load more triggered");
+        }
         await fetchNextPage();
       } catch (error) {
         console.error('Error loading more products:', error);
@@ -152,7 +161,9 @@ const SellerListingsContent = () => {
 
   const handleRetry = async () => {
     try {
-      console.log('🔄 Retrying seller products fetch...');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Retrying seller products fetch...');
+      }
       await refetch();
       toast({
         title: "Обновление данных",
@@ -182,7 +193,9 @@ const SellerListingsContent = () => {
   }, [isError, error]);
 
   const allProducts = data?.pages.flat() || [];
-  console.log(`📊 Total seller products loaded: ${allProducts.length}`);
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`📊 Total seller products loaded: ${allProducts.length}`);
+  }
 
   const mappedProducts: ProductProps[] = React.useMemo(() => {
     try {

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import ProductsGrid from '@/components/admin/productGrid/ProductsGrid';
 import LoadMoreTrigger from '@/components/admin/productGrid/LoadMoreTrigger';
 import { Product } from '@/types/product';
@@ -131,6 +131,12 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
     );
   }
 
+  const stableOnDelete = useCallback((id: string) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[Optimization] Single product delete called for ${id}, but not implemented in this component. This callback is stabilized for memoization.`);
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Products Grid */}
@@ -143,7 +149,7 @@ const AdminProductsContent: React.FC<AdminProductsContentProps> = ({
         isError={isError}
         error={error}
         refetch={refetch}
-        onDelete={() => {}} // Handled in AdminProductCard
+        onDelete={stableOnDelete}
         isDeleting={false}
         deleteProductId={null}
         onStatusChange={onProductUpdate}

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { FixedSizeGrid as Grid } from 'react-window';
 import { Product } from '@/types/product';
 import AdminProductCard from '@/components/admin/AdminProductCard';
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +23,10 @@ interface ProductsGridProps {
   onStatusChange: () => void;
 }
 
+const CARD_WIDTH = 230;
+const CARD_HEIGHT = 425;
+const GAP = 12;
+
 const ProductsGrid: React.FC<ProductsGridProps> = ({
   products,
   selectedProducts,
@@ -37,6 +42,30 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
   deleteProductId,
   onStatusChange,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(1200);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  const handleProductSelect = useCallback((productId: string) => {
+    onProductSelect((prevSelected) => {
+      if (prevSelected.includes(productId)) {
+        return prevSelected.filter((id) => id !== productId);
+      } else {
+        return [...prevSelected, productId];
+      }
+    });
+  }, [onProductSelect]);
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -92,18 +121,62 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     );
   }
 
-  const handleProductSelect = (productId: string) => {
-    onProductSelect((prevSelected) => {
-      if (prevSelected.includes(productId)) {
-        return prevSelected.filter((id) => id !== productId);
-      } else {
-        return [...prevSelected, productId];
-      }
+  // Use virtualization for large lists
+  if (products.length > 20) {
+    const { columnCount, rowCount } = useMemo(() => {
+      const cols = Math.max(1, Math.floor(containerWidth / (CARD_WIDTH + GAP)));
+      const rows = Math.ceil(products.length / cols);
+      return { columnCount: cols, rowCount: rows };
+    }, [products.length, containerWidth]);
+
+    const Cell = React.memo(({ columnIndex, rowIndex, style }: any) => {
+      const index = rowIndex * columnCount + columnIndex;
+      const product = products[index];
+
+      if (!product) return null;
+
+      return (
+        <div style={{
+          ...style,
+          padding: GAP / 2,
+          top: `${parseFloat(style.top) + GAP / 2}px`,
+          left: `${parseFloat(style.left) + GAP / 2}px`,
+          width: `${parseFloat(style.width) - GAP}px`,
+          height: `${parseFloat(style.height) - GAP}px`,
+        }}>
+          <AdminProductCard
+            product={product}
+            isSelected={selectedProducts.includes(product.id)}
+            onSelect={() => handleProductSelect(product.id)}
+            onDelete={onDelete}
+            isDeleting={isDeleting && deleteProductId === product.id}
+            onStatusChange={onStatusChange}
+          />
+        </div>
+      );
     });
-  };
+    Cell.displayName = "ProductCell";
+
+    return (
+      <div ref={containerRef} className="w-full" style={{ minHeight: `${CARD_HEIGHT}px` }}>
+        {containerWidth > 0 && (
+          <Grid
+            columnCount={columnCount}
+            columnWidth={CARD_WIDTH + GAP}
+            height={Math.min(window.innerHeight, rowCount * (CARD_HEIGHT + GAP))}
+            rowCount={rowCount}
+            rowHeight={CARD_HEIGHT + GAP}
+            width={containerWidth}
+          >
+            {Cell}
+          </Grid>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+    <div ref={containerRef} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
       {products?.map((product) => (
         <AdminProductCard
           key={product.id}
