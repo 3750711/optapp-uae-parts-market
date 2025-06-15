@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -9,11 +8,12 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Banknote, Truck, Users, Star } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, Truck, Users } from 'lucide-react';
+import ProductGallery from "@/components/product/ProductGallery";
+import ProductSpecifications from "@/components/product/ProductSpecifications";
+import SellerInfo from "@/components/product/SellerInfo";
 
 interface ProductData {
   title: string;
@@ -58,109 +58,91 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-6xl">
           <DialogHeader>
             <DialogTitle>Предпросмотр товара</DialogTitle>
             <DialogDescription>
               Проверьте данные перед публикацией. Так будет выглядеть ваш товар.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="max-h-[70vh] p-1">
-            <div className="p-4 space-y-6">
-              {/* Title */}
-              <h2 className="text-2xl font-bold">{productData.title}</h2>
-
-              {/* Metric Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Цена</CardTitle>
-                    <Banknote className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{formatPrice(productData.price)}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Доставка</CardTitle>
-                    <Truck className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{formatPrice(productData.deliveryPrice)}</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Места</CardTitle>
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{productData.placeNumber || '1'}</div>
-                  </CardContent>
-                </Card>
+          <ScrollArea className="max-h-[80vh] p-1">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 p-4">
+              {/* Left Column: Gallery */}
+              <div className="space-y-6">
+                <ProductGallery 
+                  images={productData.imageUrls}
+                  videos={productData.videoUrls}
+                  title={productData.title}
+                  selectedImage={productData.primaryImage || null} 
+                  onImageClick={setZoomedImage}
+                />
               </div>
-
-              {/* Characteristics and Seller */}
-              <div className="space-y-4">
-                 <div className="flex flex-wrap gap-2">
-                    {productData.sellerName && <Badge variant="secondary">Продавец: {productData.sellerName}</Badge>}
-                    {productData.brandName && <Badge variant="outline">Марка: {productData.brandName}</Badge>}
-                    {productData.modelName && <Badge variant="outline">Модель: {productData.modelName}</Badge>}
-                 </div>
-              </div>
-
-              <Separator />
-
-              {/* Media Section */}
-              {productData.imageUrls.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Фотографии ({productData.imageUrls.length})</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {productData.imageUrls.map((url, index) => (
-                      <div key={index} className="relative aspect-square group cursor-pointer" onClick={() => setZoomedImage(url)}>
-                        <img
-                          src={url}
-                          alt={`Preview ${index + 1}`}
-                          className="w-full h-full object-cover rounded-lg border"
-                        />
-                        {url === productData.primaryImage && (
-                          <Badge className="absolute top-2 right-2" variant="default">
-                            <Star className="h-3 w-3 mr-1" />
-                            Главное
-                          </Badge>
-                        )}
-                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                            <p className="text-white opacity-0 group-hover:opacity-100 transition-opacity">Увеличить</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {productData.videoUrls.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Видео ({productData.videoUrls.length})</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {productData.videoUrls.map((url, index) => (
-                      <div key={index} className="relative aspect-video">
-                        <video src={url} controls className="w-full h-full object-cover rounded-lg border" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
               
-              {productData.description && (
-                <>
-                  <Separator />
+              {/* Right Column: Info */}
+              <div className="space-y-6">
+                <div>
+                  <h1 className="text-3xl font-bold text-foreground">{productData.title}</h1>
+                  <div className="mt-4 flex flex-wrap items-baseline gap-x-4 gap-y-2">
+                    <span className="text-3xl font-bold text-primary">{formatPrice(productData.price)}</span>
+                    {productData.deliveryPrice && parseFloat(productData.deliveryPrice) > 0 && (
+                      <div className="flex items-center gap-1 text-base text-muted-foreground">
+                        <Truck className="w-5 h-5" />
+                        <span>Доставка: {formatPrice(productData.deliveryPrice)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Separator />
+
+                <ProductSpecifications 
+                  brand={productData.brandName || "Не указано"}
+                  model={productData.modelName || "Не указано"}
+                  lot_number={0} // Not available in preview data
+                />
+
+                <Separator />
+                
+                {productData.description && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2">Описание</h3>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{productData.description}</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap bg-gray-50 p-4 rounded-lg border border-gray-100">{productData.description}</p>
                   </div>
-                </>
-              )}
+                )}
+                
+                <div className="flex items-center text-muted-foreground">
+                  <Users className="h-5 w-5 mr-2" />
+                  <span>Количество мест для отправки: {productData.placeNumber || 1}</span>
+                </div>
+
+                {productData.sellerName && (
+                  <>
+                    <Separator />
+                    <SellerInfo
+                      sellerProfile={{
+                        full_name: productData.sellerName,
+                        // Provide dummy values for other required props to avoid crashes
+                        id: '',
+                        rating: 0,
+                        opt_id: '',
+                        opt_status: 'pending',
+                        description_user: '',
+                        telegram: '',
+                        phone: '',
+                        location: '',
+                        avatar_url: '',
+                        communication_ability: 0
+                      }}
+                      seller_name={productData.sellerName}
+                      seller_id={""}
+                    >
+                      <div className="mt-2 text-sm text-muted-foreground">
+                        Контактные кнопки будут доступны после публикации.
+                      </div>
+                    </SellerInfo>
+                  </>
+                )}
+              </div>
             </div>
           </ScrollArea>
           <DialogFooter>
