@@ -1,10 +1,10 @@
-
 import React, { useMemo } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { devLog } from '@/utils/logger';
 
 interface AdminRouteProps {
   children: React.ReactNode;
@@ -29,7 +29,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     userEmail: user?.email
   }), [user, profile, isLoading, isAdmin]);
 
-  console.log('🔍 AdminRoute state:', authState);
+  devLog('🔍 AdminRoute state:', authState);
 
   // Состояние загрузки
   if (authState.isLoading) {
@@ -50,14 +50,14 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 
   // Не авторизован - перенаправляем на логин с сохранением текущего пути
   if (!authState.hasUser) {
-    console.log('❌ User not authenticated, redirecting to login');
+    devLog('❌ User not authenticated, redirecting to login');
     const redirectPath = location.pathname !== '/login' ? `?from=${encodeURIComponent(location.pathname)}` : '';
     return <Navigate to={`/login${redirectPath}`} replace />;
   }
 
   // Нет профиля - показываем ошибку с возможностью повторной попытки
   if (!authState.hasProfile) {
-    console.log('❌ Profile not found for user:', authState.userId);
+    devLog('❌ Profile not found for user:', authState.userId);
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -94,7 +94,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 
   // Проверка админских прав
   if (authState.isAdmin === false) {
-    console.log('❌ User does not have admin rights:', authState.userType);
+    devLog('❌ User does not have admin rights:', authState.userType);
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <div className="max-w-md w-full space-y-4">
@@ -133,7 +133,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
 
   // isAdmin === null - ждем проверки прав
   if (authState.isAdmin === null) {
-    console.log('⏳ Waiting for admin rights check...');
+    devLog('⏳ Waiting for admin rights check...');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -150,6 +150,6 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   }
 
   // isAdmin === true - показываем контент
-  console.log('✅ Admin access granted');
+  devLog('✅ Admin access granted');
   return <>{children}</>;
 };
