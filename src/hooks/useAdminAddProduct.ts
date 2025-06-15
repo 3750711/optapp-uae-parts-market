@@ -235,6 +235,9 @@ export const useAdminAddProduct = () => {
         sellerName: selectedSeller?.full_name,
         imageUrls,
         videoUrls,
+        placeNumber: previewData.placeNumber,
+        deliveryPrice: previewData.deliveryPrice,
+        primaryImage,
     };
   };
 
