@@ -9,15 +9,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Search } from "lucide-react";
+import EnhancedVirtualizedSelect from '@/components/ui/EnhancedVirtualizedSelect';
 
 interface Brand {
   id: string;
@@ -61,33 +53,18 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Марка автомобиля</FormLabel>
-            <div className="relative">
-              <Input 
-                type="text" 
-                placeholder="Поиск бренда..."
-                value={searchBrandTerm}
-                onChange={(e) => setSearchBrandTerm(e.target.value)}
-                className="mb-1"
-              />
-              <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-            </div>
             <FormControl>
-              <Select
-                disabled={isLoadingCarData}
+              <EnhancedVirtualizedSelect
+                options={filteredBrands}
                 value={field.value}
                 onValueChange={field.onChange}
-              >
-                <SelectTrigger id="brand">
-                  <SelectValue placeholder="Выберите марку" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {filteredBrands.map((brand) => (
-                    <SelectItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Выберите марку"
+                searchPlaceholder="Поиск бренда..."
+                disabled={isLoadingCarData}
+                searchTerm={searchBrandTerm}
+                onSearchChange={setSearchBrandTerm}
+                showResultCount={true}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -100,33 +77,18 @@ const CarInfoSection = React.memo<CarInfoSectionProps>(({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Модель (необязательно)</FormLabel>
-            <div className="relative">
-              <Input 
-                type="text" 
-                placeholder="Поиск модели..."
-                value={searchModelTerm}
-                onChange={(e) => setSearchModelTerm(e.target.value)}
-                className="mb-1"
-              />
-              <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-            </div>
             <FormControl>
-              <Select
-                disabled={!watchBrandId || isLoadingCarData}
+              <EnhancedVirtualizedSelect
+                options={filteredModels}
                 value={field.value}
                 onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите модель" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[300px]">
-                  {filteredModels.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder={watchBrandId ? "Выберите модель" : "Сначала выберите марку"}
+                searchPlaceholder="Поиск модели..."
+                disabled={!watchBrandId || isLoadingCarData}
+                searchTerm={searchModelTerm}
+                onSearchChange={setSearchModelTerm}
+                showResultCount={true}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
