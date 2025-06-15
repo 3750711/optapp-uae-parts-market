@@ -21,7 +21,7 @@ export const useProductsFilters = ({
   const sellerFilter = searchParams.get('seller') || 'all';
 
   // Дебаунс применяется к значению из URL для запросов к API
-  const debouncedSearchTerm = useDebounceValue(searchTerm, 300);
+  const debouncedSearchTerm = useDebounceValue(searchTerm, 500);
   const isSearching = searchTerm !== debouncedSearchTerm;
 
   // Функция для обновления поискового запроса в URL
