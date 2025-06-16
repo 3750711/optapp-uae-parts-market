@@ -59,6 +59,9 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
     
+    console.log('🔑 API Key exists:', !!apiKey);
+    console.log('🔐 API Secret exists:', !!apiSecret);
+    
     if (!apiKey || !apiSecret) {
       console.error('❌ Missing Cloudinary credentials');
       throw new Error('Cloudinary credentials not configured properly');
@@ -114,44 +117,64 @@ Deno.serve(async (req) => {
     });
 
     // Generate optimized public_id for video
-    const timestamp = Date.now();
+    const timestamp = Math.round(Date.now() / 1000);
     const publicId = customPublicId || `video_${productId || timestamp}_${timestamp}_${Math.random().toString(36).substring(7)}`;
     
-    // Create optimized FormData for Cloudinary video upload
-    const cloudinaryFormData = new FormData();
-    cloudinaryFormData.append('file', file);
-    cloudinaryFormData.append('api_key', apiKey);
-    cloudinaryFormData.append('timestamp', Math.round(timestamp / 1000).toString());
-    cloudinaryFormData.append('public_id', publicId);
-    cloudinaryFormData.append('folder', 'videos');
-    cloudinaryFormData.append('resource_type', 'video');
-    
-    // Video-specific optimizations based on file size
+    // Simplified video transformation based on file size
     let videoTransformation: string;
     if (fileSizeMB > 50) {
       // Heavy compression for large files
-      videoTransformation = 'q_auto:low,f_auto,c_limit,w_854,h_480,br_500k,fps_24';
+      videoTransformation = 'q_auto:low,f_auto,w_854,h_480';
     } else if (fileSizeMB > 20) {
       // Medium compression
-      videoTransformation = 'q_auto:good,f_auto,c_limit,w_1280,h_720,br_1000k,fps_30';
+      videoTransformation = 'q_auto:good,f_auto,w_1280,h_720';
     } else {
       // Light compression for smaller files
-      videoTransformation = 'q_auto:good,f_auto,c_limit,w_1920,h_1080,br_2000k';
+      videoTransformation = 'q_auto:good,f_auto,w_1920,h_1080';
     }
     
-    cloudinaryFormData.append('transformation', videoTransformation);
-    
-    // Generate thumbnail
-    cloudinaryFormData.append('eager', 'f_jpg,w_300,h_200,c_fill,q_auto:good');
+    // Create upload parameters (sorted alphabetically for signature)
+    const uploadParams = {
+      api_key: apiKey,
+      eager: 'f_jpg,w_300,h_200,c_fill,q_auto:good',
+      folder: 'videos',
+      public_id: publicId,
+      resource_type: 'video',
+      timestamp: timestamp.toString(),
+      transformation: videoTransformation
+    };
 
-    // Generate signature for video upload
-    const stringToSign = `eager=f_jpg,w_300,h_200,c_fill,q_auto:good&folder=videos&public_id=${publicId}&resource_type=video&timestamp=${Math.round(timestamp / 1000)}&transformation=${videoTransformation}${apiSecret}`;
+    console.log('📝 Upload parameters:', uploadParams);
+
+    // Generate signature - parameters must be sorted alphabetically
+    const sortedParams = Object.keys(uploadParams)
+      .filter(key => key !== 'api_key') // api_key не включается в подпись
+      .sort()
+      .map(key => `${key}=${uploadParams[key as keyof typeof uploadParams]}`)
+      .join('&');
+    
+    const stringToSign = `${sortedParams}${apiSecret}`;
+    
+    console.log('🔏 String to sign:', stringToSign);
+    
     const encoder = new TextEncoder();
     const data = encoder.encode(stringToSign);
     const hashBuffer = await crypto.subtle.digest('SHA-1', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
+    console.log('✍️ Generated signature:', signature);
+
+    // Create FormData for Cloudinary video upload
+    const cloudinaryFormData = new FormData();
+    cloudinaryFormData.append('file', file);
+    cloudinaryFormData.append('api_key', apiKey);
+    cloudinaryFormData.append('timestamp', timestamp.toString());
+    cloudinaryFormData.append('public_id', publicId);
+    cloudinaryFormData.append('folder', 'videos');
+    cloudinaryFormData.append('resource_type', 'video');
+    cloudinaryFormData.append('transformation', videoTransformation);
+    cloudinaryFormData.append('eager', 'f_jpg,w_300,h_200,c_fill,q_auto:good');
     cloudinaryFormData.append('signature', signature);
 
     console.log('☁️ Uploading to Cloudinary video endpoint...');
@@ -175,7 +198,11 @@ Deno.serve(async (req) => {
         
         if (retryCount === maxRetries) {
           const errorText = await uploadResponse.text();
-          console.error('❌ Cloudinary video upload failed:', errorText);
+          console.error('❌ Cloudinary video upload failed:', {
+            status: uploadResponse.status,
+            statusText: uploadResponse.statusText,
+            error: errorText
+          });
           throw new Error(`Cloudinary video upload failed: ${uploadResponse.status} ${errorText}`);
         }
       } catch (error) {
