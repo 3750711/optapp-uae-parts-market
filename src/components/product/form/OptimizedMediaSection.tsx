@@ -1,9 +1,11 @@
+
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Upload, Video, X } from "lucide-react";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
+import { useImageDeletionState } from "@/hooks/useImageDeletionState";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 
 interface OptimizedMediaSectionProps {
@@ -31,7 +33,21 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 }) => {
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, clearQueue } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
-  const [deletingImage, setDeletingImage] = useState<string | null>(null);
+
+  // Используем новый хук для управления состоянием удаления
+  const {
+    startDeletion,
+    cancelDeletion,
+    getImageStatus
+  } = useImageDeletionState({
+    onConfirmDelete: async (url: string) => {
+      if (onImageDelete) {
+        await onImageDelete(url);
+      }
+    },
+    deletionDelay: 3000, // 3 секунды для отмены
+    statusDisplayTime: 5000 // 5 секунд показ статуса "удалено"
+  });
 
   const totalMediaCount = imageUrls.length + videoUrls.length;
 
@@ -41,7 +57,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
     const fileArray = Array.from(files);
     
-    // Validate files
+    // Валидация файлов
     const validFiles = fileArray.filter(file => {
       if (!file.type.startsWith('image/')) {
         return false;
@@ -55,21 +71,21 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     if (validFiles.length === 0) return;
 
     try {
-      // More aggressive compression for better stability
+      // Более агрессивное сжатие для лучшей стабильности
       const getCompressionOptions = (file: File) => {
         const isLargeFile = file.size > 10 * 1024 * 1024; // >10MB
         
         return {
-          maxSizeMB: isLargeFile ? 0.3 : 0.8, // More aggressive compression
-          maxWidthOrHeight: isLargeFile ? 600 : 1000, // Smaller dimensions
-          initialQuality: isLargeFile ? 0.6 : 0.8, // Lower quality for stability
+          maxSizeMB: isLargeFile ? 0.3 : 0.8,
+          maxWidthOrHeight: isLargeFile ? 600 : 1000,
+          initialQuality: isLargeFile ? 0.6 : 0.8,
           fileType: 'image/webp'
         };
       };
 
       const uploadedUrls = await uploadFiles(validFiles, {
         productId,
-        maxConcurrent: 1, // Sequential uploads for stability
+        maxConcurrent: 1, // Последовательная загрузка для стабильности
         disableToast: false,
         compressionOptions: getCompressionOptions(validFiles[0])
       });
@@ -81,20 +97,24 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       console.error('Error uploading files:', error);
     }
     
-    // Reset file input
+    // Сброс input
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  const handleImageDelete = async (url: string) => {
-    if (!onImageDelete) return;
-    
-    setDeletingImage(url);
-    try {
-      await onImageDelete(url);
-    } finally {
-      setDeletingImage(null);
+  // Обработчик начала удаления с улучшенной валидацией
+  const handleImageDelete = useCallback((url: string) => {
+    if (imageUrls.length <= 1) {
+      console.warn('Cannot delete last image');
+      return;
     }
-  };
+    
+    if (!url || !imageUrls.includes(url)) {
+      console.warn('Invalid image URL for deletion:', url);
+      return;
+    }
+    
+    startDeletion(url);
+  }, [imageUrls, startDeletion]);
 
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
@@ -106,7 +126,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Upload buttons */}
+      {/* Кнопки загрузки */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1">
           <Button
@@ -145,7 +165,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </div>
       </div>
 
-      {/* Cancel button */}
+      {/* Кнопка отмены загрузки */}
       {isUploading && (
         <Button
           type="button"
@@ -158,7 +178,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </Button>
       )}
 
-      {/* Media counter */}
+      {/* Счетчик медиафайлов */}
       {totalMediaCount > 0 && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
@@ -169,18 +189,19 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </div>
       )}
 
-      {/* Optimized Image Gallery with upload progress */}
+      {/* Оптимизированная галерея изображений с новым функционалом удаления */}
       <OptimizedImageGallery
         images={imageUrls}
         uploadQueue={uploadQueue}
         primaryImage={primaryImage}
         onSetPrimary={onSetPrimaryImage}
         onDelete={handleImageDelete}
-        deletingImage={deletingImage}
+        getImageStatus={getImageStatus}
+        onCancelDeletion={cancelDeletion}
         disabled={disabled}
       />
 
-      {/* Video gallery */}
+      {/* Галерея видео */}
       {videoUrls.length > 0 && (
         <div className="space-y-2">
           <Label>Загруженные видео</Label>
