@@ -8,20 +8,20 @@ interface UseImageDeletionStateProps {
 export const useImageDeletionState = ({
   onConfirmDelete
 }: UseImageDeletionStateProps) => {
-  // Простая функция удаления без статусов
-  const startDeletion = useCallback(async (url: string) => {
-    console.log('🗑️ Starting deletion for:', url);
+  // Максимально простая функция удаления без статусов
+  const deleteImage = useCallback(async (url: string) => {
+    console.log('🗑️ Backend deletion for:', url);
     
     try {
       await onConfirmDelete(url);
-      console.log('✅ Image deletion completed:', url);
+      console.log('✅ Backend deletion completed:', url);
     } catch (error) {
-      console.error('❌ Error deleting image:', error);
-      throw error; // Пробрасываем ошибку наверх
+      console.error('❌ Backend deletion error:', error);
+      throw error;
     }
   }, [onConfirmDelete]);
 
   return {
-    startDeletion
+    deleteImage
   };
 };

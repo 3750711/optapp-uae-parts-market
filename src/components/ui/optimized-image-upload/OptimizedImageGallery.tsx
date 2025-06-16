@@ -31,6 +31,11 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   onDelete,
   disabled = false
 }) => {
+  console.log('🎨 OptimizedImageGallery render:', { 
+    imageCount: images.length, 
+    uploadQueueLength: uploadQueue.length 
+  });
+
   // Валидация URL
   const isValidUrl = (url: string): boolean => {
     try {
@@ -100,8 +105,16 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   };
 
   const handleDelete = (url: string) => {
+    console.log('🗑️ Gallery delete button clicked for:', url);
     if (onDelete && !disabled) {
       onDelete(url);
+    }
+  };
+
+  const handleSetPrimary = (url: string) => {
+    console.log('⭐ Gallery primary button clicked for:', url);
+    if (onSetPrimary && !disabled) {
+      onSetPrimary(url);
     }
   };
 
@@ -163,7 +176,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Основные кнопки управления - показываем только для загруженных изображений */}
+              {/* Кнопки управления - показываем только для загруженных изображений */}
               {isUploaded && !disabled && (
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {/* Кнопка "сделать главным" */}
@@ -172,7 +185,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                       type="button"
                       size="sm"
                       variant={primaryImage === url ? "default" : "secondary"}
-                      onClick={() => onSetPrimary(url)}
+                      onClick={() => handleSetPrimary(url)}
                       className="h-6 w-6 p-0"
                       title={primaryImage === url ? "Главное фото" : "Сделать главным"}
                     >
