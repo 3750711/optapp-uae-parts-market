@@ -62,11 +62,15 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     return false;
   });
 
-  // Создание списка всех изображений с уникальными ключами
+  // Создание списка всех изображений с фильтрацией удаленных
   const allImages = [
-    // Загруженные изображения
+    // Загруженные изображения - исключаем удаленные
     ...images
       .filter(isValidUrl)
+      .filter(url => {
+        const status = getImageStatus ? getImageStatus(url) : 'normal';
+        return status !== 'deleted'; // Исключаем удаленные изображения
+      })
       .map((url, index) => ({ 
         key: `uploaded-${index}-${url.slice(-20)}`, // уникальный ключ
         url, 
@@ -120,7 +124,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
               className={cn(
                 "relative aspect-square group transition-all duration-300",
                 imageStatus === 'deleting' && "animate-pulse",
-                imageStatus === 'deleted' && "opacity-30 scale-95"
+                imageStatus === 'pending-deletion' && "opacity-70 scale-95"
               )}
             >
               <img
@@ -129,8 +133,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 className={cn(
                   "w-full h-full object-cover rounded-lg border transition-all duration-300",
                   imageStatus === 'pending-deletion' && "opacity-50 grayscale",
-                  imageStatus === 'deleting' && "opacity-60",
-                  imageStatus === 'deleted' && "opacity-20 grayscale"
+                  imageStatus === 'deleting' && "opacity-60"
                 )}
                 loading="lazy"
                 onError={(e) => {
@@ -149,7 +152,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* ПРИОРИТЕТНЫЕ СТАТУСЫ УДАЛЕНИЯ - показываются ПЕРВЫМИ для загруженных изображений */}
+              {/* Статусы удаления для загруженных изображений */}
               {isUploaded && imageStatus === 'pending-deletion' && (
                 <div className="absolute top-2 left-2 bg-orange-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <Trash2 className="h-4 w-4 text-white" />
@@ -164,14 +167,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {isUploaded && imageStatus === 'deleted' && (
-                <div className="absolute top-2 left-2 bg-red-600 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                  <span className="text-xs text-white font-medium">Удалено</span>
-                </div>
-              )}
-
-              {/* Статус "Загружено" показывается ТОЛЬКО если нет статусов удаления */}
+              {/* Статус "Загружено" только для нормальных загруженных изображений */}
               {isUploaded && imageStatus === 'normal' && (
                 <div className="absolute top-2 left-2 bg-green-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-white" />
