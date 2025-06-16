@@ -1,16 +1,15 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
-interface SecurityAuditResult {
+export interface SecurityAuditResult {
   score: number;
   issues: SecurityIssue[];
   recommendations: string[];
   timestamp: Date;
 }
 
-interface SecurityIssue {
+export interface SecurityIssue {
   severity: 'low' | 'medium' | 'high' | 'critical';
-  category: 'rls' | 'validation' | 'authentication' | 'authorization' | 'data_exposure';
+  category: 'rls' | 'validation' | 'authentication' | 'authorization' | 'data_exposure' | 'configuration';
   description: string;
   table?: string;
   details?: string;
