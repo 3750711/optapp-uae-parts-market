@@ -46,11 +46,10 @@ interface VideoUploadResponse {
 }
 
 const ALLOWED_VIDEO_FORMATS = ['mp4', 'webm', 'mov', 'avi', 'mkv', 'flv', '3gp'];
-const MAX_VIDEO_SIZE_MB = 50; // Уменьшили лимит для стабильности
-const MAX_DURATION_SECONDS = 180; // 3 минуты
+const MAX_VIDEO_SIZE_MB = 50;
+const MAX_DURATION_SECONDS = 180;
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -67,7 +66,6 @@ Deno.serve(async (req) => {
       throw new Error('Cloudinary credentials not configured properly');
     }
 
-    // Handle FormData (optimized path) or JSON (fallback)
     let file: File | null = null;
     let productId: string | undefined;
     let customPublicId: string | undefined;
@@ -75,13 +73,11 @@ Deno.serve(async (req) => {
     const contentType = req.headers.get('content-type') || '';
     
     if (contentType.includes('multipart/form-data')) {
-      // Optimized FormData path
       const formData = await req.formData();
       file = formData.get('file') as File;
       productId = formData.get('productId') as string;
       customPublicId = formData.get('customPublicId') as string;
     } else {
-      // Fallback JSON path (base64)
       const { fileData, fileName, productId: pid, customPublicId: cpid } = await req.json();
       if (fileData && fileName) {
         const base64Data = fileData.startsWith('data:') 
@@ -98,13 +94,11 @@ Deno.serve(async (req) => {
       throw new Error('No video file provided');
     }
 
-    // Validate file type
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     if (!fileExtension || !ALLOWED_VIDEO_FORMATS.includes(fileExtension)) {
       throw new Error(`Unsupported video format. Allowed formats: ${ALLOWED_VIDEO_FORMATS.join(', ')}`);
     }
 
-    // Validate file size
     const fileSizeMB = file.size / (1024 * 1024);
     if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
       throw new Error(`Video file too large. Maximum size: ${MAX_VIDEO_SIZE_MB}MB`);
@@ -116,44 +110,40 @@ Deno.serve(async (req) => {
       format: fileExtension
     });
 
-    // Generate public_id for video
     const timestamp = Math.round(Date.now() / 1000);
     const publicId = customPublicId || `video_${productId || timestamp}_${timestamp}`;
     
-    // Упрощенные трансформации без спецсимволов
+    // Упрощенные трансформации без специальных символов
     let videoTransformation: string;
     if (fileSizeMB > 30) {
-      // Сильное сжатие для больших файлов
       videoTransformation = 'q_auto:low,w_720,h_480';
     } else if (fileSizeMB > 10) {
-      // Среднее сжатие
       videoTransformation = 'q_auto:good,w_1280,h_720';
     } else {
-      // Легкое сжатие для маленьких файлов
       videoTransformation = 'q_auto:good,w_1920,h_1080';
     }
     
-    // Упрощенный eager параметр для превью
     const eagerTransform = 'w_300,h_200,c_fill,q_auto:good,f_jpg';
     
-    // Создаем параметры для подписи (БЕЗ api_key)
+    // ИСПРАВЛЕННЫЕ параметры для подписи - добавляем resource_type
     const signatureParams = {
       eager: eagerTransform,
       folder: 'videos',
       public_id: publicId,
-      resource_type: 'video',
+      resource_type: 'video', // Обязательно для видео
       timestamp: timestamp.toString(),
       transformation: videoTransformation
     };
 
     console.log('📝 Signature parameters:', signatureParams);
 
-    // Правильная генерация подписи: сортируем по алфавиту и убираем api_key
-    const sortedParamsArray = Object.keys(signatureParams)
-      .sort() // Алфавитная сортировка
-      .map(key => `${key}=${signatureParams[key as keyof typeof signatureParams]}`);
+    // ИСПРАВЛЕННАЯ генерация подписи: правильная сортировка параметров
+    const sortedParams = Object.keys(signatureParams)
+      .sort() // Алфавитная сортировка ключей
+      .map(key => `${key}=${signatureParams[key as keyof typeof signatureParams]}`)
+      .join('&');
     
-    const stringToSign = sortedParamsArray.join('&') + apiSecret;
+    const stringToSign = sortedParams + apiSecret;
     
     console.log('🔏 String to sign:', stringToSign);
     
@@ -165,21 +155,20 @@ Deno.serve(async (req) => {
     
     console.log('✍️ Generated signature:', signature);
 
-    // Create FormData for Cloudinary video upload
+    // Создаем FormData для Cloudinary с правильными параметрами
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append('file', file);
     cloudinaryFormData.append('api_key', apiKey);
     cloudinaryFormData.append('timestamp', timestamp.toString());
     cloudinaryFormData.append('public_id', publicId);
     cloudinaryFormData.append('folder', 'videos');
-    cloudinaryFormData.append('resource_type', 'video');
+    cloudinaryFormData.append('resource_type', 'video'); // Обязательно для видео
     cloudinaryFormData.append('transformation', videoTransformation);
     cloudinaryFormData.append('eager', eagerTransform);
     cloudinaryFormData.append('signature', signature);
 
     console.log('☁️ Uploading to Cloudinary video endpoint...');
 
-    // Upload to Cloudinary video endpoint with shorter timeout
     const uploadResponse = await fetch(
       `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
       {
@@ -207,13 +196,12 @@ Deno.serve(async (req) => {
       sizeKB: Math.round(cloudinaryResult.bytes / 1024)
     });
 
-    // Validate video duration if available
     if (cloudinaryResult.duration && cloudinaryResult.duration > MAX_DURATION_SECONDS) {
       console.warn('⚠️ Video duration exceeds recommended limit:', cloudinaryResult.duration);
     }
 
-    // Generate URLs
-    const optimizedVideoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${videoTransformation}/${cloudinaryResult.public_id}`;
+    // Генерируем URL с использованием исходного secure_url от Cloudinary
+    const optimizedVideoUrl = cloudinaryResult.secure_url;
     const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${eagerTransform}/${cloudinaryResult.public_id}.jpg`;
 
     const response: VideoUploadResponse = {
@@ -222,7 +210,7 @@ Deno.serve(async (req) => {
       cloudinaryUrl: optimizedVideoUrl,
       thumbnailUrl,
       originalSize: cloudinaryResult.bytes,
-      compressedSize: Math.round(cloudinaryResult.bytes * 0.7), // Estimated compression
+      compressedSize: Math.round(cloudinaryResult.bytes * 0.7),
       format: cloudinaryResult.format,
       duration: cloudinaryResult.duration,
       width: cloudinaryResult.width,
