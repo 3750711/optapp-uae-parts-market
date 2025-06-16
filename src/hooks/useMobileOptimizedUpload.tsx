@@ -1,6 +1,7 @@
+
 import { useState, useCallback, useRef } from 'react';
 import { toast } from "@/hooks/use-toast";
-import { uploadDirectToCloudinary } from "@/utils/cloudinaryUpload";
+import { uploadDirectToCloudinary } from "@/utils/directCloudinaryUpload";
 import { validateImageForMarketplace, logImageProcessing } from "@/utils/imageProcessingUtils";
 import { getBatchImageUrls } from "@/utils/cloudinaryUtils";
 

@@ -1,4 +1,3 @@
-
 import { uploadDirectToCloudinary } from "./directCloudinaryUpload";
 
 // Система загрузки с прямым подключением к Cloudinary (откат к рабочему состоянию)
