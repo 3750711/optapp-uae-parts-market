@@ -24,7 +24,7 @@ interface OptimizedUploadOptions {
   compressionOptions?: {
     maxSizeMB: number;
     maxWidthOrHeight: number;
-    quality: number;
+    initialQuality: number;
     fileType?: string;
   };
 }
@@ -38,7 +38,7 @@ export const useOptimizedImageUpload = () => {
   const defaultCompressionOptions = {
     maxSizeMB: 1,
     maxWidthOrHeight: 1024,
-    quality: 0.85,
+    initialQuality: 0.85,
     fileType: 'image/webp'
   };
 
@@ -56,7 +56,7 @@ export const useOptimizedImageUpload = () => {
       const compressedFile = await imageCompression(file, {
         maxSizeMB: options.maxSizeMB,
         maxWidthOrHeight: options.maxWidthOrHeight,
-        quality: options.quality,
+        initialQuality: options.initialQuality,
         fileType: options.fileType,
         useWebWorker: true,
         preserveExif: false

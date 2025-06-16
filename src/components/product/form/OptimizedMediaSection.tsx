@@ -62,7 +62,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         compressionOptions: {
           maxSizeMB: 1,
           maxWidthOrHeight: 1024,
-          quality: 0.85,
+          initialQuality: 0.85,
           fileType: 'image/webp'
         }
       });
