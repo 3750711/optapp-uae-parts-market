@@ -2,10 +2,9 @@
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Upload, Video } from "lucide-react";
+import { Upload, Video, X } from "lucide-react";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { useOptimizedImageUpload } from "@/hooks/useOptimizedImageUpload";
-import UploadProgressIndicator from "@/components/ui/optimized-image-upload/UploadProgressIndicator";
 import OptimizedImageGallery from "@/components/ui/optimized-image-upload/OptimizedImageGallery";
 
 interface OptimizedMediaSectionProps {
@@ -31,11 +30,10 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   productId,
   disabled = false
 }) => {
-  const { uploadFiles, uploadQueue, isUploading, getPreviewUrls, clearQueue } = useOptimizedImageUpload();
+  const { uploadFiles, uploadQueue, isUploading, cancelUpload, clearQueue } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
 
   const totalMediaCount = imageUrls.length + videoUrls.length;
-  const allImageUrls = [...imageUrls, ...getPreviewUrls()];
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -43,11 +41,30 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
     const fileArray = Array.from(files);
     
+    // Validate files
+    const validFiles = fileArray.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        return false;
+      }
+      if (file.size > 50 * 1024 * 1024) { // 50MB limit
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
     try {
-      const uploadedUrls = await uploadFiles(fileArray, {
+      const uploadedUrls = await uploadFiles(validFiles, {
         productId,
         maxConcurrent: 3,
-        disableToast: false
+        disableToast: false,
+        compressionOptions: {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1024,
+          quality: 0.85,
+          fileType: 'image/webp'
+        }
       });
       
       if (uploadedUrls.length > 0) {
@@ -110,12 +127,17 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </div>
       </div>
 
-      {/* Upload progress */}
-      {uploadQueue.length > 0 && (
-        <UploadProgressIndicator
-          uploads={uploadQueue}
-          onClear={clearQueue}
-        />
+      {/* Cancel button */}
+      {isUploading && (
+        <Button
+          type="button"
+          variant="destructive"
+          onClick={cancelUpload}
+          className="w-full"
+        >
+          <X className="h-4 w-4 mr-2" />
+          Отменить загрузку
+        </Button>
       )}
 
       {/* Media counter */}
@@ -129,19 +151,15 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </div>
       )}
 
-      {/* Image gallery */}
-      {allImageUrls.length > 0 && (
-        <div className="space-y-2">
-          <Label>Загруженные фотографии</Label>
-          <OptimizedImageGallery
-            images={allImageUrls}
-            primaryImage={primaryImage}
-            onSetPrimary={onSetPrimaryImage}
-            onDelete={onImageDelete}
-            disabled={disabled}
-          />
-        </div>
-      )}
+      {/* Optimized Image Gallery with upload progress */}
+      <OptimizedImageGallery
+        images={imageUrls}
+        uploadQueue={uploadQueue}
+        primaryImage={primaryImage}
+        onSetPrimary={onSetPrimaryImage}
+        onDelete={onImageDelete}
+        disabled={disabled}
+      />
 
       {/* Video gallery */}
       {videoUrls.length > 0 && (

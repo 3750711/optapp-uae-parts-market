@@ -11,20 +11,17 @@ interface CloudinaryResponse {
   bytes: number;
   format: string;
   version: number;
-  duration?: number; // For videos
+  duration?: number;
   resource_type: 'image' | 'video';
 }
 
 interface UploadResponse {
   success: boolean;
   publicId?: string;
-  cloudinaryUrl?: string;
   mainImageUrl?: string;
   originalSize?: number;
   compressedSize?: number;
   format?: string;
-  duration?: number;
-  thumbnailUrl?: string;
   error?: string;
 }
 
@@ -35,148 +32,117 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Starting Cloudinary upload process...');
-
-    const { fileData, fileName, productId, customPublicId, isVideo = false } = await req.json();
-
-    if (!fileData) {
-      throw new Error('No file data provided');
-    }
-
-    // Get Cloudinary credentials from environment and clean them
     const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
     const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET')?.trim();
     
-    console.log('🔑 Cloudinary credentials check:', { 
-      hasApiKey: !!apiKey,
-      hasApiSecret: !!apiSecret,
-      hasUploadPreset: !!uploadPreset,
-      apiKeyPrefix: apiKey ? `${apiKey.substring(0, 6)}...` : 'undefined',
-      apiKeyLength: apiKey ? apiKey.length : 0,
-      uploadPreset: uploadPreset || 'undefined',
-      isVideo
-    });
-    
     if (!apiKey || !apiSecret || !uploadPreset) {
-      console.error('❌ Missing Cloudinary credentials:', {
-        apiKey: !!apiKey,
-        apiSecret: !!apiSecret,
-        uploadPreset: !!uploadPreset
-      });
+      console.error('❌ Missing Cloudinary credentials');
       throw new Error('Cloudinary credentials not configured properly');
     }
 
-    // Generate public_id
-    const publicId = customPublicId || `${isVideo ? 'video' : 'product'}_${productId || Date.now()}_${Date.now()}`;
-    
-    console.log('📤 Uploading to Cloudinary:', {
-      fileName,
-      publicId,
-      productId,
-      cloudName: CLOUDINARY_CLOUD_NAME,
-      uploadPreset,
-      isVideo,
-      fileType: isVideo ? 'video' : 'image'
-    });
+    // Handle FormData (optimized path) or JSON (fallback)
+    let file: File | null = null;
+    let productId: string | undefined;
+    let customPublicId: string | undefined;
 
-    // Determine the correct endpoint and data prefix
-    const resourceType = isVideo ? 'video' : 'image';
-    const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
-    const dataPrefix = isVideo ? 'data:video/mp4;base64,' : 'data:image/jpeg;base64,';
+    const contentType = req.headers.get('content-type') || '';
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Optimized FormData path
+      const formData = await req.formData();
+      file = formData.get('file') as File;
+      productId = formData.get('productId') as string;
+      customPublicId = formData.get('customPublicId') as string;
+    } else {
+      // Fallback JSON path (base64)
+      const { fileData, fileName, productId: pid, customPublicId: cpid } = await req.json();
+      if (fileData && fileName) {
+        const base64Data = fileData.startsWith('data:') 
+          ? fileData.split(',')[1] 
+          : fileData;
+        const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        file = new File([bytes], fileName);
+        productId = pid;
+        customPublicId = cpid;
+      }
+    }
 
-    // Generate signature for authenticated upload
-    const timestamp = Math.round(new Date().getTime() / 1000);
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    // Generate optimized public_id
+    const timestamp = Date.now();
+    const publicId = customPublicId || `product_${productId || timestamp}_${timestamp}_${Math.random().toString(36).substring(7)}`;
     
-    // Different transformations for video and image
-    const transformation = isVideo 
-      ? 'q_auto:low,f_auto,c_limit,w_1920,h_1080' // Video optimization
-      : 'q_auto:low,f_auto,c_limit,w_2000,h_2000'; // Image optimization
+    // Create optimized FormData for Cloudinary
+    const cloudinaryFormData = new FormData();
+    cloudinaryFormData.append('file', file);
+    cloudinaryFormData.append('api_key', apiKey);
+    cloudinaryFormData.append('timestamp', Math.round(timestamp / 1000).toString());
+    cloudinaryFormData.append('public_id', publicId);
+    cloudinaryFormData.append('folder', 'products');
     
-    const stringToSign = `folder=products&public_id=${publicId}&timestamp=${timestamp}&transformation=${transformation}${apiSecret}`;
-    
-    // Create SHA1 hash for signature
+    // Optimized transformation for faster uploads
+    const transformation = 'q_auto:good,f_auto,c_limit,w_1200,h_1200';
+    cloudinaryFormData.append('transformation', transformation);
+
+    // Generate signature
+    const stringToSign = `folder=products&public_id=${publicId}&timestamp=${Math.round(timestamp / 1000)}&transformation=${transformation}${apiSecret}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(stringToSign);
     const hashBuffer = await crypto.subtle.digest('SHA-1', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-    // Prepare form data for Cloudinary upload
-    const formData = new FormData();
-    formData.append('file', `${dataPrefix}${fileData}`);
-    formData.append('api_key', apiKey);
-    formData.append('timestamp', timestamp.toString());
-    formData.append('signature', signature);
-    formData.append('public_id', publicId);
-    formData.append('folder', 'products');
-    formData.append('transformation', transformation);
-
-    console.log(`☁️ Uploading ${resourceType}...`);
-    console.log('🌐 Upload URL:', uploadUrl);
     
-    // Upload to Cloudinary
-    const uploadResponse = await fetch(uploadUrl, {
-      method: 'POST',
-      body: formData,
-    });
+    cloudinaryFormData.append('signature', signature);
 
-    console.log('📊 Upload response status:', {
-      status: uploadResponse.status,
-      statusText: uploadResponse.statusText,
-      ok: uploadResponse.ok
-    });
+    // Upload to Cloudinary with retry logic
+    let uploadResponse: Response;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      console.error('❌ Cloudinary upload failed:', {
-        status: uploadResponse.status,
-        statusText: uploadResponse.statusText,
-        errorBody: errorText
-      });
-      throw new Error(`Cloudinary upload failed: ${uploadResponse.status} ${errorText}`);
+    while (retryCount <= maxRetries) {
+      try {
+        uploadResponse = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+          {
+            method: 'POST',
+            body: cloudinaryFormData,
+          }
+        );
+
+        if (uploadResponse.ok) break;
+        
+        if (retryCount === maxRetries) {
+          const errorText = await uploadResponse.text();
+          throw new Error(`Cloudinary upload failed: ${uploadResponse.status} ${errorText}`);
+        }
+      } catch (error) {
+        if (retryCount === maxRetries) {
+          throw error;
+        }
+      }
+      
+      retryCount++;
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
     }
 
-    const cloudinaryResult: CloudinaryResponse = await uploadResponse.json();
+    const cloudinaryResult: CloudinaryResponse = await uploadResponse!.json();
     
-    console.log('✅ Cloudinary upload successful:', {
+    // Generate optimized main image URL
+    const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:good,f_auto,c_limit,w_1200,h_1200/${cloudinaryResult.public_id}`;
+    const estimatedCompressedSize = Math.round(cloudinaryResult.bytes * 0.4);
+
+    const response: UploadResponse = {
+      success: true,
       publicId: cloudinaryResult.public_id,
-      originalUrl: cloudinaryResult.secure_url,
+      mainImageUrl,
       originalSize: cloudinaryResult.bytes,
-      dimensions: isVideo ? 'video' : `${cloudinaryResult.width}x${cloudinaryResult.height}`,
-      format: cloudinaryResult.format,
-      version: cloudinaryResult.version,
-      duration: cloudinaryResult.duration,
-      resourceType: cloudinaryResult.resource_type
-    });
-
-    let response: UploadResponse;
-
-    if (isVideo) {
-      // For videos, return the optimized URL directly
-      response = {
-        success: true,
-        publicId: cloudinaryResult.public_id,
-        cloudinaryUrl: cloudinaryResult.secure_url,
-        originalSize: cloudinaryResult.bytes,
-        format: cloudinaryResult.format,
-        duration: cloudinaryResult.duration
-      };
-    } else {
-      // For images, generate compressed main image URL
-      const mainImageUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/q_auto:low,f_auto,c_limit,w_1920,h_1920/${cloudinaryResult.public_id}`;
-      const estimatedMainSize = Math.round(cloudinaryResult.bytes * 0.3); // ~400KB
-
-      response = {
-        success: true,
-        publicId: cloudinaryResult.public_id,
-        mainImageUrl,
-        originalSize: cloudinaryResult.bytes,
-        compressedSize: estimatedMainSize
-      };
-    }
-
-    console.log('📊 Upload completed successfully:', response);
+      compressedSize: estimatedCompressedSize,
+      format: cloudinaryResult.format
+    };
 
     return new Response(JSON.stringify(response), {
       status: 200,
@@ -187,8 +153,6 @@ Deno.serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('💥 Cloudinary upload error:', error);
-    
     const errorResponse: UploadResponse = {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred'
