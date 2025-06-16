@@ -106,14 +106,14 @@ export const useOptimizedOrderMediaUpload = () => {
     }
   }, []);
 
-  // Upload single file with improved error handling
+  // Upload single file with unified logic from products
   const uploadSingleFile = useCallback(async (
     item: OrderUploadItem,
     options: OrderMediaUploadOptions,
     retryCount = 0
   ): Promise<string> => {
-    const maxRetries = 2;
-    const retryDelay = Math.pow(2, retryCount) * 1000;
+    const maxRetries = 3;
+    const retryDelay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
 
     try {
       setUploadQueue(prev => 
@@ -131,37 +131,56 @@ export const useOptimizedOrderMediaUpload = () => {
         throw new Error('Файл слишком большой (максимум 10MB)');
       }
 
-      // Create FormData with proper file handling
+      // Create FormData exactly like in products
       const formData = new FormData();
       formData.append('file', fileToUpload, fileToUpload.name);
+      
+      // Add orderId like productId in products
+      if (options.orderId) {
+        formData.append('orderId', options.orderId);
+      }
       
       console.log('📤 Uploading order file:', {
         name: fileToUpload.name,
         size: fileToUpload.size,
-        type: fileToUpload.type
+        type: fileToUpload.type,
+        orderId: options.orderId,
+        retryCount
       });
 
-      // Call Edge Function with error handling
+      // Update progress
+      setUploadQueue(prev => 
+        prev.map(i => 
+          i.id === item.id 
+            ? { ...i, progress: 30 }
+            : i
+        )
+      );
+
+      // Call Edge Function with same logic as products
       const { data: result, error } = await supabase.functions.invoke('cloudinary-upload', {
         body: formData,
       });
+
+      console.log('📥 Upload response:', { result, error });
 
       if (error) {
         console.error('❌ Edge Function error:', error);
         throw new Error(`Upload failed: ${error.message}`);
       }
 
+      // Use same response handling as products - check for mainImageUrl
       if (!result || !result.success) {
         console.error('❌ Upload result error:', result);
         throw new Error(result?.error || 'Upload failed - no result');
       }
 
-      if (!result.cloudinaryUrl) {
-        console.error('❌ No URL in result:', result);
+      if (!result.mainImageUrl) {
+        console.error('❌ No mainImageUrl in result:', result);
         throw new Error('Upload failed - no URL returned');
       }
 
-      console.log('✅ Upload successful:', result.cloudinaryUrl);
+      console.log('✅ Upload successful:', result.mainImageUrl);
 
       // Update progress to complete
       setUploadQueue(prev => 
@@ -171,7 +190,7 @@ export const useOptimizedOrderMediaUpload = () => {
                 ...i, 
                 status: 'success', 
                 progress: 100,
-                finalUrl: result.cloudinaryUrl
+                finalUrl: result.mainImageUrl
               }
             : i
         )
@@ -182,13 +201,13 @@ export const useOptimizedOrderMediaUpload = () => {
         URL.revokeObjectURL(item.blobUrl);
       }
 
-      return result.cloudinaryUrl;
+      return result.mainImageUrl;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
       console.error('💥 Upload error:', errorMessage);
       
       if (retryCount < maxRetries) {
-        console.log(`🔄 Retrying order upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries})`);
+        console.log(`🔄 Retrying order upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries + 1})`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
         return uploadSingleFile(item, options, retryCount + 1);
       } else {
@@ -204,12 +223,12 @@ export const useOptimizedOrderMediaUpload = () => {
     }
   }, []);
 
-  // Process uploads sequentially with delays
+  // Process uploads with unified logic
   const processUploads = useCallback(async (
     items: OrderUploadItem[],
     options: OrderMediaUploadOptions
   ): Promise<string[]> => {
-    const batchDelay = 1000; // 1 second delay between uploads
+    const uploadDelay = 500; // Same as products
     const results: string[] = [];
     const errors: string[] = [];
 
@@ -219,12 +238,13 @@ export const useOptimizedOrderMediaUpload = () => {
       const item = items[i];
       
       try {
+        console.log(`📤 Processing upload ${i + 1}/${items.length}: ${item.file.name}`);
         const url = await uploadSingleFile(item, options);
         results.push(url);
         
         // Add delay between uploads if not the last item
         if (i < items.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, batchDelay));
+          await new Promise(resolve => setTimeout(resolve, uploadDelay));
         }
       } catch (error) {
         const errorMsg = `${item.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
@@ -263,7 +283,7 @@ export const useOptimizedOrderMediaUpload = () => {
       return [];
     }
 
-    console.log('🚀 Starting order files upload:', { count: files.length });
+    console.log('🚀 Starting order files upload:', { count: files.length, options });
     
     setIsUploading(true);
     abortController.current = new AbortController();
@@ -341,15 +361,15 @@ export const useOptimizedOrderMediaUpload = () => {
       });
 
       const compressedItems = await Promise.all(compressionPromises);
-      console.log('✅ Compression completed for all items');
+      console.log('✅ Compression completed for all order items');
 
-      // Step 2: Upload compressed files sequentially
+      // Step 2: Upload compressed files
       const uploadedUrls = await processUploads(compressedItems, options);
 
       // Step 3: Schedule cleanup after successful upload
       setTimeout(cleanupSuccessfulItems, 30000);
 
-      console.log('✅ Upload process completed:', { uploaded: uploadedUrls.length, total: files.length });
+      console.log('✅ Order upload process completed:', { uploaded: uploadedUrls.length, total: files.length });
       return uploadedUrls;
     } catch (error) {
       console.error('💥 Order upload process failed:', error);
