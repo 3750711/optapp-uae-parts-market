@@ -91,9 +91,8 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
             } : i)
           );
           
-          // Update parent component with new URLs
-          const currentUploadedUrls = images;
-          onImagesUpload([...currentUploadedUrls, ...uploadedUrls]);
+          // ИСПРАВЛЕНИЕ: Добавляем новые URL к существующим, а не заменяем
+          onImagesUpload([...images, ...uploadedUrls]);
         } else {
           setMediaItems(prev => 
             prev.map(i => i.id === item.id ? { 
