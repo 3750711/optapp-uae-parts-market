@@ -2,10 +2,9 @@
 import React from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import { SellerOrderFormFields } from './SellerOrderFormFields';
-import OptimizedOrderMediaSection from './OptimizedOrderMediaSection';
+import SimpleMediaSection from './SimpleMediaSection';
 import { CreatedOrderView } from './CreatedOrderView';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Loader, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
@@ -19,9 +18,7 @@ export const AdminFreeOrderForm = () => {
     
     // Media
     images,
-    videos,
     setAllImages,
-    setVideos,
     
     // Profiles and car data
     buyerProfiles,
@@ -47,10 +44,6 @@ export const AdminFreeOrderForm = () => {
     // Utils
     parseTitleForBrand,
     
-    // Progress tracking
-    creationStage,
-    creationProgress,
-    
     // Initialization
     isInitializing,
     initializationError,
@@ -72,29 +65,7 @@ export const AdminFreeOrderForm = () => {
   // Handle media upload for orders
   const onImagesUpload = (urls: string[]) => {
     console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
-    setAllImages([...images, ...urls]);
-  };
-
-  const onVideoUpload = (urls: string[]) => {
-    console.log('🎥 AdminFreeOrderForm: New videos uploaded:', urls);
-    setVideos(prev => [...prev, ...urls]);
-  };
-
-  const onVideoDelete = (url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Deleting video:', url);
-    setVideos(prev => prev.filter(v => v !== url));
-  };
-
-  const onImageDelete = (url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Deleting image:', url);
-    setAllImages(images.filter(img => img !== url));
-  };
-
-  const onSetPrimaryImage = (url: string) => {
-    console.log('⭐ AdminFreeOrderForm: Setting primary image:', url);
-    // Move the selected image to the first position
-    const newImages = [url, ...images.filter(img => img !== url)];
-    setAllImages(newImages);
+    setAllImages(urls);
   };
 
   // Protected form submission handler
@@ -103,20 +74,6 @@ export const AdminFreeOrderForm = () => {
     guardedSubmit(async () => {
       await originalHandleSubmit(e);
     });
-  };
-
-  // Get stage message based on current creation stage
-  const getStageMessage = () => {
-    switch (creationStage) {
-      case 'validating':
-        return 'Проверка данных формы...';
-      case 'creating_order':
-        return 'Создание заказа в базе данных...';
-      case 'completed':
-        return 'Заказ успешно создан!';
-      default:
-        return 'Создание заказа...';
-    }
   };
 
   // Loading state during initialization
@@ -220,43 +177,14 @@ export const AdminFreeOrderForm = () => {
         disabled={isFormDisabled}
       />
       
-      {/* Optimized Media Upload Section */}
-      <OptimizedOrderMediaSection
+      {/* Simple Media Upload Section */}
+      <SimpleMediaSection
         images={images}
-        videos={videos}
         onImagesUpload={onImagesUpload}
-        onVideoUpload={onVideoUpload}
-        onImageDelete={onImageDelete}
-        onVideoDelete={onVideoDelete}
-        onSetPrimaryImage={onSetPrimaryImage}
-        primaryImage={images[0]} // First image is primary
-        orderId={undefined} // No orderId during creation
         disabled={isFormDisabled}
         maxImages={25}
-        maxVideos={3}
       />
 
-      {/* Creation Progress */}
-      {isLoading && (
-        <Card>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Loader className="mr-3 h-5 w-5 animate-spin" />
-                  <span className="font-medium">{getStageMessage()}</span>
-                </div>
-                <span className="text-sm text-gray-500">{creationProgress}%</span>
-              </div>
-              <Progress value={creationProgress} className="h-2" />
-              <div className="text-sm text-gray-600">
-                Создание заказа может занять несколько секунд...
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
       {/* Submit Button */}
       <div className="flex justify-end pt-6 border-t">
         <Button
