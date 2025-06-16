@@ -55,16 +55,23 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     if (validFiles.length === 0) return;
 
     try {
+      // Enhanced compression options with more aggressive settings for large files
+      const getCompressionOptions = (file: File) => {
+        const isLargeFile = file.size > 10 * 1024 * 1024; // >10MB
+        
+        return {
+          maxSizeMB: isLargeFile ? 0.5 : 1, // More aggressive for large files
+          maxWidthOrHeight: isLargeFile ? 800 : 1024, // Smaller dimensions for large files
+          initialQuality: isLargeFile ? 0.7 : 0.85, // Lower quality for large files
+          fileType: 'image/webp'
+        };
+      };
+
       const uploadedUrls = await uploadFiles(validFiles, {
         productId,
-        maxConcurrent: 3,
+        maxConcurrent: 5, // Increased from 3 to 5
         disableToast: false,
-        compressionOptions: {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1024,
-          initialQuality: 0.85,
-          fileType: 'image/webp'
-        }
+        compressionOptions: getCompressionOptions(validFiles[0]) // Use first file to determine settings
       });
       
       if (uploadedUrls.length > 0) {

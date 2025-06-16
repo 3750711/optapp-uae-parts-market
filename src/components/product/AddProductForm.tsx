@@ -8,7 +8,6 @@ import FormSectionWrapper from './form/FormSectionWrapper';
 import SellerSelectionSection from './form/SellerSelectionSection';
 import BasicInfoSection from "./form/BasicInfoSection";
 import CarInfoSection from "./form/CarInfoSection";
-import MediaSection from "./form/MediaSection";
 
 // Экспортируем базовую схему для seller страниц
 import { z } from "zod";
@@ -49,7 +48,7 @@ interface AddProductFormProps {
   onImageDelete?: (url: string) => void;
 }
 
-// Lazy load the optimized media section
+// Always use the optimized media section
 const OptimizedMediaSection = React.lazy(() => import('./form/OptimizedMediaSection'));
 
 const AddProductForm: React.FC<AddProductFormProps> = ({
@@ -70,11 +69,6 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   showSellerSelection = false,
   onImageDelete,
 }) => {
-  // Use optimized media section for better performance
-  const isOptimizedVersion = React.useMemo(() => {
-    return imageUrls.length > 5 || videoUrls.length > 1;
-  }, [imageUrls.length, videoUrls.length]);
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -99,20 +93,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         </FormSectionWrapper>
         
         <FormSectionWrapper title="Медиафайлы">
-          {isOptimizedVersion ? (
-            <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
-              <OptimizedMediaSection 
-                imageUrls={imageUrls}
-                videoUrls={videoUrls}
-                handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
-                setVideoUrls={setVideoUrls}
-                primaryImage={primaryImage}
-                onSetPrimaryImage={setPrimaryImage}
-                onImageDelete={onImageDelete}
-              />
-            </Suspense>
-          ) : (
-            <MediaSection 
+          <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+            <OptimizedMediaSection 
               imageUrls={imageUrls}
               videoUrls={videoUrls}
               handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
@@ -121,7 +103,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
               onSetPrimaryImage={setPrimaryImage}
               onImageDelete={onImageDelete}
             />
-          )}
+          </Suspense>
         </FormSectionWrapper>
         
         <Button 

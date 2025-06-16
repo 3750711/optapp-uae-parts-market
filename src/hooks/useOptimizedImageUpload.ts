@@ -162,7 +162,7 @@ export const useOptimizedImageUpload = () => {
     items: UploadItem[],
     options: OptimizedUploadOptions
   ): Promise<string[]> => {
-    const maxConcurrent = options.maxConcurrent || 3;
+    const maxConcurrent = options.maxConcurrent || 5; // Increased default from 3 to 5
     const results: string[] = [];
     const errors: string[] = [];
 
@@ -207,7 +207,7 @@ export const useOptimizedImageUpload = () => {
     return results;
   }, [uploadSingleFile, toast]);
 
-  // Main upload function
+  // Main upload function with enhanced compression logic
   const uploadFiles = useCallback(async (
     files: File[],
     options: OptimizedUploadOptions = {}
@@ -228,7 +228,7 @@ export const useOptimizedImageUpload = () => {
     setUploadQueue(initialQueue);
 
     try {
-      // Step 1: Compress all images in parallel
+      // Step 1: Compress all images in parallel with dynamic compression settings
       const compressionPromises = initialQueue.map(async (item) => {
         setUploadQueue(prev => 
           prev.map(i => 
@@ -238,10 +238,13 @@ export const useOptimizedImageUpload = () => {
           )
         );
 
-        // Ensure compression options always have fileType
+        // Dynamic compression options based on file size
+        const isLargeFile = item.file.size > 10 * 1024 * 1024; // >10MB
         const compressionOptions = {
-          ...defaultCompressionOptions,
-          ...options.compressionOptions
+          maxSizeMB: isLargeFile ? 0.5 : (options.compressionOptions?.maxSizeMB || defaultCompressionOptions.maxSizeMB),
+          maxWidthOrHeight: isLargeFile ? 800 : (options.compressionOptions?.maxWidthOrHeight || defaultCompressionOptions.maxWidthOrHeight),
+          initialQuality: isLargeFile ? 0.7 : (options.compressionOptions?.initialQuality || defaultCompressionOptions.initialQuality),
+          fileType: options.compressionOptions?.fileType || defaultCompressionOptions.fileType
         };
 
         const compressedFile = await compressImage(
