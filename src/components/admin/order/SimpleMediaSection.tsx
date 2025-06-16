@@ -37,6 +37,17 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
   const { uploadVideo, isUploading: isVideoUploading } = useCloudinaryVideoUpload();
   const [uploadQueue, setUploadQueue] = useState<OrderUploadItem[]>([]);
 
+  // Функция для очистки blob URL и удаления элементов из очереди
+  const cleanupUploadItem = useCallback((itemId: string) => {
+    setUploadQueue(prev => {
+      const item = prev.find(i => i.id === itemId);
+      if (item?.blobUrl) {
+        URL.revokeObjectURL(item.blobUrl);
+      }
+      return prev.filter(i => i.id !== itemId);
+    });
+  }, []);
+
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -78,6 +89,11 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
           
           // Add new URL to existing images
           onImagesUpload([...images, ...uploadedUrls]);
+
+          // Автоматически очищаем успешно загруженный элемент через короткое время
+          setTimeout(() => {
+            cleanupUploadItem(item.id);
+          }, 1000);
         } else {
           setUploadQueue(prev => 
             prev.map(i => i.id === item.id ? { 
@@ -102,7 +118,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
 
     // Reset input
     event.target.value = '';
-  }, [uploadFiles, images, onImagesUpload]);
+  }, [uploadFiles, images, onImagesUpload, cleanupUploadItem]);
 
   const handleVideoSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -139,6 +155,11 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
             finalUrl: result.cloudinaryUrl
           } : i)
         );
+
+        // Автоматически очищаем успешно загруженное видео
+        setTimeout(() => {
+          cleanupUploadItem(newItem.id);
+        }, 1000);
       } else {
         setUploadQueue(prev => 
           prev.map(i => i.id === newItem.id ? { 
@@ -162,7 +183,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
 
     // Reset input
     event.target.value = '';
-  }, [uploadVideo]);
+  }, [uploadVideo, cleanupUploadItem]);
 
   const handleDelete = useCallback((url: string) => {
     console.log('🗑️ SimpleMediaSection: Deleting image:', url);
@@ -181,13 +202,10 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
     }
     
     if (queueItem) {
-      // Clean up blob URL and remove from queue
-      if (queueItem.blobUrl) {
-        URL.revokeObjectURL(queueItem.blobUrl);
-      }
-      setUploadQueue(prev => prev.filter(item => item.id !== queueItem.id));
+      // Clean up and remove from queue
+      cleanupUploadItem(queueItem.id);
     }
-  }, [images, uploadQueue, onImagesUpload, onImageDelete]);
+  }, [images, uploadQueue, onImagesUpload, onImageDelete, cleanupUploadItem]);
 
   const uploadedImagesCount = images.length;
   const canUploadMore = uploadedImagesCount < maxImages;

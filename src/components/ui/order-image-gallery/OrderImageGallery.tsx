@@ -38,7 +38,8 @@ const OrderImageGallery: React.FC<OrderImageGalleryProps> = ({
 }) => {
   const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
 
-  // Combine existing images with upload queue items
+  // Combine existing images with ONLY uploading/pending/error items from upload queue
+  // Exclude 'success' items to prevent duplication since they're already in images array
   const allItems = [
     ...images.map((url, index) => ({
       id: `existing-${index}`,
@@ -47,11 +48,15 @@ const OrderImageGallery: React.FC<OrderImageGalleryProps> = ({
       isPrimary: url === primaryImage
     })),
     ...uploadQueue
-      .filter(item => item.status !== 'deleted' && (item.finalUrl || item.blobUrl))
+      .filter(item => 
+        item.status !== 'deleted' && 
+        item.status !== 'success' && // Исключаем успешные загрузки
+        (item.blobUrl || item.finalUrl)
+      )
       .map((item) => ({
         id: item.id,
         type: 'uploading' as const,
-        url: item.finalUrl || item.blobUrl!,
+        url: item.blobUrl || item.finalUrl!,
         status: item.status,
         progress: item.progress,
         error: item.error,
@@ -112,16 +117,13 @@ const OrderImageGallery: React.FC<OrderImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Upload status indicator */}
+              {/* Upload status indicator - только для загружающихся элементов */}
               {item.type === 'uploading' && (
                 <div className="absolute top-1 right-1">
-                  {item.status === 'success' && (
-                    <Badge variant="success" className="text-xs">✓</Badge>
-                  )}
                   {item.status === 'error' && (
                     <Badge variant="destructive" className="text-xs">✗</Badge>
                   )}
-                  {(item.status === 'compressing' || item.status === 'uploading') && (
+                  {(item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading') && (
                     <Badge variant="secondary" className="text-xs">
                       <Loader2 className="h-2 w-2 animate-spin" />
                     </Badge>
@@ -129,7 +131,7 @@ const OrderImageGallery: React.FC<OrderImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Upload progress */}
+              {/* Upload progress - только для активно загружающихся */}
               {item.type === 'uploading' && 
                (item.status === 'compressing' || item.status === 'uploading') && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
@@ -184,7 +186,7 @@ const OrderImageGallery: React.FC<OrderImageGalleryProps> = ({
                   onClick={() => handleDelete(item.url)}
                   className="h-6 w-6 p-0"
                   title="Удалить"
-                  disabled={disabled || (item.type === 'uploading' && item.status !== 'success')}
+                  disabled={disabled || (item.type === 'uploading' && item.status === 'uploading')}
                 >
                   <X className="h-3 w-3" />
                 </Button>
