@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +24,7 @@ interface OptimizedUploadOptions {
     maxSizeMB: number;
     maxWidthOrHeight: number;
     initialQuality: number;
-    fileType: string; // Make this required, not optional
+    fileType: string;
   };
 }
 
@@ -99,12 +98,10 @@ export const useOptimizedImageUpload = () => {
       formData.append('file', item.compressedFile || item.file);
       formData.append('productId', options.productId || '');
       
-      // Upload with streaming support
+      // Upload with correct headers - let browser set Content-Type automatically
       const uploadResponse = await supabase.functions.invoke('cloudinary-upload', {
         body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+        // Don't set Content-Type header - let browser handle multipart/form-data boundary
       });
 
       if (uploadResponse.error) {
@@ -157,34 +154,34 @@ export const useOptimizedImageUpload = () => {
     }
   }, []);
 
-  // Process files with parallel uploads
+  // Process files sequentially with delays
   const processUploads = useCallback(async (
     items: UploadItem[],
     options: OptimizedUploadOptions
   ): Promise<string[]> => {
-    const maxConcurrent = options.maxConcurrent || 5; // Increased default from 3 to 5
+    const maxConcurrent = 1; // Reduced to 1 for stability
+    const batchDelay = 500; // 500ms delay between uploads
     const results: string[] = [];
     const errors: string[] = [];
 
-    // Process in batches of maxConcurrent
-    for (let i = 0; i < items.length; i += maxConcurrent) {
+    // Process files one by one with delays
+    for (let i = 0; i < items.length; i++) {
       if (abortController.current?.signal.aborted) break;
 
-      const batch = items.slice(i, i + maxConcurrent);
+      const item = items[i];
       
-      const batchPromises = batch.map(async (item) => {
-        try {
-          const url = await uploadSingleFile(item, options);
-          results.push(url);
-          return url;
-        } catch (error) {
-          const errorMsg = `${item.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
-          errors.push(errorMsg);
-          return null;
+      try {
+        const url = await uploadSingleFile(item, options);
+        results.push(url);
+        
+        // Add delay between uploads if not the last item
+        if (i < items.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, batchDelay));
         }
-      });
-
-      await Promise.allSettled(batchPromises);
+      } catch (error) {
+        const errorMsg = `${item.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        errors.push(errorMsg);
+      }
     }
 
     if (!options.disableToast) {
@@ -238,12 +235,12 @@ export const useOptimizedImageUpload = () => {
           )
         );
 
-        // Dynamic compression options based on file size
+        // More aggressive compression for large files
         const isLargeFile = item.file.size > 10 * 1024 * 1024; // >10MB
         const compressionOptions = {
-          maxSizeMB: isLargeFile ? 0.5 : (options.compressionOptions?.maxSizeMB || defaultCompressionOptions.maxSizeMB),
-          maxWidthOrHeight: isLargeFile ? 800 : (options.compressionOptions?.maxWidthOrHeight || defaultCompressionOptions.maxWidthOrHeight),
-          initialQuality: isLargeFile ? 0.7 : (options.compressionOptions?.initialQuality || defaultCompressionOptions.initialQuality),
+          maxSizeMB: isLargeFile ? 0.3 : (options.compressionOptions?.maxSizeMB || defaultCompressionOptions.maxSizeMB),
+          maxWidthOrHeight: isLargeFile ? 600 : (options.compressionOptions?.maxWidthOrHeight || defaultCompressionOptions.maxWidthOrHeight),
+          initialQuality: isLargeFile ? 0.6 : (options.compressionOptions?.initialQuality || defaultCompressionOptions.initialQuality),
           fileType: options.compressionOptions?.fileType || defaultCompressionOptions.fileType
         };
 
@@ -271,7 +268,7 @@ export const useOptimizedImageUpload = () => {
 
       const compressedItems = await Promise.all(compressionPromises);
 
-      // Step 2: Upload compressed files in parallel
+      // Step 2: Upload compressed files sequentially
       const uploadedUrls = await processUploads(compressedItems, options);
 
       return uploadedUrls;
