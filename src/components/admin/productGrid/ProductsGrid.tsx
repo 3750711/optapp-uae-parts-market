@@ -1,3 +1,4 @@
+
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { FixedSizeGrid as Grid } from 'react-window';
 import { Product } from '@/types/product';
@@ -45,6 +46,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(1200);
 
+  // All hooks must be at the top - before any conditional returns
   useEffect(() => {
     const updateWidth = () => {
       if (containerRef.current) {
@@ -56,6 +58,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
+  // Memoized callback with stable dependencies
   const handleProductSelect = useCallback((productId: string) => {
     onProductSelect((prevSelected) => {
       if (prevSelected.includes(productId)) {
@@ -66,6 +69,48 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
     });
   }, [onProductSelect]);
 
+  // Calculate grid dimensions - always called, regardless of rendering conditions
+  const gridDimensions = useMemo(() => {
+    const { columnCount, rowCount } = (() => {
+      const cols = Math.max(1, Math.floor(containerWidth / (CARD_WIDTH + GAP)));
+      const rows = Math.ceil(products.length / cols);
+      return { columnCount: cols, rowCount: rows };
+    })();
+    
+    return { columnCount, rowCount };
+  }, [products.length, containerWidth]);
+
+  // Memoized Cell component for virtualization
+  const Cell = useMemo(() => {
+    return React.memo(({ columnIndex, rowIndex, style }: any) => {
+      const index = rowIndex * gridDimensions.columnCount + columnIndex;
+      const product = products[index];
+
+      if (!product) return null;
+
+      return (
+        <div style={{
+          ...style,
+          padding: GAP / 2,
+          top: `${parseFloat(style.top) + GAP / 2}px`,
+          left: `${parseFloat(style.left) + GAP / 2}px`,
+          width: `${parseFloat(style.width) - GAP}px`,
+          height: `${parseFloat(style.height) - GAP}px`,
+        }}>
+          <AdminProductCard
+            product={product}
+            isSelected={selectedProducts.includes(product.id)}
+            onSelect={() => handleProductSelect(product.id)}
+            onDelete={onDelete}
+            isDeleting={isDeleting && deleteProductId === product.id}
+            onStatusChange={onStatusChange}
+          />
+        </div>
+      );
+    });
+  }, [products, selectedProducts, handleProductSelect, onDelete, isDeleting, deleteProductId, onStatusChange, gridDimensions.columnCount]);
+
+  // Now safe to do conditional rendering after all hooks are called
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-3">
@@ -80,7 +125,7 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
               <Skeleton className="h-4 w-3/4 mb-2" />
               <Skeleton className="h-3 w-1/2 mb-2" />
               <Skeleton className="h-3 w-2/3 mb-2" />
-              <Skeleton className="h-3 w-3/4 mb-2" /> {/* Added for creation date */}
+              <Skeleton className="h-3 w-3/4 mb-2" />
               <div className="flex justify-between pt-2">
                 <Skeleton className="h-7 w-1/3" />
                 <Skeleton className="h-7 w-1/4" />
@@ -123,48 +168,14 @@ const ProductsGrid: React.FC<ProductsGridProps> = ({
 
   // Use virtualization for large lists
   if (products.length > 20) {
-    const { columnCount, rowCount } = useMemo(() => {
-      const cols = Math.max(1, Math.floor(containerWidth / (CARD_WIDTH + GAP)));
-      const rows = Math.ceil(products.length / cols);
-      return { columnCount: cols, rowCount: rows };
-    }, [products.length, containerWidth]);
-
-    const Cell = React.memo(({ columnIndex, rowIndex, style }: any) => {
-      const index = rowIndex * columnCount + columnIndex;
-      const product = products[index];
-
-      if (!product) return null;
-
-      return (
-        <div style={{
-          ...style,
-          padding: GAP / 2,
-          top: `${parseFloat(style.top) + GAP / 2}px`,
-          left: `${parseFloat(style.left) + GAP / 2}px`,
-          width: `${parseFloat(style.width) - GAP}px`,
-          height: `${parseFloat(style.height) - GAP}px`,
-        }}>
-          <AdminProductCard
-            product={product}
-            isSelected={selectedProducts.includes(product.id)}
-            onSelect={() => handleProductSelect(product.id)}
-            onDelete={onDelete}
-            isDeleting={isDeleting && deleteProductId === product.id}
-            onStatusChange={onStatusChange}
-          />
-        </div>
-      );
-    });
-    Cell.displayName = "ProductCell";
-
     return (
       <div ref={containerRef} className="w-full" style={{ minHeight: `${CARD_HEIGHT}px` }}>
         {containerWidth > 0 && (
           <Grid
-            columnCount={columnCount}
+            columnCount={gridDimensions.columnCount}
             columnWidth={CARD_WIDTH + GAP}
-            height={Math.min(window.innerHeight, rowCount * (CARD_HEIGHT + GAP))}
-            rowCount={rowCount}
+            height={Math.min(window.innerHeight, gridDimensions.rowCount * (CARD_HEIGHT + GAP))}
+            rowCount={gridDimensions.rowCount}
             rowHeight={CARD_HEIGHT + GAP}
             width={containerWidth}
           >
