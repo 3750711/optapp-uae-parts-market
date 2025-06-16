@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Star, StarOff, X, Loader2, CheckCircle, Trash2 } from 'lucide-react';
@@ -47,14 +46,24 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     }
   };
 
-  // Фильтрация активной очереди загрузки
+  // Фильтрация активной очереди загрузки - исключаем элементы которые уже в images или удалены
   const activeUploadQueue = uploadQueue.filter(item => {
-    if (item.status === 'error' || item.status === 'pending' || 
-        item.status === 'compressing' || item.status === 'uploading' || 
-        item.status === 'deleted') {
+    // Не показываем удаленные элементы
+    if (item.status === 'deleted') {
+      return false;
+    }
+    
+    // Не показываем элементы с ошибкой (они останутся в очереди для повторной попытки)
+    if (item.status === 'error') {
       return true;
     }
     
+    // Показываем элементы в процессе загрузки
+    if (item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading') {
+      return true;
+    }
+    
+    // Для успешно загруженных элементов - показываем только если их еще нет в основном массиве images
     if (item.status === 'success' && item.finalUrl) {
       return !images.includes(item.finalUrl);
     }
@@ -73,7 +82,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
         type: 'uploaded' as const,
         uploadItem: null 
       })),
-    // Изображения в процессе загрузки
+    // Изображения в процессе загрузки (только активные)
     ...activeUploadQueue
       .filter(item => item.blobUrl && isValidUrl(item.blobUrl))
       .map(item => ({ 
@@ -191,8 +200,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Информация о размере файла - показываем только для активных состояний, не для удаленных */}
-              {isUploading && uploadItem?.compressedSize && uploadItem.status !== 'deleted' && (
+              {/* Информация о размере файла - показываем только для активных состояний загрузки */}
+              {isUploading && uploadItem?.compressedSize && uploadItem.status !== 'deleted' && uploadItem.status !== 'error' && (
                 <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 rounded px-1 py-0.5">
                   <div className="text-xs text-green-300">
                     {formatFileSize(uploadItem.originalSize)} → {formatFileSize(uploadItem.compressedSize)}
@@ -207,7 +216,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Кнопки управления - показываем только для загруженных изображений и не удаленных */}
+              {/* Кнопки управления - показываем только для загруженных изображений */}
               {isUploaded && !disabled && (
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {/* Кнопка "сделать главным" */}
@@ -240,11 +249,6 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
-              )}
-
-              {/* Скрываем кнопки для удаленных изображений */}
-              {isUploading && uploadItem?.status === 'deleted' && (
-                <div className="absolute inset-0 bg-red-100 bg-opacity-50 rounded-lg" />
               )}
             </div>
           );
