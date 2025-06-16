@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { Suspense } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -49,6 +49,9 @@ interface AddProductFormProps {
   onImageDelete?: (url: string) => void;
 }
 
+// Lazy load the optimized media section
+const OptimizedMediaSection = React.lazy(() => import('./form/OptimizedMediaSection'));
+
 const AddProductForm: React.FC<AddProductFormProps> = ({
   form,
   onSubmit,
@@ -97,9 +100,17 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         
         <FormSectionWrapper title="Медиафайлы">
           {isOptimizedVersion ? (
-            React.lazy(() => import('./form/OptimizedMediaSection')).then(module => ({
-              default: module.default
-            }))
+            <Suspense fallback={<div className="flex items-center justify-center p-4"><Loader2 className="h-6 w-6 animate-spin" /></div>}>
+              <OptimizedMediaSection 
+                imageUrls={imageUrls}
+                videoUrls={videoUrls}
+                handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
+                setVideoUrls={setVideoUrls}
+                primaryImage={primaryImage}
+                onSetPrimaryImage={setPrimaryImage}
+                onImageDelete={onImageDelete}
+              />
+            </Suspense>
           ) : (
             <MediaSection 
               imageUrls={imageUrls}
