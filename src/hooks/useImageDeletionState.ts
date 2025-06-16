@@ -22,53 +22,58 @@ export const useImageDeletionState = ({
   const [deletedImages, setDeletedImages] = useState<Set<string>>(new Set());
   const [deletingImages, setDeletingImages] = useState<Set<string>>(new Set());
 
+  // Функция для полной очистки статуса изображения
+  const clearImageStatus = useCallback((url: string) => {
+    console.log('🧹 Clearing all statuses for image:', url);
+    
+    // Очищаем таймер если есть
+    const pendingItem = pendingDeletions.get(url);
+    if (pendingItem) {
+      clearTimeout(pendingItem.timeoutId);
+    }
+    
+    // Удаляем из всех статусов
+    setPendingDeletions(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(url);
+      return newMap;
+    });
+    
+    setDeletingImages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(url);
+      return newSet;
+    });
+    
+    setDeletedImages(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(url);
+      return newSet;
+    });
+  }, [pendingDeletions]);
+
   // Функция для начала процесса удаления
   const startDeletion = useCallback((url: string) => {
+    console.log('🗑️ Starting deletion process for:', url);
+    
     // Устанавливаем статус "удаляется"
     setDeletingImages(prev => new Set(prev).add(url));
 
     // Создаем таймер для автоматического подтверждения удаления
     const timeoutId = setTimeout(async () => {
       try {
+        console.log('⏰ Auto-confirming deletion for:', url);
         await onConfirmDelete(url);
         
-        // Убираем из "удаляется" и добавляем в "удалено"
-        setDeletingImages(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(url);
-          return newSet;
-        });
+        // После успешного удаления полностью очищаем статусы
+        // Внешняя система должна сама убрать URL из массива imageUrls
+        clearImageStatus(url);
         
-        setDeletedImages(prev => new Set(prev).add(url));
-        
-        // Убираем из ожидающих удаления
-        setPendingDeletions(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(url);
-          return newMap;
-        });
-
-        // Через statusDisplayTime убираем статус "удалено"
-        setTimeout(() => {
-          setDeletedImages(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(url);
-            return newSet;
-          });
-        }, statusDisplayTime);
+        console.log('✅ Image deletion completed and statuses cleared:', url);
       } catch (error) {
-        console.error('Error deleting image:', error);
+        console.error('❌ Error deleting image:', error);
         // В случае ошибки убираем все статусы
-        setDeletingImages(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(url);
-          return newSet;
-        });
-        setPendingDeletions(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(url);
-          return newMap;
-        });
+        clearImageStatus(url);
       }
     }, deletionDelay);
 
@@ -80,25 +85,13 @@ export const useImageDeletionState = ({
     };
 
     setPendingDeletions(prev => new Map(prev).set(url, deletionItem));
-  }, [onConfirmDelete, deletionDelay, statusDisplayTime]);
+  }, [onConfirmDelete, deletionDelay, clearImageStatus]);
 
   // Функция отмены удаления
   const cancelDeletion = useCallback((url: string) => {
-    const pendingItem = pendingDeletions.get(url);
-    if (pendingItem) {
-      clearTimeout(pendingItem.timeoutId);
-      setPendingDeletions(prev => {
-        const newMap = new Map(prev);
-        newMap.delete(url);
-        return newMap;
-      });
-      setDeletingImages(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(url);
-        return newSet;
-      });
-    }
-  }, [pendingDeletions]);
+    console.log('🚫 Canceling deletion for:', url);
+    clearImageStatus(url);
+  }, [clearImageStatus]);
 
   // Получить статус изображения
   const getImageStatus = useCallback((url: string) => {
@@ -121,6 +114,7 @@ export const useImageDeletionState = ({
     startDeletion,
     cancelDeletion,
     getImageStatus,
+    clearImageStatus, // Новая функция для внешней очистки
     pendingDeletions
   };
 };

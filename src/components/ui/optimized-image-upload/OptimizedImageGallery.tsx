@@ -62,17 +62,13 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     return false;
   });
 
-  // Создание списка всех изображений с фильтрацией удаленных
+  // Упрощенная логика: полагаемся на то, что удаленные изображения уже отсутствуют в массиве images
   const allImages = [
-    // Загруженные изображения - исключаем удаленные
+    // Загруженные изображения - показываем все из массива images
     ...images
       .filter(isValidUrl)
-      .filter(url => {
-        const status = getImageStatus ? getImageStatus(url) : 'normal';
-        return status !== 'deleted'; // Исключаем удаленные изображения
-      })
       .map((url, index) => ({ 
-        key: `uploaded-${index}-${url.slice(-20)}`, // уникальный ключ
+        key: `uploaded-${index}-${url.slice(-20)}`,
         url, 
         type: 'uploaded' as const,
         uploadItem: null 
@@ -81,7 +77,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     ...activeUploadQueue
       .filter(item => item.blobUrl && isValidUrl(item.blobUrl))
       .map(item => ({ 
-        key: `uploading-${item.id}`, // уникальный ключ на основе ID
+        key: `uploading-${item.id}`,
         url: item.blobUrl!, 
         type: 'uploading' as const,
         uploadItem: item 
@@ -118,6 +114,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
           const isUploading = type === 'uploading';
           const isUploaded = type === 'uploaded';
           
+          console.log('🖼️ Rendering image:', { url: url.slice(-20), imageStatus, type });
+          
           return (
             <div 
               key={key} 
@@ -137,7 +135,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 )}
                 loading="lazy"
                 onError={(e) => {
-                  console.warn('Image failed to load:', url);
+                  console.warn('⚠️ Image failed to load:', url);
                   e.currentTarget.style.display = 'none';
                 }}
               />

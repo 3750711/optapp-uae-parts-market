@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -38,15 +37,18 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   const {
     startDeletion,
     cancelDeletion,
-    getImageStatus
+    getImageStatus,
+    clearImageStatus
   } = useImageDeletionState({
     onConfirmDelete: async (url: string) => {
+      console.log('🔄 Executing actual deletion for:', url);
       if (onImageDelete) {
         await onImageDelete(url);
+        console.log('✅ External deletion completed for:', url);
       }
     },
-    deletionDelay: 3000, // 3 секунды для отмены
-    statusDisplayTime: 5000 // 5 секунд показ статуса "удалено"
+    deletionDelay: 3000,
+    statusDisplayTime: 5000
   });
 
   const totalMediaCount = imageUrls.length + videoUrls.length;
@@ -101,20 +103,42 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  // Обработчик начала удаления с улучшенной валидацией
+  // Обработчик начала удаления с синхронизацией
   const handleImageDelete = useCallback((url: string) => {
+    console.log('🎯 handleImageDelete called for:', url, {
+      totalImages: imageUrls.length,
+      urlExists: imageUrls.includes(url)
+    });
+    
     if (imageUrls.length <= 1) {
-      console.warn('Cannot delete last image');
+      console.warn('⚠️ Cannot delete last image');
       return;
     }
     
     if (!url || !imageUrls.includes(url)) {
-      console.warn('Invalid image URL for deletion:', url);
+      console.warn('⚠️ Invalid image URL for deletion:', url);
       return;
     }
     
+    // Запускаем процесс удаления
     startDeletion(url);
   }, [imageUrls, startDeletion]);
+
+  // Синхронизация: очищаем статусы для изображений, которых больше нет в массиве
+  React.useEffect(() => {
+    // Проверяем консистентность между imageUrls и статусами удаления
+    const currentImageSet = new Set(imageUrls);
+    
+    // Если изображение больше не в массиве, очищаем его статусы
+    imageUrls.forEach(url => {
+      const status = getImageStatus(url);
+      if (status !== 'normal' && currentImageSet.has(url)) {
+        // Если изображение есть в массиве, но имеет статус удаления - это несоответствие
+        console.log('🔧 Inconsistency detected, clearing status for existing image:', url);
+        clearImageStatus(url);
+      }
+    });
+  }, [imageUrls, getImageStatus, clearImageStatus]);
 
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
@@ -189,7 +213,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </div>
       )}
 
-      {/* Оптимизированная галерея изображений с новым функционалом удаления */}
+      {/* Оптимизированная галерея изображений */}
       <OptimizedImageGallery
         images={imageUrls}
         uploadQueue={uploadQueue}
