@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -101,14 +102,9 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  // Простой и мгновенный обработчик удаления с пометкой в очереди
+  // Упрощенный обработчик удаления без блокировок
   const handleImageDelete = useCallback(async (url: string) => {
     console.log('🎯 handleImageDelete called for:', url);
-    
-    if (imageUrls.length <= 1) {
-      console.warn('⚠️ Cannot delete last image');
-      return;
-    }
     
     if (!url || !imageUrls.includes(url)) {
       console.warn('⚠️ Invalid image URL for deletion:', url);
@@ -126,9 +122,15 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         after: newImageUrls.length 
       });
       
+      // 3. Если удаляется главное изображение и остаются другие, назначаем новое главное
+      if (primaryImage === url && newImageUrls.length > 0 && onSetPrimaryImage) {
+        console.log('🔄 Setting new primary image:', newImageUrls[0]);
+        onSetPrimaryImage(newImageUrls[0]);
+      }
+      
       handleMobileOptimizedImageUpload(newImageUrls);
       
-      // 3. Асинхронно выполняем удаление на бэкенде (не блокируем UI)
+      // 4. Асинхронно выполняем удаление на бэкенде (не блокируем UI)
       deleteImage(url).catch(error => {
         console.error('❌ Backend deletion failed:', error);
         // В случае ошибки можно показать toast, но не возвращать изображение
@@ -138,7 +140,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     } catch (error) {
       console.error('❌ Error during deletion:', error);
     }
-  }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage, markAsDeleted]);
+  }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage, markAsDeleted, primaryImage, onSetPrimaryImage]);
 
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
