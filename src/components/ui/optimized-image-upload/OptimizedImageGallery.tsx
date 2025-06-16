@@ -149,7 +149,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Статусы удаления для загруженных изображений */}
+              {/* ПРИОРИТЕТНЫЕ СТАТУСЫ УДАЛЕНИЯ - показываются ПЕРВЫМИ для загруженных изображений */}
               {isUploaded && imageStatus === 'pending-deletion' && (
                 <div className="absolute top-2 left-2 bg-orange-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <Trash2 className="h-4 w-4 text-white" />
@@ -171,7 +171,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Статус загружено только для обычных загруженных изображений в нормальном состоянии */}
+              {/* Статус "Загружено" показывается ТОЛЬКО если нет статусов удаления */}
               {isUploaded && imageStatus === 'normal' && (
                 <div className="absolute top-2 left-2 bg-green-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-white" />
