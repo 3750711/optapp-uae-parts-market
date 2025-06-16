@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Star, StarOff, X, Loader2, CheckCircle } from 'lucide-react';
@@ -128,42 +129,42 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Controls - only for uploaded images */}
-              {isUploaded && (
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {onSetPrimary && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={primaryImage === url ? "default" : "secondary"}
-                      onClick={() => onSetPrimary(url)}
-                      className="h-6 w-6 p-0"
-                      disabled={disabled}
-                      title={primaryImage === url ? "Главное фото" : "Сделать главным"}
-                    >
-                      {primaryImage === url ? (
-                        <Star className="h-3 w-3" />
-                      ) : (
-                        <StarOff className="h-3 w-3" />
-                      )}
-                    </Button>
-                  )}
-                  
-                  {onDelete && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => onDelete(url)}
-                      className="h-6 w-6 p-0"
-                      disabled={disabled}
-                      title="Удалить фото"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              )}
+              {/* Controls - show for uploaded images and conditionally for uploading */}
+              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {/* Primary button - only for uploaded images */}
+                {isUploaded && onSetPrimary && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={primaryImage === url ? "default" : "secondary"}
+                    onClick={() => onSetPrimary(url)}
+                    className="h-6 w-6 p-0"
+                    disabled={disabled}
+                    title={primaryImage === url ? "Главное фото" : "Сделать главным"}
+                  >
+                    {primaryImage === url ? (
+                      <Star className="h-3 w-3" />
+                    ) : (
+                      <StarOff className="h-3 w-3" />
+                    )}
+                  </Button>
+                )}
+                
+                {/* Delete button - show for uploaded images */}
+                {isUploaded && onDelete && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => onDelete(url)}
+                    className="h-6 w-6 p-0"
+                    disabled={disabled}
+                    title="Удалить фото"
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
             </div>
           );
         })}
