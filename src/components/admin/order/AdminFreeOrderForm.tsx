@@ -7,7 +7,7 @@ import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
 import { OrderBasicInfoTab } from "./OrderBasicInfoTab";
 import SimpleOrderMediaSection from "./SimpleOrderMediaSection";
 import { CreatedOrderView } from "./CreatedOrderView";
-import { OrderCreationProgress } from "./OrderCreationProgress";
+import OrderCreationProgress from "./OrderCreationProgress";
 
 export const AdminFreeOrderForm: React.FC = () => {
   const {
@@ -75,14 +75,19 @@ export const AdminFreeOrderForm: React.FC = () => {
 
   // Show created order view if order was successfully created
   if (createdOrder) {
-    return <CreatedOrderView order={createdOrder} onCreateAnother={resetForm} />;
+    return <CreatedOrderView 
+      order={createdOrder} 
+      images={images}
+      onBack={resetForm}
+      onNewOrder={resetForm}
+    />;
   }
 
   return (
     <div className="space-y-6">
       {/* Creation progress */}
       {isLoading && (
-        <OrderCreationProgress stage={creationStage} progress={creationProgress} />
+        <OrderCreationProgress currentStep={creationStage} />
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -90,9 +95,12 @@ export const AdminFreeOrderForm: React.FC = () => {
         <Card>
           <CardContent className="pt-6">
             <OrderBasicInfoTab 
-              formData={formData}
-              onInputChange={handleInputChange}
-              disabled={isLoading}
+              form={{ 
+                watch: () => ({}),
+                control: null,
+                formState: { errors: {} }
+              }}
+              order={formData}
             />
           </CardContent>
         </Card>
