@@ -6,15 +6,16 @@ import { useSimpleOrderUpload } from '@/hooks/useSimpleOrderUpload';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
 import { Badge } from "@/components/ui/badge";
 
-interface UploadItem {
+interface MediaItem {
   id: string;
-  file: File;
-  type: 'image' | 'video';
-  status: 'waiting' | 'uploading' | 'uploaded' | 'error';
-  progress: number;
   url?: string;
+  file?: File;
+  type: 'image' | 'video';
+  status: 'uploaded' | 'waiting' | 'uploading' | 'error';
+  progress: number;
   error?: string;
-  blobUrl: string;
+  blobUrl?: string;
+  isMainImage?: boolean;
 }
 
 interface SimpleMediaSectionProps {
@@ -34,7 +35,20 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
 }) => {
   const { uploadFiles, isUploading } = useSimpleOrderUpload();
   const { uploadVideo, isUploading: isVideoUploading } = useCloudinaryVideoUpload();
-  const [uploadItems, setUploadItems] = useState<UploadItem[]>([]);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+
+  // Initialize media items from existing images
+  React.useEffect(() => {
+    const existingItems: MediaItem[] = images.map((url, index) => ({
+      id: `existing-${index}`,
+      url,
+      type: 'image' as const,
+      status: 'uploaded' as const,
+      progress: 100,
+      isMainImage: index === 0
+    }));
+    setMediaItems(existingItems);
+  }, [images]);
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -42,8 +56,8 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
 
     const fileArray = Array.from(files);
     
-    // Create upload items with preview
-    const newItems: UploadItem[] = fileArray.map(file => ({
+    // Create new media items for uploading files
+    const newItems: MediaItem[] = fileArray.map(file => ({
       id: `${Date.now()}-${Math.random()}`,
       file,
       type: 'image',
@@ -52,30 +66,36 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
       blobUrl: URL.createObjectURL(file)
     }));
 
-    setUploadItems(prev => [...prev, ...newItems]);
+    // Add new items to the list
+    setMediaItems(prev => [...prev, ...newItems]);
 
-    // Start uploading
+    // Start uploading each file
     for (const item of newItems) {
-      setUploadItems(prev => 
+      setMediaItems(prev => 
         prev.map(i => i.id === item.id ? { ...i, status: 'uploading', progress: 25 } : i)
       );
 
       try {
-        const uploadedUrls = await uploadFiles([item.file]);
+        const uploadedUrls = await uploadFiles([item.file!]);
         
         if (uploadedUrls.length > 0) {
-          setUploadItems(prev => 
+          // Update item with uploaded URL
+          setMediaItems(prev => 
             prev.map(i => i.id === item.id ? { 
               ...i, 
               status: 'uploaded', 
               progress: 100, 
-              url: uploadedUrls[0] 
+              url: uploadedUrls[0],
+              file: undefined,
+              blobUrl: undefined
             } : i)
           );
           
-          onImagesUpload([...images, ...uploadedUrls]);
+          // Update parent component with new URLs
+          const currentUploadedUrls = images;
+          onImagesUpload([...currentUploadedUrls, ...uploadedUrls]);
         } else {
-          setUploadItems(prev => 
+          setMediaItems(prev => 
             prev.map(i => i.id === item.id ? { 
               ...i, 
               status: 'error', 
@@ -85,7 +105,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
           );
         }
       } catch (error) {
-        setUploadItems(prev => 
+        setMediaItems(prev => 
           prev.map(i => i.id === item.id ? { 
             ...i, 
             status: 'error', 
@@ -106,8 +126,8 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
 
     const file = files[0];
     
-    // Create upload item with preview
-    const newItem: UploadItem = {
+    // Create new media item for video
+    const newItem: MediaItem = {
       id: `${Date.now()}-${Math.random()}`,
       file,
       type: 'video',
@@ -116,10 +136,10 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
       blobUrl: URL.createObjectURL(file)
     };
 
-    setUploadItems(prev => [...prev, newItem]);
+    setMediaItems(prev => [...prev, newItem]);
 
     // Start uploading
-    setUploadItems(prev => 
+    setMediaItems(prev => 
       prev.map(i => i.id === newItem.id ? { ...i, status: 'uploading', progress: 25 } : i)
     );
 
@@ -127,16 +147,18 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
       const result = await uploadVideo(file);
       
       if (result.success && result.cloudinaryUrl) {
-        setUploadItems(prev => 
+        setMediaItems(prev => 
           prev.map(i => i.id === newItem.id ? { 
             ...i, 
             status: 'uploaded', 
             progress: 100, 
-            url: result.cloudinaryUrl 
+            url: result.cloudinaryUrl,
+            file: undefined,
+            blobUrl: undefined
           } : i)
         );
       } else {
-        setUploadItems(prev => 
+        setMediaItems(prev => 
           prev.map(i => i.id === newItem.id ? { 
             ...i, 
             status: 'error', 
@@ -146,7 +168,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
         );
       }
     } catch (error) {
-      setUploadItems(prev => 
+      setMediaItems(prev => 
         prev.map(i => i.id === newItem.id ? { 
           ...i, 
           status: 'error', 
@@ -160,25 +182,29 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
     event.target.value = '';
   }, [uploadVideo]);
 
-  const handleImageDelete = useCallback((url: string) => {
-    const newImages = images.filter(img => img !== url);
-    onImagesUpload(newImages);
-    if (onImageDelete) {
-      onImageDelete(url);
-    }
-  }, [images, onImagesUpload, onImageDelete]);
+  const handleItemDelete = useCallback((id: string) => {
+    const item = mediaItems.find(i => i.id === id);
+    if (!item) return;
 
-  const handleUploadItemDelete = useCallback((id: string) => {
-    setUploadItems(prev => {
-      const item = prev.find(i => i.id === id);
-      if (item?.blobUrl) {
-        URL.revokeObjectURL(item.blobUrl);
+    if (item.type === 'image' && item.status === 'uploaded' && item.url) {
+      // Remove from parent component
+      const newImages = images.filter(img => img !== item.url);
+      onImagesUpload(newImages);
+      if (onImageDelete) {
+        onImageDelete(item.url);
       }
-      return prev.filter(i => i.id !== id);
-    });
-  }, []);
+    }
 
-  const getStatusBadge = (status: UploadItem['status']) => {
+    // Clean up blob URL if exists
+    if (item.blobUrl) {
+      URL.revokeObjectURL(item.blobUrl);
+    }
+
+    // Remove from local state
+    setMediaItems(prev => prev.filter(i => i.id !== id));
+  }, [mediaItems, images, onImagesUpload, onImageDelete]);
+
+  const getStatusBadge = (status: MediaItem['status']) => {
     switch (status) {
       case 'waiting':
         return <Badge variant="secondary" className="text-xs">Ожидает</Badge>;
@@ -191,6 +217,18 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
     }
   };
 
+  const getImageSource = (item: MediaItem) => {
+    if (item.status === 'uploaded' && item.url) {
+      return item.url;
+    }
+    if (item.blobUrl) {
+      return item.blobUrl;
+    }
+    return '';
+  };
+
+  const uploadedImagesCount = mediaItems.filter(item => item.type === 'image' && item.status === 'uploaded').length;
+
   return (
     <div className="space-y-4">
       {/* Upload Buttons */}
@@ -199,7 +237,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
           type="button"
           variant="outline"
           onClick={() => document.getElementById('simple-image-input')?.click()}
-          disabled={disabled || isUploading || images.length >= maxImages}
+          disabled={disabled || isUploading || uploadedImagesCount >= maxImages}
           className="flex-1"
         >
           {isUploading ? (
@@ -255,22 +293,24 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
         disabled={disabled || isVideoUploading}
       />
 
-      {/* Upload Items Preview */}
-      {uploadItems.length > 0 && (
+      {/* Media Gallery */}
+      {mediaItems.length > 0 && (
         <div className="space-y-2">
-          <h5 className="font-medium text-sm">Загружаемые файлы:</h5>
+          <h5 className="font-medium text-sm">
+            Медиафайлы ({uploadedImagesCount}/{maxImages}):
+          </h5>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {uploadItems.map((item) => (
+            {mediaItems.map((item) => (
               <div key={item.id} className="relative aspect-square rounded-lg overflow-hidden border bg-gray-100">
                 {item.type === 'image' ? (
                   <img
-                    src={item.blobUrl}
-                    alt="Предпросмотр"
+                    src={getImageSource(item)}
+                    alt="Медиафайл"
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <video
-                    src={item.blobUrl}
+                    src={getImageSource(item)}
                     className="w-full h-full object-cover"
                     muted
                   />
@@ -280,6 +320,13 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
                 <div className="absolute top-1 left-1">
                   {getStatusBadge(item.status)}
                 </div>
+
+                {/* Main image badge */}
+                {item.isMainImage && (
+                  <div className="absolute top-1 right-8 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+                    Главное
+                  </div>
+                )}
 
                 {/* Progress bar for uploading */}
                 {item.status === 'uploading' && (
@@ -307,43 +354,11 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
                 {/* Delete button */}
                 <button
                   type="button"
-                  onClick={() => handleUploadItemDelete(item.id)}
+                  onClick={() => handleItemDelete(item.id)}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
                 >
                   <X className="h-3 w-3" />
                 </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Uploaded Images Gallery */}
-      {images.length > 0 && (
-        <div className="space-y-2">
-          <h5 className="font-medium text-sm">Загруженные изображения ({images.length}/{maxImages}):</h5>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {images.map((url, index) => (
-              <div key={index} className="relative aspect-square rounded-lg overflow-hidden border">
-                <img
-                  src={url}
-                  alt={`Изображение ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                {!disabled && (
-                  <button
-                    type="button"
-                    onClick={() => handleImageDelete(url)}
-                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-red-600"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-                {index === 0 && (
-                  <div className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
-                    Главное
-                  </div>
-                )}
               </div>
             ))}
           </div>
