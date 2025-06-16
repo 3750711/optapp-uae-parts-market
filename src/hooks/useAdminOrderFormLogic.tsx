@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,22 +53,28 @@ export interface AdminOrderFormLogicReturn {
   creationStage: string;
   creationProgress: number;
   
-  // Initialization states
+  // Enhanced initialization states
   isInitializing: boolean;
   initializationError: string | null;
   hasAdminAccess: boolean;
+  initializationStage: string;
+  initializationProgress: number;
+  forceComplete: () => void;
 }
 
 export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
   const { isAdmin } = useAdminAccess();
 
-  // Initialization states
+  // Enhanced initialization states
   const [isInitializing, setIsInitializing] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(null);
-  const [initTimeout, setInitTimeout] = useState(false);
+  const [initializationStage, setInitializationStage] = useState('starting');
+  const [initializationProgress, setInitializationProgress] = useState(0);
+  const [forceCompleted, setForceCompleted] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState<OrderFormData>({
@@ -158,66 +164,132 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     return { brand: '', model: '' };
   }, [brands, brandModels]);
 
-  // Initialize component with timeout protection
+  // Force complete initialization
+  const forceComplete = useCallback(() => {
+    console.log('🔧 Force completing initialization...');
+    setForceCompleted(true);
+    setIsInitializing(false);
+    setInitializationStage('force_completed');
+    setInitializationProgress(100);
+    setInitializationError(null);
+  }, []);
+
+  // Enhanced initialization with better route checking and timeouts
   useEffect(() => {
     const initialize = async () => {
       try {
+        console.log('🚀 Starting enhanced admin order form initialization...', { 
+          isAdmin, 
+          user: !!user, 
+          route: location.pathname,
+          forceCompleted
+        });
+        
+        if (forceCompleted) {
+          console.log('⚡ Initialization already force completed');
+          return;
+        }
+        
         setIsInitializing(true);
         setInitializationError(null);
+        setInitializationStage('route_check');
+        setInitializationProgress(10);
         
-        console.log('🚀 Starting admin order form initialization...', { isAdmin, user: !!user });
+        // Route validation
+        const validRoutes = ['/admin/free-order', '/admin/orders/create'];
+        if (!validRoutes.includes(location.pathname)) {
+          console.warn('⚠️ Invalid route for admin order form:', location.pathname);
+          setInitializationError('Неверный маршрут для формы заказа');
+          navigate('/admin/dashboard');
+          return;
+        }
         
-        // Set timeout for initialization
+        console.log('✅ Route validation passed');
+        setInitializationStage('auth_check');
+        setInitializationProgress(20);
+        
+        // Reduced timeout to 5 seconds
         const timeoutId = setTimeout(() => {
-          console.warn('⚠️ Initialization timeout reached');
-          setInitTimeout(true);
-          setInitializationError('Тайм-аут инициализации. Проверьте подключение.');
-          setIsInitializing(false);
-        }, 10000); // 10 second timeout
+          console.warn('⚠️ Initialization timeout reached (5s)');
+          setInitializationError('Тайм-аут инициализации. Попробуйте обновить страницу или принудительно завершить.');
+          setInitializationStage('timeout');
+        }, 5000);
 
-        // Wait for admin check to complete (but not indefinitely)
+        // Enhanced admin check with detailed logging
         let retries = 0;
-        while (isAdmin === null && retries < 50) { // Max 5 seconds (50 * 100ms)
+        const maxRetries = 25; // Reduced from 50 (2.5 seconds max)
+        
+        setInitializationStage('admin_verification');
+        while (isAdmin === null && retries < maxRetries && !forceCompleted) {
+          console.log(`🔄 Admin check retry ${retries + 1}/${maxRetries}, isAdmin:`, isAdmin);
           await new Promise(resolve => setTimeout(resolve, 100));
           retries++;
+          setInitializationProgress(20 + (retries / maxRetries) * 30);
         }
         
         clearTimeout(timeoutId);
         
-        if (initTimeout) return; // Don't proceed if timeout occurred
+        if (forceCompleted) {
+          console.log('⚡ Initialization was force completed during admin check');
+          return;
+        }
         
-        console.log('✅ Admin check completed:', { isAdmin, retries });
+        console.log('✅ Admin check completed:', { isAdmin, retries, timeElapsed: retries * 100 });
+        
+        if (isAdmin === null) {
+          setInitializationError('Не удалось проверить права администратора. Попробуйте обновить страницу.');
+          setInitializationStage('admin_check_failed');
+          return;
+        }
         
         if (isAdmin === false) {
-          setInitializationError('У вас нет прав для доступа к этой странице');
+          setInitializationError('У вас нет прав администратора для доступа к этой странице');
+          setInitializationStage('access_denied');
+          setTimeout(() => navigate('/'), 2000);
           return;
         }
 
+        setInitializationStage('loading_data');
+        setInitializationProgress(60);
+
         if (isAdmin === true) {
-          // Load initial data in parallel
           console.log('📊 Loading initial data...');
-          await Promise.all([
-            loadBuyerProfiles(),
-            loadSellerProfiles()
-          ]);
-          console.log('✅ Initial data loaded successfully');
+          try {
+            await Promise.all([
+              loadBuyerProfiles(),
+              loadSellerProfiles()
+            ]);
+            console.log('✅ Initial data loaded successfully');
+            setInitializationProgress(90);
+          } catch (error) {
+            console.error('❌ Error loading initial data:', error);
+            setInitializationError('Ошибка загрузки данных');
+            setInitializationStage('data_load_failed');
+            return;
+          }
         }
 
+        setInitializationStage('completed');
+        setInitializationProgress(100);
         setInitializationError(null);
+        
+        // Small delay to show completion
+        setTimeout(() => {
+          setIsInitializing(false);
+        }, 500);
+        
       } catch (error) {
         console.error('❌ Initialization error:', error);
         setInitializationError('Ошибка инициализации компонента');
-      } finally {
-        if (!initTimeout) {
-          setIsInitializing(false);
-        }
+        setInitializationStage('error');
       }
     };
 
     initialize();
-  }, [isAdmin, user, initTimeout]);
+  }, [isAdmin, user, location.pathname, navigate, forceCompleted]);
 
   const loadBuyerProfiles = useCallback(async () => {
+    console.log('📥 Loading buyer profiles...');
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -227,12 +299,15 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
 
       if (error) throw error;
       setBuyerProfiles(data || []);
+      console.log('✅ Buyer profiles loaded:', data?.length || 0);
     } catch (error) {
-      console.error('Error loading buyer profiles:', error);
+      console.error('❌ Error loading buyer profiles:', error);
+      throw error;
     }
   }, []);
 
   const loadSellerProfiles = useCallback(async () => {
+    console.log('📥 Loading seller profiles...');
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -242,8 +317,10 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
 
       if (error) throw error;
       setSellerProfiles(data || []);
+      console.log('✅ Seller profiles loaded:', data?.length || 0);
     } catch (error) {
-      console.error('Error loading seller profiles:', error);
+      console.error('❌ Error loading seller profiles:', error);
+      throw error;
     }
   }, []);
 
@@ -430,9 +507,12 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     creationStage,
     creationProgress,
     
-    // Initialization states with enhanced error handling
+    // Enhanced initialization states
     isInitializing,
     initializationError,
-    hasAdminAccess: isAdmin === true
+    hasAdminAccess: isAdmin === true,
+    initializationStage,
+    initializationProgress,
+    forceComplete
   };
 };

@@ -4,9 +4,9 @@ import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import { SellerOrderFormFields } from './SellerOrderFormFields';
 import SimpleMediaSection from './SimpleMediaSection';
 import { CreatedOrderView } from './CreatedOrderView';
+import { EnhancedInitializationState } from './EnhancedInitializationState';
 import { Button } from '@/components/ui/button';
-import { Loader, AlertTriangle } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Loader } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 
@@ -44,10 +44,14 @@ export const AdminFreeOrderForm = () => {
     // Utils
     parseTitleForBrand,
     
-    // Initialization
+    // Enhanced initialization
     isInitializing,
     initializationError,
-    hasAdminAccess
+    hasAdminAccess,
+    initializationStage,
+    initializationProgress,
+    forceComplete,
+    navigate
   } = useAdminOrderFormLogic();
 
   // Add submission guard
@@ -76,65 +80,43 @@ export const AdminFreeOrderForm = () => {
     });
   };
 
-  // Loading state during initialization
-  if (isInitializing) {
+  // Handle retry initialization
+  const handleRetry = () => {
+    window.location.reload();
+  };
+
+  // Handle back navigation
+  const handleBack = () => {
+    navigate('/admin/dashboard');
+  };
+
+  // Enhanced initialization state with better UX
+  if (isInitializing || initializationError) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center space-y-4">
-          <Loader className="h-8 w-8 animate-spin mx-auto text-blue-600" />
-          <div className="space-y-2">
-            <p className="text-lg font-medium">Инициализация формы заказа...</p>
-            <p className="text-sm text-gray-600">Проверка прав доступа и загрузка данных</p>
-          </div>
-        </div>
-      </div>
+      <EnhancedInitializationState
+        isInitializing={isInitializing}
+        initializationError={initializationError}
+        initializationStage={initializationStage}
+        initializationProgress={initializationProgress}
+        onForceComplete={forceComplete}
+        onBack={handleBack}
+        onRetry={handleRetry}
+      />
     );
   }
 
-  // Error state during initialization
-  if (initializationError) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium text-red-800">Ошибка инициализации</h3>
-                <p className="text-sm text-red-600">{initializationError}</p>
-              </div>
-              <Button 
-                onClick={() => window.location.reload()} 
-                variant="outline"
-                className="w-full"
-              >
-                Обновить страницу
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Access denied state
+  // Access denied state (backup - should be handled in initialization)
   if (!hasAdminAccess) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto" />
-              <div className="space-y-2">
-                <h3 className="text-lg font-medium text-orange-800">Доступ ограничен</h3>
-                <p className="text-sm text-orange-600">
-                  У вас нет прав администратора для создания заказов
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <EnhancedInitializationState
+        isInitializing={false}
+        initializationError="У вас нет прав администратора для создания заказов"
+        initializationStage="access_denied"
+        initializationProgress={100}
+        onForceComplete={forceComplete}
+        onBack={handleBack}
+        onRetry={handleRetry}
+      />
     );
   }
 
