@@ -56,58 +56,67 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log('🎥 Video upload function started');
+    
     const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
+    
+    console.log('🔑 Checking Cloudinary credentials:', {
+      hasApiKey: !!apiKey,
+      hasApiSecret: !!apiSecret,
+      apiKeyLength: apiKey?.length || 0
+    });
     
     if (!apiKey || !apiSecret) {
       console.error('❌ Missing Cloudinary credentials');
       throw new Error('Cloudinary credentials not configured properly');
     }
 
-    // Handle FormData (optimized path) or JSON (fallback)
-    let file: File | null = null;
-    let productId: string | undefined;
-    let customPublicId: string | undefined;
-
-    const contentType = req.headers.get('content-type') || '';
+    // Only handle FormData path - remove JSON/base64 support
+    console.log('📋 Processing FormData request');
+    const formData = await req.formData();
     
-    if (contentType.includes('multipart/form-data')) {
-      // Optimized FormData path
-      const formData = await req.formData();
-      file = formData.get('file') as File;
-      productId = formData.get('productId') as string;
-      customPublicId = formData.get('customPublicId') as string;
-    } else {
-      // Fallback JSON path (base64)
-      const { fileData, fileName, productId: pid, customPublicId: cpid } = await req.json();
-      if (fileData && fileName) {
-        const base64Data = fileData.startsWith('data:') 
-          ? fileData.split(',')[1] 
-          : fileData;
-        const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        file = new File([bytes], fileName);
-        productId = pid;
-        customPublicId = cpid;
-      }
-    }
+    const file = formData.get('file') as File;
+    const productId = formData.get('productId') as string;
+    const customPublicId = formData.get('customPublicId') as string;
+    
+    console.log('📁 FormData contents:', {
+      hasFile: !!file,
+      fileName: file?.name,
+      fileSize: file?.size,
+      productId,
+      customPublicId
+    });
 
     if (!file) {
-      throw new Error('No video file provided');
+      throw new Error('No video file provided in FormData');
     }
 
     // Validate file type
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    console.log('🔍 File validation:', {
+      fileName: file.name,
+      extension: fileExtension,
+      allowedFormats: ALLOWED_VIDEO_FORMATS
+    });
+    
     if (!fileExtension || !ALLOWED_VIDEO_FORMATS.includes(fileExtension)) {
       throw new Error(`Unsupported video format. Allowed formats: ${ALLOWED_VIDEO_FORMATS.join(', ')}`);
     }
 
     // Validate file size
     const fileSizeMB = file.size / (1024 * 1024);
+    console.log('📏 File size check:', {
+      sizeBytes: file.size,
+      sizeMB: fileSizeMB.toFixed(2),
+      maxMB: MAX_VIDEO_SIZE_MB
+    });
+    
     if (fileSizeMB > MAX_VIDEO_SIZE_MB) {
       throw new Error(`Video file too large. Maximum size: ${MAX_VIDEO_SIZE_MB}MB`);
     }
 
-    console.log('📹 Starting video upload:', {
+    console.log('📹 Starting video upload to Cloudinary:', {
       fileName: file.name,
       sizeKB: Math.round(file.size / 1024),
       format: fileExtension
@@ -116,6 +125,8 @@ Deno.serve(async (req) => {
     // Generate optimized public_id for video
     const timestamp = Date.now();
     const publicId = customPublicId || `video_${productId || timestamp}_${timestamp}_${Math.random().toString(36).substring(7)}`;
+    
+    console.log('🏷️ Generated public ID:', publicId);
     
     // Create optimized FormData for Cloudinary video upload
     const cloudinaryFormData = new FormData();
@@ -139,13 +150,32 @@ Deno.serve(async (req) => {
       videoTransformation = 'q_auto:good,f_auto,c_limit,w_1920,h_1080,br_2000k';
     }
     
+    console.log('🎨 Video transformation:', videoTransformation);
     cloudinaryFormData.append('transformation', videoTransformation);
     
     // Generate thumbnail
-    cloudinaryFormData.append('eager', 'f_jpg,w_300,h_200,c_fill,q_auto:good');
+    const eagerTransformation = 'f_jpg,w_300,h_200,c_fill,q_auto:good';
+    cloudinaryFormData.append('eager', eagerTransformation);
 
-    // Generate signature for video upload
-    const stringToSign = `eager=f_jpg,w_300,h_200,c_fill,q_auto:good&folder=videos&public_id=${publicId}&resource_type=video&timestamp=${Math.round(timestamp / 1000)}&transformation=${videoTransformation}${apiSecret}`;
+    // Generate signature for video upload - FIXED signature generation
+    const timestampString = Math.round(timestamp / 1000).toString();
+    const signatureParams = [
+      `eager=${eagerTransformation}`,
+      `folder=videos`,
+      `public_id=${publicId}`,
+      `resource_type=video`,
+      `timestamp=${timestampString}`,
+      `transformation=${videoTransformation}`
+    ].sort().join('&');
+    
+    const stringToSign = `${signatureParams}${apiSecret}`;
+    
+    console.log('🔐 Signature generation:', {
+      timestampString,
+      signatureParams,
+      stringToSignLength: stringToSign.length
+    });
+    
     const encoder = new TextEncoder();
     const data = encoder.encode(stringToSign);
     const hashBuffer = await crypto.subtle.digest('SHA-1', data);
@@ -153,6 +183,11 @@ Deno.serve(async (req) => {
     const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     
     cloudinaryFormData.append('signature', signature);
+    
+    console.log('🔏 Generated signature:', {
+      signature: signature.substring(0, 10) + '...',
+      signatureLength: signature.length
+    });
 
     console.log('☁️ Uploading to Cloudinary video endpoint...');
 
@@ -163,6 +198,8 @@ Deno.serve(async (req) => {
 
     while (retryCount <= maxRetries) {
       try {
+        console.log(`📤 Upload attempt ${retryCount + 1}/${maxRetries + 1}`);
+        
         uploadResponse = await fetch(
           `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`,
           {
@@ -171,18 +208,28 @@ Deno.serve(async (req) => {
           }
         );
 
-        if (uploadResponse.ok) break;
+        console.log('📥 Cloudinary response status:', uploadResponse.status);
+
+        if (uploadResponse.ok) {
+          console.log('✅ Upload successful on attempt', retryCount + 1);
+          break;
+        }
         
         if (retryCount === maxRetries) {
           const errorText = await uploadResponse.text();
-          console.error('❌ Cloudinary video upload failed:', errorText);
+          console.error('❌ Cloudinary video upload failed after all retries:', {
+            status: uploadResponse.status,
+            statusText: uploadResponse.statusText,
+            errorText
+          });
           throw new Error(`Cloudinary video upload failed: ${uploadResponse.status} ${errorText}`);
         }
       } catch (error) {
+        console.error(`❌ Upload attempt ${retryCount + 1} failed:`, error);
         if (retryCount === maxRetries) {
           throw error;
         }
-        console.log(`🔄 Retrying video upload (attempt ${retryCount + 1}/${maxRetries + 1})`);
+        console.log(`🔄 Retrying upload (attempt ${retryCount + 1}/${maxRetries + 1})`);
       }
       
       retryCount++;
@@ -193,19 +240,30 @@ Deno.serve(async (req) => {
     
     console.log('✅ Video upload successful:', {
       publicId: cloudinaryResult.public_id,
+      secureUrl: cloudinaryResult.secure_url,
       duration: cloudinaryResult.duration,
       format: cloudinaryResult.format,
-      sizeKB: Math.round(cloudinaryResult.bytes / 1024)
+      sizeKB: Math.round(cloudinaryResult.bytes / 1024),
+      width: cloudinaryResult.width,
+      height: cloudinaryResult.height
     });
 
     // Validate video duration if available
     if (cloudinaryResult.duration && cloudinaryResult.duration > MAX_DURATION_SECONDS) {
-      console.warn('⚠️ Video duration exceeds recommended limit:', cloudinaryResult.duration);
+      console.warn('⚠️ Video duration exceeds recommended limit:', {
+        duration: cloudinaryResult.duration,
+        maxDuration: MAX_DURATION_SECONDS
+      });
     }
 
     // Generate optimized video URL and thumbnail URL
     const optimizedVideoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${videoTransformation}/${cloudinaryResult.public_id}`;
     const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/f_jpg,w_300,h_200,c_fill,q_auto:good/${cloudinaryResult.public_id}.jpg`;
+
+    console.log('🖼️ Generated URLs:', {
+      optimizedVideoUrl,
+      thumbnailUrl
+    });
 
     const response: VideoUploadResponse = {
       success: true,
@@ -221,6 +279,8 @@ Deno.serve(async (req) => {
       bitRate: cloudinaryResult.bit_rate,
       frameRate: cloudinaryResult.frame_rate
     };
+
+    console.log('🎉 Returning successful response');
 
     return new Response(JSON.stringify(response), {
       status: 200,
