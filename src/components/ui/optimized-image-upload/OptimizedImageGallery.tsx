@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, StarOff, X, Loader2, CheckCircle, Trash2, Undo2 } from 'lucide-react';
+import { Star, StarOff, X, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UploadItem {
@@ -22,8 +22,7 @@ interface OptimizedImageGalleryProps {
   onSetPrimary?: (url: string) => void;
   onDelete?: (url: string) => void;
   disabled?: boolean;
-  getImageStatus?: (url: string) => 'normal' | 'deleting' | 'pending-deletion' | 'deleted';
-  onCancelDeletion?: (url: string) => void;
+  getImageStatus?: (url: string) => 'normal' | 'deleting';
 }
 
 const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
@@ -33,8 +32,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   onSetPrimary,
   onDelete,
   disabled = false,
-  getImageStatus,
-  onCancelDeletion
+  getImageStatus
 }) => {
   // Валидация URL
   const isValidUrl = (url: string): boolean => {
@@ -47,9 +45,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     }
   };
 
-  // Фильтрация активной очереди загрузки - только уникальные элементы
+  // Фильтрация активной очереди загрузки
   const activeUploadQueue = uploadQueue.filter(item => {
-    // Оставляем элементы, которые еще не завершены или завершены, но их URL еще нет в images
     if (item.status === 'error' || item.status === 'pending' || 
         item.status === 'compressing' || item.status === 'uploading') {
       return true;
@@ -62,9 +59,9 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     return false;
   });
 
-  // Упрощенная логика: полагаемся на то, что удаленные изображения уже отсутствуют в массиве images
+  // Все изображения для отображения
   const allImages = [
-    // Загруженные изображения - показываем все из массива images
+    // Загруженные изображения
     ...images
       .filter(isValidUrl)
       .map((url, index) => ({ 
@@ -114,25 +111,18 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
           const isUploading = type === 'uploading';
           const isUploaded = type === 'uploaded';
           
-          console.log('🖼️ Rendering image:', { url: url.slice(-20), imageStatus, type });
-          
           return (
             <div 
               key={key} 
               className={cn(
                 "relative aspect-square group transition-all duration-300",
-                imageStatus === 'deleting' && "animate-pulse",
-                imageStatus === 'pending-deletion' && "opacity-70 scale-95"
+                imageStatus === 'deleting' && "opacity-50 animate-pulse"
               )}
             >
               <img
                 src={url}
                 alt={`${type === 'uploaded' ? 'Загруженное' : 'Загружается'} изображение`}
-                className={cn(
-                  "w-full h-full object-cover rounded-lg border transition-all duration-300",
-                  imageStatus === 'pending-deletion' && "opacity-50 grayscale",
-                  imageStatus === 'deleting' && "opacity-60"
-                )}
+                className="w-full h-full object-cover rounded-lg border"
                 loading="lazy"
                 onError={(e) => {
                   console.warn('⚠️ Image failed to load:', url);
@@ -150,22 +140,15 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Статусы удаления для загруженных изображений */}
-              {isUploaded && imageStatus === 'pending-deletion' && (
-                <div className="absolute top-2 left-2 bg-orange-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
-                  <Trash2 className="h-4 w-4 text-white" />
-                  <span className="text-xs text-white font-medium">Удаляется...</span>
-                </div>
-              )}
-
-              {isUploaded && imageStatus === 'deleting' && (
+              {/* Статус удаления */}
+              {imageStatus === 'deleting' && (
                 <div className="absolute top-2 left-2 bg-red-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <Loader2 className="h-4 w-4 animate-spin text-white" />
                   <span className="text-xs text-white font-medium">Удаление</span>
                 </div>
               )}
 
-              {/* Статус "Загружено" только для нормальных загруженных изображений */}
+              {/* Статус "Загружено" для нормальных загруженных изображений */}
               {isUploaded && imageStatus === 'normal' && (
                 <div className="absolute top-2 left-2 bg-green-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-white" />
@@ -189,23 +172,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Кнопка отмены удаления */}
-              {imageStatus === 'pending-deletion' && onCancelDeletion && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-lg">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="secondary"
-                    onClick={() => onCancelDeletion(url)}
-                    className="flex items-center gap-1"
-                  >
-                    <Undo2 className="h-3 w-3" />
-                    Отменить
-                  </Button>
-                </div>
-              )}
-              
-              {/* Основные кнопки управления */}
+              {/* Основные кнопки управления - показываем только для нормальных изображений */}
               {imageStatus === 'normal' && !disabled && (
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {/* Кнопка "сделать главным" - только для загруженных изображений */}

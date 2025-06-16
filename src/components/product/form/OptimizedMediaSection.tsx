@@ -33,22 +33,16 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, clearQueue } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
 
-  // Используем новый хук для управления состоянием удаления
-  const {
-    startDeletion,
-    cancelDeletion,
-    getImageStatus,
-    clearImageStatus
-  } = useImageDeletionState({
+  // Упрощенная система удаления
+  const { startDeletion, getImageStatus } = useImageDeletionState({
     onConfirmDelete: async (url: string) => {
-      console.log('🔄 Executing actual deletion for:', url);
+      console.log('🔄 Executing deletion for:', url);
       if (onImageDelete) {
         await onImageDelete(url);
         console.log('✅ External deletion completed for:', url);
       }
     },
-    deletionDelay: 3000,
-    statusDisplayTime: 5000
+    deletionDelay: 0 // Немедленное удаление
   });
 
   const totalMediaCount = imageUrls.length + videoUrls.length;
@@ -73,7 +67,6 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     if (validFiles.length === 0) return;
 
     try {
-      // Более агрессивное сжатие для лучшей стабильности
       const getCompressionOptions = (file: File) => {
         const isLargeFile = file.size > 10 * 1024 * 1024; // >10MB
         
@@ -87,7 +80,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
       const uploadedUrls = await uploadFiles(validFiles, {
         productId,
-        maxConcurrent: 1, // Последовательная загрузка для стабильности
+        maxConcurrent: 1,
         disableToast: false,
         compressionOptions: getCompressionOptions(validFiles[0])
       });
@@ -103,12 +96,9 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  // Обработчик начала удаления с синхронизацией
+  // Простой обработчик удаления
   const handleImageDelete = useCallback((url: string) => {
-    console.log('🎯 handleImageDelete called for:', url, {
-      totalImages: imageUrls.length,
-      urlExists: imageUrls.includes(url)
-    });
+    console.log('🎯 handleImageDelete called for:', url);
     
     if (imageUrls.length <= 1) {
       console.warn('⚠️ Cannot delete last image');
@@ -120,26 +110,11 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       return;
     }
     
-    // Запускаем процесс удаления
+    // Запускаем немедленное удаление
     startDeletion(url);
   }, [imageUrls, startDeletion]);
 
-  // Синхронизация: очищаем статусы для изображений, которых больше нет в массиве
-  React.useEffect(() => {
-    // Проверяем консистентность между imageUrls и статусами удаления
-    const currentImageSet = new Set(imageUrls);
-    
-    // Если изображение больше не в массиве, очищаем его статусы
-    imageUrls.forEach(url => {
-      const status = getImageStatus(url);
-      if (status !== 'normal' && currentImageSet.has(url)) {
-        // Если изображение есть в массиве, но имеет статус удаления - это несоответствие
-        console.log('🔧 Inconsistency detected, clearing status for existing image:', url);
-        clearImageStatus(url);
-      }
-    });
-  }, [imageUrls, getImageStatus, clearImageStatus]);
-
+  // Обработчик начала удаления с синхронизацией
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
   };
@@ -221,7 +196,6 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         onSetPrimary={onSetPrimaryImage}
         onDelete={handleImageDelete}
         getImageStatus={getImageStatus}
-        onCancelDeletion={cancelDeletion}
         disabled={disabled}
       />
 
