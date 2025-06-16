@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -6,9 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Upload, Video, Image, X, Star, StarOff, Eye, RotateCcw, Loader } from "lucide-react";
+import { Upload, Video, Image, X, Star, StarOff, Eye, RotateCcw, Loader, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
+import { diagnoseUploadIssue } from "@/utils/debugUploadHelpers";
 
 interface MediaFile {
   id: string;
@@ -51,6 +51,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
   const [dragActive, setDragActive] = useState(false);
   const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
   const [uploadingType, setUploadingType] = useState<'image' | 'video' | null>(null);
+  const [debugMode, setDebugMode] = useState(false);
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +90,15 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
   ];
 
   const handleImageUpload = useCallback(async (files: FileList) => {
+    console.log('🖼️ Image upload initiated:', {
+      fileCount: files.length,
+      currentImages: images.length,
+      maxImages,
+      files: Array.from(files).map(f => ({ name: f.name, size: f.size, type: f.type }))
+    });
+
     if (images.length + files.length > maxImages) {
+      console.warn('⚠️ Image limit exceeded');
       toast({
         title: "Превышен лимит изображений",
         description: `Максимально можно загрузить ${maxImages} изображений`,
@@ -101,9 +110,42 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     setUploadingType('image');
     const fileArray = Array.from(files);
     
+    // Если включен режим отладки, проводим диагностику первого файла
+    if (debugMode && fileArray.length > 0) {
+      console.log('🔬 Running upload diagnosis...');
+      const diagnosis = await diagnoseUploadIssue(fileArray[0]);
+      console.log('🔬 Diagnosis result:', diagnosis);
+      
+      if (!diagnosis.edgeFunctionAccessible) {
+        toast({
+          title: "Ошибка Edge Function",
+          description: "Edge Function недоступен. Проверьте настройки Supabase.",
+          variant: "destructive"
+        });
+        setUploadingType(null);
+        return;
+      }
+      
+      if (!diagnosis.cloudinaryConfigured) {
+        toast({
+          title: "Ошибка конфигурации Cloudinary",
+          description: "Переменные окружения Cloudinary не настроены правильно.",
+          variant: "destructive"
+        });
+        setUploadingType(null);
+        return;
+      }
+    }
+    
     try {
       console.log('🖼️ Начинаем загрузку изображений с автоматическим сжатием...');
       const uploadedUrls = await uploadFiles(fileArray, 'image');
+      
+      console.log('🖼️ Upload completed:', {
+        uploaded: uploadedUrls.length,
+        total: fileArray.length,
+        urls: uploadedUrls
+      });
       
       if (uploadedUrls.length > 0) {
         onImagesUpload(uploadedUrls);
@@ -111,9 +153,16 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
           title: "Изображения загружены",
           description: `Успешно загружено ${uploadedUrls.length} изображений с автоматическим сжатием`,
         });
+      } else {
+        console.error('❌ No images were uploaded');
+        toast({
+          title: "Ошибка загрузки",
+          description: "Не удалось загрузить изображения. Проверьте консоль для деталей.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error('Error uploading images:', error);
+      console.error('💥 Error uploading images:', error);
       toast({
         title: "Ошибка загрузки",
         description: "Не удалось загрузить изображения",
@@ -122,7 +171,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     } finally {
       setUploadingType(null);
     }
-  }, [images.length, maxImages, uploadFiles, onImagesUpload]);
+  }, [images.length, maxImages, uploadFiles, onImagesUpload, debugMode]);
 
   const handleVideoUpload = useCallback(async (files: FileList) => {
     if (videos.length + files.length > maxVideos) {
@@ -223,10 +272,10 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
 
   return (
     <div className="space-y-6">
-      {/* Header with counters */}
+      {/* Header with counters and debug toggle */}
       <div className="flex items-center justify-between">
         <Label className="text-base font-medium">Медиафайлы заказа</Label>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <Badge variant="secondary" className="flex items-center gap-1">
             <Image className="h-3 w-3" />
             {images.length}/{maxImages}
@@ -235,8 +284,42 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
             <Video className="h-3 w-3" />
             {videos.length}/{maxVideos}
           </Badge>
+          {process.env.NODE_ENV === 'development' && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setDebugMode(!debugMode)}
+              className="text-xs"
+            >
+              {debugMode ? (
+                <>
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Debug ON
+                </>
+              ) : (
+                'Debug'
+              )}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Debug information */}
+      {debugMode && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardContent className="p-4">
+            <div className="text-sm space-y-2">
+              <div className="font-medium text-orange-800">🔬 Режим отладки включен</div>
+              <div className="text-orange-700">
+                • Дополнительное логирование в консоли<br/>
+                • Диагностика перед загрузкой файлов<br/>
+                • Проверка Edge Function и конфигурации Cloudinary
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Upload buttons */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
