@@ -157,30 +157,36 @@ Deno.serve(async (req) => {
     const eagerTransformation = 'f_jpg,w_300,h_200,c_fill,q_auto:good';
     cloudinaryFormData.append('eager', eagerTransformation);
 
-    // ИСПРАВЛЕННАЯ генерация подписи для видео с resource_type
+    // ИСПРАВЛЕННАЯ генерация подписи - используем алгоритм из рабочей функции изображений
     const timestampString = Math.round(timestamp / 1000).toString();
     
-    // Параметры для подписи в алфавитном порядке (БЕЗ api_key и signature)
-    // ВАЖНО: включаем resource_type=video
-    const signatureParams = [
-      `eager=${eagerTransformation}`,
-      `folder=videos`,
-      `public_id=${publicId}`,
-      `resource_type=video`,
-      `timestamp=${timestampString}`,
-      `transformation=${videoTransformation}`
-    ].sort().join('&');
+    // Создаем объект с параметрами для подписи (исключая api_key, file и signature)
+    const signatureParams: Record<string, string> = {
+      eager: eagerTransformation,
+      folder: 'videos',
+      public_id: publicId,
+      resource_type: 'video',
+      timestamp: timestampString,
+      transformation: videoTransformation
+    };
     
-    // Строка для подписи с добавлением api_secret в конце
-    const stringToSign = `${signatureParams}${apiSecret}`;
+    // Сортируем ключи в алфавитном порядке и создаем строку запроса
+    const sortedKeys = Object.keys(signatureParams).sort();
+    const queryString = sortedKeys
+      .map(key => `${key}=${signatureParams[key]}`)
+      .join('&');
     
-    console.log('🔐 ИСПРАВЛЕННАЯ генерация подписи с resource_type:', {
+    // Добавляем API secret в конце
+    const stringToSign = `${queryString}${apiSecret}`;
+    
+    console.log('🔐 ИСПРАВЛЕННАЯ генерация подписи для видео:', {
       timestampString,
       signatureParams,
+      sortedKeys,
+      queryString,
       stringToSignLength: stringToSign.length,
       stringToSignStart: stringToSign.substring(0, 100),
-      apiSecretPresent: !!apiSecret,
-      hasResourceType: signatureParams.includes('resource_type=video')
+      apiSecretPresent: !!apiSecret
     });
     
     const encoder = new TextEncoder();
