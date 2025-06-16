@@ -25,7 +25,7 @@ interface OptimizedUploadOptions {
     maxSizeMB: number;
     maxWidthOrHeight: number;
     initialQuality: number;
-    fileType?: string;
+    fileType: string; // Make this required, not optional
   };
 }
 
@@ -238,9 +238,15 @@ export const useOptimizedImageUpload = () => {
           )
         );
 
+        // Ensure compression options always have fileType
+        const compressionOptions = {
+          ...defaultCompressionOptions,
+          ...options.compressionOptions
+        };
+
         const compressedFile = await compressImage(
           item.file, 
-          options.compressionOptions
+          compressionOptions
         );
 
         setUploadQueue(prev => 
