@@ -149,29 +149,29 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Статусы удаления */}
-              {imageStatus === 'pending-deletion' && (
+              {/* Статусы удаления для загруженных изображений */}
+              {isUploaded && imageStatus === 'pending-deletion' && (
                 <div className="absolute top-2 left-2 bg-orange-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <Trash2 className="h-4 w-4 text-white" />
                   <span className="text-xs text-white font-medium">Удаляется...</span>
                 </div>
               )}
 
-              {imageStatus === 'deleting' && (
+              {isUploaded && imageStatus === 'deleting' && (
                 <div className="absolute top-2 left-2 bg-red-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <Loader2 className="h-4 w-4 animate-spin text-white" />
                   <span className="text-xs text-white font-medium">Удаление</span>
                 </div>
               )}
 
-              {imageStatus === 'deleted' && (
+              {isUploaded && imageStatus === 'deleted' && (
                 <div className="absolute top-2 left-2 bg-red-600 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-white" />
                   <span className="text-xs text-white font-medium">Удалено</span>
                 </div>
               )}
 
-              {/* Статус загружено для обычных изображений */}
+              {/* Статус загружено только для обычных загруженных изображений в нормальном состоянии */}
               {isUploaded && imageStatus === 'normal' && (
                 <div className="absolute top-2 left-2 bg-green-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-white" />
