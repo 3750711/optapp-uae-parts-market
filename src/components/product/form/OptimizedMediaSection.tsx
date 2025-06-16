@@ -30,22 +30,27 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   productId,
   disabled = false
 }) => {
-  const { uploadFiles, uploadQueue, isUploading, cancelUpload, clearQueue } = useOptimizedImageUpload();
+  const { uploadFiles, uploadQueue, isUploading, cancelUpload } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [localImageUrls, setLocalImageUrls] = useState<string[]>(imageUrls);
 
-  // Упрощенная система удаления
-  const { startDeletion, getImageStatus } = useImageDeletionState({
+  // Синхронизируем локальное состояние с пропсами
+  React.useEffect(() => {
+    setLocalImageUrls(imageUrls);
+  }, [imageUrls]);
+
+  // Простая система удаления
+  const { startDeletion } = useImageDeletionState({
     onConfirmDelete: async (url: string) => {
       console.log('🔄 Executing deletion for:', url);
       if (onImageDelete) {
         await onImageDelete(url);
         console.log('✅ External deletion completed for:', url);
       }
-    },
-    deletionDelay: 0 // Немедленное удаление
+    }
   });
 
-  const totalMediaCount = imageUrls.length + videoUrls.length;
+  const totalMediaCount = localImageUrls.length + videoUrls.length;
 
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -96,25 +101,39 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  // Простой обработчик удаления
-  const handleImageDelete = useCallback((url: string) => {
+  // Простой обработчик удаления с мгновенным обновлением UI
+  const handleImageDelete = useCallback(async (url: string) => {
     console.log('🎯 handleImageDelete called for:', url);
     
-    if (imageUrls.length <= 1) {
+    if (localImageUrls.length <= 1) {
       console.warn('⚠️ Cannot delete last image');
       return;
     }
     
-    if (!url || !imageUrls.includes(url)) {
+    if (!url || !localImageUrls.includes(url)) {
       console.warn('⚠️ Invalid image URL for deletion:', url);
       return;
     }
     
-    // Запускаем немедленное удаление
-    startDeletion(url);
-  }, [imageUrls, startDeletion]);
+    try {
+      // 1. Сразу убираем изображение из локального состояния
+      const newImageUrls = localImageUrls.filter(imgUrl => imgUrl !== url);
+      setLocalImageUrls(newImageUrls);
+      
+      // 2. Обновляем родительское состояние через handleMobileOptimizedImageUpload
+      handleMobileOptimizedImageUpload(newImageUrls);
+      
+      // 3. Вызываем внешний обработчик удаления (для базы данных)
+      await startDeletion(url);
+      
+      console.log('✅ Image successfully removed from UI and backend');
+    } catch (error) {
+      console.error('❌ Error during deletion:', error);
+      // В случае ошибки возвращаем изображение обратно
+      setLocalImageUrls(imageUrls);
+    }
+  }, [localImageUrls, startDeletion, handleMobileOptimizedImageUpload, imageUrls]);
 
-  // Обработчик начала удаления с синхронизацией
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
   };
@@ -132,7 +151,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             type="button"
             variant="outline"
             className="w-full h-12"
-            disabled={disabled || isUploading || imageUrls.length >= 30}
+            disabled={disabled || isUploading || localImageUrls.length >= 30}
             onClick={() => document.getElementById('optimized-image-input')?.click()}
           >
             <Upload className="h-4 w-4 mr-2" />
@@ -182,7 +201,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
-              📁 Медиафайлов: {totalMediaCount} (📸 Фото: {imageUrls.length}/30, 🎥 Видео: {videoUrls.length}/2)
+              📁 Медиафайлов: {totalMediaCount} (📸 Фото: {localImageUrls.length}/30, 🎥 Видео: {videoUrls.length}/2)
             </span>
           </div>
         </div>
@@ -190,12 +209,11 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
       {/* Оптимизированная галерея изображений */}
       <OptimizedImageGallery
-        images={imageUrls}
+        images={localImageUrls}
         uploadQueue={uploadQueue}
         primaryImage={primaryImage}
         onSetPrimary={onSetPrimaryImage}
         onDelete={handleImageDelete}
-        getImageStatus={getImageStatus}
         disabled={disabled}
       />
 
