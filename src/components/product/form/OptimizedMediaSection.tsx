@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
   productId,
   disabled = false
 }) => {
-  const { uploadFiles, uploadQueue, isUploading, cancelUpload } = useOptimizedImageUpload();
+  const { uploadFiles, uploadQueue, isUploading, cancelUpload, markAsDeleted } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
 
   console.log('📊 OptimizedMediaSection render:', { 
@@ -102,7 +101,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  // Простой и мгновенный обработчик удаления
+  // Простой и мгновенный обработчик удаления с пометкой в очереди
   const handleImageDelete = useCallback(async (url: string) => {
     console.log('🎯 handleImageDelete called for:', url);
     
@@ -117,7 +116,10 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     }
     
     try {
-      // 1. Мгновенно обновляем UI - убираем изображение из списка
+      // 1. Мгновенно помечаем в очереди загрузки как удаленное
+      markAsDeleted(url);
+      
+      // 2. Мгновенно обновляем UI - убираем изображение из списка
       const newImageUrls = imageUrls.filter(imgUrl => imgUrl !== url);
       console.log('📱 Updating UI immediately:', { 
         before: imageUrls.length, 
@@ -126,7 +128,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       
       handleMobileOptimizedImageUpload(newImageUrls);
       
-      // 2. Асинхронно выполняем удаление на бэкенде (не блокируем UI)
+      // 3. Асинхронно выполняем удаление на бэкенде (не блокируем UI)
       deleteImage(url).catch(error => {
         console.error('❌ Backend deletion failed:', error);
         // В случае ошибки можно показать toast, но не возвращать изображение
@@ -136,7 +138,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     } catch (error) {
       console.error('❌ Error during deletion:', error);
     }
-  }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage]);
+  }, [imageUrls, handleMobileOptimizedImageUpload, deleteImage, markAsDeleted]);
 
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);

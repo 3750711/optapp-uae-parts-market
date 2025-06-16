@@ -8,7 +8,7 @@ interface UploadItem {
   file: File;
   compressedFile?: File;
   progress: number;
-  status: 'pending' | 'compressing' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'compressing' | 'uploading' | 'success' | 'error' | 'deleted';
   error?: string;
   blobUrl?: string;
   finalUrl?: string;
@@ -40,6 +40,40 @@ export const useOptimizedImageUpload = () => {
     initialQuality: 0.85,
     fileType: 'image/webp'
   };
+
+  // Mark item as deleted by URL
+  const markAsDeleted = useCallback((url: string) => {
+    console.log('🗑️ Marking as deleted in upload queue:', url);
+    setUploadQueue(prev => 
+      prev.map(item => 
+        item.finalUrl === url || item.blobUrl === url
+          ? { ...item, status: 'deleted' as const }
+          : item
+      )
+    );
+  }, []);
+
+  // Auto-cleanup for successfully uploaded items
+  const cleanupSuccessfulItems = useCallback(() => {
+    setUploadQueue(prev => {
+      const now = Date.now();
+      return prev.filter(item => {
+        // Keep items that are not successful or are recent (less than 30 seconds old)
+        if (item.status !== 'success') return true;
+        
+        // Parse timestamp from item id
+        const itemTimestamp = parseInt(item.id.split('-')[1]) || now;
+        const isRecent = (now - itemTimestamp) < 30000; // 30 seconds
+        
+        if (!isRecent && item.blobUrl) {
+          // Clean up blob URL for old successful items
+          URL.revokeObjectURL(item.blobUrl);
+        }
+        
+        return isRecent;
+      });
+    });
+  }, []);
 
   // Create blob URL for immediate preview
   const createBlobUrl = useCallback((file: File): string => {
@@ -222,7 +256,7 @@ export const useOptimizedImageUpload = () => {
       originalSize: file.size
     }));
 
-    setUploadQueue(initialQueue);
+    setUploadQueue(prev => [...prev, ...initialQueue]);
 
     try {
       // Step 1: Compress all images in parallel with dynamic compression settings
@@ -271,6 +305,9 @@ export const useOptimizedImageUpload = () => {
       // Step 2: Upload compressed files sequentially
       const uploadedUrls = await processUploads(compressedItems, options);
 
+      // Step 3: Schedule cleanup after successful upload
+      setTimeout(cleanupSuccessfulItems, 30000);
+
       return uploadedUrls;
     } catch (error) {
       console.error('Upload process failed:', error);
@@ -285,7 +322,7 @@ export const useOptimizedImageUpload = () => {
     } finally {
       setIsUploading(false);
     }
-  }, [createBlobUrl, compressImage, processUploads, toast]);
+  }, [createBlobUrl, compressImage, processUploads, cleanupSuccessfulItems, toast]);
 
   // Cancel uploads
   const cancelUpload = useCallback(() => {
@@ -330,6 +367,8 @@ export const useOptimizedImageUpload = () => {
     isUploading,
     getPreviewUrls,
     cancelUpload,
-    clearQueue
+    clearQueue,
+    markAsDeleted,
+    cleanupSuccessfulItems
   };
 };
