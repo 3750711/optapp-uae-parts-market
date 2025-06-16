@@ -66,6 +66,9 @@ verify_jwt = false
 [functions.send-password-reset]
 verify_jwt = false
 
+[functions.cloudinary-video-upload]
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
