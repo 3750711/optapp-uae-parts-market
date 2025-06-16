@@ -8,8 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Upload, Video, Image, X, Star, StarOff, Eye, RotateCcw, Loader } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
-import { secureCloudinary } from "@/utils/secureCloudinary";
+import { useEnhancedMediaUpload } from "@/hooks/useEnhancedMediaUpload";
 
 interface MediaFile {
   id: string;
@@ -60,10 +59,16 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     isUploading, 
     uploadProgress, 
     canCancel, 
-    uploadFilesBatch, 
+    uploadFiles, 
     cancelUpload,
     clearProgress
-  } = useMobileOptimizedUpload();
+  } = useEnhancedMediaUpload({
+    orderId,
+    maxImageSize: 10 * 1024 * 1024, // 10MB
+    maxVideoSize: 20 * 1024 * 1024, // 20MB
+    compressionQuality: 0.8,
+    batchSize: 3
+  });
 
   // Combine media files for unified gallery
   const allMediaFiles: MediaFile[] = [
@@ -97,18 +102,14 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     const fileArray = Array.from(files);
     
     try {
-      const uploadedUrls = await uploadFilesBatch(fileArray, {
-        productId: orderId,
-        batchSize: 3,
-        batchDelay: 500,
-        disableToast: false
-      });
+      console.log('🖼️ Начинаем загрузку изображений с автоматическим сжатием...');
+      const uploadedUrls = await uploadFiles(fileArray, 'image');
       
       if (uploadedUrls.length > 0) {
         onImagesUpload(uploadedUrls);
         toast({
           title: "Изображения загружены",
-          description: `Успешно загружено ${uploadedUrls.length} изображений`,
+          description: `Успешно загружено ${uploadedUrls.length} изображений с автоматическим сжатием`,
         });
       }
     } catch (error) {
@@ -121,7 +122,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     } finally {
       setUploadingType(null);
     }
-  }, [images.length, maxImages, orderId, uploadFilesBatch, onImagesUpload]);
+  }, [images.length, maxImages, uploadFiles, onImagesUpload]);
 
   const handleVideoUpload = useCallback(async (files: FileList) => {
     if (videos.length + files.length > maxVideos) {
@@ -135,20 +136,10 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
 
     setUploadingType('video');
     const fileArray = Array.from(files);
-    const uploadedUrls: string[] = [];
     
     try {
-      for (const file of fileArray) {
-        const result = await secureCloudinary.uploadFile({
-          file,
-          productId: orderId,
-          resourceType: 'video'
-        });
-        
-        if (result.success && result.cloudinaryUrl) {
-          uploadedUrls.push(result.cloudinaryUrl);
-        }
-      }
+      console.log('🎥 Начинаем загрузку видео...');
+      const uploadedUrls = await uploadFiles(fileArray, 'video');
       
       if (uploadedUrls.length > 0) {
         onVideoUpload(uploadedUrls);
@@ -167,7 +158,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
     } finally {
       setUploadingType(null);
     }
-  }, [videos.length, maxVideos, orderId, onVideoUpload]);
+  }, [videos.length, maxVideos, uploadFiles, onVideoUpload]);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -192,24 +183,41 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
       const videoFiles = Array.from(files).filter(file => file.type.startsWith('video/'));
       
       if (imageFiles.length > 0) {
-        handleImageUpload(files);
+        const imageFileList = new DataTransfer();
+        imageFiles.forEach(file => imageFileList.items.add(file));
+        handleImageUpload(imageFileList.files);
       } else if (videoFiles.length > 0) {
-        handleVideoUpload(files);
+        const videoFileList = new DataTransfer();
+        videoFiles.forEach(file => videoFileList.items.add(file));
+        handleVideoUpload(videoFileList.files);
       }
     }
   }, [disabled, isUploading, handleImageUpload, handleVideoUpload]);
 
   const handleDelete = (file: MediaFile) => {
+    console.log('🗑️ Удаление файла:', file.url);
     if (file.type === 'image' && onImageDelete) {
       onImageDelete(file.url);
+      toast({
+        title: "Изображение удалено",
+        description: "Изображение успешно удалено из заказа",
+      });
     } else if (file.type === 'video') {
       onVideoDelete(file.url);
+      toast({
+        title: "Видео удалено",
+        description: "Видео успешно удалено из заказа",
+      });
     }
   };
 
   const handleSetPrimary = (file: MediaFile) => {
     if (file.type === 'image' && onSetPrimaryImage) {
       onSetPrimaryImage(file.url);
+      toast({
+        title: "Главное изображение установлено",
+        description: "Изображение установлено как главное",
+      });
     }
   };
 
@@ -255,6 +263,9 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
               </Button>
               <p className="text-xs text-gray-500">
                 Максимум {maxImages} изображений, до 10MB каждое
+              </p>
+              <p className="text-xs text-green-600 font-medium">
+                ✨ Автоматическое сжатие для ускорения загрузки
               </p>
             </div>
           </CardContent>
@@ -315,7 +326,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
           <CardContent className="p-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="font-medium">Загрузка файлов</span>
+                <span className="font-medium">Загрузка и сжатие файлов</span>
                 {canCancel && (
                   <Button
                     type="button"
@@ -328,12 +339,30 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
                 )}
               </div>
               {uploadProgress.map((progress) => (
-                <div key={progress.fileId} className="space-y-1">
+                <div key={progress.id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="truncate">{progress.fileName}</span>
-                    <span>{progress.progress}%</span>
+                    <div className="flex items-center gap-2">
+                      {progress.status === 'compressing' && (
+                        <span className="text-blue-600">Сжатие...</span>
+                      )}
+                      {progress.status === 'uploading' && (
+                        <span className="text-orange-600">Загрузка...</span>
+                      )}
+                      <span>{progress.progress}%</span>
+                    </div>
                   </div>
                   <Progress value={progress.progress} className="h-2" />
+                  {progress.status === 'success' && (
+                    <p className="text-xs text-green-600">
+                      ✅ Файл успешно сжат и загружен
+                    </p>
+                  )}
+                  {progress.status === 'error' && (
+                    <p className="text-xs text-red-600">
+                      ❌ {progress.error}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
@@ -407,6 +436,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
                       variant="secondary"
                       onClick={() => setSelectedPreview(file.url)}
                       className="h-6 w-6 p-0"
+                      title="Посмотреть"
                     >
                       <Eye className="h-3 w-3" />
                     </Button>
@@ -418,6 +448,7 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
                         variant="secondary"
                         onClick={() => handleSetPrimary(file)}
                         className="h-6 w-6 p-0"
+                        title="Сделать главным"
                       >
                         <StarOff className="h-3 w-3" />
                       </Button>
@@ -429,6 +460,8 @@ export const EnhancedMediaUploadSection: React.FC<EnhancedMediaUploadSectionProp
                       variant="destructive"
                       onClick={() => handleDelete(file)}
                       className="h-6 w-6 p-0"
+                      title="Удалить"
+                      disabled={disabled}
                     >
                       <X className="h-3 w-3" />
                     </Button>
