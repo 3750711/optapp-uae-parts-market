@@ -1,3 +1,4 @@
+
 // Безопасная работа с Cloudinary через Supabase secrets
 interface CloudinaryConfig {
   cloudName: string;
@@ -52,8 +53,15 @@ class SecureCloudinaryService {
         ? '/functions/v1/cloudinary-video-upload'
         : '/functions/v1/cloudinary-upload';
 
-      const supabaseUrl = 'https://vfiylfljiixqkjfqubyq.supabase.co';
-      const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZmaXlsZmxqaWl4cWtqZnF1YnlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ4OTEwMjUsImV4cCI6MjA2MDQ2NzAyNX0.KZbRSipkwoZDY8pL7GZhzpAQXXjZ0Vise1rXHN8P4W0';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return { 
+          success: false, 
+          error: 'Конфигурация Supabase отсутствует' 
+        };
+      }
 
       // Создаем FormData для отправки файла
       const formData = new FormData();
