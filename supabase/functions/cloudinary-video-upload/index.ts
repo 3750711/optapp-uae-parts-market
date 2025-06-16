@@ -157,10 +157,11 @@ Deno.serve(async (req) => {
     const eagerTransformation = 'f_jpg,w_300,h_200,c_fill,q_auto:good';
     cloudinaryFormData.append('eager', eagerTransformation);
 
-    // ИСПРАВЛЕННАЯ генерация подписи для видео
+    // ИСПРАВЛЕННАЯ генерация подписи для видео с resource_type
     const timestampString = Math.round(timestamp / 1000).toString();
     
     // Параметры для подписи в алфавитном порядке (БЕЗ api_key и signature)
+    // ВАЖНО: включаем resource_type=video
     const signatureParams = [
       `eager=${eagerTransformation}`,
       `folder=videos`,
@@ -173,12 +174,13 @@ Deno.serve(async (req) => {
     // Строка для подписи с добавлением api_secret в конце
     const stringToSign = `${signatureParams}${apiSecret}`;
     
-    console.log('🔐 ИСПРАВЛЕННАЯ генерация подписи:', {
+    console.log('🔐 ИСПРАВЛЕННАЯ генерация подписи с resource_type:', {
       timestampString,
       signatureParams,
       stringToSignLength: stringToSign.length,
       stringToSignStart: stringToSign.substring(0, 100),
-      apiSecretPresent: !!apiSecret
+      apiSecretPresent: !!apiSecret,
+      hasResourceType: signatureParams.includes('resource_type=video')
     });
     
     const encoder = new TextEncoder();
