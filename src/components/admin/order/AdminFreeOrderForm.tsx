@@ -23,7 +23,8 @@ export const AdminFreeOrderForm: React.FC = () => {
     initializationError,
     hasAdminAccess,
     creationStage,
-    creationProgress
+    creationProgress,
+    handleOrderUpdate
   } = useAdminOrderFormLogic();
 
   // Show loading during initialization
@@ -80,13 +81,14 @@ export const AdminFreeOrderForm: React.FC = () => {
       images={images}
       onBack={resetForm}
       onNewOrder={resetForm}
+      onOrderUpdate={handleOrderUpdate}
     />;
   }
 
   return (
     <div className="space-y-6">
       {/* Creation progress */}
-      {isLoading && (
+      {isLoading && creationStage && (
         <OrderCreationProgress currentStep={creationStage} />
       )}
 
