@@ -72,7 +72,7 @@ Deno.serve(async (req) => {
       throw new Error('Cloudinary credentials not configured properly');
     }
 
-    // Only handle FormData path - remove JSON/base64 support
+    // Only handle FormData path
     console.log('📋 Processing FormData request');
     const formData = await req.formData();
     
@@ -157,8 +157,10 @@ Deno.serve(async (req) => {
     const eagerTransformation = 'f_jpg,w_300,h_200,c_fill,q_auto:good';
     cloudinaryFormData.append('eager', eagerTransformation);
 
-    // Generate signature for video upload - FIXED signature generation
+    // ИСПРАВЛЕННАЯ генерация подписи для видео
     const timestampString = Math.round(timestamp / 1000).toString();
+    
+    // Параметры для подписи в алфавитном порядке (БЕЗ api_key и signature)
     const signatureParams = [
       `eager=${eagerTransformation}`,
       `folder=videos`,
@@ -168,12 +170,15 @@ Deno.serve(async (req) => {
       `transformation=${videoTransformation}`
     ].sort().join('&');
     
+    // Строка для подписи с добавлением api_secret в конце
     const stringToSign = `${signatureParams}${apiSecret}`;
     
-    console.log('🔐 Signature generation:', {
+    console.log('🔐 ИСПРАВЛЕННАЯ генерация подписи:', {
       timestampString,
       signatureParams,
-      stringToSignLength: stringToSign.length
+      stringToSignLength: stringToSign.length,
+      stringToSignStart: stringToSign.substring(0, 100),
+      apiSecretPresent: !!apiSecret
     });
     
     const encoder = new TextEncoder();
