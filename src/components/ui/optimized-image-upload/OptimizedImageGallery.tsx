@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, StarOff, X, Loader2 } from 'lucide-react';
+import { Star, StarOff, X, Loader2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UploadItem {
@@ -50,61 +50,34 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'compressing':
+        return 'Сжатие';
+      case 'uploading':
+        return 'Загружается';
+      case 'success':
+        return 'Загружено';
+      case 'error':
+        return 'Ошибка';
+      default:
+        return 'Ожидание';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <X className="h-4 w-4 text-red-600" />;
+      default:
+        return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* Upload Progress */}
-      {uploadQueue.length > 0 && (
-        <div className="space-y-2 p-4 bg-gray-50 rounded-lg border">
-          <h4 className="font-medium text-sm">Загрузка изображений</h4>
-          {uploadQueue.map((item) => (
-            <div key={item.id} className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-2">
-                  {item.status === 'compressing' && <Loader2 className="h-3 w-3 animate-spin" />}
-                  {item.status === 'uploading' && <Loader2 className="h-3 w-3 animate-spin text-blue-600" />}
-                  {item.status === 'success' && <div className="h-3 w-3 rounded-full bg-green-500" />}
-                  {item.status === 'error' && <div className="h-3 w-3 rounded-full bg-red-500" />}
-                  <span className="truncate max-w-[200px]">{item.file.name}</span>
-                  {item.compressedSize && (
-                    <span className="text-green-600">
-                      {formatFileSize(item.originalSize)} → {formatFileSize(item.compressedSize)}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={cn(
-                    "text-xs px-2 py-1 rounded",
-                    item.status === 'compressing' && "bg-yellow-100 text-yellow-800",
-                    item.status === 'uploading' && "bg-blue-100 text-blue-800",
-                    item.status === 'success' && "bg-green-100 text-green-800",
-                    item.status === 'error' && "bg-red-100 text-red-800"
-                  )}>
-                    {item.status === 'compressing' && 'Сжатие'}
-                    {item.status === 'uploading' && 'Загрузка'}
-                    {item.status === 'success' && 'Готово'}
-                    {item.status === 'error' && 'Ошибка'}
-                  </span>
-                  <span className="text-gray-500">{item.progress}%</span>
-                </div>
-              </div>
-              
-              {item.status !== 'success' && item.status !== 'error' && (
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className={cn(
-                      "h-2 rounded-full transition-all duration-300",
-                      item.status === 'compressing' && "bg-yellow-500",
-                      item.status === 'uploading' && "bg-blue-500"
-                    )}
-                    style={{ width: `${item.progress}%` }}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Image Grid */}
       {allImages.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -124,12 +97,19 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                   loading="lazy"
                 />
                 
-                {/* Upload overlay */}
+                {/* Upload status overlay */}
                 {isUploading && uploadItem && (
-                  <div className="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center">
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-lg flex flex-col items-center justify-center">
                     <div className="text-white text-center">
-                      <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-                      <div className="text-xs">{uploadItem.progress}%</div>
+                      {getStatusIcon(uploadItem.status)}
+                      <div className="text-xs mt-2 font-medium">
+                        {getStatusText(uploadItem.status)}
+                      </div>
+                      {uploadItem.compressedSize && (
+                        <div className="text-xs mt-1 text-green-300">
+                          {formatFileSize(uploadItem.originalSize)} → {formatFileSize(uploadItem.compressedSize)}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
