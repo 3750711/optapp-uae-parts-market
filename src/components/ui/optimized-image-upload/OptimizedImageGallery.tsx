@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Star, StarOff, X, Loader2, CheckCircle } from 'lucide-react';
@@ -32,10 +31,23 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   onDelete,
   disabled = false
 }) => {
-  // Combine uploaded images with upload queue previews - show ALL images always
+  // Filter out upload queue items that have been successfully uploaded and are already in images array
+  const activeUploadQueue = uploadQueue.filter(item => {
+    // Keep items that are still uploading or failed
+    if (item.status === 'error' || item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading') {
+      return true;
+    }
+    // For successful uploads, only keep if the final URL is not in the images array yet
+    if (item.status === 'success' && item.finalUrl) {
+      return !images.includes(item.finalUrl);
+    }
+    return false;
+  });
+
+  // Combine uploaded images with active upload queue previews
   const allImages = [
     ...images.map(url => ({ url, isUploaded: true, uploadItem: null })),
-    ...uploadQueue
+    ...activeUploadQueue
       .filter(item => item.blobUrl)
       .map(item => ({ 
         url: item.blobUrl!, 
