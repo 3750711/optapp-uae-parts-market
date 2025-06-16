@@ -30,6 +30,3 @@ export const uploadToCloudinary = async (
     error: result.error
   };
 };
-
-// Legacy function - now redirects to direct upload
-export const uploadDirectToCloudinary = uploadDirectToCloudinary;
