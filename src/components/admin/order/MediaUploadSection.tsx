@@ -1,8 +1,6 @@
 
 import React from "react";
-import { Label } from "@/components/ui/label";
-import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
-import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
+import { EnhancedMediaUploadSection } from "./EnhancedMediaUploadSection";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -29,6 +27,9 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
   const handleImageDelete = async (url: string) => {
     if (!orderId) {
       console.log("Image delete requested, but no order ID provided:", url);
+      // Update local state for preview even without order ID
+      const updatedImages = images.filter(imageUrl => imageUrl !== url);
+      onImagesUpload(updatedImages);
       return;
     }
 
@@ -58,6 +59,10 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
         description: "Не удалось удалить изображение",
         variant: "destructive",
       });
+      
+      // Still update local state for preview even if DB update failed
+      const updatedImages = images.filter(imageUrl => imageUrl !== url);
+      onImagesUpload(updatedImages);
     }
   };
 
@@ -103,33 +108,53 @@ export const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Label>Фотографии заказа</Label>
-        
-        <MobileOptimizedImageUpload
-          onUploadComplete={handleNewImagesUpload}
-          maxImages={25}
-          existingImages={images}
-          onImageDelete={handleImageDelete}
-          disabled={disabled}
-        />
-      </div>
+  const handleSetPrimaryImage = async (url: string) => {
+    if (!orderId) {
+      console.log("Set primary image requested, but no order ID provided:", url);
+      return;
+    }
 
-      <div className="space-y-2">
-        <Label>Видео заказа</Label>
-        
-        <CloudinaryVideoUpload
-          videos={videos}
-          onUpload={onVideoUpload}
-          onDelete={onVideoDelete}
-          maxVideos={3}
-          productId={orderId}
-          buttonText="Загрузить видео заказа"
-          disabled={disabled}
-        />
-      </div>
-    </div>
+    try {
+      // For orders, we can set the primary image by moving it to the first position
+      const updatedImages = [url, ...images.filter(img => img !== url)];
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ images: updatedImages })
+        .eq('id', orderId);
+
+      if (error) throw error;
+
+      onImagesUpload(updatedImages);
+      
+      toast({
+        title: "Успешно",
+        description: "Главное изображение установлено",
+      });
+    } catch (error) {
+      console.error('Error setting primary image:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось установить главное изображение",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <EnhancedMediaUploadSection
+      images={images}
+      videos={videos}
+      onImagesUpload={handleNewImagesUpload}
+      onVideoUpload={onVideoUpload}
+      onVideoDelete={onVideoDelete}
+      onImageDelete={handleImageDelete}
+      onSetPrimaryImage={handleSetPrimaryImage}
+      primaryImage={images[0]} // First image is considered primary
+      orderId={orderId}
+      disabled={disabled}
+      maxImages={25}
+      maxVideos={3}
+    />
   );
 };
