@@ -36,21 +36,6 @@ export const useCloudinaryVideoUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<UploadProgress[]>([]);
 
-  // Convert file to base64
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove data:video/...;base64, prefix
-        const base64 = result.split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = error => reject(error);
-    });
-  };
-
   const uploadVideo = async (
     file: File,
     productId?: string,
@@ -59,7 +44,7 @@ export const useCloudinaryVideoUpload = () => {
     const fileId = `${file.name}-${Date.now()}`;
     
     try {
-      console.log('📤 Converting video file to base64 for Cloudinary upload:', {
+      console.log('🎬 Starting video upload with FormData:', {
         fileName: file.name,
         fileSize: file.size,
         productId,
@@ -81,24 +66,24 @@ export const useCloudinaryVideoUpload = () => {
         prev.map(p => p.fileId === fileId ? { ...p, status: 'uploading', progress: 25 } : p)
       );
 
-      // Convert file to base64
-      const fileData = await fileToBase64(file);
+      // Create FormData just like photo upload
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('productId', productId || '');
+      if (customPublicId) {
+        formData.append('customPublicId', customPublicId);
+      }
       
       // Update progress
       setUploadProgress(prev => 
         prev.map(p => p.fileId === fileId ? { ...p, progress: 50 } : p)
       );
       
-      console.log('☁️ Sending video to Cloudinary video upload function...');
+      console.log('☁️ Sending FormData to Cloudinary video upload function...');
       
-      // Use the new dedicated video upload function
+      // Use FormData instead of JSON body - same as photo upload
       const { data, error } = await supabase.functions.invoke('cloudinary-video-upload', {
-        body: { 
-          fileData,
-          fileName: file.name,
-          productId,
-          customPublicId
-        }
+        body: formData
       });
 
       console.log('📥 Cloudinary video function response:', {
@@ -202,6 +187,7 @@ export const useCloudinaryVideoUpload = () => {
     const uploadedUrls: string[] = [];
 
     try {
+      // Process files sequentially with delay like photo upload
       for (const file of files) {
         const result = await uploadVideo(file, productId);
         if (result.success && result.cloudinaryUrl) {
@@ -212,6 +198,11 @@ export const useCloudinaryVideoUpload = () => {
             description: `Не удалось загрузить ${file.name}: ${result.error}`,
             variant: "destructive",
           });
+        }
+        
+        // Add delay between uploads like photo upload
+        if (files.indexOf(file) < files.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
 
@@ -237,13 +228,11 @@ export const useCloudinaryVideoUpload = () => {
       });
       return [];
     } finally {
-      // Set isUploading to false BEFORE clearing progress to ensure proper auto-hide logic
       console.log('🏁 Setting isUploading to false');
       setIsUploading(false);
     }
   };
 
-  // Simple clearProgress function without useCallback to prevent dependency issues
   const clearProgress = () => {
     console.log('🧹 Clearing upload progress');
     setUploadProgress([]);

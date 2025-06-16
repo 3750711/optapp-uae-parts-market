@@ -66,33 +66,27 @@ Deno.serve(async (req) => {
       throw new Error('Cloudinary credentials not configured properly');
     }
 
-    let file: File | null = null;
-    let productId: string | undefined;
-    let customPublicId: string | undefined;
-
+    // Only handle FormData like photo upload - no more base64/JSON
     const contentType = req.headers.get('content-type') || '';
     
-    if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData();
-      file = formData.get('file') as File;
-      productId = formData.get('productId') as string;
-      customPublicId = formData.get('customPublicId') as string;
-    } else {
-      const { fileData, fileName, productId: pid, customPublicId: cpid } = await req.json();
-      if (fileData && fileName) {
-        const base64Data = fileData.startsWith('data:') 
-          ? fileData.split(',')[1] 
-          : fileData;
-        const bytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-        file = new File([bytes], fileName);
-        productId = pid;
-        customPublicId = cpid;
-      }
+    if (!contentType.includes('multipart/form-data')) {
+      throw new Error('Video upload requires FormData (multipart/form-data)');
     }
+
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const productId = formData.get('productId') as string;
+    const customPublicId = formData.get('customPublicId') as string;
 
     if (!file) {
       throw new Error('No video file provided');
     }
+
+    console.log('📹 Processing video file:', {
+      fileName: file.name,
+      sizeKB: Math.round(file.size / 1024),
+      type: file.type
+    });
 
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     if (!fileExtension || !ALLOWED_VIDEO_FORMATS.includes(fileExtension)) {
@@ -113,7 +107,7 @@ Deno.serve(async (req) => {
     const timestamp = Math.round(Date.now() / 1000);
     const publicId = customPublicId || `video_${productId || timestamp}_${timestamp}`;
     
-    // Упрощенные трансформации без специальных символов
+    // Dynamic video transformation based on size
     let videoTransformation: string;
     if (fileSizeMB > 30) {
       videoTransformation = 'q_auto:low,w_720,h_480';
@@ -125,21 +119,21 @@ Deno.serve(async (req) => {
     
     const eagerTransform = 'w_300,h_200,c_fill,q_auto:good,f_jpg';
     
-    // ИСПРАВЛЕННЫЕ параметры для подписи - добавляем resource_type
+    // ПРАВИЛЬНЫЕ параметры для подписи видео
     const signatureParams = {
       eager: eagerTransform,
       folder: 'videos',
       public_id: publicId,
-      resource_type: 'video', // Обязательно для видео
+      resource_type: 'video',
       timestamp: timestamp.toString(),
       transformation: videoTransformation
     };
 
     console.log('📝 Signature parameters:', signatureParams);
 
-    // ИСПРАВЛЕННАЯ генерация подписи: правильная сортировка параметров
+    // Генерация подписи с правильной сортировкой
     const sortedParams = Object.keys(signatureParams)
-      .sort() // Алфавитная сортировка ключей
+      .sort()
       .map(key => `${key}=${signatureParams[key as keyof typeof signatureParams]}`)
       .join('&');
     
@@ -155,14 +149,14 @@ Deno.serve(async (req) => {
     
     console.log('✍️ Generated signature:', signature);
 
-    // Создаем FormData для Cloudinary с правильными параметрами
+    // Создаем FormData для Cloudinary
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append('file', file);
     cloudinaryFormData.append('api_key', apiKey);
     cloudinaryFormData.append('timestamp', timestamp.toString());
     cloudinaryFormData.append('public_id', publicId);
     cloudinaryFormData.append('folder', 'videos');
-    cloudinaryFormData.append('resource_type', 'video'); // Обязательно для видео
+    cloudinaryFormData.append('resource_type', 'video');
     cloudinaryFormData.append('transformation', videoTransformation);
     cloudinaryFormData.append('eager', eagerTransform);
     cloudinaryFormData.append('signature', signature);
@@ -193,14 +187,16 @@ Deno.serve(async (req) => {
       publicId: cloudinaryResult.public_id,
       duration: cloudinaryResult.duration,
       format: cloudinaryResult.format,
-      sizeKB: Math.round(cloudinaryResult.bytes / 1024)
+      sizeKB: Math.round(cloudinaryResult.bytes / 1024),
+      width: cloudinaryResult.width,
+      height: cloudinaryResult.height
     });
 
     if (cloudinaryResult.duration && cloudinaryResult.duration > MAX_DURATION_SECONDS) {
       console.warn('⚠️ Video duration exceeds recommended limit:', cloudinaryResult.duration);
     }
 
-    // Генерируем URL с использованием исходного secure_url от Cloudinary
+    // Generate URLs
     const optimizedVideoUrl = cloudinaryResult.secure_url;
     const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${eagerTransform}/${cloudinaryResult.public_id}.jpg`;
 
@@ -210,7 +206,7 @@ Deno.serve(async (req) => {
       cloudinaryUrl: optimizedVideoUrl,
       thumbnailUrl,
       originalSize: cloudinaryResult.bytes,
-      compressedSize: Math.round(cloudinaryResult.bytes * 0.7),
+      compressedSize: Math.round(cloudinaryResult.bytes * 0.8),
       format: cloudinaryResult.format,
       duration: cloudinaryResult.duration,
       width: cloudinaryResult.width,
@@ -218,6 +214,12 @@ Deno.serve(async (req) => {
       bitRate: cloudinaryResult.bit_rate,
       frameRate: cloudinaryResult.frame_rate
     };
+
+    console.log('🎉 Video upload completed successfully:', {
+      cloudinaryUrl: response.cloudinaryUrl,
+      thumbnailUrl: response.thumbnailUrl,
+      duration: response.duration
+    });
 
     return new Response(JSON.stringify(response), {
       status: 200,
