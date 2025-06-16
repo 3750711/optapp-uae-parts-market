@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,15 +59,12 @@ export const useOptimizedOrderMediaUpload = () => {
     setUploadQueue(prev => {
       const now = Date.now();
       return prev.filter(item => {
-        // Keep items that are not successful or are recent (less than 30 seconds old)
         if (item.status !== 'success') return true;
         
-        // Parse timestamp from item id
         const itemTimestamp = parseInt(item.id.split('-')[1]) || now;
         const isRecent = (now - itemTimestamp) < 30000; // 30 seconds
         
         if (!isRecent && item.blobUrl) {
-          // Clean up blob URL for old successful items
           URL.revokeObjectURL(item.blobUrl);
         }
         
@@ -108,17 +106,16 @@ export const useOptimizedOrderMediaUpload = () => {
     }
   }, []);
 
-  // Upload single file with retry logic
+  // Upload single file with improved error handling
   const uploadSingleFile = useCallback(async (
     item: OrderUploadItem,
     options: OrderMediaUploadOptions,
     retryCount = 0
   ): Promise<string> => {
-    const maxRetries = 3;
-    const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+    const maxRetries = 2;
+    const retryDelay = Math.pow(2, retryCount) * 1000;
 
     try {
-      // Update status to uploading
       setUploadQueue(prev => 
         prev.map(i => 
           i.id === item.id 
@@ -127,27 +124,44 @@ export const useOptimizedOrderMediaUpload = () => {
         )
       );
 
-      // Create FormData for direct file upload
-      const formData = new FormData();
-      formData.append('file', item.compressedFile || item.file);
-      if (options.orderId) {
-        formData.append('orderId', options.orderId);
-      }
+      const fileToUpload = item.compressedFile || item.file;
       
-      // Upload with correct headers - let browser set Content-Type automatically
-      const uploadResponse = await supabase.functions.invoke('cloudinary-upload', {
+      // Validate file before upload
+      if (fileToUpload.size > 10 * 1024 * 1024) { // 10MB limit
+        throw new Error('Файл слишком большой (максимум 10MB)');
+      }
+
+      // Create FormData with proper file handling
+      const formData = new FormData();
+      formData.append('file', fileToUpload, fileToUpload.name);
+      
+      console.log('📤 Uploading order file:', {
+        name: fileToUpload.name,
+        size: fileToUpload.size,
+        type: fileToUpload.type
+      });
+
+      // Call Edge Function with error handling
+      const { data: result, error } = await supabase.functions.invoke('cloudinary-upload', {
         body: formData,
       });
 
-      if (uploadResponse.error) {
-        throw new Error(uploadResponse.error.message);
+      if (error) {
+        console.error('❌ Edge Function error:', error);
+        throw new Error(`Upload failed: ${error.message}`);
       }
 
-      const result = uploadResponse.data;
-      
-      if (!result.success || !result.cloudinaryUrl) {
-        throw new Error(result.error || 'Upload failed');
+      if (!result || !result.success) {
+        console.error('❌ Upload result error:', result);
+        throw new Error(result?.error || 'Upload failed - no result');
       }
+
+      if (!result.cloudinaryUrl) {
+        console.error('❌ No URL in result:', result);
+        throw new Error('Upload failed - no URL returned');
+      }
+
+      console.log('✅ Upload successful:', result.cloudinaryUrl);
 
       // Update progress to complete
       setUploadQueue(prev => 
@@ -170,7 +184,8 @@ export const useOptimizedOrderMediaUpload = () => {
 
       return result.cloudinaryUrl;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      const errorMessage = error instanceof Error ? error.message : 'Unknown upload error';
+      console.error('💥 Upload error:', errorMessage);
       
       if (retryCount < maxRetries) {
         console.log(`🔄 Retrying order upload for ${item.file.name} (attempt ${retryCount + 1}/${maxRetries})`);
@@ -194,11 +209,10 @@ export const useOptimizedOrderMediaUpload = () => {
     items: OrderUploadItem[],
     options: OrderMediaUploadOptions
   ): Promise<string[]> => {
-    const batchDelay = 500; // 500ms delay between uploads
+    const batchDelay = 1000; // 1 second delay between uploads
     const results: string[] = [];
     const errors: string[] = [];
 
-    // Process files one by one with delays
     for (let i = 0; i < items.length; i++) {
       if (abortController.current?.signal.aborted) break;
 
@@ -215,6 +229,7 @@ export const useOptimizedOrderMediaUpload = () => {
       } catch (error) {
         const errorMsg = `${item.file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`;
         errors.push(errorMsg);
+        console.error('💥 Upload failed for item:', errorMsg);
       }
     }
 
@@ -243,11 +258,41 @@ export const useOptimizedOrderMediaUpload = () => {
     files: File[],
     options: OrderMediaUploadOptions = {}
   ): Promise<string[]> => {
+    if (files.length === 0) {
+      console.warn('⚠️ No files provided for upload');
+      return [];
+    }
+
+    console.log('🚀 Starting order files upload:', { count: files.length });
+    
     setIsUploading(true);
     abortController.current = new AbortController();
 
+    // Validate files
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        console.warn('⚠️ Skipping non-image file:', file.name);
+        return false;
+      }
+      if (file.size > 50 * 1024 * 1024) { // 50MB
+        console.warn('⚠️ Skipping oversized file:', file.name);
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) {
+      setIsUploading(false);
+      toast({
+        title: "Ошибка файлов",
+        description: "Нет валидных изображений для загрузки",
+        variant: "destructive",
+      });
+      return [];
+    }
+
     // Create initial queue with blob URLs for immediate preview
-    const initialQueue: OrderUploadItem[] = files.map((file, index) => ({
+    const initialQueue: OrderUploadItem[] = validFiles.map((file, index) => ({
       id: `order-upload-${Date.now()}-${index}`,
       file,
       progress: 0,
@@ -259,7 +304,7 @@ export const useOptimizedOrderMediaUpload = () => {
     setUploadQueue(prev => [...prev, ...initialQueue]);
 
     try {
-      // Step 1: Compress all images in parallel with dynamic compression settings
+      // Step 1: Compress all images in parallel
       const compressionPromises = initialQueue.map(async (item) => {
         setUploadQueue(prev => 
           prev.map(i => 
@@ -269,19 +314,14 @@ export const useOptimizedOrderMediaUpload = () => {
           )
         );
 
-        // More aggressive compression for large files
-        const isLargeFile = item.file.size > 10 * 1024 * 1024; // >10MB
         const compressionOptions = {
-          maxSizeMB: isLargeFile ? 0.3 : (options.compressionOptions?.maxSizeMB || defaultCompressionOptions.maxSizeMB),
-          maxWidthOrHeight: isLargeFile ? 600 : (options.compressionOptions?.maxWidthOrHeight || defaultCompressionOptions.maxWidthOrHeight),
-          initialQuality: isLargeFile ? 0.6 : (options.compressionOptions?.initialQuality || defaultCompressionOptions.initialQuality),
+          maxSizeMB: options.compressionOptions?.maxSizeMB || defaultCompressionOptions.maxSizeMB,
+          maxWidthOrHeight: options.compressionOptions?.maxWidthOrHeight || defaultCompressionOptions.maxWidthOrHeight,
+          initialQuality: options.compressionOptions?.initialQuality || defaultCompressionOptions.initialQuality,
           fileType: options.compressionOptions?.fileType || defaultCompressionOptions.fileType
         };
 
-        const compressedFile = await compressImage(
-          item.file, 
-          compressionOptions
-        );
+        const compressedFile = await compressImage(item.file, compressionOptions);
 
         setUploadQueue(prev => 
           prev.map(i => 
@@ -301,6 +341,7 @@ export const useOptimizedOrderMediaUpload = () => {
       });
 
       const compressedItems = await Promise.all(compressionPromises);
+      console.log('✅ Compression completed for all items');
 
       // Step 2: Upload compressed files sequentially
       const uploadedUrls = await processUploads(compressedItems, options);
@@ -308,9 +349,10 @@ export const useOptimizedOrderMediaUpload = () => {
       // Step 3: Schedule cleanup after successful upload
       setTimeout(cleanupSuccessfulItems, 30000);
 
+      console.log('✅ Upload process completed:', { uploaded: uploadedUrls.length, total: files.length });
       return uploadedUrls;
     } catch (error) {
-      console.error('Order upload process failed:', error);
+      console.error('💥 Order upload process failed:', error);
       if (!options.disableToast) {
         toast({
           title: "Ошибка загрузки медиа",
@@ -347,7 +389,7 @@ export const useOptimizedOrderMediaUpload = () => {
   // Get preview URLs (mix of blob URLs and final URLs)
   const getPreviewUrls = useCallback(() => {
     return uploadQueue
-      .filter(item => item.finalUrl || item.blobUrl)
+      .filter(item => item.status !== 'deleted' && (item.finalUrl || item.blobUrl))
       .map(item => item.finalUrl || item.blobUrl!);
   }, [uploadQueue]);
 

@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Video, X, Loader } from "lucide-react";
+import { Upload, Video, X, Loader, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOptimizedOrderMediaUpload } from "@/hooks/useOptimizedOrderMediaUpload";
 import OrderImageGallery from "@/components/ui/order-image-gallery/OrderImageGallery";
@@ -52,7 +52,8 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
   console.log('📊 OptimizedOrderMediaSection render:', { 
     imageCount: images.length, 
     videoCount: videos.length,
-    orderId
+    orderId,
+    isUploading
   });
 
   const totalMediaCount = images.length + videos.length;
@@ -61,20 +62,27 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    console.log('📁 Files selected:', files.length);
+
     const fileArray = Array.from(files);
     
     // Validate image files
     const validImageFiles = fileArray.filter(file => {
       if (!file.type.startsWith('image/')) {
+        console.warn('⚠️ Skipping non-image file:', file.name);
         return false;
       }
       if (file.size > 50 * 1024 * 1024) { // 50MB limit
+        console.warn('⚠️ Skipping oversized file:', file.name, 'Size:', file.size);
         return false;
       }
       return true;
     });
 
-    if (validImageFiles.length === 0) return;
+    if (validImageFiles.length === 0) {
+      console.warn('⚠️ No valid image files selected');
+      return;
+    }
 
     // Check limits
     if (images.length + validImageFiles.length > maxImages) {
@@ -83,6 +91,8 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
     }
 
     try {
+      console.log('🚀 Starting upload of', validImageFiles.length, 'files');
+      
       const uploadedUrls = await uploadOrderFiles(validImageFiles, {
         orderId,
         maxConcurrent: 1,
@@ -96,11 +106,13 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
       });
       
       if (uploadedUrls.length > 0) {
-        console.log('📸 New order images uploaded:', uploadedUrls);
+        console.log('✅ New order images uploaded:', uploadedUrls);
         onImagesUpload(uploadedUrls);
+      } else {
+        console.warn('⚠️ No images were successfully uploaded');
       }
     } catch (error) {
-      console.error('Error uploading order files:', error);
+      console.error('💥 Error uploading order files:', error);
     }
     
     // Reset input
@@ -173,6 +185,9 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
       }
     }
   }, [disabled, isUploading, handleFileSelect]);
+
+  // Get failed uploads for display
+  const failedUploads = uploadQueue.filter(item => item.status === 'error');
 
   return (
     <div className="space-y-6">
@@ -272,7 +287,7 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
                   Отменить
                 </Button>
               </div>
-              {uploadQueue.map((item) => (
+              {uploadQueue.filter(item => item.status !== 'deleted').map((item) => (
                 <div key={item.id} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
                     <span className="truncate">{item.file.name}</span>
@@ -282,6 +297,12 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
                       )}
                       {item.status === 'uploading' && (
                         <span className="text-orange-600">Загрузка...</span>
+                      )}
+                      {item.status === 'success' && (
+                        <span className="text-green-600">Готово</span>
+                      )}
+                      {item.status === 'error' && (
+                        <span className="text-red-600">Ошибка</span>
                       )}
                       <span>{item.progress}%</span>
                     </div>
@@ -293,13 +314,52 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
                     </p>
                   )}
                   {item.status === 'error' && (
-                    <p className="text-xs text-red-600">
-                      ❌ {item.error}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                      <p className="text-xs text-red-600">
+                        {item.error || 'Неизвестная ошибка'}
+                      </p>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Failed uploads summary */}
+      {failedUploads.length > 0 && !isUploading && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-red-700">
+              <AlertCircle className="h-4 w-4" />
+              <span className="font-medium">
+                Ошибки загрузки ({failedUploads.length} файлов)
+              </span>
+            </div>
+            <div className="mt-2 space-y-1">
+              {failedUploads.map(item => (
+                <p key={item.id} className="text-sm text-red-600">
+                  • {item.file.name}: {item.error}
+                </p>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3"
+              onClick={() => {
+                // Retry failed uploads
+                const filesToRetry = failedUploads.map(item => item.file);
+                if (filesToRetry.length > 0) {
+                  handleFileSelect({ target: { files: filesToRetry } } as any);
+                }
+              }}
+            >
+              Повторить загрузку
+            </Button>
           </CardContent>
         </Card>
       )}
