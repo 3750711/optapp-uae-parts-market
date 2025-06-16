@@ -1,28 +1,32 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { MediaUploadSection } from "@/components/admin/order/MediaUploadSection";
-import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
-import { SellerOrderFormFields } from "@/components/admin/order/SellerOrderFormFields";
-import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
-import { Loader, AlertCircle, Shield } from "lucide-react";
-import { useForm } from "react-hook-form";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
-import { toast } from "@/hooks/use-toast";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import React from 'react';
+import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
+import { SellerOrderFormFields } from './SellerOrderFormFields';
+import OptimizedOrderMediaSection from './OptimizedOrderMediaSection';
+import { CreatedOrderView } from './CreatedOrderView';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Loader, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
+import { toast } from '@/hooks/use-toast';
 
 export const AdminFreeOrderForm = () => {
   const {
+    // Form data
     formData,
+    handleInputChange,
+    
+    // Media
     images,
     videos,
+    setAllImages,
+    setVideos,
+    
+    // Profiles and car data
     buyerProfiles,
     sellerProfiles,
     selectedSeller,
-    isLoading,
-    createdOrder,
     brands,
     brandModels,
     isLoadingCarData,
@@ -32,27 +36,31 @@ export const AdminFreeOrderForm = () => {
     setSearchModelTerm,
     filteredBrands,
     filteredModels,
-    setImages,
-    setVideos,
-    handleInputChange,
-    handleImageUpload,
-    handleOrderUpdate,
+    
+    // Order creation
+    isLoading,
+    createdOrder,
     handleSubmit: originalHandleSubmit,
+    handleOrderUpdate,
     resetForm,
-    navigate,
+    
+    // Utils
     parseTitleForBrand,
+    
+    // Progress tracking
     creationStage,
     creationProgress,
-    // New initialization states
+    
+    // Initialization
     isInitializing,
     initializationError,
     hasAdminAccess
   } = useAdminOrderFormLogic();
 
+  // Add submission guard
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
     timeout: 10000,
     onDuplicateSubmit: () => {
-      console.error('🚫 AdminFreeOrderForm: Duplicate submission attempt blocked');
       toast({
         title: "Заказ создается",
         description: "Пожалуйста подождите, заказ уже создается",
@@ -61,160 +69,49 @@ export const AdminFreeOrderForm = () => {
     }
   });
 
-  const form = useForm();
-
-  // Enhanced error logging
-  React.useEffect(() => {
-    if (initializationError) {
-      console.error('🔥 AdminFreeOrderForm: Initialization error:', initializationError);
-      console.error('🔍 Current location:', window.location.href);
-      console.error('🔍 Has admin access:', hasAdminAccess);
-    }
-  }, [initializationError, hasAdminAccess]);
-
-  // Show initialization error
-  if (initializationError) {
-    console.error('🚨 AdminFreeOrderForm: Rendering initialization error state');
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Ошибка инициализации</AlertTitle>
-          <AlertDescription>
-            {initializationError}
-            {process.env.NODE_ENV === 'development' && (
-              <details className="mt-2 text-xs">
-                <summary className="cursor-pointer">Техническая информация</summary>
-                <pre className="mt-1 whitespace-pre-wrap break-words">
-                  Location: {window.location.href}
-                  {'\n'}Admin Access: {String(hasAdminAccess)}
-                </pre>
-              </details>
-            )}
-          </AlertDescription>
-        </Alert>
-        <Button 
-          onClick={() => {
-            console.log('🔄 AdminFreeOrderForm: Navigating back to admin dashboard');
-            navigate('/admin/dashboard');
-          }}
-          variant="outline"
-          className="w-full"
-        >
-          Вернуться в панель администратора
-        </Button>
-      </div>
-    );
-  }
-
-  // Show loading skeleton during initialization
-  if (isInitializing) {
-    console.log('⏳ AdminFreeOrderForm: Rendering initialization loading state');
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Loader className="h-4 w-4 animate-spin" />
-          <span className="text-sm text-gray-600">Загрузка данных...</span>
-        </div>
-        
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-          <Skeleton className="h-20 w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Show access denied if not admin
-  if (!hasAdminAccess) {
-    console.warn('🔒 AdminFreeOrderForm: Access denied - user is not admin');
-    return (
-      <div className="space-y-4">
-        <Alert variant="destructive">
-          <Shield className="h-4 w-4" />
-          <AlertTitle>Доступ запрещен</AlertTitle>
-          <AlertDescription>
-            У вас нет прав для доступа к этой странице. Обратитесь к администратору.
-          </AlertDescription>
-        </Alert>
-        <Button 
-          onClick={() => {
-            console.log('🔄 AdminFreeOrderForm: Redirecting unauthorized user to profile');
-            navigate('/profile');
-          }}
-          variant="outline"
-          className="w-full"
-        >
-          Вернуться в профиль
-        </Button>
-      </div>
-    );
-  }
-
+  // Handle media upload for orders
   const onImagesUpload = (urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: Images uploaded:', urls.length);
-    handleImageUpload(urls);
+    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
+    setAllImages([...images, ...urls]);
   };
 
   const onVideoUpload = (urls: string[]) => {
-    console.log('🎥 AdminFreeOrderForm: Videos uploaded:', urls.length);
-    setVideos((prev) => [...prev, ...urls]);
+    console.log('🎥 AdminFreeOrderForm: New videos uploaded:', urls);
+    setVideos(prev => [...prev, ...urls]);
   };
 
   const onVideoDelete = (url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
-    setVideos((prev) => prev.filter((v) => v !== url));
+    console.log('🗑️ AdminFreeOrderForm: Deleting video:', url);
+    setVideos(prev => prev.filter(v => v !== url));
   };
 
-  const handleGoBack = () => {
-    console.log('⬅️ AdminFreeOrderForm: Going back to dashboard');
-    navigate('/admin/dashboard');
+  const onImageDelete = (url: string) => {
+    console.log('🗑️ AdminFreeOrderForm: Deleting image:', url);
+    setAllImages(images.filter(img => img !== url));
   };
 
-  const handleDataFromProduct = (productData: any) => {
-    console.log("📦 AdminFreeOrderForm: Product data received:", productData);
+  const onSetPrimaryImage = (url: string) => {
+    console.log('⭐ AdminFreeOrderForm: Setting primary image:', url);
+    // Move the selected image to the first position
+    const newImages = [url, ...images.filter(img => img !== url)];
+    setAllImages(newImages);
   };
 
+  // Protected form submission handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('📤 AdminFreeOrderForm: Form submission initiated');
     guardedSubmit(async () => {
-      try {
-        await originalHandleSubmit(e);
-        console.log('✅ AdminFreeOrderForm: Form submitted successfully');
-      } catch (error) {
-        console.error('❌ AdminFreeOrderForm: Form submission failed:', error);
-        toast({
-          title: "Ошибка создания заказа",
-          description: "Произошла ошибка при создании заказа. Попробуйте еще раз.",
-          variant: "destructive",
-        });
-      }
+      await originalHandleSubmit(e);
     });
   };
-  
+
+  // Get stage message based on current creation stage
   const getStageMessage = () => {
     switch (creationStage) {
       case 'validating':
         return 'Проверка данных формы...';
-      case 'fetching_buyer':
-        return 'Поиск профиля покупателя...';
       case 'creating_order':
         return 'Создание заказа в базе данных...';
-      case 'fetching_order':
-        return 'Получение данных созданного заказа...';
-      case 'saving_videos':
-        return 'Сохранение видео...';
-      case 'sending_notification':
-        return 'Отправка уведомления...';
       case 'completed':
         return 'Заказ успешно создан!';
       default:
@@ -222,24 +119,86 @@ export const AdminFreeOrderForm = () => {
     }
   };
 
-  const isFormDisabled = isLoading || !canSubmit;
+  // Loading state during initialization
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <Loader className="h-8 w-8 animate-spin mx-auto text-blue-600" />
+          <div className="space-y-2">
+            <p className="text-lg font-medium">Инициализация формы заказа...</p>
+            <p className="text-sm text-gray-600">Проверка прав доступа и загрузка данных</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  // Error state during initialization
+  if (initializationError) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto" />
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium text-red-800">Ошибка инициализации</h3>
+                <p className="text-sm text-red-600">{initializationError}</p>
+              </div>
+              <Button 
+                onClick={() => window.location.reload()} 
+                variant="outline"
+                className="w-full"
+              >
+                Обновить страницу
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Access denied state
+  if (!hasAdminAccess) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <AlertTriangle className="h-12 w-12 text-orange-500 mx-auto" />
+              <div className="space-y-2">
+                <h3 className="text-lg font-medium text-orange-800">Доступ ограничен</h3>
+                <p className="text-sm text-orange-600">
+                  У вас нет прав администратора для создания заказов
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show created order view
   if (createdOrder) {
-    console.log('🎉 AdminFreeOrderForm: Rendering created order view');
     return (
       <CreatedOrderView
         order={createdOrder}
         images={images}
-        onBack={handleGoBack}
+        onBack={() => window.history.back()}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
       />
     );
   }
 
-  console.log('📝 AdminFreeOrderForm: Rendering form');
+  const isFormDisabled = isLoading || !canSubmit;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-8">
+      {/* Order Form Fields */}
       <SellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
@@ -257,50 +216,66 @@ export const AdminFreeOrderForm = () => {
         filteredModels={filteredModels}
         parseTitleForBrand={parseTitleForBrand}
         onImagesUpload={onImagesUpload}
-        onDataFromProduct={handleDataFromProduct}
+        onDataFromProduct={() => {}} // Not used in free orders
         disabled={isFormDisabled}
       />
       
-      <MediaUploadSection 
+      {/* Optimized Media Upload Section */}
+      <OptimizedOrderMediaSection
         images={images}
         videos={videos}
         onImagesUpload={onImagesUpload}
         onVideoUpload={onVideoUpload}
+        onImageDelete={onImageDelete}
         onVideoDelete={onVideoDelete}
+        onSetPrimaryImage={onSetPrimaryImage}
+        primaryImage={images[0]} // First image is primary
+        orderId={undefined} // No orderId during creation
         disabled={isFormDisabled}
+        maxImages={25}
+        maxVideos={3}
       />
-      
-      <div className="flex flex-col space-y-4">
-        {isLoading && (
-          <div className="border rounded-md p-4 bg-gray-50 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <Loader className="mr-2 h-4 w-4 animate-spin" />
-                <span className="font-medium">{getStageMessage()}</span>
+
+      {/* Creation Progress */}
+      {isLoading && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Loader className="mr-3 h-5 w-5 animate-spin" />
+                  <span className="font-medium">{getStageMessage()}</span>
+                </div>
+                <span className="text-sm text-gray-500">{creationProgress}%</span>
               </div>
-              <span className="text-sm text-gray-500">{creationProgress}%</span>
-            </div>
-            <Progress value={creationProgress} className="h-2" />
-            {creationStage === 'completed' && (
+              <Progress value={creationProgress} className="h-2" />
               <div className="text-sm text-gray-600">
-                Уведомление в Telegram будет отправлено в фоновом режиме.
+                Создание заказа может занять несколько секунд...
               </div>
-            )}
-          </div>
-        )}
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isFormDisabled} className="w-full md:w-auto">
-            {isLoading ? (
-              <>
-                <Loader className="mr-2 h-4 w-4 animate-spin" />
-                Создание заказа...
-              </>
-            ) : (
-              "Создать заказ"
-            )}
-          </Button>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Submit Button */}
+      <div className="flex justify-end pt-6 border-t">
+        <Button
+          type="submit"
+          onClick={handleSubmit}
+          disabled={isFormDisabled}
+          size="lg"
+          className="min-w-[200px]"
+        >
+          {isLoading ? (
+            <>
+              <Loader className="mr-2 h-4 w-4 animate-spin" />
+              Создание заказа...
+            </>
+          ) : (
+            "Создать заказ"
+          )}
+        </Button>
       </div>
-    </form>
+    </div>
   );
 };

@@ -19,6 +19,7 @@ export interface AdminOrderFormLogicReturn {
   setImages: React.Dispatch<React.SetStateAction<string[]>>;
   setVideos: React.Dispatch<React.SetStateAction<string[]>>;
   handleImageUpload: (urls: string[]) => void;
+  setAllImages: (urls: string[]) => void;
   
   // Profiles
   buyerProfiles: any[];
@@ -66,6 +67,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   // Initialization states
   const [isInitializing, setIsInitializing] = useState(true);
   const [initializationError, setInitializationError] = useState<string | null>(null);
+  const [initTimeout, setInitTimeout] = useState(false);
 
   // Form data state
   const [formData, setFormData] = useState<OrderFormData>({
@@ -128,34 +130,64 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const [creationStage, setCreationStage] = useState('');
   const [creationProgress, setCreationProgress] = useState(0);
 
-  // Initialize component
+  // Initialize component with timeout protection
   useEffect(() => {
     const initialize = async () => {
       try {
         setIsInitializing(true);
+        setInitializationError(null);
         
-        if (!isAdmin) {
+        console.log('🚀 Starting admin order form initialization...', { isAdmin, user: !!user });
+        
+        // Set timeout for initialization
+        const timeoutId = setTimeout(() => {
+          console.warn('⚠️ Initialization timeout reached');
+          setInitTimeout(true);
+          setInitializationError('Тайм-аут инициализации. Проверьте подключение.');
+          setIsInitializing(false);
+        }, 10000); // 10 second timeout
+
+        // Wait for admin check to complete (but not indefinitely)
+        let retries = 0;
+        while (isAdmin === null && retries < 50) { // Max 5 seconds (50 * 100ms)
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        clearTimeout(timeoutId);
+        
+        if (initTimeout) return; // Don't proceed if timeout occurred
+        
+        console.log('✅ Admin check completed:', { isAdmin, retries });
+        
+        if (isAdmin === false) {
           setInitializationError('У вас нет прав для доступа к этой странице');
           return;
         }
 
-        // Load initial data
-        await Promise.all([
-          loadBuyerProfiles(),
-          loadSellerProfiles()
-        ]);
+        if (isAdmin === true) {
+          // Load initial data in parallel
+          console.log('📊 Loading initial data...');
+          await Promise.all([
+            loadBuyerProfiles(),
+            loadSellerProfiles()
+          ]);
+          console.log('✅ Initial data loaded successfully');
+        }
 
         setInitializationError(null);
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('❌ Initialization error:', error);
         setInitializationError('Ошибка инициализации компонента');
       } finally {
-        setIsInitializing(false);
+        if (!initTimeout) {
+          setIsInitializing(false);
+        }
       }
     };
 
     initialize();
-  }, [isAdmin]);
+  }, [isAdmin, user, initTimeout]);
 
   const loadBuyerProfiles = useCallback(async () => {
     try {
@@ -187,27 +219,32 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     }
   }, []);
 
-  // Fixed handleInputChange with proper signature for SellerOrderFormFields
+  // Enhanced handleInputChange with proper typing and validation
   const handleInputChange = useCallback((field: string, value: string) => {
+    console.log(`📝 Form field updated: ${field} = ${value}`);
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   }, []);
 
+  // Enhanced handleImageUpload that combines new and existing images
   const handleImageUpload = useCallback((urls: string[]) => {
-    setImages(prev => [...prev, ...urls]);
+    console.log('📸 Adding new images to order:', urls);
+    setImages(prev => {
+      const combined = [...prev, ...urls];
+      console.log('📸 Combined images:', { before: prev.length, after: combined.length });
+      return combined;
+    });
   }, []);
 
-  const parseTitleForBrand = useCallback((title: string) => {
-    // Simple parsing logic - can be enhanced
-    const words = title.split(' ');
-    return {
-      brand: words[0] || '',
-      model: words.slice(1).join(' ') || ''
-    };
+  // New function to replace images completely (for integration with optimized uploader)
+  const setAllImages = useCallback((urls: string[]) => {
+    console.log('🔄 Setting all order images:', urls);
+    setImages(urls);
   }, []);
 
+  // Enhanced handleSubmit with better error handling and logging
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -216,30 +253,50 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
       setCreationStage('validating');
       setCreationProgress(10);
 
-      // Validation
-      if (!formData.title || !formData.price || !formData.buyerOptId) {
-        throw new Error('Заполните все обязательные поля');
+      console.log('📋 Starting order creation with data:', {
+        title: formData.title,
+        price: formData.price,
+        buyerOptId: formData.buyerOptId,
+        sellerId: formData.sellerId,
+        imageCount: images.length,
+        videoCount: videos.length
+      });
+
+      // Enhanced validation
+      if (!formData.title?.trim()) {
+        throw new Error('Название заказа обязательно');
+      }
+      if (!formData.price || parseFloat(formData.price) <= 0) {
+        throw new Error('Цена должна быть больше 0');
+      }
+      if (!formData.buyerOptId?.trim()) {
+        throw new Error('ID покупателя обязателен');
       }
 
       setCreationStage('creating_order');
       setCreationProgress(50);
 
-      // Create order logic here
+      // Create order logic with enhanced data
       const orderData = {
-        title: formData.title,
+        title: formData.title.trim(),
         price: parseFloat(formData.price),
-        buyer_opt_id: formData.buyerOptId,
-        brand: formData.brand,
-        model: formData.model,
-        seller_id: formData.sellerId,
+        buyer_opt_id: formData.buyerOptId.trim(),
+        brand: formData.brand?.trim() || '',
+        model: formData.model?.trim() || '',
+        seller_id: formData.sellerId || user?.id,
         delivery_method: formData.deliveryMethod,
         place_number: parseInt(formData.place_number) || 1,
-        text_order: formData.text_order,
+        text_order: formData.text_order?.trim() || '',
         delivery_price: parseFloat(formData.delivery_price) || 0,
         images,
         video_url: videos,
-        created_by: user?.id
+        created_by: user?.id,
+        // Enhanced metadata
+        order_created_type: 'free' as const,
+        status: 'pending' as const
       };
+
+      console.log('💾 Inserting order into database:', orderData);
 
       const { data: order, error } = await supabase
         .from('orders')
@@ -247,22 +304,27 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database error:', error);
+        throw error;
+      }
 
       setCreationStage('completed');
       setCreationProgress(100);
       setCreatedOrder(order);
 
+      console.log('✅ Order created successfully:', order);
+
       toast({
         title: "Заказ создан",
-        description: "Заказ успешно создан в системе",
+        description: `Заказ #${order.order_number || order.id} успешно создан в системе`,
       });
 
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('💥 Order creation error:', error);
       toast({
-        title: "Ошибка",
-        description: error instanceof Error ? error.message : "Произошла ошибка при создании заказа",
+        title: "Ошибка создания заказа",
+        description: error instanceof Error ? error.message : "Произошла неожиданная ошибка",
         variant: "destructive"
       });
     } finally {
@@ -307,6 +369,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     setImages,
     setVideos,
     handleImageUpload,
+    setAllImages,
     
     // Profiles
     buyerProfiles,
@@ -339,9 +402,9 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     creationStage,
     creationProgress,
     
-    // Initialization states
+    // Initialization states with enhanced error handling
     isInitializing,
     initializationError,
-    hasAdminAccess: isAdmin
+    hasAdminAccess: isAdmin === true
   };
 };
