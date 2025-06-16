@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, StarOff, X, Loader2, CheckCircle } from 'lucide-react';
+import { Star, StarOff, X, Loader2, CheckCircle, Trash2 } from 'lucide-react';
 
 interface UploadItem {
   id: string;
   file: File;
   progress: number;
-  status: 'pending' | 'compressing' | 'uploading' | 'success' | 'error';
+  status: 'pending' | 'compressing' | 'uploading' | 'success' | 'error' | 'deleted';
   blobUrl?: string;
   finalUrl?: string;
   originalSize: number;
@@ -50,7 +50,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   // Фильтрация активной очереди загрузки
   const activeUploadQueue = uploadQueue.filter(item => {
     if (item.status === 'error' || item.status === 'pending' || 
-        item.status === 'compressing' || item.status === 'uploading') {
+        item.status === 'compressing' || item.status === 'uploading' || 
+        item.status === 'deleted') {
       return true;
     }
     
@@ -99,8 +100,40 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
         return <CheckCircle className="h-4 w-4 text-green-600" />;
       case 'error':
         return <X className="h-4 w-4 text-red-600" />;
+      case 'deleted':
+        return <Trash2 className="h-4 w-4 text-red-600" />;
       default:
         return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'Загружено';
+      case 'error':
+        return 'Ошибка';
+      case 'deleted':
+        return 'Удалено';
+      case 'compressing':
+        return 'Сжатие';
+      case 'uploading':
+        return 'Загрузка';
+      default:
+        return 'Обработка';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success':
+        return 'bg-green-500 bg-opacity-90 text-white';
+      case 'error':
+        return 'bg-red-500 bg-opacity-90 text-white';
+      case 'deleted':
+        return 'bg-red-500 bg-opacity-90 text-white';
+      default:
+        return 'bg-white bg-opacity-90 text-gray-800';
     }
   };
 
@@ -144,11 +177,9 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
               
               {/* Статусы для загружающихся изображений */}
               {isUploading && uploadItem && (
-                <div className="absolute top-2 left-2 bg-white bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
+                <div className={`absolute top-2 left-2 rounded-md px-2 py-1 flex items-center gap-1 ${getStatusColor(uploadItem.status)}`}>
                   {getStatusIcon(uploadItem.status)}
-                  {uploadItem.status === 'success' && (
-                    <span className="text-xs text-green-600 font-medium">Загружено</span>
-                  )}
+                  <span className="text-xs font-medium">{getStatusText(uploadItem.status)}</span>
                 </div>
               )}
 
@@ -160,8 +191,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Информация о размере файла для загружающихся изображений */}
-              {isUploading && uploadItem?.compressedSize && (
+              {/* Информация о размере файла - показываем только для активных состояний, не для удаленных */}
+              {isUploading && uploadItem?.compressedSize && uploadItem.status !== 'deleted' && (
                 <div className="absolute bottom-2 left-2 bg-black bg-opacity-70 rounded px-1 py-0.5">
                   <div className="text-xs text-green-300">
                     {formatFileSize(uploadItem.originalSize)} → {formatFileSize(uploadItem.compressedSize)}
@@ -176,7 +207,7 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
               
-              {/* Кнопки управления - показываем только для загруженных изображений */}
+              {/* Кнопки управления - показываем только для загруженных изображений и не удаленных */}
               {isUploaded && !disabled && (
                 <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   {/* Кнопка "сделать главным" */}
@@ -209,6 +240,11 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                     <X className="h-3 w-3" />
                   </Button>
                 </div>
+              )}
+
+              {/* Скрываем кнопки для удаленных изображений */}
+              {isUploading && uploadItem?.status === 'deleted' && (
+                <div className="absolute inset-0 bg-red-100 bg-opacity-50 rounded-lg" />
               )}
             </div>
           );
