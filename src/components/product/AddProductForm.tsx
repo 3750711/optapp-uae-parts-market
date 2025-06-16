@@ -67,6 +67,11 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   showSellerSelection = false,
   onImageDelete,
 }) => {
+  // Use optimized media section for better performance
+  const isOptimizedVersion = React.useMemo(() => {
+    return imageUrls.length > 5 || videoUrls.length > 1;
+  }, [imageUrls.length, videoUrls.length]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -91,7 +96,12 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
         </FormSectionWrapper>
         
         <FormSectionWrapper title="Медиафайлы">
-           <MediaSection 
+          {isOptimizedVersion ? (
+            React.lazy(() => import('./form/OptimizedMediaSection')).then(module => ({
+              default: module.default
+            }))
+          ) : (
+            <MediaSection 
               imageUrls={imageUrls}
               videoUrls={videoUrls}
               handleMobileOptimizedImageUpload={handleMobileOptimizedImageUpload}
@@ -99,7 +109,8 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
               primaryImage={primaryImage}
               onSetPrimaryImage={setPrimaryImage}
               onImageDelete={onImageDelete}
-           />
+            />
+          )}
         </FormSectionWrapper>
         
         <Button 

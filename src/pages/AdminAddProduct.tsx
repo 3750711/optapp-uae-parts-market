@@ -3,10 +3,9 @@ import React from "react";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AddProductForm from "@/components/product/AddProductForm";
-import { useAdminAddProduct } from "@/hooks/useAdminAddProduct";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
 import ProductPreviewDialog from "@/components/admin/ProductPreviewDialog";
+import DraftManagementAlert from "@/components/admin/DraftManagementAlert";
 
 const AdminAddProduct = () => {
   const {
@@ -24,13 +23,16 @@ const AdminAddProduct = () => {
     isLoadingCarData,
     handleMobileOptimizedImageUpload,
     handleImageDelete,
-    showDraftSaved,
-    // New props for preview
+    showDraftAlert,
+    setShowDraftAlert,
+    draftExists,
+    handleLoadDraft,
+    clearSavedData,
     isPreviewOpen,
     closePreview,
     richPreviewData,
     handleConfirmPublish,
-  } = useAdminAddProduct();
+  } = useOptimizedAdminAddProduct();
 
   return (
     <AdminRoute>
@@ -39,14 +41,12 @@ const AdminAddProduct = () => {
           <div className="max-w-3xl mx-auto">
             <h1 className="text-3xl font-bold mb-8">Добавить товар</h1>
 
-            {showDraftSaved && (
-              <Alert className="mb-6 bg-blue-50 border-blue-200">
-                <AlertCircle className="h-4 w-4 text-blue-700" />
-                <AlertDescription className="text-blue-700">
-                  Загружен сохраненный черновик. Вы можете продолжить заполнение.
-                </AlertDescription>
-              </Alert>
-            )}
+            <DraftManagementAlert
+              draftExists={showDraftAlert && draftExists}
+              onLoadDraft={handleLoadDraft}
+              onClearDraft={clearSavedData}
+              onDismiss={() => setShowDraftAlert(false)}
+            />
             
             <AddProductForm
               form={form}
