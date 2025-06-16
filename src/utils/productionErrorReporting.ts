@@ -1,0 +1,251 @@
+
+// Система мониторинга ошибок для продакшена
+interface ErrorReport {
+  message: string;
+  stack?: string;
+  url: string;
+  userAgent: string;
+  timestamp: number;
+  userId?: string;
+  sessionId?: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  context?: Record<string, any>;
+}
+
+interface ErrorReportingConfig {
+  enabled: boolean;
+  maxReportsPerSession: number;
+  batchSize: number;
+  flushInterval: number;
+  endpoint: string;
+}
+
+class ProductionErrorReporting {
+  private config: ErrorReportingConfig = {
+    enabled: import.meta.env.PROD, // Только в продакшене
+    maxReportsPerSession: 50,
+    batchSize: 10,
+    flushInterval: 30000, // 30 секунд
+    endpoint: '/functions/v1/error-reports'
+  };
+
+  private errorQueue: ErrorReport[] = [];
+  private sessionErrorCount = 0;
+  private sessionId = this.generateSessionId();
+  private flushTimer?: number;
+  private isFlushingr = false;
+
+  constructor() {
+    if (this.config.enabled) {
+      this.setupErrorListeners();
+      this.startBatchFlush();
+      console.log('🔍 Production error reporting initialized');
+    }
+  }
+
+  private generateSessionId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  private setupErrorListeners() {
+    // Глобальные JavaScript ошибки
+    window.addEventListener('error', (event) => {
+      this.reportError({
+        message: event.message || 'Unknown error',
+        stack: event.error?.stack,
+        severity: 'high',
+        context: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          type: 'javascript_error'
+        }
+      });
+    });
+
+    // Необработанные promise rejections
+    window.addEventListener('unhandledrejection', (event) => {
+      const reason = event.reason;
+      this.reportError({
+        message: `Unhandled Promise Rejection: ${reason?.message || reason}`,
+        stack: reason?.stack,
+        severity: 'high',
+        context: {
+          type: 'unhandled_promise_rejection',
+          reason: String(reason)
+        }
+      });
+    });
+
+    // Кастомные критические ошибки
+    window.addEventListener('critical-error', ((event: CustomEvent) => {
+      const { message, stack, context } = event.detail;
+      this.reportError({
+        message,
+        stack,
+        severity: 'critical',
+        context: {
+          ...context,
+          type: 'custom_critical_error'
+        }
+      });
+    }) as EventListener);
+  }
+
+  private startBatchFlush() {
+    this.flushTimer = window.setInterval(() => {
+      this.flushErrors();
+    }, this.config.flushInterval);
+  }
+
+  public reportError(options: {
+    message: string;
+    stack?: string;
+    severity?: 'low' | 'medium' | 'high' | 'critical';
+    context?: Record<string, any>;
+    userId?: string;
+  }) {
+    if (!this.config.enabled || this.sessionErrorCount >= this.config.maxReportsPerSession) {
+      return;
+    }
+
+    // Фильтруем известные неопасные ошибки
+    if (this.shouldIgnoreError(options.message)) {
+      return;
+    }
+
+    const report: ErrorReport = {
+      message: options.message,
+      stack: options.stack,
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      timestamp: Date.now(),
+      userId: options.userId,
+      sessionId: this.sessionId,
+      severity: options.severity || 'medium',
+      context: options.context,
+    };
+
+    this.errorQueue.push(report);
+    this.sessionErrorCount++;
+
+    // Немедленная отправка критических ошибок
+    if (report.severity === 'critical') {
+      this.flushErrors();
+    }
+  }
+
+  private shouldIgnoreError(message: string): boolean {
+    const ignoredPatterns = [
+      'ResizeObserver loop limit exceeded',
+      'Non-Error promise rejection captured',
+      'Script error.',
+      'Network request failed', // Игнорируем сетевые ошибки
+      'Loading chunk', // Игнорируем ошибки загрузки чанков (обрабатываются отдельно)
+    ];
+
+    return ignoredPatterns.some(pattern => 
+      message.toLowerCase().includes(pattern.toLowerCase())
+    );
+  }
+
+  private async flushErrors() {
+    if (this.errorQueue.length === 0 || this.isFlushingr) return;
+
+    this.isFlushingr = true;
+    const batch = this.errorQueue.splice(0, this.config.batchSize);
+    
+    try {
+      await this.sendErrorBatch(batch);
+    } catch (error) {
+      console.warn('Failed to send error reports:', error);
+      // Возвращаем ошибки в очередь для повторной попытки
+      this.errorQueue.unshift(...batch);
+    } finally {
+      this.isFlushingr = false;
+    }
+  }
+
+  private async sendErrorBatch(errors: ErrorReport[]) {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error('Supabase configuration missing');
+    }
+
+    const endpoint = `${supabaseUrl}${this.config.endpoint}`;
+    
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
+      body: JSON.stringify({
+        errors,
+        clientInfo: {
+          userAgent: navigator.userAgent,
+          timestamp: Date.now(),
+          sessionId: this.sessionId
+        }
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error reporting failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('📊 Error reports sent:', result);
+  }
+
+  public getSessionStats() {
+    return {
+      sessionId: this.sessionId,
+      errorCount: this.sessionErrorCount,
+      queueLength: this.errorQueue.length,
+      enabled: this.config.enabled
+    };
+  }
+
+  public destroy() {
+    if (this.flushTimer) {
+      clearInterval(this.flushTimer);
+    }
+    this.flushErrors(); // Финальная отправка
+  }
+}
+
+// Создаем глобальный экземпляр
+export const productionErrorReporting = new ProductionErrorReporting();
+
+// Утилиты для использования в коде
+export const reportError = (error: Error | string, context?: Record<string, any>) => {
+  const message = typeof error === 'string' ? error : error.message;
+  const stack = typeof error === 'object' ? error.stack : undefined;
+  
+  productionErrorReporting.reportError({
+    message,
+    stack,
+    severity: 'medium',
+    context,
+  });
+};
+
+export const reportCriticalError = (error: Error | string, context?: Record<string, any>) => {
+  const message = typeof error === 'string' ? error : error.message;
+  const stack = typeof error === 'object' ? error.stack : undefined;
+  
+  productionErrorReporting.reportError({
+    message,
+    stack,
+    severity: 'critical',
+    context,
+  });
+};
+
+// Очистка при выгрузке страницы
+window.addEventListener('beforeunload', () => {
+  productionErrorReporting.destroy();
+});
