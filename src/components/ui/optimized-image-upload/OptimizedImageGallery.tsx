@@ -1,7 +1,8 @@
 
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Star, StarOff, X, Loader2, CheckCircle } from 'lucide-react';
+import { Star, StarOff, X, Loader2, CheckCircle, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UploadItem {
@@ -22,6 +23,7 @@ interface OptimizedImageGalleryProps {
   onSetPrimary?: (url: string) => void;
   onDelete?: (url: string) => void;
   disabled?: boolean;
+  deletingImage?: string | null; // Add this prop to track which image is being deleted
 }
 
 const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
@@ -30,7 +32,8 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
   primaryImage,
   onSetPrimary,
   onDelete,
-  disabled = false
+  disabled = false,
+  deletingImage = null
 }) => {
   // Filter out upload queue items that have been successfully uploaded and are already in images array
   const activeUploadQueue = uploadQueue.filter(item => {
@@ -85,13 +88,17 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
         {allImages.map((imageData, index) => {
           const { url, isUploaded, uploadItem } = imageData;
           const isCurrentlyUploading = !isUploaded && uploadItem;
+          const isBeingDeleted = deletingImage === url;
           
           return (
             <div key={`${url}-${index}`} className="relative aspect-square group">
               <img
                 src={url}
                 alt={`Upload ${index + 1}`}
-                className="w-full h-full object-cover rounded-lg border"
+                className={cn(
+                  "w-full h-full object-cover rounded-lg border",
+                  isBeingDeleted && "opacity-50"
+                )}
                 loading="lazy"
               />
               
@@ -105,8 +112,16 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
                 </div>
               )}
 
-              {/* Success badge for uploaded images */}
-              {isUploaded && (
+              {/* Deleted status for images being deleted */}
+              {isBeingDeleted && (
+                <div className="absolute top-2 left-2 bg-red-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
+                  <Trash2 className="h-4 w-4 text-white" />
+                  <span className="text-xs text-white font-medium">Удалено</span>
+                </div>
+              )}
+
+              {/* Success badge for uploaded images (only if not being deleted) */}
+              {isUploaded && !isBeingDeleted && (
                 <div className="absolute top-2 left-2 bg-green-500 bg-opacity-90 rounded-md px-2 py-1 flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-white" />
                   <span className="text-xs text-white font-medium">Загружено</span>
@@ -123,48 +138,50 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
               )}
               
               {/* Primary badge */}
-              {primaryImage === url && isUploaded && (
+              {primaryImage === url && isUploaded && !isBeingDeleted && (
                 <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded">
                   Главное
                 </div>
               )}
               
               {/* Controls - show for uploaded images and conditionally for uploading */}
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {/* Primary button - only for uploaded images */}
-                {isUploaded && onSetPrimary && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={primaryImage === url ? "default" : "secondary"}
-                    onClick={() => onSetPrimary(url)}
-                    className="h-6 w-6 p-0"
-                    disabled={disabled}
-                    title={primaryImage === url ? "Главное фото" : "Сделать главным"}
-                  >
-                    {primaryImage === url ? (
-                      <Star className="h-3 w-3" />
-                    ) : (
-                      <StarOff className="h-3 w-3" />
-                    )}
-                  </Button>
-                )}
-                
-                {/* Delete button - show for uploaded images */}
-                {isUploaded && onDelete && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => onDelete(url)}
-                    className="h-6 w-6 p-0"
-                    disabled={disabled}
-                    title="Удалить фото"
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
+              {!isBeingDeleted && (
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Primary button - only for uploaded images */}
+                  {isUploaded && onSetPrimary && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={primaryImage === url ? "default" : "secondary"}
+                      onClick={() => onSetPrimary(url)}
+                      className="h-6 w-6 p-0"
+                      disabled={disabled}
+                      title={primaryImage === url ? "Главное фото" : "Сделать главным"}
+                    >
+                      {primaryImage === url ? (
+                        <Star className="h-3 w-3" />
+                      ) : (
+                        <StarOff className="h-3 w-3" />
+                      )}
+                    </Button>
+                  )}
+                  
+                  {/* Delete button - show for uploaded images */}
+                  {isUploaded && onDelete && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDelete(url)}
+                      className="h-6 w-6 p-0"
+                      disabled={disabled}
+                      title="Удалить фото"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -174,3 +191,4 @@ const OptimizedImageGallery: React.FC<OptimizedImageGalleryProps> = ({
 };
 
 export default OptimizedImageGallery;
+

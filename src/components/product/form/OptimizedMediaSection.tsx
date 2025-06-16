@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -32,6 +31,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 }) => {
   const { uploadFiles, uploadQueue, isUploading, cancelUpload, clearQueue } = useOptimizedImageUpload();
   const [fileInputKey, setFileInputKey] = useState(0);
+  const [deletingImage, setDeletingImage] = useState<string | null>(null);
 
   const totalMediaCount = imageUrls.length + videoUrls.length;
 
@@ -84,6 +84,17 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     // Reset file input
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
+
+  const handleImageDelete = async (url: string) => {
+    if (!onImageDelete) return;
+    
+    setDeletingImage(url);
+    try {
+      await onImageDelete(url);
+    } finally {
+      setDeletingImage(null);
+    }
+  };
 
   const handleVideoUpload = (urls: string[]) => {
     setVideoUrls(prevUrls => [...prevUrls, ...urls]);
@@ -164,7 +175,8 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         uploadQueue={uploadQueue}
         primaryImage={primaryImage}
         onSetPrimary={onSetPrimaryImage}
-        onDelete={onImageDelete}
+        onDelete={handleImageDelete}
+        deletingImage={deletingImage}
         disabled={disabled}
       />
 
