@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -129,6 +130,33 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [creationStage, setCreationStage] = useState('');
   const [creationProgress, setCreationProgress] = useState(0);
+
+  // Parse title for brand and model
+  const parseTitleForBrand = useCallback((title: string) => {
+    if (!title || brands.length === 0) {
+      return { brand: '', model: '' };
+    }
+
+    const lowerTitle = title.toLowerCase();
+    const sortedBrands = [...brands].sort((a, b) => b.name.length - a.name.length);
+
+    for (const brand of sortedBrands) {
+      const brandNameLower = brand.name.toLowerCase();
+      if (lowerTitle.includes(brandNameLower)) {
+        const relevantModels = brandModels.filter(model => model.brand_id === brand.id);
+        const sortedModels = [...relevantModels].sort((a, b) => b.name.length - a.name.length);
+        
+        for (const model of sortedModels) {
+          const modelNameLower = model.name.toLowerCase();
+          if (lowerTitle.includes(modelNameLower)) {
+            return { brand: brand.name, model: model.name };
+          }
+        }
+        return { brand: brand.name, model: '' };
+      }
+    }
+    return { brand: '', model: '' };
+  }, [brands, brandModels]);
 
   // Initialize component with timeout protection
   useEffect(() => {
