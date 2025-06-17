@@ -8,6 +8,7 @@ import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
 import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileFormSection } from './MobileFormSection';
+import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 
 interface CreatedOrderViewProps {
   order: any;
@@ -15,13 +16,15 @@ interface CreatedOrderViewProps {
   videos?: string[];
   onNewOrder: () => void;
   onOrderUpdate?: (order: any) => void;
+  buyerProfile?: any; // Добавляем профиль покупателя
 }
 
 export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   order,
   images,
   videos = [],
-  onNewOrder
+  onNewOrder,
+  buyerProfile
 }) => {
   const isMobile = useIsMobile();
 
@@ -34,6 +37,24 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       minute: '2-digit'
     });
   };
+
+  // Функция для получения отображаемой информации о покупателе
+  const getBuyerDisplayInfo = () => {
+    if (buyerProfile) {
+      return {
+        name: buyerProfile.full_name || 'Не указано',
+        optId: buyerProfile.opt_id || 'Не указан'
+      };
+    }
+    
+    // Fallback к данным из заказа
+    return {
+      name: order.buyer_opt_id || 'Не указано',
+      optId: order.buyer_opt_id || 'Не указан'
+    };
+  };
+
+  const buyerInfo = getBuyerDisplayInfo();
 
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
@@ -87,9 +108,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
             )}
             <div>
               <div className="text-sm text-muted-foreground">Статус</div>
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                {order.status}
-              </Badge>
+              <EnhancedOrderStatusBadge status={order.status} size="md" />
             </div>
           </div>
         </MobileFormSection>
@@ -128,10 +147,18 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-sm text-muted-foreground mb-1">Продавец</div>
               <div className="font-medium">{order.order_seller_name || 'Не указан'}</div>
+              {order.seller_opt_id && (
+                <div className="text-sm text-muted-foreground font-mono">
+                  OPT_ID: {order.seller_opt_id}
+                </div>
+              )}
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-sm text-muted-foreground mb-1">Покупатель</div>
-              <div className="font-medium">ID: {order.buyer_id}</div>
+              <div className="font-medium">{buyerInfo.name}</div>
+              <div className="text-sm text-muted-foreground font-mono">
+                OPT_ID: {buyerInfo.optId}
+              </div>
             </div>
           </div>
         </MobileFormSection>

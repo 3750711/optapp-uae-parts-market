@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -176,6 +175,7 @@ const SellerCreateOrder = () => {
           videos={videos}
           onNewOrder={resetForm}
           onOrderUpdate={handleOrderUpdate}
+          buyerProfile={getBuyerProfile()}
         />
       </Layout>
     );

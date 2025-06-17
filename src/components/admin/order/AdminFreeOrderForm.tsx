@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
@@ -170,6 +169,7 @@ export const AdminFreeOrderForm = () => {
         videos={videos}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
+        buyerProfile={getBuyerProfile()}
       />
     );
   }
