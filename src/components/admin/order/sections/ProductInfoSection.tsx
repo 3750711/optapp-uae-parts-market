@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Package } from "lucide-react";
-import { SellerProfile } from "../types";
+import { SellerProfile } from "@/types/order";
 
 interface ProductInfoSectionProps {
   title: string;

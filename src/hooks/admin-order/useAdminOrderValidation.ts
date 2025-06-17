@@ -42,24 +42,39 @@ export const useAdminOrderValidation = () => {
     }
   }, []);
 
-  const getSellerName = useCallback(async (sellerId: string): Promise<string> => {
+  const validateSeller = useCallback(async (sellerId: string): Promise<{ isValid: boolean; name: string }> => {
     try {
+      console.log('🔍 Validating seller with ID:', sellerId);
+      
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('id, full_name, user_type')
         .eq('id', sellerId)
+        .eq('user_type', 'seller')
         .maybeSingle();
 
-      if (error || !data) {
-        return 'Unknown Seller';
+      if (error) {
+        console.error('❌ Error validating seller:', error);
+        return { isValid: false, name: 'Unknown Seller' };
       }
 
-      return data.full_name || 'Unknown Seller';
+      if (!data) {
+        console.log('⚠️ Seller not found or not a seller:', sellerId);
+        return { isValid: false, name: 'Unknown Seller' };
+      }
+
+      console.log('✅ Seller validated:', data);
+      return { isValid: true, name: data.full_name || 'Unknown Seller' };
     } catch (error) {
-      console.error('Error getting seller name:', error);
-      return 'Unknown Seller';
+      console.error('❌ Exception in validateSeller:', error);
+      return { isValid: false, name: 'Unknown Seller' };
     }
   }, []);
+
+  const getSellerName = useCallback(async (sellerId: string): Promise<string> => {
+    const validation = await validateSeller(sellerId);
+    return validation.name;
+  }, [validateSeller]);
 
   const validateForm = useCallback(async (formData: OrderFormData): Promise<{ errors: ValidationError[], buyer: BuyerProfile | null }> => {
     const errors: ValidationError[] = [];
@@ -92,9 +107,9 @@ export const useAdminOrderValidation = () => {
 
     // Validate seller if specified
     if (formData.sellerId) {
-      const sellerName = await getSellerName(formData.sellerId);
-      if (sellerName === 'Unknown Seller') {
-        errors.push({ field: 'sellerId', message: 'Выбранный продавец не найден' });
+      const sellerValidation = await validateSeller(formData.sellerId);
+      if (!sellerValidation.isValid) {
+        errors.push({ field: 'sellerId', message: 'Выбранный продавец не найден или не является продавцом' });
       }
     }
 
@@ -107,11 +122,12 @@ export const useAdminOrderValidation = () => {
     console.log('✅ Validation completed:', { errorsCount: errors.length, buyerFound: !!buyer });
     
     return { errors, buyer };
-  }, [findBuyerByOptId, getSellerName]);
+  }, [findBuyerByOptId, validateSeller]);
 
   return {
     validateForm,
     findBuyerByOptId,
-    getSellerName
+    getSellerName,
+    validateSeller
   };
 };
