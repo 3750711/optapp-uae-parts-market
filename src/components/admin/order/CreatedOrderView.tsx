@@ -54,8 +54,6 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
     };
   };
 
-  const buyerInfo = getBuyerDisplayInfo();
-
   const handleConfirmationUploadComplete = () => {
     setShowConfirmationUpload(false);
   };
@@ -69,6 +67,20 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
     if (!order.order_number) return 'Не указан';
     return order.order_number.toString().toUpperCase();
   };
+
+  // Функция для отображения бренда с fallback
+  const getBrandDisplay = () => {
+    if (!order.brand || order.brand.trim() === '') return 'Не указан';
+    return order.brand;
+  };
+
+  // Функция для отображения модели с fallback
+  const getModelDisplay = () => {
+    if (!order.model || order.model.trim() === '') return 'Не указана';
+    return order.model;
+  };
+
+  const buyerInfo = getBuyerDisplayInfo();
 
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
@@ -140,18 +152,14 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
               <div className="text-sm text-muted-foreground">Наименование</div>
               <div className="font-medium">{order.title}</div>
             </div>
-            {order.brand && (
-              <div>
-                <div className="text-sm text-muted-foreground">Бренд</div>
-                <div className="font-medium">{order.brand}</div>
-              </div>
-            )}
-            {order.model && (
-              <div>
-                <div className="text-sm text-muted-foreground">Модель</div>
-                <div className="font-medium">{order.model}</div>
-              </div>
-            )}
+            <div>
+              <div className="text-sm text-muted-foreground">Бренд</div>
+              <div className="font-medium">{getBrandDisplay()}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Модель</div>
+              <div className="font-medium">{getModelDisplay()}</div>
+            </div>
             <div>
               <div className="text-sm text-muted-foreground">Статус</div>
               <EnhancedOrderStatusBadge status={order.status} size="md" />

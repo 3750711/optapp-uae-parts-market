@@ -26,6 +26,8 @@ AS $$
 DECLARE
   created_order_id UUID;
   next_order_number INTEGER;
+  sanitized_brand TEXT;
+  sanitized_model TEXT;
 BEGIN
   -- Verify the current user is an admin
   IF NOT EXISTS (
@@ -35,6 +37,10 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Only administrators can use this function';
   END IF;
+
+  -- Санитизация полей brand и model: конвертируем null в пустые строки
+  sanitized_brand := COALESCE(NULLIF(TRIM(p_brand), ''), '');
+  sanitized_model := COALESCE(NULLIF(TRIM(p_model), ''), '');
 
   -- Получаем следующий номер заказа (максимальный + 1)
   SELECT get_next_order_number() INTO next_order_number;
@@ -68,8 +74,8 @@ BEGIN
     p_order_seller_name,
     p_seller_opt_id,
     p_buyer_id,
-    p_brand,
-    p_model,
+    sanitized_brand,
+    sanitized_model,
     p_status,
     p_order_created_type,
     p_telegram_url_order,

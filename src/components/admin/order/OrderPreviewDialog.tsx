@@ -57,6 +57,18 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
     }
   };
 
+  // Функция для отображения бренда с fallback
+  const getBrandDisplay = () => {
+    if (!formData.brand || formData.brand.trim() === '') return 'Не указан';
+    return formData.brand;
+  };
+
+  // Функция для отображения модели с fallback
+  const getModelDisplay = () => {
+    if (!formData.model || formData.model.trim() === '') return 'Не указана';
+    return formData.model;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={`${isMobile ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-hidden`}>
@@ -89,18 +101,14 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
                 <div className="text-sm text-muted-foreground">Продавец</div>
                 <div className="font-medium">{selectedSeller?.full_name || 'Не указано'}</div>
               </div>
-              {formData.brand && (
-                <div>
-                  <div className="text-sm text-muted-foreground">Бренд</div>
-                  <div className="font-medium">{formData.brand}</div>
-                </div>
-              )}
-              {formData.model && (
-                <div>
-                  <div className="text-sm text-muted-foreground">Модель</div>
-                  <div className="font-medium">{formData.model}</div>
-                </div>
-              )}
+              <div>
+                <div className="text-sm text-muted-foreground">Бренд</div>
+                <div className="font-medium">{getBrandDisplay()}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Модель</div>
+                <div className="font-medium">{getModelDisplay()}</div>
+              </div>
               {formData.deliveryMethod && (
                 <div>
                   <div className="text-sm text-muted-foreground">Метод доставки</div>

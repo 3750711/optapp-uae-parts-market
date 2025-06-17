@@ -106,6 +106,17 @@ export const useAdminOrderSubmission = () => {
     }
   }, []);
 
+  // Функция для очистки данных заказа от null значений
+  const sanitizeOrderData = useCallback((data: any) => {
+    return {
+      ...data,
+      brand: data.brand || '', // Конвертируем null в пустую строку
+      model: data.model || '', // Конвертируем null в пустую строку
+      text_order: data.text_order || null,
+      delivery_price: data.delivery_price || null,
+    };
+  }, []);
+
   const fetchBuyerByOptId = useCallback(async (optId: string) => {
     setStage('fetching_buyer', 20);
     
@@ -130,25 +141,28 @@ export const useAdminOrderSubmission = () => {
   const createOrder = useCallback(async (orderData: any) => {
     setStage('creating_order', 40);
 
+    // Очищаем данные от null значений
+    const sanitizedData = sanitizeOrderData(orderData);
+
     const { data: order, error } = await supabase
       .rpc('admin_create_order', {
-        p_title: orderData.title,
-        p_price: parseFloat(orderData.price),
-        p_place_number: parseInt(orderData.place_number) || 1,
-        p_seller_id: orderData.seller_id,
-        p_order_seller_name: orderData.order_seller_name,
-        p_seller_opt_id: orderData.seller_opt_id,
-        p_buyer_id: orderData.buyer_id,
-        p_brand: orderData.brand || null,
-        p_model: orderData.model || null,
+        p_title: sanitizedData.title,
+        p_price: parseFloat(sanitizedData.price),
+        p_place_number: parseInt(sanitizedData.place_number) || 1,
+        p_seller_id: sanitizedData.seller_id,
+        p_order_seller_name: sanitizedData.order_seller_name,
+        p_seller_opt_id: sanitizedData.seller_opt_id,
+        p_buyer_id: sanitizedData.buyer_id,
+        p_brand: sanitizedData.brand, // Теперь всегда строка (пустая или с значением)
+        p_model: sanitizedData.model, // Теперь всегда строка (пустая или с значением)
         p_status: 'created',
         p_order_created_type: 'free_order',
-        p_telegram_url_order: orderData.telegram_url_order || null,
-        p_images: orderData.images || [],
+        p_telegram_url_order: sanitizedData.telegram_url_order || null,
+        p_images: sanitizedData.images || [],
         p_product_id: null,
-        p_delivery_method: orderData.delivery_method || 'cargo_rf',
-        p_text_order: orderData.text_order || null,
-        p_delivery_price_confirm: orderData.delivery_price ? parseFloat(orderData.delivery_price) : null
+        p_delivery_method: sanitizedData.delivery_method || 'cargo_rf',
+        p_text_order: sanitizedData.text_order || null,
+        p_delivery_price_confirm: sanitizedData.delivery_price ? parseFloat(sanitizedData.delivery_price) : null
       });
 
     if (error) {
@@ -156,7 +170,7 @@ export const useAdminOrderSubmission = () => {
     }
 
     return order;
-  }, [setStage]);
+  }, [setStage, sanitizeOrderData]);
 
   const fetchCreatedOrder = useCallback(async (orderId: string) => {
     setStage('fetching_order', 60);
@@ -222,8 +236,8 @@ export const useAdminOrderSubmission = () => {
           order_seller_name: '', // Will be set by trigger
           seller_opt_id: '', // Will be set by trigger
           buyer_id: buyer.id,
-          brand: formData.brand || null,
-          model: formData.model || null,
+          brand: formData.brand || '', // Конвертируем null в пустую строку
+          model: formData.model || '', // Конвертируем null в пустую строку
           delivery_method: formData.deliveryMethod || 'cargo_rf',
           text_order: formData.text_order || null,
           delivery_price: formData.delivery_price || null,
