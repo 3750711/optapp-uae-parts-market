@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -76,7 +75,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const [initializationProgress, setInitializationProgress] = useState(0);
   const [forceCompleted, setForceCompleted] = useState(false);
 
-  // Form data state
+  // Form data state with default values
   const [formData, setFormData] = useState<OrderFormData>({
     title: '',
     price: '',
@@ -86,8 +85,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     brandId: '',
     modelId: '',
     sellerId: '',
-    deliveryMethod: 'self_pickup' as const,
-    place_number: '',
+    deliveryMethod: 'cargo_rf' as const, // Default to Cargo РФ
+    place_number: '1',
     text_order: '',
     delivery_price: ''
   });
@@ -136,6 +135,86 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const [createdOrder, setCreatedOrder] = useState<any>(null);
   const [creationStage, setCreationStage] = useState('');
   const [creationProgress, setCreationProgress] = useState(0);
+
+  // Function to find buyer by opt_id
+  const findBuyerByOptId = useCallback(async (optId: string) => {
+    console.log('🔍 Searching for buyer with opt_id:', optId);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, opt_id, telegram')
+        .eq('user_type', 'buyer')
+        .eq('opt_id', optId)
+        .single();
+
+      if (error) {
+        console.error('❌ Error finding buyer:', error);
+        return null;
+      }
+
+      console.log('✅ Found buyer:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Exception in findBuyerByOptId:', error);
+      return null;
+    }
+  }, []);
+
+  // Function to get seller name
+  const getSellerName = useCallback(async (sellerId: string) => {
+    console.log('🔍 Getting seller name for ID:', sellerId);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', sellerId)
+        .single();
+
+      if (error) {
+        console.error('❌ Error getting seller name:', error);
+        return 'Unknown Seller';
+      }
+
+      return data.full_name || 'Unknown Seller';
+    } catch (error) {
+      console.error('❌ Exception in getSellerName:', error);
+      return 'Unknown Seller';
+    }
+  }, []);
+
+  // Enhanced form validation
+  const validateForm = useCallback(async () => {
+    const errors: string[] = [];
+
+    // Required fields validation
+    if (!formData.title?.trim()) {
+      errors.push('Название заказа обязательно');
+    }
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      errors.push('Цена должна быть больше 0');
+    }
+    if (!formData.buyerOptId?.trim()) {
+      errors.push('OPT_ID покупателя обязателен');
+    }
+
+    // Validate buyer exists
+    if (formData.buyerOptId?.trim()) {
+      const buyer = await findBuyerByOptId(formData.buyerOptId.trim());
+      if (!buyer) {
+        errors.push(`Покупатель с OPT_ID "${formData.buyerOptId}" не найден`);
+      }
+    }
+
+    // Validate seller if specified
+    if (formData.sellerId) {
+      const sellerName = await getSellerName(formData.sellerId);
+      if (sellerName === 'Unknown Seller') {
+        errors.push('Выбранный продавец не найден');
+      }
+    }
+
+    return errors;
+  }, [formData, findBuyerByOptId, getSellerName]);
 
   // Parse title for brand and model
   const parseTitleForBrand = useCallback((title: string) => {
@@ -349,7 +428,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     setImages(urls);
   }, []);
 
-  // Enhanced handleSubmit with better error handling and logging
+  // Enhanced handleSubmit with validation and better error handling
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -358,84 +437,131 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
       setCreationStage('validating');
       setCreationProgress(10);
 
-      console.log('📋 Starting order creation with data:', {
-        title: formData.title,
-        price: formData.price,
-        buyerOptId: formData.buyerOptId,
-        sellerId: formData.sellerId,
-        imageCount: images.length,
-        videoCount: videos.length
-      });
+      console.log('📋 Starting order creation with form validation...');
 
       // Enhanced validation
-      if (!formData.title?.trim()) {
-        throw new Error('Название заказа обязательно');
+      const validationErrors = await validateForm();
+      if (validationErrors.length > 0) {
+        toast({
+          title: "Ошибки валидации",
+          description: validationErrors.join('. '),
+          variant: "destructive"
+        });
+        return;
       }
-      if (!formData.price || parseFloat(formData.price) <= 0) {
-        throw new Error('Цена должна быть больше 0');
-      }
-      if (!formData.buyerOptId?.trim()) {
-        throw new Error('ID покупателя обязателен');
+
+      setCreationStage('fetching_buyer');
+      setCreationProgress(30);
+
+      // Find buyer by opt_id
+      const buyer = await findBuyerByOptId(formData.buyerOptId.trim());
+      if (!buyer) {
+        throw new Error(`Покупатель с OPT_ID "${formData.buyerOptId}" не найден`);
       }
 
       setCreationStage('creating_order');
       setCreationProgress(50);
 
-      // Create order logic with enhanced data
+      // Get seller name
+      const sellerIdToUse = formData.sellerId || user?.id;
+      const sellerName = sellerIdToUse ? await getSellerName(sellerIdToUse) : 'Unknown Seller';
+
+      // Create order with all required fields
       const orderData = {
         title: formData.title.trim(),
         price: parseFloat(formData.price),
-        buyer_opt_id: formData.buyerOptId.trim(),
+        buyer_id: buyer.id,
+        buyer_opt_id: buyer.opt_id,
+        seller_id: sellerIdToUse,
+        order_seller_name: sellerName,
         brand: formData.brand?.trim() || '',
         model: formData.model?.trim() || '',
-        seller_id: formData.sellerId || user?.id,
-        delivery_method: formData.deliveryMethod,
+        delivery_method: formData.deliveryMethod || 'cargo_rf',
         place_number: parseInt(formData.place_number) || 1,
         text_order: formData.text_order?.trim() || '',
         delivery_price: parseFloat(formData.delivery_price) || 0,
+        quantity: 1, // Default quantity
         images,
         video_url: videos,
         created_by: user?.id,
         // Enhanced metadata
         order_created_type: 'free' as const,
-        status: 'pending' as const
+        status: 'pending' as const,
+        telegram_url_buyer: buyer.telegram || '',
+        telegram_url_order: ''
       };
 
-      console.log('💾 Inserting order into database:', orderData);
+      console.log('💾 Creating order with complete data:', orderData);
 
-      const { data: order, error } = await supabase
-        .from('orders')
-        .insert([orderData])
-        .select()
-        .single();
+      // Use the admin function for creating orders
+      const { data: order, error } = await supabase.rpc('admin_create_order', {
+        p_title: orderData.title,
+        p_price: orderData.price,
+        p_place_number: orderData.place_number,
+        p_seller_id: orderData.seller_id,
+        p_order_seller_name: orderData.order_seller_name,
+        p_seller_opt_id: '', // Will be filled by trigger
+        p_buyer_id: orderData.buyer_id,
+        p_brand: orderData.brand,
+        p_model: orderData.model,
+        p_status: 'pending',
+        p_order_created_type: 'free',
+        p_telegram_url_order: orderData.telegram_url_order,
+        p_images: orderData.images,
+        p_product_id: null,
+        p_delivery_method: orderData.delivery_method,
+        p_text_order: orderData.text_order,
+        p_delivery_price_confirm: orderData.delivery_price
+      });
 
       if (error) {
         console.error('❌ Database error:', error);
-        throw error;
+        throw new Error(`Ошибка базы данных: ${error.message}`);
+      }
+
+      setCreationStage('fetching_order');
+      setCreationProgress(80);
+
+      // Fetch the created order
+      const { data: fetchedOrder, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', order)
+        .single();
+
+      if (fetchError) {
+        console.error('❌ Error fetching created order:', fetchError);
+        throw fetchError;
       }
 
       setCreationStage('completed');
       setCreationProgress(100);
-      setCreatedOrder(order);
+      setCreatedOrder(fetchedOrder);
 
-      console.log('✅ Order created successfully:', order);
+      console.log('✅ Order created successfully:', fetchedOrder);
 
       toast({
         title: "Заказ создан",
-        description: `Заказ #${order.order_number || order.id} успешно создан в системе`,
+        description: `Заказ #${fetchedOrder.order_number} успешно создан в системе`,
       });
 
     } catch (error) {
       console.error('💥 Order creation error:', error);
+      
+      let errorMessage = "Произошла неожиданная ошибка";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Ошибка создания заказа",
-        description: error instanceof Error ? error.message : "Произошла неожиданная ошибка",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setIsLoading(false);
     }
-  }, [formData, images, videos, user?.id, toast]);
+  }, [formData, images, videos, user?.id, toast, validateForm, findBuyerByOptId, getSellerName]);
 
   const handleOrderUpdate = useCallback((order: any) => {
     setCreatedOrder(order);
@@ -451,8 +577,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
       brandId: '',
       modelId: '',
       sellerId: '',
-      deliveryMethod: 'self_pickup' as const,
-      place_number: '',
+      deliveryMethod: 'cargo_rf' as const,
+      place_number: '1',
       text_order: '',
       delivery_price: ''
     });

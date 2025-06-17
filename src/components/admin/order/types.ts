@@ -1,42 +1,40 @@
 
-import { Database } from "@/integrations/supabase/types";
-
-export type OrderCreatedType = Database["public"]["Enums"]["order_created_type"];
-export type OrderStatus = Database["public"]["Enums"]["order_status"];
-export type DeliveryMethod = Database["public"]["Enums"]["delivery_method"];
-
-export type ProfileShort = {
-  id: string;
-  opt_id: string;
-  full_name?: string | null;
-};
-
-export type SellerProfile = {
-  id: string;
-  full_name?: string | null;
-  opt_id?: string | null;
-  telegram?: string | null;
-};
-
 export interface OrderFormData {
   title: string;
   price: string;
   buyerOptId: string;
   brand: string;
   model: string;
-  brandId: string;  // New field for brand ID
-  modelId: string;  // New field for model ID
+  brandId: string;
+  modelId: string;
   sellerId: string;
-  deliveryMethod: DeliveryMethod;
+  deliveryMethod: 'self_pickup' | 'delivery' | 'cargo_rf';
   place_number: string;
   text_order: string;
   delivery_price: string;
 }
 
-export interface CreatedOrderProps {
-  order: any;
-  images: string[];
-  onBack: () => void;
-  onNewOrder: () => void;
-  onOrderUpdate: (updatedOrder: any) => void;
+export interface ProfileShort {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+export interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+export interface BrandData {
+  id: string;
+  name: string;
+}
+
+export interface ModelData {
+  id: string;
+  name: string;
+  brand_id: string;
 }
