@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, SkipForward, Check, AlertCircle, Video } from "lucide-react";
@@ -15,6 +16,7 @@ import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImage
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ConfirmationImagesUploadDialogProps {
   open: boolean;
@@ -35,32 +37,89 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   const [confirmVideos, setConfirmVideos] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const { user, isAdmin } = useAuth();
 
   const handleImagesUpload = async (urls: string[]) => {
-    console.log("Confirmation images uploaded:", urls);
+    console.log("🔍 [ConfirmationUpload] Images uploaded:", {
+      urls,
+      orderId,
+      userId: user?.id,
+      isAdmin,
+      authStatus: !!user
+    });
     setConfirmImages(prev => [...prev, ...urls]);
     setUploadError(null);
   };
 
   const handleVideosUpload = async (urls: string[]) => {
-    console.log("Confirmation videos uploaded:", urls);
+    console.log("🔍 [ConfirmationUpload] Videos uploaded:", {
+      urls,
+      orderId,
+      userId: user?.id,
+      isAdmin,
+      authStatus: !!user
+    });
     setConfirmVideos(prev => [...prev, ...urls]);
     setUploadError(null);
   };
 
   const handleVideoDelete = (urlToDelete: string) => {
-    console.log("Deleting confirmation video:", urlToDelete);
+    console.log("🔍 [ConfirmationUpload] Deleting video:", urlToDelete);
     setConfirmVideos(prev => prev.filter(url => url !== urlToDelete));
   };
 
   const handleUploadError = (error: string) => {
-    console.error("Upload error:", error);
+    console.error("❌ [ConfirmationUpload] Upload error:", error);
     setUploadError(error);
     toast({
       title: "Ошибка загрузки",
       description: error,
       variant: "destructive",
     });
+  };
+
+  const checkUserAccess = async () => {
+    console.log("🔍 [ConfirmationUpload] Checking user access:", {
+      userId: user?.id,
+      orderId,
+      isAdmin,
+      authStatus: !!user
+    });
+
+    if (!user?.id) {
+      throw new Error("Пользователь не аутентифицирован");
+    }
+
+    // Проверяем, что пользователь имеет доступ к заказу
+    const { data: order, error } = await supabase
+      .from('orders')
+      .select('buyer_id, seller_id, order_number')
+      .eq('id', orderId)
+      .single();
+
+    if (error) {
+      console.error("❌ [ConfirmationUpload] Error fetching order:", error);
+      throw new Error(`Ошибка получения заказа: ${error.message}`);
+    }
+
+    if (!order) {
+      throw new Error("Заказ не найден");
+    }
+
+    console.log("✅ [ConfirmationUpload] Order data:", {
+      orderNumber: order.order_number,
+      buyerId: order.buyer_id,
+      sellerId: order.seller_id,
+      currentUserId: user.id,
+      isOrderParticipant: order.buyer_id === user.id || order.seller_id === user.id
+    });
+
+    // Проверяем права доступа
+    if (!isAdmin && order.buyer_id !== user.id && order.seller_id !== user.id) {
+      throw new Error("У вас нет прав для загрузки файлов к этому заказу");
+    }
+
+    return order;
   };
 
   const handleSaveMedia = async () => {
@@ -77,6 +136,17 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
     setUploadError(null);
 
     try {
+      // Проверяем права доступа
+      const order = await checkUserAccess();
+
+      console.log("🔍 [ConfirmationUpload] Starting media save:", {
+        orderId,
+        userId: user?.id,
+        imagesCount: confirmImages.length,
+        videosCount: confirmVideos.length,
+        orderNumber: order.order_number
+      });
+
       // Сохраняем фотографии подтверждения в базу данных
       if (confirmImages.length > 0) {
         const confirmImagesData = confirmImages.map(url => ({
@@ -84,18 +154,24 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           url: url
         }));
 
+        console.log("🔍 [ConfirmationUpload] Saving images:", confirmImagesData);
+
         const { error: imagesError } = await supabase
           .from('confirm_images')
           .insert(confirmImagesData);
 
         if (imagesError) {
-          console.error("Error saving confirmation images:", imagesError);
-          throw imagesError;
+          console.error("❌ [ConfirmationUpload] Error saving images:", imagesError);
+          throw new Error(`Ошибка сохранения фотографий: ${imagesError.message}`);
         }
+
+        console.log("✅ [ConfirmationUpload] Images saved successfully");
       }
 
       // Сохраняем видео подтверждения в заказ
       if (confirmVideos.length > 0) {
+        console.log("🔍 [ConfirmationUpload] Saving videos:", confirmVideos);
+
         // Получаем текущие видео из заказа
         const { data: currentOrder, error: fetchError } = await supabase
           .from('orders')
@@ -103,10 +179,19 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           .eq('id', orderId)
           .single();
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+          console.error("❌ [ConfirmationUpload] Error fetching current videos:", fetchError);
+          throw new Error(`Ошибка получения текущих видео: ${fetchError.message}`);
+        }
 
         const currentVideos = currentOrder?.video_url || [];
         const updatedVideos = [...currentVideos, ...confirmVideos];
+
+        console.log("🔍 [ConfirmationUpload] Updating videos:", {
+          currentVideos,
+          newVideos: confirmVideos,
+          updatedVideos
+        });
 
         // Обновляем video_url в заказе
         const { error: videoError } = await supabase
@@ -115,12 +200,20 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           .eq('id', orderId);
 
         if (videoError) {
-          console.error("Error saving confirmation videos:", videoError);
-          throw videoError;
+          console.error("❌ [ConfirmationUpload] Error saving videos:", videoError);
+          throw new Error(`Ошибка сохранения видео: ${videoError.message}`);
         }
+
+        console.log("✅ [ConfirmationUpload] Videos saved successfully");
       }
 
       const totalFiles = confirmImages.length + confirmVideos.length;
+      console.log("✅ [ConfirmationUpload] All media saved successfully:", {
+        totalFiles,
+        images: confirmImages.length,
+        videos: confirmVideos.length
+      });
+
       toast({
         title: "Успешно",
         description: `Загружено ${totalFiles} файлов подтверждения (${confirmImages.length} фото, ${confirmVideos.length} видео)`,
@@ -128,7 +221,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
       onComplete();
     } catch (error) {
-      console.error("Error saving confirmation media:", error);
+      console.error("❌ [ConfirmationUpload] Save error:", error);
       const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
       setUploadError(`Не удалось сохранить файлы: ${errorMessage}`);
       
@@ -143,17 +236,26 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   };
 
   const handleImageDelete = (urlToDelete: string) => {
-    console.log("Deleting confirmation image:", urlToDelete);
+    console.log("🔍 [ConfirmationUpload] Deleting image:", urlToDelete);
     setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
   };
 
   const handleReset = () => {
+    console.log("🔍 [ConfirmationUpload] Resetting form");
     setConfirmImages([]);
     setConfirmVideos([]);
     setUploadError(null);
   };
 
   const totalFiles = confirmImages.length + confirmVideos.length;
+
+  // Проверяем права доступа при открытии диалога
+  React.useEffect(() => {
+    if (open && !user) {
+      console.error("❌ [ConfirmationUpload] Dialog opened but user not authenticated");
+      setUploadError("Необходима авторизация для загрузки файлов");
+    }
+  }, [open, user]);
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
@@ -188,6 +290,16 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
             </Alert>
           )}
 
+          {/* Отображение статуса аутентификации для отладки */}
+          {!user && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Пользователь не аутентифицирован. Необходимо войти в систему для загрузки файлов.
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Вкладки для фото и видео */}
           <Tabs defaultValue="images" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -208,6 +320,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                   maxImages={10}
                   existingImages={confirmImages}
                   onImageDelete={handleImageDelete}
+                  disabled={!user}
                 />
               </div>
             </TabsContent>
@@ -221,6 +334,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
                   maxVideos={5}
                   productId={orderId}
                   buttonText="Загрузить видео подтверждения"
+                  disabled={!user}
                 />
               </div>
             </TabsContent>
@@ -245,7 +359,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           )}
 
           {/* Подсказка для пользователя */}
-          {totalFiles === 0 && !uploadError && (
+          {totalFiles === 0 && !uploadError && user && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <div className="flex items-start gap-2 text-blue-700">
                 <Upload className="h-4 w-4 mt-0.5" />
@@ -284,7 +398,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           
           <Button
             onClick={handleSaveMedia}
-            disabled={isUploading || totalFiles === 0}
+            disabled={isUploading || totalFiles === 0 || !user}
             className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
           >
             {isUploading ? (
