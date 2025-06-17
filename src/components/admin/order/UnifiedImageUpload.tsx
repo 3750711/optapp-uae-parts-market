@@ -2,18 +2,22 @@
 import React, { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Loader2, X, Eye } from "lucide-react";
+import { Upload, Loader2, X, Eye, Compress } from "lucide-react";
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { cn } from "@/lib/utils";
+import imageCompression from 'browser-image-compression';
 
 interface UploadItem {
   id: string;
   file: File;
+  compressedFile?: File;
   progress: number;
-  status: 'pending' | 'uploading' | 'processing' | 'success' | 'error';
+  status: 'pending' | 'compressing' | 'uploading' | 'processing' | 'success' | 'error';
   error?: string;
   blobUrl?: string;
   finalUrl?: string;
+  originalSize?: number;
+  compressedSize?: number;
 }
 
 interface UnifiedImageUploadProps {
@@ -45,6 +49,84 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
     });
   }, []);
 
+  // Функция сжатия изображения с динамическими настройками
+  const compressImage = useCallback(async (file: File, itemId: string): Promise<File> => {
+    const fileSizeMB = file.size / 1024 / 1024;
+    
+    // Динамические настройки сжатия в зависимости от размера файла
+    let compressionOptions = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1200,
+      useWebWorker: true,
+      initialQuality: 0.8,
+    };
+
+    if (fileSizeMB > 10) {
+      compressionOptions = {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1000,
+        useWebWorker: true,
+        initialQuality: 0.7,
+      };
+    } else if (fileSizeMB > 5) {
+      compressionOptions = {
+        maxSizeMB: 0.9,
+        maxWidthOrHeight: 1100,
+        useWebWorker: true,
+        initialQuality: 0.75,
+      };
+    }
+
+    try {
+      console.log(`🗜️ Compressing image ${file.name}:`, {
+        originalSize: fileSizeMB.toFixed(2) + 'MB',
+        settings: compressionOptions
+      });
+
+      setUploadQueue(prev => prev.map(item => 
+        item.id === itemId 
+          ? { ...item, status: 'compressing', progress: 20 }
+          : item
+      ));
+
+      const compressedFile = await imageCompression(file, compressionOptions);
+      
+      const compressedSizeMB = compressedFile.size / 1024 / 1024;
+      const compressionRatio = Math.round((1 - compressedFile.size / file.size) * 100);
+      
+      console.log(`✅ Compression completed for ${file.name}:`, {
+        originalSize: fileSizeMB.toFixed(2) + 'MB',
+        compressedSize: compressedSizeMB.toFixed(2) + 'MB',
+        compressionRatio: compressionRatio + '%'
+      });
+
+      setUploadQueue(prev => prev.map(item => 
+        item.id === itemId 
+          ? { 
+              ...item, 
+              compressedFile,
+              compressedSize: compressedFile.size,
+              status: 'pending',
+              progress: 0
+            }
+          : item
+      ));
+
+      return compressedFile;
+    } catch (error) {
+      console.error(`❌ Compression failed for ${file.name}:`, error);
+      
+      setUploadQueue(prev => prev.map(item => 
+        item.id === itemId 
+          ? { ...item, status: 'pending', progress: 0 }
+          : item
+      ));
+
+      // Возвращаем оригинальный файл в случае ошибки сжатия
+      return file;
+    }
+  }, []);
+
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -56,13 +138,23 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       file,
       progress: 0,
       status: 'pending',
-      blobUrl: URL.createObjectURL(file)
+      blobUrl: URL.createObjectURL(file),
+      originalSize: file.size
     }));
 
     setUploadQueue(prev => [...prev, ...newItems]);
 
     try {
-      const uploadedUrls = await uploadFiles(fileArray);
+      // Этап 1: Сжатие файлов
+      const compressionPromises = newItems.map(item => 
+        compressImage(item.file, item.id)
+      );
+      
+      const compressedFiles = await Promise.all(compressionPromises);
+      
+      // Этап 2: Загрузка сжатых файлов
+      console.log('📤 Starting upload of compressed files');
+      const uploadedUrls = await uploadFiles(compressedFiles);
       
       if (uploadedUrls.length > 0) {
         onImagesUpload([...images, ...uploadedUrls]);
@@ -77,7 +169,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
     }
 
     event.target.value = '';
-  }, [uploadFiles, images, onImagesUpload, cleanupUploadItem]);
+  }, [uploadFiles, images, onImagesUpload, cleanupUploadItem, compressImage]);
 
   const handleDelete = useCallback((url: string) => {
     console.log('🗑️ Deleting image:', url);
@@ -106,12 +198,12 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       type: 'existing' as const,
       url
     })),
-    // Только активные загрузки (pending, uploading, processing, error) - НЕ success
+    // Только активные загрузки (pending, compressing, uploading, processing, error) - НЕ success
     ...uploadQueue
       .filter(item => 
         item.status !== 'success' && 
         item.blobUrl && 
-        (item.status === 'pending' || item.status === 'uploading' || item.status === 'processing' || item.status === 'error')
+        ['pending', 'compressing', 'uploading', 'processing', 'error'].includes(item.status)
       )
       .map((item) => ({
         id: item.id,
@@ -119,7 +211,9 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
         url: item.blobUrl!,
         status: item.status,
         progress: item.progress,
-        error: item.error
+        error: item.error,
+        originalSize: item.originalSize,
+        compressedSize: item.compressedSize
       }))
   ];
 
@@ -180,11 +274,26 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                       {item.status === 'error' && (
                         <Badge variant="destructive" className="text-xs">✗</Badge>
                       )}
+                      {item.status === 'compressing' && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Compress className="h-2 w-2 mr-1" />
+                          Сжатие
+                        </Badge>
+                      )}
                       {(item.status === 'pending' || item.status === 'uploading' || item.status === 'processing') && (
                         <Badge variant="secondary" className="text-xs">
                           <Loader2 className="h-2 w-2 animate-spin" />
                         </Badge>
                       )}
+                    </div>
+                  )}
+
+                  {/* Compression info */}
+                  {item.type === 'uploading' && item.originalSize && item.compressedSize && (
+                    <div className="absolute bottom-1 left-1">
+                      <Badge variant="outline" className="text-xs bg-white bg-opacity-90">
+                        {Math.round((1 - item.compressedSize / item.originalSize) * 100)}%
+                      </Badge>
                     </div>
                   )}
 
@@ -211,7 +320,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                       onClick={() => handleDelete(item.url)}
                       className="h-6 w-6 p-0"
                       title="Удалить"
-                      disabled={disabled || (item.type === 'uploading' && item.status === 'uploading')}
+                      disabled={disabled || (item.type === 'uploading' && ['compressing', 'uploading'].includes(item.status))}
                     >
                       <X className="h-3 w-3" />
                     </Button>
