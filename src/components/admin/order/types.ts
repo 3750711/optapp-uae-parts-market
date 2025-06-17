@@ -8,7 +8,7 @@ export interface OrderFormData {
   brandId: string;
   modelId: string;
   sellerId: string;
-  deliveryMethod: 'self_pickup' | 'delivery' | 'cargo_rf';
+  deliveryMethod: DeliveryMethod;
   place_number: string;
   text_order: string;
   delivery_price: string;
@@ -37,4 +37,14 @@ export interface ModelData {
   id: string;
   name: string;
   brand_id: string;
+}
+
+export type DeliveryMethod = 'self_pickup' | 'delivery' | 'cargo_rf';
+
+export interface CreatedOrderProps {
+  order: any;
+  images: string[];
+  onBack: () => void;
+  onNewOrder: () => void;
+  onOrderUpdate: (order: any) => void;
 }
