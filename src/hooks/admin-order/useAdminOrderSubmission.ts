@@ -20,6 +20,11 @@ export const useAdminOrderSubmission = () => {
 
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
 
+  // Функция для сброса состояния созданного заказа
+  const resetCreatedOrder = useCallback(() => {
+    setCreatedOrder(null);
+  }, []);
+
   const handleSubmit = useCallback(async (
     formData: OrderFormData, 
     images: string[], 
@@ -160,6 +165,7 @@ export const useAdminOrderSubmission = () => {
     ...submissionState,
     createdOrder,
     handleSubmit,
-    handleOrderUpdate
+    handleOrderUpdate,
+    resetCreatedOrder
   };
 };

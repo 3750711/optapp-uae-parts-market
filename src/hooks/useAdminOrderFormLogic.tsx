@@ -75,7 +75,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     handleModelChange: baseHandleModelChange,
     handleImageUpload,
     setAllImages,
-    resetForm
+    resetForm: baseResetForm
   } = useAdminOrderFormData();
 
   // Simplified initialization - no more enhanced states
@@ -94,7 +94,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     progress: creationProgress,
     createdOrder,
     handleSubmit: baseHandleSubmit,
-    handleOrderUpdate
+    handleOrderUpdate,
+    resetCreatedOrder
   } = useAdminOrderSubmission();
 
   // Car data
@@ -188,6 +189,12 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     e.preventDefault();
     await baseHandleSubmit(formData, images, videos);
   }, [baseHandleSubmit, formData, images, videos]);
+
+  // Enhanced reset form function that also resets created order
+  const resetForm = useCallback(() => {
+    baseResetForm();
+    resetCreatedOrder();
+  }, [baseResetForm, resetCreatedOrder]);
 
   // Find selected seller
   const selectedSeller = useMemo(() => {
