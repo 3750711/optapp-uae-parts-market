@@ -7,8 +7,7 @@ import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, Phone, Mail, MessageCircle } from 'lucide-react';
+import { Loader2, User, Package, DollarSign, MapPin, Truck, Clock, Camera, Film, Download, Calendar, Star, MessageCircle } from 'lucide-react';
 import { OrderConfirmationImages } from '@/components/order/OrderConfirmationImages';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -215,7 +214,6 @@ const OrderDetails = () => {
                 </div>
               </div>
               
-              {/* Action Buttons - Removed Share button */}
               <div className="flex items-center gap-2">
                 {isAdmin && (
                   <Button
@@ -300,7 +298,6 @@ const OrderDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Media Section */}
             {(allImages.length > 0 || allVideos.length > 0) && (
               <Card>
                 <CardContent className="p-6">
@@ -312,7 +309,6 @@ const OrderDetails = () => {
                     </Badge>
                   </div>
                   
-                  {/* Images */}
                   {allImages.length > 0 && (
                     <div className="mb-6">
                       <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
@@ -344,7 +340,6 @@ const OrderDetails = () => {
                     </div>
                   )}
 
-                  {/* Videos */}
                   {allVideos.length > 0 && (
                     <div>
                       <div className="text-sm text-muted-foreground mb-3 flex items-center gap-2">
@@ -373,9 +368,7 @@ const OrderDetails = () => {
             )}
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Participants */}
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -384,7 +377,6 @@ const OrderDetails = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Seller */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-2 h-2 rounded-full bg-blue-500"></div>
@@ -406,7 +398,6 @@ const OrderDetails = () => {
                     </div>
                   </div>
                   
-                  {/* Buyer */}
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
@@ -447,7 +438,6 @@ const OrderDetails = () => {
               </CardContent>
             </Card>
 
-            {/* Delivery Information */}
             <Card>
               <CardContent className="p-6">
                 <div className="flex items-center gap-2 mb-4">
@@ -464,7 +454,6 @@ const OrderDetails = () => {
                     </div>
                   </div>
                   
-                  {/* Container Information */}
                   {order.container_number && (
                     <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-3">
@@ -499,7 +488,6 @@ const OrderDetails = () => {
           </div>
         </div>
 
-        {/* Admin Confirmation Images Dialog */}
         {isAdmin && (
           <Dialog open={showConfirmImages} onOpenChange={setShowConfirmImages}>
             <DialogContent className="max-w-4xl">
