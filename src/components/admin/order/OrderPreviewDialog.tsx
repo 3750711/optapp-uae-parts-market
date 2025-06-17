@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, DollarSign, Truck, MapPin, Clock, Camera, User, Star, X } from 'lucide-react';
+import { Package, DollarSign, Truck, MapPin, Clock, Camera, User, Star, Edit, Check } from 'lucide-react';
 import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
 import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -18,6 +18,7 @@ interface OrderPreviewDialogProps {
   selectedSeller: any;
   buyerProfile: any;
   onConfirm: (e: React.FormEvent) => void;
+  onBack?: () => void;
   isLoading?: boolean;
 }
 
@@ -30,6 +31,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   selectedSeller,
   buyerProfile,
   onConfirm,
+  onBack,
   isLoading = false
 }) => {
   const getDeliveryMethodText = (method: string) => {
@@ -44,6 +46,14 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   const handleConfirm = (e: React.FormEvent) => {
     e.preventDefault();
     onConfirm(e);
+  };
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      onOpenChange(false);
+    }
   };
 
   const isSelfOrder = formData.sellerId === formData.buyerId;
@@ -277,12 +287,20 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         </ScrollArea>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-4 p-6 border-t bg-gray-50">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Вернуться к редактированию
+        <div className="flex justify-between p-6 border-t bg-gray-50">
+          <Button variant="outline" onClick={handleBack} disabled={isLoading}>
+            <Edit className="mr-2 h-4 w-4" />
+            Редактировать
           </Button>
-          <Button onClick={handleConfirm} disabled={isLoading}>
-            {isLoading ? 'Создание заказа...' : 'Создать заказ'}
+          <Button onClick={handleConfirm} disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+            {isLoading ? (
+              'Создание заказа...'
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Подтвердить создание
+              </>
+            )}
           </Button>
         </div>
       </DialogContent>

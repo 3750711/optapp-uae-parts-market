@@ -94,12 +94,31 @@ const SellerCreateOrder = () => {
     console.log("Product data received:", productData);
   };
 
-  // Protected form submission handler
-  const handleSubmit = (e: React.FormEvent) => {
+  // Show preview when "Create Order" is clicked
+  const handleCreateOrderClick = () => {
+    if (!canShowPreview()) {
+      toast({
+        title: "Заполните обязательные поля",
+        description: "Необходимо заполнить название, цену, продавца и покупателя",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowPreview(true);
+  };
+
+  // Confirm order creation from preview
+  const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowPreview(false);
     guardedSubmit(async () => {
       await originalHandleSubmit(e);
     });
+  };
+
+  // Go back to editing from preview
+  const handleBackToEdit = () => {
+    setShowPreview(false);
   };
 
   // Validate form for preview
@@ -172,94 +191,76 @@ const SellerCreateOrder = () => {
               </div>
             </CardHeader>
             
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-8">
-                <SellerOrderFormFields
-                  formData={formData}
-                  handleInputChange={handleInputChange}
-                  buyerProfiles={buyerProfiles}
-                  sellerProfiles={sellerProfiles}
-                  selectedSeller={selectedSeller}
-                  brands={brands}
-                  brandModels={brandModels}
-                  isLoadingCarData={isLoadingCarData}
-                  searchBrandTerm={searchBrandTerm}
-                  setSearchBrandTerm={setSearchBrandTerm}
-                  searchModelTerm={searchModelTerm}
-                  setSearchModelTerm={setSearchModelTerm}
-                  filteredBrands={filteredBrands}
-                  filteredModels={filteredModels}
-                  parseTitleForBrand={parseTitleForBrand}
-                  onImagesUpload={onImagesUpload}
-                  onDataFromProduct={handleDataFromProduct}
-                  disabled={isFormDisabled}
-                />
-                
-                <SimpleMediaSection 
-                  images={images}
-                  onImagesUpload={onImagesUpload}
-                  disabled={isFormDisabled}
-                />
-              </CardContent>
+            <CardContent className="space-y-8">
+              <SellerOrderFormFields
+                formData={formData}
+                handleInputChange={handleInputChange}
+                buyerProfiles={buyerProfiles}
+                sellerProfiles={sellerProfiles}
+                selectedSeller={selectedSeller}
+                brands={brands}
+                brandModels={brandModels}
+                isLoadingCarData={isLoadingCarData}
+                searchBrandTerm={searchBrandTerm}
+                setSearchBrandTerm={setSearchBrandTerm}
+                searchModelTerm={searchModelTerm}
+                setSearchModelTerm={setSearchModelTerm}
+                filteredBrands={filteredBrands}
+                filteredModels={filteredModels}
+                parseTitleForBrand={parseTitleForBrand}
+                onImagesUpload={onImagesUpload}
+                onDataFromProduct={handleDataFromProduct}
+                disabled={isFormDisabled}
+              />
               
-              <CardFooter>
-                <div className="flex flex-col space-y-4 w-full">
-                  {isLoading && (
-                    <div className="border rounded-md p-4 bg-gray-50 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Loader className="mr-2 h-4 w-4 animate-spin" />
-                          <span className="font-medium">{getStageMessage()}</span>
-                        </div>
-                        <span className="text-sm text-gray-500">{creationProgress}%</span>
+              <SimpleMediaSection 
+                images={images}
+                onImagesUpload={onImagesUpload}
+                disabled={isFormDisabled}
+              />
+            </CardContent>
+            
+            <CardFooter>
+              <div className="flex flex-col space-y-4 w-full">
+                {isLoading && (
+                  <div className="border rounded-md p-4 bg-gray-50 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Loader className="mr-2 h-4 w-4 animate-spin" />
+                        <span className="font-medium">{getStageMessage()}</span>
                       </div>
-                      <Progress value={creationProgress} className="h-2" />
-                      {creationStage === 'completed' && (
-                        <div className="text-sm text-gray-600">
-                          Уведомление в Telegram будет отправлено в фоновом режиме.
-                        </div>
-                      )}
+                      <span className="text-sm text-gray-500">{creationProgress}%</span>
                     </div>
-                  )}
-                  
-                  <div className="flex justify-end w-full gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => navigate('/seller/dashboard')}
-                      disabled={isFormDisabled}
-                      className={isMobile ? "min-h-[44px]" : ""}
-                    >
-                      Отмена
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => setShowPreview(true)}
-                      disabled={isFormDisabled || !canShowPreview()}
-                      className={isMobile ? "min-h-[44px]" : ""}
-                    >
-                      <Eye className="mr-2 h-4 w-4" />
-                      Предпросмотр
-                    </Button>
-                    <Button
-                      type="submit"
-                      disabled={isFormDisabled}
-                      className={isMobile ? "min-h-[44px]" : ""}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader className="mr-2 h-4 w-4 animate-spin" />
-                          Создание заказа...
-                        </>
-                      ) : (
-                        "Создать заказ"
-                      )}
-                    </Button>
+                    <Progress value={creationProgress} className="h-2" />
+                    {creationStage === 'completed' && (
+                      <div className="text-sm text-gray-600">
+                        Уведомление в Telegram будет отправлено в фоновом режиме.
+                      </div>
+                    )}
                   </div>
+                )}
+                
+                <div className="flex justify-end w-full gap-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate('/seller/dashboard')}
+                    disabled={isFormDisabled}
+                    className={isMobile ? "min-h-[44px]" : ""}
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCreateOrderClick}
+                    disabled={isFormDisabled}
+                    className={isMobile ? "min-h-[44px]" : ""}
+                  >
+                    Создать заказ
+                  </Button>
                 </div>
-              </CardFooter>
-            </form>
+              </div>
+            </CardFooter>
           </Card>
 
           {/* Order Preview Dialog */}
@@ -271,7 +272,8 @@ const SellerCreateOrder = () => {
             videos={videos}
             selectedSeller={selectedSeller}
             buyerProfile={getBuyerProfile()}
-            onConfirm={handleSubmit}
+            onConfirm={handleConfirmOrder}
+            onBack={handleBackToEdit}
             isLoading={isLoading}
           />
         </div>

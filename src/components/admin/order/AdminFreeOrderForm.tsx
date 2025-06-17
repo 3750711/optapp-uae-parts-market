@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import SellerOrderFormFields from './SellerOrderFormFields';
@@ -7,7 +8,7 @@ import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, AlertCircle, Eye } from 'lucide-react';
+import { Loader, AlertCircle } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -96,12 +97,31 @@ export const AdminFreeOrderForm = () => {
     setVideos(prev => prev.filter(video => video !== url));
   };
 
-  // Protected form submission handler
-  const handleSubmit = (e: React.FormEvent) => {
+  // Show preview when "Create Order" is clicked
+  const handleCreateOrderClick = () => {
+    if (!canShowPreview()) {
+      toast({
+        title: "Заполните обязательные поля",
+        description: "Необходимо заполнить название, цену, продавца и покупателя",
+        variant: "destructive",
+      });
+      return;
+    }
+    setShowPreview(true);
+  };
+
+  // Confirm order creation from preview
+  const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
+    setShowPreview(false);
     guardedSubmit(async () => {
       await originalHandleSubmit(e);
     });
+  };
+
+  // Go back to editing from preview
+  const handleBackToEdit = () => {
+    setShowPreview(false);
   };
 
   // Validate form for preview
@@ -174,23 +194,6 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
-  // Show preview
-  if (showPreview) {
-    return (
-      <OrderPreviewDialog
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        formData={formData}
-        images={images}
-        videos={videos}
-        selectedSeller={selectedSeller}
-        buyerProfile={getBuyerProfile()}
-        onConfirm={handleSubmit}
-        isLoading={isLoading}
-      />
-    );
-  }
-
   const isFormDisabled = isLoading || !canSubmit;
 
   return (
@@ -253,34 +256,31 @@ export const AdminFreeOrderForm = () => {
       </Card>
 
       {/* Submit Button */}
-      <div className="flex justify-end gap-4 pt-6 border-t">
+      <div className="flex justify-end pt-6 border-t">
         <Button
           type="button"
-          variant="outline"
-          onClick={() => setShowPreview(true)}
-          disabled={isFormDisabled || !canShowPreview()}
-          size="lg"
-        >
-          <Eye className="mr-2 h-4 w-4" />
-          Предпросмотр
-        </Button>
-        <Button
-          type="submit"
-          onClick={handleSubmit}
+          onClick={handleCreateOrderClick}
           disabled={isFormDisabled}
           size="lg"
           className="min-w-[200px]"
         >
-          {isLoading ? (
-            <>
-              <Loader className="mr-2 h-4 w-4 animate-spin" />
-              Создание заказа...
-            </>
-          ) : (
-            "Создать заказ"
-          )}
+          Создать заказ
         </Button>
       </div>
+
+      {/* Order Preview Dialog */}
+      <OrderPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        formData={formData}
+        images={images}
+        videos={videos}
+        selectedSeller={selectedSeller}
+        buyerProfile={getBuyerProfile()}
+        onConfirm={handleConfirmOrder}
+        onBack={handleBackToEdit}
+        isLoading={isLoading}
+      />
     </div>
   );
 };
