@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -239,10 +238,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                 {images.length > 0 && (
                   <div>
                     <h4 className="text-md font-medium mb-2">Изображения ({images.length})</h4>
-                    <OptimizedOrderImages 
-                      images={images} 
-                      orderTitle={order.title}
-                    />
+                    <OptimizedOrderImages images={images} />
                   </div>
                 )}
                 
