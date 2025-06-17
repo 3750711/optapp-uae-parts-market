@@ -200,13 +200,13 @@ export const AdminFreeOrderForm = () => {
   const isFormDisabled = isLoading || !canSubmit;
 
   return (
-    <div className={`space-y-6 ${isMobile ? 'pb-32' : ''}`}>
+    <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
       <MobileOrderCreationHeader
         title="Создание свободного заказа"
         description="Заполните информацию о заказе"
       />
       
-      {/* Order Form Fields */}
+      {/* Order Form Fields - всегда открыто */}
       <SellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
@@ -230,11 +230,11 @@ export const AdminFreeOrderForm = () => {
         disabled={isFormDisabled}
       />
       
-      {/* Media Upload Section */}
+      {/* Media Upload Section - всегда открыто */}
       <MobileFormSection 
         title="Медиафайлы заказа" 
         icon={<Camera className="h-5 w-5" />}
-        defaultOpen={false}
+        defaultOpen={true}
       >
         <div className="space-y-6">
           <div>
@@ -262,18 +262,20 @@ export const AdminFreeOrderForm = () => {
         </div>
       </MobileFormSection>
 
-      {/* Mobile Actions */}
-      <MobileStickyActions
-        primaryAction={{
-          label: "Создать заказ",
-          onClick: handleCreateOrderClick,
-          disabled: isFormDisabled,
-          loading: isLoading
-        }}
-      />
-
-      {/* Desktop Actions */}
-      {!isMobile && (
+      {/* Actions для мобильных и десктопа */}
+      {isMobile ? (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+          <Button
+            type="button"
+            onClick={handleCreateOrderClick}
+            disabled={isFormDisabled}
+            size="lg"
+            className="w-full touch-target min-h-[48px] text-base font-medium"
+          >
+            {isLoading ? 'Создание заказа...' : 'Создать заказ'}
+          </Button>
+        </div>
+      ) : (
         <div className="flex justify-end pt-6 border-t">
           <Button
             type="button"

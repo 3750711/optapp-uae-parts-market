@@ -8,7 +8,6 @@ import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
 import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileFormSection } from './MobileFormSection';
-import { MobileStickyActions } from './MobileStickyActions';
 
 interface CreatedOrderViewProps {
   order: any;
@@ -37,11 +36,11 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   };
 
   return (
-    <div className={`space-y-${isMobile ? '6' : '8'} ${isMobile ? 'pb-24' : ''}`}>
+    <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
       {/* Success Header */}
       <Card className="border-green-200 bg-green-50">
-        <CardContent className={`pt-${isMobile ? '4' : '6'}`}>
-          <div className={`flex items-center ${isMobile ? 'flex-col text-center' : 'justify-center'} space-${isMobile ? 'y' : 'x'}-4`}>
+        <CardContent className="pt-6">
+          <div className={`flex items-center ${isMobile ? 'flex-col text-center space-y-4' : 'justify-center space-x-4'}`}>
             <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
@@ -57,7 +56,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
         </CardContent>
       </Card>
 
-      {/* Order Details */}
+      {/* Order Details - всегда открыто */}
       <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
         {/* Basic Information */}
         <MobileFormSection 
@@ -123,7 +122,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
         <MobileFormSection 
           title="Участники заказа" 
           icon={<User className="h-5 w-5" />}
-          defaultOpen={!isMobile}
+          defaultOpen={true}
         >
           <div className="space-y-4">
             <div className="bg-blue-50 p-4 rounded-lg">
@@ -141,7 +140,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
         <MobileFormSection 
           title="Временная линия" 
           icon={<Calendar className="h-5 w-5" />}
-          defaultOpen={!isMobile}
+          defaultOpen={true}
         >
           <div className="space-y-4">
             <div>
@@ -158,12 +157,12 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
         </MobileFormSection>
       </div>
 
-      {/* Media Section */}
+      {/* Media Section - всегда открыто */}
       {(images.length > 0 || videos.length > 0) && (
         <MobileFormSection 
           title={`Медиафайлы заказа (${images.length + videos.length})`}
           icon={<Camera className="h-5 w-5" />}
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <div className="space-y-6">
             {images.length > 0 && (
@@ -187,7 +186,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       {order.text_order && (
         <MobileFormSection 
           title="Дополнительная информация"
-          defaultOpen={false}
+          defaultOpen={true}
         >
           <div className="bg-muted/30 p-4 rounded-lg">
             <p className="whitespace-pre-wrap">{order.text_order}</p>
@@ -195,16 +194,19 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
         </MobileFormSection>
       )}
 
-      {/* Mobile Actions */}
-      <MobileStickyActions
-        primaryAction={{
-          label: "Создать новый заказ",
-          onClick: onNewOrder
-        }}
-      />
-
-      {/* Desktop Actions */}
-      {!isMobile && (
+      {/* Actions - фиксированные внизу для мобильного */}
+      {isMobile ? (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+          <Button
+            onClick={onNewOrder}
+            size="lg"
+            className="w-full touch-target min-h-[48px] text-base font-medium"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Создать новый заказ
+          </Button>
+        </div>
+      ) : (
         <div className="flex justify-center pt-6 border-t">
           <Button
             onClick={onNewOrder}
