@@ -1,5 +1,4 @@
 
-
 import { corsHeaders } from '../_shared/cors.ts'
 
 const CLOUDINARY_CLOUD_NAME = 'dcuziurrb';
@@ -46,9 +45,9 @@ interface VideoUploadResponse {
   error?: string;
 }
 
-// Строгие ограничения для видео
+// Унифицированные ограничения для видео (синхронизировано с изображениями)
 const ALLOWED_VIDEO_FORMATS = ['mp4', 'webm', 'mov', 'avi'];
-const MAX_VIDEO_SIZE_MB = 20;
+const MAX_VIDEO_SIZE_MB = 20; // Синхронизировано с изображениями
 const MAX_DURATION_SECONDS = 180; // 3 минуты
 
 Deno.serve(async (req) => {
@@ -62,10 +61,12 @@ Deno.serve(async (req) => {
     
     const apiKey = Deno.env.get('CLOUDINARY_API_KEY')?.trim();
     const apiSecret = Deno.env.get('CLOUDINARY_API_SECRET')?.trim();
+    const uploadPreset = Deno.env.get('CLOUDINARY_UPLOAD_PRESET')?.trim(); // Добавлена переменная
     
     console.log('🔑 Checking Cloudinary credentials:', {
       hasApiKey: !!apiKey,
       hasApiSecret: !!apiSecret,
+      hasUploadPreset: !!uploadPreset,
       apiKeyLength: apiKey?.length || 0
     });
     
@@ -74,7 +75,7 @@ Deno.serve(async (req) => {
       throw new Error('Cloudinary credentials not configured properly');
     }
 
-    // Handle FormData (same as image function)
+    // Handle FormData (унифицированная логика с изображениями)
     let file: File | null = null;
     let productId: string | undefined;
     let customPublicId: string | undefined;
@@ -113,7 +114,7 @@ Deno.serve(async (req) => {
       throw new Error('No video file provided');
     }
 
-    // Strict file validation
+    // Унифицированная валидация файлов
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
     console.log('🔍 File validation:', {
       fileName: file.name,
@@ -126,7 +127,7 @@ Deno.serve(async (req) => {
       throw new Error(`Unsupported video format. Allowed: ${ALLOWED_VIDEO_FORMATS.join(', ')}`);
     }
 
-    // Strict MIME type check
+    // Унифицированная проверка MIME типов
     const allowedMimeTypes = [
       'video/mp4', 
       'video/webm', 
@@ -138,7 +139,7 @@ Deno.serve(async (req) => {
       throw new Error(`Invalid MIME type: ${file.type}. Expected video file.`);
     }
 
-    // Strict file size check
+    // Унифицированная проверка размера файла (20MB как у изображений)
     const fileSizeMB = file.size / (1024 * 1024);
     console.log('📏 File size check:', {
       sizeBytes: file.size,
@@ -156,36 +157,51 @@ Deno.serve(async (req) => {
       format: fileExtension
     });
 
-    // Generate public_id (same as image function)
+    // Generate public_id (унифицированная логика с изображениями)
     const timestamp = Date.now();
     const publicId = customPublicId || `video_${productId || timestamp}_${timestamp}_${Math.random().toString(36).substring(7)}`;
     
     console.log('🏷️ Generated public ID:', publicId);
     
-    // Create FormData for Cloudinary (minimal parameters)
+    // Create FormData for Cloudinary (унифицированная логика)
     const cloudinaryFormData = new FormData();
     cloudinaryFormData.append('file', file);
     cloudinaryFormData.append('api_key', apiKey);
     cloudinaryFormData.append('timestamp', Math.round(timestamp / 1000).toString());
     cloudinaryFormData.append('public_id', publicId);
     cloudinaryFormData.append('folder', 'videos');
-    cloudinaryFormData.append('resource_type', 'video');
     
-    // Minimal transformation (or no transformation for testing)
-    const transformation = 'q_auto:good,f_auto';
+    // Добавляем upload_preset если доступен
+    if (uploadPreset) {
+      cloudinaryFormData.append('upload_preset', uploadPreset);
+    }
+    
+    // Простая трансформация для видео
+    const transformation = 'q_auto:good';
     cloudinaryFormData.append('transformation', transformation);
     
     console.log('🎨 Video transformation:', transformation);
 
-    // EXACT signature generation from image function
+    // ИСПРАВЛЕННАЯ генерация подписи (БЕЗ resource_type=video)
     const timestampString = Math.round(timestamp / 1000).toString();
-    const stringToSign = `folder=videos&public_id=${publicId}&resource_type=video&timestamp=${timestampString}&transformation=${transformation}${apiSecret}`;
+    let stringToSign = `folder=videos&public_id=${publicId}&timestamp=${timestampString}`;
+    
+    if (transformation) {
+      stringToSign += `&transformation=${transformation}`;
+    }
+    
+    if (uploadPreset) {
+      stringToSign += `&upload_preset=${uploadPreset}`;
+    }
+    
+    stringToSign += apiSecret;
     
     console.log('🔐 Signature generation:', {
       timestampString,
       stringToSignLength: stringToSign.length,
       stringToSignStart: stringToSign.substring(0, 100),
-      apiSecretPresent: !!apiSecret
+      apiSecretPresent: !!apiSecret,
+      includesUploadPreset: !!uploadPreset
     });
     
     const encoder = new TextEncoder();
@@ -203,7 +219,7 @@ Deno.serve(async (req) => {
 
     console.log('☁️ Uploading to Cloudinary video endpoint...');
 
-    // Upload to Cloudinary with retry logic (copied from image function)
+    // Унифицированная логика загрузки с повторными попытками
     let uploadResponse: Response;
     let retryCount = 0;
     const maxRetries = 3;
@@ -256,16 +272,16 @@ Deno.serve(async (req) => {
       height: cloudinaryResult.height
     });
 
-    // Check video duration
+    // Проверка продолжительности видео
     if (cloudinaryResult.duration && cloudinaryResult.duration > MAX_DURATION_SECONDS) {
       console.warn('⚠️ Video exceeds recommended duration:', {
         duration: cloudinaryResult.duration,
         maxDuration: MAX_DURATION_SECONDS
       });
-      // Don't block upload, just warn
+      // Не блокируем загрузку, только предупреждаем
     }
 
-    // Generate URLs (simple, no complex transformations)
+    // Унифицированная генерация URL
     const optimizedVideoUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/${transformation}/${cloudinaryResult.public_id}`;
     const thumbnailUrl = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/video/upload/f_jpg,w_300,h_200,c_fill,q_auto:good/${cloudinaryResult.public_id}.jpg`;
 
@@ -280,7 +296,7 @@ Deno.serve(async (req) => {
       cloudinaryUrl: optimizedVideoUrl,
       thumbnailUrl,
       originalSize: cloudinaryResult.bytes,
-      compressedSize: Math.round(cloudinaryResult.bytes * 0.8), // Estimate
+      compressedSize: Math.round(cloudinaryResult.bytes * 0.8), // Оценка
       format: cloudinaryResult.format,
       duration: cloudinaryResult.duration,
       width: cloudinaryResult.width,
@@ -316,4 +332,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-

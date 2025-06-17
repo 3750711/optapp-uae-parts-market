@@ -40,7 +40,8 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || isUploading) return;
 
-    const MAX_VIDEO_SIZE_MB = 50;
+    // Синхронизированные лимиты с функцией загрузки
+    const MAX_VIDEO_SIZE_MB = 20; // Синхронизировано с функцией
     const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
     const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/mov'];
     
@@ -232,7 +233,7 @@ export const CloudinaryVideoUpload: React.FC<CloudinaryVideoUploadProps> = ({
       />
       
       <p className="text-xs text-gray-500">
-        ДО {maxVideos} роликов. Поддержка: mp4, mov, avi, webm. Загрузка через Cloudinary CDN.
+        ДО {maxVideos} роликов. Поддержка: mp4, mov, avi, webm. Загрузка через Cloudinary CDN. Максимум 20MB на файл.
       </p>
       
       {videos.length < maxVideos && (
