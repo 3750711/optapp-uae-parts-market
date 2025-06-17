@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
-import SellerOrderFormFields from './SellerOrderFormFields';
+import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
@@ -15,11 +15,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
-import { MobileStickyActions } from './MobileStickyActions';
+import { useOptimizedAdminAccess } from '@/hooks/useOptimizedAdminAccess';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
   const isMobile = useIsMobile();
+  const { isAdmin, isCheckingAdmin, hasAdminAccess } = useOptimizedAdminAccess();
 
   const {
     // Form data
@@ -29,30 +30,11 @@ export const AdminFreeOrderForm = () => {
     videos,
     setAllImages,
     setVideos,
-    buyerProfiles,
-    sellerProfiles,
-    selectedSeller,
-    brands,
-    brandModels,
-    isLoadingCarData,
-    searchBrandTerm,
-    setSearchBrandTerm,
-    searchModelTerm,
-    setSearchModelTerm,
-    filteredBrands,
-    filteredModels,
-    handleBrandChange,
-    handleModelChange,
     isLoading,
     createdOrder,
     handleSubmit: originalHandleSubmit,
     handleOrderUpdate,
     resetForm,
-    parseTitleForBrand,
-    isInitializing,
-    initializationError,
-    hasAdminAccess,
-    navigate
   } = useAdminOrderFormLogic();
 
   // Add submission guard
@@ -137,35 +119,15 @@ export const AdminFreeOrderForm = () => {
     return isValid;
   };
 
-  const getBuyerProfile = () => {
-    return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
-  };
-
-  // Simplified loading state
-  if (isInitializing) {
+  // Упрощенное состояние загрузки
+  if (isCheckingAdmin) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <Loader className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Загрузка данных для создания заказа...</p>
+          <p className="text-gray-600">Проверка прав доступа...</p>
         </div>
       </div>
-    );
-  }
-
-  if (initializationError) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          {initializationError}
-          <div className="mt-2">
-            <Button variant="outline" onClick={() => window.location.reload()}>
-              Попробовать снова
-            </Button>
-          </div>
-        </AlertDescription>
-      </Alert>
     );
   }
 
@@ -175,11 +137,6 @@ export const AdminFreeOrderForm = () => {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           У вас нет прав администратора для создания заказов
-          <div className="mt-2">
-            <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
-              Вернуться в панель
-            </Button>
-          </div>
         </AlertDescription>
       </Alert>
     );
@@ -206,31 +163,14 @@ export const AdminFreeOrderForm = () => {
         description="Заполните информацию о заказе"
       />
       
-      {/* Order Form Fields - всегда открыто */}
-      <SellerOrderFormFields
+      {/* Оптимизированные поля формы заказа */}
+      <OptimizedSellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
-        buyerProfiles={buyerProfiles}
-        sellerProfiles={sellerProfiles}
-        selectedSeller={selectedSeller}
-        brands={brands}
-        brandModels={brandModels}
-        isLoadingCarData={isLoadingCarData}
-        searchBrandTerm={searchBrandTerm}
-        setSearchBrandTerm={setSearchBrandTerm}
-        searchModelTerm={searchModelTerm}
-        setSearchModelTerm={setSearchModelTerm}
-        filteredBrands={filteredBrands}
-        filteredModels={filteredModels}
-        handleBrandChange={handleBrandChange}
-        handleModelChange={handleModelChange}
-        parseTitleForBrand={parseTitleForBrand}
-        onImagesUpload={onImagesUpload}
-        onDataFromProduct={() => {}}
         disabled={isFormDisabled}
       />
       
-      {/* Media Upload Section - всегда открыто */}
+      {/* Media Upload Section */}
       <MobileFormSection 
         title="Медиафайлы заказа" 
         icon={<Camera className="h-5 w-5" />}
@@ -262,7 +202,7 @@ export const AdminFreeOrderForm = () => {
         </div>
       </MobileFormSection>
 
-      {/* Actions для мобильных и десктопа */}
+      {/* Actions */}
       {isMobile ? (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
           <Button
@@ -297,8 +237,8 @@ export const AdminFreeOrderForm = () => {
         formData={formData}
         images={images}
         videos={videos}
-        selectedSeller={selectedSeller}
-        buyerProfile={getBuyerProfile()}
+        selectedSeller={null} // Будет получен из формы
+        buyerProfile={null} // Будет получен из формы
         onConfirm={handleConfirmOrder}
         onBack={handleBackToEdit}
         isLoading={isLoading}
