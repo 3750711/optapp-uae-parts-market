@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 
 // Import admin components and hooks
 import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
-import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
+import OptimizedSellerOrderFormFields from "@/components/admin/order/OptimizedSellerOrderFormFields";
 import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
@@ -35,15 +35,6 @@ const SellerCreateOrder = () => {
     selectedSeller,
     isLoading,
     createdOrder,
-    brands,
-    brandModels,
-    isLoadingCarData,
-    searchBrandTerm,
-    setSearchBrandTerm,
-    searchModelTerm,
-    setSearchModelTerm,
-    filteredBrands,
-    filteredModels,
     setImages,
     setVideos,
     handleInputChange,
@@ -51,7 +42,6 @@ const SellerCreateOrder = () => {
     handleOrderUpdate,
     handleSubmit: originalHandleSubmit,
     resetForm,
-    parseTitleForBrand,
     creationStage,
     creationProgress
   } = useAdminOrderFormLogic();
@@ -214,24 +204,9 @@ const SellerCreateOrder = () => {
             </CardHeader>
             
             <CardContent className="space-y-8">
-              <SellerOrderFormFields
+              <OptimizedSellerOrderFormFields
                 formData={formData}
                 handleInputChange={handleInputChange}
-                buyerProfiles={buyerProfiles}
-                sellerProfiles={sellerProfiles}
-                selectedSeller={selectedSeller}
-                brands={brands}
-                brandModels={brandModels}
-                isLoadingCarData={isLoadingCarData}
-                searchBrandTerm={searchBrandTerm}
-                setSearchBrandTerm={setSearchBrandTerm}
-                searchModelTerm={searchModelTerm}
-                setSearchModelTerm={setSearchModelTerm}
-                filteredBrands={filteredBrands}
-                filteredModels={filteredModels}
-                parseTitleForBrand={parseTitleForBrand}
-                onImagesUpload={onImagesUpload}
-                onDataFromProduct={handleDataFromProduct}
                 disabled={isFormDisabled}
               />
               
