@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleParticipantsSection } from './sections/SimpleParticipantsSection';
@@ -6,31 +5,7 @@ import { ProductInfoSection } from './sections/ProductInfoSection';
 import { CarBrandModelSection } from './sections/CarBrandModelSection';
 import { PricingSection } from './sections/PricingSection';
 import { OrderDetailsSection } from './sections/OrderDetailsSection';
-
-interface BuyerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface CarBrand {
-  id: string;
-  name: string;
-}
-
-interface CarModel {
-  id: string;
-  name: string;
-  brand_id: string;
-}
+import { BuyerProfile, SellerProfile, CarBrand, CarModel } from '@/types/order';
 
 interface SellerOrderFormFieldsProps {
   formData: any;
