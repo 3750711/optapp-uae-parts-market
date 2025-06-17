@@ -15,6 +15,11 @@ interface SimpleParticipantsSectionProps {
   hideSeller?: boolean;
 }
 
+// Функция нормализации OPT_ID для консистентности
+const normalizeOptId = (optId: string): string => {
+  return optId.trim().toUpperCase().replace(/\s+/g, '');
+};
+
 export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps> = ({
   buyerOptId,
   sellerId,
@@ -28,12 +33,16 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
   // Prepare buyer options for OptimizedSelect
   const buyerOptions = React.useMemo(() => {
     return buyerProfiles
-      .filter(buyer => buyer.opt_id && buyer.opt_id.trim()) // Более строгая проверка OPT_ID
-      .sort((a, b) => a.opt_id.localeCompare(b.opt_id))
+      .filter(buyer => buyer.opt_id && buyer.opt_id.trim()) // Фильтруем покупателей с пустыми OPT_ID
+      .sort((a, b) => {
+        const aOptId = normalizeOptId(a.opt_id || '');
+        const bOptId = normalizeOptId(b.opt_id || '');
+        return aOptId.localeCompare(bOptId);
+      })
       .map(buyer => ({
-        value: buyer.opt_id, // Используем opt_id как value
-        label: `${buyer.full_name} (${buyer.opt_id})`,
-        searchText: `${buyer.full_name} ${buyer.opt_id}`
+        value: buyer.opt_id, // Используем оригинальный opt_id как value
+        label: `${buyer.full_name || 'Без имени'} (${buyer.opt_id})`,
+        searchText: `${buyer.full_name || ''} ${buyer.opt_id} ${normalizeOptId(buyer.opt_id || '')}`
       }));
   }, [buyerProfiles]);
 
@@ -48,15 +57,21 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
       })
       .map(seller => ({
         value: seller.id, // Используем ID как value для продавцов
-        label: seller.opt_id ? `${seller.full_name} (${seller.opt_id})` : seller.full_name,
-        searchText: `${seller.full_name} ${seller.opt_id || ''}`
+        label: seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени'),
+        searchText: `${seller.full_name || ''} ${seller.opt_id || ''}`
       }));
   }, [sellerProfiles]);
 
   // Проверяем что выбранный покупатель существует в списке
   const selectedBuyerExists = React.useMemo(() => {
     if (!buyerOptId) return true; // Пустое значение допустимо
-    return buyerOptions.some(option => option.value === buyerOptId);
+    
+    // Ищем как по оригинальному значению, так и по нормализованному
+    const normalizedSelected = normalizeOptId(buyerOptId);
+    return buyerOptions.some(option => {
+      const normalizedOption = normalizeOptId(option.value);
+      return option.value === buyerOptId || normalizedOption === normalizedSelected;
+    });
   }, [buyerOptId, buyerOptions]);
 
   // Проверяем что выбранный продавец существует в списке
@@ -64,6 +79,16 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
     if (!sellerId) return true; // Пустое значение допустимо
     return sellerOptions.some(option => option.value === sellerId);
   }, [sellerId, sellerOptions]);
+
+  // Найдем выбранного покупателя для отображения дополнительной информации
+  const selectedBuyer = React.useMemo(() => {
+    if (!buyerOptId) return null;
+    const normalizedSelected = normalizeOptId(buyerOptId);
+    return buyerProfiles.find(buyer => {
+      const normalizedBuyer = normalizeOptId(buyer.opt_id || '');
+      return buyer.opt_id === buyerOptId || normalizedBuyer === normalizedSelected;
+    });
+  }, [buyerOptId, buyerProfiles]);
 
   return (
     <div className="space-y-4">
@@ -82,14 +107,25 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
           />
           {!selectedBuyerExists && buyerOptId && (
             <p className="text-sm text-red-600 mt-1">
-              Покупатель с OPT_ID "{buyerOptId}" не найден в списке
+              Покупатель с OPT_ID "{buyerOptId}" не найден в списке. Проверьте правильность написания.
             </p>
+          )}
+          {selectedBuyer && (
+            <div className="text-sm text-gray-600 mt-1">
+              <p>✅ Найден: {selectedBuyer.full_name}</p>
+              {selectedBuyer.telegram && (
+                <p>📱 Telegram: {selectedBuyer.telegram}</p>
+              )}
+            </div>
           )}
           {buyerOptions.length === 0 && (
             <p className="text-sm text-gray-500 mt-1">
-              Нет доступных профилей покупателей
+              Нет доступных профилей покупателей с OPT_ID
             </p>
           )}
+          <p className="text-xs text-gray-500 mt-1">
+            Доступно покупателей: {buyerOptions.length}
+          </p>
         </div>
 
         {!hideSeller && (
@@ -113,6 +149,9 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
                 Нет доступных профилей продавцов
               </p>
             )}
+            <p className="text-xs text-gray-500 mt-1">
+              Доступно продавцов: {sellerOptions.length}
+            </p>
           </div>
         )}
       </div>

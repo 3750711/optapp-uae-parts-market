@@ -33,19 +33,24 @@ export const useAdminOrderInitialization = () => {
         .select('id, full_name, opt_id, telegram')
         .eq('user_type', 'buyer')
         .not('opt_id', 'is', null)
-        .limit(100);
+        .neq('opt_id', '')
+        .order('opt_id', { ascending: true })
+        .limit(200);
 
       if (error) {
         console.error('❌ Error loading buyer profiles:', error);
         throw new Error(`Ошибка загрузки профилей покупателей: ${error.message}`);
       }
 
-      const profiles = (data || []).map(profile => ({
-        ...profile,
-        user_type: 'buyer' as const
-      }));
+      const profiles = (data || [])
+        .filter(profile => profile.opt_id && profile.opt_id.trim()) // Дополнительная фильтрация
+        .map(profile => ({
+          ...profile,
+          user_type: 'buyer' as const
+        }));
 
       console.log('✅ Loaded buyer profiles:', profiles.length);
+      console.log('📋 Sample OPT_IDs:', profiles.slice(0, 5).map(p => p.opt_id));
       setBuyerProfiles(profiles);
     } catch (error) {
       console.error('❌ Exception in loadBuyerProfiles:', error);
@@ -60,7 +65,8 @@ export const useAdminOrderInitialization = () => {
         .from('profiles')
         .select('id, full_name, opt_id, telegram')
         .eq('user_type', 'seller')
-        .limit(100);
+        .order('full_name', { ascending: true })
+        .limit(200);
 
       if (error) {
         console.error('❌ Error loading seller profiles:', error);

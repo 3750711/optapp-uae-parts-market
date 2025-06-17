@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData, BuyerProfile, ValidationError } from '@/types/order';
 
-// Функция нормализации OPT_ID
+// Функция нормализации OPT_ID - приводим к единому формату
 const normalizeOptId = (optId: string): string => {
   return optId.trim().toUpperCase().replace(/\s+/g, '');
 };
@@ -14,26 +14,39 @@ export const useAdminOrderValidation = () => {
       const normalizedOptId = normalizeOptId(optId);
       console.log('🔍 Searching for buyer with OPT_ID:', { original: optId, normalized: normalizedOptId });
       
+      // Используем точный поиск с нормализацией на стороне базы данных
       const { data, error } = await supabase
         .from('profiles')
         .select('id, full_name, opt_id, telegram')
         .eq('user_type', 'buyer')
-        .ilike('opt_id', normalizedOptId)
-        .maybeSingle();
+        .not('opt_id', 'is', null)
+        .limit(100);
 
       if (error) {
         console.error('❌ Error finding buyer:', error);
         return null;
       }
 
-      if (!data) {
-        console.log('⚠️ No buyer found with OPT_ID:', normalizedOptId);
+      if (!data || data.length === 0) {
+        console.log('⚠️ No buyers found in database');
         return null;
       }
 
-      console.log('✅ Buyer found:', data);
+      // Поиск на клиентской стороне с нормализацией
+      const foundBuyer = data.find(profile => {
+        const profileOptId = normalizeOptId(profile.opt_id || '');
+        return profileOptId === normalizedOptId;
+      });
+
+      if (!foundBuyer) {
+        console.log('⚠️ No buyer found with normalized OPT_ID:', normalizedOptId);
+        console.log('📋 Available OPT_IDs:', data.map(p => normalizeOptId(p.opt_id || '')));
+        return null;
+      }
+
+      console.log('✅ Buyer found:', foundBuyer);
       return {
-        ...data,
+        ...foundBuyer,
         user_type: 'buyer' as const
       };
     } catch (error) {
@@ -100,7 +113,7 @@ export const useAdminOrderValidation = () => {
         const normalizedOptId = normalizeOptId(formData.buyerOptId.trim());
         errors.push({ 
           field: 'buyerOptId', 
-          message: `Покупатель с OPT_ID "${normalizedOptId}" не найден` 
+          message: `Покупатель с OPT_ID "${normalizedOptId}" не найден в базе данных. Проверьте правильность написания.` 
         });
       }
     }
@@ -128,6 +141,7 @@ export const useAdminOrderValidation = () => {
     validateForm,
     findBuyerByOptId,
     getSellerName,
-    validateSeller
+    validateSeller,
+    normalizeOptId
   };
 };
