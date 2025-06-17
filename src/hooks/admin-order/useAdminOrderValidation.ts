@@ -75,7 +75,7 @@ export const useAdminOrderValidation = () => {
     }
 
     // Validate delivery method
-    const validDeliveryMethods = ['self_pickup', 'delivery', 'cargo_rf'];
+    const validDeliveryMethods = ['self_pickup', 'cargo_rf', 'cargo_kz'];
     if (!validDeliveryMethods.includes(formData.deliveryMethod)) {
       errors.push({ field: 'deliveryMethod', message: 'Некорректный способ доставки' });
     }

@@ -39,7 +39,7 @@ export interface ModelData {
   brand_id: string;
 }
 
-export type DeliveryMethod = 'self_pickup' | 'delivery' | 'cargo_rf';
+export type DeliveryMethod = 'self_pickup' | 'cargo_rf' | 'cargo_kz';
 
 // Updated order status type to match database enum
 export type OrderStatus = 'created' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'declined';

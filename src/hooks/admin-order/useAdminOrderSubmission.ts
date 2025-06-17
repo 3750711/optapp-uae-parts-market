@@ -61,7 +61,7 @@ export const useAdminOrderSubmission = () => {
         p_brand: formData.brand?.trim() || '',
         p_model: formData.model?.trim() || '',
         p_status: 'created',
-        p_order_created_type: 'free',
+        p_order_created_type: 'free_order',
         p_telegram_url_order: '',
         p_images: images,
         p_product_id: null,
