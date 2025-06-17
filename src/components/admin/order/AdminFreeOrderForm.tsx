@@ -2,7 +2,7 @@
 import React from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import { SellerOrderFormFields } from './SellerOrderFormFields';
-import SimpleMediaSection from './SimpleMediaSection';
+import AdvancedImageUpload from './AdvancedImageUpload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { EnhancedInitializationState } from './EnhancedInitializationState';
 import { Button } from '@/components/ui/button';
@@ -68,8 +68,21 @@ export const AdminFreeOrderForm = () => {
 
   // Handle media upload for orders
   const onImagesUpload = (urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
+    console.log('📸 AdminFreeOrderForm: New images uploaded via advanced upload:', urls);
     setAllImages(urls);
+  };
+
+  // Handle image deletion
+  const onImageDelete = (url: string) => {
+    console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
+    const newImages = images.filter(img => img !== url);
+    setAllImages(newImages);
+  };
+
+  // Handle setting primary image
+  const onSetPrimaryImage = (url: string) => {
+    console.log('⭐ AdminFreeOrderForm: Primary image set:', url);
+    // This could be implemented in the hook if needed
   };
 
   // Protected form submission handler
@@ -159,10 +172,12 @@ export const AdminFreeOrderForm = () => {
         disabled={isFormDisabled}
       />
       
-      {/* Simple Media Upload Section */}
-      <SimpleMediaSection
+      {/* Advanced Image Upload Section with all optimizations */}
+      <AdvancedImageUpload
         images={images}
         onImagesUpload={onImagesUpload}
+        onImageDelete={onImageDelete}
+        onSetPrimaryImage={onSetPrimaryImage}
         disabled={isFormDisabled}
         maxImages={25}
       />
