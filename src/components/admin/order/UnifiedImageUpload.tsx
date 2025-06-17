@@ -1,3 +1,4 @@
+
 import React, { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +127,50 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
     }
   }, []);
 
+  // Функция загрузки одного файла
+  const uploadSingleFile = useCallback(async (item: UploadItem): Promise<string | null> => {
+    try {
+      setUploadQueue(prev => prev.map(i => 
+        i.id === item.id 
+          ? { ...i, status: 'uploading', progress: 10 }
+          : i
+      ));
+
+      const fileToUpload = item.compressedFile || item.file;
+      const uploadedUrls = await uploadFiles([fileToUpload]);
+
+      if (uploadedUrls.length > 0) {
+        const finalUrl = uploadedUrls[0];
+        
+        setUploadQueue(prev => prev.map(i => 
+          i.id === item.id 
+            ? { ...i, status: 'success', progress: 100, finalUrl }
+            : i
+        ));
+
+        // Очищаем элемент через небольшую задержку
+        setTimeout(() => {
+          cleanupUploadItem(item.id);
+        }, 2000);
+
+        return finalUrl;
+      } else {
+        throw new Error('Upload failed - no URL returned');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      
+      setUploadQueue(prev => prev.map(i => 
+        i.id === item.id 
+          ? { ...i, status: 'error', error: errorMessage, progress: 0 }
+          : i
+      ));
+
+      console.error(`❌ Upload failed for ${item.file.name}:`, error);
+      return null;
+    }
+  }, [uploadFiles, cleanupUploadItem]);
+
   const handleFileSelect = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -144,31 +189,45 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
     setUploadQueue(prev => [...prev, ...newItems]);
 
     try {
-      // Этап 1: Сжатие файлов
-      const compressionPromises = newItems.map(item => 
-        compressImage(item.file, item.id)
-      );
-      
-      const compressedFiles = await Promise.all(compressionPromises);
-      
-      // Этап 2: Загрузка сжатых файлов
-      console.log('📤 Starting upload of compressed files');
-      const uploadedUrls = await uploadFiles(compressedFiles);
-      
-      if (uploadedUrls.length > 0) {
-        onImagesUpload([...images, ...uploadedUrls]);
+      const uploadedUrls: string[] = [];
+
+      // Обрабатываем файлы по одному
+      for (const item of newItems) {
+        console.log(`📤 Processing file: ${item.file.name}`);
         
-        // Очищаем успешно загруженные элементы сразу
-        newItems.forEach(item => {
-          cleanupUploadItem(item.id);
-        });
+        // Этап 1: Сжатие
+        const compressedFile = await compressImage(item.file, item.id);
+        
+        // Обновляем item с сжатым файлом
+        const updatedItem = {
+          ...item,
+          compressedFile,
+          compressedSize: compressedFile.size
+        };
+
+        // Этап 2: Загрузка
+        const uploadedUrl = await uploadSingleFile(updatedItem);
+        
+        if (uploadedUrl) {
+          uploadedUrls.push(uploadedUrl);
+          
+          // Сразу обновляем список изображений после каждой успешной загрузки
+          onImagesUpload([...images, ...uploadedUrls]);
+        }
+
+        // Пауза между загрузками для избежания перегрузки
+        if (newItems.indexOf(item) < newItems.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
+
+      console.log(`✅ All uploads completed. Total uploaded: ${uploadedUrls.length}`);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload process error:', error);
     }
 
     event.target.value = '';
-  }, [uploadFiles, images, onImagesUpload, cleanupUploadItem, compressImage]);
+  }, [uploadFiles, images, onImagesUpload, cleanupUploadItem, compressImage, uploadSingleFile]);
 
   const handleDelete = useCallback((url: string) => {
     console.log('🗑️ Deleting image:', url);
@@ -217,6 +276,9 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
   ];
 
   const canUploadMore = images.length < maxImages;
+  const hasActiveUploads = uploadQueue.some(item => 
+    ['pending', 'compressing', 'uploading', 'processing'].includes(item.status)
+  );
 
   return (
     <div className="space-y-4">
@@ -225,13 +287,13 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
         type="button"
         variant="outline"
         onClick={() => document.getElementById('unified-image-input')?.click()}
-        disabled={disabled || isUploading || !canUploadMore}
+        disabled={disabled || hasActiveUploads || !canUploadMore}
         className="w-full"
       >
-        {isUploading ? (
+        {hasActiveUploads ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Загрузка...
+            Загрузка по одному...
           </>
         ) : (
           <>
@@ -248,7 +310,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
         accept="image/*"
         onChange={handleFileSelect}
         className="hidden"
-        disabled={disabled || isUploading}
+        disabled={disabled || hasActiveUploads}
       />
 
       {/* Image Gallery */}
@@ -282,6 +344,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                       {(item.status === 'pending' || item.status === 'uploading' || item.status === 'processing') && (
                         <Badge variant="secondary" className="text-xs">
                           <Loader2 className="h-2 w-2 animate-spin" />
+                          {item.status === 'uploading' ? 'Загрузка' : 'Ожидание'}
                         </Badge>
                       )}
                     </div>
