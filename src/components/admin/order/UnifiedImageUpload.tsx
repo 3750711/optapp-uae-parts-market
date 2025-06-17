@@ -67,9 +67,9 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
       if (uploadedUrls.length > 0) {
         onImagesUpload([...images, ...uploadedUrls]);
         
-        // Очищаем успешно загруженные элементы
+        // Очищаем успешно загруженные элементы сразу
         newItems.forEach(item => {
-          setTimeout(() => cleanupUploadItem(item.id), 1000);
+          cleanupUploadItem(item.id);
         });
       }
     } catch (error) {
@@ -98,19 +98,25 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
     }
   }, [images, uploadQueue, onImagesUpload, onImageDelete, cleanupUploadItem]);
 
-  // Объединяем существующие изображения с очередью загрузки
+  // Показываем только существующие изображения и активные загрузки (не успешные)
   const allItems = [
+    // Загруженные изображения
     ...images.map((url, index) => ({
       id: `existing-${index}`,
       type: 'existing' as const,
       url
     })),
+    // Только активные загрузки (pending, uploading, processing, error) - НЕ success
     ...uploadQueue
-      .filter(item => item.status !== 'success' && (item.blobUrl || item.finalUrl))
+      .filter(item => 
+        item.status !== 'success' && 
+        item.blobUrl && 
+        (item.status === 'pending' || item.status === 'uploading' || item.status === 'processing' || item.status === 'error')
+      )
       .map((item) => ({
         id: item.id,
         type: 'uploading' as const,
-        url: item.blobUrl || item.finalUrl!,
+        url: item.blobUrl!,
         status: item.status,
         progress: item.progress,
         error: item.error
