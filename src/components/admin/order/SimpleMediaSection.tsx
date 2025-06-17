@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, Video, Loader2 } from "lucide-react";
@@ -87,7 +86,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
             } : i)
           );
           
-          // Add new URL to existing images
+          // ИСПРАВЛЕНО: Добавляем новые URL к существующим изображениям
           onImagesUpload([...images, ...uploadedUrls]);
 
           // Автоматически очищаем успешно загруженный элемент через короткое время
