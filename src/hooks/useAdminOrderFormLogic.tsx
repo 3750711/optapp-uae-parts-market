@@ -1,12 +1,13 @@
 
 import { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useConditionalCarData } from '@/hooks/useConditionalCarData';
 import { useDebounceValue } from '@/hooks/useDebounceValue';
 import { useAdminOrderFormData } from './admin-order/useAdminOrderFormData';
-import { useAdminOrderInitialization } from './admin-order/useAdminOrderInitialization';
 import { useAdminOrderSubmission } from './admin-order/useAdminOrderSubmission';
-import { CarBrand, CarModel, BuyerProfile, SellerProfile } from '@/types/order';
+import { useLazyCarData } from '@/hooks/useLazyCarData';
+import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+import { useOptimizedAdminAccess } from '@/hooks/useOptimizedAdminAccess';
+import { BuyerProfile, SellerProfile } from '@/types/order';
 
 export interface AdminOrderFormLogicReturn {
   // Form data
@@ -21,23 +22,24 @@ export interface AdminOrderFormLogicReturn {
   handleImageUpload: (urls: string[]) => void;
   setAllImages: (urls: string[]) => void;
   
-  // Profiles
+  // Lazy Profiles
   buyerProfiles: BuyerProfile[];
   sellerProfiles: SellerProfile[];
+  isLoadingBuyers: boolean;
+  isLoadingSellers: boolean;
+  enableBuyersLoading: () => void;
+  enableSellersLoading: () => void;
   selectedSeller: SellerProfile | null;
   
-  // Car data
-  brands: CarBrand[];
-  brandModels: CarModel[];
-  isLoadingCarData: boolean;
-  searchBrandTerm: string;
-  setSearchBrandTerm: (term: string) => void;
-  searchModelTerm: string;
-  setSearchModelTerm: (term: string) => void;
-  filteredBrands: CarBrand[];
-  filteredModels: CarModel[];
-  handleBrandChange: (brandId: string, brandName: string) => void;
-  handleModelChange: (modelId: string, modelName: string) => void;
+  // Lazy Car data
+  brands: any[];
+  models: any[];
+  isLoadingBrands: boolean;
+  isLoadingModels: boolean;
+  enableBrandsLoading: () => void;
+  selectBrand: (brandId: string) => void;
+  findBrandNameById: (brandId: string | null) => string | null;
+  findModelNameById: (modelId: string | null) => string | null;
   
   // Order creation
   isLoading: boolean;
@@ -48,20 +50,26 @@ export interface AdminOrderFormLogicReturn {
   
   // Navigation and utils
   navigate: ReturnType<typeof useNavigate>;
-  parseTitleForBrand: (title: string) => { brand: string; model: string };
   
   // Creation progress
   creationStage: string;
   creationProgress: number;
   
-  // Simplified initialization (no more enhanced states)
-  isInitializing: boolean;
-  initializationError: string | null;
+  // Admin access
   hasAdminAccess: boolean;
+  isCheckingAdmin: boolean;
+  
+  // Error handling
+  error: string | null;
+  retryOperation: () => void;
+  clearError: () => void;
 }
 
 export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const navigate = useNavigate();
+
+  // Admin access check
+  const { hasAdminAccess, isCheckingAdmin } = useOptimizedAdminAccess();
 
   // Form data management
   const {
@@ -71,21 +79,32 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     setImages,
     setVideos,
     handleInputChange: baseHandleInputChange,
-    handleBrandChange: baseHandleBrandChange,
-    handleModelChange: baseHandleModelChange,
     handleImageUpload,
     setAllImages,
     resetForm: baseResetForm
   } = useAdminOrderFormData();
 
-  // Simplified initialization - no more enhanced states
+  // Lazy car data
   const {
-    isInitializing,
-    error: initializationError,
+    brands,
+    models,
+    isLoadingBrands,
+    isLoadingModels,
+    enableBrandsLoading,
+    selectBrand,
+    findBrandNameById,
+    findModelNameById
+  } = useLazyCarData();
+
+  // Lazy profiles
+  const {
     buyerProfiles,
     sellerProfiles,
-    hasAdminAccess
-  } = useAdminOrderInitialization();
+    isLoadingBuyers,
+    isLoadingSellers,
+    enableBuyersLoading,
+    enableSellersLoading
+  } = useLazyProfiles();
 
   // Submission
   const {
@@ -93,113 +112,73 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     stage: creationStage,
     progress: creationProgress,
     createdOrder,
+    error,
     handleSubmit: baseHandleSubmit,
     handleOrderUpdate,
-    resetCreatedOrder
+    resetCreatedOrder,
+    retryLastOperation,
+    clearError
   } = useAdminOrderSubmission();
 
-  // Car data
-  const {
-    brands,
-    brandModels,
-    isLoading: isLoadingCarData,
-    brandSearchTerm,
-    setBrandSearchTerm,
-    modelSearchTerm,
-    setModelSearchTerm,
-    selectBrand
-  } = useConditionalCarData();
-
-  // Debounced search terms
-  const debouncedBrandSearch = useDebounceValue(brandSearchTerm, 300);
-  const debouncedModelSearch = useDebounceValue(modelSearchTerm, 300);
-
-  // Filtered data
-  const filteredBrands = useMemo(() => {
-    if (!debouncedBrandSearch) return brands;
-    return brands.filter(brand => 
-      brand.name.toLowerCase().includes(debouncedBrandSearch.toLowerCase())
-    );
-  }, [brands, debouncedBrandSearch]);
-
-  const filteredModels = useMemo(() => {
-    if (!debouncedModelSearch) return brandModels;
-    return brandModels.filter(model => 
-      model.name.toLowerCase().includes(debouncedModelSearch.toLowerCase())
-    );
-  }, [brandModels, debouncedModelSearch]);
-
-  // Enhanced brand change handler with model loading
-  const handleBrandChange = useCallback((brandId: string, brandName: string) => {
-    baseHandleBrandChange(brandId, brandName);
-    if (brandId) {
-      selectBrand(brandId);
-    }
-  }, [baseHandleBrandChange, selectBrand]);
-
-  // Enhanced input change handler
+  // Enhanced input change handler with car data integration
   const handleInputChange = useCallback((field: string, value: string) => {
     if (field === 'brandId') {
       const selectedBrand = brands.find(b => b.id === value);
       if (selectedBrand) {
-        handleBrandChange(value, selectedBrand.name);
+        baseHandleInputChange('brandId', value);
+        baseHandleInputChange('brand', selectedBrand.name);
+        selectBrand(value);
+        // Reset model when brand changes
+        baseHandleInputChange('modelId', '');
+        baseHandleInputChange('model', '');
       }
     } else if (field === 'modelId') {
-      const selectedModel = brandModels.find(m => m.id === value);
+      const selectedModel = models.find(m => m.id === value);
       if (selectedModel) {
-        baseHandleModelChange(value, selectedModel.name);
+        baseHandleInputChange('modelId', value);
+        baseHandleInputChange('model', selectedModel.name);
       }
     } else {
       baseHandleInputChange(field, value);
     }
-  }, [brands, brandModels, handleBrandChange, baseHandleModelChange, baseHandleInputChange]);
+  }, [brands, models, baseHandleInputChange, selectBrand]);
 
-  // Parse title for brand and model (optimized)
-  const parseTitleForBrand = useCallback((title: string) => {
-    if (!title || brands.length === 0) {
-      return { brand: '', model: '' };
-    }
-
-    const lowerTitle = title.toLowerCase();
-    const sortedBrands = [...brands].sort((a, b) => b.name.length - a.name.length);
-
-    for (const brand of sortedBrands) {
-      const brandNameLower = brand.name.toLowerCase();
-      if (lowerTitle.includes(brandNameLower)) {
-        const relevantModels = brandModels.filter(model => model.brand_id === brand.id);
-        const sortedModels = [...relevantModels].sort((a, b) => b.name.length - a.name.length);
-        
-        for (const model of sortedModels) {
-          const modelNameLower = model.name.toLowerCase();
-          if (lowerTitle.includes(modelNameLower)) {
-            handleBrandChange(brand.id, brand.name);
-            baseHandleModelChange(model.id, model.name);
-            return { brand: brand.name, model: model.name };
-          }
-        }
-        handleBrandChange(brand.id, brand.name);
-        return { brand: brand.name, model: '' };
-      }
-    }
-    return { brand: '', model: '' };
-  }, [brands, brandModels, handleBrandChange, baseHandleModelChange]);
-
-  // Enhanced submit handler with video support
+  // Enhanced submit handler with error handling
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    await baseHandleSubmit(formData, images, videos);
+    
+    // Validate required fields
+    if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
+      throw new Error('Пожалуйста, заполните все обязательные поля');
+    }
+
+    try {
+      await baseHandleSubmit(formData, images, videos);
+    } catch (error) {
+      console.error('Order submission error:', error);
+      throw error;
+    }
   }, [baseHandleSubmit, formData, images, videos]);
 
-  // Enhanced reset form function that also resets created order
+  // Enhanced reset form function
   const resetForm = useCallback(() => {
     baseResetForm();
     resetCreatedOrder();
-  }, [baseResetForm, resetCreatedOrder]);
+    clearError();
+  }, [baseResetForm, resetCreatedOrder, clearError]);
 
-  // Find selected seller
+  // Find selected seller with fallback
   const selectedSeller = useMemo(() => {
+    if (!formData.sellerId || !sellerProfiles.length) return null;
     return sellerProfiles.find(seller => seller.id === formData.sellerId) || null;
   }, [sellerProfiles, formData.sellerId]);
+
+  // Retry operation wrapper
+  const retryOperation = useCallback(() => {
+    if (retryLastOperation) {
+      retryLastOperation();
+    }
+  }, [retryLastOperation]);
 
   return {
     // Form data
@@ -214,23 +193,24 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     handleImageUpload,
     setAllImages,
     
-    // Profiles
+    // Lazy Profiles
     buyerProfiles,
     sellerProfiles,
+    isLoadingBuyers,
+    isLoadingSellers,
+    enableBuyersLoading,
+    enableSellersLoading,
     selectedSeller,
     
-    // Car data
+    // Lazy Car data
     brands,
-    brandModels,
-    isLoadingCarData,
-    searchBrandTerm: brandSearchTerm,
-    setSearchBrandTerm: setBrandSearchTerm,
-    searchModelTerm: modelSearchTerm,
-    setSearchModelTerm: setModelSearchTerm,
-    filteredBrands,
-    filteredModels,
-    handleBrandChange,
-    handleModelChange: baseHandleModelChange,
+    models,
+    isLoadingBrands,
+    isLoadingModels,
+    enableBrandsLoading,
+    selectBrand,
+    findBrandNameById,
+    findModelNameById,
     
     // Order creation
     isLoading,
@@ -241,15 +221,18 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     
     // Navigation and utils
     navigate,
-    parseTitleForBrand,
     
     // Creation progress
     creationStage,
     creationProgress,
     
-    // Simplified initialization
-    isInitializing,
-    initializationError,
-    hasAdminAccess
+    // Admin access
+    hasAdminAccess,
+    isCheckingAdmin,
+    
+    // Error handling
+    error,
+    retryOperation,
+    clearError
   };
 };

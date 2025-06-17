@@ -8,19 +8,17 @@ import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader, AlertCircle, Camera, Plus } from 'lucide-react';
+import { Loader, AlertCircle, Camera, Plus, RefreshCw } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
-import { useOptimizedAdminAccess } from '@/hooks/useOptimizedAdminAccess';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
   const isMobile = useIsMobile();
-  const { isAdmin, isCheckingAdmin, hasAdminAccess } = useOptimizedAdminAccess();
 
   const {
     // Form data
@@ -35,6 +33,19 @@ export const AdminFreeOrderForm = () => {
     handleSubmit: originalHandleSubmit,
     handleOrderUpdate,
     resetForm,
+    
+    // Admin access
+    hasAdminAccess,
+    isCheckingAdmin,
+    
+    // Error handling
+    error,
+    retryOperation,
+    clearError,
+    
+    // Additional data for preview
+    selectedSeller,
+    buyerProfiles
   } = useAdminOrderFormLogic();
 
   // Add submission guard
@@ -119,6 +130,15 @@ export const AdminFreeOrderForm = () => {
     return isValid;
   };
 
+  const getBuyerProfile = () => {
+    return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
+  };
+
+  const handleRetry = () => {
+    clearError();
+    retryOperation();
+  };
+
   // Упрощенное состояние загрузки
   if (isCheckingAdmin) {
     return (
@@ -162,6 +182,25 @@ export const AdminFreeOrderForm = () => {
         title="Создание свободного заказа"
         description="Заполните информацию о заказе"
       />
+
+      {/* Error Alert with Retry */}
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{error}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRetry}
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Повторить
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       
       {/* Оптимизированные поля формы заказа */}
       <OptimizedSellerOrderFormFields
@@ -237,8 +276,8 @@ export const AdminFreeOrderForm = () => {
         formData={formData}
         images={images}
         videos={videos}
-        selectedSeller={null} // Будет получен из формы
-        buyerProfile={null} // Будет получен из формы
+        selectedSeller={selectedSeller}
+        buyerProfile={getBuyerProfile()}
         onConfirm={handleConfirmOrder}
         onBack={handleBackToEdit}
         isLoading={isLoading}
