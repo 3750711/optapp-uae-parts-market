@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress";
 
 // Import admin components and hooks - FIXED: Use the correct hook
 import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
-import { SellerOrderFormFields } from "@/components/admin/order/SellerOrderFormFields";
+import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
 import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 import { useAuth } from "@/contexts/AuthContext";

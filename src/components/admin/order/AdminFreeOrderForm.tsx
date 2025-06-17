@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
-import { SellerOrderFormFields } from './SellerOrderFormFields';
+import SellerOrderFormFields from './SellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { EnhancedInitializationState } from './EnhancedInitializationState';

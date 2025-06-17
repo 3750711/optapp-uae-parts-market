@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ParticipantsSection } from './sections/ParticipantsSection';
@@ -122,6 +121,18 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
     checkProfilesStatus();
   }, [buyerProfiles.length, sellerProfiles.length]);
 
+  const handleTitleBlur = (title: string) => {
+    if (title && parseTitleForBrand) {
+      parseTitleForBrand(title);
+    }
+  };
+
+  const handleAddDataFromProduct = () => {
+    if (onDataFromProduct) {
+      onDataFromProduct({});
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Отладочная информация */}
@@ -141,32 +152,35 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         </CardHeader>
         <CardContent className="space-y-6">
           <ProductInfoSection
-            formData={formData}
-            handleInputChange={handleInputChange}
-            parseTitleForBrand={parseTitleForBrand}
+            title={formData.title || ''}
+            onTitleChange={(value) => handleInputChange('title', value)}
+            selectedSeller={selectedSeller}
+            onAddDataFromProduct={handleAddDataFromProduct}
+            onTitleBlur={handleTitleBlur}
             disabled={disabled}
           />
           
           <CarBrandModelSection
-            formData={formData}
-            handleInputChange={handleInputChange}
+            brandId={formData.brandId || ''}
+            modelId={formData.modelId || ''}
+            onBrandChange={handleBrandChange || (() => {})}
+            onModelChange={handleModelChange || (() => {})}
             brands={brands}
-            brandModels={brandModels}
+            filteredModels={filteredModels}
             isLoadingCarData={isLoadingCarData}
             searchBrandTerm={searchBrandTerm}
             setSearchBrandTerm={setSearchBrandTerm}
             searchModelTerm={searchModelTerm}
             setSearchModelTerm={setSearchModelTerm}
             filteredBrands={filteredBrands}
-            filteredModels={filteredModels}
-            handleBrandChange={handleBrandChange}
-            handleModelChange={handleModelChange}
             disabled={disabled}
           />
           
           <PricingSection
-            formData={formData}
-            handleInputChange={handleInputChange}
+            price={formData.price || ''}
+            deliveryPrice={formData.delivery_price || ''}
+            onPriceChange={(value) => handleInputChange('price', value)}
+            onDeliveryPriceChange={(value) => handleInputChange('delivery_price', value)}
             disabled={disabled}
           />
         </CardContent>
@@ -178,11 +192,12 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         </CardHeader>
         <CardContent>
           <ParticipantsSection
-            formData={formData}
-            handleInputChange={handleInputChange}
+            buyerOptId={formData.buyerOptId || ''}
+            sellerId={formData.sellerId || ''}
+            onBuyerOptIdChange={(value) => handleInputChange('buyerOptId', value)}
+            onSellerIdChange={(value) => handleInputChange('sellerId', value)}
             buyerProfiles={buyerProfiles}
             sellerProfiles={sellerProfiles}
-            selectedSeller={selectedSeller}
             disabled={disabled}
           />
         </CardContent>
@@ -194,8 +209,12 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         </CardHeader>
         <CardContent>
           <OrderDetailsSection
-            formData={formData}
-            handleInputChange={handleInputChange}
+            deliveryMethod={formData.deliveryMethod || 'self_pickup'}
+            placeNumber={formData.place_number || '1'}
+            textOrder={formData.text_order || ''}
+            onDeliveryMethodChange={(value) => handleInputChange('deliveryMethod', value)}
+            onPlaceNumberChange={(value) => handleInputChange('place_number', value)}
+            onTextOrderChange={(value) => handleInputChange('text_order', value)}
             disabled={disabled}
           />
         </CardContent>
