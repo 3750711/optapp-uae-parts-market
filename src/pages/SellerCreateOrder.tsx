@@ -1,18 +1,18 @@
-
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Save, Loader } from "lucide-react";
+import { Save, Loader, Eye } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
-// Import admin components and hooks - FIXED: Use the correct hook
+// Import admin components and hooks
 import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
 import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
+import { OrderPreview } from "@/components/admin/order/OrderPreview";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { toast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ const SellerCreateOrder = () => {
   const productId = searchParams.get('productId');
   const isMobile = useIsMobile();
   const { user } = useAuth();
+  const [showPreview, setShowPreview] = useState(false);
 
   const {
     formData,
@@ -101,6 +102,16 @@ const SellerCreateOrder = () => {
     });
   };
 
+  // Validate form for preview
+  const canShowPreview = () => {
+    return formData.title && formData.price && formData.sellerId && formData.buyerId;
+  };
+
+  // Get buyer profile for preview
+  const getBuyerProfile = () => {
+    return buyerProfiles.find(buyer => buyer.id === formData.buyerId) || null;
+  };
+
   // Get stage message based on current creation stage
   const getStageMessage = () => {
     switch (creationStage) {
@@ -134,6 +145,24 @@ const SellerCreateOrder = () => {
           onBack={handleGoBack}
           onNewOrder={resetForm}
           onOrderUpdate={handleOrderUpdate}
+        />
+      </Layout>
+    );
+  }
+
+  // Show preview
+  if (showPreview) {
+    return (
+      <Layout>
+        <OrderPreview
+          formData={formData}
+          images={images}
+          videos={videos}
+          selectedSeller={selectedSeller}
+          buyerProfile={getBuyerProfile()}
+          onBack={() => setShowPreview(false)}
+          onConfirm={handleSubmit}
+          isLoading={isLoading}
         />
       </Layout>
     );
@@ -220,6 +249,16 @@ const SellerCreateOrder = () => {
                       className={isMobile ? "min-h-[44px]" : ""}
                     >
                       Отмена
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPreview(true)}
+                      disabled={isFormDisabled || !canShowPreview()}
+                      className={isMobile ? "min-h-[44px]" : ""}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Предпросмотр
                     </Button>
                     <Button
                       type="submit"

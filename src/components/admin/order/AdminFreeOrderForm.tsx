@@ -1,18 +1,20 @@
-
-import React from 'react';
+import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import SellerOrderFormFields from './SellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
+import { OrderPreview } from './OrderPreview';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, AlertCircle } from 'lucide-react';
+import { Loader, AlertCircle, Eye } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const AdminFreeOrderForm = () => {
+  const [showPreview, setShowPreview] = useState(false);
+
   const {
     // Form data
     formData,
@@ -102,6 +104,16 @@ export const AdminFreeOrderForm = () => {
     });
   };
 
+  // Validate form for preview
+  const canShowPreview = () => {
+    return formData.title && formData.price && formData.sellerId && formData.buyerId;
+  };
+
+  // Get buyer profile for preview
+  const getBuyerProfile = () => {
+    return buyerProfiles.find(buyer => buyer.id === formData.buyerId) || null;
+  };
+
   // Simplified loading state
   if (isInitializing) {
     return (
@@ -158,6 +170,22 @@ export const AdminFreeOrderForm = () => {
         onBack={() => navigate('/admin/dashboard')}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
+      />
+    );
+  }
+
+  // Show preview
+  if (showPreview) {
+    return (
+      <OrderPreview
+        formData={formData}
+        images={images}
+        videos={videos}
+        selectedSeller={selectedSeller}
+        buyerProfile={getBuyerProfile()}
+        onBack={() => setShowPreview(false)}
+        onConfirm={handleSubmit}
+        isLoading={isLoading}
       />
     );
   }
@@ -224,7 +252,17 @@ export const AdminFreeOrderForm = () => {
       </Card>
 
       {/* Submit Button */}
-      <div className="flex justify-end pt-6 border-t">
+      <div className="flex justify-end gap-4 pt-6 border-t">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowPreview(true)}
+          disabled={isFormDisabled || !canShowPreview()}
+          size="lg"
+        >
+          <Eye className="mr-2 h-4 w-4" />
+          Предпросмотр
+        </Button>
         <Button
           type="submit"
           onClick={handleSubmit}
