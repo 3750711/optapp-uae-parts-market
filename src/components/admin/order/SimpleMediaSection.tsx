@@ -1,9 +1,11 @@
+
 import React, { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Upload, Video, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Upload, Video, Loader2, X, Star, StarOff, Eye } from "lucide-react";
 import { useSimpleOrderUpload } from '@/hooks/useSimpleOrderUpload';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
-import OrderImageGallery from '@/components/ui/order-image-gallery/OrderImageGallery';
+import { cn } from "@/lib/utils";
 
 interface OrderUploadItem {
   id: string;
@@ -35,6 +37,7 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
   const { uploadFiles, isUploading } = useSimpleOrderUpload();
   const { uploadVideo, isUploading: isVideoUploading } = useCloudinaryVideoUpload();
   const [uploadQueue, setUploadQueue] = useState<OrderUploadItem[]>([]);
+  const [selectedPreview, setSelectedPreview] = useState<string | null>(null);
 
   // Функция для очистки blob URL и удаления элементов из очереди
   const cleanupUploadItem = useCallback((itemId: string) => {
@@ -206,6 +209,32 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
     }
   }, [images, uploadQueue, onImagesUpload, onImageDelete, cleanupUploadItem]);
 
+  // Combine existing images with ONLY uploading/pending/error items from upload queue
+  // Exclude 'success' items to prevent duplication since they're already in images array
+  const allItems = [
+    ...images.map((url, index) => ({
+      id: `existing-${index}`,
+      type: 'existing' as const,
+      url,
+      isPrimary: false
+    })),
+    ...uploadQueue
+      .filter(item => 
+        item.status !== 'deleted' && 
+        item.status !== 'success' && // Исключаем успешные загрузки
+        (item.blobUrl || item.finalUrl)
+      )
+      .map((item) => ({
+        id: item.id,
+        type: 'uploading' as const,
+        url: item.blobUrl || item.finalUrl!,
+        status: item.status,
+        progress: item.progress,
+        error: item.error,
+        isPrimary: false
+      }))
+  ];
+
   const uploadedImagesCount = images.length;
   const canUploadMore = uploadedImagesCount < maxImages;
 
@@ -274,13 +303,128 @@ const SimpleMediaSection: React.FC<SimpleMediaSectionProps> = ({
       />
 
       {/* Image Gallery */}
-      <OrderImageGallery
-        images={images}
-        uploadQueue={uploadQueue}
-        onDelete={handleDelete}
-        disabled={disabled}
-        maxImages={maxImages}
-      />
+      {allItems.length > 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium">Изображения заказа ({allItems.length}/{maxImages})</h4>
+          </div>
+
+          {/* Image grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {allItems.map((item) => (
+              <div key={item.id} className="relative group">
+                <div className="aspect-square rounded-lg overflow-hidden border bg-gray-100">
+                  <img
+                    src={item.url}
+                    alt="Order image"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+
+                  {/* Upload status indicator - только для загружающихся элементов */}
+                  {item.type === 'uploading' && (
+                    <div className="absolute top-1 right-1">
+                      {item.status === 'error' && (
+                        <Badge variant="destructive" className="text-xs">✗</Badge>
+                      )}
+                      {(item.status === 'pending' || item.status === 'compressing' || item.status === 'uploading') && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Loader2 className="h-2 w-2 animate-spin" />
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Upload progress - только для активно загружающихся */}
+                  {item.type === 'uploading' && 
+                   (item.status === 'compressing' || item.status === 'uploading') && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1">
+                      <div className="flex items-center justify-between">
+                        <span>
+                          {item.status === 'compressing' ? 'Сжатие...' : 'Загрузка...'}
+                        </span>
+                        <span>{item.progress}%</span>
+                      </div>
+                      <div className="w-full bg-gray-600 rounded-full h-1 mt-1">
+                        <div 
+                          className="bg-blue-500 h-1 rounded-full transition-all duration-300" 
+                          style={{ width: `${item.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className={cn(
+                    "absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center gap-1",
+                    "opacity-0 group-hover:opacity-100"
+                  )}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => setSelectedPreview(item.url)}
+                      className="h-6 w-6 p-0"
+                      title="Посмотреть"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                    
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(item.url)}
+                      className="h-6 w-6 p-0"
+                      title="Удалить"
+                      disabled={disabled || (item.type === 'uploading' && item.status === 'uploading')}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+
+                  {/* Error display */}
+                  {item.type === 'uploading' && item.status === 'error' && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-red-500 text-white text-xs p-1">
+                      <p className="truncate">{item.error}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          <p>Нет загруженных изображений</p>
+          <p className="text-sm mt-1">Загрузите до {maxImages} фотографий</p>
+        </div>
+      )}
+
+      {/* Preview modal */}
+      {selectedPreview && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedPreview(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setSelectedPreview(null)}
+              className="absolute top-2 right-2 z-10"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+            <img
+              src={selectedPreview}
+              alt="Preview"
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
