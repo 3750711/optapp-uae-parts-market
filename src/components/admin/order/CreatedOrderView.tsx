@@ -1,14 +1,15 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Package, DollarSign, User, Calendar, Plus, Camera } from 'lucide-react';
+import { CheckCircle, Package, DollarSign, User, Calendar, Plus, Camera, Upload } from 'lucide-react';
 import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
 import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileFormSection } from './MobileFormSection';
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
+import { ConfirmationImagesUploadDialog } from '@/components/admin/ConfirmationImagesUploadDialog';
 
 interface CreatedOrderViewProps {
   order: any;
@@ -16,7 +17,7 @@ interface CreatedOrderViewProps {
   videos?: string[];
   onNewOrder: () => void;
   onOrderUpdate?: (order: any) => void;
-  buyerProfile?: any; // Добавляем профиль покупателя
+  buyerProfile?: any;
 }
 
 export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
@@ -27,6 +28,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   buyerProfile
 }) => {
   const isMobile = useIsMobile();
+  const [showConfirmationUpload, setShowConfirmationUpload] = useState(false);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
@@ -38,7 +40,6 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
     });
   };
 
-  // Функция для получения отображаемой информации о покупателе
   const getBuyerDisplayInfo = () => {
     if (buyerProfile) {
       return {
@@ -47,7 +48,6 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       };
     }
     
-    // Fallback к данным из заказа
     return {
       name: order.buyer_opt_id || 'Не указано',
       optId: order.buyer_opt_id || 'Не указан'
@@ -55,6 +55,14 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   };
 
   const buyerInfo = getBuyerDisplayInfo();
+
+  const handleConfirmationUploadComplete = () => {
+    setShowConfirmationUpload(false);
+  };
+
+  const handleConfirmationUploadSkip = () => {
+    setShowConfirmationUpload(false);
+  };
 
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
@@ -69,9 +77,41 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
               <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-green-800 mb-2`}>
                 Заказ успешно создан!
               </h1>
-              <p className="text-green-700">
+              <p className="text-green-700 mb-4">
                 Заказ #{order.order_number} готов к обработке
               </p>
+              
+              {/* Подпишите проданный товар section */}
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                <h3 className="font-bold text-yellow-800 mb-3">
+                  ПОДПИШИТЕ ПРОДАННЫЙ ТОВАР:
+                </h3>
+                <div className="space-y-2">
+                  <div className="bg-white rounded-lg p-3 border-2 border-yellow-300">
+                    <div className="text-sm text-yellow-700 font-medium">OPT ID ПОКУПАТЕЛЯ:</div>
+                    <div className="text-2xl font-bold text-yellow-900 tracking-wider">
+                      {buyerInfo.optId.toUpperCase()}
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border-2 border-yellow-300">
+                    <div className="text-sm text-yellow-700 font-medium">НОМЕР ЗАКАЗА:</div>
+                    <div className="text-2xl font-bold text-yellow-900 tracking-wider">
+                      {order.order_number.toUpperCase()}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload confirmation photos button */}
+              <Button
+                onClick={() => setShowConfirmationUpload(true)}
+                variant="secondary"
+                size="lg"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Camera className="mr-2 h-5 w-5" />
+                Загрузить подтверждающие фото
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -245,6 +285,15 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
           </Button>
         </div>
       )}
+
+      {/* Confirmation Images Upload Dialog */}
+      <ConfirmationImagesUploadDialog
+        open={showConfirmationUpload}
+        orderId={order.id}
+        onComplete={handleConfirmationUploadComplete}
+        onSkip={handleConfirmationUploadSkip}
+        onCancel={() => setShowConfirmationUpload(false)}
+      />
     </div>
   );
 };
