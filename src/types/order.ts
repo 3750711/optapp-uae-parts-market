@@ -50,11 +50,12 @@ export interface OrderFormData {
 
 export interface CreatedOrder {
   id: string;
-  order_number: number;
+  order_number: number; // Важно: это число, не строка
   title: string;
   price: number;
   status: OrderStatus;
   created_at: string;
+  updated_at?: string;
   buyer_id: string;
   seller_id: string;
   buyer_opt_id?: string;
@@ -77,3 +78,13 @@ export interface ValidationError {
   field: string;
   message: string;
 }
+
+// Вспомогательные функции для безопасной работы с полями заказа
+export const getOrderNumberSafe = (order: CreatedOrder | any): string => {
+  if (!order?.order_number) return 'Не указан';
+  return order.order_number.toString();
+};
+
+export const getOrderNumberFormatted = (order: CreatedOrder | any): string => {
+  return getOrderNumberSafe(order).toUpperCase();
+};

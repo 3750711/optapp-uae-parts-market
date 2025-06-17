@@ -64,6 +64,12 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
     setShowConfirmationUpload(false);
   };
 
+  // Защитная функция для получения номера заказа
+  const getOrderNumber = () => {
+    if (!order.order_number) return 'Не указан';
+    return order.order_number.toString().toUpperCase();
+  };
+
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
       {/* Success Header */}
@@ -78,7 +84,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                 Заказ успешно создан!
               </h1>
               <p className="text-green-700 mb-4">
-                Заказ #{order.order_number} готов к обработке
+                Заказ #{getOrderNumber()} готов к обработке
               </p>
               
               {/* Подпишите проданный товар section */}
@@ -96,7 +102,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                   <div className="bg-white rounded-lg p-3 border-2 border-yellow-300">
                     <div className="text-sm text-yellow-700 font-medium">НОМЕР ЗАКАЗА:</div>
                     <div className="text-2xl font-bold text-yellow-900 tracking-wider">
-                      {order.order_number.toUpperCase()}
+                      {getOrderNumber()}
                     </div>
                   </div>
                 </div>
@@ -128,7 +134,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
           <div className="space-y-4">
             <div>
               <div className="text-sm text-muted-foreground">Номер заказа</div>
-              <div className={`font-mono ${isMobile ? 'text-lg' : 'text-lg'} font-bold`}>{order.order_number}</div>
+              <div className={`font-mono ${isMobile ? 'text-lg' : 'text-lg'} font-bold`}>{getOrderNumber()}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Наименование</div>
