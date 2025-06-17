@@ -14,7 +14,7 @@ interface OrderPreviewProps {
   selectedSeller: any;
   buyerProfile: any;
   onBack: () => void;
-  onConfirm: () => void;
+  onConfirm: (e: React.FormEvent) => void;
   isLoading?: boolean;
 }
 
@@ -35,6 +35,11 @@ export const OrderPreview: React.FC<OrderPreviewProps> = ({
       case 'cargo_kz': return 'Карго КЗ';
       default: return method;
     }
+  };
+
+  const handleConfirm = (e: React.FormEvent) => {
+    e.preventDefault();
+    onConfirm(e);
   };
 
   const isSelfOrder = formData.sellerId === formData.buyerId;
@@ -280,7 +285,7 @@ export const OrderPreview: React.FC<OrderPreviewProps> = ({
           <ArrowLeft className="h-4 w-4 mr-2" />
           Вернуться к редактированию
         </Button>
-        <Button onClick={onConfirm} disabled={isLoading}>
+        <Button onClick={handleConfirm} disabled={isLoading}>
           {isLoading ? 'Создание заказа...' : 'Создать заказ'}
         </Button>
       </div>
