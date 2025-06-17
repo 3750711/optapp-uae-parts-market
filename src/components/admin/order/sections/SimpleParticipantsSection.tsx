@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
-import OptimizedSelect from "@/components/ui/OptimizedSelect";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BuyerProfile, SellerProfile } from "@/types/order";
 
 interface SimpleParticipantsSectionProps {
@@ -30,54 +30,43 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
   disabled = false,
   hideSeller = false,
 }) => {
-  // Prepare buyer options for OptimizedSelect
+  // Prepare buyer options sorted by OPT_ID
   const buyerOptions = React.useMemo(() => {
     return buyerProfiles
-      .filter(buyer => buyer.opt_id && buyer.opt_id.trim()) // Фильтруем покупателей с пустыми OPT_ID
+      .filter(buyer => buyer.opt_id && buyer.opt_id.trim())
       .sort((a, b) => {
         const aOptId = normalizeOptId(a.opt_id || '');
         const bOptId = normalizeOptId(b.opt_id || '');
         return aOptId.localeCompare(bOptId);
-      })
-      .map(buyer => ({
-        value: buyer.opt_id, // Используем оригинальный opt_id как value
-        label: `${buyer.full_name || 'Без имени'} (${buyer.opt_id})`,
-        searchText: `${buyer.full_name || ''} ${buyer.opt_id} ${normalizeOptId(buyer.opt_id || '')}`
-      }));
+      });
   }, [buyerProfiles]);
 
-  // Prepare seller options for OptimizedSelect
+  // Prepare seller options sorted by OPT_ID
   const sellerOptions = React.useMemo(() => {
     return sellerProfiles
-      .filter(seller => seller.id) // Убедимся что у продавца есть ID
+      .filter(seller => seller.id)
       .sort((a, b) => {
         const aOptId = a.opt_id || '';
         const bOptId = b.opt_id || '';
         return aOptId.localeCompare(bOptId);
-      })
-      .map(seller => ({
-        value: seller.id, // Используем ID как value для продавцов
-        label: seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени'),
-        searchText: `${seller.full_name || ''} ${seller.opt_id || ''}`
-      }));
+      });
   }, [sellerProfiles]);
 
   // Проверяем что выбранный покупатель существует в списке
   const selectedBuyerExists = React.useMemo(() => {
-    if (!buyerOptId) return true; // Пустое значение допустимо
+    if (!buyerOptId) return true;
     
-    // Ищем как по оригинальному значению, так и по нормализованному
     const normalizedSelected = normalizeOptId(buyerOptId);
-    return buyerOptions.some(option => {
-      const normalizedOption = normalizeOptId(option.value);
-      return option.value === buyerOptId || normalizedOption === normalizedSelected;
+    return buyerOptions.some(buyer => {
+      const normalizedOption = normalizeOptId(buyer.opt_id || '');
+      return buyer.opt_id === buyerOptId || normalizedOption === normalizedSelected;
     });
   }, [buyerOptId, buyerOptions]);
 
   // Проверяем что выбранный продавец существует в списке
   const selectedSellerExists = React.useMemo(() => {
-    if (!sellerId) return true; // Пустое значение допустимо
-    return sellerOptions.some(option => option.value === sellerId);
+    if (!sellerId) return true;
+    return sellerOptions.some(seller => seller.id === sellerId);
   }, [sellerId, sellerOptions]);
 
   // Найдем выбранного покупателя для отображения дополнительной информации
@@ -97,14 +86,22 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
-          <OptimizedSelect
-            options={buyerOptions}
+          <Select
             value={buyerOptId}
             onValueChange={onBuyerOptIdChange}
-            placeholder="Выберите покупателя..."
-            searchPlaceholder="Поиск по имени или OPT_ID..."
             disabled={disabled}
-          />
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Выберите покупателя..." />
+            </SelectTrigger>
+            <SelectContent>
+              {buyerOptions.map((buyer) => (
+                <SelectItem key={buyer.id} value={buyer.opt_id}>
+                  {buyer.full_name || 'Без имени'} ({buyer.opt_id})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {!selectedBuyerExists && buyerOptId && (
             <p className="text-sm text-red-600 mt-1">
               Покупатель с OPT_ID "{buyerOptId}" не найден в списке. Проверьте правильность написания.
@@ -131,14 +128,22 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
         {!hideSeller && (
           <div>
             <Label htmlFor="sellerId">Продавец *</Label>
-            <OptimizedSelect
-              options={sellerOptions}
+            <Select
               value={sellerId}
               onValueChange={onSellerIdChange}
-              placeholder="Выберите продавца..."
-              searchPlaceholder="Поиск продавца..."
               disabled={disabled}
-            />
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите продавца..." />
+              </SelectTrigger>
+              <SelectContent>
+                {sellerOptions.map((seller) => (
+                  <SelectItem key={seller.id} value={seller.id}>
+                    {seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {!selectedSellerExists && sellerId && (
               <p className="text-sm text-red-600 mt-1">
                 Выбранный продавец не найден в списке
