@@ -282,7 +282,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
               </Button>
             </SheetClose>
           </div>
-          <ScrollArea className="flex-grow my-2">
+          <ScrollArea className="flex-1 my-2">
             <PreviewContent />
           </ScrollArea>
           {/* Actions - фиксированные внизу для мобильного */}
@@ -298,17 +298,17 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
         <DialogHeader>
           <DialogTitle>Предпросмотр заказа</DialogTitle>
           <DialogDescription>
             Проверьте данные перед созданием заказа
           </DialogDescription>
         </DialogHeader>
-        <div className="flex-1 overflow-y-auto px-2">
+        <ScrollArea className="flex-1 pr-4 max-h-[calc(90vh-200px)]">
           <PreviewContent />
-        </div>
-        <DialogFooter className="flex justify-between gap-3 mt-6">
+        </ScrollArea>
+        <DialogFooter className="flex justify-between gap-3 mt-6 pt-4 border-t">
           <ActionButtons />
         </DialogFooter>
       </DialogContent>
