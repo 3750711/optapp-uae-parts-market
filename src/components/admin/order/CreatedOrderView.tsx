@@ -1,13 +1,14 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import OptimizedOrderImages from "@/components/order/OptimizedOrderImages";
-import { OptimizedOrderVideos } from "@/components/order/OptimizedOrderVideos";
-import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
-import { CheckCircle, Package, User, MapPin, Phone, MessageCircle, Calendar, Hash, DollarSign } from "lucide-react";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Plus, ExternalLink, Copy, Check } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
+import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 
 interface CreatedOrderViewProps {
   order: any;
@@ -18,218 +19,255 @@ interface CreatedOrderViewProps {
   onOrderUpdate: (order: any) => void;
 }
 
-export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({ 
-  order, 
-  images, 
+export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
+  order,
+  images,
   videos = [],
-  onBack, 
-  onNewOrder, 
-  onOrderUpdate 
+  onBack,
+  onNewOrder,
+  onOrderUpdate
 }) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ru-RU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const copyOrderNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(order.order_number.toString());
+      setCopied(true);
+      toast({
+        title: "Скопировано",
+        description: "Номер заказа скопирован в буфер обмена",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось скопировать номер заказа",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'created': return 'bg-blue-100 text-blue-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-green-100 text-green-800';
+      case 'processing': return 'bg-orange-100 text-orange-800';
+      case 'shipped': return 'bg-purple-100 text-purple-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'created': return 'Создан';
+      case 'pending': return 'В ожидании';
+      case 'confirmed': return 'Подтвержден';
+      case 'processing': return 'В обработке';
+      case 'shipped': return 'Отправлен';
+      case 'delivered': return 'Доставлен';
+      case 'cancelled': return 'Отменен';
+      default: return status;
+    }
   };
 
   const getDeliveryMethodText = (method: string) => {
     switch (method) {
-      case 'cargo_rf': return 'Доставка Cargo РФ';
-      case 'cargo_kz': return 'Доставка Cargo KZ';
       case 'self_pickup': return 'Самовывоз';
+      case 'cargo_rf': return 'Карго РФ';
+      case 'cargo_kz': return 'Карго КЗ';
       default: return method;
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Success Header */}
-      <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Назад
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-green-600">
+              Заказ успешно создан!
+            </h1>
+            <p className="text-gray-600">
+              Заказ #{order.order_number} был создан и сохранен в системе
+            </p>
           </div>
-          <CardTitle className="text-2xl text-green-800">Заказ успешно создан!</CardTitle>
-          <CardDescription className="text-green-700">
-            Заказ #{order.order_number} был создан и готов к обработке
-          </CardDescription>
-          <div className="flex justify-center gap-4 mt-6">
-            <Button variant="outline" onClick={onBack}>
-              Вернуться в панель
-            </Button>
-            <Button onClick={onNewOrder}>
-              Создать новый заказ
-            </Button>
+        </div>
+        <Button onClick={onNewOrder}>
+          <Plus className="h-4 w-4 mr-2" />
+          Создать новый заказ
+        </Button>
+      </div>
+
+      {/* Order Info Card */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-3">
+              <span>Информация о заказе</span>
+              <Badge className={getStatusColor(order.status)}>
+                {getStatusText(order.status)}
+              </Badge>
+            </CardTitle>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-500">№ {order.order_number}</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyOrderNumber}
+                className="h-8 w-8 p-0"
+              >
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
-      </Card>
-
-      {/* Order Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Order Info */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Package className="w-5 h-5 text-blue-600" />
-                  <CardTitle>Информация о заказе</CardTitle>
-                </div>
-                <OrderStatusBadge status={order.status} />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center gap-2">
-                  <Hash className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Номер заказа:</span>
-                  <span>#{order.order_number}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Создан:</span>
-                  <span>{formatDate(order.created_at)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Цена:</span>
-                  <span className="font-semibold text-green-600">{order.price} AED</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Package className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Количество мест:</span>
-                  <span>{order.place_number}</span>
-                </div>
-              </div>
-
-              <Separator />
-
+        <CardContent className="space-y-6">
+          {/* Basic Info */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
               <div>
-                <h3 className="font-medium text-lg mb-2">{order.title}</h3>
-                {(order.brand || order.model) && (
-                  <div className="flex gap-2 mb-3">
-                    {order.brand && <Badge variant="secondary">{order.brand}</Badge>}
-                    {order.model && <Badge variant="outline">{order.model}</Badge>}
-                  </div>
-                )}
-                {order.text_order && (
-                  <p className="text-gray-600 bg-gray-50 p-3 rounded-md">{order.text_order}</p>
-                )}
+                <label className="text-sm font-medium text-gray-500">Название</label>
+                <p className="text-lg font-semibold">{order.title}</p>
               </div>
-
-              <Separator />
-
               <div>
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  Доставка
-                </h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Способ доставки:</span>
-                    <Badge variant="outline">{getDeliveryMethodText(order.delivery_method)}</Badge>
-                  </div>
-                  {order.delivery_price_confirm > 0 && (
-                    <div className="flex justify-between">
-                      <span>Стоимость доставки:</span>
-                      <span className="font-medium">{order.delivery_price_confirm} AED</span>
-                    </div>
-                  )}
-                </div>
+                <label className="text-sm font-medium text-gray-500">Цена</label>
+                <p className="text-lg font-semibold text-green-600">
+                  ${order.price}
+                </p>
               </div>
-            </CardContent>
-          </Card>
+              {order.delivery_price_confirm && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Стоимость доставки</label>
+                  <p className="text-lg font-semibold">
+                    ${order.delivery_price_confirm}
+                  </p>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium text-gray-500">Способ доставки</label>
+                <p className="text-lg">{getDeliveryMethodText(order.delivery_method)}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              {order.brand && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Бренд</label>
+                  <p className="text-lg">{order.brand}</p>
+                </div>
+              )}
+              {order.model && (
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Модель</label>
+                  <p className="text-lg">{order.model}</p>
+                </div>
+              )}
+              <div>
+                <label className="text-sm font-medium text-gray-500">Количество мест</label>
+                <p className="text-lg">{order.place_number}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500">Дата создания</label>
+                <p className="text-lg">
+                  {new Date(order.created_at).toLocaleDateString('ru-RU', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </p>
+              </div>
+            </div>
+          </div>
 
-          {/* Media Section */}
+          {order.text_order && (
+            <>
+              <Separator />
+              <div>
+                <label className="text-sm font-medium text-gray-500">Дополнительная информация</label>
+                <p className="mt-2 text-gray-700 whitespace-pre-wrap">{order.text_order}</p>
+              </div>
+            </>
+          )}
+
+          {/* Participants */}
+          <Separator />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Продавец</h3>
+              <div className="space-y-2">
+                <p><span className="text-gray-500">Имя:</span> {order.order_seller_name}</p>
+                {order.seller_opt_id && (
+                  <p><span className="text-gray-500">OPT ID:</span> {order.seller_opt_id}</p>
+                )}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Покупатель</h3>
+              <div className="space-y-2">
+                {order.buyer_opt_id && (
+                  <p><span className="text-gray-500">OPT ID:</span> {order.buyer_opt_id}</p>
+                )}
+                {order.telegram_url_buyer && (
+                  <p><span className="text-gray-500">Telegram:</span> {order.telegram_url_buyer}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Media */}
           {(images.length > 0 || videos.length > 0) && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Медиафайлы заказа</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Медиафайлы</h3>
+                
                 {images.length > 0 && (
                   <div>
-                    <h3 className="font-medium mb-3">Изображения ({images.length})</h3>
-                    <OptimizedOrderImages images={images} />
+                    <h4 className="text-md font-medium mb-2">Изображения ({images.length})</h4>
+                    <OptimizedOrderImages 
+                      images={images} 
+                      orderTitle={order.title}
+                    />
                   </div>
                 )}
                 
                 {videos.length > 0 && (
                   <div>
-                    <h3 className="font-medium mb-3">Видео ({videos.length})</h3>
+                    <h4 className="text-md font-medium mb-2">Видео ({videos.length})</h4>
                     <OptimizedOrderVideos videos={videos} />
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Participants Sidebar */}
-        <div className="space-y-6">
-          {/* Seller Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-600" />
-                Продавец
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div>
-                <p className="font-medium">{order.order_seller_name || 'Не указано'}</p>
-                {order.seller_opt_id && (
-                  <p className="text-sm text-gray-600">OPT ID: {order.seller_opt_id}</p>
-                )}
               </div>
-              {order.telegram_url_order && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MessageCircle className="w-4 h-4 text-blue-500" />
-                  <span className="text-blue-600">@{order.telegram_url_order}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
-          {/* Buyer Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5 text-green-600" />
-                Покупатель
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {order.buyer_opt_id && (
-                <div>
-                  <p className="font-medium">OPT ID: {order.buyer_opt_id}</p>
-                </div>
-              )}
-              {order.telegram_url_buyer && (
-                <div className="flex items-center gap-2 text-sm">
-                  <MessageCircle className="w-4 h-4 text-blue-500" />
-                  <span className="text-blue-600">@{order.telegram_url_buyer}</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Order Type */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Тип заказа</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Badge variant="secondary" className="w-full justify-center py-2">
-                {order.order_created_type === 'free_order' ? 'Свободный заказ' : 'Заказ из товара'}
-              </Badge>
-            </CardContent>
-          </Card>
-        </div>
+      {/* Actions */}
+      <div className="flex justify-center space-x-4">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Вернуться к списку
+        </Button>
+        <Button onClick={onNewOrder}>
+          <Plus className="h-4 w-4 mr-2" />
+          Создать новый заказ
+        </Button>
       </div>
     </div>
   );

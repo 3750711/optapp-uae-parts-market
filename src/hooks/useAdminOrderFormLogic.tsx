@@ -6,7 +6,7 @@ import { useDebounceValue } from '@/hooks/useDebounceValue';
 import { useAdminOrderFormData } from './admin-order/useAdminOrderFormData';
 import { useAdminOrderInitialization } from './admin-order/useAdminOrderInitialization';
 import { useAdminOrderSubmission } from './admin-order/useAdminOrderSubmission';
-import { CarBrand, CarModel } from './admin-order/types';
+import { CarBrand, CarModel, BuyerProfile, SellerProfile } from '@/types/order';
 
 export interface AdminOrderFormLogicReturn {
   // Form data
@@ -22,9 +22,9 @@ export interface AdminOrderFormLogicReturn {
   setAllImages: (urls: string[]) => void;
   
   // Profiles
-  buyerProfiles: any[];
-  sellerProfiles: any[];
-  selectedSeller: any;
+  buyerProfiles: BuyerProfile[];
+  sellerProfiles: SellerProfile[];
+  selectedSeller: SellerProfile | null;
   
   // Car data
   brands: CarBrand[];
