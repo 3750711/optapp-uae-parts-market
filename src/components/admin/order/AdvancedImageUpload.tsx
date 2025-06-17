@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -83,7 +82,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       };
 
       const uploadedUrls = await uploadFiles(validImageFiles, {
-        orderId,
+        productId: orderId, // Changed from orderId to productId
         maxConcurrent: 1,
         disableToast: false,
         compressionOptions: getCompressionOptions(validImageFiles[0])
