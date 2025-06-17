@@ -1,13 +1,7 @@
 
 import React from "react";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import OptimizedSelect from "@/components/ui/OptimizedSelect";
 import { ProfileShort, SellerProfile } from "../types";
 
 interface SimpleParticipantsSectionProps {
@@ -31,18 +25,30 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
   disabled = false,
   hideSeller = false,
 }) => {
-  // Sort buyers by OPT_ID
-  const sortedBuyers = React.useMemo(() => {
-    return [...buyerProfiles].sort((a, b) => a.opt_id.localeCompare(b.opt_id));
+  // Prepare buyer options for OptimizedSelect
+  const buyerOptions = React.useMemo(() => {
+    return buyerProfiles
+      .sort((a, b) => a.opt_id.localeCompare(b.opt_id))
+      .map(buyer => ({
+        value: buyer.opt_id,
+        label: `${buyer.full_name} (${buyer.opt_id})`,
+        searchText: `${buyer.full_name} ${buyer.opt_id}`
+      }));
   }, [buyerProfiles]);
 
-  // Sort sellers by OPT_ID (handle cases where opt_id might be null/undefined)
-  const sortedSellers = React.useMemo(() => {
-    return [...sellerProfiles].sort((a, b) => {
-      const aOptId = a.opt_id || '';
-      const bOptId = b.opt_id || '';
-      return aOptId.localeCompare(bOptId);
-    });
+  // Prepare seller options for OptimizedSelect
+  const sellerOptions = React.useMemo(() => {
+    return sellerProfiles
+      .sort((a, b) => {
+        const aOptId = a.opt_id || '';
+        const bOptId = b.opt_id || '';
+        return aOptId.localeCompare(bOptId);
+      })
+      .map(seller => ({
+        value: seller.id,
+        label: seller.opt_id ? `${seller.full_name} (${seller.opt_id})` : seller.full_name,
+        searchText: `${seller.full_name} ${seller.opt_id || ''}`
+      }));
   }, [sellerProfiles]);
 
   return (
@@ -52,43 +58,31 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
-          <Select
+          <OptimizedSelect
+            options={buyerOptions}
             value={buyerOptId}
             onValueChange={onBuyerOptIdChange}
+            placeholder="Выберите покупателя..."
+            searchPlaceholder="Поиск по имени или OPT_ID..."
             disabled={disabled}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Выберите покупателя..." />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              {sortedBuyers.map(buyer => (
-                <SelectItem key={buyer.opt_id} value={buyer.opt_id}>
-                  {buyer.full_name} ({buyer.opt_id})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            maxHeight={200}
+            itemHeight={35}
+          />
         </div>
 
         {!hideSeller && (
           <div>
             <Label htmlFor="sellerId">Продавец *</Label>
-            <Select
+            <OptimizedSelect
+              options={sellerOptions}
               value={sellerId}
               onValueChange={onSellerIdChange}
+              placeholder="Выберите продавца..."
+              searchPlaceholder="Поиск продавца..."
               disabled={disabled}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Выберите продавца..." />
-              </SelectTrigger>
-              <SelectContent className="max-h-[300px]">
-                {sortedSellers.map(seller => (
-                  <SelectItem key={seller.id} value={seller.id}>
-                    {seller.full_name} {seller.opt_id ? `(${seller.opt_id})` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              maxHeight={200}
+              itemHeight={35}
+            />
           </div>
         )}
       </div>

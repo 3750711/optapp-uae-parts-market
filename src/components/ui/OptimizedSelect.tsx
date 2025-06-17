@@ -1,11 +1,10 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Command, CommandInput, CommandItem, CommandList, CommandEmpty } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { FixedSizeList as List } from 'react-window';
 
 interface Option {
   value: string;
@@ -34,13 +33,11 @@ const OptimizedSelect: React.FC<OptimizedSelectProps> = ({
   className,
   disabled = false,
   maxHeight = 200,
-  itemHeight = 35
 }) => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const listRef = useRef<any>(null);
 
-  // Filtered options with memoization
+  // Simple filtered options without complex logic
   const filteredOptions = useMemo(() => {
     if (!searchTerm) return options;
     
@@ -54,52 +51,21 @@ const OptimizedSelect: React.FC<OptimizedSelectProps> = ({
 
   const selectedOption = options.find(option => option.value === value);
 
-  // Reset search when opening/closing
-  useEffect(() => {
-    if (!open) {
+  // Reset search when closing
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
       setSearchTerm('');
     }
-  }, [open]);
-
-  // Scroll to selected item when opening
-  useEffect(() => {
-    if (open && selectedOption && listRef.current) {
-      const index = filteredOptions.findIndex(option => option.value === value);
-      if (index >= 0) {
-        listRef.current.scrollToItem(index, 'center');
-      }
-    }
-  }, [open, selectedOption, filteredOptions, value]);
+  };
 
   const handleSelect = (optionValue: string) => {
     onValueChange(optionValue);
     setOpen(false);
   };
 
-  // Virtualized item renderer
-  const Item = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const option = filteredOptions[index];
-    const isSelected = option.value === value;
-
-    return (
-      <div style={style}>
-        <CommandItem
-          value={option.value}
-          onSelect={() => handleSelect(option.value)}
-          className={cn(
-            "flex items-center justify-between cursor-pointer px-3 py-2 text-sm",
-            isSelected && "bg-accent text-accent-foreground"
-          )}
-        >
-          <span className="truncate">{option.label}</span>
-          {isSelected && <Check className="h-4 w-4 text-primary" />}
-        </CommandItem>
-      </div>
-    );
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -130,20 +96,24 @@ const OptimizedSelect: React.FC<OptimizedSelectProps> = ({
               className="flex h-11 w-full rounded-md bg-background py-3 text-sm outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
-          <CommandList className="bg-background">
+          <CommandList className="bg-background" style={{ maxHeight: `${maxHeight}px` }}>
             {filteredOptions.length === 0 ? (
               <CommandEmpty className="bg-background">Ничего не найдено</CommandEmpty>
             ) : (
-              <List
-                ref={listRef}
-                height={Math.min(maxHeight, filteredOptions.length * itemHeight)}
-                width="100%"
-                itemCount={filteredOptions.length}
-                itemSize={itemHeight}
-                className="overflow-auto bg-background"
-              >
-                {Item}
-              </List>
+              filteredOptions.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.value}
+                  onSelect={() => handleSelect(option.value)}
+                  className={cn(
+                    "flex items-center justify-between cursor-pointer px-3 py-2 text-sm",
+                    option.value === value && "bg-accent text-accent-foreground"
+                  )}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {option.value === value && <Check className="h-4 w-4 text-primary" />}
+                </CommandItem>
+              ))
             )}
           </CommandList>
         </Command>
