@@ -69,16 +69,6 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
     return sellerOptions.some(seller => seller.id === sellerId);
   }, [sellerId, sellerOptions]);
 
-  // Найдем выбранного покупателя для отображения дополнительной информации
-  const selectedBuyer = React.useMemo(() => {
-    if (!buyerOptId) return null;
-    const normalizedSelected = normalizeOptId(buyerOptId);
-    return buyerProfiles.find(buyer => {
-      const normalizedBuyer = normalizeOptId(buyer.opt_id || '');
-      return buyer.opt_id === buyerOptId || normalizedBuyer === normalizedSelected;
-    });
-  }, [buyerOptId, buyerProfiles]);
-
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Участники заказа</h3>
@@ -107,22 +97,11 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
               Покупатель с OPT_ID "{buyerOptId}" не найден в списке. Проверьте правильность написания.
             </p>
           )}
-          {selectedBuyer && (
-            <div className="text-sm text-gray-600 mt-1">
-              <p>✅ Найден: {selectedBuyer.full_name}</p>
-              {selectedBuyer.telegram && (
-                <p>📱 Telegram: {selectedBuyer.telegram}</p>
-              )}
-            </div>
-          )}
           {buyerOptions.length === 0 && (
             <p className="text-sm text-gray-500 mt-1">
               Нет доступных профилей покупателей с OPT_ID
             </p>
           )}
-          <p className="text-xs text-gray-500 mt-1">
-            Доступно покупателей: {buyerOptions.length}
-          </p>
         </div>
 
         {!hideSeller && (
@@ -154,9 +133,6 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
                 Нет доступных профилей продавцов
               </p>
             )}
-            <p className="text-xs text-gray-500 mt-1">
-              Доступно продавцов: {sellerOptions.length}
-            </p>
           </div>
         )}
       </div>

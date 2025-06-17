@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SimpleParticipantsSection } from './sections/SimpleParticipantsSection';
@@ -58,12 +59,6 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
     }
   };
 
-  const handleAddDataFromProduct = () => {
-    if (onDataFromProduct) {
-      onDataFromProduct({});
-    }
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -74,8 +69,6 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           <ProductInfoSection
             title={formData.title || ''}
             onTitleChange={(value) => handleInputChange('title', value)}
-            selectedSeller={selectedSeller}
-            onAddDataFromProduct={handleAddDataFromProduct}
             onTitleBlur={handleTitleBlur}
             disabled={disabled}
           />

@@ -70,85 +70,11 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
   onDataFromProduct,
   disabled = false,
 }) => {
-  const [showProductsDialog, setShowProductsDialog] = useState(false);
-
-  const handleAddDataFromProduct = () => {
-    if (!selectedSeller) {
-      toast({
-        title: "Внимание",
-        description: "Сначала выберите продавца",
-        variant: "destructive",
-      });
-      return;
-    }
-    setShowProductsDialog(true);
-  };
-
-  const handleProductSelect = (product: Product) => {
-    console.log("Selected product:", product);
-
-    // Обновляем поля формы данными из товара
-    handleInputChange('title', product.title);
-    handleInputChange('price', product.price.toString());
-    
-    if (product.brand) {
-      // Найти ID бренда по имени
-      const brandObj = brands.find(b => b.name.toLowerCase() === product.brand?.toLowerCase());
-      if (brandObj) {
-        handleInputChange('brandId', brandObj.id);
-      }
-    }
-    
-    if (product.model) {
-      // Найти ID модели по имени
-      const modelObj = brandModels.find(m => m.name.toLowerCase() === product.model?.toLowerCase());
-      if (modelObj) {
-        handleInputChange('modelId', modelObj.id);
-      }
-    }
-
-    if (product.delivery_price) {
-      handleInputChange('delivery_price', product.delivery_price.toString());
-    }
-
-    if (product.place_number) {
-      handleInputChange('place_number', product.place_number.toString());
-    }
-
-    // Копируем изображения товара
-    if (product.product_images && product.product_images.length > 0 && onImagesUpload) {
-      const imageUrls = product.product_images.map(img => img.url);
-      onImagesUpload(imageUrls);
-    }
-
-    // Копируем видео товара
-    if (product.product_videos && product.product_videos.length > 0 && onVideosUpload) {
-      const videoUrls = product.product_videos.map(video => video.url);
-      onVideosUpload(videoUrls);
-    }
-
-    // Вызываем парсинг названия для автозаполнения бренда/модели
-    parseTitleForBrand(product.title);
-
-    // Передаем данные в родительский компонент, если нужно
-    if (onDataFromProduct) {
-      onDataFromProduct(product);
-    }
-
-    const mediaCount = (product.product_images?.length || 0) + (product.product_videos?.length || 0);
-    toast({
-      title: "Данные скопированы",
-      description: `Данные из товара "${product.title}" успешно добавлены в форму${mediaCount > 0 ? ` (медиафайлов: ${mediaCount})` : ''}`,
-    });
-  };
-
   return (
     <div className="space-y-6">
       <ProductInfoSection
         title={formData.title}
         onTitleChange={(value) => handleInputChange('title', value)}
-        selectedSeller={selectedSeller}
-        onAddDataFromProduct={handleAddDataFromProduct}
         onTitleBlur={parseTitleForBrand}
         disabled={disabled}
       />
@@ -197,15 +123,6 @@ export const OrderFormFields: React.FC<OrderFormFieldsProps> = ({
         onPlaceNumberChange={(value) => handleInputChange('place_number', value)}
         onTextOrderChange={(value) => handleInputChange('text_order', value)}
         disabled={disabled}
-      />
-
-      {/* Диалог выбора товаров продавца */}
-      <SellerProductsDialog
-        open={showProductsDialog}
-        onOpenChange={setShowProductsDialog}
-        sellerId={selectedSeller?.id || null}
-        sellerName={selectedSeller?.full_name || ""}
-        onProductSelect={handleProductSelect}
       />
     </div>
   );
