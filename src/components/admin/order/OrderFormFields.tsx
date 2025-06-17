@@ -1,6 +1,6 @@
 
 import React, { useState } from "react";
-import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
+import { OrderFormData, SellerProfile, BuyerProfile, DeliveryMethod } from "@/types/order";
 import SellerProductsDialog from "./SellerProductsDialog";
 import { toast } from "@/hooks/use-toast";
 import { ProductInfoSection } from "./sections/ProductInfoSection";
@@ -13,7 +13,7 @@ import { OrderDetailsSection } from "./sections/OrderDetailsSection";
 interface OrderFormFieldsProps {
   formData: OrderFormData;
   handleInputChange: (field: string, value: string) => void;
-  buyerProfiles: ProfileShort[];
+  buyerProfiles: BuyerProfile[];
   sellerProfiles: SellerProfile[];
   selectedSeller: SellerProfile | null;
   // Car brand and model props
