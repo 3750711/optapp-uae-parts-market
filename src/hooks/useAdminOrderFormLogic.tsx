@@ -54,13 +54,10 @@ export interface AdminOrderFormLogicReturn {
   creationStage: string;
   creationProgress: number;
   
-  // Enhanced initialization states
+  // Simplified initialization (no more enhanced states)
   isInitializing: boolean;
   initializationError: string | null;
   hasAdminAccess: boolean;
-  initializationStage: string;
-  initializationProgress: number;
-  forceComplete: () => void;
 }
 
 export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
@@ -81,15 +78,12 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     resetForm
   } = useAdminOrderFormData();
 
-  // Initialization
+  // Simplified initialization - no more enhanced states
   const {
     isInitializing,
     error: initializationError,
-    stage: initializationStage,
-    progress: initializationProgress,
     buyerProfiles,
     sellerProfiles,
-    forceComplete,
     hasAdminAccess
   } = useAdminOrderInitialization();
 
@@ -189,7 +183,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     return { brand: '', model: '' };
   }, [brands, brandModels, handleBrandChange, baseHandleModelChange]);
 
-  // Enhanced submit handler
+  // Enhanced submit handler with video support
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     await baseHandleSubmit(formData, images, videos);
@@ -246,12 +240,9 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     creationStage,
     creationProgress,
     
-    // Enhanced initialization states
+    // Simplified initialization
     isInitializing,
     initializationError,
-    hasAdminAccess,
-    initializationStage,
-    initializationProgress,
-    forceComplete
+    hasAdminAccess
   };
 };

@@ -3,12 +3,14 @@ import React from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import SellerOrderFormFields from './SellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
+import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
-import { EnhancedInitializationState } from './EnhancedInitializationState';
 import { Button } from '@/components/ui/button';
-import { Loader } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader, AlertCircle } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export const AdminFreeOrderForm = () => {
   const {
@@ -18,7 +20,9 @@ export const AdminFreeOrderForm = () => {
     
     // Media
     images,
+    videos,
     setAllImages,
+    setVideos,
     
     // Profiles and car data
     buyerProfiles,
@@ -46,13 +50,10 @@ export const AdminFreeOrderForm = () => {
     // Utils
     parseTitleForBrand,
     
-    // Enhanced initialization
+    // Simplified initialization
     isInitializing,
     initializationError,
     hasAdminAccess,
-    initializationStage,
-    initializationProgress,
-    forceComplete,
     navigate
   } = useAdminOrderFormLogic();
 
@@ -70,7 +71,7 @@ export const AdminFreeOrderForm = () => {
 
   // Handle media upload for orders
   const onImagesUpload = (urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: New images uploaded via advanced upload:', urls);
+    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
     setAllImages(urls);
   };
 
@@ -81,9 +82,16 @@ export const AdminFreeOrderForm = () => {
     setAllImages(newImages);
   };
 
-  // Handle setting primary image
-  const onSetPrimaryImage = (url: string) => {
-    console.log('⭐ AdminFreeOrderForm: Primary image set:', url);
+  // Handle video upload
+  const onVideoUpload = (urls: string[]) => {
+    console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
+    setVideos(prev => [...prev, ...urls]);
+  };
+
+  // Handle video deletion
+  const onVideoDelete = (url: string) => {
+    console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
+    setVideos(prev => prev.filter(video => video !== url));
   };
 
   // Protected form submission handler
@@ -94,43 +102,49 @@ export const AdminFreeOrderForm = () => {
     });
   };
 
-  // Handle retry initialization
-  const handleRetry = () => {
-    window.location.reload();
-  };
-
-  // Handle back navigation
-  const handleBack = () => {
-    navigate('/admin/dashboard');
-  };
-
-  // Enhanced initialization state with better UX
-  if (isInitializing || initializationError) {
+  // Simplified loading state
+  if (isInitializing) {
     return (
-      <EnhancedInitializationState
-        isInitializing={isInitializing}
-        initializationError={initializationError}
-        initializationStage={initializationStage}
-        initializationProgress={initializationProgress}
-        onForceComplete={forceComplete}
-        onBack={handleBack}
-        onRetry={handleRetry}
-      />
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Загрузка данных для создания заказа...</p>
+        </div>
+      </div>
     );
   }
 
-  // Access denied state (backup - should be handled in initialization)
+  // Simplified error state
+  if (initializationError) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {initializationError}
+          <div className="mt-2">
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Попробовать снова
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  // Access denied state
   if (!hasAdminAccess) {
     return (
-      <EnhancedInitializationState
-        isInitializing={false}
-        initializationError="У вас нет прав администратора для создания заказов"
-        initializationStage="access_denied"
-        initializationProgress={100}
-        onForceComplete={forceComplete}
-        onBack={handleBack}
-        onRetry={handleRetry}
-      />
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          У вас нет прав администратора для создания заказов
+          <div className="mt-2">
+            <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
+              Вернуться в панель
+            </Button>
+          </div>
+        </AlertDescription>
+      </Alert>
     );
   }
 
@@ -140,7 +154,8 @@ export const AdminFreeOrderForm = () => {
       <CreatedOrderView
         order={createdOrder}
         images={images}
-        onBack={() => window.history.back()}
+        videos={videos}
+        onBack={() => navigate('/admin/dashboard')}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
       />
@@ -151,7 +166,7 @@ export const AdminFreeOrderForm = () => {
 
   return (
     <div className="space-y-8">
-      {/* Order Form Fields with Enhanced Brand/Model Selection */}
+      {/* Order Form Fields */}
       <SellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
@@ -175,15 +190,38 @@ export const AdminFreeOrderForm = () => {
         disabled={isFormDisabled}
       />
       
-      {/* Advanced Image Upload Section with all optimizations */}
-      <AdvancedImageUpload
-        images={images}
-        onImagesUpload={onImagesUpload}
-        onImageDelete={onImageDelete}
-        onSetPrimaryImage={onSetPrimaryImage}
-        disabled={isFormDisabled}
-        maxImages={25}
-      />
+      {/* Media Upload Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Медиафайлы заказа</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Image Upload */}
+          <div>
+            <h3 className="text-lg font-medium mb-4">Изображения</h3>
+            <AdvancedImageUpload
+              images={images}
+              onImagesUpload={onImagesUpload}
+              onImageDelete={onImageDelete}
+              onSetPrimaryImage={() => {}} // Not used for orders
+              disabled={isFormDisabled}
+              maxImages={25}
+            />
+          </div>
+
+          {/* Video Upload */}
+          <div>
+            <h3 className="text-lg font-medium mb-4">Видео</h3>
+            <CloudinaryVideoUpload
+              videos={videos}
+              onUpload={onVideoUpload}
+              onDelete={onVideoDelete}
+              maxVideos={5}
+              disabled={isFormDisabled}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Submit Button */}
       <div className="flex justify-end pt-6 border-t">

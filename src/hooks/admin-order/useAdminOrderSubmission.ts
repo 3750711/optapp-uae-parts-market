@@ -29,7 +29,7 @@ export const useAdminOrderSubmission = () => {
       setSubmissionState({ isLoading: true, stage: 'validating', progress: 10 });
       console.log('🚀 Starting order submission process');
 
-      // Используем обновленную валидацию которая возвращает и ошибки и покупателя
+      // Use updated validation that returns both errors and buyer
       const { errors: validationErrors, buyer } = await validateForm(formData);
       if (validationErrors.length > 0) {
         console.log('❌ Validation errors:', validationErrors);
@@ -41,7 +41,7 @@ export const useAdminOrderSubmission = () => {
         return;
       }
 
-      // Проверяем что покупатель найден (уже найден в validateForm)
+      // Check that buyer was found
       if (!buyer) {
         console.log('❌ No buyer found after validation');
         throw new Error(`Покупатель с OPT_ID "${formData.buyerOptId}" не найден`);
@@ -58,7 +58,8 @@ export const useAdminOrderSubmission = () => {
         buyerId: buyer.id,
         buyerOptId: buyer.opt_id,
         sellerId: sellerIdToUse,
-        sellerName
+        sellerName,
+        videosCount: videos.length
       });
 
       const { data: order, error } = await supabase.rpc('admin_create_order', {
@@ -68,7 +69,7 @@ export const useAdminOrderSubmission = () => {
         p_seller_id: sellerIdToUse,
         p_order_seller_name: sellerName,
         p_seller_opt_id: '',
-        p_buyer_id: buyer.id, // Используем ID найденного покупателя
+        p_buyer_id: buyer.id, // Use ID of found buyer
         p_brand: formData.brand?.trim() || '',
         p_model: formData.model?.trim() || '',
         p_status: 'created',
@@ -87,7 +88,34 @@ export const useAdminOrderSubmission = () => {
       }
 
       console.log('✅ Order created successfully:', order);
-      setSubmissionState(prev => ({ ...prev, stage: 'fetching_order', progress: 80 }));
+      setSubmissionState(prev => ({ ...prev, stage: 'saving_videos', progress: 70 }));
+
+      // Save videos if any
+      if (videos.length > 0) {
+        console.log('💾 Saving videos to database:', videos);
+        const videoInserts = videos.map(videoUrl => ({
+          order_id: order,
+          url: videoUrl
+        }));
+
+        const { error: videoError } = await supabase
+          .from('order_videos')
+          .insert(videoInserts);
+
+        if (videoError) {
+          console.error('❌ Failed to save videos:', videoError);
+          // Don't fail the whole operation, just log
+          toast({
+            title: "Предупреждение",
+            description: "Заказ создан, но не удалось сохранить видео",
+            variant: "destructive"
+          });
+        } else {
+          console.log('✅ Videos saved successfully');
+        }
+      }
+
+      setSubmissionState(prev => ({ ...prev, stage: 'fetching_order', progress: 90 }));
 
       const { data: fetchedOrder, error: fetchError } = await supabase
         .from('orders')

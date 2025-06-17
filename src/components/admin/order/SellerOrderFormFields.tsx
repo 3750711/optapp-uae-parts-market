@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ParticipantsSection } from './sections/ParticipantsSection';
+import { SimpleParticipantsSection } from './sections/SimpleParticipantsSection';
 import { ProductInfoSection } from './sections/ProductInfoSection';
 import { CarBrandModelSection } from './sections/CarBrandModelSection';
 import { PricingSection } from './sections/PricingSection';
 import { OrderDetailsSection } from './sections/OrderDetailsSection';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface BuyerProfile {
   id: string;
@@ -79,48 +77,6 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
   onDataFromProduct,
   disabled = false
 }) => {
-  const [profilesStatus, setProfilesStatus] = useState<{
-    buyersCount: number;
-    sellersCount: number;
-    isLoading: boolean;
-  }>({ buyersCount: 0, sellersCount: 0, isLoading: true });
-
-  // Проверяем статус профилей для отладки
-  useEffect(() => {
-    const checkProfilesStatus = async () => {
-      try {
-        const [buyersResult, sellersResult] = await Promise.all([
-          supabase
-            .from('profiles')
-            .select('id', { count: 'exact' })
-            .eq('user_type', 'buyer'),
-          supabase
-            .from('profiles')
-            .select('id', { count: 'exact' })
-            .eq('user_type', 'seller')
-        ]);
-
-        console.log('📊 Profiles status check:', {
-          buyers: buyersResult.count || 0,
-          sellers: sellersResult.count || 0,
-          buyerProfilesLength: buyerProfiles.length,
-          sellerProfilesLength: sellerProfiles.length
-        });
-
-        setProfilesStatus({
-          buyersCount: buyersResult.count || 0,
-          sellersCount: sellersResult.count || 0,
-          isLoading: false
-        });
-      } catch (error) {
-        console.error('❌ Error checking profiles status:', error);
-        setProfilesStatus(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    checkProfilesStatus();
-  }, [buyerProfiles.length, sellerProfiles.length]);
-
   const handleTitleBlur = (title: string) => {
     if (title && parseTitleForBrand) {
       parseTitleForBrand(title);
@@ -135,17 +91,6 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Отладочная информация */}
-      {!profilesStatus.isLoading && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            База данных: Покупателей {profilesStatus.buyersCount}, Продавцов {profilesStatus.sellersCount} | 
-            Загружено: Покупателей {buyerProfiles.length}, Продавцов {sellerProfiles.length}
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Card>
         <CardHeader>
           <CardTitle>Основная информация о заказе</CardTitle>
@@ -191,7 +136,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
           <CardTitle>Участники сделки</CardTitle>
         </CardHeader>
         <CardContent>
-          <ParticipantsSection
+          <SimpleParticipantsSection
             buyerOptId={formData.buyerOptId || ''}
             sellerId={formData.sellerId || ''}
             onBuyerOptIdChange={(value) => handleInputChange('buyerOptId', value)}
@@ -209,7 +154,7 @@ const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
         </CardHeader>
         <CardContent>
           <OrderDetailsSection
-            deliveryMethod={formData.deliveryMethod || 'self_pickup'}
+            deliveryMethod={formData.deliveryMethod || 'cargo_rf'}
             placeNumber={formData.place_number || '1'}
             textOrder={formData.text_order || ''}
             onDeliveryMethodChange={(value) => handleInputChange('deliveryMethod', value)}

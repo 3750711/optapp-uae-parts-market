@@ -38,9 +38,9 @@ export const OrderDetailsSection: React.FC<OrderDetailsSectionProps> = ({
             <SelectValue placeholder="Выберите способ доставки" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="self_pickup">Самовывоз</SelectItem>
             <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
             <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+            <SelectItem value="self_pickup">Самовывоз</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -12,7 +12,7 @@ export const useAdminOrderFormData = () => {
     brandId: '',
     modelId: '',
     sellerId: '',
-    deliveryMethod: 'self_pickup' as const,
+    deliveryMethod: 'cargo_rf' as const, // Changed from 'self_pickup' to 'cargo_rf'
     place_number: '1',
     text_order: '',
     delivery_price: ''
@@ -64,7 +64,7 @@ export const useAdminOrderFormData = () => {
       brandId: '',
       modelId: '',
       sellerId: '',
-      deliveryMethod: 'self_pickup' as const,
+      deliveryMethod: 'cargo_rf' as const, // Reset to cargo_rf
       place_number: '1',
       text_order: '',
       delivery_price: ''
