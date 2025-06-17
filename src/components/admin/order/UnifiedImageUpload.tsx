@@ -1,8 +1,7 @@
-
 import React, { useCallback, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Upload, Loader2, X, Eye, Compress } from "lucide-react";
+import { Upload, Loader2, X, Eye, Minimize2 } from "lucide-react";
 import { useCloudinaryUpload } from '@/hooks/useCloudinaryUpload';
 import { cn } from "@/lib/utils";
 import imageCompression from 'browser-image-compression';
@@ -276,7 +275,7 @@ const UnifiedImageUpload: React.FC<UnifiedImageUploadProps> = ({
                       )}
                       {item.status === 'compressing' && (
                         <Badge variant="secondary" className="text-xs">
-                          <Compress className="h-2 w-2 mr-1" />
+                          <Minimize2 className="h-2 w-2 mr-1" />
                           Сжатие
                         </Badge>
                       )}
