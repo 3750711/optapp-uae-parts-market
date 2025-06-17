@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,7 @@ const SellerCreateOrder = () => {
         <CreatedOrderView
           order={createdOrder}
           images={images}
-          onBack={handleGoBack}
+          videos={videos}
           onNewOrder={resetForm}
           onOrderUpdate={handleOrderUpdate}
         />
