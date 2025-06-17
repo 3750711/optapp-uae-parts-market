@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Loader2, Upload, SkipForward, Check, AlertCircle, Video, RefreshCw } from "lucide-react";
@@ -17,6 +16,7 @@ import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ConfirmationImagesUploadDialogProps {
   open: boolean;
@@ -356,163 +356,164 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-4xl max-w-[95vw] p-4 sm:p-6">
-        <DialogHeader className="space-y-2">
-          <DialogTitle className="text-lg sm:text-xl flex items-center gap-2">
-            <Upload className="h-5 w-5" />
+      <DialogContent className="sm:max-w-3xl max-w-[95vw] sm:max-h-[90vh] max-h-[85vh] p-3 sm:p-6 flex flex-col">
+        <DialogHeader className="space-y-2 pb-2 sm:pb-4">
+          <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+            <Upload className="h-4 w-4 sm:h-5 sm:w-5" />
             Загрузка файлов подтверждения заказа
           </DialogTitle>
-          <DialogDescription className="text-sm">
+          <DialogDescription className="text-xs sm:text-sm">
             Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.
-            Файлы можно будет добавить позже на странице заказа.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Component readiness and session status */}
-          {!isComponentReady && (
-            <Alert>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertDescription>
-                Инициализация компонента... Пожалуйста, подождите.
-              </AlertDescription>
-            </Alert>
-          )}
+        <ScrollArea className="flex-1 pr-2">
+          <div className="space-y-3 sm:space-y-4">
+            {/* Component readiness and session status */}
+            {!isComponentReady && (
+              <Alert>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <AlertDescription className="text-xs sm:text-sm">
+                  Инициализация компонента... Пожалуйста, подождите.
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {/* Session lost alert with recovery option */}
-          {sessionLost && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <span>Сессия потеряна. Необходимо восстановить соединение для загрузки файлов.</span>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleSessionRecovery}
-                  className="ml-2 h-6 px-2 text-xs"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Восстановить
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+            {/* Session lost alert with recovery option */}
+            {sessionLost && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-xs sm:text-sm">Сессия потеряна. Необходимо восстановить соединение для загрузки файлов.</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleSessionRecovery}
+                    className="h-6 px-2 text-xs self-start sm:self-center"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Восстановить
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {/* Upload error alert */}
-          {uploadError && !sessionLost && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {uploadError}
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleReset}
-                  className="ml-2 h-6 px-2 text-xs"
-                >
-                  Попробовать снова
-                </Button>
-              </AlertDescription>
-            </Alert>
-          )}
+            {/* Upload error alert */}
+            {uploadError && !sessionLost && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-xs sm:text-sm">{uploadError}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleReset}
+                    className="h-6 px-2 text-xs self-start sm:self-center"
+                  >
+                    Попробовать снова
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
 
-          {/* Main content - only show if component is ready */}
-          {isComponentReady && !sessionLost && (
-            <>
-              {/* Tabs for photos and videos */}
-              <Tabs defaultValue="images" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="images" className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    Фотографии ({confirmImages.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="videos" className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    Видео ({confirmVideos.length})
-                  </TabsTrigger>
-                </TabsList>
+            {/* Main content - only show if component is ready */}
+            {isComponentReady && !sessionLost && (
+              <>
+                {/* Tabs for photos and videos */}
+                <Tabs defaultValue="images" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
+                    <TabsTrigger value="images" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                      <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
+                      Фото ({confirmImages.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="videos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                      <Video className="h-3 w-3 sm:h-4 sm:w-4" />
+                      Видео ({confirmVideos.length})
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="images" className="space-y-4 mt-4">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    <MobileOptimizedImageUpload
-                      onUploadComplete={handleImagesUpload}
-                      maxImages={10}
-                      existingImages={confirmImages}
-                      onImageDelete={handleImageDelete}
-                      disabled={isDisabled}
-                    />
+                  <TabsContent value="images" className="space-y-3 mt-3">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6">
+                      <MobileOptimizedImageUpload
+                        onUploadComplete={handleImagesUpload}
+                        maxImages={10}
+                        existingImages={confirmImages}
+                        onImageDelete={handleImageDelete}
+                        disabled={isDisabled}
+                      />
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="videos" className="space-y-3 mt-3">
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6">
+                      <CloudinaryVideoUpload
+                        videos={confirmVideos}
+                        onUpload={handleVideosUpload}
+                        onDelete={handleVideoDelete}
+                        maxVideos={5}
+                        productId={orderId}
+                        buttonText="Загрузить видео подтверждения"
+                        disabled={isDisabled}
+                      />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+
+                {/* Information about uploaded files */}
+                {totalFiles > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <Check className="h-4 w-4" />
+                      <span className="font-medium text-sm">
+                        Загружено {totalFiles} файлов подтверждения
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-600 mt-1">
+                      {confirmImages.length > 0 && `${confirmImages.length} фотографий`}
+                      {confirmImages.length > 0 && confirmVideos.length > 0 && ', '}
+                      {confirmVideos.length > 0 && `${confirmVideos.length} видео`}
+                      {' - файлы готовы к сохранению'}
+                    </p>
                   </div>
-                </TabsContent>
+                )}
 
-                <TabsContent value="videos" className="space-y-4 mt-4">
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                    <CloudinaryVideoUpload
-                      videos={confirmVideos}
-                      onUpload={handleVideosUpload}
-                      onDelete={handleVideoDelete}
-                      maxVideos={5}
-                      productId={orderId}
-                      buttonText="Загрузить видео подтверждения"
-                      disabled={isDisabled}
-                    />
-                  </div>
-                </TabsContent>
-              </Tabs>
-
-              {/* Information about uploaded files */}
-              {totalFiles > 0 && (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-green-700">
-                    <Check className="h-4 w-4" />
-                    <span className="font-medium">
-                      Загружено {totalFiles} файлов подтверждения
-                    </span>
-                  </div>
-                  <p className="text-sm text-green-600 mt-1">
-                    {confirmImages.length > 0 && `${confirmImages.length} фотографий`}
-                    {confirmImages.length > 0 && confirmVideos.length > 0 && ', '}
-                    {confirmVideos.length > 0 && `${confirmVideos.length} видео`}
-                    {' - файлы готовы к сохранению'}
-                  </p>
-                </div>
-              )}
-
-              {/* User hints */}
-              {totalFiles === 0 && !uploadError && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-2 text-blue-700">
-                    <Upload className="h-4 w-4 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-medium">Рекомендации по файлам подтверждения:</p>
-                      <ul className="mt-1 space-y-1 text-blue-600">
-                        <li>• Подпишите товар номером заказа и ID покупателя</li>
-                        <li>• Добавьте скриншот переписки если вы обсуждали детали с покупателем</li>
-                        <li>• Добавьте скриншот переписки с обсуждения цены</li>
-                      </ul>
-                      <p className="font-medium mt-2">Для видео:</p>
-                      <ul className="mt-1 space-y-1 text-blue-600">
-                        <li>• Добавьте больше видео если вы присылали их продавцу</li>
-                        <li>• Добавьте видео эндоскопии, масла и прокрутки для моторов</li>
-                      </ul>
+                {/* User hints */}
+                {totalFiles === 0 && !uploadError && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-start gap-2 text-blue-700">
+                      <Upload className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                      <div className="text-xs sm:text-sm">
+                        <p className="font-medium">Рекомендации по файлам подтверждения:</p>
+                        <ul className="mt-1 space-y-1 text-blue-600">
+                          <li>• Подпишите товар номером заказа и ID покупателя</li>
+                          <li>• Добавьте скриншот переписки если вы обсуждали детали с покупателем</li>
+                          <li>• Добавьте скриншот переписки с обсуждения цены</li>
+                        </ul>
+                        <p className="font-medium mt-2">Для видео:</p>
+                        <ul className="mt-1 space-y-1 text-blue-600">
+                          <li>• Добавьте больше видео если вы присылали их продавцу</li>
+                          <li>• Добавьте видео эндоскопии, масла и прокрутки для моторов</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                )}
+              </>
+            )}
+          </div>
+        </ScrollArea>
 
-        <DialogFooter className="flex sm:justify-between justify-between gap-3 mt-6">
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={onCancel}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t mt-auto">
+          <div className="flex gap-2 order-2 sm:order-1">
+            <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none h-10 text-sm">
               Отмена
             </Button>
             <Button 
               variant="secondary" 
               onClick={onSkip}
-              className="flex items-center gap-2"
+              className="flex-1 sm:flex-none h-10 text-sm flex items-center gap-1"
             >
-              <SkipForward className="h-4 w-4" />
+              <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
               Пропустить
             </Button>
           </div>
@@ -520,16 +521,16 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
           <Button
             onClick={handleSaveMedia}
             disabled={isDisabled || totalFiles === 0}
-            className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
+            className="bg-green-600 hover:bg-green-700 h-10 text-sm flex items-center gap-1 order-1 sm:order-2"
           >
             {isUploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                 Сохранение...
               </>
             ) : (
               <>
-                <Check className="h-4 w-4" />
+                <Check className="h-3 w-3 sm:h-4 sm:w-4" />
                 Сохранить и продолжить
               </>
             )}
