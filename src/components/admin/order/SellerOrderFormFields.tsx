@@ -1,54 +1,64 @@
 
-import React, { useState } from "react";
-import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
-import SellerProductsDialog from "./SellerProductsDialog";
-import { toast } from "@/hooks/use-toast";
-import { ProductInfoSection } from "./sections/ProductInfoSection";
-import { CarBrandModelSection } from "./sections/CarBrandModelSection";
-import { PricingSection } from "./sections/PricingSection";
-import { SimpleParticipantsSection } from "./sections/SimpleParticipantsSection";
-import { OrderDetailsSection } from "./sections/OrderDetailsSection";
+import React, { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ParticipantsSection } from './sections/ParticipantsSection';
+import { ProductInfoSection } from './sections/ProductInfoSection';
+import { CarBrandModelSection } from './sections/CarBrandModelSection';
+import { PricingSection } from './sections/PricingSection';
+import { OrderDetailsSection } from './sections/OrderDetailsSection';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface BuyerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+interface CarBrand {
+  id: string;
+  name: string;
+}
+
+interface CarModel {
+  id: string;
+  name: string;
+  brand_id: string;
+}
 
 interface SellerOrderFormFieldsProps {
-  formData: OrderFormData;
+  formData: any;
   handleInputChange: (field: string, value: string) => void;
-  buyerProfiles: ProfileShort[];
+  buyerProfiles: BuyerProfile[];
   sellerProfiles: SellerProfile[];
   selectedSeller: SellerProfile | null;
-  // Car brand and model props
-  brands: { id: string; name: string }[];
-  brandModels: { id: string; name: string; brand_id: string }[];
+  brands: CarBrand[];
+  brandModels: CarModel[];
   isLoadingCarData: boolean;
   searchBrandTerm: string;
   setSearchBrandTerm: (term: string) => void;
   searchModelTerm: string;
   setSearchModelTerm: (term: string) => void;
-  filteredBrands: { id: string; name: string }[];
-  filteredModels: { id: string; name: string; brand_id: string }[];
-  // Enhanced handlers for brand/model selection
+  filteredBrands: CarBrand[];
+  filteredModels: CarModel[];
   handleBrandChange?: (brandId: string, brandName: string) => void;
   handleModelChange?: (modelId: string, modelName: string) => void;
-  parseTitleForBrand: (title: string) => void;
-  onImagesUpload?: (urls: string[]) => void;
-  onVideosUpload?: (urls: string[]) => void;
-  onDataFromProduct?: (data: any) => void;
+  parseTitleForBrand: (title: string) => { brand: string; model: string };
+  onImagesUpload: (urls: string[]) => void;
+  onDataFromProduct: (data: any) => void;
   disabled?: boolean;
 }
 
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  lot_number: number;
-  delivery_price?: number;
-  place_number?: number;
-  product_images?: { url: string; is_primary?: boolean }[];
-  product_videos?: { url: string }[];
-}
-
-export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
+const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
   formData,
   handleInputChange,
   buyerProfiles,
@@ -67,161 +77,131 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
   handleModelChange,
   parseTitleForBrand,
   onImagesUpload,
-  onVideosUpload,
   onDataFromProduct,
-  disabled = false,
+  disabled = false
 }) => {
-  const [showProductsDialog, setShowProductsDialog] = useState(false);
+  const [profilesStatus, setProfilesStatus] = useState<{
+    buyersCount: number;
+    sellersCount: number;
+    isLoading: boolean;
+  }>({ buyersCount: 0, sellersCount: 0, isLoading: true });
 
-  console.log('🔧 SellerOrderFormFields render:', {
-    brandId: formData.brandId,
-    modelId: formData.modelId,
-    brandsCount: brands.length,
-    modelsCount: brandModels.length,
-    hasHandlers: !!handleBrandChange && !!handleModelChange
-  });
+  // Проверяем статус профилей для отладки
+  useEffect(() => {
+    const checkProfilesStatus = async () => {
+      try {
+        const [buyersResult, sellersResult] = await Promise.all([
+          supabase
+            .from('profiles')
+            .select('id', { count: 'exact' })
+            .eq('user_type', 'buyer'),
+          supabase
+            .from('profiles')
+            .select('id', { count: 'exact' })
+            .eq('user_type', 'seller')
+        ]);
 
-  const handleAddDataFromProduct = () => {
-    if (!selectedSeller) {
-      toast({
-        title: "Внимание",
-        description: "Товары будут загружены автоматически",
-        variant: "default",
-      });
-      return;
-    }
-    setShowProductsDialog(true);
-  };
+        console.log('📊 Profiles status check:', {
+          buyers: buyersResult.count || 0,
+          sellers: sellersResult.count || 0,
+          buyerProfilesLength: buyerProfiles.length,
+          sellerProfilesLength: sellerProfiles.length
+        });
 
-  const handleProductSelect = (product: Product) => {
-    console.log("Selected product:", product);
-
-    // Update form fields with product data
-    handleInputChange('title', product.title);
-    handleInputChange('price', product.price.toString());
-    
-    if (product.brand && handleBrandChange) {
-      const brandObj = brands.find(b => b.name.toLowerCase() === product.brand?.toLowerCase());
-      if (brandObj) {
-        handleBrandChange(brandObj.id, brandObj.name);
+        setProfilesStatus({
+          buyersCount: buyersResult.count || 0,
+          sellersCount: sellersResult.count || 0,
+          isLoading: false
+        });
+      } catch (error) {
+        console.error('❌ Error checking profiles status:', error);
+        setProfilesStatus(prev => ({ ...prev, isLoading: false }));
       }
-    }
-    
-    if (product.model && handleModelChange) {
-      const modelObj = brandModels.find(m => m.name.toLowerCase() === product.model?.toLowerCase());
-      if (modelObj) {
-        handleModelChange(modelObj.id, modelObj.name);
-      }
-    }
+    };
 
-    if (product.delivery_price) {
-      handleInputChange('delivery_price', product.delivery_price.toString());
-    }
-
-    if (product.place_number) {
-      handleInputChange('place_number', product.place_number.toString());
-    }
-
-    // Copy product images
-    if (product.product_images && product.product_images.length > 0 && onImagesUpload) {
-      const imageUrls = product.product_images.map(img => img.url);
-      onImagesUpload(imageUrls);
-    }
-
-    // Copy product videos
-    if (product.product_videos && product.product_videos.length > 0 && onVideosUpload) {
-      const videoUrls = product.product_videos.map(video => video.url);
-      onVideosUpload(videoUrls);
-    }
-
-    parseTitleForBrand(product.title);
-
-    if (onDataFromProduct) {
-      onDataFromProduct(product);
-    }
-
-    const mediaCount = (product.product_images?.length || 0) + (product.product_videos?.length || 0);
-    toast({
-      title: "Данные скопированы",
-      description: `Данные из товара "${product.title}" успешно добавлены в форму${mediaCount > 0 ? ` (медиафайлов: ${mediaCount})` : ''}`,
-    });
-  };
-
-  // Use enhanced handlers if available, fallback to basic handleInputChange
-  const onBrandChange = handleBrandChange || ((brandId: string, brandName: string) => {
-    handleInputChange('brandId', brandId);
-    handleInputChange('brand', brandName);
-  });
-
-  const onModelChange = handleModelChange || ((modelId: string, modelName: string) => {
-    handleInputChange('modelId', modelId);
-    handleInputChange('model', modelName);
-  });
+    checkProfilesStatus();
+  }, [buyerProfiles.length, sellerProfiles.length]);
 
   return (
     <div className="space-y-6">
-      <ProductInfoSection
-        title={formData.title}
-        onTitleChange={(value) => handleInputChange('title', value)}
-        selectedSeller={selectedSeller}
-        onAddDataFromProduct={handleAddDataFromProduct}
-        onTitleBlur={parseTitleForBrand}
-        disabled={disabled}
-      />
+      {/* Отладочная информация */}
+      {!profilesStatus.isLoading && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            База данных: Покупателей {profilesStatus.buyersCount}, Продавцов {profilesStatus.sellersCount} | 
+            Загружено: Покупателей {buyerProfiles.length}, Продавцов {sellerProfiles.length}
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <CarBrandModelSection
-        brandId={formData.brandId}
-        modelId={formData.modelId}
-        onBrandChange={onBrandChange}
-        onModelChange={onModelChange}
-        brands={brands}
-        filteredModels={filteredModels}
-        isLoadingCarData={isLoadingCarData}
-        searchBrandTerm={searchBrandTerm}
-        setSearchBrandTerm={setSearchBrandTerm}
-        searchModelTerm={searchModelTerm}
-        setSearchModelTerm={setSearchModelTerm}
-        filteredBrands={filteredBrands}
-        disabled={disabled}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Основная информация о заказе</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <ProductInfoSection
+            formData={formData}
+            handleInputChange={handleInputChange}
+            parseTitleForBrand={parseTitleForBrand}
+            disabled={disabled}
+          />
+          
+          <CarBrandModelSection
+            formData={formData}
+            handleInputChange={handleInputChange}
+            brands={brands}
+            brandModels={brandModels}
+            isLoadingCarData={isLoadingCarData}
+            searchBrandTerm={searchBrandTerm}
+            setSearchBrandTerm={setSearchBrandTerm}
+            searchModelTerm={searchModelTerm}
+            setSearchModelTerm={setSearchModelTerm}
+            filteredBrands={filteredBrands}
+            filteredModels={filteredModels}
+            handleBrandChange={handleBrandChange}
+            handleModelChange={handleModelChange}
+            disabled={disabled}
+          />
+          
+          <PricingSection
+            formData={formData}
+            handleInputChange={handleInputChange}
+            disabled={disabled}
+          />
+        </CardContent>
+      </Card>
 
-      <PricingSection
-        price={formData.price}
-        deliveryPrice={formData.delivery_price}
-        onPriceChange={(value) => handleInputChange('price', value)}
-        onDeliveryPriceChange={(value) => handleInputChange('delivery_price', value)}
-        disabled={disabled}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Участники сделки</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ParticipantsSection
+            formData={formData}
+            handleInputChange={handleInputChange}
+            buyerProfiles={buyerProfiles}
+            sellerProfiles={sellerProfiles}
+            selectedSeller={selectedSeller}
+            disabled={disabled}
+          />
+        </CardContent>
+      </Card>
 
-      <SimpleParticipantsSection
-        buyerOptId={formData.buyerOptId}
-        sellerId={formData.sellerId}
-        onBuyerOptIdChange={(value) => handleInputChange("buyerOptId", value)}
-        onSellerIdChange={(value) => handleInputChange("sellerId", value)}
-        buyerProfiles={buyerProfiles}
-        sellerProfiles={sellerProfiles}
-        disabled={disabled}
-        hideSeller={false}
-      />
-
-      <OrderDetailsSection
-        deliveryMethod={formData.deliveryMethod}
-        placeNumber={formData.place_number}
-        textOrder={formData.text_order}
-        onDeliveryMethodChange={(value) => handleInputChange('deliveryMethod', value)}
-        onPlaceNumberChange={(value) => handleInputChange('place_number', value)}
-        onTextOrderChange={(value) => handleInputChange('text_order', value)}
-        disabled={disabled}
-      />
-
-      {/* Seller Products Dialog */}
-      <SellerProductsDialog
-        open={showProductsDialog}
-        onOpenChange={setShowProductsDialog}
-        sellerId={selectedSeller?.id || null}
-        sellerName={selectedSeller?.full_name || ""}
-        onProductSelect={handleProductSelect}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Детали заказа</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <OrderDetailsSection
+            formData={formData}
+            handleInputChange={handleInputChange}
+            disabled={disabled}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
+
+export default SellerOrderFormFields;

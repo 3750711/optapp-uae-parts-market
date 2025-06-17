@@ -4,13 +4,13 @@ import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { OrderFormData } from '@/components/admin/order/types';
-import { CreatedOrder, SubmissionState } from './types';
+import { CreatedOrder, SubmissionState, BuyerProfile } from './types';
 import { useAdminOrderValidation } from './useAdminOrderValidation';
 
 export const useAdminOrderSubmission = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { validateForm, findBuyerByOptId, getSellerName } = useAdminOrderValidation();
+  const { validateForm, getSellerName } = useAdminOrderValidation();
 
   const [submissionState, setSubmissionState] = useState<SubmissionState>({
     isLoading: false,
@@ -27,9 +27,12 @@ export const useAdminOrderSubmission = () => {
   ): Promise<void> => {
     try {
       setSubmissionState({ isLoading: true, stage: 'validating', progress: 10 });
+      console.log('🚀 Starting order submission process');
 
-      const validationErrors = await validateForm(formData);
+      // Используем обновленную валидацию которая возвращает и ошибки и покупателя
+      const { errors: validationErrors, buyer } = await validateForm(formData);
       if (validationErrors.length > 0) {
+        console.log('❌ Validation errors:', validationErrors);
         toast({
           title: "Ошибки валидации",
           description: validationErrors.map(e => e.message).join('. '),
@@ -38,17 +41,25 @@ export const useAdminOrderSubmission = () => {
         return;
       }
 
-      setSubmissionState(prev => ({ ...prev, stage: 'fetching_buyer', progress: 30 }));
-
-      const buyer = await findBuyerByOptId(formData.buyerOptId.trim());
+      // Проверяем что покупатель найден (уже найден в validateForm)
       if (!buyer) {
+        console.log('❌ No buyer found after validation');
         throw new Error(`Покупатель с OPT_ID "${formData.buyerOptId}" не найден`);
       }
 
+      console.log('✅ Using cached buyer from validation:', buyer);
       setSubmissionState(prev => ({ ...prev, stage: 'creating_order', progress: 50 }));
 
       const sellerIdToUse = formData.sellerId || user?.id;
       const sellerName = sellerIdToUse ? await getSellerName(sellerIdToUse) : 'Unknown Seller';
+
+      console.log('📝 Creating order with data:', {
+        title: formData.title,
+        buyerId: buyer.id,
+        buyerOptId: buyer.opt_id,
+        sellerId: sellerIdToUse,
+        sellerName
+      });
 
       const { data: order, error } = await supabase.rpc('admin_create_order', {
         p_title: formData.title.trim(),
@@ -57,7 +68,7 @@ export const useAdminOrderSubmission = () => {
         p_seller_id: sellerIdToUse,
         p_order_seller_name: sellerName,
         p_seller_opt_id: '',
-        p_buyer_id: buyer.id,
+        p_buyer_id: buyer.id, // Используем ID найденного покупателя
         p_brand: formData.brand?.trim() || '',
         p_model: formData.model?.trim() || '',
         p_status: 'created',
@@ -71,9 +82,11 @@ export const useAdminOrderSubmission = () => {
       });
 
       if (error) {
+        console.error('❌ RPC call failed:', error);
         throw new Error(`Ошибка создания заказа: ${error.message}`);
       }
 
+      console.log('✅ Order created successfully:', order);
       setSubmissionState(prev => ({ ...prev, stage: 'fetching_order', progress: 80 }));
 
       const { data: fetchedOrder, error: fetchError } = await supabase
@@ -83,19 +96,21 @@ export const useAdminOrderSubmission = () => {
         .maybeSingle();
 
       if (fetchError || !fetchedOrder) {
+        console.error('❌ Failed to fetch created order:', fetchError);
         throw new Error('Ошибка получения созданного заказа');
       }
 
       setSubmissionState(prev => ({ ...prev, stage: 'completed', progress: 100 }));
       setCreatedOrder(fetchedOrder as CreatedOrder);
 
+      console.log('🎉 Order submission completed successfully');
       toast({
         title: "Заказ создан",
         description: `Заказ #${fetchedOrder.order_number} успешно создан`,
       });
 
     } catch (error) {
-      console.error('Order creation error:', error);
+      console.error('❌ Order creation error:', error);
       
       const errorMessage = error instanceof Error ? error.message : "Произошла неожиданная ошибка";
       
@@ -107,7 +122,7 @@ export const useAdminOrderSubmission = () => {
     } finally {
       setSubmissionState(prev => ({ ...prev, isLoading: false }));
     }
-  }, [validateForm, findBuyerByOptId, getSellerName, user?.id, toast]);
+  }, [validateForm, getSellerName, user?.id, toast]);
 
   const handleOrderUpdate = useCallback((order: CreatedOrder) => {
     setCreatedOrder(order);
