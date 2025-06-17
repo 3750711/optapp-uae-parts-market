@@ -1,5 +1,5 @@
 
--- Updated admin order creation function with simplified logic after trigger fix
+-- Updated admin order creation function with correct parameter handling
 CREATE OR REPLACE FUNCTION public.admin_create_order(
   p_title text, 
   p_price numeric, 
@@ -91,7 +91,7 @@ EXCEPTION
 END;
 $$;
 
--- Function to get next order number (maximum + 1) - keeping existing logic
+-- Function to get next order number (maximum + 1)
 CREATE OR REPLACE FUNCTION public.get_next_order_number()
 RETURNS integer
 LANGUAGE plpgsql

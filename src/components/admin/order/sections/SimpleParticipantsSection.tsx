@@ -2,7 +2,7 @@
 import React from "react";
 import { Label } from "@/components/ui/label";
 import OptimizedSelect from "@/components/ui/OptimizedSelect";
-import { ProfileShort, SellerProfile } from "../types";
+import { ProfileShort, SellerProfile } from "@/types/order";
 
 interface SimpleParticipantsSectionProps {
   buyerOptId: string;
@@ -28,9 +28,10 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
   // Prepare buyer options for OptimizedSelect
   const buyerOptions = React.useMemo(() => {
     return buyerProfiles
+      .filter(buyer => buyer.opt_id) // Только профили с OPT_ID
       .sort((a, b) => a.opt_id.localeCompare(b.opt_id))
       .map(buyer => ({
-        value: buyer.opt_id,
+        value: buyer.opt_id, // Используем opt_id как value
         label: `${buyer.full_name} (${buyer.opt_id})`,
         searchText: `${buyer.full_name} ${buyer.opt_id}`
       }));
@@ -45,7 +46,7 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
         return aOptId.localeCompare(bOptId);
       })
       .map(seller => ({
-        value: seller.id,
+        value: seller.id, // Используем ID как value для продавцов
         label: seller.opt_id ? `${seller.full_name} (${seller.opt_id})` : seller.full_name,
         searchText: `${seller.full_name} ${seller.opt_id || ''}`
       }));
@@ -65,8 +66,6 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
             placeholder="Выберите покупателя..."
             searchPlaceholder="Поиск по имени или OPT_ID..."
             disabled={disabled}
-            maxHeight={200}
-            itemHeight={35}
           />
         </div>
 
@@ -80,8 +79,6 @@ export const SimpleParticipantsSection: React.FC<SimpleParticipantsSectionProps>
               placeholder="Выберите продавца..."
               searchPlaceholder="Поиск продавца..."
               disabled={disabled}
-              maxHeight={200}
-              itemHeight={35}
             />
           </div>
         )}

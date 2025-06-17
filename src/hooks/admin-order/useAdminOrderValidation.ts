@@ -1,8 +1,7 @@
 
 import { useCallback } from 'react';
-import { OrderFormData } from '@/components/admin/order/types';
 import { supabase } from '@/integrations/supabase/client';
-import { BuyerProfile, ValidationError } from './types';
+import { OrderFormData, BuyerProfile, ValidationError } from '@/types/order';
 
 // Функция нормализации OPT_ID
 const normalizeOptId = (optId: string): string => {
@@ -19,7 +18,7 @@ export const useAdminOrderValidation = () => {
         .from('profiles')
         .select('id, full_name, opt_id, telegram')
         .eq('user_type', 'buyer')
-        .ilike('opt_id', normalizedOptId) // Поиск без учета регистра
+        .ilike('opt_id', normalizedOptId)
         .maybeSingle();
 
       if (error) {
@@ -33,7 +32,10 @@ export const useAdminOrderValidation = () => {
       }
 
       console.log('✅ Buyer found:', data);
-      return data as BuyerProfile;
+      return {
+        ...data,
+        user_type: 'buyer' as const
+      };
     } catch (error) {
       console.error('❌ Exception in findBuyerByOptId:', error);
       return null;
@@ -76,7 +78,7 @@ export const useAdminOrderValidation = () => {
       errors.push({ field: 'buyerOptId', message: 'OPT_ID покупателя обязателен' });
     }
 
-    // Validate buyer exists и сохраняем найденного покупателя
+    // Validate buyer exists
     if (formData.buyerOptId?.trim()) {
       buyer = await findBuyerByOptId(formData.buyerOptId.trim());
       if (!buyer) {

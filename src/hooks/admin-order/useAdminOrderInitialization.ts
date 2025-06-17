@@ -4,7 +4,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { supabase } from '@/integrations/supabase/client';
-import { BuyerProfile, SellerProfile, InitializationState } from './types';
+import { BuyerProfile, SellerProfile } from '@/types/order';
+
+interface InitializationState {
+  isInitializing: boolean;
+  error: string | null;
+}
 
 export const useAdminOrderInitialization = () => {
   const navigate = useNavigate();
@@ -14,123 +19,97 @@ export const useAdminOrderInitialization = () => {
 
   const [initState, setInitState] = useState<InitializationState>({
     isInitializing: true,
-    error: null,
-    stage: 'starting',
-    progress: 0
+    error: null
   });
 
   const [buyerProfiles, setBuyerProfiles] = useState<BuyerProfile[]>([]);
   const [sellerProfiles, setSellerProfiles] = useState<SellerProfile[]>([]);
-  const [forceCompleted, setForceCompleted] = useState(false);
 
   const loadBuyerProfiles = useCallback(async (): Promise<void> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, opt_id, telegram')
-      .eq('user_type', 'buyer')
-      .limit(50);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, opt_id, telegram')
+        .eq('user_type', 'buyer')
+        .not('opt_id', 'is', null)
+        .limit(100);
 
-    if (error) throw error;
-    setBuyerProfiles(data as BuyerProfile[] || []);
+      if (error) throw error;
+      setBuyerProfiles((data || []).map(profile => ({
+        ...profile,
+        user_type: 'buyer' as const
+      })));
+    } catch (error) {
+      console.error('Error loading buyer profiles:', error);
+      throw new Error('Не удалось загрузить профили покупателей');
+    }
   }, []);
 
   const loadSellerProfiles = useCallback(async (): Promise<void> => {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, opt_id, telegram')
-      .eq('user_type', 'seller')
-      .limit(50);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, opt_id, telegram')
+        .eq('user_type', 'seller')
+        .limit(100);
 
-    if (error) throw error;
-    setSellerProfiles(data as SellerProfile[] || []);
-  }, []);
-
-  const forceComplete = useCallback(() => {
-    setForceCompleted(true);
-    setInitState({
-      isInitializing: false,
-      error: null,
-      stage: 'force_completed',
-      progress: 100
-    });
+      if (error) throw error;
+      setSellerProfiles((data || []).map(profile => ({
+        ...profile,
+        user_type: 'seller' as const
+      })));
+    } catch (error) {
+      console.error('Error loading seller profiles:', error);
+      throw new Error('Не удалось загрузить профили продавцов');
+    }
   }, []);
 
   useEffect(() => {
     const initialize = async () => {
-      if (forceCompleted) return;
-
       try {
-        setInitState(prev => ({ ...prev, stage: 'route_check', progress: 10 }));
-
-        // Route validation
+        // Проверка маршрута
         const validRoutes = ['/admin/free-order', '/admin/orders/create'];
         if (!validRoutes.includes(location.pathname)) {
-          setInitState(prev => ({ ...prev, error: 'Неверный маршрут для формы заказа' }));
+          setInitState({ isInitializing: false, error: 'Неверный маршрут' });
           navigate('/admin/dashboard');
           return;
         }
 
-        setInitState(prev => ({ ...prev, stage: 'auth_check', progress: 30 }));
-
-        // Admin check with timeout
-        const timeout = setTimeout(() => {
-          setInitState(prev => ({ 
-            ...prev, 
-            error: 'Тайм-аут проверки прав доступа',
-            stage: 'timeout' 
-          }));
-        }, 3000);
-
-        // Wait for admin status
-        if (isAdmin === null) {
-          // Wait a bit more for admin status to resolve
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
-        clearTimeout(timeout);
-
+        // Проверка прав администратора
         if (isAdmin === false) {
-          setInitState(prev => ({ 
-            ...prev, 
-            error: 'У вас нет прав администратора',
-            stage: 'access_denied' 
-          }));
+          setInitState({ isInitializing: false, error: 'Нет прав администратора' });
           setTimeout(() => navigate('/'), 2000);
           return;
         }
 
-        if (isAdmin === true) {
-          setInitState(prev => ({ ...prev, stage: 'loading_data', progress: 60 }));
-          
-          await Promise.all([
-            loadBuyerProfiles(),
-            loadSellerProfiles()
-          ]);
-
-          setInitState(prev => ({ ...prev, stage: 'completed', progress: 100 }));
-          
-          setTimeout(() => {
-            setInitState(prev => ({ ...prev, isInitializing: false }));
-          }, 300);
+        // Ждем определения прав администратора
+        if (isAdmin === null) {
+          return; // Еще загружается
         }
+
+        // Загружаем данные
+        await Promise.all([
+          loadBuyerProfiles(),
+          loadSellerProfiles()
+        ]);
+
+        setInitState({ isInitializing: false, error: null });
       } catch (error) {
         console.error('Initialization error:', error);
-        setInitState(prev => ({ 
-          ...prev, 
-          error: 'Ошибка инициализации',
-          stage: 'error' 
-        }));
+        setInitState({ 
+          isInitializing: false, 
+          error: error instanceof Error ? error.message : 'Ошибка инициализации'
+        });
       }
     };
 
     initialize();
-  }, [isAdmin, user, location.pathname, navigate, forceCompleted, loadBuyerProfiles, loadSellerProfiles]);
+  }, [isAdmin, location.pathname, navigate, loadBuyerProfiles, loadSellerProfiles]);
 
   return {
     ...initState,
     buyerProfiles,
     sellerProfiles,
-    forceComplete,
     hasAdminAccess: isAdmin === true
   };
 };
