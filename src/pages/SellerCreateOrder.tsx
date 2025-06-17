@@ -96,10 +96,18 @@ const SellerCreateOrder = () => {
 
   // Show preview when "Create Order" is clicked
   const handleCreateOrderClick = () => {
+    console.log('🔍 Checking form validation:', {
+      title: formData.title,
+      price: formData.price,
+      sellerId: formData.sellerId,
+      buyerOptId: formData.buyerOptId,
+      formData: formData
+    });
+
     if (!canShowPreview()) {
       toast({
         title: "Заполните обязательные поля",
-        description: "Необходимо заполнить название, цену, продавца и покупателя",
+        description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
         variant: "destructive",
       });
       return;
@@ -121,14 +129,27 @@ const SellerCreateOrder = () => {
     setShowPreview(false);
   };
 
-  // Validate form for preview
+  // Validate form for preview - исправляем проверку полей
   const canShowPreview = () => {
-    return formData.title && formData.price && formData.sellerId && formData.buyerId;
+    const isValid = formData.title && 
+                   formData.price && 
+                   formData.sellerId && 
+                   formData.buyerOptId; // Используем buyerOptId вместо buyerId
+    
+    console.log('🔍 Form validation result:', {
+      title: !!formData.title,
+      price: !!formData.price,
+      sellerId: !!formData.sellerId,
+      buyerOptId: !!formData.buyerOptId,
+      isValid: isValid
+    });
+    
+    return isValid;
   };
 
   // Get buyer profile for preview
   const getBuyerProfile = () => {
-    return buyerProfiles.find(buyer => buyer.id === formData.buyerId) || null;
+    return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
   };
 
   // Get stage message based on current creation stage
