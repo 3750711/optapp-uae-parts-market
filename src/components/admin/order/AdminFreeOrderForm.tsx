@@ -4,7 +4,7 @@ import SellerOrderFormFields from './SellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
-import { OrderPreview } from './OrderPreview';
+import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader, AlertCircle, Eye } from 'lucide-react';
@@ -177,13 +177,14 @@ export const AdminFreeOrderForm = () => {
   // Show preview
   if (showPreview) {
     return (
-      <OrderPreview
+      <OrderPreviewDialog
+        open={showPreview}
+        onOpenChange={setShowPreview}
         formData={formData}
         images={images}
         videos={videos}
         selectedSeller={selectedSeller}
         buyerProfile={getBuyerProfile()}
-        onBack={() => setShowPreview(false)}
         onConfirm={handleSubmit}
         isLoading={isLoading}
       />

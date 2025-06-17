@@ -12,7 +12,7 @@ import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
 import SellerOrderFormFields from "@/components/admin/order/SellerOrderFormFields";
 import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
-import { OrderPreview } from "@/components/admin/order/OrderPreview";
+import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
 import { toast } from "@/hooks/use-toast";
@@ -150,24 +150,6 @@ const SellerCreateOrder = () => {
     );
   }
 
-  // Show preview
-  if (showPreview) {
-    return (
-      <Layout>
-        <OrderPreview
-          formData={formData}
-          images={images}
-          videos={videos}
-          selectedSeller={selectedSeller}
-          buyerProfile={getBuyerProfile()}
-          onBack={() => setShowPreview(false)}
-          onConfirm={handleSubmit}
-          isLoading={isLoading}
-        />
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -279,6 +261,19 @@ const SellerCreateOrder = () => {
               </CardFooter>
             </form>
           </Card>
+
+          {/* Order Preview Dialog */}
+          <OrderPreviewDialog
+            open={showPreview}
+            onOpenChange={setShowPreview}
+            formData={formData}
+            images={images}
+            videos={videos}
+            selectedSeller={selectedSeller}
+            buyerProfile={getBuyerProfile()}
+            onConfirm={handleSubmit}
+            isLoading={isLoading}
+          />
         </div>
       </div>
     </Layout>
