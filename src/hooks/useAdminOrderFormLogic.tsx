@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -86,7 +85,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     brandId: '',
     modelId: '',
     sellerId: '',
-    deliveryMethod: 'cargo_rf' as const, // Default to Cargo РФ
+    deliveryMethod: 'cargo_rf' as const,
     place_number: '1',
     text_order: '',
     delivery_price: ''
@@ -109,7 +108,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     brandSearchTerm,
     setBrandSearchTerm,
     modelSearchTerm,
-    setModelSearchTerm
+    setModelSearchTerm,
+    selectBrand
   } = useConditionalCarData();
 
   // Debounced search terms
@@ -139,6 +139,42 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
 
   // Valid order statuses from database enum
   const validOrderStatuses = ['created', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'declined'] as const;
+
+  // Function to validate order status
+  const validateOrderStatus = useCallback((status: string): boolean => {
+    return validOrderStatuses.includes(status as any);
+  }, []);
+
+  // Enhanced brand selection with model loading
+  const handleBrandChange = useCallback((brandId: string, brandName: string) => {
+    console.log('🏷️ Brand changed:', { brandId, brandName });
+    
+    setFormData(prev => ({
+      ...prev,
+      brandId,
+      brand: brandName,
+      // Reset model when brand changes
+      modelId: '',
+      model: ''
+    }));
+
+    // Load models for selected brand
+    if (brandId) {
+      console.log('📥 Loading models for brand:', brandId);
+      selectBrand(brandId);
+    }
+  }, [selectBrand]);
+
+  // Enhanced model selection
+  const handleModelChange = useCallback((modelId: string, modelName: string) => {
+    console.log('🚗 Model changed:', { modelId, modelName });
+    
+    setFormData(prev => ({
+      ...prev,
+      modelId,
+      model: modelName
+    }));
+  }, []);
 
   // Function to validate order status
   const validateOrderStatus = useCallback((status: string): boolean => {
@@ -249,14 +285,19 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
         for (const model of sortedModels) {
           const modelNameLower = model.name.toLowerCase();
           if (lowerTitle.includes(modelNameLower)) {
+            // Auto-select found brand and model
+            handleBrandChange(brand.id, brand.name);
+            handleModelChange(model.id, model.name);
             return { brand: brand.name, model: model.name };
           }
         }
+        // Auto-select found brand
+        handleBrandChange(brand.id, brand.name);
         return { brand: brand.name, model: '' };
       }
     }
     return { brand: '', model: '' };
-  }, [brands, brandModels]);
+  }, [brands, brandModels, handleBrandChange, handleModelChange]);
 
   // Force complete initialization
   const forceComplete = useCallback(() => {
@@ -421,11 +462,24 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   // Enhanced handleInputChange with proper typing and validation
   const handleInputChange = useCallback((field: string, value: string) => {
     console.log(`📝 Form field updated: ${field} = ${value}`);
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  }, []);
+    
+    if (field === 'brandId') {
+      const selectedBrand = brands.find(b => b.id === value);
+      if (selectedBrand) {
+        handleBrandChange(value, selectedBrand.name);
+      }
+    } else if (field === 'modelId') {
+      const selectedModel = brandModels.find(m => m.id === value);
+      if (selectedModel) {
+        handleModelChange(value, selectedModel.name);
+      }
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  }, [brands, brandModels, handleBrandChange, handleModelChange]);
 
   // Enhanced handleImageUpload that combines new and existing images
   const handleImageUpload = useCallback((urls: string[]) => {
@@ -622,7 +676,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     sellerProfiles,
     selectedSeller,
     
-    // Car data
+    // Car data with enhanced handlers
     brands,
     brandModels,
     isLoadingCarData,
@@ -632,6 +686,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     setSearchModelTerm: setModelSearchTerm,
     filteredBrands,
     filteredModels,
+    handleBrandChange,
+    handleModelChange,
     
     // Order creation
     isLoading,

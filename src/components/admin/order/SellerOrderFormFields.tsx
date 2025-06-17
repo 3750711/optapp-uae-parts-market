@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { OrderFormData, SellerProfile, ProfileShort, DeliveryMethod } from "./types";
 import SellerProductsDialog from "./SellerProductsDialog";
@@ -24,6 +25,9 @@ interface SellerOrderFormFieldsProps {
   setSearchModelTerm: (term: string) => void;
   filteredBrands: { id: string; name: string }[];
   filteredModels: { id: string; name: string; brand_id: string }[];
+  // Enhanced handlers for brand/model selection
+  handleBrandChange?: (brandId: string, brandName: string) => void;
+  handleModelChange?: (modelId: string, modelName: string) => void;
   parseTitleForBrand: (title: string) => void;
   onImagesUpload?: (urls: string[]) => void;
   onVideosUpload?: (urls: string[]) => void;
@@ -59,6 +63,8 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
   setSearchModelTerm,
   filteredBrands,
   filteredModels,
+  handleBrandChange,
+  handleModelChange,
   parseTitleForBrand,
   onImagesUpload,
   onVideosUpload,
@@ -66,6 +72,14 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
   disabled = false,
 }) => {
   const [showProductsDialog, setShowProductsDialog] = useState(false);
+
+  console.log('🔧 SellerOrderFormFields render:', {
+    brandId: formData.brandId,
+    modelId: formData.modelId,
+    brandsCount: brands.length,
+    modelsCount: brandModels.length,
+    hasHandlers: !!handleBrandChange && !!handleModelChange
+  });
 
   const handleAddDataFromProduct = () => {
     if (!selectedSeller) {
@@ -86,17 +100,17 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
     handleInputChange('title', product.title);
     handleInputChange('price', product.price.toString());
     
-    if (product.brand) {
+    if (product.brand && handleBrandChange) {
       const brandObj = brands.find(b => b.name.toLowerCase() === product.brand?.toLowerCase());
       if (brandObj) {
-        handleInputChange('brandId', brandObj.id);
+        handleBrandChange(brandObj.id, brandObj.name);
       }
     }
     
-    if (product.model) {
+    if (product.model && handleModelChange) {
       const modelObj = brandModels.find(m => m.name.toLowerCase() === product.model?.toLowerCase());
       if (modelObj) {
-        handleInputChange('modelId', modelObj.id);
+        handleModelChange(modelObj.id, modelObj.name);
       }
     }
 
@@ -133,6 +147,17 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
     });
   };
 
+  // Use enhanced handlers if available, fallback to basic handleInputChange
+  const onBrandChange = handleBrandChange || ((brandId: string, brandName: string) => {
+    handleInputChange('brandId', brandId);
+    handleInputChange('brand', brandName);
+  });
+
+  const onModelChange = handleModelChange || ((modelId: string, modelName: string) => {
+    handleInputChange('modelId', modelId);
+    handleInputChange('model', modelName);
+  });
+
   return (
     <div className="space-y-6">
       <ProductInfoSection
@@ -147,8 +172,8 @@ export const SellerOrderFormFields: React.FC<SellerOrderFormFieldsProps> = ({
       <CarBrandModelSection
         brandId={formData.brandId}
         modelId={formData.modelId}
-        onBrandChange={(value) => handleInputChange('brandId', value)}
-        onModelChange={(value) => handleInputChange('modelId', value)}
+        onBrandChange={onBrandChange}
+        onModelChange={onModelChange}
         brands={brands}
         filteredModels={filteredModels}
         isLoadingCarData={isLoadingCarData}

@@ -33,6 +33,8 @@ export const AdminFreeOrderForm = () => {
     setSearchModelTerm,
     filteredBrands,
     filteredModels,
+    handleBrandChange,
+    handleModelChange,
     
     // Order creation
     isLoading,
@@ -82,7 +84,6 @@ export const AdminFreeOrderForm = () => {
   // Handle setting primary image
   const onSetPrimaryImage = (url: string) => {
     console.log('⭐ AdminFreeOrderForm: Primary image set:', url);
-    // This could be implemented in the hook if needed
   };
 
   // Protected form submission handler
@@ -150,7 +151,7 @@ export const AdminFreeOrderForm = () => {
 
   return (
     <div className="space-y-8">
-      {/* Order Form Fields */}
+      {/* Order Form Fields with Enhanced Brand/Model Selection */}
       <SellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
@@ -166,6 +167,8 @@ export const AdminFreeOrderForm = () => {
         setSearchModelTerm={setSearchModelTerm}
         filteredBrands={filteredBrands}
         filteredModels={filteredModels}
+        handleBrandChange={handleBrandChange}
+        handleModelChange={handleModelChange}
         parseTitleForBrand={parseTitleForBrand}
         onImagesUpload={onImagesUpload}
         onDataFromProduct={() => {}} // Not used in free orders
