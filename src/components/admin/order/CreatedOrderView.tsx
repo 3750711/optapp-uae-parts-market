@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { OptimizedOrderImages } from "@/components/order/OptimizedOrderImages";
+import OptimizedOrderImages from "@/components/order/OptimizedOrderImages";
 import { OptimizedOrderVideos } from "@/components/order/OptimizedOrderVideos";
 import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
 import { CheckCircle, Package, User, MapPin, Phone, MessageCircle, Calendar, Hash, DollarSign } from "lucide-react";
@@ -154,7 +153,7 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                 {images.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-3">Изображения ({images.length})</h3>
-                    <OptimizedOrderImages images={images} orderTitle={order.title} />
+                    <OptimizedOrderImages images={images} />
                   </div>
                 )}
                 
