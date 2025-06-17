@@ -8,9 +8,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from '@/components/ui/sheet';
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2, CheckCircle, Package, DollarSign, User, Calendar, Camera, X } from 'lucide-react';
+import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
+import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
+import { MobileFormSection } from './MobileFormSection';
 import {
   getOrderNumberFormatted,
   formatOrderPrice
@@ -69,131 +83,233 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
     return formData.model;
   };
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${isMobile ? 'max-w-[95vw] h-[95vh]' : 'max-w-4xl max-h-[90vh]'} overflow-hidden`}>
-        <DialogHeader>
-          <DialogTitle className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold`}>
-            Предварительный просмотр заказа
-          </DialogTitle>
-          <DialogDescription>
-            Проверьте все данные перед созданием заказа
-          </DialogDescription>
-        </DialogHeader>
+  // Функция для форматирования цены
+  const formatPrice = (price?: string) => {
+    if (!price || isNaN(parseFloat(price))) return '0';
+    return parseFloat(price).toLocaleString('ru-RU');
+  };
 
-        <div className={`flex-1 overflow-y-auto ${isMobile ? 'px-1' : 'px-2'}`}>
-          <div className="space-y-6">
-            {/* Order Details */}
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm text-muted-foreground">Наименование</div>
-                <div className="font-medium">{formData.title || 'Не указано'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Цена товара</div>
-                <div className="font-medium">{formatOrderPrice({ price: formData.price })}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">OPT ID покупателя</div>
-                <div className="font-medium">{formData.buyerOptId || 'Не указано'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Продавец</div>
-                <div className="font-medium">{selectedSeller?.full_name || 'Не указано'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Бренд</div>
-                <div className="font-medium">{getBrandDisplay()}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Модель</div>
-                <div className="font-medium">{getModelDisplay()}</div>
-              </div>
-              {formData.deliveryMethod && (
-                <div>
-                  <div className="text-sm text-muted-foreground">Метод доставки</div>
-                  <div className="font-medium">{getDeliveryMethodLabel(formData.deliveryMethod)}</div>
-                </div>
-              )}
-              {formData.place_number && (
-                <div>
-                  <div className="text-sm text-muted-foreground">Количество мест</div>
-                  <div className="font-medium">{formData.place_number}</div>
-                </div>
-              )}
-              {formData.text_order && (
-                <div>
-                  <div className="text-sm text-muted-foreground">Дополнительная информация</div>
-                  <div className="font-medium">{formData.text_order}</div>
-                </div>
-              )}
+  const PreviewContent = () => (
+    <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
+      {/* Success Header */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="pt-6">
+          <div className={`flex items-center ${isMobile ? 'flex-col text-center space-y-4' : 'justify-center space-x-4'}`}>
+            <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
+              <CheckCircle className="w-8 h-8 text-blue-600" />
             </div>
+            <div className={isMobile ? 'text-center' : ''}>
+              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-blue-800 mb-2`}>
+                Предварительный просмотр заказа
+              </h1>
+              <p className="text-blue-700 mb-4">
+                Проверьте все данные перед созданием заказа
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            {/* Media Preview */}
-            {(images.length > 0 || videos.length > 0) && (
-              <div className="space-y-4">
-                {images.length > 0 && (
-                  <div>
-                    <div className="text-sm text-muted-foreground">Изображения</div>
-                    <div className="flex gap-2 overflow-x-auto">
-                      {images.map((image, index) => (
-                        <img
-                          key={index}
-                          src={image}
-                          alt={`Preview ${index}`}
-                          className="w-32 h-32 object-cover rounded-md"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {videos.length > 0 && (
-                  <div>
-                    <div className="text-sm text-muted-foreground">Видео</div>
-                    <div className="flex gap-2 overflow-x-auto">
-                      {videos.map((video, index) => (
-                        <video
-                          key={index}
-                          src={video}
-                          controls
-                          className="w-64 h-36 rounded-md"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+      {/* Order Details */}
+      <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
+        {/* Basic Information */}
+        <MobileFormSection 
+          title="Информация о заказе" 
+          icon={<Package className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-muted-foreground">Наименование</div>
+              <div className="font-medium">{formData.title || 'Не указано'}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Бренд</div>
+              <div className="font-medium">{getBrandDisplay()}</div>
+            </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Модель</div>
+              <div className="font-medium">{getModelDisplay()}</div>
+            </div>
+            {formData.deliveryMethod && (
+              <div>
+                <div className="text-sm text-muted-foreground">Метод доставки</div>
+                <div className="font-medium">{getDeliveryMethodLabel(formData.deliveryMethod)}</div>
+              </div>
+            )}
+            {formData.place_number && (
+              <div>
+                <div className="text-sm text-muted-foreground">Количество мест</div>
+                <div className="font-medium">{formData.place_number}</div>
               </div>
             )}
           </div>
-        </div>
+        </MobileFormSection>
 
-        <DialogFooter className={`flex ${isMobile ? 'flex-col space-y-3' : 'justify-between'} gap-3 mt-6`}>
-          <Button
-            variant="outline"
-            onClick={onBack}
-            disabled={isLoading}
-            className={isMobile ? 'w-full' : ''}
-          >
-            Назад к редактированию
-          </Button>
-          
-          <Button
-            onClick={onConfirm}
-            disabled={isLoading}
-            className={`${isMobile ? 'w-full' : ''} bg-green-600 hover:bg-green-700`}
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Создание заказа...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Подтвердить и создать заказ
-              </>
+        {/* Financial Information */}
+        <MobileFormSection 
+          title="Финансовая информация" 
+          icon={<DollarSign className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-muted-foreground">Цена товара</div>
+              <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-green-600`}>₽{formatPrice(formData.price)}</div>
+            </div>
+            {formData.delivery_price && parseFloat(formData.delivery_price) > 0 && (
+              <div>
+                <div className="text-sm text-muted-foreground">Стоимость доставки</div>
+                <div className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>₽{formatPrice(formData.delivery_price)}</div>
+              </div>
             )}
-          </Button>
+            <div>
+              <div className="text-sm text-muted-foreground">OPT ID покупателя</div>
+              <div className="font-medium">{formData.buyerOptId || 'Не указано'}</div>
+            </div>
+          </div>
+        </MobileFormSection>
+
+        {/* Participants */}
+        <MobileFormSection 
+          title="Участники заказа" 
+          icon={<User className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-sm text-muted-foreground mb-1">Продавец</div>
+              <div className="font-medium">{selectedSeller?.full_name || 'Не указан'}</div>
+              {selectedSeller?.opt_id && (
+                <div className="text-sm text-muted-foreground font-mono">
+                  OPT_ID: {selectedSeller.opt_id}
+                </div>
+              )}
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="text-sm text-muted-foreground mb-1">Покупатель</div>
+              <div className="font-medium">{buyerProfile?.full_name || 'Не указан'}</div>
+              {buyerProfile?.opt_id && (
+                <div className="text-sm text-muted-foreground font-mono">
+                  OPT_ID: {buyerProfile.opt_id}
+                </div>
+              )}
+            </div>
+          </div>
+        </MobileFormSection>
+
+        {/* Additional Information */}
+        <MobileFormSection 
+          title="Дополнительная информация"
+          defaultOpen={true}
+        >
+          <div className="space-y-4">
+            {formData.text_order ? (
+              <div className="bg-muted/30 p-4 rounded-lg">
+                <p className="whitespace-pre-wrap">{formData.text_order}</p>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground italic">
+                Дополнительная информация не указана
+              </div>
+            )}
+          </div>
+        </MobileFormSection>
+      </div>
+
+      {/* Media Section */}
+      {(images.length > 0 || videos.length > 0) && (
+        <MobileFormSection 
+          title={`Медиафайлы заказа (${images.length + videos.length})`}
+          icon={<Camera className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-6">
+            {images.length > 0 && (
+              <div>
+                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-medium mb-4`}>Изображения ({images.length})</h3>
+                <OptimizedOrderImages images={images} />
+              </div>
+            )}
+
+            {videos.length > 0 && (
+              <div>
+                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-medium mb-4`}>Видео ({videos.length})</h3>
+                <OptimizedOrderVideos videos={videos} />
+              </div>
+            )}
+          </div>
+        </MobileFormSection>
+      )}
+    </div>
+  );
+
+  const ActionButtons = () => (
+    <>
+      <Button variant="outline" onClick={onBack} disabled={isLoading} className="h-11">
+        Назад к редактированию
+      </Button>
+      <Button onClick={onConfirm} disabled={isLoading} className="h-11 bg-green-600 hover:bg-green-700">
+        {isLoading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Создание заказа...
+          </>
+        ) : (
+          <>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Подтвердить и создать заказ
+          </>
+        )}
+      </Button>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent side="bottom" className="h-[95vh] w-full flex flex-col p-4">
+          <SheetHeader className="text-left">
+            <SheetTitle>Предпросмотр заказа</SheetTitle>
+            <SheetDescription>
+              Проверьте данные перед созданием заказа
+            </SheetDescription>
+          </SheetHeader>
+          <div className="absolute top-4 right-4">
+            <SheetClose asChild>
+              <Button size="icon" variant="ghost">
+                <X className="h-5 w-5" />
+              </Button>
+            </SheetClose>
+          </div>
+          <ScrollArea className="flex-grow my-4">
+            <PreviewContent />
+          </ScrollArea>
+          {/* Actions - фиксированные внизу для мобильного */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+            <div className="grid grid-cols-2 gap-2">
+              <ActionButtons />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>Предпросмотр заказа</DialogTitle>
+          <DialogDescription>
+            Проверьте данные перед созданием заказа
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto px-2">
+          <PreviewContent />
+        </div>
+        <DialogFooter className="flex justify-between gap-3 mt-6">
+          <ActionButtons />
         </DialogFooter>
       </DialogContent>
     </Dialog>
