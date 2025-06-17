@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -136,6 +137,14 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const [creationStage, setCreationStage] = useState('');
   const [creationProgress, setCreationProgress] = useState(0);
 
+  // Valid order statuses from database enum
+  const validOrderStatuses = ['created', 'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'declined'] as const;
+
+  // Function to validate order status
+  const validateOrderStatus = useCallback((status: string): boolean => {
+    return validOrderStatuses.includes(status as any);
+  }, []);
+
   // Function to find buyer by opt_id
   const findBuyerByOptId = useCallback(async (optId: string) => {
     console.log('🔍 Searching for buyer with opt_id:', optId);
@@ -211,6 +220,12 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
       if (sellerName === 'Unknown Seller') {
         errors.push('Выбранный продавец не найден');
       }
+    }
+
+    // Validate delivery method
+    const validDeliveryMethods = ['self_pickup', 'delivery', 'cargo_rf'];
+    if (!validDeliveryMethods.includes(formData.deliveryMethod)) {
+      errors.push('Некорректный способ доставки');
     }
 
     return errors;
@@ -466,7 +481,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
       const sellerIdToUse = formData.sellerId || user?.id;
       const sellerName = sellerIdToUse ? await getSellerName(sellerIdToUse) : 'Unknown Seller';
 
-      // Create order with all required fields
+      // Create order with all required fields - let database use default status 'created'
       const orderData = {
         title: formData.title.trim(),
         price: parseFloat(formData.price),
@@ -486,14 +501,14 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
         created_by: user?.id,
         // Enhanced metadata
         order_created_type: 'free' as const,
-        status: 'pending' as const,
+        // Remove status - let database use default 'created'
         telegram_url_buyer: buyer.telegram || '',
         telegram_url_order: ''
       };
 
       console.log('💾 Creating order with complete data:', orderData);
 
-      // Use the admin function for creating orders
+      // Use the admin function for creating orders - it will use database default status
       const { data: order, error } = await supabase.rpc('admin_create_order', {
         p_title: orderData.title,
         p_price: orderData.price,
@@ -504,7 +519,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
         p_buyer_id: orderData.buyer_id,
         p_brand: orderData.brand,
         p_model: orderData.model,
-        p_status: 'pending',
+        p_status: 'created', // Use correct status from database enum
         p_order_created_type: 'free',
         p_telegram_url_order: orderData.telegram_url_order,
         p_images: orderData.images,

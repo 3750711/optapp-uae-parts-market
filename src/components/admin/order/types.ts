@@ -41,6 +41,9 @@ export interface ModelData {
 
 export type DeliveryMethod = 'self_pickup' | 'delivery' | 'cargo_rf';
 
+// Updated order status type to match database enum
+export type OrderStatus = 'created' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'declined';
+
 export interface CreatedOrderProps {
   order: any;
   images: string[];
