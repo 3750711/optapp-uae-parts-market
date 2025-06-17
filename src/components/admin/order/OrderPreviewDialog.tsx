@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Dialog,
@@ -42,9 +43,18 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
 }) => {
   const isMobile = useIsMobile();
 
-  // Генерируем preview номера заказа для отображения
-  const getPreviewOrderNumber = () => {
-    return `НОВЫЙ_ЗАКАЗ_${Date.now().toString().slice(-6)}`;
+  // Функция для отображения метода доставки
+  const getDeliveryMethodLabel = (method: string) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Cargo РФ';
+      case 'cargo_kz':
+        return 'Cargo КЗ';
+      default:
+        return method;
+    }
   };
 
   return (
@@ -61,17 +71,6 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
 
         <div className={`flex-1 overflow-y-auto ${isMobile ? 'px-1' : 'px-2'}`}>
           <div className="space-y-6">
-            {/* Preview Order Number */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="text-sm text-blue-700 font-medium">ПРЕДВАРИТЕЛЬНЫЙ НОМЕР ЗАКАЗА:</div>
-              <div className="text-xl font-bold text-blue-900 tracking-wider font-mono">
-                {getPreviewOrderNumber()}
-              </div>
-              <div className="text-xs text-blue-600 mt-1">
-                Финальный номер будет присвоен после создания заказа
-              </div>
-            </div>
-
             {/* Order Details */}
             <div className="space-y-4">
               <div>
@@ -105,7 +104,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
               {formData.deliveryMethod && (
                 <div>
                   <div className="text-sm text-muted-foreground">Метод доставки</div>
-                  <div className="font-medium">{formData.deliveryMethod}</div>
+                  <div className="font-medium">{getDeliveryMethodLabel(formData.deliveryMethod)}</div>
                 </div>
               )}
               {formData.place_number && (
