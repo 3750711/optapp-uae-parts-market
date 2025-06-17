@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
@@ -36,6 +37,8 @@ export interface AdminOrderFormLogicReturn {
   setSearchModelTerm: (term: string) => void;
   filteredBrands: any[];
   filteredModels: any[];
+  handleBrandChange: (brandId: string, brandName: string) => void;
+  handleModelChange: (modelId: string, modelName: string) => void;
   
   // Order creation
   isLoading: boolean;
@@ -174,11 +177,6 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
       modelId,
       model: modelName
     }));
-  }, []);
-
-  // Function to validate order status
-  const validateOrderStatus = useCallback((status: string): boolean => {
-    return validOrderStatuses.includes(status as any);
   }, []);
 
   // Function to find buyer by opt_id
