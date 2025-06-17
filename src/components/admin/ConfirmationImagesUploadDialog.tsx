@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Upload, SkipForward, Check, AlertCircle, Video, RefreshCw } from "lucide-react";
+import { Loader2, Upload, SkipForward, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -9,14 +10,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
-import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+  SheetClose,
+} from '@/components/ui/sheet';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { SessionStatusComponent } from "./SessionStatusComponent";
+import { MediaUploadTabs } from "./MediaUploadTabs";
+import { UploadedFilesInfo } from "./UploadedFilesInfo";
+import { useConfirmationUpload } from "./useConfirmationUpload";
 
 interface ConfirmationImagesUploadDialogProps {
   open: boolean;
@@ -33,326 +41,125 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
   onSkip,
   onCancel,
 }) => {
-  const [confirmImages, setConfirmImages] = useState<string[]>([]);
-  const [confirmVideos, setConfirmVideos] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const [isComponentReady, setIsComponentReady] = useState(false);
-  const [sessionLost, setSessionLost] = useState(false);
-  const { user, isAdmin } = useAuth();
-
-  // Component readiness check
-  useEffect(() => {
-    if (open) {
-      console.log("🔍 [ConfirmationUpload] Dialog opened, checking component readiness:", {
-        userId: user?.id,
-        isAdmin,
-        orderId,
-        authStatus: !!user
-      });
-
-      // Add a small delay to ensure all auth context is loaded
-      const timer = setTimeout(() => {
-        if (user?.id) {
-          console.log("✅ [ConfirmationUpload] Component ready, user authenticated");
-          setIsComponentReady(true);
-          setSessionLost(false);
-          setUploadError(null);
-        } else {
-          console.error("❌ [ConfirmationUpload] Component not ready, user not authenticated");
-          setSessionLost(true);
-          setUploadError("Сессия не найдена. Необходимо войти в систему.");
-        }
-      }, 100);
-
-      return () => clearTimeout(timer);
-    } else {
-      // Reset state when dialog closes
-      setIsComponentReady(false);
-      setSessionLost(false);
-      setUploadError(null);
-    }
-  }, [open, user?.id, isAdmin, orderId]);
-
-  const handleSessionRecovery = async () => {
-    console.log("🔄 [ConfirmationUpload] Attempting session recovery");
-    
-    try {
-      // Try to refresh the session
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("❌ [ConfirmationUpload] Session recovery failed:", error);
-        toast({
-          title: "Ошибка восстановления сессии",
-          description: "Не удалось восстановить сессию. Попробуйте перезагрузить страницу.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (session?.user) {
-        console.log("✅ [ConfirmationUpload] Session recovered successfully");
-        setSessionLost(false);
-        setUploadError(null);
-        setIsComponentReady(true);
-        
-        toast({
-          title: "Сессия восстановлена",
-          description: "Теперь вы можете продолжить загрузку файлов.",
-        });
-      } else {
-        console.error("❌ [ConfirmationUpload] No valid session found");
-        setUploadError("Не удалось восстановить сессию. Войдите в систему заново.");
-      }
-    } catch (error) {
-      console.error("❌ [ConfirmationUpload] Session recovery error:", error);
-      setUploadError("Произошла ошибка при восстановлении сессии.");
-    }
-  };
-
-  const handleImagesUpload = async (urls: string[]) => {
-    if (!isComponentReady) {
-      console.error("❌ [ConfirmationUpload] Component not ready for image upload");
-      return;
-    }
-
-    console.log("🔍 [ConfirmationUpload] Images uploaded:", {
-      urls,
-      orderId,
-      userId: user?.id,
-      isAdmin,
-      authStatus: !!user
-    });
-    setConfirmImages(prev => [...prev, ...urls]);
-    setUploadError(null);
-  };
-
-  const handleVideosUpload = async (urls: string[]) => {
-    if (!isComponentReady) {
-      console.error("❌ [ConfirmationUpload] Component not ready for video upload");
-      return;
-    }
-
-    console.log("🔍 [ConfirmationUpload] Videos uploaded:", {
-      urls,
-      orderId,
-      userId: user?.id,
-      isAdmin,
-      authStatus: !!user
-    });
-    setConfirmVideos(prev => [...prev, ...urls]);
-    setUploadError(null);
-  };
-
-  const handleVideoDelete = (urlToDelete: string) => {
-    if (!isComponentReady) return;
-    
-    console.log("🔍 [ConfirmationUpload] Deleting video:", urlToDelete);
-    setConfirmVideos(prev => prev.filter(url => url !== urlToDelete));
-  };
-
-  const handleUploadError = (error: string) => {
-    console.error("❌ [ConfirmationUpload] Upload error:", error);
-    setUploadError(error);
-    toast({
-      title: "Ошибка загрузки",
-      description: error,
-      variant: "destructive",
-    });
-  };
-
-  const checkUserAccess = async () => {
-    console.log("🔍 [ConfirmationUpload] Checking user access:", {
-      userId: user?.id,
-      orderId,
-      isAdmin,
-      authStatus: !!user,
-      isComponentReady
-    });
-
-    if (!isComponentReady || !user?.id) {
-      throw new Error("Компонент не готов или пользователь не аутентифицирован");
-    }
-
-    // Since this is called right after order creation, we can skip the database check
-    // The order was just created by the current user, so they definitely have access
-    console.log("✅ [ConfirmationUpload] Access granted for recently created order");
-    
-    return {
-      order_number: 'RECENT_ORDER',
-      buyer_id: user.id,
-      seller_id: user.id
-    };
-  };
-
-  const handleSaveMedia = async () => {
-    if (!isComponentReady) {
-      toast({
-        title: "Компонент не готов",
-        description: "Пожалуйста, подождите инициализации компонента",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (sessionLost) {
-      toast({
-        title: "Сессия потеряна",
-        description: "Восстановите сессию перед загрузкой файлов",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (confirmImages.length === 0 && confirmVideos.length === 0) {
-      toast({
-        title: "Предупреждение",
-        description: "Не загружено ни одного файла",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      // Check access with improved error handling
-      const order = await checkUserAccess();
-
-      console.log("🔍 [ConfirmationUpload] Starting media save:", {
-        orderId,
-        userId: user?.id,
-        imagesCount: confirmImages.length,
-        videosCount: confirmVideos.length,
-        orderNumber: order.order_number
-      });
-
-      // Save confirmation images to database
-      if (confirmImages.length > 0) {
-        const confirmImagesData = confirmImages.map(url => ({
-          order_id: orderId,
-          url: url
-        }));
-
-        console.log("🔍 [ConfirmationUpload] Saving images:", confirmImagesData);
-
-        const { error: imagesError } = await supabase
-          .from('confirm_images')
-          .insert(confirmImagesData);
-
-        if (imagesError) {
-          console.error("❌ [ConfirmationUpload] Error saving images:", imagesError);
-          
-          // Check if it's an auth error
-          if (imagesError.message?.includes('auth') || imagesError.message?.includes('JWT')) {
-            setSessionLost(true);
-            throw new Error("Сессия истекла. Восстановите соединение и попробуйте снова.");
-          }
-          
-          throw new Error(`Ошибка сохранения фотографий: ${imagesError.message}`);
-        }
-
-        console.log("✅ [ConfirmationUpload] Images saved successfully");
-      }
-
-      // Save confirmation videos to order
-      if (confirmVideos.length > 0) {
-        console.log("🔍 [ConfirmationUpload] Saving videos:", confirmVideos);
-
-        // Get current videos from order
-        const { data: currentOrder, error: fetchError } = await supabase
-          .from('orders')
-          .select('video_url')
-          .eq('id', orderId)
-          .single();
-
-        if (fetchError) {
-          console.error("❌ [ConfirmationUpload] Error fetching current videos:", fetchError);
-          
-          if (fetchError.message?.includes('auth') || fetchError.message?.includes('JWT')) {
-            setSessionLost(true);
-            throw new Error("Сессия истекла. Восстановите соединение и попробуйте снова.");
-          }
-          
-          throw new Error(`Ошибка получения текущих видео: ${fetchError.message}`);
-        }
-
-        const currentVideos = currentOrder?.video_url || [];
-        const updatedVideos = [...currentVideos, ...confirmVideos];
-
-        console.log("🔍 [ConfirmationUpload] Updating videos:", {
-          currentVideos,
-          newVideos: confirmVideos,
-          updatedVideos
-        });
-
-        // Update video_url in order
-        const { error: videoError } = await supabase
-          .from('orders')
-          .update({ video_url: updatedVideos })
-          .eq('id', orderId);
-
-        if (videoError) {
-          console.error("❌ [ConfirmationUpload] Error saving videos:", videoError);
-          
-          if (videoError.message?.includes('auth') || videoError.message?.includes('JWT')) {
-            setSessionLost(true);
-            throw new Error("Сессия истекла. Восстановите соединение и попробуйте снова.");
-          }
-          
-          throw new Error(`Ошибка сохранения видео: ${videoError.message}`);
-        }
-
-        console.log("✅ [ConfirmationUpload] Videos saved successfully");
-      }
-
-      const totalFiles = confirmImages.length + confirmVideos.length;
-      console.log("✅ [ConfirmationUpload] All media saved successfully:", {
-        totalFiles,
-        images: confirmImages.length,
-        videos: confirmVideos.length
-      });
-
-      toast({
-        title: "Успешно",
-        description: `Загружено ${totalFiles} файлов подтверждения (${confirmImages.length} фото, ${confirmVideos.length} видео)`,
-      });
-
-      onComplete();
-    } catch (error) {
-      console.error("❌ [ConfirmationUpload] Save error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
-      setUploadError(`Не удалось сохранить файлы: ${errorMessage}`);
-      
-      toast({
-        title: "Ошибка",
-        description: `Не удалось сохранить файлы: ${errorMessage}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleImageDelete = (urlToDelete: string) => {
-    if (!isComponentReady) return;
-    
-    console.log("🔍 [ConfirmationUpload] Deleting image:", urlToDelete);
-    setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
-  };
-
-  const handleReset = () => {
-    console.log("🔍 [ConfirmationUpload] Resetting form");
-    setConfirmImages([]);
-    setConfirmVideos([]);
-    setUploadError(null);
-    setSessionLost(false);
-  };
+  const isMobile = useIsMobile();
+  const {
+    confirmImages,
+    confirmVideos,
+    isUploading,
+    uploadError,
+    isComponentReady,
+    sessionLost,
+    handleImagesUpload,
+    handleVideosUpload,
+    handleVideoDelete,
+    handleImageDelete,
+    handleSaveMedia,
+    handleSessionRecovery,
+    handleReset
+  } = useConfirmationUpload(open, orderId, onComplete);
 
   const totalFiles = confirmImages.length + confirmVideos.length;
   const isDisabled = !isComponentReady || sessionLost || isUploading;
+
+  const PreviewContent = () => (
+    <div className={`space-y-3 sm:space-y-4 ${isMobile ? 'pb-24' : ''}`}>
+      <SessionStatusComponent
+        isComponentReady={isComponentReady}
+        sessionLost={sessionLost}
+        uploadError={uploadError}
+        onSessionRecovery={handleSessionRecovery}
+        onReset={handleReset}
+      />
+
+      {isComponentReady && !sessionLost && (
+        <>
+          <MediaUploadTabs
+            confirmImages={confirmImages}
+            confirmVideos={confirmVideos}
+            onImagesUpload={handleImagesUpload}
+            onVideosUpload={handleVideosUpload}
+            onImageDelete={handleImageDelete}
+            onVideoDelete={handleVideoDelete}
+            orderId={orderId}
+            disabled={isDisabled}
+          />
+
+          <UploadedFilesInfo
+            totalFiles={totalFiles}
+            confirmImages={confirmImages}
+            confirmVideos={confirmVideos}
+            uploadError={uploadError}
+          />
+        </>
+      )}
+    </div>
+  );
+
+  const ActionButtons = () => (
+    <>
+      <Button variant="outline" onClick={onCancel} className="flex-1 sm:flex-none h-10 text-sm">
+        Отмена
+      </Button>
+      <Button 
+        variant="secondary" 
+        onClick={onSkip}
+        className="flex-1 sm:flex-none h-10 text-sm flex items-center gap-1"
+      >
+        <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
+        Пропустить
+      </Button>
+      <Button
+        onClick={handleSaveMedia}
+        disabled={isDisabled || totalFiles === 0}
+        className="bg-green-600 hover:bg-green-700 h-10 text-sm flex items-center gap-1 order-1 sm:order-2"
+      >
+        {isUploading ? (
+          <>
+            <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
+            Сохранение...
+          </>
+        ) : (
+          <>
+            <Check className="h-3 w-3 sm:h-4 sm:w-4" />
+            Сохранить и продолжить
+          </>
+        )}
+      </Button>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={() => {}}>
+        <SheetContent side="bottom" className="h-[85vh] w-full flex flex-col p-4">
+          <SheetHeader className="text-left pb-2">
+            <SheetTitle className="text-lg flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              Загрузка файлов подтверждения заказа
+            </SheetTitle>
+            <SheetDescription className="text-sm">
+              Загрузите фотографии и видео, подтверждающие выполнение заказа, или пропустите этот шаг.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="absolute top-4 right-4">
+            <SheetClose asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8">
+                <X className="h-4 w-4" />
+              </Button>
+            </SheetClose>
+          </div>
+          <ScrollArea className="flex-1 my-2">
+            <PreviewContent />
+          </ScrollArea>
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+            <div className="flex gap-2">
+              <ActionButtons />
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={() => {}}>
@@ -368,139 +175,7 @@ export const ConfirmationImagesUploadDialog: React.FC<ConfirmationImagesUploadDi
         </DialogHeader>
 
         <ScrollArea className="flex-1 pr-2">
-          <div className="space-y-3 sm:space-y-4">
-            {/* Component readiness and session status */}
-            {!isComponentReady && (
-              <Alert>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <AlertDescription className="text-xs sm:text-sm">
-                  Инициализация компонента... Пожалуйста, подождите.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Session lost alert with recovery option */}
-            {sessionLost && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <span className="text-xs sm:text-sm">Сессия потеряна. Необходимо восстановить соединение для загрузки файлов.</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleSessionRecovery}
-                    className="h-6 px-2 text-xs self-start sm:self-center"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Восстановить
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Upload error alert */}
-            {uploadError && !sessionLost && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <span className="text-xs sm:text-sm">{uploadError}</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleReset}
-                    className="h-6 px-2 text-xs self-start sm:self-center"
-                  >
-                    Попробовать снова
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Main content - only show if component is ready */}
-            {isComponentReady && !sessionLost && (
-              <>
-                {/* Tabs for photos and videos */}
-                <Tabs defaultValue="images" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 h-8 sm:h-10">
-                    <TabsTrigger value="images" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Фото ({confirmImages.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="videos" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
-                      <Video className="h-3 w-3 sm:h-4 sm:w-4" />
-                      Видео ({confirmVideos.length})
-                    </TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="images" className="space-y-3 mt-3">
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6">
-                      <MobileOptimizedImageUpload
-                        onUploadComplete={handleImagesUpload}
-                        maxImages={10}
-                        existingImages={confirmImages}
-                        onImageDelete={handleImageDelete}
-                        disabled={isDisabled}
-                      />
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="videos" className="space-y-3 mt-3">
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-6">
-                      <CloudinaryVideoUpload
-                        videos={confirmVideos}
-                        onUpload={handleVideosUpload}
-                        onDelete={handleVideoDelete}
-                        maxVideos={5}
-                        productId={orderId}
-                        buttonText="Загрузить видео подтверждения"
-                        disabled={isDisabled}
-                      />
-                    </div>
-                  </TabsContent>
-                </Tabs>
-
-                {/* Information about uploaded files */}
-                {totalFiles > 0 && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-green-700">
-                      <Check className="h-4 w-4" />
-                      <span className="font-medium text-sm">
-                        Загружено {totalFiles} файлов подтверждения
-                      </span>
-                    </div>
-                    <p className="text-xs text-green-600 mt-1">
-                      {confirmImages.length > 0 && `${confirmImages.length} фотографий`}
-                      {confirmImages.length > 0 && confirmVideos.length > 0 && ', '}
-                      {confirmVideos.length > 0 && `${confirmVideos.length} видео`}
-                      {' - файлы готовы к сохранению'}
-                    </p>
-                  </div>
-                )}
-
-                {/* User hints */}
-                {totalFiles === 0 && !uploadError && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <div className="flex items-start gap-2 text-blue-700">
-                      <Upload className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <div className="text-xs sm:text-sm">
-                        <p className="font-medium">Рекомендации по файлам подтверждения:</p>
-                        <ul className="mt-1 space-y-1 text-blue-600">
-                          <li>• Подпишите товар номером заказа и ID покупателя</li>
-                          <li>• Добавьте скриншот переписки если вы обсуждали детали с покупателем</li>
-                          <li>• Добавьте скриншот переписки с обсуждения цены</li>
-                        </ul>
-                        <p className="font-medium mt-2">Для видео:</p>
-                        <ul className="mt-1 space-y-1 text-blue-600">
-                          <li>• Добавьте больше видео если вы присылали их продавцу</li>
-                          <li>• Добавьте видео эндоскопии, масла и прокрутки для моторов</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+          <PreviewContent />
         </ScrollArea>
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3 pt-3 sm:pt-4 border-t mt-auto">
