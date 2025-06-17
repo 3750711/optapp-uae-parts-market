@@ -1,4 +1,3 @@
-
 import React, { useCallback, useState } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Upload, Video, X, Loader, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOptimizedOrderMediaUpload } from "@/hooks/useOptimizedOrderMediaUpload";
-import OrderImageGallery from "@/components/ui/order-image-gallery/OrderImageGallery";
+import UnifiedImageUpload from "./UnifiedImageUpload";
 
 interface OptimizedOrderMediaSectionProps {
   images: string[];
@@ -199,202 +198,41 @@ const OptimizedOrderMediaSection: React.FC<OptimizedOrderMediaSectionProps> = ({
         </div>
       </div>
 
-      {/* Upload buttons */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                <span className="font-medium">Фотографии</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => document.getElementById('order-image-input')?.click()}
-                disabled={disabled || isUploading || images.length >= maxImages}
-                className="w-full"
-              >
-                {isUploading ? (
-                  <Loader className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                Загрузить фото
-              </Button>
-              <p className="text-xs text-gray-500">
-                Максимум {maxImages} изображений, до 50MB каждое
-              </p>
-              <p className="text-xs text-green-600 font-medium">
-                ✨ Автоматическое сжатие для ускорения загрузки
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Video className="h-4 w-4" />
-                <span className="font-medium">Видео</span>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={disabled || videos.length >= maxVideos}
-                className="w-full"
-              >
-                <Video className="mr-2 h-4 w-4" />
-                Загрузить видео
-              </Button>
-              <p className="text-xs text-gray-500">
-                Максимум {maxVideos} видео, до 100MB каждое
-              </p>
-              <p className="text-xs text-blue-600 font-medium">
-                🎬 Поддержка MP4, MOV, AVI
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Hidden file input */}
-      <input
-        key={fileInputKey}
-        id="order-image-input"
-        type="file"
-        multiple
-        accept="image/*"
-        onChange={handleFileSelect}
-        className="hidden"
-        disabled={disabled || isUploading}
+      {/* Use UnifiedImageUpload for images */}
+      <UnifiedImageUpload
+        images={images}
+        onImagesUpload={onImagesUpload}
+        onImageDelete={onImageDelete}
+        disabled={disabled}
+        maxImages={maxImages}
       />
 
-      {/* Upload progress */}
-      {isUploading && uploadQueue.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Загрузка и обработка файлов</span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={cancelUpload}
-                >
-                  Отменить
-                </Button>
-              </div>
-              {uploadQueue.filter(item => item.status !== 'deleted').map((item) => (
-                <div key={item.id} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="truncate">{item.file.name}</span>
-                    <div className="flex items-center gap-2">
-                      {item.status === 'compressing' && (
-                        <span className="text-blue-600">Сжатие...</span>
-                      )}
-                      {item.status === 'uploading' && (
-                        <span className="text-orange-600">Загрузка...</span>
-                      )}
-                      {item.status === 'success' && (
-                        <span className="text-green-600">Готово</span>
-                      )}
-                      {item.status === 'error' && (
-                        <span className="text-red-600">Ошибка</span>
-                      )}
-                      <span>{item.progress}%</span>
-                    </div>
-                  </div>
-                  <Progress value={item.progress} className="h-2" />
-                  {item.status === 'success' && (
-                    <p className="text-xs text-green-600">
-                      ✅ Файл успешно обработан и загружен
-                    </p>
-                  )}
-                  {item.status === 'error' && (
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="h-4 w-4 text-red-500" />
-                      <p className="text-xs text-red-600">
-                        {item.error || 'Неизвестная ошибка'}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Failed uploads summary */}
-      {failedUploads.length > 0 && !isUploading && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-red-700">
-              <AlertCircle className="h-4 w-4" />
-              <span className="font-medium">
-                Ошибки загрузки ({failedUploads.length} файлов)
-              </span>
-            </div>
-            <div className="mt-2 space-y-1">
-              {failedUploads.map(item => (
-                <p key={item.id} className="text-sm text-red-600">
-                  • {item.file.name}: {item.error}
-                </p>
-              ))}
+      {/* Video upload section */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Video className="h-4 w-4" />
+              <span className="font-medium">Видео</span>
             </div>
             <Button
               type="button"
               variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={() => {
-                // Retry failed uploads
-                const filesToRetry = failedUploads.map(item => item.file);
-                if (filesToRetry.length > 0) {
-                  handleFileSelect({ target: { files: filesToRetry } } as any);
-                }
-              }}
+              disabled={disabled || videos.length >= maxVideos}
+              className="w-full"
             >
-              Повторить загрузку
+              <Video className="mr-2 h-4 w-4" />
+              Загрузить видео
             </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Drag & Drop zone */}
-      <div
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-          dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300",
-          disabled && "opacity-50 cursor-not-allowed"
-        )}
-      >
-        <Upload className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-        <p className="text-sm text-gray-600">
-          Перетащите изображения сюда или используйте кнопки выше
-        </p>
-        <p className="text-xs text-gray-400 mt-1">
-          Поддерживаются JPEG, PNG, WebP до 50MB
-        </p>
-      </div>
-
-      {/* Order Image Gallery */}
-      <OrderImageGallery
-        images={images}
-        uploadQueue={uploadQueue}
-        primaryImage={primaryImage}
-        onSetPrimary={onSetPrimaryImage}
-        onDelete={handleImageDelete}
-        disabled={disabled}
-        maxImages={maxImages}
-      />
+            <p className="text-xs text-gray-500">
+              Максимум {maxVideos} видео, до 100MB каждое
+            </p>
+            <p className="text-xs text-blue-600 font-medium">
+              🎬 Поддержка MP4, MOV, AVI
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Video Gallery */}
       {videos.length > 0 && (
