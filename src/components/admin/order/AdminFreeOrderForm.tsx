@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import SellerOrderFormFields from './SellerOrderFormFields';
@@ -6,27 +7,28 @@ import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader, AlertCircle } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader, AlertCircle, Camera, Plus } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
+import { MobileFormSection } from './MobileFormSection';
+import { MobileStickyActions } from './MobileStickyActions';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
+  const isMobile = useIsMobile();
 
   const {
     // Form data
     formData,
     handleInputChange,
-    
-    // Media
     images,
     videos,
     setAllImages,
     setVideos,
-    
-    // Profiles and car data
     buyerProfiles,
     sellerProfiles,
     selectedSeller,
@@ -41,18 +43,12 @@ export const AdminFreeOrderForm = () => {
     filteredModels,
     handleBrandChange,
     handleModelChange,
-    
-    // Order creation
     isLoading,
     createdOrder,
     handleSubmit: originalHandleSubmit,
     handleOrderUpdate,
     resetForm,
-    
-    // Utils
     parseTitleForBrand,
-    
-    // Simplified initialization
     isInitializing,
     initializationError,
     hasAdminAccess,
@@ -71,32 +67,27 @@ export const AdminFreeOrderForm = () => {
     }
   });
 
-  // Handle media upload for orders
   const onImagesUpload = (urls: string[]) => {
     console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
     setAllImages(urls);
   };
 
-  // Handle image deletion
   const onImageDelete = (url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
     const newImages = images.filter(img => img !== url);
     setAllImages(newImages);
   };
 
-  // Handle video upload
   const onVideoUpload = (urls: string[]) => {
     console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
     setVideos(prev => [...prev, ...urls]);
   };
 
-  // Handle video deletion
   const onVideoDelete = (url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
     setVideos(prev => prev.filter(video => video !== url));
   };
 
-  // Show preview when "Create Order" is clicked
   const handleCreateOrderClick = () => {
     console.log('🔍 Checking form validation:', {
       title: formData.title,
@@ -117,7 +108,6 @@ export const AdminFreeOrderForm = () => {
     setShowPreview(true);
   };
 
-  // Confirm order creation from preview
   const handleConfirmOrder = (e: React.FormEvent) => {
     e.preventDefault();
     setShowPreview(false);
@@ -126,17 +116,15 @@ export const AdminFreeOrderForm = () => {
     });
   };
 
-  // Go back to editing from preview
   const handleBackToEdit = () => {
     setShowPreview(false);
   };
 
-  // Validate form for preview - исправляем проверку полей
   const canShowPreview = () => {
     const isValid = formData.title && 
                    formData.price && 
                    formData.sellerId && 
-                   formData.buyerOptId; // Используем buyerOptId вместо buyerId
+                   formData.buyerOptId;
     
     console.log('🔍 Form validation result:', {
       title: !!formData.title,
@@ -149,7 +137,6 @@ export const AdminFreeOrderForm = () => {
     return isValid;
   };
 
-  // Get buyer profile for preview
   const getBuyerProfile = () => {
     return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
   };
@@ -166,7 +153,6 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
-  // Simplified error state
   if (initializationError) {
     return (
       <Alert variant="destructive">
@@ -183,7 +169,6 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
-  // Access denied state
   if (!hasAdminAccess) {
     return (
       <Alert variant="destructive">
@@ -200,14 +185,12 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
-  // Show created order view
   if (createdOrder) {
     return (
       <CreatedOrderView
         order={createdOrder}
         images={images}
         videos={videos}
-        onBack={() => navigate('/admin/dashboard')}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
       />
@@ -217,7 +200,12 @@ export const AdminFreeOrderForm = () => {
   const isFormDisabled = isLoading || !canSubmit;
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-6 ${isMobile ? 'pb-32' : ''}`}>
+      <MobileOrderCreationHeader
+        title="Создание свободного заказа"
+        description="Заполните информацию о заказе"
+      />
+      
       {/* Order Form Fields */}
       <SellerOrderFormFields
         formData={formData}
@@ -238,32 +226,31 @@ export const AdminFreeOrderForm = () => {
         handleModelChange={handleModelChange}
         parseTitleForBrand={parseTitleForBrand}
         onImagesUpload={onImagesUpload}
-        onDataFromProduct={() => {}} // Not used in free orders
+        onDataFromProduct={() => {}}
         disabled={isFormDisabled}
       />
       
       {/* Media Upload Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Медиафайлы заказа</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Image Upload */}
+      <MobileFormSection 
+        title="Медиафайлы заказа" 
+        icon={<Camera className="h-5 w-5" />}
+        defaultOpen={false}
+      >
+        <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-medium mb-4">Изображения</h3>
+            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
             <AdvancedImageUpload
               images={images}
               onImagesUpload={onImagesUpload}
               onImageDelete={onImageDelete}
-              onSetPrimaryImage={() => {}} // Not used for orders
+              onSetPrimaryImage={() => {}}
               disabled={isFormDisabled}
               maxImages={25}
             />
           </div>
 
-          {/* Video Upload */}
           <div>
-            <h3 className="text-lg font-medium mb-4">Видео</h3>
+            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Видео</h3>
             <CloudinaryVideoUpload
               videos={videos}
               onUpload={onVideoUpload}
@@ -272,21 +259,34 @@ export const AdminFreeOrderForm = () => {
               disabled={isFormDisabled}
             />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </MobileFormSection>
 
-      {/* Submit Button */}
-      <div className="flex justify-end pt-6 border-t">
-        <Button
-          type="button"
-          onClick={handleCreateOrderClick}
-          disabled={isFormDisabled}
-          size="lg"
-          className="min-w-[200px]"
-        >
-          Создать заказ
-        </Button>
-      </div>
+      {/* Mobile Actions */}
+      <MobileStickyActions
+        primaryAction={{
+          label: "Создать заказ",
+          onClick: handleCreateOrderClick,
+          disabled: isFormDisabled,
+          loading: isLoading
+        }}
+      />
+
+      {/* Desktop Actions */}
+      {!isMobile && (
+        <div className="flex justify-end pt-6 border-t">
+          <Button
+            type="button"
+            onClick={handleCreateOrderClick}
+            disabled={isFormDisabled}
+            size="lg"
+            className="min-w-[200px]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Создать заказ
+          </Button>
+        </div>
+      )}
 
       {/* Order Preview Dialog */}
       <OrderPreviewDialog

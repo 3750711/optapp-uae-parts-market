@@ -3,15 +3,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Package, DollarSign, User, Calendar, Plus } from 'lucide-react';
+import { CheckCircle, Package, DollarSign, User, Calendar, Plus, Camera } from 'lucide-react';
 import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
 import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileFormSection } from './MobileFormSection';
+import { MobileStickyActions } from './MobileStickyActions';
 
 interface CreatedOrderViewProps {
   order: any;
   images: string[];
   videos?: string[];
-  onBack?: () => void;
   onNewOrder: () => void;
   onOrderUpdate?: (order: any) => void;
 }
@@ -22,6 +24,8 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   videos = [],
   onNewOrder
 }) => {
+  const isMobile = useIsMobile();
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
       year: 'numeric',
@@ -33,16 +37,16 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   };
 
   return (
-    <div className="space-y-8">
+    <div className={`space-y-${isMobile ? '6' : '8'} ${isMobile ? 'pb-24' : ''}`}>
       {/* Success Header */}
       <Card className="border-green-200 bg-green-50">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-center space-x-4">
+        <CardContent className={`pt-${isMobile ? '4' : '6'}`}>
+          <div className={`flex items-center ${isMobile ? 'flex-col text-center' : 'justify-center'} space-${isMobile ? 'y' : 'x'}-4`}>
             <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-green-800 mb-2">
+            <div className={isMobile ? 'text-center' : ''}>
+              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-green-800 mb-2`}>
                 Заказ успешно создан!
               </h1>
               <p className="text-green-700">
@@ -54,19 +58,17 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
       </Card>
 
       {/* Order Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
         {/* Basic Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Информация о заказе
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <MobileFormSection 
+          title="Информация о заказе" 
+          icon={<Package className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-4">
             <div>
               <div className="text-sm text-muted-foreground">Номер заказа</div>
-              <div className="font-mono text-lg font-bold">{order.order_number}</div>
+              <div className={`font-mono ${isMobile ? 'text-lg' : 'text-lg'} font-bold`}>{order.order_number}</div>
             </div>
             <div>
               <div className="text-sm text-muted-foreground">Наименование</div>
@@ -90,44 +92,40 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                 {order.status}
               </Badge>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </MobileFormSection>
 
         {/* Financial Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Финансовая информация
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <MobileFormSection 
+          title="Финансовая информация" 
+          icon={<DollarSign className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="space-y-4">
             <div>
               <div className="text-sm text-muted-foreground">Цена товара</div>
-              <div className="text-2xl font-bold text-green-600">${order.price}</div>
+              <div className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold text-green-600`}>${order.price}</div>
             </div>
             {order.delivery_price_confirm && (
               <div>
                 <div className="text-sm text-muted-foreground">Стоимость доставки</div>
-                <div className="text-lg font-semibold">${order.delivery_price_confirm}</div>
+                <div className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold`}>${order.delivery_price_confirm}</div>
               </div>
             )}
             <div>
               <div className="text-sm text-muted-foreground">Количество мест</div>
               <div className="font-medium">{order.place_number || 1}</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </MobileFormSection>
 
         {/* Participants */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Участники заказа
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <MobileFormSection 
+          title="Участники заказа" 
+          icon={<User className="h-5 w-5" />}
+          defaultOpen={!isMobile}
+        >
+          <div className="space-y-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-sm text-muted-foreground mb-1">Продавец</div>
               <div className="font-medium">{order.order_seller_name || 'Не указан'}</div>
@@ -136,18 +134,16 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
               <div className="text-sm text-muted-foreground mb-1">Покупатель</div>
               <div className="font-medium">ID: {order.buyer_id}</div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </MobileFormSection>
 
         {/* Timeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5" />
-              Временная линия
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <MobileFormSection 
+          title="Временная линия" 
+          icon={<Calendar className="h-5 w-5" />}
+          defaultOpen={!isMobile}
+        >
+          <div className="space-y-4">
             <div>
               <div className="text-sm text-muted-foreground">Дата создания</div>
               <div className="font-medium">{formatDate(order.created_at)}</div>
@@ -158,59 +154,68 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
                 <div className="font-medium">{formatDate(order.updated_at)}</div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </MobileFormSection>
       </div>
 
       {/* Media Section */}
       {(images.length > 0 || videos.length > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Медиафайлы заказа</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <MobileFormSection 
+          title={`Медиафайлы заказа (${images.length + videos.length})`}
+          icon={<Camera className="h-5 w-5" />}
+          defaultOpen={false}
+        >
+          <div className="space-y-6">
             {images.length > 0 && (
               <div>
-                <h3 className="text-lg font-medium mb-4">Изображения ({images.length})</h3>
+                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-medium mb-4`}>Изображения ({images.length})</h3>
                 <OptimizedOrderImages images={images} />
               </div>
             )}
 
             {videos.length > 0 && (
               <div>
-                <h3 className="text-lg font-medium mb-4">Видео ({videos.length})</h3>
+                <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-medium mb-4`}>Видео ({videos.length})</h3>
                 <OptimizedOrderVideos videos={videos} />
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </MobileFormSection>
       )}
 
       {/* Additional Information */}
       {order.text_order && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Дополнительная информация</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-muted/30 p-4 rounded-lg">
-              <p className="whitespace-pre-wrap">{order.text_order}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <MobileFormSection 
+          title="Дополнительная информация"
+          defaultOpen={false}
+        >
+          <div className="bg-muted/30 p-4 rounded-lg">
+            <p className="whitespace-pre-wrap">{order.text_order}</p>
+          </div>
+        </MobileFormSection>
       )}
 
-      {/* Actions */}
-      <div className="flex justify-center pt-6 border-t">
-        <Button
-          onClick={onNewOrder}
-          size="lg"
-          className="min-w-[200px]"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Создать новый заказ
-        </Button>
-      </div>
+      {/* Mobile Actions */}
+      <MobileStickyActions
+        primaryAction={{
+          label: "Создать новый заказ",
+          onClick: onNewOrder
+        }}
+      />
+
+      {/* Desktop Actions */}
+      {!isMobile && (
+        <div className="flex justify-center pt-6 border-t">
+          <Button
+            onClick={onNewOrder}
+            size="lg"
+            className="min-w-[200px]"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Создать новый заказ
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
