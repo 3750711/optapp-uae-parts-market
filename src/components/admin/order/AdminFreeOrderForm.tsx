@@ -1,125 +1,36 @@
 
-import React, { useState, useCallback, useMemo } from 'react';
-import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
-import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import AdvancedImageUpload from './AdvancedImageUpload';
-import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
+import React from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Loader, AlertCircle, RefreshCw } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useOptimizedAdminAccess } from '@/hooks/useOptimizedAdminAccess';
 import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Loader, AlertCircle, Camera, Plus, RefreshCw } from 'lucide-react';
-import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
-import { toast } from '@/hooks/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
-import { MobileFormSection } from './MobileFormSection';
+import { AdminFreeOrderFormHeader } from './AdminFreeOrderFormHeader';
+import { AdminFreeOrderFormContent } from './AdminFreeOrderFormContent';
+import { AdminFreeOrderFormActions } from './AdminFreeOrderFormActions';
+import { AdminFreeOrderFormProvider } from './AdminFreeOrderFormProvider';
+import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 
 export const AdminFreeOrderForm = React.memo(() => {
-  const [showPreview, setShowPreview] = useState(false);
   const isMobile = useIsMobile();
-
+  const { hasAdminAccess, isCheckingAdmin } = useOptimizedAdminAccess();
+  
   const {
-    formData,
-    handleInputChange,
+    createdOrder,
     images,
     videos,
-    setAllImages,
-    setVideos,
-    isLoading,
-    createdOrder,
-    handleSubmit: originalHandleSubmit,
+    buyerProfiles,
     handleOrderUpdate,
     resetForm,
-    hasAdminAccess,
-    isCheckingAdmin,
     error,
     retryOperation,
     clearError,
-    selectedSeller,
-    buyerProfiles,
     isDataReady
   } = useAdminOrderFormLogic();
 
-  // Стабильный submission guard
-  const { guardedSubmit, canSubmit } = useSubmissionGuard({
-    timeout: 10000,
-    onDuplicateSubmit: useCallback(() => {
-      toast({
-        title: "Заказ создается",
-        description: "Пожалуйста подождите, заказ уже создается",
-        variant: "destructive",
-      });
-    }, [])
-  });
-
-  // Мемоизированные обработчики
-  const onImagesUpload = useCallback((urls: string[]) => {
-    console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
-    setAllImages(urls);
-  }, [setAllImages]);
-
-  const onImageDelete = useCallback((url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
-    const updatedImages = images.filter(img => img !== url);
-    setAllImages(updatedImages);
-  }, [setAllImages, images]);
-
-  const onVideoUpload = useCallback((urls: string[]) => {
-    console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
-    setVideos([...videos, ...urls]);
-  }, [setVideos, videos]);
-
-  const onVideoDelete = useCallback((url: string) => {
-    console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
-    const updatedVideos = videos.filter(video => video !== url);
-    setVideos(updatedVideos);
-  }, [setVideos, videos]);
-
-  // Валидация формы
-  const canShowPreview = useCallback(() => {
-    return !!(formData.title && formData.price && formData.sellerId && formData.buyerOptId);
-  }, [formData.title, formData.price, formData.sellerId, formData.buyerOptId]);
-
-  const getBuyerProfile = useCallback(() => {
-    return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
-  }, [buyerProfiles, formData.buyerOptId]);
-
-  // Стабильные обработчики событий
-  const handleCreateOrderClick = useCallback(() => {
-    if (!canShowPreview()) {
-      toast({
-        title: "Заполните обязательные поля",
-        description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
-        variant: "destructive",
-      });
-      return;
-    }
-    setShowPreview(true);
-  }, [canShowPreview]);
-
-  const handleConfirmOrder = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-    setShowPreview(false);
-    guardedSubmit(async () => {
-      await originalHandleSubmit(e);
-    });
-  }, [guardedSubmit, originalHandleSubmit]);
-
-  const handleBackToEdit = useCallback(() => {
-    setShowPreview(false);
-  }, []);
-
-  const handleRetry = useCallback(() => {
-    clearError();
-    retryOperation();
-  }, [clearError, retryOperation]);
-
-  // Мемоизированные вычисляемые значения
-  const isFormDisabled = useMemo(() => isLoading || !canSubmit, [isLoading, canSubmit]);
-
-  // Ранние возвраты для состояний загрузки
+  // Early returns for loading states
   if (isCheckingAdmin) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -142,7 +53,6 @@ export const AdminFreeOrderForm = React.memo(() => {
     );
   }
 
-  // Показываем индикатор загрузки данных
   if (!isDataReady) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -162,139 +72,69 @@ export const AdminFreeOrderForm = React.memo(() => {
         videos={videos}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
-        buyerProfile={buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null}
+        buyerProfile={buyerProfiles.find(buyer => buyer.opt_id === createdOrder.buyer_opt_id) || null}
       />
     );
   }
 
   return (
-    <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
-      <MobileOrderCreationHeader
-        title="Создание свободного заказа"
-        description="Заполните информацию о заказе"
-      />
+    <AdminFreeOrderFormProvider>
+      {(contextValue) => (
+        <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
+          <AdminFreeOrderFormHeader />
 
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>{error}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={retryOperation}
-              className="ml-2"
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Повторить
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      
-      <OptimizedSellerOrderFormFields
-        formData={formData}
-        handleInputChange={handleInputChange}
-        disabled={isLoading || !canSubmit}
-      />
-      
-      <MobileFormSection 
-        title="Медиафайлы заказа" 
-        icon={<Camera className="h-5 w-5" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-6">
-          <div>
-            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
-            <AdvancedImageUpload
-              images={images}
-              onImagesUpload={onImagesUpload}
-              onImageDelete={onImageDelete}
-              onSetPrimaryImage={() => {}}
-              disabled={isLoading || !canSubmit}
-              maxImages={25}
-            />
-          </div>
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>{error}</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={retryOperation}
+                  className="ml-2"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  Повторить
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          <AdminFreeOrderFormContent
+            formData={contextValue.formData}
+            handleInputChange={contextValue.handleInputChange}
+            images={contextValue.images}
+            videos={contextValue.videos}
+            onImagesUpload={contextValue.onImagesUpload}
+            onImageDelete={contextValue.onImageDelete}
+            onVideoUpload={contextValue.onVideoUpload}
+            onVideoDelete={contextValue.onVideoDelete}
+            disabled={contextValue.isLoading || !contextValue.canSubmit}
+          />
 
-          <div>
-            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Видео</h3>
-            <CloudinaryVideoUpload
-              videos={videos}
-              onUpload={onVideoUpload}
-              onDelete={onVideoDelete}
-              maxVideos={5}
-              disabled={isLoading || !canSubmit}
-            />
-          </div>
-        </div>
-      </MobileFormSection>
+          <AdminFreeOrderFormActions
+            formData={contextValue.formData}
+            isLoading={contextValue.isLoading}
+            canSubmit={contextValue.canSubmit}
+            onCreateOrderClick={contextValue.handleCreateOrderClick}
+          />
 
-      {isMobile ? (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
-          <Button
-            type="button"
-            onClick={() => {
-              if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
-                toast({
-                  title: "Заполните обязательные поля",
-                  description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
-                  variant: "destructive",
-                });
-                return;
-              }
-              setShowPreview(true);
-            }}
-            disabled={isLoading || !canSubmit}
-            size="lg"
-            className="w-full touch-target min-h-[48px] text-base font-medium"
-          >
-            {isLoading ? 'Создание заказа...' : 'Создать заказ'}
-          </Button>
-        </div>
-      ) : (
-        <div className="flex justify-end pt-6 border-t">
-          <Button
-            type="button"
-            onClick={() => {
-              if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
-                toast({
-                  title: "Заполните обязательные поля",
-                  description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
-                  variant: "destructive",
-                });
-                return;
-              }
-              setShowPreview(true);
-            }}
-            disabled={isLoading || !canSubmit}
-            size="lg"
-            className="min-w-[200px]"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Создать заказ
-          </Button>
+          <OrderPreviewDialog
+            open={contextValue.showPreview}
+            onOpenChange={contextValue.setShowPreview}
+            formData={contextValue.formData}
+            images={contextValue.images}
+            videos={contextValue.videos}
+            selectedSeller={contextValue.selectedSeller}
+            buyerProfile={contextValue.buyerProfiles.find(buyer => buyer.opt_id === contextValue.formData.buyerOptId) || null}
+            onConfirm={contextValue.handleConfirmOrder}
+            onBack={() => contextValue.setShowPreview(false)}
+            isLoading={contextValue.isLoading}
+          />
         </div>
       )}
-
-      <OrderPreviewDialog
-        open={showPreview}
-        onOpenChange={setShowPreview}
-        formData={formData}
-        images={images}
-        videos={videos}
-        selectedSeller={selectedSeller}
-        buyerProfile={buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null}
-        onConfirm={(e: React.FormEvent) => {
-          e.preventDefault();
-          setShowPreview(false);
-          guardedSubmit(async () => {
-            await originalHandleSubmit(e);
-          });
-        }}
-        onBack={() => setShowPreview(false)}
-        isLoading={isLoading}
-      />
-    </div>
+    </AdminFreeOrderFormProvider>
   );
 });
 
