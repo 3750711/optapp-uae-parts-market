@@ -91,41 +91,23 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
 
       console.log('✅ Order created successfully:', order);
 
-      // Stage 3: Background Telegram notification (non-blocking)
+      // Stage 3: Background Telegram notification (fire and forget)
       setStage('Финализация...');
       setProgress(90);
 
-      // Start Telegram notification in background without waiting
-      if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
-        EdgeRuntime.waitUntil(
-          supabase.functions.invoke('send-telegram-notification', {
-            body: {
-              order: {
-                ...order,
-                images: images,
-                video_url: videos
-              },
-              action: 'create'
-            }
-          }).catch(error => {
-            console.warn('📱 Telegram notification failed (non-critical):', error);
-          })
-        );
-      } else {
-        // Fallback for non-edge environments - fire and forget
-        supabase.functions.invoke('send-telegram-notification', {
-          body: {
-            order: {
-              ...order,
-              images: images,
-              video_url: videos
-            },
-            action: 'create'
-          }
-        }).catch(error => {
-          console.warn('📱 Telegram notification failed (non-critical):', error);
-        });
-      }
+      // Fire and forget - start Telegram notification without waiting
+      supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          order: {
+            ...order,
+            images: images,
+            video_url: videos
+          },
+          action: 'create'
+        }
+      }).catch(error => {
+        console.warn('📱 Telegram notification failed (non-critical):', error);
+      });
 
       setProgress(100);
       setStage('Заказ создан успешно!');
