@@ -18,12 +18,38 @@ import { MobileOrderCreationHeader } from "@/components/admin/order/MobileOrderC
 import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCreationSteps";
 import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
 import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
-import { Product, AdminSellerProfile, BuyerProfile } from "@/types/product";
+import { Product } from "@/types/product";
+
+interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+interface BuyerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+interface Product {
+  id: string;
+  title: string;
+  price: number;
+  brand?: string;
+  model?: string;
+  status: string;
+  product_images?: { url: string; is_primary?: boolean }[];
+  delivery_price?: number;
+  lot_number: number;
+}
 
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [sellers, setSellers] = useState<AdminSellerProfile[]>([]);
+  const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
@@ -54,7 +80,7 @@ const AdminCreateOrderFromProduct = () => {
     removeProductFromList
   } = useSellerProducts(selectedSeller);
 
-  // useEffect for loading sellers
+  // Загрузка продавцов
   useEffect(() => {
     const fetchSellers = async () => {
       setIsLoadingSellers(true);
@@ -91,7 +117,7 @@ const AdminCreateOrderFromProduct = () => {
     fetchSellers();
   }, []);
 
-  // useEffect for loading buyers
+  // Загрузка покупателей
   useEffect(() => {
     const fetchBuyers = async () => {
       setIsLoadingBuyers(true);
@@ -128,7 +154,6 @@ const AdminCreateOrderFromProduct = () => {
     fetchBuyers();
   }, []);
 
-  // steps configuration, handler functions, and component render
   const steps = [
     { number: 1, title: "Продавец", description: "Выберите продавца", completed: !!selectedSeller },
     { number: 2, title: "Товар", description: "Выберите товар", completed: !!selectedProduct },
@@ -139,18 +164,12 @@ const AdminCreateOrderFromProduct = () => {
     const seller = sellers.find(s => s.id === sellerId);
     if (seller) {
       handleSellerSelect(seller);
-      setCreateOrderError(null);
+      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
     }
   };
 
   const handleProductSelectWithCheck = async (product: Product) => {
-    console.log("🔍 Checking product status before selection:", {
-      productId: product.id,
-      productTitle: product.title,
-      hasImages: product.product_images?.length || 0,
-      cloudinaryPublicId: product.cloudinary_public_id,
-      cloudinaryUrl: product.cloudinary_url
-    });
+    console.log("Checking product status before selection:", product.id);
     
     try {
       const { isAvailable, status } = await checkProductStatus(product.id);
@@ -165,18 +184,8 @@ const AdminCreateOrderFromProduct = () => {
         return;
       }
       
-      console.log("✅ Product is available, selecting:", {
-        productId: product.id,
-        productTitle: product.title,
-        images: product.product_images,
-        cloudinaryData: {
-          publicId: product.cloudinary_public_id,
-          url: product.cloudinary_url
-        }
-      });
-      
       handleProductSelect(product);
-      setCreateOrderError(null);
+      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
     } catch (error) {
       console.error('Unexpected error checking product status:', error);
       toast({
@@ -192,18 +201,11 @@ const AdminCreateOrderFromProduct = () => {
     if (!buyer) return;
     
     handleBuyerSelect(buyer);
-    setCreateOrderError(null);
+    setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
     
+    // Финальная проверка статуса товара перед показом диалога подтверждения
     if (selectedProduct) {
-      console.log("📝 Final product check before confirmation dialog:", {
-        productId: selectedProduct.id,
-        status: selectedProduct.status,
-        images: selectedProduct.product_images,
-        cloudinaryData: {
-          publicId: selectedProduct.cloudinary_public_id,
-          url: selectedProduct.cloudinary_url
-        }
-      });
+      console.log("Final product status check before confirmation dialog:", selectedProduct.id);
       
       try {
         const { isAvailable, status } = await checkProductStatus(selectedProduct.id);
@@ -251,21 +253,6 @@ const AdminCreateOrderFromProduct = () => {
       return;
     }
 
-    console.log("🚀 Creating order with product data:", {
-      seller: selectedSeller,
-      product: {
-        id: selectedProduct.id,
-        title: selectedProduct.title,
-        images: selectedProduct.product_images,
-        cloudinaryData: {
-          publicId: selectedProduct.cloudinary_public_id,
-          url: selectedProduct.cloudinary_url
-        }
-      },
-      buyer: selectedBuyer,
-      orderData
-    });
-
     try {
       setCreateOrderError(null);
       const orderId = await createOrder(selectedSeller, selectedProduct, selectedBuyer, orderData);
@@ -291,6 +278,7 @@ const AdminCreateOrderFromProduct = () => {
       const errorMsg = error instanceof Error ? error.message : "Произошла ошибка при создании заказа";
       setCreateOrderError(errorMsg);
       console.error("Error creating order:", error);
+      // Ошибка уже обработана в хуке, но мы также сохраняем её локально
     }
   };
 

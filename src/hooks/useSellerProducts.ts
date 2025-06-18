@@ -2,9 +2,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Product, AdminSellerProfile } from '@/types/product';
+import { Product } from '@/types/product';
 
-export const useSellerProducts = (selectedSeller: AdminSellerProfile | null) => {
+interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -16,14 +23,9 @@ export const useSellerProducts = (selectedSeller: AdminSellerProfile | null) => 
       const fetchProducts = async () => {
         setIsLoading(true);
         try {
-          console.log('🔍 Fetching products for seller:', selectedSeller.id);
-          
           const { data, error } = await supabase
             .from("products")
-            .select(`
-              *,
-              product_images(*)
-            `)
+            .select("*, product_images(*)")
             .eq("seller_id", selectedSeller.id)
             .eq("status", "active")
             .order("created_at", { ascending: false });
@@ -36,19 +38,6 @@ export const useSellerProducts = (selectedSeller: AdminSellerProfile | null) => 
               variant: "destructive",
             });
           } else {
-            console.log('✅ Products fetched successfully:', {
-              count: data?.length || 0,
-              sampleProduct: data?.[0] ? {
-                id: data[0].id,
-                title: data[0].title,
-                images: data[0].product_images,
-                cloudinaryData: {
-                  publicId: data[0].cloudinary_public_id,
-                  url: data[0].cloudinary_url
-                }
-              } : null
-            });
-            
             setProducts(data || []);
             setFilteredProducts(data || []);
           }
