@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -76,7 +75,7 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          // Map to SellerProfile type
+          // Map to SellerProfile type with user_type
           const mappedSellers: SellerProfile[] = (data || []).map(seller => ({
             ...seller,
             user_type: 'seller' as const
@@ -118,7 +117,7 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          // Map to BuyerProfile type
+          // Map to BuyerProfile type with user_type
           const mappedBuyers: BuyerProfile[] = (data || []).map(buyer => ({
             ...buyer,
             user_type: 'buyer' as const

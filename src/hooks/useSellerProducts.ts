@@ -20,7 +20,31 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
           const { data, error } = await supabase
             .from("products")
             .select(`
-              *,
+              id,
+              title,
+              price,
+              condition,
+              brand,
+              model,
+              description,
+              seller_id,
+              seller_name,
+              status,
+              created_at,
+              updated_at,
+              place_number,
+              delivery_price,
+              telegram_url,
+              phone_url,
+              product_url,
+              optid_created,
+              product_location,
+              rating_seller,
+              lot_number,
+              location,
+              last_notification_sent_at,
+              cloudinary_public_id,
+              cloudinary_url,
               product_images(*)
             `)
             .eq("seller_id", selectedSeller.id)
