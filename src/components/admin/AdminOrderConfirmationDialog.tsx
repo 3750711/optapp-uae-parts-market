@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,18 +34,6 @@ interface OrderData {
     location: string;
     telegram: string;
   };
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
 }
 
 interface SellerProfile {
@@ -153,7 +142,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     const primaryImage = product.product_images.find(img => img.is_primary) || product.product_images[0];
     return {
       url: primaryImage.url,
-      cloudinaryPublicId: product.cloudinary_public_id
+      cloudinaryPublicId: product.cloudinary_public_id || null
     };
   };
 
@@ -313,7 +302,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                       alt={product?.title || 'Product image'}
                       className="w-full h-64 object-cover rounded-md"
                       cloudinaryPublicId={primaryImageData.cloudinaryPublicId}
-                      size="medium"
+                      size="detail"
                       priority={false}
                     />
                   </div>
@@ -332,7 +321,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                           src={image}
                           alt={`Image ${index + 2}`}
                           className="object-cover rounded-md"
-                          size="small"
+                          size="thumbnail"
                         />
                       </div>
                     ))}
