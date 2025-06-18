@@ -49,35 +49,46 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
     setProgress(0);
     
     try {
-      // Stage 1: Prepare order data
+      // Stage 1: Подготовка данных заказа
       setStage('Подготовка данных заказа...');
       setProgress(20);
-      
-      const orderData = {
-        title: formData.title,
-        price: parseFloat(formData.price),
-        brand: formData.brand,
-        model: formData.model,
-        seller_id: formData.sellerId,
-        buyer_opt_id: formData.buyerOptId,
-        delivery_method: formData.deliveryMethod,
-        place_number: parseInt(formData.place_number) || 1,
-        text_order: formData.text_order || null,
-        delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null,
-        description: formData.description || null,
-        images: images,
-        video_url: videos
-      };
 
-      console.log('🚀 Creating order with optimized data:', orderData);
+      // Получаем buyer_id по buyer_opt_id
+      const { data: buyerProfile, error: buyerError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('opt_id', formData.buyerOptId)
+        .single();
 
-      // Stage 2: Create order with all data in one call
+      if (buyerError || !buyerProfile) {
+        throw new Error('Покупатель с указанным OPT_ID не найден');
+      }
+
+      console.log('✅ Buyer found:', buyerProfile);
+
+      // Stage 2: Создание заказа через admin_create_order
       setStage('Создание заказа...');
       setProgress(60);
 
-      const { data: order, error: orderError } = await supabase
-        .rpc('create_complete_order', {
-          order_data: orderData
+      const { data: orderId, error: orderError } = await supabase
+        .rpc('admin_create_order', {
+          p_title: formData.title,
+          p_price: parseFloat(formData.price),
+          p_place_number: parseInt(formData.place_number) || 1,
+          p_seller_id: formData.sellerId,
+          p_order_seller_name: null, // Будет установлено автоматически триггером
+          p_seller_opt_id: null, // Будет установлено автоматически триггером
+          p_buyer_id: buyerProfile.id,
+          p_brand: formData.brand || '',
+          p_model: formData.model || '',
+          p_status: 'created',
+          p_order_created_type: 'free_order',
+          p_telegram_url_order: null,
+          p_images: images,
+          p_product_id: null,
+          p_delivery_method: formData.deliveryMethod,
+          p_text_order: formData.text_order || null,
+          p_delivery_price_confirm: formData.delivery_price ? parseFloat(formData.delivery_price) : null
         });
 
       if (orderError) {
@@ -85,11 +96,25 @@ export const useOptimizedOrderSubmission = (): OptimizedOrderSubmissionResult =>
         throw new Error(orderError.message || 'Ошибка при создании заказа');
       }
 
-      if (!order) {
+      if (!orderId) {
         throw new Error('Заказ не был создан');
       }
 
-      console.log('✅ Order created successfully:', order);
+      console.log('✅ Order created with ID:', orderId);
+
+      // Получаем полные данные созданного заказа
+      const { data: order, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (fetchError || !order) {
+        console.error('❌ Failed to fetch created order:', fetchError);
+        throw new Error('Заказ создан, но не удалось получить его данные');
+      }
+
+      console.log('✅ Order fetched successfully:', order);
 
       // Stage 3: Background Telegram notification (fire and forget)
       setStage('Финализация...');
