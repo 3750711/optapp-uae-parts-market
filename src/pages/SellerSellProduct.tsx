@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Product } from "@/types/product";
 
 // Новые оптимизированные компоненты
 import OptimizedProductCard from "@/components/seller/OptimizedProductCard";
@@ -28,19 +29,6 @@ interface BuyerProfile {
   full_name: string;
   opt_id: string;
   telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  description?: string;
 }
 
 const SellerSellProduct = () => {
