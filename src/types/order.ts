@@ -30,7 +30,10 @@ export interface CarModel {
 }
 
 export type DeliveryMethod = 'self_pickup' | 'cargo_rf' | 'cargo_kz';
-export type OrderStatus = 'created' | 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'declined';
+
+// Правильные статусы заказа согласно базе данных
+export type OrderStatus = 'created' | 'seller_confirmed' | 'admin_confirmed' | 'processed' | 'shipped' | 'delivered' | 'cancelled';
+
 export type OrderCreatedType = 'free_order' | 'product_order';
 
 export interface OrderFormData {

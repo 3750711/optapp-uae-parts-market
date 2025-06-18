@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { OrderStatus } from '@/types/order';
 
 interface SubmissionState {
   isLoading: boolean;
@@ -138,11 +139,31 @@ export const useAdminOrderSubmission = () => {
     return buyer;
   }, [setStage]);
 
+  // Валидация статуса заказа
+  const validateOrderStatus = useCallback((status: string): OrderStatus => {
+    const validStatuses: OrderStatus[] = ['created', 'seller_confirmed', 'admin_confirmed', 'processed', 'shipped', 'delivered', 'cancelled'];
+    
+    if (!validStatuses.includes(status as OrderStatus)) {
+      console.error(`Invalid order status: ${status}. Using 'created' as fallback.`);
+      return 'created'; // Fallback к правильному статусу
+    }
+    
+    return status as OrderStatus;
+  }, []);
+
   const createOrder = useCallback(async (orderData: any) => {
     setStage('creating_order', 40);
 
     // Очищаем данные от null значений
     const sanitizedData = sanitizeOrderData(orderData);
+    
+    // Валидируем и исправляем статус
+    const validStatus = validateOrderStatus('created'); // Всегда используем 'created' для новых заказов
+
+    console.log('📋 Creating order with validated data:', {
+      ...sanitizedData,
+      status: validStatus
+    });
 
     const { data: order, error } = await supabase
       .rpc('admin_create_order', {
@@ -155,7 +176,7 @@ export const useAdminOrderSubmission = () => {
         p_buyer_id: sanitizedData.buyer_id,
         p_brand: sanitizedData.brand, // Теперь всегда строка (пустая или с значением)
         p_model: sanitizedData.model, // Теперь всегда строка (пустая или с значением)
-        p_status: 'created',
+        p_status: validStatus, // Используем проверенный статус
         p_order_created_type: 'free_order',
         p_telegram_url_order: sanitizedData.telegram_url_order || null,
         p_images: sanitizedData.images || [],
@@ -166,11 +187,13 @@ export const useAdminOrderSubmission = () => {
       });
 
     if (error) {
+      console.error('❌ RPC Error:', error);
       throw new Error(`Ошибка создания заказа: ${error.message}`);
     }
 
+    console.log('✅ Order created successfully:', order);
     return order;
-  }, [setStage, sanitizeOrderData]);
+  }, [setStage, sanitizeOrderData, validateOrderStatus]);
 
   const fetchCreatedOrder = useCallback(async (orderId: string) => {
     setStage('fetching_order', 60);

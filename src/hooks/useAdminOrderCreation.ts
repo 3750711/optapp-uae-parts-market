@@ -3,21 +3,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
-import { Product } from '@/types/product';
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface BuyerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { Product, AdminSellerProfile, BuyerProfile } from '@/types/product';
 
 export const useAdminOrderCreation = () => {
   const { toast } = useToast();
@@ -25,7 +11,7 @@ export const useAdminOrderCreation = () => {
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const validateOrderData = (
-    selectedSeller: SellerProfile,
+    selectedSeller: AdminSellerProfile,
     selectedProduct: Product,
     selectedBuyer: BuyerProfile,
     orderData: {
@@ -80,7 +66,7 @@ export const useAdminOrderCreation = () => {
   };
 
   const createOrder = useCallback(async (
-    selectedSeller: SellerProfile,
+    selectedSeller: AdminSellerProfile,
     selectedProduct: Product,
     selectedBuyer: BuyerProfile,
     orderData: {
@@ -108,6 +94,7 @@ export const useAdminOrderCreation = () => {
       });
 
       // Используем RPC функцию для создания заказа администратором
+      // ВАЖНО: Используем правильный статус 'seller_confirmed' вместо 'declined'
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
@@ -118,7 +105,7 @@ export const useAdminOrderCreation = () => {
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
-        p_status: 'seller_confirmed' as const,
+        p_status: 'seller_confirmed' as const, // ИСПРАВЛЕНО: используем правильный статус
         p_order_created_type: 'product_order' as const,
         p_telegram_url_order: selectedBuyer.telegram || '',
         p_images: orderData.orderImages,
@@ -128,7 +115,7 @@ export const useAdminOrderCreation = () => {
         p_delivery_price_confirm: orderData.deliveryPrice || null
       };
 
-      console.log("RPC payload with validation:", orderPayload);
+      console.log("RPC payload with correct status:", orderPayload);
 
       const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', orderPayload);

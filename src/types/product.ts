@@ -72,3 +72,20 @@ export interface ActionLog {
   user_id: string;
   details: object;
 }
+
+// Добавляем правильные типы для профилей
+export interface BuyerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+  user_type?: 'buyer';
+}
+
+export interface AdminSellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+  user_type?: 'seller';
+}

@@ -18,26 +18,12 @@ import { MobileOrderCreationHeader } from "@/components/admin/order/MobileOrderC
 import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCreationSteps";
 import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
 import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
-import { Product } from "@/types/product";
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface BuyerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { Product, AdminSellerProfile, BuyerProfile } from "@/types/product";
 
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [sellers, setSellers] = useState<SellerProfile[]>([]);
+  const [sellers, setSellers] = useState<AdminSellerProfile[]>([]);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
@@ -162,7 +148,8 @@ const AdminCreateOrderFromProduct = () => {
       productId: product.id,
       productTitle: product.title,
       hasImages: product.product_images?.length || 0,
-      cloudinaryPublicId: product.cloudinary_public_id
+      cloudinaryPublicId: product.cloudinary_public_id,
+      cloudinaryUrl: product.cloudinary_url
     });
     
     try {
