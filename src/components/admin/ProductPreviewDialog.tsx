@@ -22,11 +22,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { Loader2, Truck, Users, X, Package, DollarSign, User, Camera, CheckCircle } from 'lucide-react';
-import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
-import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
+import { Loader2, Truck, Users, X, Package, DollarSign, User, Camera, CheckCircle, Play, Image as ImageIcon } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { MobileFormSection } from '@/components/admin/order/MobileFormSection';
 
 interface ProductData {
   title: string;
@@ -77,6 +74,38 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
     if (!productData.modelName || productData.modelName.trim() === '') return 'Не указана';
     return productData.modelName;
   };
+
+  const MediaThumbnail = ({ url, type }: { url: string; type: 'image' | 'video' }) => (
+    <div className="relative w-16 h-16 rounded border overflow-hidden bg-gray-100 flex-shrink-0">
+      {type === 'image' ? (
+        <>
+          <img
+            src={url}
+            alt="Изображение товара"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute top-1 left-1 bg-blue-500 text-white rounded px-1 text-xs">
+            <ImageIcon className="w-2 h-2" />
+          </div>
+        </>
+      ) : (
+        <>
+          <video
+            src={url}
+            className="w-full h-full object-cover"
+            preload="metadata"
+            muted
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+            <Play className="w-4 h-4 text-white" />
+          </div>
+          <div className="absolute top-1 left-1 bg-red-500 text-white rounded px-1 text-xs">
+            <Camera className="w-2 h-2" />
+          </div>
+        </>
+      )}
+    </div>
+  );
 
   const PreviewContent = () => (
     <div className="space-y-3">
@@ -176,7 +205,7 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
         </CardContent>
       </Card>
 
-      {/* Compact Media Section */}
+      {/* Optimized Media Section */}
       {(productData.imageUrls.length > 0 || productData.videoUrls.length > 0) && (
         <Card className="border border-gray-200">
           <CardContent className="p-3">
@@ -191,27 +220,54 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
             </div>
             
             <div className="space-y-3">
+              {/* Images Section */}
               {productData.imageUrls.length > 0 && (
                 <div>
-                  <div className="text-xs text-gray-500 mb-2">
-                    📸 Изображения ({productData.imageUrls.length})
+                  <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3" />
+                    Изображения ({productData.imageUrls.length})
+                    {productData.primaryImage && (
+                      <span className="text-blue-600">• Главное фото выбрано</span>
+                    )}
                   </div>
-                  <div className="max-h-24 overflow-y-auto">
-                    <OptimizedOrderImages images={productData.imageUrls} />
+                  <div className="flex flex-wrap gap-2">
+                    {productData.imageUrls.slice(0, 6).map((url, index) => (
+                      <MediaThumbnail key={`image-${index}`} url={url} type="image" />
+                    ))}
+                    {productData.imageUrls.length > 6 && (
+                      <div className="w-16 h-16 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        +{productData.imageUrls.length - 6}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
 
+              {/* Videos Section */}
               {productData.videoUrls.length > 0 && (
                 <div>
-                  <div className="text-xs text-gray-500 mb-2">
-                    🎥 Видео ({productData.videoUrls.length})
+                  <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                    <Play className="w-3 h-3" />
+                    Видео ({productData.videoUrls.length})
                   </div>
-                  <div className="max-h-24 overflow-y-auto">
-                    <OptimizedOrderVideos videos={productData.videoUrls} />
+                  <div className="flex flex-wrap gap-2">
+                    {productData.videoUrls.slice(0, 4).map((url, index) => (
+                      <MediaThumbnail key={`video-${index}`} url={url} type="video" />
+                    ))}
+                    {productData.videoUrls.length > 4 && (
+                      <div className="w-16 h-16 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
+                        +{productData.videoUrls.length - 4}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Media Summary */}
+            <div className="mt-3 pt-2 border-t text-xs text-gray-500">
+              📊 Всего: {productData.imageUrls.length} фото, {productData.videoUrls.length} видео
+              {productData.primaryImage && " • Главное фото установлено"}
             </div>
           </CardContent>
         </Card>
