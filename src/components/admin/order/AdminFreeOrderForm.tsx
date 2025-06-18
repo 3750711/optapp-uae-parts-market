@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
@@ -61,17 +60,17 @@ export const AdminFreeOrderForm = React.memo(() => {
 
   const onImageDelete = useCallback((url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
-    setAllImages(prev => prev.filter(img => img !== url));
+    setAllImages((prev: string[]) => prev.filter(img => img !== url));
   }, [setAllImages]);
 
   const onVideoUpload = useCallback((urls: string[]) => {
     console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
-    setVideos(prev => [...prev, ...urls]);
+    setVideos((prev: string[]) => [...prev, ...urls]);
   }, [setVideos]);
 
   const onVideoDelete = useCallback((url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
-    setVideos(prev => prev.filter(video => video !== url));
+    setVideos((prev: string[]) => prev.filter(video => video !== url));
   }, [setVideos]);
 
   // Валидация формы

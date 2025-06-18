@@ -140,8 +140,8 @@ export const reducer = (state: State, action: Action): State => {
 const listeners = new Set<(state: State) => void>()
 let memoryState: State = { toasts: [] }
 
-// Стабильный dispatch с защитой от ошибок
-const dispatch = React.useCallback((action: Action) => {
+// Стабильный dispatch с защитой от ошибок (БЕЗ useCallback)
+const dispatch = (action: Action) => {
   try {
     memoryState = reducer(memoryState, action)
     listeners.forEach((listener) => {
@@ -155,12 +155,12 @@ const dispatch = React.useCallback((action: Action) => {
   } catch (error) {
     console.error('Toast dispatch error:', error)
   }
-}, [])
+}
 
 type Toast = Omit<ToasterToast, "id">
 
-// Стабильная функция toast
-const toast = React.useCallback(({ ...props }: Toast) => {
+// Стабильная функция toast (БЕЗ useCallback)
+const toast = ({ ...props }: Toast) => {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -193,7 +193,7 @@ const toast = React.useCallback(({ ...props }: Toast) => {
     dismiss,
     update,
   }
-}, [dispatch])
+}
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
