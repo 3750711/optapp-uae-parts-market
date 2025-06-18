@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 const TOAST_LIMIT = 3
@@ -68,7 +69,6 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
-// Функция для очистки всех таймаутов
 const clearAllTimeouts = () => {
   toastTimeouts.forEach((timeout) => {
     clearTimeout(timeout)
@@ -117,7 +117,6 @@ export const reducer = (state: State, action: Action): State => {
     }
     case "REMOVE_TOAST":
       if (action.toastId === undefined) {
-        // Очищаем все таймауты при удалении всех тостов
         clearAllTimeouts()
         return {
           ...state,
@@ -125,7 +124,6 @@ export const reducer = (state: State, action: Action): State => {
         }
       }
       
-      // Очищаем конкретный таймаут при удалении тоста
       if (toastTimeouts.has(action.toastId)) {
         clearTimeout(toastTimeouts.get(action.toastId)!)
         toastTimeouts.delete(action.toastId)
@@ -138,25 +136,31 @@ export const reducer = (state: State, action: Action): State => {
   }
 }
 
+// Стабильная система listeners
 const listeners = new Set<(state: State) => void>()
-
 let memoryState: State = { toasts: [] }
 
-function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action)
-  listeners.forEach((listener) => {
-    try {
-      listener(memoryState)
-    } catch (error) {
-      console.error('Toast listener error:', error)
-      listeners.delete(listener)
-    }
-  })
-}
+// Стабильный dispatch с защитой от ошибок
+const dispatch = React.useCallback((action: Action) => {
+  try {
+    memoryState = reducer(memoryState, action)
+    listeners.forEach((listener) => {
+      try {
+        listener(memoryState)
+      } catch (error) {
+        console.error('Toast listener error:', error)
+        listeners.delete(listener)
+      }
+    })
+  } catch (error) {
+    console.error('Toast dispatch error:', error)
+  }
+}, [])
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: Toast) {
+// Стабильная функция toast
+const toast = React.useCallback(({ ...props }: Toast) => {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -179,7 +183,7 @@ function toast({ ...props }: Toast) {
     },
   })
 
-  // Автоматическое закрытие через 4 секунды (по умолчанию)
+  // Автоматическое закрытие
   setTimeout(() => {
     dismiss()
   }, 4000)
@@ -189,34 +193,40 @@ function toast({ ...props }: Toast) {
     dismiss,
     update,
   }
-}
+}, [dispatch])
 
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 
   React.useEffect(() => {
-    listeners.add(setState)
+    const stableListener = (newState: State) => {
+      setState(newState)
+    }
+    
+    listeners.add(stableListener)
     
     return () => {
-      listeners.delete(setState)
-      // Очищаем все таймауты при размонтировании
+      listeners.delete(stableListener)
       if (listeners.size === 0) {
         clearAllTimeouts()
       }
     }
   }, [])
 
-  return {
+  const dismiss = React.useCallback((toastId?: string) => {
+    dispatch({ type: "DISMISS_TOAST", toastId })
+  }, [])
+
+  const clear = React.useCallback(() => {
+    dispatch({ type: "REMOVE_TOAST" })
+  }, [])
+
+  return React.useMemo(() => ({
     ...state,
     toast,
-    dismiss: (toastId?: string) => {
-      dispatch({ type: "DISMISS_TOAST", toastId })
-    },
-    // Добавляем метод для полной очистки
-    clear: () => {
-      dispatch({ type: "REMOVE_TOAST" })
-    }
-  }
+    dismiss,
+    clear
+  }), [state, dismiss, clear])
 }
 
 export { useToast, toast }

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useCallback, useMemo } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
 import AdvancedImageUpload from './AdvancedImageUpload';
@@ -15,12 +16,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
 
-export const AdminFreeOrderForm = () => {
+export const AdminFreeOrderForm = React.memo(() => {
   const [showPreview, setShowPreview] = useState(false);
   const isMobile = useIsMobile();
 
   const {
-    // Form data
     formData,
     handleInputChange,
     images,
@@ -32,63 +32,59 @@ export const AdminFreeOrderForm = () => {
     handleSubmit: originalHandleSubmit,
     handleOrderUpdate,
     resetForm,
-    
-    // Admin access
     hasAdminAccess,
     isCheckingAdmin,
-    
-    // Error handling
     error,
     retryOperation,
     clearError,
-    
-    // Additional data for preview
     selectedSeller,
     buyerProfiles
   } = useAdminOrderFormLogic();
 
-  // Add submission guard
+  // Стабильный submission guard
   const { guardedSubmit, canSubmit } = useSubmissionGuard({
     timeout: 10000,
-    onDuplicateSubmit: () => {
+    onDuplicateSubmit: useCallback(() => {
       toast({
         title: "Заказ создается",
         description: "Пожалуйста подождите, заказ уже создается",
         variant: "destructive",
       });
-    }
+    }, [])
   });
 
-  const onImagesUpload = (urls: string[]) => {
+  // Мемоизированные обработчики
+  const onImagesUpload = useCallback((urls: string[]) => {
     console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
     setAllImages(urls);
-  };
+  }, [setAllImages]);
 
-  const onImageDelete = (url: string) => {
+  const onImageDelete = useCallback((url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
-    const newImages = images.filter(img => img !== url);
-    setAllImages(newImages);
-  };
+    setAllImages(prev => prev.filter(img => img !== url));
+  }, [setAllImages]);
 
-  const onVideoUpload = (urls: string[]) => {
+  const onVideoUpload = useCallback((urls: string[]) => {
     console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
     setVideos(prev => [...prev, ...urls]);
-  };
+  }, [setVideos]);
 
-  const onVideoDelete = (url: string) => {
+  const onVideoDelete = useCallback((url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
     setVideos(prev => prev.filter(video => video !== url));
-  };
+  }, [setVideos]);
 
-  const handleCreateOrderClick = () => {
-    console.log('🔍 Checking form validation:', {
-      title: formData.title,
-      price: formData.price,
-      sellerId: formData.sellerId,
-      buyerOptId: formData.buyerOptId,
-      formData: formData
-    });
+  // Валидация формы
+  const canShowPreview = useCallback(() => {
+    return !!(formData.title && formData.price && formData.sellerId && formData.buyerOptId);
+  }, [formData.title, formData.price, formData.sellerId, formData.buyerOptId]);
 
+  const getBuyerProfile = useCallback(() => {
+    return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
+  }, [buyerProfiles, formData.buyerOptId]);
+
+  // Стабильные обработчики событий
+  const handleCreateOrderClick = useCallback(() => {
     if (!canShowPreview()) {
       toast({
         title: "Заполните обязательные поля",
@@ -98,47 +94,29 @@ export const AdminFreeOrderForm = () => {
       return;
     }
     setShowPreview(true);
-  };
+  }, [canShowPreview]);
 
-  const handleConfirmOrder = (e: React.FormEvent) => {
+  const handleConfirmOrder = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     setShowPreview(false);
     guardedSubmit(async () => {
       await originalHandleSubmit(e);
     });
-  };
+  }, [guardedSubmit, originalHandleSubmit]);
 
-  const handleBackToEdit = () => {
+  const handleBackToEdit = useCallback(() => {
     setShowPreview(false);
-  };
+  }, []);
 
-  const canShowPreview = () => {
-    const isValid = formData.title && 
-                   formData.price && 
-                   formData.sellerId && 
-                   formData.buyerOptId;
-    
-    console.log('🔍 Form validation result:', {
-      title: !!formData.title,
-      price: !!formData.price,
-      sellerId: !!formData.sellerId,
-      buyerOptId: !!formData.buyerOptId,
-      isValid: isValid
-    });
-    
-    return isValid;
-  };
-
-  const getBuyerProfile = () => {
-    return buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null;
-  };
-
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     clearError();
     retryOperation();
-  };
+  }, [clearError, retryOperation]);
 
-  // Упрощенное состояние загрузки
+  // Мемоизированные вычисляемые значения
+  const isFormDisabled = useMemo(() => isLoading || !canSubmit, [isLoading, canSubmit]);
+
+  // Ранние возвраты для состояний загрузки
   if (isCheckingAdmin) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -174,8 +152,6 @@ export const AdminFreeOrderForm = () => {
     );
   }
 
-  const isFormDisabled = isLoading || !canSubmit;
-
   return (
     <div className={`space-y-6 ${isMobile ? 'pb-24' : ''}`}>
       <MobileOrderCreationHeader
@@ -183,7 +159,6 @@ export const AdminFreeOrderForm = () => {
         description="Заполните информацию о заказе"
       />
 
-      {/* Error Alert with Retry */}
       {error && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -202,14 +177,12 @@ export const AdminFreeOrderForm = () => {
         </Alert>
       )}
       
-      {/* Оптимизированные поля формы заказа */}
       <OptimizedSellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
         disabled={isFormDisabled}
       />
       
-      {/* Media Upload Section */}
       <MobileFormSection 
         title="Медиафайлы заказа" 
         icon={<Camera className="h-5 w-5" />}
@@ -241,7 +214,6 @@ export const AdminFreeOrderForm = () => {
         </div>
       </MobileFormSection>
 
-      {/* Actions */}
       {isMobile ? (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
           <Button
@@ -269,7 +241,6 @@ export const AdminFreeOrderForm = () => {
         </div>
       )}
 
-      {/* Order Preview Dialog */}
       <OrderPreviewDialog
         open={showPreview}
         onOpenChange={setShowPreview}
@@ -284,4 +255,6 @@ export const AdminFreeOrderForm = () => {
       />
     </div>
   );
-};
+});
+
+AdminFreeOrderForm.displayName = 'AdminFreeOrderForm';

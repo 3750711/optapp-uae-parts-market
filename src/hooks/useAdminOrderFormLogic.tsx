@@ -120,7 +120,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     clearError
   } = useAdminOrderSubmission();
 
-  // Enhanced input change handler with car data integration
+  // Мемоизированный обработчик изменения полей
   const handleInputChange = useCallback((field: string, value: string) => {
     if (field === 'brandId') {
       const selectedBrand = brands.find(b => b.id === value);
@@ -128,7 +128,6 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
         baseHandleInputChange('brandId', value);
         baseHandleInputChange('brand', selectedBrand.name);
         selectBrand(value);
-        // Reset model when brand changes
         baseHandleInputChange('modelId', '');
         baseHandleInputChange('model', '');
       }
@@ -143,44 +142,38 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     }
   }, [brands, models, baseHandleInputChange, selectBrand]);
 
-  // Enhanced submit handler with error handling
+  // Мемоизированный обработчик отправки
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
     if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
       throw new Error('Пожалуйста, заполните все обязательные поля');
     }
 
-    try {
-      await baseHandleSubmit(formData, images, videos);
-    } catch (error) {
-      console.error('Order submission error:', error);
-      throw error;
-    }
+    await baseHandleSubmit(formData, images, videos);
   }, [baseHandleSubmit, formData, images, videos]);
 
-  // Enhanced reset form function
+  // Мемоизированная функция сброса
   const resetForm = useCallback(() => {
     baseResetForm();
     resetCreatedOrder();
     clearError();
   }, [baseResetForm, resetCreatedOrder, clearError]);
 
-  // Find selected seller with fallback
+  // Мемоизированный выбранный продавец
   const selectedSeller = useMemo(() => {
     if (!formData.sellerId || !sellerProfiles.length) return null;
     return sellerProfiles.find(seller => seller.id === formData.sellerId) || null;
   }, [sellerProfiles, formData.sellerId]);
 
-  // Retry operation wrapper
+  // Мемоизированная функция повтора
   const retryOperation = useCallback(() => {
     if (retryLastOperation) {
       retryLastOperation();
     }
   }, [retryLastOperation]);
 
-  return {
+  return useMemo(() => ({
     // Form data
     formData,
     handleInputChange,
@@ -234,5 +227,14 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     error,
     retryOperation,
     clearError
-  };
+  }), [
+    formData, handleInputChange, images, videos, setImages, setVideos,
+    handleImageUpload, setAllImages, buyerProfiles, sellerProfiles,
+    isLoadingBuyers, isLoadingSellers, enableBuyersLoading, enableSellersLoading,
+    selectedSeller, brands, models, isLoadingBrands, isLoadingModels,
+    enableBrandsLoading, selectBrand, findBrandNameById, findModelNameById,
+    isLoading, createdOrder, handleSubmit, handleOrderUpdate, resetForm,
+    navigate, creationStage, creationProgress, hasAdminAccess, isCheckingAdmin,
+    error, retryOperation, clearError
+  ]);
 };
