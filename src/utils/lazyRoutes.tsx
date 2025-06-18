@@ -2,22 +2,22 @@
 import { lazy } from 'react';
 
 // Критические маршруты (загружаются сразу)
-const HomePage = lazy(() => import('@/pages/HomePage'));
-const LoginPage = lazy(() => import('@/pages/LoginPage'));
-const RegisterPage = lazy(() => import('@/pages/RegisterPage'));
-const CatalogPage = lazy(() => import('@/pages/CatalogPage'));
+const HomePage = lazy(() => import('@/pages/Index'));
+const LoginPage = lazy(() => import('@/pages/Login'));
+const RegisterPage = lazy(() => import('@/pages/Register'));
+const CatalogPage = lazy(() => import('@/pages/Catalog'));
 
 // Защищенные маршруты
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Dashboard = lazy(() => import('@/pages/Profile'));
 const Profile = lazy(() => import('@/pages/Profile'));
-const ProductDetailsPage = lazy(() => import('@/pages/ProductDetailsPage'));
+const ProductDetailsPage = lazy(() => import('@/pages/ProductDetail'));
 
 // Маршруты продавца
 const SellerDashboard = lazy(() => import('@/pages/SellerDashboard'));
 const SellerCreateOrder = lazy(() => import('@/pages/SellerCreateOrder'));
-const SellerProducts = lazy(() => import('@/pages/SellerProducts'));
-const SellerProductCreate = lazy(() => import('@/pages/SellerProductCreate'));
-const SellerProductEdit = lazy(() => import('@/pages/SellerProductEdit'));
+const SellerProducts = lazy(() => import('@/pages/SellerListings'));
+const SellerProductCreate = lazy(() => import('@/pages/SellerAddProduct'));
+const SellerProductEdit = lazy(() => import('@/pages/SellerAddProduct'));
 const SellerOrders = lazy(() => import('@/pages/SellerOrders'));
 
 // Маршруты администратора
@@ -25,9 +25,9 @@ const AdminDashboard = lazy(() => import('@/pages/AdminDashboard'));
 const AdminUsers = lazy(() => import('@/pages/AdminUsers'));
 const AdminProducts = lazy(() => import('@/pages/AdminProducts'));
 const AdminOrders = lazy(() => import('@/pages/AdminOrders'));
-const AdminOrderCreate = lazy(() => import('@/pages/AdminOrderCreate'));
+const AdminOrderCreate = lazy(() => import('@/pages/AdminFreeOrder'));
 const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
-const AdminOrderEdit = lazy(() => import('@/pages/AdminOrderEdit'));
+const AdminOrderEdit = lazy(() => import('@/pages/AdminOrders'));
 const AdminStores = lazy(() => import('@/pages/AdminStores'));
 
 // Другие маршруты
@@ -81,9 +81,9 @@ export const routeConfigs = [
 // Функции предзагрузки
 export const preloadCriticalRoutes = () => {
   // Предзагружаем критические маршруты
-  import('@/pages/HomePage');
-  import('@/pages/LoginPage');
-  import('@/pages/CatalogPage');
+  import('@/pages/Index');
+  import('@/pages/Login');
+  import('@/pages/Catalog');
 };
 
 export const preloadAdminRoutes = () => {
@@ -98,6 +98,6 @@ export const preloadAdminRoutes = () => {
 export const preloadSellerRoutes = () => {
   // Предзагружаем маршруты продавца
   import('@/pages/SellerDashboard');
-  import('@/pages/SellerProducts');
+  import('@/pages/SellerListings');
   import('@/pages/SellerOrders');
 };
