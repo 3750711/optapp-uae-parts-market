@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, CheckCircle, Package, DollarSign, User, Camera, X, Truck, MapPin } from 'lucide-react';
+import { Loader2, CheckCircle, Package, DollarSign, User, Camera, X, Truck, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface OrderPreviewDialogProps {
   open: boolean;
@@ -37,6 +38,280 @@ interface OrderPreviewDialogProps {
   onBack: () => void;
   isLoading: boolean;
 }
+
+// Мемоизированный компонент для медиафайлов
+const MediaSection = React.memo(({ 
+  images, 
+  videos, 
+  isMobile 
+}: { 
+  images: string[]; 
+  videos: string[]; 
+  isMobile: boolean; 
+}) => {
+  const [mediaOpen, setMediaOpen] = React.useState(true);
+
+  if (images.length === 0 && videos.length === 0) return null;
+
+  return (
+    <Card>
+      <Collapsible open={mediaOpen} onOpenChange={setMediaOpen}>
+        <CardHeader className={`${isMobile ? 'pb-2' : 'pb-3'} cursor-pointer`}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between">
+              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                <Camera className="h-5 w-5 text-primary" />
+                Медиафайлы ({images.length + videos.length})
+              </CardTitle>
+              {mediaOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className={isMobile ? 'pt-0 pb-4' : ''}>
+            {/* Фотографии */}
+            {images.length > 0 && (
+              <div className="mb-6">
+                <h4 className={`font-medium mb-3 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  Фотографии ({images.length})
+                </h4>
+                <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                  {images.map((image, index) => (
+                    <div key={index} className="aspect-square relative overflow-hidden rounded-lg border">
+                      <img
+                        src={image}
+                        alt={`Фото заказа ${index + 1}`}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
+                        onClick={() => window.open(image, '_blank')}
+                        loading="lazy"
+                      />
+                      <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
+                        {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Видео */}
+            {videos.length > 0 && (
+              <div>
+                <h4 className={`font-medium mb-3 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  Видео ({videos.length})
+                </h4>
+                <div className="space-y-3">
+                  {videos.map((video, index) => (
+                    <div key={index} className="relative">
+                      <video
+                        src={video}
+                        controls
+                        className="w-full rounded-lg"
+                        style={{ maxHeight: isMobile ? '150px' : '200px' }}
+                      />
+                      <div className={`mt-2 text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        Видео {index + 1}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+});
+
+MediaSection.displayName = 'MediaSection';
+
+// Мемоизированный компонент информации о товаре
+const ProductInfoSection = React.memo(({ 
+  formData, 
+  isMobile 
+}: { 
+  formData: any; 
+  isMobile: boolean; 
+}) => {
+  const [productOpen, setProductOpen] = React.useState(true);
+
+  const formatPrice = (price?: string) => {
+    if (!price || isNaN(parseFloat(price))) return '0';
+    return parseFloat(price).toLocaleString('ru-RU');
+  };
+
+  return (
+    <Card>
+      <Collapsible open={productOpen} onOpenChange={setProductOpen}>
+        <CardHeader className={`${isMobile ? 'pb-2' : 'pb-3'} cursor-pointer`}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between">
+              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                <Package className="h-5 w-5 text-primary" />
+                Информация о товаре
+              </CardTitle>
+              {productOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className={`space-y-4 ${isMobile ? 'pt-0 pb-4' : ''}`}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Наименование</div>
+                <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{formData.title || 'Не указано'}</div>
+              </div>
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Цена товара</div>
+                <div className={`font-bold text-green-600 ${isMobile ? 'text-lg' : 'text-2xl'}`}>${formatPrice(formData.price)}</div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Бренд</div>
+                <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{formData.brand || 'Не указан'}</div>
+              </div>
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Модель</div>
+                <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{formData.model || 'Не указана'}</div>
+              </div>
+            </div>
+
+            {formData.delivery_price && parseFloat(formData.delivery_price) > 0 && (
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Стоимость доставки</div>
+                <div className={`font-semibold text-orange-600 ${isMobile ? 'text-base' : 'text-lg'}`}>${formatPrice(formData.delivery_price)}</div>
+              </div>
+            )}
+
+            {formData.place_number && (
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Количество мест</div>
+                <div className={`font-medium ${isMobile ? 'text-sm' : ''}`}>{formData.place_number}</div>
+              </div>
+            )}
+
+            {formData.text_order && (
+              <div>
+                <div className={`text-muted-foreground mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Дополнительная информация</div>
+                <div className={`bg-muted/30 p-3 rounded-lg ${isMobile ? 'text-sm' : ''}`}>
+                  <p className="whitespace-pre-wrap">{formData.text_order}</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+});
+
+ProductInfoSection.displayName = 'ProductInfoSection';
+
+// Мемоизированный компонент участников заказа
+const ParticipantsSection = React.memo(({ 
+  selectedSeller, 
+  buyerProfile, 
+  formData, 
+  isMobile 
+}: { 
+  selectedSeller: any; 
+  buyerProfile: any; 
+  formData: any; 
+  isMobile: boolean; 
+}) => {
+  const [participantsOpen, setParticipantsOpen] = React.useState(true);
+
+  const getDeliveryMethodLabel = (method: string) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Cargo РФ';
+      case 'cargo_kz':
+        return 'Cargo КЗ';
+      default:
+        return method || 'Не указан';
+    }
+  };
+
+  return (
+    <Card>
+      <Collapsible open={participantsOpen} onOpenChange={setParticipantsOpen}>
+        <CardHeader className={`${isMobile ? 'pb-2' : 'pb-3'} cursor-pointer`}>
+          <CollapsibleTrigger asChild>
+            <div className="flex items-center justify-between">
+              <CardTitle className={`flex items-center gap-2 ${isMobile ? 'text-base' : 'text-lg'}`}>
+                <User className="h-5 w-5 text-primary" />
+                Участники и доставка
+              </CardTitle>
+              {participantsOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </div>
+          </CollapsibleTrigger>
+        </CardHeader>
+        <CollapsibleContent>
+          <CardContent className={`space-y-4 ${isMobile ? 'pt-0 pb-4' : ''}`}>
+            {/* Продавец */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                <span className={`font-medium text-blue-800 ${isMobile ? 'text-sm' : ''}`}>Продавец</span>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Имя:</span>
+                  <span className={`ml-2 font-medium ${isMobile ? 'text-sm' : ''}`}>{selectedSeller?.full_name || 'Не указан'}</span>
+                </div>
+                {selectedSeller?.opt_id && (
+                  <div>
+                    <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>OPT ID:</span>
+                    <Badge variant="outline" className={`ml-2 font-mono ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                      {selectedSeller.opt_id}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Покупатель */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                <span className={`font-medium text-green-800 ${isMobile ? 'text-sm' : ''}`}>Покупатель</span>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>Имя:</span>
+                  <span className={`ml-2 font-medium ${isMobile ? 'text-sm' : ''}`}>{buyerProfile?.full_name || 'Не указан'}</span>
+                </div>
+                <div>
+                  <span className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>OPT ID:</span>
+                  <Badge variant="outline" className={`ml-2 font-mono ${isMobile ? 'text-xs' : 'text-xs'}`}>
+                    {formData.buyerOptId || 'Не указан'}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Доставка */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Truck className="h-4 w-4 text-yellow-600" />
+                <span className={`font-medium text-yellow-800 ${isMobile ? 'text-sm' : ''}`}>
+                  {getDeliveryMethodLabel(formData.deliveryMethod)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+});
+
+ParticipantsSection.displayName = 'ParticipantsSection';
 
 export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   open,
@@ -52,38 +327,20 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
 }) => {
   const isMobile = useIsMobile();
 
-  const formatPrice = (price?: string) => {
-    if (!price || isNaN(parseFloat(price))) return '0';
-    return parseFloat(price).toLocaleString('ru-RU');
-  };
-
-  const getDeliveryMethodLabel = (method: string) => {
-    switch (method) {
-      case 'self_pickup':
-        return 'Самовывоз';
-      case 'cargo_rf':
-        return 'Cargo РФ';
-      case 'cargo_kz':
-        return 'Cargo КЗ';
-      default:
-        return method || 'Не указан';
-    }
-  };
-
-  const PreviewContent = () => (
-    <div className="space-y-6">
+  const PreviewContent = React.memo(() => (
+    <div className={`space-y-4 ${isMobile ? 'space-y-3' : 'space-y-6'}`}>
       {/* Header Card */}
       <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
-        <CardContent className="p-6">
+        <CardContent className={isMobile ? 'p-4' : 'p-6'}>
           <div className="flex items-center justify-center space-x-4">
-            <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full">
-              <CheckCircle className="w-8 h-8 text-blue-600" />
+            <div className={`flex items-center justify-center bg-blue-100 rounded-full ${isMobile ? 'w-12 h-12' : 'w-16 h-16'}`}>
+              <CheckCircle className={`text-blue-600 ${isMobile ? 'w-6 h-6' : 'w-8 h-8'}`} />
             </div>
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-blue-800 mb-2">
+              <h1 className={`font-bold text-blue-800 mb-2 ${isMobile ? 'text-lg' : 'text-2xl'}`}>
                 Предварительный просмотр заказа
               </h1>
-              <p className="text-blue-700">
+              <p className={`text-blue-700 ${isMobile ? 'text-sm' : ''}`}>
                 Проверьте все данные перед созданием заказа
               </p>
             </div>
@@ -91,213 +348,51 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Основная информация */}
-        <div className="space-y-6">
-          {/* Информация о товаре */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Package className="h-5 w-5 text-primary" />
-                Информация о товаре
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Наименование</div>
-                  <div className="font-medium">{formData.title || 'Не указано'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Цена товара</div>
-                  <div className="text-2xl font-bold text-green-600">${formatPrice(formData.price)}</div>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Бренд</div>
-                  <div className="font-medium">{formData.brand || 'Не указан'}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Модель</div>
-                  <div className="font-medium">{formData.model || 'Не указана'}</div>
-                </div>
-              </div>
-
-              {formData.delivery_price && parseFloat(formData.delivery_price) > 0 && (
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Стоимость доставки</div>
-                  <div className="text-lg font-semibold text-orange-600">${formatPrice(formData.delivery_price)}</div>
-                </div>
-              )}
-
-              {formData.place_number && (
-                <div>
-                  <div className="text-sm text-muted-foreground mb-1">Количество мест</div>
-                  <div className="font-medium">{formData.place_number}</div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Участники заказа */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <User className="h-5 w-5 text-primary" />
-                Участники заказа
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Продавец */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="font-medium text-blue-800">Продавец</span>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-sm text-muted-foreground">Имя:</span>
-                    <span className="ml-2 font-medium">{selectedSeller?.full_name || 'Не указан'}</span>
-                  </div>
-                  {selectedSeller?.opt_id && (
-                    <div>
-                      <span className="text-sm text-muted-foreground">OPT ID:</span>
-                      <Badge variant="outline" className="ml-2 font-mono text-xs">
-                        {selectedSeller.opt_id}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Покупатель */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="font-medium text-green-800">Покупатель</span>
-                </div>
-                <div className="space-y-2">
-                  <div>
-                    <span className="text-sm text-muted-foreground">Имя:</span>
-                    <span className="ml-2 font-medium">{buyerProfile?.full_name || 'Не указан'}</span>
-                  </div>
-                  <div>
-                    <span className="text-sm text-muted-foreground">OPT ID:</span>
-                    <Badge variant="outline" className="ml-2 font-mono text-xs">
-                      {formData.buyerOptId || 'Не указан'}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Grouped content sections */}
+      <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'} ${isMobile ? 'gap-3' : 'gap-6'}`}>
+        <div className="space-y-4">
+          <ProductInfoSection formData={formData} isMobile={isMobile} />
+          <ParticipantsSection 
+            selectedSeller={selectedSeller} 
+            buyerProfile={buyerProfile} 
+            formData={formData} 
+            isMobile={isMobile} 
+          />
         </div>
-
-        {/* Медиафайлы и дополнительная информация */}
-        <div className="space-y-6">
-          {/* Фотографии заказа */}
-          {images.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Camera className="h-5 w-5 text-primary" />
-                  Фотографии заказа ({images.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {images.map((image, index) => (
-                    <div key={index} className="aspect-square relative overflow-hidden rounded-lg border">
-                      <img
-                        src={image}
-                        alt={`Фото заказа ${index + 1}`}
-                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-200 cursor-pointer"
-                        onClick={() => window.open(image, '_blank')}
-                      />
-                      <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-                        {index + 1}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Видео заказа */}
-          {videos.length > 0 && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">
-                  Видео заказа ({videos.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {videos.map((video, index) => (
-                    <div key={index} className="relative">
-                      <video
-                        src={video}
-                        controls
-                        className="w-full rounded-lg"
-                        style={{ maxHeight: '200px' }}
-                      />
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        Видео {index + 1}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Доставка */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Truck className="h-5 w-5 text-primary" />
-                Информация о доставке
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="h-4 w-4 text-yellow-600" />
-                  <span className="font-medium text-yellow-800">
-                    {getDeliveryMethodLabel(formData.deliveryMethod)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Дополнительная информация */}
-          {formData.text_order && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Дополнительная информация</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="bg-muted/30 p-4 rounded-lg">
-                  <p className="whitespace-pre-wrap text-sm">{formData.text_order}</p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        
+        {!isMobile && (
+          <div className="space-y-4">
+            <MediaSection images={images} videos={videos} isMobile={isMobile} />
+          </div>
+        )}
       </div>
-    </div>
-  );
 
-  const ActionButtons = () => (
-    <>
-      <Button variant="outline" onClick={onBack} disabled={isLoading}>
+      {/* Media section for mobile - after main content */}
+      {isMobile && (
+        <MediaSection images={images} videos={videos} isMobile={isMobile} />
+      )}
+    </div>
+  ));
+
+  PreviewContent.displayName = 'PreviewContent';
+
+  const ActionButtons = React.memo(() => (
+    <div className={`flex gap-3 ${isMobile ? 'flex-col' : 'justify-between'}`}>
+      <Button 
+        variant="outline" 
+        onClick={onBack} 
+        disabled={isLoading}
+        size={isMobile ? "lg" : "default"}
+        className={isMobile ? "w-full min-h-[48px]" : ""}
+      >
         Назад к редактированию
       </Button>
-      <Button onClick={onConfirm} disabled={isLoading} className="bg-green-600 hover:bg-green-700">
+      <Button 
+        onClick={onConfirm} 
+        disabled={isLoading} 
+        className={`bg-green-600 hover:bg-green-700 ${isMobile ? "w-full min-h-[48px]" : ""}`}
+        size={isMobile ? "lg" : "default"}
+      >
         {isLoading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -310,18 +405,20 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
           </>
         )}
       </Button>
-    </>
-  );
+    </div>
+  ));
+
+  ActionButtons.displayName = 'ActionButtons';
 
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="h-[95vh] w-full flex flex-col p-0">
-          <SheetHeader className="p-4 pb-2">
+        <SheetContent side="bottom" className={`flex flex-col p-0 ${isMobile ? 'h-[95vh]' : 'h-[90vh]'} w-full`}>
+          <SheetHeader className={`p-4 pb-2 ${isMobile ? 'px-3' : ''}`}>
             <div className="flex items-center justify-between">
               <div>
-                <SheetTitle className="text-lg">Предпросмотр заказа</SheetTitle>
-                <SheetDescription className="text-sm">
+                <SheetTitle className={isMobile ? 'text-base' : 'text-lg'}>Предпросмотр заказа</SheetTitle>
+                <SheetDescription className={isMobile ? 'text-xs' : 'text-sm'}>
                   Проверьте данные перед созданием
                 </SheetDescription>
               </div>
@@ -333,14 +430,12 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
             </div>
           </SheetHeader>
           
-          <ScrollArea className="flex-1 px-4">
+          <ScrollArea className={`flex-1 ${isMobile ? 'px-3' : 'px-4'}`}>
             <PreviewContent />
           </ScrollArea>
           
-          <div className="p-4 border-t bg-white">
-            <div className="grid grid-cols-2 gap-3">
-              <ActionButtons />
-            </div>
+          <div className={`border-t bg-white ${isMobile ? 'p-3' : 'p-4'}`}>
+            <ActionButtons />
           </div>
         </SheetContent>
       </Sheet>
@@ -363,7 +458,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         
         <Separator className="my-4" />
         
-        <DialogFooter className="flex justify-between gap-3">
+        <DialogFooter>
           <ActionButtons />
         </DialogFooter>
       </DialogContent>

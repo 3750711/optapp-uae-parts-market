@@ -46,6 +46,7 @@ export interface OrderFormData {
   place_number: string;
   text_order: string;
   delivery_price: string;
+  description: string; // Добавляем описание
 }
 
 export interface CreatedOrder {

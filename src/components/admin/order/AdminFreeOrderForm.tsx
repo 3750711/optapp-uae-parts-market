@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
@@ -7,7 +8,7 @@ import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader, AlertCircle, Camera, Plus, RefreshCw } from 'lucide-react';
+import { Loader, AlertCircle, Camera, Plus, RefreshCw, Database } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -44,7 +45,13 @@ export const AdminFreeOrderForm = () => {
     
     // Additional data for preview
     selectedSeller,
-    buyerProfiles
+    buyerProfiles,
+    
+    // Loading states
+    isInitializing,
+    isLoadingBuyers,
+    isLoadingSellers,
+    isLoadingBrands
   } = useAdminOrderFormLogic();
 
   // Add submission guard
@@ -138,7 +145,7 @@ export const AdminFreeOrderForm = () => {
     retryOperation();
   };
 
-  // Упрощенное состояние загрузки
+  // Показать состояние загрузки админа
   if (isCheckingAdmin) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -158,6 +165,44 @@ export const AdminFreeOrderForm = () => {
           У вас нет прав администратора для создания заказов
         </AlertDescription>
       </Alert>
+    );
+  }
+
+  // Показать состояние инициализации данных
+  if (isInitializing) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <Database className="h-8 w-8 animate-pulse mx-auto mb-4 text-blue-500" />
+          <p className="text-gray-600 font-medium">Загрузка данных...</p>
+          <div className="space-y-2 text-sm text-gray-500">
+            <div className="flex items-center justify-center gap-2">
+              {isLoadingBuyers ? (
+                <Loader className="h-3 w-3 animate-spin" />
+              ) : (
+                <div className="h-3 w-3 bg-green-500 rounded-full" />
+              )}
+              <span>Покупатели</span>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              {isLoadingSellers ? (
+                <Loader className="h-3 w-3 animate-spin" />
+              ) : (
+                <div className="h-3 w-3 bg-green-500 rounded-full" />
+              )}
+              <span>Продавцы</span>
+            </div>
+            <div className="flex items-center justify-center gap-2">
+              {isLoadingBrands ? (
+                <Loader className="h-3 w-3 animate-spin" />
+              ) : (
+                <div className="h-3 w-3 bg-green-500 rounded-full" />
+              )}
+              <span>Бренды</span>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 

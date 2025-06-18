@@ -1,60 +1,48 @@
 
 import { useState, useCallback } from 'react';
-import { OrderFormData } from '@/components/admin/order/types';
+import { OrderFormData } from '@/types/order';
+
+const initialFormData: OrderFormData = {
+  title: '',
+  price: '',
+  buyerOptId: '',
+  brand: '',
+  model: '',
+  brandId: '',
+  modelId: '',
+  sellerId: '',
+  deliveryMethod: 'cargo_rf',
+  place_number: '',
+  text_order: '',
+  delivery_price: '',
+  description: '' // Добавляем отсутствующее поле
+};
 
 export const useAdminOrderFormData = () => {
-  const [formData, setFormData] = useState<OrderFormData>({
-    title: '',
-    price: '',
-    buyerOptId: '',
-    brand: '',
-    model: '',
-    brandId: '',
-    modelId: '',
-    sellerId: '',
-    deliveryMethod: 'cargo_rf' as const, // Changed from 'self_pickup' to 'cargo_rf'
-    place_number: '1',
-    text_order: '',
-    delivery_price: ''
-  });
-
+  const [formData, setFormData] = useState<OrderFormData>(initialFormData);
   const [images, setImages] = useState<string[]>([]);
   const [videos, setVideos] = useState<string[]>([]);
 
   const handleInputChange = useCallback((field: string, value: string) => {
+    console.log(`🔄 Form field changed: ${field} = ${value}`);
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   }, []);
 
-  const handleBrandChange = useCallback((brandId: string, brandName: string) => {
-    setFormData(prev => ({
-      ...prev,
-      brandId,
-      brand: brandName,
-      modelId: '',
-      model: ''
-    }));
-  }, []);
-
-  const handleModelChange = useCallback((modelId: string, modelName: string) => {
-    setFormData(prev => ({
-      ...prev,
-      modelId,
-      model: modelName
-    }));
-  }, []);
-
   const handleImageUpload = useCallback((urls: string[]) => {
+    console.log('📸 Images uploaded:', urls);
     setImages(prev => [...prev, ...urls]);
   }, []);
 
   const setAllImages = useCallback((urls: string[]) => {
+    console.log('📸 All images set:', urls);
     setImages(urls);
   }, []);
 
   const resetForm = useCallback(() => {
+    console.log('🔄 Resetting form data');
     setFormData({
       title: '',
       price: '',
@@ -64,10 +52,11 @@ export const useAdminOrderFormData = () => {
       brandId: '',
       modelId: '',
       sellerId: '',
-      deliveryMethod: 'cargo_rf' as const, // Reset to cargo_rf
-      place_number: '1',
+      deliveryMethod: 'cargo_rf',
+      place_number: '',
       text_order: '',
-      delivery_price: ''
+      delivery_price: '',
+      description: '' // Добавляем отсутствующее поле
     });
     setImages([]);
     setVideos([]);
@@ -80,8 +69,6 @@ export const useAdminOrderFormData = () => {
     setImages,
     setVideos,
     handleInputChange,
-    handleBrandChange,
-    handleModelChange,
     handleImageUpload,
     setAllImages,
     resetForm

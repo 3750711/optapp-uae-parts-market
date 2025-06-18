@@ -1,5 +1,5 @@
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDebounceValue } from '@/hooks/useDebounceValue';
 import { useAdminOrderFormData } from './admin-order/useAdminOrderFormData';
@@ -63,6 +63,9 @@ export interface AdminOrderFormLogicReturn {
   error: string | null;
   retryOperation: () => void;
   clearError: () => void;
+  
+  // Loading states
+  isInitializing: boolean;
 }
 
 export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
@@ -119,6 +122,25 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     retryLastOperation,
     clearError
   } = useAdminOrderSubmission();
+
+  // Auto-load all critical data when admin access is confirmed
+  useEffect(() => {
+    if (hasAdminAccess) {
+      console.log('🚀 Auto-loading critical data for order form...');
+      enableBuyersLoading();
+      enableSellersLoading();
+      enableBrandsLoading();
+    }
+  }, [hasAdminAccess, enableBuyersLoading, enableSellersLoading, enableBrandsLoading]);
+
+  // Check if still initializing data
+  const isInitializing = useMemo(() => {
+    if (isCheckingAdmin) return true;
+    if (!hasAdminAccess) return false;
+    
+    // Consider initializing if any critical data is still loading
+    return isLoadingBuyers || isLoadingSellers || isLoadingBrands;
+  }, [isCheckingAdmin, hasAdminAccess, isLoadingBuyers, isLoadingSellers, isLoadingBrands]);
 
   // Enhanced input change handler with car data integration
   const handleInputChange = useCallback((field: string, value: string) => {
@@ -233,6 +255,9 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     // Error handling
     error,
     retryOperation,
-    clearError
+    clearError,
+    
+    // Loading states
+    isInitializing
   };
 };
