@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
-import { CompactOrderMediaGallery } from './CompactOrderMediaGallery';
-import { OrderMediaUploadButtons } from './OrderMediaUploadButtons';
+import AdvancedImageUpload from './AdvancedImageUpload';
+import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
@@ -67,8 +68,7 @@ export const AdminFreeOrderForm = () => {
 
   const onImagesUpload = (urls: string[]) => {
     console.log('📸 AdminFreeOrderForm: New images uploaded:', urls);
-    // Добавляем новые изображения к существующим
-    setAllImages([...images, ...urls]);
+    setAllImages(urls);
   };
 
   const onImageDelete = (url: string) => {
@@ -254,37 +254,35 @@ export const AdminFreeOrderForm = () => {
         disabled={isFormDisabled}
       />
       
-      {/* Новая секция медиафайлов */}
+      {/* Media Upload Section */}
       <MobileFormSection 
         title="Медиафайлы заказа" 
         icon={<Camera className="h-5 w-5" />}
         defaultOpen={true}
       >
         <div className="space-y-6">
-          {/* Кнопки загрузки */}
-          <OrderMediaUploadButtons
-            images={images}
-            videos={videos}
-            onImagesUpload={onImagesUpload}
-            onVideoUpload={onVideoUpload}
-            disabled={isFormDisabled}
-            maxImages={25}
-            maxVideos={5}
-          />
+          <div>
+            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Изображения</h3>
+            <AdvancedImageUpload
+              images={images}
+              onImagesUpload={onImagesUpload}
+              onImageDelete={onImageDelete}
+              onSetPrimaryImage={() => {}}
+              disabled={isFormDisabled}
+              maxImages={25}
+            />
+          </div>
 
-          {/* Компактная галерея всех медиафайлов */}
-          <CompactOrderMediaGallery
-            images={images}
-            videos={videos}
-            onImageDelete={onImageDelete}
-            onVideoDelete={onVideoDelete}
-            onSetPrimaryImage={(url) => {
-              // Логика установки главного изображения
-              console.log('🌟 Setting primary image:', url);
-            }}
-            primaryImage={images[0]} // Первое изображение как главное
-            disabled={isFormDisabled}
-          />
+          <div>
+            <h3 className={`font-medium mb-4 ${isMobile ? 'text-base' : 'text-lg'}`}>Видео</h3>
+            <CloudinaryVideoUpload
+              videos={videos}
+              onUpload={onVideoUpload}
+              onDelete={onVideoDelete}
+              maxVideos={5}
+              disabled={isFormDisabled}
+            />
+          </div>
         </div>
       </MobileFormSection>
 
