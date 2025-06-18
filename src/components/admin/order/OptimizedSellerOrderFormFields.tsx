@@ -6,9 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useLazyCarData } from '@/hooks/useLazyCarData';
-import { useLazyProfiles } from '@/hooks/useLazyProfiles';
-import { BuyerProfile, SellerProfile } from '@/types/order';
+import { usePreloadedFormData } from '@/hooks/usePreloadedFormData';
 
 interface OptimizedSellerOrderFormFieldsProps {
   formData: any;
@@ -23,34 +21,24 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
 }) => {
   const {
     brands,
-    models,
-    isLoadingBrands,
-    isLoadingModels,
-    enableBrandsLoading,
-    selectBrand,
-    findBrandNameById,
-    findModelNameById
-  } = useLazyCarData();
-
-  const {
     buyerProfiles,
     sellerProfiles,
+    isLoadingBrands,
     isLoadingBuyers,
     isLoadingSellers,
-    enableBuyersLoading,
-    enableSellersLoading
-  } = useLazyProfiles();
+    getModelsByBrand,
+    findBrandById,
+    findModelById
+  } = usePreloadedFormData();
 
-  const handleBrandFocus = () => {
-    enableBrandsLoading();
-  };
+  // Получаем модели для выбранного бренда
+  const availableModels = formData.brandId ? getModelsByBrand(formData.brandId) : [];
 
   const handleBrandChange = (brandId: string) => {
-    const brandName = findBrandNameById(brandId);
-    if (brandName) {
+    const brand = findBrandById(brandId);
+    if (brand) {
       handleInputChange('brandId', brandId);
-      handleInputChange('brand', brandName);
-      selectBrand(brandId);
+      handleInputChange('brand', brand.name);
       // Сбрасываем модель при смене бренда
       handleInputChange('modelId', '');
       handleInputChange('model', '');
@@ -58,19 +46,11 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
   };
 
   const handleModelChange = (modelId: string) => {
-    const modelName = findModelNameById(modelId);
-    if (modelName) {
+    const model = findModelById(modelId);
+    if (model) {
       handleInputChange('modelId', modelId);
-      handleInputChange('model', modelName);
+      handleInputChange('model', model.name);
     }
-  };
-
-  const handleBuyerFocus = () => {
-    enableBuyersLoading();
-  };
-
-  const handleSellerFocus = () => {
-    enableSellersLoading();
   };
 
   return (
@@ -103,7 +83,6 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                 <Select
                   value={formData.brandId || ''}
                   onValueChange={handleBrandChange}
-                  onOpenChange={(open) => open && handleBrandFocus()}
                   disabled={disabled}
                 >
                   <SelectTrigger className="bg-white">
@@ -118,30 +97,34 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                   </SelectContent>
                 </Select>
               )}
+              {!isLoadingBrands && brands.length === 0 && (
+                <p className="text-sm text-gray-500">Бренды не загружены</p>
+              )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="modelId">Модель</Label>
-              {isLoadingModels ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
-                <Select
-                  value={formData.modelId || ''}
-                  onValueChange={handleModelChange}
-                  disabled={disabled || !formData.brandId}
-                >
-                  <SelectTrigger className="bg-white">
-                    <SelectValue placeholder={formData.brandId ? "Выберите модель..." : "Сначала выберите бренд"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              <Select
+                value={formData.modelId || ''}
+                onValueChange={handleModelChange}
+                disabled={disabled || !formData.brandId}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={formData.brandId ? "Выберите модель..." : "Сначала выберите бренд"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                  {availableModels.length === 0 && formData.brandId && (
+                    <div className="py-2 px-3 text-sm text-gray-500">
+                      Модели не найдены для данного бренда
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -190,7 +173,6 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                 <Select
                   value={formData.buyerOptId || ''}
                   onValueChange={(value) => handleInputChange('buyerOptId', value)}
-                  onOpenChange={(open) => open && handleBuyerFocus()}
                   disabled={disabled}
                 >
                   <SelectTrigger className="bg-white">
@@ -202,6 +184,11 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                         {buyer.full_name || 'Без имени'} ({buyer.opt_id})
                       </SelectItem>
                     ))}
+                    {buyerProfiles.length === 0 && (
+                      <div className="py-2 px-3 text-sm text-gray-500">
+                        Покупатели не найдены
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               )}
@@ -215,7 +202,6 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                 <Select
                   value={formData.sellerId || ''}
                   onValueChange={(value) => handleInputChange('sellerId', value)}
-                  onOpenChange={(open) => open && handleSellerFocus()}
                   disabled={disabled}
                 >
                   <SelectTrigger className="bg-white">
@@ -227,6 +213,11 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
                         {seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени')}
                       </SelectItem>
                     ))}
+                    {sellerProfiles.length === 0 && (
+                      <div className="py-2 px-3 text-sm text-gray-500">
+                        Продавцы не найдены
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
               )}

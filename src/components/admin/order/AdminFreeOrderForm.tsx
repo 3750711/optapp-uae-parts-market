@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAdminOrderFormLogic } from '@/hooks/useAdminOrderFormLogic';
 import OptimizedSellerOrderFormFields from './OptimizedSellerOrderFormFields';
@@ -37,7 +38,8 @@ export const AdminFreeOrderForm = React.memo(() => {
     retryOperation,
     clearError,
     selectedSeller,
-    buyerProfiles
+    buyerProfiles,
+    isDataReady
   } = useAdminOrderFormLogic();
 
   // Стабильный submission guard
@@ -137,6 +139,18 @@ export const AdminFreeOrderForm = React.memo(() => {
           У вас нет прав администратора для создания заказов
         </AlertDescription>
       </Alert>
+    );
+  }
+
+  // Показываем индикатор загрузки данных
+  if (!isDataReady) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <Loader className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Загрузка данных формы...</p>
+        </div>
+      </div>
     );
   }
 
