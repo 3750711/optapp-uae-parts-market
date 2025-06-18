@@ -6,20 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useProductImage } from '@/hooks/useProductImage';
 import OptimizedImage from '@/components/ui/OptimizedImage';
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-  cloudinary_url?: string;
-  cloudinary_public_id?: string;
-}
+import { Product } from '@/types/product';
 
 interface ProductCardWithPreviewProps {
   product: Product;
@@ -93,7 +80,7 @@ const ProductCardWithPreview: React.FC<ProductCardWithPreviewProps> = ({
           {/* Price */}
           <div className="mt-auto">
             <div className={`font-bold text-primary mb-3 ${isMobile ? 'text-lg' : 'text-xl'}`}>
-              {product.price} AED
+              ${product.price}
             </div>
             
             <Button 

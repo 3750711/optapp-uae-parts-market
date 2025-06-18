@@ -18,6 +18,7 @@ import { MobileOrderCreationHeader } from "@/components/admin/order/MobileOrderC
 import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCreationSteps";
 import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
 import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
+import { Product } from "@/types/product";
 
 interface SellerProfile {
   id: string;
@@ -55,6 +56,7 @@ const AdminCreateOrderFromProduct = () => {
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
   const [isLoadingSellers, setIsLoadingSellers] = useState(true);
   const [isLoadingBuyers, setIsLoadingBuyers] = useState(true);
+  const [createOrderError, setCreateOrderError] = useState<string | null>(null);
 
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const {
@@ -82,24 +84,34 @@ const AdminCreateOrderFromProduct = () => {
   useEffect(() => {
     const fetchSellers = async () => {
       setIsLoadingSellers(true);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, opt_id, telegram")
-        .eq("user_type", "seller")
-        .not("full_name", "is", null)
-        .order("full_name");
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, opt_id, telegram")
+          .eq("user_type", "seller")
+          .not("full_name", "is", null)
+          .order("full_name");
 
-      if (error) {
-        console.error("Error fetching sellers:", error);
+        if (error) {
+          console.error("Error fetching sellers:", error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить список продавцов",
+            variant: "destructive",
+          });
+        } else {
+          setSellers(data || []);
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching sellers:", error);
         toast({
           title: "Ошибка",
-          description: "Не удалось загрузить список продавцов",
+          description: "Произошла неожиданная ошибка при загрузке продавцов",
           variant: "destructive",
         });
-      } else {
-        setSellers(data || []);
+      } finally {
+        setIsLoadingSellers(false);
       }
-      setIsLoadingSellers(false);
     };
 
     fetchSellers();
@@ -109,24 +121,34 @@ const AdminCreateOrderFromProduct = () => {
   useEffect(() => {
     const fetchBuyers = async () => {
       setIsLoadingBuyers(true);
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, opt_id, telegram")
-        .eq("user_type", "buyer")
-        .not("opt_id", "is", null)
-        .order("full_name");
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, opt_id, telegram")
+          .eq("user_type", "buyer")
+          .not("opt_id", "is", null)
+          .order("full_name");
 
-      if (error) {
-        console.error("Error fetching buyers:", error);
+        if (error) {
+          console.error("Error fetching buyers:", error);
+          toast({
+            title: "Ошибка",
+            description: "Не удалось загрузить список покупателей",
+            variant: "destructive",
+          });
+        } else {
+          setBuyers(data || []);
+        }
+      } catch (error) {
+        console.error("Unexpected error fetching buyers:", error);
         toast({
           title: "Ошибка",
-          description: "Не удалось загрузить список покупателей",
+          description: "Произошла неожиданная ошибка при загрузке покупателей",
           variant: "destructive",
         });
-      } else {
-        setBuyers(data || []);
+      } finally {
+        setIsLoadingBuyers(false);
       }
-      setIsLoadingBuyers(false);
     };
 
     fetchBuyers();
@@ -142,6 +164,7 @@ const AdminCreateOrderFromProduct = () => {
     const seller = sellers.find(s => s.id === sellerId);
     if (seller) {
       handleSellerSelect(seller);
+      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
     }
   };
 
@@ -162,6 +185,7 @@ const AdminCreateOrderFromProduct = () => {
       }
       
       handleProductSelect(product);
+      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
     } catch (error) {
       console.error('Unexpected error checking product status:', error);
       toast({
@@ -177,6 +201,7 @@ const AdminCreateOrderFromProduct = () => {
     if (!buyer) return;
     
     handleBuyerSelect(buyer);
+    setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
     
     // Финальная проверка статуса товара перед показом диалога подтверждения
     if (selectedProduct) {
@@ -199,6 +224,7 @@ const AdminCreateOrderFromProduct = () => {
         setShowConfirmDialog(true);
       } catch (error) {
         console.error('Unexpected error in final product check:', error);
+        setCreateOrderError("Произошла ошибка при проверке товара");
         toast({
           title: "Ошибка",
           description: "Произошла неожиданная ошибка",
@@ -217,15 +243,18 @@ const AdminCreateOrderFromProduct = () => {
     orderImages: string[];
   }) => {
     if (!selectedSeller || !selectedProduct || !selectedBuyer) {
+      const errorMsg = "Не все данные заполнены";
+      setCreateOrderError(errorMsg);
       toast({
         title: "Ошибка",
-        description: "Не все данные заполнены",
+        description: errorMsg,
         variant: "destructive",
       });
       return;
     }
 
     try {
+      setCreateOrderError(null);
       const orderId = await createOrder(selectedSeller, selectedProduct, selectedBuyer, orderData);
       
       if (orderId === 'product_unavailable') {
@@ -246,7 +275,10 @@ const AdminCreateOrderFromProduct = () => {
         setShowConfirmImagesDialog(true);
       }
     } catch (error) {
-      // Ошибка уже обработана в хуке
+      const errorMsg = error instanceof Error ? error.message : "Произошла ошибка при создании заказа";
+      setCreateOrderError(errorMsg);
+      console.error("Error creating order:", error);
+      // Ошибка уже обработана в хуке, но мы также сохраняем её локально
     }
   };
 
@@ -273,6 +305,7 @@ const AdminCreateOrderFromProduct = () => {
     setShowConfirmDialog(false);
     setShowConfirmImagesDialog(false);
     setCreatedOrderId(null);
+    setCreateOrderError(null);
   };
 
   const handleStepNavigation = (direction: 'next' | 'prev') => {
@@ -297,6 +330,13 @@ const AdminCreateOrderFromProduct = () => {
             <p className="text-gray-600 mt-2">
               Выберите продавца, товар и покупателя для создания заказа
             </p>
+          </div>
+        )}
+
+        {/* Error display */}
+        {createOrderError && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 text-sm">{createOrderError}</p>
           </div>
         )}
 
