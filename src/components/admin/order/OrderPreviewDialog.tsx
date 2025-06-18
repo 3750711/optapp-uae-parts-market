@@ -68,22 +68,20 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
   };
 
   const MediaThumbnail = ({ url, type }: { url: string; type: 'image' | 'video' }) => (
-    <div className="relative w-12 h-12 rounded border overflow-hidden bg-gray-100 flex-shrink-0">
+    <div className="relative w-8 h-8 rounded border overflow-hidden bg-gray-100 flex-shrink-0">
       {type === 'image' ? (
         <>
           <img src={url} alt="Изображение" className="w-full h-full object-cover" />
-          <div className="absolute top-0.5 left-0.5 bg-blue-500 text-white rounded px-1 text-xs leading-none">
-            <ImageIcon className="w-2 h-2" />
+          <div className="absolute top-0 left-0 bg-blue-500 text-white rounded-br text-xs leading-none w-2 h-2">
           </div>
         </>
       ) : (
         <>
           <video src={url} className="w-full h-full object-cover" preload="metadata" muted />
-          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-            <Play className="w-3 h-3 text-white" />
+          <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+            <Play className="w-2 h-2 text-white" />
           </div>
-          <div className="absolute top-0.5 left-0.5 bg-red-500 text-white rounded px-1 text-xs leading-none">
-            <Camera className="w-2 h-2" />
+          <div className="absolute top-0 left-0 bg-red-500 text-white rounded-br text-xs leading-none w-2 h-2">
           </div>
         </>
       )}
@@ -213,7 +211,7 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
               <Separator className="my-2" />
               <div>
                 <div className="text-sm font-medium text-gray-700 mb-2">Дополнительно</div>
-                <div className="bg-gray-50 p-2 rounded text-sm max-h-16 overflow-y-auto">
+                <div className="bg-gray-50 p-2 rounded text-sm max-h-12 overflow-y-auto">
                   <p className="whitespace-pre-wrap text-gray-700">{formData.text_order}</p>
                 </div>
               </div>
@@ -222,60 +220,56 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
         </CardContent>
       </Card>
 
-      {/* Compact Media Section */}
+      {/* Ultra Compact Media Section */}
       {(images.length > 0 || videos.length > 0) && (
         <Card className="border border-gray-200">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between mb-3">
+          <CardContent className="p-2">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Медиафайлы</span>
+                <Camera className="h-3 w-3 text-gray-500" />
+                <span className="text-xs font-medium text-gray-700">Медиафайлы</span>
               </div>
               <div className="text-xs text-gray-500">
                 {images.length + videos.length} файлов
               </div>
             </div>
             
-            <div className="space-y-3">
-              {/* Images Section */}
-              {images.length > 0 && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                    <ImageIcon className="w-3 h-3" />
-                    Фото ({images.length})
+            <div className="space-y-2">
+              {/* Ultra compact combined view */}
+              <div className="flex flex-wrap gap-1">
+                {/* Show first few images */}
+                {images.slice(0, 6).map((url, index) => (
+                  <MediaThumbnail key={`image-${index}`} url={url} type="image" />
+                ))}
+                
+                {/* Show first few videos */}
+                {videos.slice(0, 3).map((url, index) => (
+                  <MediaThumbnail key={`video-${index}`} url={url} type="video" />
+                ))}
+                
+                {/* Show remaining count if there are more files */}
+                {(images.length + videos.length > 9) && (
+                  <div className="w-8 h-8 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500 font-medium">
+                    +{images.length + videos.length - 9}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {images.slice(0, 8).map((url, index) => (
-                      <MediaThumbnail key={`image-${index}`} url={url} type="image" />
-                    ))}
-                    {images.length > 8 && (
-                      <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
-                        +{images.length - 8}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
 
-              {/* Videos Section */}
-              {videos.length > 0 && (
-                <div>
-                  <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+              {/* Compact summary */}
+              <div className="text-xs text-gray-500 flex items-center gap-3">
+                {images.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <ImageIcon className="w-3 h-3" />
+                    {images.length} фото
+                  </span>
+                )}
+                {videos.length > 0 && (
+                  <span className="flex items-center gap-1">
                     <Play className="w-3 h-3" />
-                    Видео ({videos.length})
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {videos.slice(0, 4).map((url, index) => (
-                      <MediaThumbnail key={`video-${index}`} url={url} type="video" />
-                    ))}
-                    {videos.length > 4 && (
-                      <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-xs text-gray-500">
-                        +{videos.length - 4}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                    {videos.length} видео
+                  </span>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
