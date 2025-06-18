@@ -158,7 +158,12 @@ const AdminCreateOrderFromProduct = () => {
   };
 
   const handleProductSelectWithCheck = async (product: Product) => {
-    console.log("Checking product status before selection:", product.id);
+    console.log("🔍 Checking product status before selection:", {
+      productId: product.id,
+      productTitle: product.title,
+      hasImages: product.product_images?.length || 0,
+      cloudinaryPublicId: product.cloudinary_public_id
+    });
     
     try {
       const { isAvailable, status } = await checkProductStatus(product.id);
@@ -172,6 +177,16 @@ const AdminCreateOrderFromProduct = () => {
         removeProductFromList(product.id);
         return;
       }
+      
+      console.log("✅ Product is available, selecting:", {
+        productId: product.id,
+        productTitle: product.title,
+        images: product.product_images,
+        cloudinaryData: {
+          publicId: product.cloudinary_public_id,
+          url: product.cloudinary_url
+        }
+      });
       
       handleProductSelect(product);
       setCreateOrderError(null);
@@ -193,7 +208,15 @@ const AdminCreateOrderFromProduct = () => {
     setCreateOrderError(null);
     
     if (selectedProduct) {
-      console.log("Final product status check before confirmation dialog:", selectedProduct.id);
+      console.log("📝 Final product check before confirmation dialog:", {
+        productId: selectedProduct.id,
+        status: selectedProduct.status,
+        images: selectedProduct.product_images,
+        cloudinaryData: {
+          publicId: selectedProduct.cloudinary_public_id,
+          url: selectedProduct.cloudinary_url
+        }
+      });
       
       try {
         const { isAvailable, status } = await checkProductStatus(selectedProduct.id);
@@ -240,6 +263,21 @@ const AdminCreateOrderFromProduct = () => {
       });
       return;
     }
+
+    console.log("🚀 Creating order with product data:", {
+      seller: selectedSeller,
+      product: {
+        id: selectedProduct.id,
+        title: selectedProduct.title,
+        images: selectedProduct.product_images,
+        cloudinaryData: {
+          publicId: selectedProduct.cloudinary_public_id,
+          url: selectedProduct.cloudinary_url
+        }
+      },
+      buyer: selectedBuyer,
+      orderData
+    });
 
     try {
       setCreateOrderError(null);

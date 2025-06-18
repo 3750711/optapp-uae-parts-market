@@ -133,16 +133,33 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     } : undefined
   };
 
-  // Get primary image with cloudinary support
+  // Get primary image with enhanced cloudinary support and debugging
   const getPrimaryImage = () => {
+    console.log('🖼️ Getting primary image for product:', {
+      productId: product?.id,
+      productImages: product?.product_images,
+      cloudinaryPublicId: product?.cloudinary_public_id,
+      cloudinaryUrl: product?.cloudinary_url
+    });
+
     if (!product?.product_images || product.product_images.length === 0) {
+      console.log('❌ No product images found');
       return null;
     }
     
     const primaryImage = product.product_images.find(img => img.is_primary) || product.product_images[0];
+    
+    console.log('✅ Primary image found:', {
+      imageUrl: primaryImage.url,
+      isPrimary: primaryImage.is_primary,
+      productCloudinaryPublicId: product.cloudinary_public_id,
+      productCloudinaryUrl: product.cloudinary_url
+    });
+    
     return {
       url: primaryImage.url,
-      cloudinaryPublicId: product.cloudinary_public_id || null
+      cloudinaryPublicId: product.cloudinary_public_id || null,
+      cloudinaryUrl: product.cloudinary_url || null
     };
   };
 
@@ -154,11 +171,14 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
         return;
       }
 
-      console.log('Confirming order with validated data:', {
+      console.log('✅ Confirming order with validated data:', {
         price: product.price,
         deliveryPrice: product.delivery_price,
         images: product.product_images?.map(img => img.url) || [],
-        cloudinaryPublicId: product.cloudinary_public_id
+        cloudinaryData: {
+          publicId: product.cloudinary_public_id,
+          url: product.cloudinary_url
+        }
       });
 
       await onConfirm({
@@ -291,7 +311,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               </CardContent>
             </Card>
 
-            {/* Product image with cloudinary support */}
+            {/* Product image with enhanced cloudinary support */}
             {primaryImageData && (
               <Card>
                 <CardContent className="p-4">
@@ -302,6 +322,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                       alt={product?.title || 'Product image'}
                       className="w-full h-64 object-cover rounded-md"
                       cloudinaryPublicId={primaryImageData.cloudinaryPublicId}
+                      cloudinaryUrl={primaryImageData.cloudinaryUrl}
                       size="detail"
                       priority={false}
                     />
