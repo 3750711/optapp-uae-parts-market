@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from 'react';
 import imageCompression from 'browser-image-compression';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,18 +29,55 @@ interface OptimizedUploadOptions {
   };
 }
 
+// Константы для условного сжатия
+const COMPRESSION_THRESHOLD = 400 * 1024; // 400KB
+const SIZE_THRESHOLDS = {
+  SMALL: 400 * 1024,     // 400KB
+  MEDIUM: 2 * 1024 * 1024, // 2MB
+  LARGE: 10 * 1024 * 1024  // 10MB
+};
+
 export const useOptimizedImageUpload = () => {
   const { toast } = useToast();
   const [uploadQueue, setUploadQueue] = useState<UploadItem[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const abortController = useRef<AbortController | null>(null);
 
-  const defaultCompressionOptions = {
-    maxSizeMB: 1,
-    maxWidthOrHeight: 1024,
-    initialQuality: 0.85,
-    fileType: 'image/webp'
-  };
+  // Умное сжатие в зависимости от размера файла
+  const getSmartCompressionOptions = useCallback((fileSize: number) => {
+    // Файлы меньше 400KB не сжимаем
+    if (fileSize < SIZE_THRESHOLDS.SMALL) {
+      return null; // Не сжимать
+    }
+    
+    // Файлы 400KB-2MB - легкое сжатие
+    if (fileSize < SIZE_THRESHOLDS.MEDIUM) {
+      return {
+        maxSizeMB: 1.5,
+        maxWidthOrHeight: 1920,
+        initialQuality: 0.9,
+        fileType: 'image/webp'
+      };
+    }
+    
+    // Файлы 2MB-10MB - среднее сжатие
+    if (fileSize < SIZE_THRESHOLDS.LARGE) {
+      return {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1600,
+        initialQuality: 0.8,
+        fileType: 'image/webp'
+      };
+    }
+    
+    // Файлы больше 10MB - агрессивное сжатие
+    return {
+      maxSizeMB: 0.5,
+      maxWidthOrHeight: 1200,
+      initialQuality: 0.6,
+      fileType: 'image/webp'
+    };
+  }, []);
 
   // Mark item as deleted by URL
   const markAsDeleted = useCallback((url: string) => {
@@ -58,15 +96,12 @@ export const useOptimizedImageUpload = () => {
     setUploadQueue(prev => {
       const now = Date.now();
       return prev.filter(item => {
-        // Keep items that are not successful or are recent (less than 30 seconds old)
         if (item.status !== 'success') return true;
         
-        // Parse timestamp from item id
         const itemTimestamp = parseInt(item.id.split('-')[1]) || now;
         const isRecent = (now - itemTimestamp) < 30000; // 30 seconds
         
         if (!isRecent && item.blobUrl) {
-          // Clean up blob URL for old successful items
           URL.revokeObjectURL(item.blobUrl);
         }
         
@@ -80,11 +115,22 @@ export const useOptimizedImageUpload = () => {
     return URL.createObjectURL(file);
   }, []);
 
-  // Compress image on client side
-  const compressImage = useCallback(async (
+  // Условное сжатие изображения
+  const conditionalCompressImage = useCallback(async (
     file: File, 
-    options = defaultCompressionOptions
+    compressionOptions?: any
   ): Promise<File> => {
+    const smartOptions = getSmartCompressionOptions(file.size);
+    
+    // Если файл маленький, не сжимаем
+    if (!smartOptions) {
+      console.log(`📦 Skipping compression for small file ${file.name} (${file.size} bytes)`);
+      return file;
+    }
+    
+    // Используем переданные опции или умные опции
+    const options = compressionOptions || smartOptions;
+    
     try {
       const compressedFile = await imageCompression(file, {
         maxSizeMB: options.maxSizeMB,
@@ -98,7 +144,8 @@ export const useOptimizedImageUpload = () => {
       console.log(`📦 Compressed ${file.name}:`, {
         originalSize: file.size,
         compressedSize: compressedFile.size,
-        ratio: Math.round((1 - compressedFile.size / file.size) * 100) + '%'
+        ratio: Math.round((1 - compressedFile.size / file.size) * 100) + '%',
+        compressionApplied: true
       });
       
       return compressedFile;
@@ -106,7 +153,7 @@ export const useOptimizedImageUpload = () => {
       console.warn('Compression failed, using original file:', error);
       return file;
     }
-  }, []);
+  }, [getSmartCompressionOptions]);
 
   // Upload single file with retry logic
   const uploadSingleFile = useCallback(async (
@@ -115,10 +162,9 @@ export const useOptimizedImageUpload = () => {
     retryCount = 0
   ): Promise<string> => {
     const maxRetries = 3;
-    const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+    const retryDelay = Math.pow(2, retryCount) * 1000;
 
     try {
-      // Update status to uploading
       setUploadQueue(prev => 
         prev.map(i => 
           i.id === item.id 
@@ -127,15 +173,12 @@ export const useOptimizedImageUpload = () => {
         )
       );
 
-      // Create FormData for direct file upload
       const formData = new FormData();
       formData.append('file', item.compressedFile || item.file);
       formData.append('productId', options.productId || '');
       
-      // Upload with correct headers - let browser set Content-Type automatically
       const uploadResponse = await supabase.functions.invoke('cloudinary-upload', {
         body: formData,
-        // Don't set Content-Type header - let browser handle multipart/form-data boundary
       });
 
       if (uploadResponse.error) {
@@ -148,7 +191,6 @@ export const useOptimizedImageUpload = () => {
         throw new Error(result.error || 'Upload failed');
       }
 
-      // Update progress to complete
       setUploadQueue(prev => 
         prev.map(i => 
           i.id === item.id 
@@ -162,7 +204,6 @@ export const useOptimizedImageUpload = () => {
         )
       );
 
-      // Clean up blob URL
       if (item.blobUrl) {
         URL.revokeObjectURL(item.blobUrl);
       }
@@ -193,12 +234,10 @@ export const useOptimizedImageUpload = () => {
     items: UploadItem[],
     options: OptimizedUploadOptions
   ): Promise<string[]> => {
-    const maxConcurrent = 1; // Reduced to 1 for stability
-    const batchDelay = 500; // 500ms delay between uploads
+    const batchDelay = 500;
     const results: string[] = [];
     const errors: string[] = [];
 
-    // Process files one by one with delays
     for (let i = 0; i < items.length; i++) {
       if (abortController.current?.signal.aborted) break;
 
@@ -208,7 +247,6 @@ export const useOptimizedImageUpload = () => {
         const url = await uploadSingleFile(item, options);
         results.push(url);
         
-        // Add delay between uploads if not the last item
         if (i < items.length - 1) {
           await new Promise(resolve => setTimeout(resolve, batchDelay));
         }
@@ -238,7 +276,7 @@ export const useOptimizedImageUpload = () => {
     return results;
   }, [uploadSingleFile, toast]);
 
-  // Main upload function with enhanced compression logic
+  // Main upload function with smart compression
   const uploadFiles = useCallback(async (
     files: File[],
     options: OptimizedUploadOptions = {}
@@ -246,7 +284,6 @@ export const useOptimizedImageUpload = () => {
     setIsUploading(true);
     abortController.current = new AbortController();
 
-    // Create initial queue with blob URLs for immediate preview
     const initialQueue: UploadItem[] = files.map((file, index) => ({
       id: `upload-${Date.now()}-${index}`,
       file,
@@ -259,8 +296,29 @@ export const useOptimizedImageUpload = () => {
     setUploadQueue(prev => [...prev, ...initialQueue]);
 
     try {
-      // Step 1: Compress all images in parallel with dynamic compression settings
+      // Step 1: Условное сжатие изображений
       const compressionPromises = initialQueue.map(async (item) => {
+        // Проверяем, нужно ли сжимать файл
+        const shouldCompress = item.file.size >= COMPRESSION_THRESHOLD;
+        
+        if (!shouldCompress) {
+          console.log(`⚡ Skipping compression for ${item.file.name} (${item.file.size} bytes < ${COMPRESSION_THRESHOLD} bytes)`);
+          setUploadQueue(prev => 
+            prev.map(i => 
+              i.id === item.id 
+                ? { 
+                    ...i, 
+                    compressedFile: item.file, // Используем оригинал
+                    compressedSize: item.file.size,
+                    status: 'pending',
+                    progress: 0
+                  }
+                : i
+            )
+          );
+          return { ...item, compressedFile: item.file, compressedSize: item.file.size };
+        }
+
         setUploadQueue(prev => 
           prev.map(i => 
             i.id === item.id 
@@ -269,18 +327,9 @@ export const useOptimizedImageUpload = () => {
           )
         );
 
-        // More aggressive compression for large files
-        const isLargeFile = item.file.size > 10 * 1024 * 1024; // >10MB
-        const compressionOptions = {
-          maxSizeMB: isLargeFile ? 0.3 : (options.compressionOptions?.maxSizeMB || defaultCompressionOptions.maxSizeMB),
-          maxWidthOrHeight: isLargeFile ? 600 : (options.compressionOptions?.maxWidthOrHeight || defaultCompressionOptions.maxWidthOrHeight),
-          initialQuality: isLargeFile ? 0.6 : (options.compressionOptions?.initialQuality || defaultCompressionOptions.initialQuality),
-          fileType: options.compressionOptions?.fileType || defaultCompressionOptions.fileType
-        };
-
-        const compressedFile = await compressImage(
+        const compressedFile = await conditionalCompressImage(
           item.file, 
-          compressionOptions
+          options.compressionOptions
         );
 
         setUploadQueue(prev => 
@@ -302,10 +351,10 @@ export const useOptimizedImageUpload = () => {
 
       const compressedItems = await Promise.all(compressionPromises);
 
-      // Step 2: Upload compressed files sequentially
+      // Step 2: Upload compressed/original files
       const uploadedUrls = await processUploads(compressedItems, options);
 
-      // Step 3: Schedule cleanup after successful upload
+      // Step 3: Schedule cleanup
       setTimeout(cleanupSuccessfulItems, 30000);
 
       return uploadedUrls;
@@ -322,14 +371,13 @@ export const useOptimizedImageUpload = () => {
     } finally {
       setIsUploading(false);
     }
-  }, [createBlobUrl, compressImage, processUploads, cleanupSuccessfulItems, toast]);
+  }, [createBlobUrl, conditionalCompressImage, processUploads, cleanupSuccessfulItems, toast]);
 
   // Cancel uploads
   const cancelUpload = useCallback(() => {
     abortController.current?.abort();
     setIsUploading(false);
     
-    // Clean up blob URLs
     uploadQueue.forEach(item => {
       if (item.blobUrl) {
         URL.revokeObjectURL(item.blobUrl);
@@ -344,7 +392,7 @@ export const useOptimizedImageUpload = () => {
     });
   }, [uploadQueue, toast]);
 
-  // Get preview URLs (mix of blob URLs and final URLs)
+  // Get preview URLs
   const getPreviewUrls = useCallback(() => {
     return uploadQueue
       .filter(item => item.finalUrl || item.blobUrl)

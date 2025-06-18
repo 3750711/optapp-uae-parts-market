@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Upload, X, Camera, Star, StarOff, RefreshCw } from "lucide-react";
@@ -5,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useMobileOptimizedUpload } from "@/hooks/useMobileOptimizedUpload";
 import { cn } from "@/lib/utils";
 import { UploadProgressCard } from "@/components/ui/image-upload/UploadProgressCard";
+import { shouldCompressFile, formatFileSize } from "@/utils/smartImageCompression";
 
 interface MobileOptimizedImageUploadProps {
   onUploadComplete: (urls: string[]) => void;
@@ -70,6 +72,9 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     const fileArray = Array.from(files);
     const validFiles: File[] = [];
 
+    // Анализ файлов для умного сжатия
+    let compressionStats = { noCompress: 0, willCompress: 0 };
+
     for (const file of fileArray) {
       if (!ALLOWED_PHOTO_TYPES.includes(file.type.toLowerCase())) {
         if (!disableToast) {
@@ -92,11 +97,35 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         }
         continue;
       }
+
+      // Проверяем нужно ли сжатие
+      if (shouldCompressFile(file.size)) {
+        compressionStats.willCompress++;
+        console.log(`🔄 Will compress: ${file.name} (${formatFileSize(file.size)})`);
+      } else {
+        compressionStats.noCompress++;
+        console.log(`✨ No compression: ${file.name} (${formatFileSize(file.size)}) - preserving original quality`);
+      }
+
       validFiles.push(file);
     }
 
     if (validFiles.length === 0) {
       return;
+    }
+
+    // Показываем информацию о стратегии сжатия
+    if (!disableToast && validFiles.length > 1) {
+      const message = compressionStats.noCompress > 0 && compressionStats.willCompress > 0
+        ? `${compressionStats.noCompress} файлов без сжатия (высокое качество), ${compressionStats.willCompress} файлов с умным сжатием`
+        : compressionStats.noCompress > 0
+        ? `Все ${compressionStats.noCompress} файлов сохранят оригинальное качество (< 400KB)`
+        : `${compressionStats.willCompress} файлов будут оптимизированы с умным сжатием`;
+
+      toast({
+        title: "Умная обработка изображений",
+        description: message,
+      });
     }
 
     const uploadedUrls = await uploadFilesBatch(validFiles, {
@@ -133,14 +162,6 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
     }
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
   // Показывать только кнопку
   if (showOnlyButton) {
     return (
@@ -157,7 +178,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           ) : (
             buttonIcon
           )}
-          {isUploading ? "Загрузка..." : buttonText}
+          {isUploading ? "Умная загрузка..." : buttonText}
         </Button>
         
         <input
@@ -190,6 +211,13 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
             <X className="mr-2 h-4 w-4" />
             Отменить загрузку
           </Button>
+        )}
+
+        {/* Smart compression info */}
+        {isUploading && (
+          <div className="p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+            🧠 Умное качество: маленькие файлы без потерь, большие - оптимизация
+          </div>
         )}
       </div>
     );
@@ -259,7 +287,7 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
         ) : (
           buttonIcon
         )}
-        {isUploading ? "Загрузка..." : buttonText}
+        {isUploading ? "Умная загрузка..." : buttonText}
       </Button>
       
       <input
@@ -292,6 +320,19 @@ export const MobileOptimizedImageUpload: React.FC<MobileOptimizedImageUploadProp
           <X className="mr-2 h-4 w-4" />
           Отменить загрузку
         </Button>
+      )}
+
+      {/* Smart compression info */}
+      {isUploading && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="text-sm text-blue-800">
+            🧠 Умная обработка изображений
+          </div>
+          <div className="text-xs text-blue-600 mt-1">
+            • Файлы &lt;400KB - оригинальное качество<br/>
+            • Файлы &gt;400KB - умная оптимизация
+          </div>
+        </div>
       )}
 
       {existingImages.length > 0 && (

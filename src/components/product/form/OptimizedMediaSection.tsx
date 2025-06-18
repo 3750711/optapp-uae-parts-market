@@ -39,7 +39,6 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     imageUrls: imageUrls.slice(0, 3) 
   });
 
-  // Простое удаление изображений
   const { deleteImage } = useImageDeletionState({
     onConfirmDelete: async (url: string) => {
       console.log('🔄 Backend deletion for:', url);
@@ -58,7 +57,6 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
 
     const fileArray = Array.from(files);
     
-    // Валидация файлов
     const validFiles = fileArray.filter(file => {
       if (!file.type.startsWith('image/')) {
         return false;
@@ -72,37 +70,32 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     if (validFiles.length === 0) return;
 
     try {
-      const getCompressionOptions = (file: File) => {
-        const isLargeFile = file.size > 10 * 1024 * 1024; // >10MB
-        
-        return {
-          maxSizeMB: isLargeFile ? 0.3 : 0.8,
-          maxWidthOrHeight: isLargeFile ? 600 : 1000,
-          initialQuality: isLargeFile ? 0.6 : 0.8,
-          fileType: 'image/webp'
-        };
-      };
+      // Информация о файлах перед загрузкой
+      validFiles.forEach(file => {
+        const sizeKB = Math.round(file.size / 1024);
+        const willCompress = file.size >= 400 * 1024; // 400KB threshold
+        console.log(`📋 Product file: ${file.name} (${sizeKB}KB) - ${willCompress ? 'WILL COMPRESS' : 'NO COMPRESSION'}`);
+      });
 
+      // Используем умное сжатие без принудительных настроек
       const uploadedUrls = await uploadFiles(validFiles, {
         productId,
         maxConcurrent: 1,
-        disableToast: false,
-        compressionOptions: getCompressionOptions(validFiles[0])
+        disableToast: false
+        // Убираем compressionOptions - хук сам решит
       });
       
       if (uploadedUrls.length > 0) {
-        console.log('📸 New images uploaded:', uploadedUrls);
+        console.log('📸 New product images uploaded with smart compression:', uploadedUrls);
         handleMobileOptimizedImageUpload(uploadedUrls);
       }
     } catch (error) {
       console.error('Error uploading files:', error);
     }
     
-    // Сброс input
     setFileInputKey(prev => prev + 1);
   }, [uploadFiles, productId, handleMobileOptimizedImageUpload]);
 
-  // Упрощенный обработчик удаления без блокировок
   const handleImageDelete = useCallback(async (url: string) => {
     console.log('🎯 handleImageDelete called for:', url);
     
@@ -112,17 +105,14 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
     }
     
     try {
-      // 1. Мгновенно помечаем в очереди загрузки как удаленное
       markAsDeleted(url);
       
-      // 2. Мгновенно обновляем UI - убираем изображение из списка
       const newImageUrls = imageUrls.filter(imgUrl => imgUrl !== url);
       console.log('📱 Updating UI immediately:', { 
         before: imageUrls.length, 
         after: newImageUrls.length 
       });
       
-      // 3. Если удаляется главное изображение и остаются другие, назначаем новое главное
       if (primaryImage === url && newImageUrls.length > 0 && onSetPrimaryImage) {
         console.log('🔄 Setting new primary image:', newImageUrls[0]);
         onSetPrimaryImage(newImageUrls[0]);
@@ -130,10 +120,8 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
       
       handleMobileOptimizedImageUpload(newImageUrls);
       
-      // 4. Асинхронно выполняем удаление на бэкенде (не блокируем UI)
       deleteImage(url).catch(error => {
         console.error('❌ Backend deletion failed:', error);
-        // В случае ошибки можно показать toast, но не возвращать изображение
       });
       
       console.log('✅ Image removal completed');
@@ -163,7 +151,7 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
             onClick={() => document.getElementById('optimized-image-input')?.click()}
           >
             <Upload className="h-4 w-4 mr-2" />
-            {isUploading ? 'Загрузка...' : 'Загрузить фото'}
+            {isUploading ? 'Умная загрузка...' : 'Загрузить фото'}
           </Button>
           <input
             key={fileInputKey}
@@ -204,12 +192,15 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
         </Button>
       )}
 
-      {/* Счетчик медиафайлов */}
+      {/* Умное сжатие информация */}
       {totalMediaCount > 0 && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
             <span className="text-green-800">
               📁 Медиафайлов: {totalMediaCount} (📸 Фото: {imageUrls.length}/30, 🎥 Видео: {videoUrls.length}/2)
+            </span>
+            <span className="text-green-600 text-xs">
+              🧠 Умное качество
             </span>
           </div>
         </div>
@@ -254,6 +245,19 @@ const OptimizedMediaSection: React.FC<OptimizedMediaSectionProps> = ({
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Информация об умном сжатии */}
+      {isUploading && (
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="text-sm text-blue-800">
+            🧠 Умное сжатие для продуктов
+          </div>
+          <div className="text-xs text-blue-600 mt-1">
+            • Маленькие файлы (&lt;400KB) сохраняют оригинальное качество<br/>
+            • Большие файлы сжимаются адаптивно без потери деталей
           </div>
         </div>
       )}

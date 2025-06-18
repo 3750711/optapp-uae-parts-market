@@ -1,3 +1,4 @@
+
 import React, { useCallback } from 'react';
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -67,31 +68,25 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     }
 
     try {
-      console.log('🚀 Starting advanced upload of', validImageFiles.length, 'files');
+      console.log('🚀 Starting advanced upload with smart compression:', validImageFiles.length, 'files');
       
-      // Use dynamic compression settings based on file size
-      const getCompressionOptions = (file: File) => {
-        const isLargeFile = file.size > 10 * 1024 * 1024; // >10MB
-        
-        return {
-          maxSizeMB: isLargeFile ? 0.3 : 0.8,
-          maxWidthOrHeight: isLargeFile ? 600 : 1000,
-          initialQuality: isLargeFile ? 0.6 : 0.8,
-          fileType: 'image/webp'
-        };
-      };
+      // Информация о размерах файлов
+      validImageFiles.forEach(file => {
+        const sizeKB = Math.round(file.size / 1024);
+        const willCompress = file.size >= 400 * 1024; // 400KB threshold
+        console.log(`📋 File: ${file.name} (${sizeKB}KB) - ${willCompress ? 'WILL COMPRESS' : 'NO COMPRESSION'}`);
+      });
 
+      // Используем умное сжатие из хука (без принудительных опций)
       const uploadedUrls = await uploadFiles(validImageFiles, {
-        productId: orderId, // Changed from orderId to productId
+        productId: orderId,
         maxConcurrent: 1,
-        disableToast: false,
-        compressionOptions: getCompressionOptions(validImageFiles[0])
+        disableToast: false
+        // Убираем compressionOptions - хук сам определит нужно ли сжимать
       });
       
       if (uploadedUrls.length > 0) {
         console.log('✅ Advanced upload completed:', uploadedUrls);
-        
-        // Update images with new URLs (append to existing)
         const newImages = [...images, ...uploadedUrls];
         onImagesUpload(newImages);
       } else {
@@ -114,17 +109,14 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
     }
     
     try {
-      // 1. Mark as deleted in upload queue
       markAsDeleted(url);
       
-      // 2. Update UI immediately - remove from images list
       const newImageUrls = images.filter(imgUrl => imgUrl !== url);
       console.log('📱 Updating images UI immediately:', { 
         before: images.length, 
         after: newImageUrls.length 
       });
       
-      // 3. If deleting primary image and others exist, set new primary
       if (primaryImage === url && newImageUrls.length > 0 && onSetPrimaryImage) {
         console.log('🔄 Setting new primary image:', newImageUrls[0]);
         onSetPrimaryImage(newImageUrls[0]);
@@ -132,7 +124,6 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       
       onImagesUpload(newImageUrls);
       
-      // 4. Backend deletion (if implemented)
       if (onImageDelete) {
         onImageDelete(url);
       }
@@ -169,7 +160,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         {hasActiveUploads ? (
           <>
             <Upload className="mr-2 h-4 w-4 animate-pulse" />
-            Загрузка по одному...
+            Умная загрузка...
           </>
         ) : (
           <>
@@ -202,7 +193,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
         </Button>
       )}
 
-      {/* Upload info */}
+      {/* Smart compression info */}
       {images.length > 0 && (
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center justify-between text-sm">
@@ -210,7 +201,7 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
               ✅ Загружено изображений: {images.length}
             </span>
             <span className="text-green-600 text-xs">
-              🚀 Оптимизировано для быстрой загрузки
+              🧠 Умное сжатие: файлы &lt;400KB без потерь
             </span>
           </div>
         </div>
@@ -230,10 +221,12 @@ const AdvancedImageUpload: React.FC<AdvancedImageUploadProps> = ({
       {hasActiveUploads && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="text-sm text-blue-800">
-            ⚡ Применяется сжатие и оптимизация для ускорения загрузки
+            🧠 Умное сжатие активно
           </div>
           <div className="text-xs text-blue-600 mt-1">
-            Большие файлы сжимаются до 70% от исходного размера
+            • Файлы &lt;400KB - без сжатия (оригинальное качество)<br/>
+            • Файлы 400KB-2MB - легкое сжатие (90% качества)<br/>
+            • Файлы &gt;2MB - адаптивное сжатие
           </div>
         </div>
       )}
