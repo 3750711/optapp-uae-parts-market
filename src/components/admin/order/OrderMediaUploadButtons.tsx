@@ -17,7 +17,6 @@ interface OrderMediaUploadButtonsProps {
   disabled?: boolean;
   maxImages?: number;
   maxVideos?: number;
-  orderId?: string;
 }
 
 export const OrderMediaUploadButtons: React.FC<OrderMediaUploadButtonsProps> = ({
@@ -27,8 +26,7 @@ export const OrderMediaUploadButtons: React.FC<OrderMediaUploadButtonsProps> = (
   onVideoUpload,
   disabled = false,
   maxImages = 25,
-  maxVideos = 5,
-  orderId
+  maxVideos = 5
 }) => {
   const isMobile = useIsMobile();
   const [fileInputKey, setFileInputKey] = useState(0);
@@ -84,7 +82,6 @@ export const OrderMediaUploadButtons: React.FC<OrderMediaUploadButtonsProps> = (
       console.log('🚀 Starting upload of', validImageFiles.length, 'image files');
       
       const uploadedUrls = await uploadFiles(validImageFiles, {
-        orderId,
         maxConcurrent: 2,
         disableToast: false,
         compressionOptions: {
@@ -117,7 +114,7 @@ export const OrderMediaUploadButtons: React.FC<OrderMediaUploadButtonsProps> = (
     
     // Сброс input
     setFileInputKey(prev => prev + 1);
-  }, [uploadFiles, orderId, onImagesUpload, images.length, maxImages]);
+  }, [uploadFiles, onImagesUpload, images.length, maxImages]);
 
   // Получение активных загрузок для отображения прогресса
   const activeUploads = uploadQueue.filter(item => 
@@ -217,7 +214,7 @@ export const OrderMediaUploadButtons: React.FC<OrderMediaUploadButtonsProps> = (
                 showOnlyButton={true}
                 buttonText="Добавить видео"
                 buttonIcon={<Upload className="h-4 w-4" />}
-                buttonClassName={cn(
+                className={cn(
                   "w-full",
                   isMobile ? "min-h-[44px]" : "h-10"
                 )}
