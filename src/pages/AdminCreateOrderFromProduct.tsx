@@ -164,7 +164,7 @@ const AdminCreateOrderFromProduct = () => {
     const seller = sellers.find(s => s.id === sellerId);
     if (seller) {
       handleSellerSelect(seller);
-      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
+      setCreateOrderError(null);
     }
   };
 
@@ -185,7 +185,7 @@ const AdminCreateOrderFromProduct = () => {
       }
       
       handleProductSelect(product);
-      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
+      setCreateOrderError(null);
     } catch (error) {
       console.error('Unexpected error checking product status:', error);
       toast({
@@ -201,9 +201,8 @@ const AdminCreateOrderFromProduct = () => {
     if (!buyer) return;
     
     handleBuyerSelect(buyer);
-    setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
+    setCreateOrderError(null);
     
-    // Финальная проверка статуса товара перед показом диалога подтверждения
     if (selectedProduct) {
       console.log("Final product status check before confirmation dialog:", selectedProduct.id);
       
@@ -278,7 +277,6 @@ const AdminCreateOrderFromProduct = () => {
       const errorMsg = error instanceof Error ? error.message : "Произошла ошибка при создании заказа";
       setCreateOrderError(errorMsg);
       console.error("Error creating order:", error);
-      // Ошибка уже обработана в хуке, но мы также сохраняем её локально
     }
   };
 
