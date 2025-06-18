@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Loader2, CheckCircle, Package, DollarSign, User, Camera, X, Truck, MapPin, Play } from 'lucide-react';
+import { Loader2, CheckCircle, Package, User, Camera, X, Truck, MapPin } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { CompactMediaGrid } from '@/components/media/CompactMediaGrid';
 
 interface OrderPreviewDialogProps {
   open: boolean;
@@ -187,78 +188,20 @@ export const OrderPreviewDialog: React.FC<OrderPreviewDialogProps> = ({
 
         {/* Right Column - Media & Additional Info */}
         <div className="space-y-3">
-          {/* Media Section */}
+          {/* Optimized Media Section */}
           {(images.length > 0 || videos.length > 0) && (
             <Card className="border border-gray-200">
               <CardContent className="p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Camera className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm font-medium">Медиафайлы</span>
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {images.length + videos.length}
-                  </Badge>
+                <div className="flex items-center gap-2 mb-3">
+                  <Camera className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm font-medium">Медиафайлы</span>
                 </div>
                 
-                <div className="space-y-2">
-                  {/* Images Grid */}
-                  {images.length > 0 && (
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">Фото ({images.length})</div>
-                      <div className="grid grid-cols-4 gap-1">
-                        {images.slice(0, 8).map((image, index) => (
-                          <div key={index} className="aspect-square relative overflow-hidden rounded border">
-                            <img
-                              src={image}
-                              alt={`Фото ${index + 1}`}
-                              className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform"
-                              onClick={() => window.open(image, '_blank')}
-                            />
-                            <div className="absolute top-0 right-0 bg-black/50 text-white text-xs px-1 rounded-bl">
-                              {index + 1}
-                            </div>
-                          </div>
-                        ))}
-                        {images.length > 8 && (
-                          <div className="aspect-square bg-gray-100 rounded border flex items-center justify-center">
-                            <span className="text-xs text-gray-500">+{images.length - 8}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Videos */}
-                  {videos.length > 0 && (
-                    <div>
-                      <div className="text-xs text-gray-500 mb-1">Видео ({videos.length})</div>
-                      <div className="grid grid-cols-2 gap-1">
-                        {videos.slice(0, 2).map((video, index) => (
-                          <div key={index} className="relative">
-                            <video
-                              src={video}
-                              className="w-full aspect-video rounded border object-cover"
-                              controls={false}
-                              preload="metadata"
-                            />
-                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center rounded">
-                              <Play className="w-4 h-4 text-white" />
-                            </div>
-                            <div className="absolute bottom-1 right-1 bg-black/50 text-white text-xs px-1 rounded">
-                              {index + 1}
-                            </div>
-                          </div>
-                        ))}
-                        {videos.length > 2 && (
-                          <div className="aspect-video bg-gray-100 rounded border flex items-center justify-center">
-                            <span className="text-xs text-gray-500">+{videos.length - 2}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <CompactMediaGrid 
+                  images={images} 
+                  videos={videos}
+                  maxPreviewItems={isMobile ? 16 : 20}
+                />
               </CardContent>
             </Card>
           )}
