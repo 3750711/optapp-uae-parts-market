@@ -3,7 +3,6 @@ import React from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import DashboardHeader from '@/components/admin/dashboard/DashboardHeader';
 import { AdminFreeOrderForm } from '@/components/admin/order/AdminFreeOrderForm';
-import AdminFreeOrderFormErrorBoundary from '@/components/admin/order/AdminFreeOrderFormErrorBoundary';
 import { Card, CardContent } from '@/components/ui/card';
 
 const AdminFreeOrder = () => {
@@ -13,9 +12,7 @@ const AdminFreeOrder = () => {
         <DashboardHeader title="Создание свободного заказа" />
         <Card>
           <CardContent className="pt-6">
-            <AdminFreeOrderFormErrorBoundary>
-              <AdminFreeOrderForm />
-            </AdminFreeOrderFormErrorBoundary>
+            <AdminFreeOrderForm />
           </CardContent>
         </Card>
       </div>
