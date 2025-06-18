@@ -4,20 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { Product } from '@/types/product';
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface BuyerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { SellerProfile, BuyerProfile } from '@/types/order';
 
 export const useAdminOrderCreation = () => {
   const { toast } = useToast();
@@ -107,7 +94,7 @@ export const useAdminOrderCreation = () => {
         images: orderData.orderImages
       });
 
-      // Используем RPC функцию для создания заказа администратором
+      // Use RPC function to create order as admin
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
@@ -141,7 +128,7 @@ export const useAdminOrderCreation = () => {
           code: orderError.code
         });
         
-        // Обработка специфических ошибок от базы данных
+        // Handle specific errors from database
         if (orderError.message?.includes('Product is not available for order') || 
             orderError.message?.includes('Product with ID') ||
             orderError.code === 'P0001') {
@@ -186,7 +173,7 @@ export const useAdminOrderCreation = () => {
 
       console.log("Order created successfully with ID:", orderId);
 
-      // Получаем данные созданного заказа для Telegram уведомления
+      // Get created order data for Telegram notification
       const { data: createdOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -197,7 +184,7 @@ export const useAdminOrderCreation = () => {
         console.error("Error fetching created order for notification:", fetchError);
       }
 
-      // Отправляем Telegram уведомление о создании заказа
+      // Send Telegram notification about order creation
       if (createdOrder) {
         try {
           console.log("Sending Telegram notification for order creation:", createdOrder);

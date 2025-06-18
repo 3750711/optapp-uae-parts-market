@@ -9,13 +9,7 @@ import { Search, Package, ArrowLeft, Filter, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProductCardWithPreview from './ProductCardWithPreview';
 import { Product } from '@/types/product';
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { SellerProfile } from '@/types/order';
 
 interface ProductSelectionStepProps {
   selectedSeller: SellerProfile;

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,20 +20,7 @@ import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCr
 import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
 import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
 import { Product } from "@/types/product";
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface BuyerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { SellerProfile, BuyerProfile } from "@/types/order";
 
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
@@ -88,7 +76,12 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          setSellers(data || []);
+          // Map to SellerProfile type
+          const mappedSellers: SellerProfile[] = (data || []).map(seller => ({
+            ...seller,
+            user_type: 'seller' as const
+          }));
+          setSellers(mappedSellers);
         }
       } catch (error) {
         console.error("Unexpected error fetching sellers:", error);
@@ -125,7 +118,12 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          setBuyers(data || []);
+          // Map to BuyerProfile type
+          const mappedBuyers: BuyerProfile[] = (data || []).map(buyer => ({
+            ...buyer,
+            user_type: 'buyer' as const
+          }));
+          setBuyers(mappedBuyers);
         }
       } catch (error) {
         console.error("Unexpected error fetching buyers:", error);

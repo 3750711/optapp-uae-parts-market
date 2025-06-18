@@ -3,13 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/product';
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { SellerProfile } from '@/types/order';
 
 export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const { toast } = useToast();
@@ -17,7 +11,7 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Загрузка товаров выбранного продавца
+  // Load products for selected seller
   useEffect(() => {
     if (selectedSeller) {
       const fetchProducts = async () => {
@@ -25,7 +19,10 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
         try {
           const { data, error } = await supabase
             .from("products")
-            .select("*, product_images(*)")
+            .select(`
+              *,
+              product_images(*)
+            `)
             .eq("seller_id", selectedSeller.id)
             .eq("status", "active")
             .order("created_at", { ascending: false });
@@ -60,7 +57,7 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const handleSearchChange = useCallback((searchTerm: string) => {
     let filtered = [...products];
 
-    // Фильтр по названию
+    // Filter by title
     if (searchTerm.trim()) {
       filtered = filtered.filter(product =>
         product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
