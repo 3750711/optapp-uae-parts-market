@@ -367,6 +367,7 @@ const AdminCreateOrderFromProduct = () => {
               buyers={buyers}
               onBuyerSelect={handleBuyerSelectWithCheck}
               onBackToProducts={() => goToStep(2)}
+              isLoading={isLoadingBuyers}
             />
             
             {isMobile && (
