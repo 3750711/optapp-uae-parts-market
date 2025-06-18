@@ -79,130 +79,124 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
   };
 
   const PreviewContent = () => (
-    <div className="space-y-4">
-      {/* Compact Success Header */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="p-3">
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full flex-shrink-0">
-              <CheckCircle className="w-4 h-4 text-blue-600" />
+    <div className="space-y-3">
+      {/* Compact Header */}
+      <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-3">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full flex-shrink-0">
+            <CheckCircle className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base font-bold text-blue-800 leading-tight">
+              Предварительный просмотр товара
+            </h1>
+            <p className="text-xs text-blue-700 mt-1">
+              Проверьте все данные перед публикацией
+            </p>
+          </div>
+          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs px-2 py-1 whitespace-nowrap">
+            Готов к публикации
+          </Badge>
+        </div>
+      </div>
+
+      {/* Compact Product Information */}
+      <Card className="border border-gray-200">
+        <CardContent className="p-3 space-y-3">
+          {/* Title */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Package className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Товар</span>
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-blue-800">
-                Предварительный просмотр товара
-              </h1>
-              <p className="text-sm text-blue-700">
-                Проверьте все данные перед публикацией
-              </p>
+            <div className="text-base font-semibold text-gray-900 leading-tight">
+              {productData.title}
             </div>
           </div>
+
+          <Separator className="my-2" />
+
+          {/* Brand & Model in one line */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <span className="text-gray-500">Бренд:</span>
+              <div className="font-medium">{getBrandDisplay()}</div>
+            </div>
+            <div>
+              <span className="text-gray-500">Модель:</span>
+              <div className="font-medium">{getModelDisplay()}</div>
+            </div>
+          </div>
+
+          <Separator className="my-2" />
+
+          {/* Financial info in grid */}
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="text-center">
+              <div className="text-lg font-bold text-green-600">${formatPrice(productData.price)}</div>
+              <div className="text-xs text-gray-500">Цена</div>
+            </div>
+            {productData.deliveryPrice && parseFloat(productData.deliveryPrice) > 0 && (
+              <div className="text-center">
+                <div className="text-sm font-semibold">${formatPrice(productData.deliveryPrice)}</div>
+                <div className="text-xs text-gray-500">Доставка</div>
+              </div>
+            )}
+            <div className="text-center">
+              <div className="text-sm font-medium">{productData.placeNumber || 1}</div>
+              <div className="text-xs text-gray-500">Мест</div>
+            </div>
+          </div>
+
+          <Separator className="my-2" />
+
+          {/* Seller info */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <User className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Продавец</span>
+            </div>
+            <div className="bg-blue-50 px-3 py-2 rounded text-sm font-medium">
+              {productData.sellerName || 'Не указан'}
+            </div>
+          </div>
+
+          {/* Description if exists */}
+          {productData.description && (
+            <>
+              <Separator className="my-2" />
+              <div>
+                <div className="text-sm font-medium text-gray-700 mb-2">Описание</div>
+                <div className="bg-gray-50 p-2 rounded text-sm max-h-16 overflow-y-auto">
+                  <p className="whitespace-pre-wrap text-gray-700">{productData.description}</p>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
-      {/* Compact Product Details */}
-      <div className="grid gap-3">
-        {/* Basic Information - Compact */}
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Package className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-medium text-sm">Информация о товаре</h3>
-            </div>
-            <div className="space-y-2 text-sm">
-              <div className="grid grid-cols-1 gap-1">
-                <div>
-                  <span className="text-xs text-muted-foreground">Наименование:</span>
-                  <span className="ml-2 font-medium">{productData.title}</span>
-                </div>
-                <div className="flex gap-4">
-                  <div>
-                    <span className="text-xs text-muted-foreground">Бренд:</span>
-                    <span className="ml-2">{getBrandDisplay()}</span>
-                  </div>
-                  <div>
-                    <span className="text-xs text-muted-foreground">Модель:</span>
-                    <span className="ml-2">{getModelDisplay()}</span>
-                  </div>
-                </div>
-                <div>
-                  <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 text-xs">
-                    Готов к публикации
-                  </Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Financial Information - Compact */}
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-medium text-sm">Финансовая информация</h3>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-lg font-bold text-green-600">${formatPrice(productData.price)}</div>
-                <div className="text-xs text-muted-foreground">Цена товара</div>
-              </div>
-              {productData.deliveryPrice && parseFloat(productData.deliveryPrice) > 0 && (
-                <div className="text-right">
-                  <div className="text-sm font-semibold">${formatPrice(productData.deliveryPrice)}</div>
-                  <div className="text-xs text-muted-foreground">Доставка</div>
-                </div>
-              )}
-              <div className="text-right">
-                <div className="text-sm font-medium">{productData.placeNumber || 1}</div>
-                <div className="text-xs text-muted-foreground">Мест</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Seller Information - Compact */}
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-medium text-sm">Продавец</h3>
-            </div>
-            <div className="bg-blue-50 p-2 rounded text-sm">
-              <span className="font-medium">{productData.sellerName || 'Не указан'}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Description - Compact if exists */}
-        {productData.description && (
-          <Card>
-            <CardContent className="p-3">
-              <h3 className="font-medium text-sm mb-2">Описание</h3>
-              <div className="bg-muted/30 p-2 rounded text-sm max-h-20 overflow-y-auto">
-                <p className="whitespace-pre-wrap">{productData.description}</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Media Section - Compact */}
+      {/* Compact Media Section */}
       {(productData.imageUrls.length > 0 || productData.videoUrls.length > 0) && (
-        <Card>
+        <Card className="border border-gray-200">
           <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Camera className="h-4 w-4 text-muted-foreground" />
-              <h3 className="font-medium text-sm">
-                Медиафайлы ({productData.imageUrls.length + productData.videoUrls.length})
-              </h3>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Camera className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Медиафайлы</span>
+              </div>
+              <Badge variant="outline" className="text-xs">
+                {productData.imageUrls.length + productData.videoUrls.length} файлов
+              </Badge>
             </div>
+            
             <div className="space-y-3">
               {productData.imageUrls.length > 0 && (
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Изображения ({productData.imageUrls.length})
+                  <div className="text-xs text-gray-500 mb-2">
+                    📸 Изображения ({productData.imageUrls.length})
                   </div>
-                  <div className="max-h-32 overflow-y-auto">
+                  <div className="max-h-24 overflow-y-auto">
                     <OptimizedOrderImages images={productData.imageUrls} />
                   </div>
                 </div>
@@ -210,10 +204,10 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
 
               {productData.videoUrls.length > 0 && (
                 <div>
-                  <div className="text-xs text-muted-foreground mb-1">
-                    Видео ({productData.videoUrls.length})
+                  <div className="text-xs text-gray-500 mb-2">
+                    🎥 Видео ({productData.videoUrls.length})
                   </div>
-                  <div className="max-h-32 overflow-y-auto">
+                  <div className="max-h-24 overflow-y-auto">
                     <OptimizedOrderVideos videos={productData.videoUrls} />
                   </div>
                 </div>
@@ -249,24 +243,24 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
   if (isMobile) {
     return (
       <Sheet open={isOpen} onOpenChange={onClose}>
-        <SheetContent side="bottom" className="h-[90vh] flex flex-col p-4">
+        <SheetContent side="bottom" className="h-[85vh] flex flex-col p-3">
           <SheetHeader className="text-left pb-2 flex-shrink-0">
-            <SheetTitle className="text-lg">Предпросмотр товара</SheetTitle>
-            <SheetDescription className="text-sm">
+            <SheetTitle className="text-base">Предпросмотр товара</SheetTitle>
+            <SheetDescription className="text-xs">
               Проверьте данные перед публикацией
             </SheetDescription>
           </SheetHeader>
-          <div className="absolute top-4 right-4">
+          <div className="absolute top-3 right-3">
             <SheetClose asChild>
               <Button size="icon" variant="ghost" className="h-8 w-8">
                 <X className="h-4 w-4" />
               </Button>
             </SheetClose>
           </div>
-          <ScrollArea className="flex-1 -mx-4 px-4">
+          <ScrollArea className="flex-1 -mx-3 px-3">
             <PreviewContent />
           </ScrollArea>
-          <div className="flex-shrink-0 pt-4 border-t">
+          <div className="flex-shrink-0 pt-3 border-t">
             <div className="grid grid-cols-2 gap-3">
               <ActionButtons />
             </div>
@@ -278,17 +272,17 @@ const ProductPreviewDialog: React.FC<ProductPreviewDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col p-4">
+      <DialogContent className="max-w-xl max-h-[80vh] flex flex-col p-4">
         <DialogHeader className="flex-shrink-0 pb-2">
-          <DialogTitle className="text-lg">Предпросмотр товара</DialogTitle>
+          <DialogTitle className="text-base">Предпросмотр товара</DialogTitle>
           <DialogDescription className="text-sm">
             Проверьте данные перед публикацией товара
           </DialogDescription>
         </DialogHeader>
-        <ScrollArea className="flex-1 -mx-4 px-4 max-h-[60vh]">
+        <ScrollArea className="flex-1 -mx-4 px-4 max-h-[55vh]">
           <PreviewContent />
         </ScrollArea>
-        <DialogFooter className="flex-shrink-0 flex justify-between gap-3 pt-4 border-t">
+        <DialogFooter className="flex-shrink-0 flex justify-between gap-3 pt-3 border-t">
           <ActionButtons />
         </DialogFooter>
       </DialogContent>
