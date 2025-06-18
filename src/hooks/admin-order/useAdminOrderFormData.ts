@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { OrderFormData } from '@/components/admin/order/types';
 
@@ -5,14 +6,13 @@ export const useAdminOrderFormData = () => {
   const [formData, setFormData] = useState<OrderFormData>({
     title: '',
     price: '',
-    description: '',
     buyerOptId: '',
     brand: '',
     model: '',
     brandId: '',
     modelId: '',
     sellerId: '',
-    deliveryMethod: 'cargo_rf' as const,
+    deliveryMethod: 'cargo_rf' as const, // Changed from 'self_pickup' to 'cargo_rf'
     place_number: '1',
     text_order: '',
     delivery_price: ''
@@ -58,14 +58,13 @@ export const useAdminOrderFormData = () => {
     setFormData({
       title: '',
       price: '',
-      description: '',
       buyerOptId: '',
       brand: '',
       model: '',
       brandId: '',
       modelId: '',
       sellerId: '',
-      deliveryMethod: 'cargo_rf' as const,
+      deliveryMethod: 'cargo_rf' as const, // Reset to cargo_rf
       place_number: '1',
       text_order: '',
       delivery_price: ''

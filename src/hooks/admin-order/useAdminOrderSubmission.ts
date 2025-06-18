@@ -206,6 +206,41 @@ export const useAdminOrderSubmission = () => {
     }
   }, [setStage]);
 
+  const sendTelegramNotification = useCallback(async (order: any) => {
+    setStage('sending_notification', 90);
+
+    try {
+      console.log('Отправка Telegram уведомления для заказа:', order.id);
+      
+      const { error } = await supabase.functions.invoke('send-telegram-notification', {
+        body: {
+          order: order,
+          action: 'create'
+        }
+      });
+
+      if (error) {
+        console.warn('Ошибка отправки Telegram уведомления:', error);
+        // Показываем предупреждение, но не останавливаем процесс
+        toast({
+          title: "Заказ создан, но уведомление не отправлено",
+          description: "Telegram уведомление не удалось отправить, но заказ создан успешно",
+          variant: "destructive",
+        });
+      } else {
+        console.log('Telegram уведомление отправлено успешно');
+      }
+    } catch (error) {
+      console.warn('Ошибка при отправке Telegram уведомления:', error);
+      // Показываем предупреждение, но не останавливаем процесс
+      toast({
+        title: "Заказ создан, но уведомление не отправлено",
+        description: "Проблема с отправкой Telegram уведомления, но заказ создан успешно",
+        variant: "destructive",
+      });
+    }
+  }, [setStage]);
+
   const handleSubmit = useCallback(async (
     formData: any,
     images: string[],
@@ -254,6 +289,9 @@ export const useAdminOrderSubmission = () => {
         // Step 6: Fetch complete order data
         const completeOrder = await fetchCreatedOrder(orderId);
 
+        // Step 7: Send Telegram notification (non-blocking)
+        await sendTelegramNotification(completeOrder);
+
         setStage('completed', 100);
 
         updateState({ 
@@ -283,6 +321,7 @@ export const useAdminOrderSubmission = () => {
     createOrder,
     saveVideoUrls,
     fetchCreatedOrder,
+    sendTelegramNotification,
     setStage,
     handleError
   ]);

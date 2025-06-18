@@ -1,284 +1,285 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, User, Package, DollarSign, Truck } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { MobileFormSection } from './MobileFormSection';
-import { FormValidationState } from './types';
-import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+import { Textarea } from '@/components/ui/textarea';
+import { usePreloadedFormData } from '@/hooks/usePreloadedFormData';
 
 interface OptimizedSellerOrderFormFieldsProps {
   formData: any;
   handleInputChange: (field: string, value: string) => void;
   disabled?: boolean;
-  validation?: FormValidationState;
-  onFieldTouch?: (field: string) => void;
 }
 
 const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsProps> = ({
   formData,
   handleInputChange,
-  disabled = false,
-  validation,
-  onFieldTouch
+  disabled = false
 }) => {
-  const isMobile = useIsMobile();
   const {
+    brands,
+    buyerProfiles,
     sellerProfiles,
+    isLoadingBrands,
+    isLoadingBuyers,
     isLoadingSellers,
-    enableSellersLoading
-  } = useLazyProfiles();
+    getModelsByBrand,
+    findBrandById,
+    findModelById
+  } = usePreloadedFormData();
 
-  React.useEffect(() => {
-    enableSellersLoading();
-  }, [enableSellersLoading]);
+  // Получаем модели для выбранного бренда
+  const availableModels = formData.brandId ? getModelsByBrand(formData.brandId) : [];
 
-  const handleFieldChange = (field: string, value: string) => {
-    handleInputChange(field, value);
-    onFieldTouch?.(field);
+  const handleBrandChange = (brandId: string) => {
+    const brand = findBrandById(brandId);
+    if (brand) {
+      handleInputChange('brandId', brandId);
+      handleInputChange('brand', brand.name);
+      // Сбрасываем модель при смене бренда
+      handleInputChange('modelId', '');
+      handleInputChange('model', '');
+    }
   };
 
-  const getFieldError = (field: string) => {
-    return validation?.errors[field];
-  };
-
-  const isFieldTouched = (field: string) => {
-    return validation?.touchedFields.has(field);
+  const handleModelChange = (modelId: string) => {
+    const model = findModelById(modelId);
+    if (model) {
+      handleInputChange('modelId', modelId);
+      handleInputChange('model', model.name);
+    }
   };
 
   return (
     <div className="space-y-6">
-      {/* Seller Selection */}
-      <MobileFormSection 
-        title="Выбор продавца" 
-        icon={<User className="h-5 w-5" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="sellerId" className="text-sm font-medium">
-              Продавец *
-            </Label>
-            <Select 
-              value={formData.sellerId || ''} 
-              onValueChange={(value) => handleFieldChange('sellerId', value)}
-              disabled={disabled || isLoadingSellers}
-            >
-              <SelectTrigger className={`mt-1 ${getFieldError('sellerId') ? 'border-red-500' : ''}`}>
-                <SelectValue placeholder="Выберите продавца" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                {isLoadingSellers ? (
-                  <div className="flex items-center justify-center p-4">
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Загрузка...
-                  </div>
-                ) : sellerProfiles.length === 0 ? (
-                  <div className="p-4 text-center text-gray-500 text-sm">
-                    Продавцы не найдены
-                  </div>
-                ) : (
-                  sellerProfiles.map((seller) => (
-                    <SelectItem key={seller.id} value={seller.id}>
-                      <div className="flex items-center justify-between w-full">
-                        <span>{seller.full_name}</span>
-                        <Badge variant="outline" className="ml-2 text-xs">
-                          {seller.opt_id}
-                        </Badge>
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-            {getFieldError('sellerId') && (
-              <p className="text-red-500 text-xs mt-1">{getFieldError('sellerId')}</p>
-            )}
-          </div>
-        </div>
-      </MobileFormSection>
-
-      {/* Product Information */}
-      <MobileFormSection 
-        title="Информация о товаре" 
-        icon={<Package className="h-5 w-5" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="title" className="text-sm font-medium">
-              Название товара *
-            </Label>
+      <Card>
+        <CardHeader>
+          <CardTitle>Основная информация о заказе</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Название товара */}
+          <div className="space-y-2">
+            <Label htmlFor="title">Название товара *</Label>
             <Input
               id="title"
               value={formData.title || ''}
-              onChange={(e) => handleFieldChange('title', e.target.value)}
-              onBlur={() => onFieldTouch?.('title')}
-              placeholder="Введите название товара"
+              onChange={(e) => handleInputChange('title', e.target.value)}
+              placeholder="Введите название товара..."
               disabled={disabled}
-              className={`mt-1 ${getFieldError('title') ? 'border-red-500' : ''}`}
+              className="bg-white"
             />
-            {getFieldError('title') && (
-              <p className="text-red-500 text-xs mt-1">{getFieldError('title')}</p>
-            )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="brand" className="text-sm font-medium">Бренд</Label>
+          {/* Бренд и модель */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="brandId">Бренд</Label>
+              {isLoadingBrands ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={formData.brandId || ''}
+                  onValueChange={handleBrandChange}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Выберите бренд..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {brands.map((brand) => (
+                      <SelectItem key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!isLoadingBrands && brands.length === 0 && (
+                <p className="text-sm text-gray-500">Бренды не загружены</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="modelId">Модель</Label>
+              <Select
+                value={formData.modelId || ''}
+                onValueChange={handleModelChange}
+                disabled={disabled || !formData.brandId}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder={formData.brandId ? "Выберите модель..." : "Сначала выберите бренд"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                  {availableModels.length === 0 && formData.brandId && (
+                    <div className="py-2 px-3 text-sm text-gray-500">
+                      Модели не найдены для данного бренда
+                    </div>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Цена */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="price">Цена товара *</Label>
               <Input
-                id="brand"
-                value={formData.brand || ''}
-                onChange={(e) => handleFieldChange('brand', e.target.value)}
-                placeholder="Бренд товара"
+                id="price"
+                type="number"
+                value={formData.price || ''}
+                onChange={(e) => handleInputChange('price', e.target.value)}
+                placeholder="0"
                 disabled={disabled}
-                className="mt-1"
+                className="bg-white"
               />
             </div>
-            <div>
-              <Label htmlFor="model" className="text-sm font-medium">Модель</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="delivery_price">Стоимость доставки</Label>
               <Input
-                id="model"
-                value={formData.model || ''}
-                onChange={(e) => handleFieldChange('model', e.target.value)}
-                placeholder="Модель товара"
+                id="delivery_price"
+                type="number"
+                value={formData.delivery_price || ''}
+                onChange={(e) => handleInputChange('delivery_price', e.target.value)}
+                placeholder="0"
                 disabled={disabled}
-                className="mt-1"
+                className="bg-white"
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div>
-            <Label htmlFor="text_order" className="text-sm font-medium">
-              Дополнительная информация
-            </Label>
-            <Textarea
-              id="text_order"
-              value={formData.text_order || ''}
-              onChange={(e) => handleFieldChange('text_order', e.target.value)}
-              placeholder="Дополнительная информация о товаре (опционально)"
-              disabled={disabled}
-              className="mt-1 min-h-[80px]"
-              rows={3}
-            />
-          </div>
-        </div>
-      </MobileFormSection>
+      <Card>
+        <CardHeader>
+          <CardTitle>Участники сделки</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="buyerOptId">OPT_ID покупателя *</Label>
+              {isLoadingBuyers ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={formData.buyerOptId || ''}
+                  onValueChange={(value) => handleInputChange('buyerOptId', value)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Выберите покупателя..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {buyerProfiles.map((buyer) => (
+                      <SelectItem key={buyer.id} value={buyer.opt_id}>
+                        {buyer.full_name || 'Без имени'} ({buyer.opt_id})
+                      </SelectItem>
+                    ))}
+                    {buyerProfiles.length === 0 && (
+                      <div className="py-2 px-3 text-sm text-gray-500">
+                        Покупатели не найдены
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
 
-      {/* Financial Information */}
-      <MobileFormSection 
-        title="Финансовая информация" 
-        icon={<DollarSign className="h-5 w-5" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="price" className="text-sm font-medium">
-              Цена товара ($) *
-            </Label>
-            <Input
-              id="price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.price || ''}
-              onChange={(e) => handleFieldChange('price', e.target.value)}
-              onBlur={() => onFieldTouch?.('price')}
-              placeholder="0.00"
-              disabled={disabled}
-              className={`mt-1 ${getFieldError('price') ? 'border-red-500' : ''}`}
-            />
-            {getFieldError('price') && (
-              <p className="text-red-500 text-xs mt-1">{getFieldError('price')}</p>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="sellerId">Продавец *</Label>
+              {isLoadingSellers ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select
+                  value={formData.sellerId || ''}
+                  onValueChange={(value) => handleInputChange('sellerId', value)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Выберите продавца..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sellerProfiles.map((seller) => (
+                      <SelectItem key={seller.id} value={seller.id}>
+                        {seller.opt_id ? `${seller.full_name || 'Без имени'} (${seller.opt_id})` : (seller.full_name || 'Без имени')}
+                      </SelectItem>
+                    ))}
+                    {sellerProfiles.length === 0 && (
+                      <div className="py-2 px-3 text-sm text-gray-500">
+                        Продавцы не найдены
+                      </div>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          <div>
-            <Label htmlFor="delivery_price" className="text-sm font-medium">
-              Стоимость доставки ($)
-            </Label>
-            <Input
-              id="delivery_price"
-              type="number"
-              step="0.01"
-              min="0"
-              value={formData.delivery_price || ''}
-              onChange={(e) => handleFieldChange('delivery_price', e.target.value)}
-              placeholder="0.00"
-              disabled={disabled}
-              className="mt-1"
-            />
-          </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Детали заказа</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="deliveryMethod">Способ доставки</Label>
+                <Select
+                  value={formData.deliveryMethod || 'cargo_rf'}
+                  onValueChange={(value) => handleInputChange('deliveryMethod', value)}
+                  disabled={disabled}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                    <SelectItem value="cargo_rf">Карго РФ</SelectItem>
+                    <SelectItem value="cargo_kz">Карго КЗ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div>
-            <Label htmlFor="buyerOptId" className="text-sm font-medium">
-              OPT ID покупателя *
-            </Label>
-            <Input
-              id="buyerOptId"
-              value={formData.buyerOptId || ''}
-              onChange={(e) => handleFieldChange('buyerOptId', e.target.value.toUpperCase())}
-              onBlur={() => onFieldTouch?.('buyerOptId')}
-              placeholder="Введите OPT ID покупателя"
-              disabled={disabled}
-              className={`mt-1 ${getFieldError('buyerOptId') ? 'border-red-500' : ''}`}
-            />
-            {getFieldError('buyerOptId') && (
-              <p className="text-red-500 text-xs mt-1">{getFieldError('buyerOptId')}</p>
-            )}
-          </div>
-        </div>
-      </MobileFormSection>
+              <div className="space-y-2">
+                <Label htmlFor="place_number">Количество мест</Label>
+                <Input
+                  id="place_number"
+                  type="number"
+                  value={formData.place_number || '1'}
+                  onChange={(e) => handleInputChange('place_number', e.target.value)}
+                  min="1"
+                  disabled={disabled}
+                  className="bg-white"
+                />
+              </div>
+            </div>
 
-      {/* Delivery Information */}
-      <MobileFormSection 
-        title="Информация о доставке" 
-        icon={<Truck className="h-5 w-5" />}
-        defaultOpen={true}
-      >
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="deliveryMethod" className="text-sm font-medium">
-              Способ доставки
-            </Label>
-            <Select 
-              value={formData.deliveryMethod || 'cargo_rf'} 
-              onValueChange={(value) => handleFieldChange('deliveryMethod', value)}
-              disabled={disabled}
-            >
-              <SelectTrigger className="mt-1">
-                <SelectValue placeholder="Выберите способ доставки" />
-              </SelectTrigger>
-              <SelectContent className="bg-white">
-                <SelectItem value="cargo_rf">🚛 Cargo РФ</SelectItem>
-                <SelectItem value="cargo_kz">🚚 Cargo КЗ</SelectItem>
-                <SelectItem value="self_pickup">📦 Самовывоз</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <Label htmlFor="text_order">Дополнительная информация</Label>
+              <Textarea
+                id="text_order"
+                value={formData.text_order || ''}
+                onChange={(e) => handleInputChange('text_order', e.target.value)}
+                placeholder="Введите дополнительную информацию о заказе..."
+                rows={3}
+                disabled={disabled}
+                className="bg-white"
+              />
+            </div>
           </div>
-
-          <div>
-            <Label htmlFor="place_number" className="text-sm font-medium">
-              Количество мест
-            </Label>
-            <Input
-              id="place_number"
-              type="number"
-              min="1"
-              value={formData.place_number || '1'}
-              onChange={(e) => handleFieldChange('place_number', e.target.value)}
-              placeholder="1"
-              disabled={disabled}
-              className="mt-1"
-            />
-          </div>
-        </div>
-      </MobileFormSection>
+        </CardContent>
+      </Card>
     </div>
   );
 };

@@ -1,11 +1,9 @@
 
 import { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
 import { useAdminOrderFormData } from './admin-order/useAdminOrderFormData';
 import { useAdminOrderSubmission } from './admin-order/useAdminOrderSubmission';
-import { useLazyCarData } from '@/hooks/useLazyCarData';
-import { useLazyProfiles } from '@/hooks/useLazyProfiles';
+import { usePreloadedFormData } from '@/hooks/usePreloadedFormData';
 import { useOptimizedAdminAccess } from '@/hooks/useOptimizedAdminAccess';
 import { BuyerProfile, SellerProfile } from '@/types/order';
 
@@ -22,24 +20,17 @@ export interface AdminOrderFormLogicReturn {
   handleImageUpload: (urls: string[]) => void;
   setAllImages: (urls: string[]) => void;
   
-  // Lazy Profiles
+  // Preloaded data
   buyerProfiles: BuyerProfile[];
   sellerProfiles: SellerProfile[];
-  isLoadingBuyers: boolean;
-  isLoadingSellers: boolean;
-  enableBuyersLoading: () => void;
-  enableSellersLoading: () => void;
-  selectedSeller: SellerProfile | null;
-  
-  // Lazy Car data
   brands: any[];
   models: any[];
+  isLoadingBuyers: boolean;
+  isLoadingSellers: boolean;
   isLoadingBrands: boolean;
   isLoadingModels: boolean;
-  enableBrandsLoading: () => void;
-  selectBrand: (brandId: string) => void;
-  findBrandNameById: (brandId: string | null) => string | null;
-  findModelNameById: (modelId: string | null) => string | null;
+  isDataReady: boolean;
+  selectedSeller: SellerProfile | null;
   
   // Order creation
   isLoading: boolean;
@@ -84,27 +75,19 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     resetForm: baseResetForm
   } = useAdminOrderFormData();
 
-  // Lazy car data
+  // Preloaded form data
   const {
     brands,
-    models,
-    isLoadingBrands,
-    isLoadingModels,
-    enableBrandsLoading,
-    selectBrand,
-    findBrandNameById,
-    findModelNameById
-  } = useLazyCarData();
-
-  // Lazy profiles
-  const {
     buyerProfiles,
     sellerProfiles,
+    isLoadingBrands,
     isLoadingBuyers,
     isLoadingSellers,
-    enableBuyersLoading,
-    enableSellersLoading
-  } = useLazyProfiles();
+    isDataReady,
+    getModelsByBrand,
+    findBrandById,
+    findModelById
+  } = usePreloadedFormData();
 
   // Submission
   const {
@@ -120,20 +103,24 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     clearError
   } = useAdminOrderSubmission();
 
-  // Enhanced input change handler with car data integration
+  // Получаем модели для выбранного бренда
+  const models = useMemo(() => {
+    return formData.brandId ? getModelsByBrand(formData.brandId) : [];
+  }, [formData.brandId, getModelsByBrand]);
+
+  // Мемоизированный обработчик изменения полей
   const handleInputChange = useCallback((field: string, value: string) => {
     if (field === 'brandId') {
-      const selectedBrand = brands.find(b => b.id === value);
+      const selectedBrand = findBrandById(value);
       if (selectedBrand) {
         baseHandleInputChange('brandId', value);
         baseHandleInputChange('brand', selectedBrand.name);
-        selectBrand(value);
-        // Reset model when brand changes
+        // Сбрасываем модель при смене бренда
         baseHandleInputChange('modelId', '');
         baseHandleInputChange('model', '');
       }
     } else if (field === 'modelId') {
-      const selectedModel = models.find(m => m.id === value);
+      const selectedModel = findModelById(value);
       if (selectedModel) {
         baseHandleInputChange('modelId', value);
         baseHandleInputChange('model', selectedModel.name);
@@ -141,46 +128,40 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     } else {
       baseHandleInputChange(field, value);
     }
-  }, [brands, models, baseHandleInputChange, selectBrand]);
+  }, [baseHandleInputChange, findBrandById, findModelById]);
 
-  // Enhanced submit handler with error handling
+  // Мемоизированный обработчик отправки
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required fields
     if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
       throw new Error('Пожалуйста, заполните все обязательные поля');
     }
 
-    try {
-      await baseHandleSubmit(formData, images, videos);
-    } catch (error) {
-      console.error('Order submission error:', error);
-      throw error;
-    }
+    await baseHandleSubmit(formData, images, videos);
   }, [baseHandleSubmit, formData, images, videos]);
 
-  // Enhanced reset form function
+  // Мемоизированная функция сброса
   const resetForm = useCallback(() => {
     baseResetForm();
     resetCreatedOrder();
     clearError();
   }, [baseResetForm, resetCreatedOrder, clearError]);
 
-  // Find selected seller with fallback
+  // Мемоизированный выбранный продавец
   const selectedSeller = useMemo(() => {
     if (!formData.sellerId || !sellerProfiles.length) return null;
     return sellerProfiles.find(seller => seller.id === formData.sellerId) || null;
   }, [sellerProfiles, formData.sellerId]);
 
-  // Retry operation wrapper
+  // Мемоизированная функция повтора
   const retryOperation = useCallback(() => {
     if (retryLastOperation) {
       retryLastOperation();
     }
   }, [retryLastOperation]);
 
-  return {
+  return useMemo(() => ({
     // Form data
     formData,
     handleInputChange,
@@ -193,24 +174,17 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     handleImageUpload,
     setAllImages,
     
-    // Lazy Profiles
+    // Preloaded data
     buyerProfiles,
     sellerProfiles,
-    isLoadingBuyers,
-    isLoadingSellers,
-    enableBuyersLoading,
-    enableSellersLoading,
-    selectedSeller,
-    
-    // Lazy Car data
     brands,
     models,
+    isLoadingBuyers,
+    isLoadingSellers,
     isLoadingBrands,
-    isLoadingModels,
-    enableBrandsLoading,
-    selectBrand,
-    findBrandNameById,
-    findModelNameById,
+    isLoadingModels: false, // models загружаются вместе с brands
+    isDataReady,
+    selectedSeller,
     
     // Order creation
     isLoading,
@@ -234,5 +208,12 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     error,
     retryOperation,
     clearError
-  };
+  }), [
+    formData, handleInputChange, images, videos, setImages, setVideos,
+    handleImageUpload, setAllImages, buyerProfiles, sellerProfiles,
+    brands, models, isLoadingBuyers, isLoadingSellers, isLoadingBrands,
+    isDataReady, selectedSeller, isLoading, createdOrder, handleSubmit,
+    handleOrderUpdate, resetForm, navigate, creationStage, creationProgress,
+    hasAdminAccess, isCheckingAdmin, error, retryOperation, clearError
+  ]);
 };

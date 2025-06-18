@@ -2,26 +2,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { SearchFilters } from '@/components/admin/SimpleProductSearchFilters';
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-}
+import { Product } from '@/types/product';
+import { SellerProfile } from '@/types/order';
 
 export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const { toast } = useToast();
@@ -29,69 +11,59 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Загрузка товаров выбранного продавца
+  // Load products for selected seller
   useEffect(() => {
     if (selectedSeller) {
       const fetchProducts = async () => {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from("products")
-          .select("*, product_images(*)")
-          .eq("seller_id", selectedSeller.id)
-          .eq("status", "active")
-          .order("created_at", { ascending: false });
+        try {
+          const { data, error } = await supabase
+            .from("products")
+            .select(`
+              *,
+              product_images(*)
+            `)
+            .eq("seller_id", selectedSeller.id)
+            .eq("status", "active")
+            .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error("Error fetching products:", error);
+          if (error) {
+            console.error("Error fetching products:", error);
+            toast({
+              title: "Ошибка",
+              description: "Не удалось загрузить товары продавца",
+              variant: "destructive",
+            });
+          } else {
+            setProducts(data || []);
+            setFilteredProducts(data || []);
+          }
+        } catch (error) {
+          console.error("Unexpected error fetching products:", error);
           toast({
             title: "Ошибка",
-            description: "Не удалось загрузить товары продавца",
+            description: "Произошла неожиданная ошибка при загрузке товаров",
             variant: "destructive",
           });
-        } else {
-          setProducts(data || []);
-          setFilteredProducts(data || []);
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       };
 
       fetchProducts();
     }
   }, [selectedSeller, toast]);
 
-  const handleSearchChange = useCallback((filters: SearchFilters) => {
+  const handleSearchChange = useCallback((searchTerm: string) => {
     let filtered = [...products];
 
-    // Фильтр по названию
-    if (filters.searchTerm.trim()) {
+    // Filter by title
+    if (searchTerm.trim()) {
       filtered = filtered.filter(product =>
-        product.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        product.brand?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        product.model?.toLowerCase().includes(filters.searchTerm.toLowerCase())
+        product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.brand?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.model?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    }
-
-    // Фильтр по номеру лота
-    if (filters.lotNumber.trim()) {
-      filtered = filtered.filter(product =>
-        product.lot_number.toString().includes(filters.lotNumber)
-      );
-    }
-
-    // Фильтр по цене от
-    if (filters.priceFrom.trim()) {
-      const priceFrom = parseFloat(filters.priceFrom);
-      if (!isNaN(priceFrom)) {
-        filtered = filtered.filter(product => product.price >= priceFrom);
-      }
-    }
-
-    // Фильтр по цене до
-    if (filters.priceTo.trim()) {
-      const priceTo = parseFloat(filters.priceTo);
-      if (!isNaN(priceTo)) {
-        filtered = filtered.filter(product => product.price <= priceTo);
-      }
     }
 
     setFilteredProducts(filtered);
