@@ -35,79 +35,39 @@ export const MobileSellerSelection: React.FC<MobileSellerSelectionProps> = ({
     seller.opt_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   );
 
-  if (!isMobile) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Выберите продавца
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="Поиск продавца..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          
-          <div className="grid gap-3 max-h-96 overflow-y-auto">
-            {filteredSellers.map((seller) => (
-              <Card key={seller.id} className="cursor-pointer hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-medium">{seller.full_name}</h3>
-                      <p className="text-sm text-gray-600">OPT ID: {seller.opt_id}</p>
-                      {seller.telegram && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <MessageCircle className="h-3 w-3 text-blue-500" />
-                          <span className="text-xs text-blue-600">{seller.telegram}</span>
-                        </div>
-                      )}
-                    </div>
-                    <Button 
-                      onClick={() => onSellerSelect(seller.id)}
-                      disabled={isLoading}
-                    >
-                      Выбрать
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      {/* Mobile search */}
+      {!isMobile && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Выберите продавца
+            </CardTitle>
+          </CardHeader>
+        </Card>
+      )}
+
+      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
         <Input
           placeholder="Поиск продавца..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-9 text-base"
+          className={`pl-9 ${isMobile ? 'text-base' : ''}`}
         />
       </div>
 
-      {/* Mobile seller list */}
-      <div className="space-y-3">
+      {/* Sellers list */}
+      <div className={`space-y-3 ${!isMobile ? 'max-h-96 overflow-y-auto' : ''}`}>
         {filteredSellers.map((seller) => (
-          <Card key={seller.id} className="touch-target">
+          <Card key={seller.id} className={`cursor-pointer hover:shadow-md transition-shadow ${isMobile ? 'touch-target' : ''}`}>
             <CardContent className="p-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h3 className="font-medium text-base">{seller.full_name}</h3>
+                    <h3 className={`font-medium ${isMobile ? 'text-base' : ''}`}>{seller.full_name}</h3>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className="text-xs">
                         {seller.opt_id}
@@ -126,8 +86,8 @@ export const MobileSellerSelection: React.FC<MobileSellerSelectionProps> = ({
                 <Button 
                   onClick={() => onSellerSelect(seller.id)}
                   disabled={isLoading}
-                  size="lg"
-                  className="w-full touch-target min-h-[48px]"
+                  size={isMobile ? "lg" : "default"}
+                  className={`w-full ${isMobile ? 'touch-target min-h-[48px]' : ''}`}
                 >
                   Выбрать продавца
                 </Button>
