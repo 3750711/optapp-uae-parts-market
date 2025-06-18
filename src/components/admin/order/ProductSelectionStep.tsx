@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,17 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Search, Package, ArrowLeft, Filter, X } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import ProductCardWithPreview from './ProductCardWithPreview';
-import { Product } from '@/types/product';
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { Product, AdminSellerProfile } from '@/types/product';
 
 interface ProductSelectionStepProps {
-  selectedSeller: SellerProfile;
+  selectedSeller: AdminSellerProfile;
   products: Product[];
   filteredProducts: Product[];
   isLoading: boolean;

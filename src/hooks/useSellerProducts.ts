@@ -2,16 +2,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Product } from '@/types/product';
+import { Product, AdminSellerProfile } from '@/types/product';
 
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
+export const useSellerProducts = (selectedSeller: AdminSellerProfile | null) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
