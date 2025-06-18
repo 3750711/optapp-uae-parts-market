@@ -60,18 +60,20 @@ export const AdminFreeOrderForm = React.memo(() => {
 
   const onImageDelete = useCallback((url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Image deleted:', url);
-    setAllImages((prev) => prev.filter(img => img !== url));
-  }, [setAllImages]);
+    const updatedImages = images.filter(img => img !== url);
+    setAllImages(updatedImages);
+  }, [setAllImages, images]);
 
   const onVideoUpload = useCallback((urls: string[]) => {
     console.log('📹 AdminFreeOrderForm: New videos uploaded:', urls);
-    setVideos((prev) => [...prev, ...urls]);
-  }, [setVideos]);
+    setVideos([...videos, ...urls]);
+  }, [setVideos, videos]);
 
   const onVideoDelete = useCallback((url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
-    setVideos((prev) => prev.filter(video => video !== url));
-  }, [setVideos]);
+    const updatedVideos = videos.filter(video => video !== url);
+    setVideos(updatedVideos);
+  }, [setVideos, videos]);
 
   // Валидация формы
   const canShowPreview = useCallback(() => {
@@ -146,7 +148,7 @@ export const AdminFreeOrderForm = React.memo(() => {
         videos={videos}
         onNewOrder={resetForm}
         onOrderUpdate={handleOrderUpdate}
-        buyerProfile={getBuyerProfile()}
+        buyerProfile={buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null}
       />
     );
   }
@@ -166,7 +168,7 @@ export const AdminFreeOrderForm = React.memo(() => {
             <Button
               variant="outline"
               size="sm"
-              onClick={handleRetry}
+              onClick={retryOperation}
               className="ml-2"
             >
               <RefreshCw className="h-4 w-4 mr-1" />
@@ -179,7 +181,7 @@ export const AdminFreeOrderForm = React.memo(() => {
       <OptimizedSellerOrderFormFields
         formData={formData}
         handleInputChange={handleInputChange}
-        disabled={isFormDisabled}
+        disabled={isLoading || !canSubmit}
       />
       
       <MobileFormSection 
@@ -195,7 +197,7 @@ export const AdminFreeOrderForm = React.memo(() => {
               onImagesUpload={onImagesUpload}
               onImageDelete={onImageDelete}
               onSetPrimaryImage={() => {}}
-              disabled={isFormDisabled}
+              disabled={isLoading || !canSubmit}
               maxImages={25}
             />
           </div>
@@ -207,7 +209,7 @@ export const AdminFreeOrderForm = React.memo(() => {
               onUpload={onVideoUpload}
               onDelete={onVideoDelete}
               maxVideos={5}
-              disabled={isFormDisabled}
+              disabled={isLoading || !canSubmit}
             />
           </div>
         </div>
@@ -217,8 +219,18 @@ export const AdminFreeOrderForm = React.memo(() => {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
           <Button
             type="button"
-            onClick={handleCreateOrderClick}
-            disabled={isFormDisabled}
+            onClick={() => {
+              if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
+                toast({
+                  title: "Заполните обязательные поля",
+                  description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
+                  variant: "destructive",
+                });
+                return;
+              }
+              setShowPreview(true);
+            }}
+            disabled={isLoading || !canSubmit}
             size="lg"
             className="w-full touch-target min-h-[48px] text-base font-medium"
           >
@@ -229,8 +241,18 @@ export const AdminFreeOrderForm = React.memo(() => {
         <div className="flex justify-end pt-6 border-t">
           <Button
             type="button"
-            onClick={handleCreateOrderClick}
-            disabled={isFormDisabled}
+            onClick={() => {
+              if (!formData.title || !formData.price || !formData.sellerId || !formData.buyerOptId) {
+                toast({
+                  title: "Заполните обязательные поля",
+                  description: "Необходимо заполнить название, цену, продавца и OPT_ID покупателя",
+                  variant: "destructive",
+                });
+                return;
+              }
+              setShowPreview(true);
+            }}
+            disabled={isLoading || !canSubmit}
             size="lg"
             className="min-w-[200px]"
           >
@@ -247,9 +269,15 @@ export const AdminFreeOrderForm = React.memo(() => {
         images={images}
         videos={videos}
         selectedSeller={selectedSeller}
-        buyerProfile={getBuyerProfile()}
-        onConfirm={handleConfirmOrder}
-        onBack={handleBackToEdit}
+        buyerProfile={buyerProfiles.find(buyer => buyer.opt_id === formData.buyerOptId) || null}
+        onConfirm={(e: React.FormEvent) => {
+          e.preventDefault();
+          setShowPreview(false);
+          guardedSubmit(async () => {
+            await originalHandleSubmit(e);
+          });
+        }}
+        onBack={() => setShowPreview(false)}
         isLoading={isLoading}
       />
     </div>
