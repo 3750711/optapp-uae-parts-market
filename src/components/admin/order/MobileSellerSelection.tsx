@@ -1,10 +1,9 @@
 
 import React, { useState } from 'react';
-import { Search, User, Phone, MessageCircle } from 'lucide-react';
+import { User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDebounce } from '@/hooks/useDebounce';
 
@@ -35,6 +34,21 @@ export const MobileSellerSelection: React.FC<MobileSellerSelectionProps> = ({
     seller.opt_id.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
   );
 
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {!isMobile && (
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-40" />
+            </CardHeader>
+          </Card>
+        )}
+        <Skeleton className={`h-12 w-full ${isMobile ? 'h-14' : ''}`} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {!isMobile && (
@@ -48,62 +62,53 @@ export const MobileSellerSelection: React.FC<MobileSellerSelectionProps> = ({
         </Card>
       )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-        <Input
-          placeholder="Поиск продавца..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className={`pl-9 ${isMobile ? 'text-base' : ''}`}
-        />
-      </div>
-
-      {/* Sellers list */}
-      <div className={`space-y-3 ${!isMobile ? 'max-h-96 overflow-y-auto' : ''}`}>
-        {filteredSellers.map((seller) => (
-          <Card key={seller.id} className={`cursor-pointer hover:shadow-md transition-shadow ${isMobile ? 'touch-target' : ''}`}>
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className={`font-medium ${isMobile ? 'text-base' : ''}`}>{seller.full_name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {seller.opt_id}
-                      </Badge>
-                    </div>
-                  </div>
+      <Select onValueChange={onSellerSelect}>
+        <SelectTrigger className={`w-full ${isMobile ? 'h-14 text-base touch-target' : 'h-10'}`}>
+          <SelectValue placeholder="Выберите продавца..." />
+        </SelectTrigger>
+        <SelectContent 
+          showSearch={true}
+          searchPlaceholder="Поиск продавца..."
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+        >
+          {filteredSellers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+              <User className="h-12 w-12 mb-2 text-gray-300" />
+              <p className={`${isMobile ? 'text-base' : 'text-sm'}`}>
+                {debouncedSearchTerm ? 'Продавцы не найдены' : 'Нет доступных продавцов'}
+              </p>
+              {debouncedSearchTerm && (
+                <p className={`${isMobile ? 'text-sm' : 'text-xs'} text-center mt-1`}>
+                  Попробуйте другой поисковый запрос
+                </p>
+              )}
+            </div>
+          ) : (
+            filteredSellers.map((seller) => (
+              <SelectItem 
+                key={seller.id} 
+                value={seller.id}
+                className={isMobile ? 'py-3 min-h-[48px]' : ''}
+              >
+                <div className="flex flex-col w-full">
+                  <span className={`font-medium ${isMobile ? 'text-base' : ''}`}>
+                    {seller.full_name}
+                  </span>
+                  <span className={`text-gray-500 ${isMobile ? 'text-sm' : 'text-xs'}`}>
+                    OPT: {seller.opt_id}
+                  </span>
+                  {seller.telegram && (
+                    <span className={`text-blue-600 ${isMobile ? 'text-sm' : 'text-xs'}`}>
+                      {seller.telegram}
+                    </span>
+                  )}
                 </div>
-                
-                {seller.telegram && (
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 rounded">
-                    <MessageCircle className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm text-blue-700">{seller.telegram}</span>
-                  </div>
-                )}
-
-                <Button 
-                  onClick={() => onSellerSelect(seller.id)}
-                  disabled={isLoading}
-                  size={isMobile ? "lg" : "default"}
-                  className={`w-full ${isMobile ? 'touch-target min-h-[48px]' : ''}`}
-                >
-                  Выбрать продавца
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {filteredSellers.length === 0 && debouncedSearchTerm && (
-        <div className="text-center py-8 text-gray-500">
-          <User className="h-12 w-12 mx-auto mb-2 text-gray-300" />
-          <p>Продавцы не найдены</p>
-          <p className="text-sm">Попробуйте другой поисковый запрос</p>
-        </div>
-      )}
+              </SelectItem>
+            ))
+          )}
+        </SelectContent>
+      </Select>
     </div>
   );
 };

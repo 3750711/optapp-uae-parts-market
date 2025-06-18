@@ -53,6 +53,8 @@ const AdminCreateOrderFromProduct = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [isLoadingSellers, setIsLoadingSellers] = useState(true);
+  const [isLoadingBuyers, setIsLoadingBuyers] = useState(true);
 
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
   const {
@@ -79,6 +81,7 @@ const AdminCreateOrderFromProduct = () => {
   // Загрузка продавцов
   useEffect(() => {
     const fetchSellers = async () => {
+      setIsLoadingSellers(true);
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, opt_id, telegram")
@@ -96,6 +99,7 @@ const AdminCreateOrderFromProduct = () => {
       } else {
         setSellers(data || []);
       }
+      setIsLoadingSellers(false);
     };
 
     fetchSellers();
@@ -104,6 +108,7 @@ const AdminCreateOrderFromProduct = () => {
   // Загрузка покупателей
   useEffect(() => {
     const fetchBuyers = async () => {
+      setIsLoadingBuyers(true);
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, opt_id, telegram")
@@ -121,6 +126,7 @@ const AdminCreateOrderFromProduct = () => {
       } else {
         setBuyers(data || []);
       }
+      setIsLoadingBuyers(false);
     };
 
     fetchBuyers();
@@ -306,12 +312,13 @@ const AdminCreateOrderFromProduct = () => {
               <MobileSellerSelection
                 sellers={sellers}
                 onSellerSelect={handleSellerSelectWithSeller}
-                isLoading={isCreatingOrder}
+                isLoading={isLoadingSellers}
               />
             ) : (
               <SellerSelectionStep
                 sellers={sellers}
                 onSellerSelect={handleSellerSelectWithSeller}
+                isLoading={isLoadingSellers}
               />
             )}
             
