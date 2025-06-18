@@ -19,20 +19,7 @@ import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCr
 import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
 import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
 import { Product } from "@/types/product";
-
-interface SellerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
-
-interface BuyerProfile {
-  id: string;
-  full_name: string;
-  opt_id: string;
-  telegram?: string;
-}
+import { SellerProfile, BuyerProfile } from "@/types/order";
 
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
@@ -75,7 +62,7 @@ const AdminCreateOrderFromProduct = () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, full_name, opt_id, telegram")
+          .select("id, full_name, opt_id, telegram, user_type")
           .eq("user_type", "seller")
           .not("full_name", "is", null)
           .order("full_name");
@@ -88,7 +75,12 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          setSellers(data || []);
+          // Добавляем user_type для совместимости с типом SellerProfile
+          const sellersWithType = (data || []).map(seller => ({
+            ...seller,
+            user_type: 'seller' as const
+          }));
+          setSellers(sellersWithType);
         }
       } catch (error) {
         console.error("Unexpected error fetching sellers:", error);
@@ -112,7 +104,7 @@ const AdminCreateOrderFromProduct = () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, full_name, opt_id, telegram")
+          .select("id, full_name, opt_id, telegram, user_type")
           .eq("user_type", "buyer")
           .not("opt_id", "is", null)
           .order("full_name");
@@ -125,7 +117,12 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          setBuyers(data || []);
+          // Добавляем user_type для совместимости с типом BuyerProfile
+          const buyersWithType = (data || []).map(buyer => ({
+            ...buyer,
+            user_type: 'buyer' as const
+          }));
+          setBuyers(buyersWithType);
         }
       } catch (error) {
         console.error("Unexpected error fetching buyers:", error);

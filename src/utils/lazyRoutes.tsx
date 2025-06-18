@@ -65,6 +65,7 @@ export const routeConfigs = [
   { path: '/buyer/orders', component: BuyerOrders, protected: true },
 
   // Маршруты администратора
+  { path: '/admin', component: AdminDashboard, protected: true, adminOnly: true },
   { path: '/admin/dashboard', component: AdminDashboard, protected: true, adminOnly: true },
   { path: '/admin/users', component: AdminUsers, protected: true, adminOnly: true },
   { path: '/admin/products', component: AdminProducts, protected: true, adminOnly: true },
