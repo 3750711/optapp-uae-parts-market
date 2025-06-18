@@ -3,62 +3,85 @@ import React, { useState, memo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Image as ImageIcon, Eye, X } from 'lucide-react';
+import { Play, Image as ImageIcon, Eye, X, Trash2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 interface CompactMediaGridProps {
   images: string[];
   videos: string[];
   maxPreviewItems?: number;
+  onImageDelete?: (url: string) => void;
+  onVideoDelete?: (url: string) => void;
 }
 
 const CompactMediaThumbnail = memo(({ 
   url, 
   type, 
   index, 
-  onClick 
+  onClick,
+  onDelete,
+  showDelete = false
 }: { 
   url: string; 
   type: 'image' | 'video'; 
   index: number; 
   onClick: () => void;
+  onDelete?: () => void;
+  showDelete?: boolean;
 }) => {
   const isMobile = useIsMobile();
-  const size = isMobile ? 'w-8 h-8' : 'w-10 h-10';
+  const size = isMobile ? 'w-12 h-12' : 'w-16 h-16';
   
   return (
-    <div 
-      className={`${size} rounded border overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer hover:scale-105 transition-transform relative group`}
-      onClick={onClick}
-    >
-      {type === 'image' ? (
-        <>
-          <img
-            src={url}
-            alt={`Изображение ${index + 1}`}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <Eye className="w-3 h-3 text-white" />
-          </div>
-        </>
-      ) : (
-        <>
-          <video
-            src={url}
-            className="w-full h-full object-cover"
-            preload="metadata"
-            muted
-          />
-          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-            <Play className="w-3 h-3 text-white" />
-          </div>
-        </>
-      )}
-      <div className="absolute top-0 right-0 bg-black/60 text-white text-xs px-1 rounded-bl leading-none">
+    <div className={`${size} rounded border overflow-hidden bg-gray-100 flex-shrink-0 relative group`}>
+      <div 
+        className="w-full h-full cursor-pointer hover:scale-105 transition-transform"
+        onClick={onClick}
+      >
+        {type === 'image' ? (
+          <>
+            <img
+              src={url}
+              alt={`Изображение ${index + 1}`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <Eye className="w-3 h-3 text-white" />
+            </div>
+          </>
+        ) : (
+          <>
+            <video
+              src={url}
+              className="w-full h-full object-cover"
+              preload="metadata"
+              muted
+            />
+            <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+              <Play className="w-3 h-3 text-white" />
+            </div>
+          </>
+        )}
+      </div>
+      
+      {/* Item number badge */}
+      <div className="absolute top-0 left-0 bg-black/60 text-white text-xs px-1 rounded-br leading-none">
         {index + 1}
       </div>
+      
+      {/* Delete button */}
+      {showDelete && onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-bl w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
     </div>
   );
 });
@@ -143,7 +166,9 @@ const FullScreenViewer = memo(({
 export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({ 
   images, 
   videos, 
-  maxPreviewItems = 20 
+  maxPreviewItems = 20,
+  onImageDelete,
+  onVideoDelete
 }) => {
   const [viewerOpen, setViewerOpen] = useState(false);
   const [currentViewIndex, setCurrentViewIndex] = useState(0);
@@ -161,8 +186,18 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
     setCurrentViewIndex(globalIndex);
     setViewerOpen(true);
   };
+
+  const handleDelete = (item: typeof allItems[0]) => {
+    if (item.type === 'image' && onImageDelete) {
+      onImageDelete(item.url);
+    } else if (item.type === 'video' && onVideoDelete) {
+      onVideoDelete(item.url);
+    }
+  };
   
   if (allItems.length === 0) return null;
+  
+  const showDeleteButtons = !!(onImageDelete || onVideoDelete);
   
   return (
     <>
@@ -185,10 +220,10 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
           </Badge>
         </div>
         
-        <div className={`grid gap-1 ${
+        <div className={`grid gap-2 ${
           isMobile 
-            ? 'grid-cols-8' 
-            : 'grid-cols-10'
+            ? 'grid-cols-6' 
+            : 'grid-cols-8'
         }`}>
           {visibleItems.map((item, index) => (
             <CompactMediaThumbnail
@@ -197,12 +232,14 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
               type={item.type}
               index={item.index}
               onClick={() => handleThumbnailClick(index)}
+              onDelete={() => handleDelete(item)}
+              showDelete={showDeleteButtons}
             />
           ))}
           
           {hiddenCount > 0 && (
             <div 
-              className={`${isMobile ? 'w-8 h-8' : 'w-10 h-10'} rounded border bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors`}
+              className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} rounded border bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors`}
               onClick={() => {
                 setCurrentViewIndex(maxPreviewItems);
                 setViewerOpen(true);
@@ -226,5 +263,4 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
 });
 
 CompactMediaThumbnail.displayName = 'CompactMediaThumbnail';
-FullScreenViewer.displayName = 'FullScreenViewer';
 CompactMediaGrid.displayName = 'CompactMediaGrid';

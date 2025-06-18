@@ -4,12 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Package, DollarSign, User, Calendar, Plus, Camera, Upload } from 'lucide-react';
-import OptimizedOrderImages from '@/components/order/OptimizedOrderImages';
-import { OptimizedOrderVideos } from '@/components/order/OptimizedOrderVideos';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileFormSection } from './MobileFormSection';
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { ConfirmationImagesUploadDialog } from '@/components/admin/ConfirmationImagesUploadDialog';
+import { CreatedOrderMediaSection } from './CreatedOrderMediaSection';
 
 interface CreatedOrderViewProps {
   order: any;
@@ -25,10 +24,13 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   images,
   videos = [],
   onNewOrder,
+  onOrderUpdate,
   buyerProfile
 }) => {
   const isMobile = useIsMobile();
   const [showConfirmationUpload, setShowConfirmationUpload] = useState(false);
+  const [currentImages, setCurrentImages] = useState(images);
+  const [currentVideos, setCurrentVideos] = useState(videos);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ru-RU', {
@@ -81,6 +83,18 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
   };
 
   const buyerInfo = getBuyerDisplayInfo();
+
+  const handleImagesUpdate = (newImages: string[]) => {
+    setCurrentImages(newImages);
+    // TODO: Here you could update the order in the database
+    console.log('📸 Order images updated:', newImages);
+  };
+
+  const handleVideosUpdate = (newVideos: string[]) => {
+    setCurrentVideos(newVideos);
+    // TODO: Here you could update the order in the database
+    console.log('🎥 Order videos updated:', newVideos);
+  };
 
   return (
     <div className={`space-y-4 ${isMobile ? 'pb-24' : ''}`}>
@@ -238,30 +252,20 @@ export const CreatedOrderView: React.FC<CreatedOrderViewProps> = ({
         </MobileFormSection>
       </div>
 
-      {/* Media Section */}
-      {(images.length > 0 || videos.length > 0) && (
-        <MobileFormSection 
-          title={`Медиафайлы заказа (${images.length + videos.length})`}
-          icon={<Camera className="h-4 w-4" />}
-          defaultOpen={true}
-        >
-          <div className="space-y-4">
-            {images.length > 0 && (
-              <div>
-                <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-medium mb-3`}>Изображения ({images.length})</h3>
-                <OptimizedOrderImages images={images} />
-              </div>
-            )}
-
-            {videos.length > 0 && (
-              <div>
-                <h3 className={`${isMobile ? 'text-sm' : 'text-lg'} font-medium mb-3`}>Видео ({videos.length})</h3>
-                <OptimizedOrderVideos videos={videos} />
-              </div>
-            )}
-          </div>
-        </MobileFormSection>
-      )}
+      {/* Enhanced Media Section with upload buttons */}
+      <MobileFormSection 
+        title="Медиафайлы заказа"
+        icon={<Camera className="h-4 w-4" />}
+        defaultOpen={true}
+      >
+        <CreatedOrderMediaSection
+          orderId={order.id}
+          images={currentImages}
+          videos={currentVideos}
+          onImagesUpdate={handleImagesUpdate}
+          onVideosUpdate={handleVideosUpdate}
+        />
+      </MobileFormSection>
 
       {/* Additional Information */}
       {order.text_order && (
