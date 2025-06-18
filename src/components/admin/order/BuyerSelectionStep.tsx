@@ -1,8 +1,11 @@
+
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, User, ArrowLeft, MessageCircle } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -13,6 +16,8 @@ interface Product {
   price: number;
   brand?: string;
   model?: string;
+  lot_number?: number;
+  status?: string;
 }
 
 interface BuyerProfile {
@@ -117,7 +122,7 @@ const BuyerSelectionStep: React.FC<BuyerSelectionStepProps> = ({
     );
   }
 
-  // Desktop version - keep existing code
+  // Desktop version
   return (
     <div className="space-y-6">
       <Card>
@@ -126,12 +131,16 @@ const BuyerSelectionStep: React.FC<BuyerSelectionStepProps> = ({
           <CardDescription>
             Товар: {selectedProduct.title}
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline" className="text-xs">
-                Лот: {selectedProduct.lot_number}
-              </Badge>
-              <Badge variant="success" className="text-xs">
-                {selectedProduct.status}
-              </Badge>
+              {selectedProduct.lot_number && (
+                <Badge variant="outline" className="text-xs">
+                  Лот: {selectedProduct.lot_number}
+                </Badge>
+              )}
+              {selectedProduct.status && (
+                <Badge variant="success" className="text-xs">
+                  {selectedProduct.status}
+                </Badge>
+              )}
             </div>
           </CardDescription>
         </CardHeader>
