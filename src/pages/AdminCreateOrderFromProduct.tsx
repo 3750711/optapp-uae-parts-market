@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +13,11 @@ import OrderCreationProgress from "@/components/admin/order/OrderCreationProgres
 import SellerSelectionStep from "@/components/admin/order/SellerSelectionStep";
 import ProductSelectionStep from "@/components/admin/order/ProductSelectionStep";
 import BuyerSelectionStep from "@/components/admin/order/BuyerSelectionStep";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { MobileOrderCreationHeader } from "@/components/admin/order/MobileOrderCreationHeader";
+import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCreationSteps";
+import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
+import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
 
 interface SellerProfile {
   id: string;
@@ -43,6 +47,7 @@ interface Product {
 
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [sellers, setSellers] = useState<SellerProfile[]>([]);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -120,6 +125,12 @@ const AdminCreateOrderFromProduct = () => {
 
     fetchBuyers();
   }, []);
+
+  const steps = [
+    { number: 1, title: "Продавец", description: "Выберите продавца", completed: !!selectedSeller },
+    { number: 2, title: "Товар", description: "Выберите товар", completed: !!selectedProduct },
+    { number: 3, title: "Покупатель", description: "Выберите покупателя", completed: !!selectedBuyer }
+  ];
 
   const handleSellerSelectWithSeller = (sellerId: string) => {
     const seller = sellers.find(s => s.id === sellerId);
@@ -258,45 +269,109 @@ const AdminCreateOrderFromProduct = () => {
     setCreatedOrderId(null);
   };
 
+  const handleStepNavigation = (direction: 'next' | 'prev') => {
+    if (direction === 'next' && step < 3) {
+      goToStep(step + 1);
+    } else if (direction === 'prev' && step > 1) {
+      goToStep(step - 1);
+    }
+  };
+
   return (
     <AdminLayout>
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold">Создание заказа из товара</h1>
-          <p className="text-gray-600 mt-2">
-            Выберите продавца, товар и покупателя для создания заказа
-          </p>
-        </div>
+      <div className={`container mx-auto px-4 py-8 max-w-6xl ${isMobile ? 'pb-24' : ''}`}>
+        {isMobile ? (
+          <MobileOrderCreationHeader
+            title="Создание заказа из товара"
+            description="Выберите продавца, товар и покупателя"
+          />
+        ) : (
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold">Создание заказа из товара</h1>
+            <p className="text-gray-600 mt-2">
+              Выберите продавца, товар и покупателя для создания заказа
+            </p>
+          </div>
+        )}
 
-        <OrderCreationProgress currentStep={step} />
+        {isMobile ? (
+          <MobileOrderCreationSteps currentStep={step} steps={steps} />
+        ) : (
+          <OrderCreationProgress currentStep={step} />
+        )}
 
         {step === 1 && (
-          <SellerSelectionStep
-            sellers={sellers}
-            onSellerSelect={handleSellerSelectWithSeller}
-          />
+          <>
+            {isMobile ? (
+              <MobileSellerSelection
+                sellers={sellers}
+                onSellerSelect={handleSellerSelectWithSeller}
+                isLoading={isCreatingOrder}
+              />
+            ) : (
+              <SellerSelectionStep
+                sellers={sellers}
+                onSellerSelect={handleSellerSelectWithSeller}
+              />
+            )}
+            
+            {isMobile && (
+              <MobileStepNavigation
+                currentStep={step}
+                totalSteps={3}
+                onNext={() => selectedSeller && handleStepNavigation('next')}
+                nextDisabled={!selectedSeller}
+                showNext={!!selectedSeller}
+              />
+            )}
+          </>
         )}
 
         {step === 2 && selectedSeller && (
-          <ProductSelectionStep
-            selectedSeller={selectedSeller}
-            products={products}
-            filteredProducts={filteredProducts}
-            isLoading={isLoading}
-            onProductSelect={handleProductSelectWithCheck}
-            onSearchChange={handleSearchChange}
-            onClearFilters={handleClearFilters}
-            onBackToSeller={() => goToStep(1)}
-          />
+          <>
+            <ProductSelectionStep
+              selectedSeller={selectedSeller}
+              products={products}
+              filteredProducts={filteredProducts}
+              isLoading={isLoading}
+              onProductSelect={handleProductSelectWithCheck}
+              onSearchChange={handleSearchChange}
+              onClearFilters={handleClearFilters}
+              onBackToSeller={() => goToStep(1)}
+            />
+            
+            {isMobile && (
+              <MobileStepNavigation
+                currentStep={step}
+                totalSteps={3}
+                onPrevious={() => handleStepNavigation('prev')}
+                onNext={() => selectedProduct && handleStepNavigation('next')}
+                nextDisabled={!selectedProduct}
+                showNext={!!selectedProduct}
+              />
+            )}
+          </>
         )}
 
         {step === 3 && selectedProduct && (
-          <BuyerSelectionStep
-            selectedProduct={selectedProduct}
-            buyers={buyers}
-            onBuyerSelect={handleBuyerSelectWithCheck}
-            onBackToProducts={() => goToStep(2)}
-          />
+          <>
+            <BuyerSelectionStep
+              selectedProduct={selectedProduct}
+              buyers={buyers}
+              onBuyerSelect={handleBuyerSelectWithCheck}
+              onBackToProducts={() => goToStep(2)}
+            />
+            
+            {isMobile && (
+              <MobileStepNavigation
+                currentStep={step}
+                totalSteps={3}
+                onPrevious={() => handleStepNavigation('prev')}
+                nextLabel="Создать заказ"
+                showNext={false}
+              />
+            )}
+          </>
         )}
 
         {showConfirmDialog && selectedSeller && selectedProduct && selectedBuyer && (
