@@ -3,7 +3,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Product } from '@/types/product';
-import { SellerProfile } from '@/types/order';
+
+interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
 
 export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const { toast } = useToast();
@@ -11,7 +17,7 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load products for selected seller
+  // Загрузка товаров выбранного продавца
   useEffect(() => {
     if (selectedSeller) {
       const fetchProducts = async () => {
@@ -19,34 +25,7 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
         try {
           const { data, error } = await supabase
             .from("products")
-            .select(`
-              id,
-              title,
-              price,
-              condition,
-              brand,
-              model,
-              description,
-              seller_id,
-              seller_name,
-              status,
-              created_at,
-              updated_at,
-              place_number,
-              delivery_price,
-              telegram_url,
-              phone_url,
-              product_url,
-              optid_created,
-              product_location,
-              rating_seller,
-              lot_number,
-              location,
-              last_notification_sent_at,
-              cloudinary_public_id,
-              cloudinary_url,
-              product_images(*)
-            `)
+            .select("*, product_images(*)")
             .eq("seller_id", selectedSeller.id)
             .eq("status", "active")
             .order("created_at", { ascending: false });
@@ -81,7 +60,7 @@ export const useSellerProducts = (selectedSeller: SellerProfile | null) => {
   const handleSearchChange = useCallback((searchTerm: string) => {
     let filtered = [...products];
 
-    // Filter by title
+    // Фильтр по названию
     if (searchTerm.trim()) {
       filtered = filtered.filter(product =>
         product.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

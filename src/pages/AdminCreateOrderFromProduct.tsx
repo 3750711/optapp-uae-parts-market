@@ -19,7 +19,20 @@ import { MobileOrderCreationSteps } from "@/components/admin/order/MobileOrderCr
 import { MobileSellerSelection } from "@/components/admin/order/MobileSellerSelection";
 import { MobileStepNavigation } from "@/components/admin/order/MobileStepNavigation";
 import { Product } from "@/types/product";
-import { SellerProfile, BuyerProfile } from "@/types/order";
+
+interface SellerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
+
+interface BuyerProfile {
+  id: string;
+  full_name: string;
+  opt_id: string;
+  telegram?: string;
+}
 
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
@@ -75,12 +88,7 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          // Map to SellerProfile type with user_type
-          const mappedSellers: SellerProfile[] = (data || []).map(seller => ({
-            ...seller,
-            user_type: 'seller' as const
-          }));
-          setSellers(mappedSellers);
+          setSellers(data || []);
         }
       } catch (error) {
         console.error("Unexpected error fetching sellers:", error);
@@ -117,12 +125,7 @@ const AdminCreateOrderFromProduct = () => {
             variant: "destructive",
           });
         } else {
-          // Map to BuyerProfile type with user_type
-          const mappedBuyers: BuyerProfile[] = (data || []).map(buyer => ({
-            ...buyer,
-            user_type: 'buyer' as const
-          }));
-          setBuyers(mappedBuyers);
+          setBuyers(data || []);
         }
       } catch (error) {
         console.error("Unexpected error fetching buyers:", error);
