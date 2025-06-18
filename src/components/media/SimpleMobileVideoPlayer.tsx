@@ -27,9 +27,9 @@ const VideoThumbnail = memo(({
 }) => {
   const [thumbnailError, setThumbnailError] = useState(false);
   
-  // Generate Cloudinary thumbnail URL if not provided
+  // Улучшенная генерация Cloudinary thumbnail
   const generatedThumbnail = autoGenThumbnail && !thumbnailUrl && videoUrl.includes('cloudinary.com')
-    ? videoUrl.replace('/video/upload/', '/video/upload/f_jpg,w_300,h_200,c_fill,q_auto:good/') + '.jpg'
+    ? videoUrl.replace('/video/upload/', '/video/upload/f_jpg,w_400,h_300,c_fill,q_auto:good,so_2.0/') + '.jpg'
     : thumbnailUrl;
   
   return (
