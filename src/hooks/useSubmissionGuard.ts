@@ -1,5 +1,4 @@
-
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useLayoutEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
 interface SubmissionGuardOptions {
@@ -11,18 +10,24 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
   const { timeout = 4000, onDuplicateSubmit } = options;
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const lastSubmitTimeRef = useRef<number>(0);
+  const lastSubmitTime = useRef<number>(0);
+
+  // Use a ref to get the latest isSubmitting value in the callback without making it a dependency.
+  const isSubmittingRef = useRef(isSubmitting);
+  
+  useLayoutEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
 
   const guardedSubmit = useCallback(
     async (submitAction: () => Promise<void>) => {
       const now = Date.now();
-      
-      if (isSubmitting) {
-        console.warn("Submission already in progress.");
+      if (isSubmittingRef.current) {
+        console.warn("Submission in progress.");
         return;
       }
 
-      if (now - lastSubmitTimeRef.current < timeout) {
+      if (now - lastSubmitTime.current < timeout) {
         if (onDuplicateSubmit) {
           onDuplicateSubmit();
         }
@@ -35,21 +40,20 @@ export const useSubmissionGuard = (options: SubmissionGuardOptions = {}) => {
       }
 
       setIsSubmitting(true);
-      lastSubmitTimeRef.current = now;
+      lastSubmitTime.current = now;
 
       try {
         await submitAction();
       } catch (error) {
         console.error("Submission action failed:", error);
+        // Errors should be handled inside submitAction, but we catch here as a fallback.
       } finally {
-        // Короткая задержка для предотвращения мерцания UI
+        // A short delay to prevent UI flickering on very fast submissions
         setTimeout(() => setIsSubmitting(false), 500);
       }
     },
-    [isSubmitting, timeout, onDuplicateSubmit, toast]
+    [timeout, onDuplicateSubmit, toast]
   );
 
-  const canSubmit = !isSubmitting;
-
-  return { isSubmitting, guardedSubmit, canSubmit };
+  return { isSubmitting, guardedSubmit, canSubmit: !isSubmitting };
 };
