@@ -34,18 +34,6 @@ interface BuyerProfile {
   telegram?: string;
 }
 
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
-}
-
 const AdminCreateOrderFromProduct = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -80,7 +68,7 @@ const AdminCreateOrderFromProduct = () => {
     removeProductFromList
   } = useSellerProducts(selectedSeller);
 
-  // Загрузка продавцов
+  // useEffect for loading sellers
   useEffect(() => {
     const fetchSellers = async () => {
       setIsLoadingSellers(true);
@@ -117,7 +105,7 @@ const AdminCreateOrderFromProduct = () => {
     fetchSellers();
   }, []);
 
-  // Загрузка покупателей
+  // useEffect for loading buyers
   useEffect(() => {
     const fetchBuyers = async () => {
       setIsLoadingBuyers(true);
@@ -154,6 +142,7 @@ const AdminCreateOrderFromProduct = () => {
     fetchBuyers();
   }, []);
 
+  // steps configuration, handler functions, and component render
   const steps = [
     { number: 1, title: "Продавец", description: "Выберите продавца", completed: !!selectedSeller },
     { number: 2, title: "Товар", description: "Выберите товар", completed: !!selectedProduct },
@@ -164,7 +153,7 @@ const AdminCreateOrderFromProduct = () => {
     const seller = sellers.find(s => s.id === sellerId);
     if (seller) {
       handleSellerSelect(seller);
-      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
+      setCreateOrderError(null);
     }
   };
 
@@ -185,7 +174,7 @@ const AdminCreateOrderFromProduct = () => {
       }
       
       handleProductSelect(product);
-      setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
+      setCreateOrderError(null);
     } catch (error) {
       console.error('Unexpected error checking product status:', error);
       toast({
@@ -201,9 +190,8 @@ const AdminCreateOrderFromProduct = () => {
     if (!buyer) return;
     
     handleBuyerSelect(buyer);
-    setCreateOrderError(null); // Сбрасываем ошибки при новом выборе
+    setCreateOrderError(null);
     
-    // Финальная проверка статуса товара перед показом диалога подтверждения
     if (selectedProduct) {
       console.log("Final product status check before confirmation dialog:", selectedProduct.id);
       
@@ -278,7 +266,6 @@ const AdminCreateOrderFromProduct = () => {
       const errorMsg = error instanceof Error ? error.message : "Произошла ошибка при создании заказа";
       setCreateOrderError(errorMsg);
       console.error("Error creating order:", error);
-      // Ошибка уже обработана в хуке, но мы также сохраняем её локально
     }
   };
 

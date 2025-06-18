@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import { Product } from "@/types/product";
 
 interface OrderData {
   id: string;
@@ -33,18 +34,6 @@ interface OrderData {
     location: string;
     telegram: string;
   };
-}
-
-interface Product {
-  id: string;
-  title: string;
-  price: number;
-  brand?: string;
-  model?: string;
-  status: string;
-  product_images?: { url: string; is_primary?: boolean }[];
-  delivery_price?: number;
-  lot_number: number;
 }
 
 interface SellerProfile {
@@ -144,8 +133,34 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     } : undefined
   };
 
+  // Get primary image with cloudinary support
+  const getPrimaryImage = () => {
+    if (!product?.product_images || product.product_images.length === 0) {
+      return null;
+    }
+    
+    const primaryImage = product.product_images.find(img => img.is_primary) || product.product_images[0];
+    return {
+      url: primaryImage.url,
+      cloudinaryPublicId: product.cloudinary_public_id || null
+    };
+  };
+
   const handleConfirm = async () => {
     if (onConfirm && product) {
+      // Validate data before confirming
+      if (!product.price || product.price <= 0) {
+        console.error('Invalid product price:', product.price);
+        return;
+      }
+
+      console.log('Confirming order with validated data:', {
+        price: product.price,
+        deliveryPrice: product.delivery_price,
+        images: product.product_images?.map(img => img.url) || [],
+        cloudinaryPublicId: product.cloudinary_public_id
+      });
+
       await onConfirm({
         price: product.price,
         deliveryPrice: product.delivery_price,
@@ -189,6 +204,8 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     );
   }
 
+  const primaryImageData = getPrimaryImage();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -225,7 +242,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
                 )}
                 <div className="flex items-center space-x-4">
                   <DollarSign className="h-4 w-4 text-gray-500" />
-                  <span>Сумма заказа: {displayData?.total_sum || product?.price}</span>
+                  <span>Сумма заказа: ${displayData?.total_sum || product?.price}</span>
                 </div>
                 <div className="flex items-center space-x-4">
                   <MessageSquare className="h-4 w-4 text-gray-500" />
@@ -274,16 +291,37 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
               </CardContent>
             </Card>
 
-            {displayData?.images && displayData.images.length > 0 && (
+            {/* Product image with cloudinary support */}
+            {primaryImageData && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm font-bold mb-2">Изображение товара:</div>
+                  <div className="w-full max-w-md mx-auto">
+                    <OptimizedImage
+                      src={primaryImageData.url}
+                      alt={product?.title || 'Product image'}
+                      className="w-full h-64 object-cover rounded-md"
+                      cloudinaryPublicId={primaryImageData.cloudinaryPublicId}
+                      size="detail"
+                      priority={false}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {displayData?.images && displayData.images.length > 1 && (
               <Card>
                 <CardContent>
+                  <div className="text-sm font-bold mb-2">Дополнительные изображения:</div>
                   <div className="grid grid-cols-3 gap-4">
-                    {displayData.images.map((image, index) => (
+                    {displayData.images.slice(1).map((image, index) => (
                       <div key={index} className="aspect-w-1 aspect-h-1">
                         <OptimizedImage
                           src={image}
-                          alt={`Image ${index + 1}`}
+                          alt={`Image ${index + 2}`}
                           className="object-cover rounded-md"
+                          size="thumbnail"
                         />
                       </div>
                     ))}
