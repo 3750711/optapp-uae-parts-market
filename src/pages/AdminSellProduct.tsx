@@ -1,17 +1,15 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
-import AdminOrderConfirmationDialog from "@/components/admin/AdminOrderConfirmationDialog";
-import { ConfirmationImagesUploadDialog } from "@/components/admin/ConfirmationImagesUploadDialog";
 import { useAdminOrderCreation } from "@/hooks/useAdminOrderCreation";
-import { checkProductStatus } from "@/utils/productStatusChecker";
-import GlobalProductSelectionStep from "@/components/admin/sell-product/GlobalProductSelectionStep";
-import BuyerSelectionStep from "@/components/admin/order/BuyerSelectionStep";
+import { useAdminSellProductState } from "@/hooks/useAdminSellProductState";
+import { useRetryMechanism } from "@/hooks/useRetryMechanism";
+import { useRateLimit } from "@/hooks/useRateLimit";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
 import AdminSellProductHeader from "@/components/admin/sell-product/AdminSellProductHeader";
+import ProductSelectionContainer from "@/components/admin/sell-product/ProductSelectionContainer";
+import BuyerSelectionContainer from "@/components/admin/sell-product/BuyerSelectionContainer";
+import OrderConfirmationContainer from "@/components/admin/sell-product/OrderConfirmationContainer";
 import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 
 interface BuyerProfile {
@@ -36,106 +34,36 @@ interface Product {
 }
 
 const AdminSellProduct = () => {
-  const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedBuyer, setSelectedBuyer] = useState<BuyerProfile | null>(null);
-  const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
-  const [createdOrder, setCreatedOrder] = useState<any>(null);
-  const [createdOrderImages, setCreatedOrderImages] = useState<string[]>([]);
-
+  const { state, updateState, loadBuyers, resetState } = useAdminSellProductState();
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
+  const { executeWithRetry, isRetrying } = useRetryMechanism();
+  const { checkRateLimit } = useRateLimit({
+    windowMs: 60000, // 1 минута
+    maxRequests: 5    // 5 заказов в минуту
+  });
 
-  // Загрузка покупателей
+  // Загрузка покупателей при инициализации
   useEffect(() => {
-    const fetchBuyers = async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, opt_id, telegram")
-        .eq("user_type", "buyer")
-        .not("opt_id", "is", null)
-        .order("full_name");
-
-      if (error) {
-        console.error("Error fetching buyers:", error);
-        toast({
-          title: "Ошибка",
-          description: "Не удалось загрузить список покупателей",
-          variant: "destructive",
-        });
-      } else {
-        setBuyers(data || []);
-      }
-    };
-
-    fetchBuyers();
-  }, []);
-
-  const handleProductSelect = async (product: Product) => {
-    console.log("Checking product status before selection:", product.id);
-    
-    try {
-      const { isAvailable, status } = await checkProductStatus(product.id);
-      
-      if (!isAvailable) {
-        toast({
-          title: "Товар недоступен",
-          description: `Этот товар уже продан или недоступен. Текущий статус: ${status}`,
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setSelectedProduct(product);
-      setStep(2);
-    } catch (error) {
-      console.error('Unexpected error checking product status:', error);
-      toast({
-        title: "Ошибка",
-        description: "Произошла неожиданная ошибка при проверке товара",
-        variant: "destructive",
-      });
+    if (state.buyers.length === 0) {
+      executeWithRetry(() => loadBuyers(), {}, 'загрузка покупателей');
     }
+  }, [state.buyers.length, loadBuyers, executeWithRetry]);
+
+  const handleProductSelect = (product: Product) => {
+    updateState({
+      selectedProduct: product,
+      step: 2
+    });
   };
 
-  const handleBuyerSelect = async (buyerId: string) => {
-    const buyer = buyers.find(b => b.id === buyerId);
+  const handleBuyerSelect = (buyerId: string) => {
+    const buyer = state.buyers.find(b => b.id === buyerId);
     if (!buyer) return;
     
-    setSelectedBuyer(buyer);
-    
-    // Финальная проверка статуса товара перед показом диалога подтверждения
-    if (selectedProduct) {
-      console.log("Final product status check before confirmation dialog:", selectedProduct.id);
-      
-      try {
-        const { isAvailable, status } = await checkProductStatus(selectedProduct.id);
-        
-        if (!isAvailable) {
-          toast({
-            title: "Товар недоступен",
-            description: `Этот товар уже продан или недоступен. Статус: ${status}`,
-            variant: "destructive",
-          });
-          setStep(1);
-          setSelectedProduct(null);
-          return;
-        }
-        
-        setShowConfirmDialog(true);
-      } catch (error) {
-        console.error('Unexpected error in final product check:', error);
-        toast({
-          title: "Ошибка",
-          description: "Произошла неожиданная ошибка",
-          variant: "destructive",
-        });
-      }
-    } else {
-      setShowConfirmDialog(true);
-    }
+    updateState({
+      selectedBuyer: buyer,
+      showConfirmDialog: true
+    });
   };
 
   const handleCreateOrder = async (orderData: {
@@ -144,140 +72,177 @@ const AdminSellProduct = () => {
     deliveryMethod: string;
     orderImages: string[];
   }) => {
-    if (!selectedProduct || !selectedBuyer) {
-      toast({
-        title: "Ошибка",
-        description: "Не все данные заполнены",
-        variant: "destructive",
-      });
+    if (!state.selectedProduct || !state.selectedBuyer) return;
+    
+    // Проверяем rate limit
+    if (!checkRateLimit('создание заказа')) {
       return;
     }
 
     // Создаем объект продавца из данных товара
     const seller = {
-      id: selectedProduct.seller_id,
-      full_name: selectedProduct.seller_name,
-      opt_id: '', // Получим из профиля при необходимости
+      id: state.selectedProduct.seller_id,
+      full_name: state.selectedProduct.seller_name,
+      opt_id: '',
     };
 
-    try {
-      const result = await createOrder(seller, selectedProduct, selectedBuyer, orderData);
+    const createOrderOperation = async () => {
+      const result = await createOrder(seller, state.selectedProduct!, state.selectedBuyer!, orderData);
       
       if (result === 'product_unavailable') {
-        setStep(1);
-        setSelectedProduct(null);
-        setShowConfirmDialog(false);
-        return;
+        updateState({
+          step: 1,
+          selectedProduct: null,
+          showConfirmDialog: false
+        });
+        return null;
       }
       
       if (result === 'order_exists') {
-        setShowConfirmDialog(false);
-        return;
+        updateState({ showConfirmDialog: false });
+        return null;
       }
       
+      return result;
+    };
+
+    try {
+      const result = await executeWithRetry(
+        createOrderOperation,
+        { maxRetries: 2 },
+        'создание заказа'
+      );
+      
       if (result && typeof result === 'object') {
-        setCreatedOrder(result);
-        setCreatedOrderImages(orderData.orderImages);
-        setShowConfirmDialog(false);
+        updateState({
+          createdOrder: result,
+          createdOrderImages: orderData.orderImages,
+          showConfirmDialog: false
+        });
       }
     } catch (error) {
       // Ошибка уже обработана в хуке
+      console.error('Order creation failed after retries:', error);
     }
   };
 
   const handleConfirmImagesComplete = () => {
-    setShowConfirmImagesDialog(false);
+    updateState({ showConfirmImagesDialog: false });
   };
 
   const handleSkipConfirmImages = () => {
-    setShowConfirmImagesDialog(false);
+    updateState({ showConfirmImagesDialog: false });
   };
 
   const handleCancelConfirmImages = () => {
-    setShowConfirmImagesDialog(false);
-  };
-
-  const handleResetForm = () => {
-    setStep(1);
-    setSelectedProduct(null);
-    setSelectedBuyer(null);
-    setShowConfirmDialog(false);
-    setShowConfirmImagesDialog(false);
-    setCreatedOrder(null);
-    setCreatedOrderImages([]);
+    updateState({ showConfirmImagesDialog: false });
   };
 
   const handleBackToProducts = () => {
-    setStep(1);
-    setSelectedBuyer(null);
+    updateState({
+      step: 1,
+      selectedBuyer: null
+    });
   };
 
   const handleNewOrder = () => {
-    handleResetForm();
+    resetState();
+  };
+
+  const handleCancel = () => {
+    resetState();
+  };
+
+  const handleStepChange = (newStep: number) => {
+    if (newStep < state.step) {
+      // Разрешаем переход на предыдущие шаги
+      if (newStep === 1) {
+        updateState({
+          step: 1,
+          selectedProduct: null,
+          selectedBuyer: null
+        });
+      } else if (newStep === 2 && state.selectedProduct) {
+        updateState({
+          step: 2,
+          selectedBuyer: null
+        });
+      }
+    }
   };
 
   // Если заказ создан, показываем CreatedOrderView
-  if (createdOrder) {
+  if (state.createdOrder) {
     return (
       <AdminLayout>
         <CreatedOrderView
-          order={createdOrder}
-          images={createdOrderImages}
+          order={state.createdOrder}
+          images={state.createdOrderImages}
           onNewOrder={handleNewOrder}
-          buyerProfile={selectedBuyer}
+          buyerProfile={state.selectedBuyer}
         />
       </AdminLayout>
     );
   }
+
+  const isLoadingAny = state.isLoading || isCreatingOrder || isRetrying;
 
   return (
     <AdminLayout>
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <AdminSellProductHeader />
         
-        <SellProductProgress currentStep={step} />
+        <SellProductProgress 
+          currentStep={state.step} 
+          onStepClick={handleStepChange}
+          canNavigateBack={true}
+        />
 
-        {step === 1 && (
-          <GlobalProductSelectionStep
+        {/* Loading overlay */}
+        {isLoadingAny && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <span>
+                {isRetrying ? 'Повторная попытка...' : 
+                 isCreatingOrder ? 'Создание заказа...' : 
+                 'Загрузка...'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {state.step === 1 && (
+          <ProductSelectionContainer
             onProductSelect={handleProductSelect}
           />
         )}
 
-        {step === 2 && selectedProduct && (
-          <BuyerSelectionStep
-            selectedProduct={selectedProduct}
-            buyers={buyers}
+        {state.step === 2 && state.selectedProduct && (
+          <BuyerSelectionContainer
+            selectedProduct={state.selectedProduct}
+            buyers={state.buyers}
+            isLoading={state.isLoading}
             onBuyerSelect={handleBuyerSelect}
             onBackToProducts={handleBackToProducts}
           />
         )}
 
-        {showConfirmDialog && selectedProduct && selectedBuyer && (
-          <AdminOrderConfirmationDialog
-            open={showConfirmDialog}
-            onOpenChange={setShowConfirmDialog}
-            onConfirm={handleCreateOrder}
-            isSubmitting={isCreatingOrder}
-            product={selectedProduct}
-            seller={{ 
-              id: selectedProduct.seller_id, 
-              full_name: selectedProduct.seller_name, 
-              opt_id: '' 
-            }}
-            buyer={selectedBuyer}
-            onCancel={handleResetForm}
-          />
-        )}
-
-        {showConfirmImagesDialog && createdOrder && (
-          <ConfirmationImagesUploadDialog
-            open={showConfirmImagesDialog}
-            orderId={createdOrder.id}
-            onComplete={handleConfirmImagesComplete}
-            onSkip={handleSkipConfirmImages}
-            onCancel={handleCancelConfirmImages}
-          />
-        )}
+        <OrderConfirmationContainer
+          showConfirmDialog={state.showConfirmDialog}
+          showConfirmImagesDialog={state.showConfirmImagesDialog}
+          selectedProduct={state.selectedProduct}
+          selectedBuyer={state.selectedBuyer}
+          createdOrder={state.createdOrder}
+          isCreatingOrder={isCreatingOrder}
+          onConfirmDialogChange={(open) => updateState({ showConfirmDialog: open })}
+          onConfirmImagesDialogChange={(open) => updateState({ showConfirmImagesDialog: open })}
+          onCreateOrder={handleCreateOrder}
+          onConfirmImagesComplete={handleConfirmImagesComplete}
+          onConfirmImagesSkip={handleSkipConfirmImages}
+          onConfirmImagesCancel={handleCancelConfirmImages}
+          onCancel={handleCancel}
+        />
       </div>
     </AdminLayout>
   );
