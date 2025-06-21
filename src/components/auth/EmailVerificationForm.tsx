@@ -163,6 +163,23 @@ const EmailVerificationForm = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  // Таймер обратного отсчета
+  useEffect(() => {
+    if (timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanResend(true);
+    }
+  }, [timeLeft]);
+
+  // Если передан email, сразу переходим к вводу кода
+  useEffect(() => {
+    if (initialEmail) {
+      setStep('code');
+    }
+  }, [initialEmail]);
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -232,8 +249,13 @@ const EmailVerificationForm = ({
               <div className="flex justify-center">
                 <InputOTP
                   value={code}
-                  onChange={setCode}
+                  onChange={(value) => {
+                    // Разрешаем только цифры
+                    const numericValue = value.replace(/[^0-9]/g, '');
+                    setCode(numericValue);
+                  }}
                   maxLength={6}
+                  pattern="[0-9]*"
                 >
                   <InputOTPGroup>
                     <InputOTPSlot index={0} />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -327,8 +326,13 @@ const ForgotPassword = () => {
                           <div className="flex justify-center">
                             <InputOTP
                               value={field.value || ""}
-                              onChange={(value) => field.onChange(value)}
+                              onChange={(value) => {
+                                // Разрешаем только цифры
+                                const numericValue = value.replace(/[^0-9]/g, '');
+                                field.onChange(numericValue);
+                              }}
                               maxLength={6}
+                              pattern="[0-9]*"
                             >
                               <InputOTPGroup>
                                 <InputOTPSlot index={0} />
