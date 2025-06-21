@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { Mail, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -163,23 +162,6 @@ const EmailVerificationForm = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Таймер обратного отсчета
-  useEffect(() => {
-    if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      setCanResend(true);
-    }
-  }, [timeLeft]);
-
-  // Если передан email, сразу переходим к вводу кода
-  useEffect(() => {
-    if (initialEmail) {
-      setStep('code');
-    }
-  }, [initialEmail]);
-
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader>
@@ -245,28 +227,25 @@ const EmailVerificationForm = ({
             </div>
 
             <div className="space-y-3">
-              <Label>Код подтверждения</Label>
-              <div className="flex justify-center">
-                <InputOTP
-                  value={code}
-                  onChange={(value) => {
-                    // Разрешаем только цифры
-                    const numericValue = value.replace(/[^0-9]/g, '');
+              <Label htmlFor="code">Код подтверждения (6 цифр)</Label>
+              <Input
+                id="code"
+                type="text"
+                value={code}
+                onChange={(e) => {
+                  // Разрешаем только цифры
+                  const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                  if (numericValue.length <= 6) {
                     setCode(numericValue);
-                  }}
-                  maxLength={6}
-                  pattern="[0-9]*"
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
-              </div>
+                  }
+                }}
+                placeholder="123456"
+                maxLength={6}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="text-center text-xl tracking-widest font-mono"
+                disabled={isLoading}
+              />
             </div>
 
             {timeLeft > 0 && (

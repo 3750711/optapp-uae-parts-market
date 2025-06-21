@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -15,7 +16,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
@@ -28,7 +28,10 @@ const formSchema = z.object({
 });
 
 const codeSchema = z.object({
-  code: z.string().length(6, { message: "Код должен содержать 6 цифр" }),
+  code: z.string()
+    .min(6, { message: "Код должен содержать 6 цифр" })
+    .max(6, { message: "Код должен содержать 6 цифр" })
+    .regex(/^\d{6}$/, { message: "Код должен содержать только цифры" }),
   newPassword: z.string()
     .min(6, { message: "Пароль должен содержать не менее 6 символов" })
     .regex(/[A-Za-z]/, { message: "Пароль должен содержать хотя бы одну букву" })
@@ -321,29 +324,22 @@ const ForgotPassword = () => {
                     name="code"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Код подтверждения</FormLabel>
+                        <FormLabel>Код подтверждения (6 цифр)</FormLabel>
                         <FormControl>
-                          <div className="flex justify-center">
-                            <InputOTP
-                              value={field.value || ""}
-                              onChange={(value) => {
-                                // Разрешаем только цифры
-                                const numericValue = value.replace(/[^0-9]/g, '');
-                                field.onChange(numericValue);
-                              }}
-                              maxLength={6}
-                              pattern="[0-9]*"
-                            >
-                              <InputOTPGroup>
-                                <InputOTPSlot index={0} />
-                                <InputOTPSlot index={1} />
-                                <InputOTPSlot index={2} />
-                                <InputOTPSlot index={3} />
-                                <InputOTPSlot index={4} />
-                                <InputOTPSlot index={5} />
-                              </InputOTPGroup>
-                            </InputOTP>
-                          </div>
+                          <Input
+                            type="text"
+                            placeholder="123456"
+                            maxLength={6}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="text-center text-xl tracking-widest font-mono"
+                            {...field}
+                            onChange={(e) => {
+                              // Разрешаем только цифры
+                              const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                              field.onChange(numericValue);
+                            }}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
