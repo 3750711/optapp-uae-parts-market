@@ -73,7 +73,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
     model: product.model || '',
     price: product.price,
     deliveryPrice: product.delivery_price || 0,
-    deliveryMethod: 'self_pickup',
+    deliveryMethod: 'cargo_rf',
     placeNumber: 1,
     textOrder: ''
   });
@@ -278,8 +278,8 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
                 <SelectValue placeholder="Выберите способ доставки" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="self_pickup">📦 Самовывоз</SelectItem>
                 <SelectItem value="cargo_rf">🚛 Доставка Cargo РФ</SelectItem>
+                <SelectItem value="self_pickup">📦 Самовывоз</SelectItem>
                 <SelectItem value="cargo_kz">🚚 Доставка Cargo KZ</SelectItem>
               </SelectContent>
             </Select>
