@@ -83,6 +83,40 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
       }
     },
     onSuccess: () => {
+      // Оптимистично обновляем кэш с is_modified: true
+      queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.map((cachedOrder: any) => 
+            cachedOrder.id === order?.id 
+              ? { ...cachedOrder, is_modified: true }
+              : cachedOrder
+          )
+        };
+      });
+
+      // Также обновляем стандартный кэш заказов
+      queryClient.setQueryData(['admin-orders'], (oldData: any) => {
+        if (!oldData?.data) return oldData;
+        
+        return {
+          ...oldData,
+          data: oldData.data.map((cachedOrder: any) => 
+            cachedOrder.id === order?.id 
+              ? { ...cachedOrder, is_modified: true }
+              : cachedOrder
+          )
+        };
+      });
+
+      // Обновляем конкретный заказ в кэше если он есть
+      queryClient.setQueryData(['order', order?.id], (oldOrder: any) => {
+        if (!oldOrder) return oldOrder;
+        return { ...oldOrder, is_modified: true };
+      });
+
       toast({ title: "Успех", description: "Заказ успешно обновлен." });
       queryClient.invalidateQueries({ queryKey: ['admin-orders-optimized'] });
       queryClient.invalidateQueries({ queryKey: ['order', order?.id] });

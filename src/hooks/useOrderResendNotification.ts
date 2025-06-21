@@ -1,5 +1,6 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,27 +14,48 @@ export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResen
   const [isResending, setIsResending] = useState(false);
   const [shouldShowButton, setShouldShowButton] = useState(false);
   const { profile, user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const checkShouldShowButton = async () => {
-    if (!orderId || !user || !profile) return false;
-
-    try {
-      // Проверяем права на клиентской стороне
-      const isAdmin = profile.user_type === 'admin';
-      
-      // Получаем информацию о заказе
-      const { data: order, error } = await supabase
+  // Отслеживаем данные заказа из кэша для мгновенного обновления
+  const { data: orderData } = useQuery({
+    queryKey: ['order', orderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('orders')
         .select('seller_id, is_modified')
         .eq('id', orderId)
         .single();
 
-      if (error) {
-        console.error('Error fetching order:', error);
-        return false;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!orderId && !!user && !!profile,
+    staleTime: 30000, // 30 секунд
+  });
+
+  const checkShouldShowButton = async () => {
+    if (!orderId || !user || !profile) return false;
+
+    try {
+      // Используем данные из кэша если доступны, иначе загружаем
+      let order = orderData;
+      
+      if (!order) {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('seller_id, is_modified')
+          .eq('id', orderId)
+          .single();
+
+        if (error) {
+          console.error('Error fetching order:', error);
+          return false;
+        }
+        order = data;
       }
 
       // Проверяем права пользователя
+      const isAdmin = profile.user_type === 'admin';
       const canResend = isAdmin || order.seller_id === user.id;
       
       // Показываем кнопку только если есть права и заказ изменен
@@ -46,6 +68,16 @@ export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResen
       return false;
     }
   };
+
+  // Автоматически обновляем видимость кнопки при изменении данных заказа
+  useEffect(() => {
+    if (orderData && user && profile) {
+      const isAdmin = profile.user_type === 'admin';
+      const canResend = isAdmin || orderData.seller_id === user.id;
+      const shouldShow = canResend && (orderData.is_modified === true);
+      setShouldShowButton(shouldShow);
+    }
+  }, [orderData, user, profile]);
 
   const resendNotification = async () => {
     if (!orderId) {
@@ -129,6 +161,12 @@ export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResen
       toast({
         title: "Уведомление отправлено",
         description: "Уведомление о заказе повторно отправлено в Telegram",
+      });
+
+      // Оптимистично обновляем кэш - скрываем кнопку
+      queryClient.setQueryData(['order', orderId], (oldOrder: any) => {
+        if (!oldOrder) return oldOrder;
+        return { ...oldOrder, is_modified: false };
       });
 
       // Обновляем состояние кнопки
