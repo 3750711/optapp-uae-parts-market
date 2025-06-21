@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseOrderResendNotificationProps {
   orderId: string;
@@ -11,22 +12,35 @@ interface UseOrderResendNotificationProps {
 export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResendNotificationProps) => {
   const [isResending, setIsResending] = useState(false);
   const [shouldShowButton, setShouldShowButton] = useState(false);
+  const { profile, user } = useAuth();
 
   const checkShouldShowButton = async () => {
-    if (!orderId) return false;
+    if (!orderId || !user || !profile) return false;
 
     try {
-      const { data, error } = await supabase.rpc('should_show_resend_button', {
-        p_order_id: orderId
-      });
+      // Проверяем права на клиентской стороне
+      const isAdmin = profile.user_type === 'admin';
+      
+      // Получаем информацию о заказе
+      const { data: order, error } = await supabase
+        .from('orders')
+        .select('seller_id, is_modified')
+        .eq('id', orderId)
+        .single();
 
       if (error) {
-        console.error('Error checking resend button visibility:', error);
+        console.error('Error fetching order:', error);
         return false;
       }
 
-      setShouldShowButton(data || false);
-      return data || false;
+      // Проверяем права пользователя
+      const canResend = isAdmin || order.seller_id === user.id;
+      
+      // Показываем кнопку только если есть права и заказ изменен
+      const shouldShow = canResend && (order.is_modified === true);
+      
+      setShouldShowButton(shouldShow);
+      return shouldShow;
     } catch (error) {
       console.error('Error in checkShouldShowButton:', error);
       return false;

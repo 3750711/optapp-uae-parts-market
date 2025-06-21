@@ -63,54 +63,14 @@ CREATE TRIGGER track_order_modifications
   FOR EACH ROW
   EXECUTE FUNCTION track_order_modifications();
 
--- Упрощаем функцию should_show_resend_button
-CREATE OR REPLACE FUNCTION public.should_show_resend_button(p_order_id uuid)
-RETURNS BOOLEAN
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
-DECLARE
-  user_can_resend BOOLEAN := FALSE;
-  order_is_modified BOOLEAN := FALSE;
-BEGIN
-  -- Проверяем права пользователя
-  SELECT EXISTS (
-    SELECT 1 FROM public.orders o
-    WHERE o.id = p_order_id
-    AND (
-      o.seller_id = auth.uid() OR
-      EXISTS (
-        SELECT 1 FROM public.profiles 
-        WHERE id = auth.uid() 
-        AND user_type = 'admin'
-      )
-    )
-  ) INTO user_can_resend;
-  
-  -- Если нет прав - кнопку не показываем
-  IF NOT user_can_resend THEN
-    RETURN FALSE;
-  END IF;
-  
-  -- Проверяем, изменен ли заказ
-  SELECT COALESCE(is_modified, FALSE)
-  INTO order_is_modified
-  FROM public.orders
-  WHERE id = p_order_id;
-  
-  -- Показываем кнопку только если заказ изменен
-  RETURN order_is_modified;
-END;
-$$;
-
--- Упрощаем функцию resend_order_notification
+-- Упрощаем функцию resend_order_notification (проверка прав остается для безопасности)
 CREATE OR REPLACE FUNCTION public.resend_order_notification(p_order_id uuid)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  -- Проверяем права пользователя
+  -- Проверяем права пользователя (администратор или продавец заказа)
   IF NOT EXISTS (
     SELECT 1 FROM public.orders o
     WHERE o.id = p_order_id
