@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -30,9 +31,27 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
+  // ✅ ВСЕ ХУКИ ОБЪЯВЛЯЮТСЯ СНАЧАЛА (до любых условных возвратов)
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const [isLoadingForm, setIsLoadingForm] = useState(false);
+  const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaVerified, setCaptchaVerified] = useState(false);
+  const [isRateLimited, setIsRateLimited] = useState(false);
   
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      emailOrOptId: "",
+      password: "",
+    }
+  });
+
+  const watchedInput = form.watch('emailOrOptId');
+
+  // ✅ ВСЕ useEffect ХУКИ ТАКЖЕ ДОЛЖНЫ БЫТЬ ЗДЕСЬ
   // Перенаправляем авторизованных пользователей
   useEffect(() => {
     if (!isLoading && user) {
@@ -40,6 +59,17 @@ const Login = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Определяем тип ввода в реальном времени
+  useEffect(() => {
+    if (watchedInput) {
+      const type = detectInputType(watchedInput);
+      setInputType(type);
+    } else {
+      setInputType(null);
+    }
+  }, [watchedInput]);
+
+  // ✅ УСЛОВНЫЕ ВОЗВРАТЫ ТОЛЬКО ПОСЛЕ ВСЕХ ХУКОВ
   // Показываем загрузку пока проверяется авторизация
   if (isLoading) {
     return (
@@ -61,33 +91,7 @@ const Login = () => {
     return null;
   }
 
-  const [isLoadingForm, setIsLoadingForm] = useState(false);
-  const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [isRateLimited, setIsRateLimited] = useState(false);
-  
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      emailOrOptId: "",
-      password: "",
-    }
-  });
-
-  const watchedInput = form.watch('emailOrOptId');
-
-  // Определяем тип ввода в реальном времени
-  React.useEffect(() => {
-    if (watchedInput) {
-      const type = detectInputType(watchedInput);
-      setInputType(type);
-    } else {
-      setInputType(null);
-    }
-  }, [watchedInput]);
-
+  // ✅ ФУНКЦИИ-ОБРАБОТЧИКИ ПОСЛЕ УСЛОВНЫХ ВОЗВРАТОВ
   const handleFailedAttempt = () => {
     const newFailedAttempts = failedAttempts + 1;
     setFailedAttempts(newFailedAttempts);
@@ -223,6 +227,7 @@ const Login = () => {
     return `example@mail.com или ${generateRandomOptId()}`;
   };
 
+  // ✅ ОСНОВНОЙ RENDER ПОСЛЕ ВСЕХ ХУКОВ И ФУНКЦИЙ
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
