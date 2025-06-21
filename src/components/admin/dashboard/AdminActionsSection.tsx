@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Store, Activity, Plus, Car, FileText, ShoppingCart } from 'lucide-react';
+import { Store, Activity, Plus, Car, FileText, ShoppingCart, Package } from 'lucide-react';
 import ActionCard from './ActionCard';
 
 const AdminActionsSection: React.FC = () => {
@@ -12,6 +12,14 @@ const AdminActionsSection: React.FC = () => {
       link: "/admin/add-product",
       bgColor: "bg-primary",
       textColor: "text-primary-foreground"
+    },
+    {
+      title: "Продать товар",
+      subtitle: "Создать заказ на товар",
+      icon: Package,
+      link: "/admin/sell-product",
+      bgColor: "bg-green-500",
+      textColor: "text-white"
     },
     {
       title: "Магазины",
