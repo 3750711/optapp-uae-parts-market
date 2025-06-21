@@ -26,11 +26,8 @@ const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
 });
 
+// Убираем поле code из схемы валидации
 const codeSchema = z.object({
-  code: z.string()
-    .min(6, { message: "Код должен содержать 6 цифр" })
-    .max(6, { message: "Код должен содержать 6 цифр" })
-    .regex(/^\d{6}$/, { message: "Код должен содержать только цифры" }),
   newPassword: z.string()
     .min(6, { message: "Пароль должен содержать не менее 6 символов" })
     .regex(/[A-Za-z]/, { message: "Пароль должен содержать хотя бы одну букву" })
@@ -84,7 +81,7 @@ const ForgotPassword = () => {
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [sentToEmail, setSentToEmail] = useState<string>("");
   
-  // Новое состояние для кода
+  // Единственное состояние для кода - управляется через useState
   const [codeValue, setCodeValue] = useState('');
   
   const form = useForm<FormData>({
@@ -94,10 +91,10 @@ const ForgotPassword = () => {
     }
   });
 
+  // Форма теперь только для полей пароля
   const codeForm = useForm<CodeFormData>({
     resolver: zodResolver(codeSchema),
     defaultValues: {
-      code: "",
       newPassword: "",
       confirmPassword: "",
     }
@@ -205,14 +202,11 @@ const ForgotPassword = () => {
       // Успешно отправлено
       setSentToEmail(emailToUse);
       
-      // Очищаем форму кода перед переходом к шагу ввода кода
       codeForm.reset({
-        code: "",
         newPassword: "",
         confirmPassword: "",
       });
       
-      // Очищаем новое поле кода
       setCodeValue('');
       
       setStep('code');
@@ -239,9 +233,15 @@ const ForgotPassword = () => {
     }
   };
 
+  // Переработанная функция под новое поле кода
   const onSubmitCode = async (data: CodeFormData) => {
-    // Проверяем валидность нового поля кода
-    if (codeValue.length !== 6) {
+    console.log("=== onSubmitCode called ===");
+    console.log("Code value:", codeValue);
+    console.log("Form data:", data);
+    
+    // Валидация кода отдельно от React Hook Form
+    if (!codeValue || codeValue.length !== 6) {
+      console.log("Code validation failed: invalid length");
       toast({
         title: "Ошибка",
         description: "Код должен содержать 6 цифр",
@@ -251,6 +251,7 @@ const ForgotPassword = () => {
     }
     
     if (!/^\d{6}$/.test(codeValue)) {
+      console.log("Code validation failed: not numeric");
       toast({
         title: "Ошибка",
         description: "Код должен содержать только цифры",
@@ -262,14 +263,19 @@ const ForgotPassword = () => {
     setIsLoadingForm(true);
     
     try {
-      console.log("Verifying reset code...");
+      console.log("Verifying reset code with:", {
+        email: sentToEmail,
+        code: codeValue,
+        passwordLength: data.newPassword.length
+      });
       
-      // Проверяем код и сбрасываем пароль (используем codeValue вместо data.code)
       const { data: verifyData, error } = await supabase.rpc('verify_and_reset_password', {
         p_email: sentToEmail,
         p_code: codeValue,
         p_new_password: data.newPassword
       });
+
+      console.log("Database response:", { verifyData, error });
 
       if (error) {
         console.error("Code verification error:", error);
@@ -282,6 +288,7 @@ const ForgotPassword = () => {
       }
 
       if (!verifyData?.success) {
+        console.log("Verification failed:", verifyData);
         toast({
           title: "Ошибка",
           description: verifyData?.message || "Неверный или истекший код",
@@ -290,7 +297,7 @@ const ForgotPassword = () => {
         return;
       }
 
-      // Успешно сброшен пароль
+      console.log("Password reset successful!");
       toast({
         title: "Пароль изменен",
         description: "Ваш пароль успешно изменен. Теперь вы можете войти с новым паролем.",
@@ -343,13 +350,13 @@ const ForgotPassword = () => {
             <Form {...codeForm}>
               <form onSubmit={codeForm.handleSubmit(onSubmitCode)} key="code-form">
                 <CardContent className="space-y-4">
-                  {/* Новое поле ввода кода */}
+                  {/* Единственное поле ввода кода - управляется через useState */}
                   <div className="space-y-2">
-                    <label htmlFor="new-code" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    <label htmlFor="verification-code" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Код подтверждения (6 цифр)
                     </label>
                     <Input
-                      id="new-code"
+                      id="verification-code"
                       type="text"
                       placeholder="123456"
                       maxLength={6}
@@ -359,46 +366,19 @@ const ForgotPassword = () => {
                       autoComplete="off"
                       value={codeValue}
                       onChange={(e) => {
-                        // Разрешаем только цифры
                         const numericValue = e.target.value.replace(/[^0-9]/g, '');
                         if (numericValue.length <= 6) {
                           setCodeValue(numericValue);
+                          console.log("Code input changed:", numericValue);
                         }
                       }}
                     />
-                  </div>
-
-                  {/* Скрытое поле из React Hook Form */}
-                  <FormField
-                    control={codeForm.control}
-                    name="code"
-                    render={({ field }) => (
-                      <FormItem className="hidden">
-                        <FormLabel>Код подтверждения (6 цифр)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="123456"
-                            maxLength={6}
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            className="text-center text-xl tracking-widest font-mono"
-                            autoComplete="off"
-                            name={field.name}
-                            ref={field.ref}
-                            onBlur={field.onBlur}
-                            value=""
-                            onChange={(e) => {
-                              // Разрешаем только цифры
-                              const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                              field.onChange(numericValue);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
+                    {codeValue.length > 0 && codeValue.length < 6 && (
+                      <p className="text-xs text-muted-foreground">
+                        Введено: {codeValue.length}/6 цифр
+                      </p>
                     )}
-                  />
+                  </div>
 
                   <FormField
                     control={codeForm.control}
@@ -440,20 +420,17 @@ const ForgotPassword = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                    disabled={isLoadingForm}
+                    disabled={isLoadingForm || codeValue.length !== 6}
                   >
                     {isLoadingForm ? "Изменение пароля..." : "Изменить пароль"}
                   </Button>
                   
                   <Button 
                     onClick={() => {
-                      // Очищаем форму кода при возвращении назад
                       codeForm.reset({
-                        code: "",
                         newPassword: "",
                         confirmPassword: "",
                       });
-                      // Очищаем новое поле кода
                       setCodeValue('');
                       setStep('email');
                     }}
