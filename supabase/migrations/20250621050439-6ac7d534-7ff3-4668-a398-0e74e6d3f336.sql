@@ -1,6 +1,5 @@
 
-
--- Создаем функцию для обновления медиафайлов заказа
+-- Исправляем функцию для обновления медиафайлов заказа
 CREATE OR REPLACE FUNCTION public.update_order_media(
   p_order_id uuid,
   p_images text[] DEFAULT NULL,
@@ -27,7 +26,7 @@ BEGIN
     RAISE EXCEPTION 'Access denied to order %', p_order_id;
   END IF;
 
-  -- Обновляем медиафайлы заказа
+  -- Обновляем медиафайлы заказа (убрали updated_at)
   UPDATE public.orders
   SET 
     images = COALESCE(p_images, images),
@@ -42,4 +41,3 @@ BEGIN
   RETURN true;
 END;
 $$;
-
