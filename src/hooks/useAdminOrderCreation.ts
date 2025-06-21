@@ -61,7 +61,7 @@ export const useAdminOrderCreation = () => {
       }
 
       // Используем RPC функцию для создания заказа администратором
-      // Приводим к тому же формату, что работает в свободном заказе
+      // Устанавливаем статус admin_confirmed для заказов, созданных администратором
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
@@ -72,7 +72,7 @@ export const useAdminOrderCreation = () => {
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
-        p_status: 'created' as const, // ✅ Используем тот же статус, что в свободном заказе
+        p_status: 'admin_confirmed' as const, // ✅ Статус admin_confirmed для заказов, созданных администратором
         p_order_created_type: 'product_order' as const,
         p_telegram_url_order: null, // ✅ null - триггер установит
         p_images: orderData.orderImages,
@@ -82,7 +82,7 @@ export const useAdminOrderCreation = () => {
         p_delivery_price_confirm: orderData.deliveryPrice || null
       };
 
-      console.log("✅ Fixed RPC payload (aligned with free order logic):", orderPayload);
+      console.log("✅ RPC payload with admin_confirmed status:", orderPayload);
 
       const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', orderPayload);
@@ -149,7 +149,7 @@ export const useAdminOrderCreation = () => {
 
       toast({
         title: "Заказ создан",
-        description: `Заказ успешно создан`,
+        description: `Заказ успешно создан со статусом "Подтвержден администратором"`,
       });
 
       return orderId;
