@@ -1169,6 +1169,14 @@ export type Database = {
         Args: { "": string }
         Returns: string[]
       }
+      update_order_media: {
+        Args: {
+          p_order_id: string
+          p_images?: string[]
+          p_video_url?: string[]
+        }
+        Returns: boolean
+      }
       verify_email_code: {
         Args: { p_email: string; p_code: string }
         Returns: Json

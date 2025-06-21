@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useOptimizedImageUpload } from '@/hooks/useOptimizedImageUpload';
 import { useCloudinaryVideoUpload } from '@/hooks/useCloudinaryVideoUpload';
+import { useOrderUpdate } from '@/hooks/useOrderUpdate';
 import { CompactMediaGrid } from '@/components/media/CompactMediaGrid';
 
 interface CreatedOrderMediaSectionProps {
@@ -30,6 +31,12 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
 
   const { uploadFiles } = useOptimizedImageUpload();
   const { uploadMultipleVideos } = useCloudinaryVideoUpload();
+  const { updateOrderMedia, isUpdating } = useOrderUpdate({ 
+    orderId,
+    onSuccess: () => {
+      console.log('✅ Order media saved to database successfully');
+    }
+  });
 
   const handleImageUpload = async (files: FileList) => {
     if (!files || files.length === 0) return;
@@ -39,17 +46,26 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       const fileArray = Array.from(files);
       console.log('📸 Uploading images for order:', orderId, fileArray.length, 'files');
 
-      // Use simplified upload options - remove invalid properties
       const uploadedUrls = await uploadFiles(fileArray);
 
       if (uploadedUrls.length > 0) {
         const newImages = [...images, ...uploadedUrls];
+        
+        // Обновляем локальное состояние
         onImagesUpdate(newImages);
         
-        toast({
-          title: "Фото добавлены",
-          description: `Добавлено ${uploadedUrls.length} фото к заказу`,
-        });
+        // Сохраняем в базу данных
+        const saved = await updateOrderMedia(newImages, videos);
+        
+        if (saved) {
+          toast({
+            title: "Фото добавлены",
+            description: `Добавлено ${uploadedUrls.length} фото к заказу`,
+          });
+        } else {
+          // Откатываем локальное состояние при ошибке сохранения
+          onImagesUpdate(images);
+        }
       }
     } catch (error) {
       console.error('❌ Error uploading images:', error);
@@ -72,17 +88,26 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       console.log('🎥 Uploading videos for order:', orderId, fileArray.length, 'files');
 
       const results = await uploadMultipleVideos(fileArray);
-      // Fix: results are strings directly, not objects with url property
       const uploadedUrls = results.filter(Boolean);
       
       if (uploadedUrls.length > 0) {
         const newVideos = [...videos, ...uploadedUrls];
+        
+        // Обновляем локальное состояние
         onVideosUpdate(newVideos);
         
-        toast({
-          title: "Видео добавлены",
-          description: `Добавлено ${uploadedUrls.length} видео к заказу`,
-        });
+        // Сохраняем в базу данных
+        const saved = await updateOrderMedia(images, newVideos);
+        
+        if (saved) {
+          toast({
+            title: "Видео добавлены",
+            description: `Добавлено ${uploadedUrls.length} видео к заказу`,
+          });
+        } else {
+          // Откатываем локальное состояние при ошибке сохранения
+          onVideosUpdate(videos);
+        }
       }
     } catch (error) {
       console.error('❌ Error uploading videos:', error);
@@ -96,25 +121,48 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
     }
   };
 
-  const handleImageDelete = (urlToDelete: string) => {
+  const handleImageDelete = async (urlToDelete: string) => {
     const newImages = images.filter(url => url !== urlToDelete);
+    
+    // Обновляем локальное состояние
     onImagesUpdate(newImages);
-    toast({
-      title: "Фото удалено",
-      description: "Фото удалено из заказа",
-    });
+    
+    // Сохраняем в базу данных
+    const saved = await updateOrderMedia(newImages, videos);
+    
+    if (saved) {
+      toast({
+        title: "Фото удалено",
+        description: "Фото удалено из заказа",
+      });
+    } else {
+      // Откатываем локальное состояние при ошибке
+      onImagesUpdate(images);
+    }
   };
 
-  const handleVideoDelete = (urlToDelete: string) => {
+  const handleVideoDelete = async (urlToDelete: string) => {
     const newVideos = videos.filter(url => url !== urlToDelete);
+    
+    // Обновляем локальное состояние
     onVideosUpdate(newVideos);
-    toast({
-      title: "Видео удалено",
-      description: "Видео удалено из заказа",
-    });
+    
+    // Сохраняем в базу данных
+    const saved = await updateOrderMedia(images, newVideos);
+    
+    if (saved) {
+      toast({
+        title: "Видео удалено",
+        description: "Видео удалено из заказа",
+      });
+    } else {
+      // Откатываем локальное состояние при ошибке
+      onVideosUpdate(videos);
+    }
   };
 
   const totalMediaCount = images.length + videos.length;
+  const isProcessing = isImageUploading || isVideoUploading || isUpdating;
 
   return (
     <div className="space-y-4">
@@ -144,7 +192,7 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
           />
           <Button
             onClick={() => document.getElementById(`order-images-${orderId}`)?.click()}
-            disabled={isImageUploading}
+            disabled={isProcessing}
             variant="outline"
             className={`w-full ${isMobile ? 'h-12' : 'h-10'} border-dashed border-2 hover:bg-blue-50`}
           >
@@ -174,7 +222,7 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
           />
           <Button
             onClick={() => document.getElementById(`order-videos-${orderId}`)?.click()}
-            disabled={isVideoUploading}
+            disabled={isProcessing}
             variant="outline"
             className={`w-full ${isMobile ? 'h-12' : 'h-10'} border-dashed border-2 hover:bg-green-50`}
           >
@@ -192,6 +240,16 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
           </Button>
         </div>
       </div>
+
+      {/* Loading indicator for database updates */}
+      {isUpdating && (
+        <div className="flex items-center justify-center py-2">
+          <div className="flex items-center gap-2 text-sm text-blue-600">
+            <Upload className="h-4 w-4 animate-spin" />
+            Сохранение в базу данных...
+          </div>
+        </div>
+      )}
 
       {/* Compact Media Grid - shows all media at once */}
       {totalMediaCount > 0 && (
