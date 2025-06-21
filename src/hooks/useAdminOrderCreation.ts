@@ -2,7 +2,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 
 interface SellerProfile {
   id: string;
@@ -32,7 +31,6 @@ interface Product {
 
 export const useAdminOrderCreation = () => {
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const createOrder = useCallback(async (
@@ -61,20 +59,19 @@ export const useAdminOrderCreation = () => {
       }
 
       // Используем RPC функцию для создания заказа администратором
-      // Устанавливаем статус admin_confirmed для заказов, созданных администратором
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
         p_place_number: 1,
         p_seller_id: selectedSeller.id,
-        p_order_seller_name: null, // ✅ null - триггер установит автоматически
-        p_seller_opt_id: null,     // ✅ null - триггер установит автоматически
+        p_order_seller_name: null,
+        p_seller_opt_id: null,
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
-        p_status: 'admin_confirmed' as const, // ✅ Статус admin_confirmed для заказов, созданных администратором
+        p_status: 'admin_confirmed' as const,
         p_order_created_type: 'product_order' as const,
-        p_telegram_url_order: null, // ✅ null - триггер установит
+        p_telegram_url_order: null,
         p_images: orderData.orderImages,
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
@@ -114,7 +111,7 @@ export const useAdminOrderCreation = () => {
 
       console.log("✅ Order created with ID:", orderId);
 
-      // Получаем данные созданного заказа для Telegram уведомления
+      // Получаем данные созданного заказа
       const { data: createdOrder, error: fetchError } = await supabase
         .from('orders')
         .select('*')
@@ -123,6 +120,7 @@ export const useAdminOrderCreation = () => {
 
       if (fetchError) {
         console.error("❌ Error fetching created order:", fetchError);
+        throw fetchError;
       }
 
       // Отправляем Telegram уведомление о создании заказа
@@ -152,7 +150,7 @@ export const useAdminOrderCreation = () => {
         description: `Заказ успешно создан со статусом "Подтвержден администратором"`,
       });
 
-      return orderId;
+      return createdOrder;
 
     } catch (error) {
       console.error("💥 Error creating order:", error);

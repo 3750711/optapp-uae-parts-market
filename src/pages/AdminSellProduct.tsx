@@ -12,6 +12,7 @@ import GlobalProductSelectionStep from "@/components/admin/sell-product/GlobalPr
 import BuyerSelectionStep from "@/components/admin/order/BuyerSelectionStep";
 import SellProductProgress from "@/components/admin/sell-product/SellProductProgress";
 import AdminSellProductHeader from "@/components/admin/sell-product/AdminSellProductHeader";
+import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
 
 interface BuyerProfile {
   id: string;
@@ -36,13 +37,14 @@ interface Product {
 
 const AdminSellProduct = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1: Товар, 2: Покупатель
+  const [step, setStep] = useState(1);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerProfile | null>(null);
   const [buyers, setBuyers] = useState<BuyerProfile[]>([]);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showConfirmImagesDialog, setShowConfirmImagesDialog] = useState(false);
-  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [createdOrder, setCreatedOrder] = useState<any>(null);
+  const [createdOrderImages, setCreatedOrderImages] = useState<string[]>([]);
 
   const { createOrder, isCreatingOrder } = useAdminOrderCreation();
 
@@ -159,24 +161,24 @@ const AdminSellProduct = () => {
     };
 
     try {
-      const orderId = await createOrder(seller, selectedProduct, selectedBuyer, orderData);
+      const result = await createOrder(seller, selectedProduct, selectedBuyer, orderData);
       
-      if (orderId === 'product_unavailable') {
+      if (result === 'product_unavailable') {
         setStep(1);
         setSelectedProduct(null);
         setShowConfirmDialog(false);
         return;
       }
       
-      if (orderId === 'order_exists') {
+      if (result === 'order_exists') {
         setShowConfirmDialog(false);
         return;
       }
       
-      if (orderId) {
-        setCreatedOrderId(orderId);
+      if (result && typeof result === 'object') {
+        setCreatedOrder(result);
+        setCreatedOrderImages(orderData.orderImages);
         setShowConfirmDialog(false);
-        setShowConfirmImagesDialog(true);
       }
     } catch (error) {
       // Ошибка уже обработана в хуке
@@ -185,16 +187,10 @@ const AdminSellProduct = () => {
 
   const handleConfirmImagesComplete = () => {
     setShowConfirmImagesDialog(false);
-    if (createdOrderId) {
-      navigate(`/admin/orders/${createdOrderId}`);
-    }
   };
 
   const handleSkipConfirmImages = () => {
     setShowConfirmImagesDialog(false);
-    if (createdOrderId) {
-      navigate(`/admin/orders/${createdOrderId}`);
-    }
   };
 
   const handleCancelConfirmImages = () => {
@@ -207,13 +203,32 @@ const AdminSellProduct = () => {
     setSelectedBuyer(null);
     setShowConfirmDialog(false);
     setShowConfirmImagesDialog(false);
-    setCreatedOrderId(null);
+    setCreatedOrder(null);
+    setCreatedOrderImages([]);
   };
 
   const handleBackToProducts = () => {
     setStep(1);
     setSelectedBuyer(null);
   };
+
+  const handleNewOrder = () => {
+    handleResetForm();
+  };
+
+  // Если заказ создан, показываем CreatedOrderView
+  if (createdOrder) {
+    return (
+      <AdminLayout>
+        <CreatedOrderView
+          order={createdOrder}
+          images={createdOrderImages}
+          onNewOrder={handleNewOrder}
+          buyerProfile={selectedBuyer}
+        />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -254,10 +269,10 @@ const AdminSellProduct = () => {
           />
         )}
 
-        {showConfirmImagesDialog && createdOrderId && (
+        {showConfirmImagesDialog && createdOrder && (
           <ConfirmationImagesUploadDialog
             open={showConfirmImagesDialog}
-            orderId={createdOrderId}
+            orderId={createdOrder.id}
             onComplete={handleConfirmImagesComplete}
             onSkip={handleSkipConfirmImages}
             onCancel={handleCancelConfirmImages}
