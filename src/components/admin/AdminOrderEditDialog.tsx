@@ -73,7 +73,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 h-full bg-slate-50">
             <OrderEditHeader order={order} onStatusChange={onStatusChange} />
 
-            <ScrollArea className="flex-1">
+            <ScrollArea className="flex-1 max-h-[calc(95vh-120px)]">
               <div className="px-6 py-4">
                 <OrderEditTabs
                   form={form}
@@ -87,7 +87,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
               </div>
             </ScrollArea>
             
-            <DialogFooter className="bg-background px-6 py-3 border-t mt-auto">
+            <DialogFooter className="bg-background px-6 py-3 border-t mt-auto flex-shrink-0">
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>
                 <X className="h-4 w-4 mr-2" />
                 Закрыть
