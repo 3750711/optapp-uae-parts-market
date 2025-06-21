@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
 import { Edit3, Save, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import OptimizedImage from '@/components/ui/OptimizedImage';
 
 interface EditableOrderFormProps {
   product: {
@@ -16,6 +18,7 @@ interface EditableOrderFormProps {
     brand?: string;
     model?: string;
     delivery_price?: number;
+    product_images?: { url: string; is_primary?: boolean }[];
   };
   seller: {
     id: string;
@@ -148,7 +151,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
         price: editableData.price,
         deliveryPrice: editableData.deliveryPrice,
         deliveryMethod: editableData.deliveryMethod,
-        orderImages: [],
+        orderImages: product.product_images?.map(img => img.url) || [],
         editedData: {
           title: editableData.title,
           brand: editableData.brand,
@@ -310,6 +313,29 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
           </div>
         </div>
 
+        {/* Медиафайлы товара */}
+        {product.product_images && product.product_images.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-medium">Медиафайлы товара ({product.product_images.length})</h4>
+            <Card>
+              <CardContent className="p-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {product.product_images.map((image, index) => (
+                    <div key={index} className="aspect-square rounded-lg overflow-hidden border">
+                      <OptimizedImage
+                        src={image.url}
+                        alt={`Product image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        size="thumbnail"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Информация об участниках */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
           <div className="bg-blue-50 p-3 rounded-lg">
@@ -397,6 +423,28 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
         </div>
       </div>
 
+      {/* Медиафайлы товара в режиме просмотра */}
+      {product.product_images && product.product_images.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="font-medium">Медиафайлы товара ({product.product_images.length})</h4>
+          <Card>
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {product.product_images.map((image, index) => (
+                  <div key={index} className="aspect-square rounded-lg overflow-hidden border">
+                    <OptimizedImage
+                      src={image.url}
+                      alt={`Product image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      size="thumbnail"
+                    />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        )}
+
       {editableData.textOrder && (
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium mb-2">Дополнительная информация</h4>
@@ -423,7 +471,7 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
             price: editableData.price,
             deliveryPrice: editableData.deliveryPrice,
             deliveryMethod: editableData.deliveryMethod,
-            orderImages: []
+            orderImages: product.product_images?.map(img => img.url) || []
           })}
           disabled={isSubmitting}
           className="bg-green-600 hover:bg-green-700"
