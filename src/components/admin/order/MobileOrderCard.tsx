@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Edit2, Trash2, CheckCircle, Eye, MoreVertical, Camera } from "lucide-re
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
+import { ResendNotificationButton } from './ResendNotificationButton';
 import { Order } from '@/hooks/useOptimizedOrdersQuery';
 import {
   DropdownMenu,
@@ -40,6 +40,7 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
 }) => {
   const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  
   const { data: confirmImages = [] } = useQuery({
     queryKey: ['confirm-images', order.id],
     queryFn: async () => {
@@ -88,6 +89,12 @@ export const MobileOrderCard: React.FC<MobileOrderCardProps> = ({
           </div>
           
           <div className="flex items-center gap-1 shrink-0">
+            <ResendNotificationButton 
+              orderId={order.id}
+              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-orders'] })}
+              size="icon"
+              className="h-7 w-7 p-0"
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0">

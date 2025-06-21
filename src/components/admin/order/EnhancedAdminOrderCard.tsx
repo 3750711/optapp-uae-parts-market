@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { CompactOrderInfo } from './CompactOrderInfo';
+import { ResendNotificationButton } from './ResendNotificationButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
@@ -163,15 +163,21 @@ export const EnhancedAdminOrderCard: React.FC<EnhancedAdminOrderCardProps> = ({
       <CardHeader className="space-y-3 pb-4">
         <div className="flex justify-between items-start">
           <EnhancedOrderStatusBadge status={order.status} />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-            onClick={() => onViewDetails(order.id)}
-            title="Посмотреть детали заказа"
-          >
-            <Eye className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <ResendNotificationButton 
+              orderId={order.id}
+              onSuccess={() => queryClient.invalidateQueries({ queryKey: ['admin-orders'] })}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+              onClick={() => onViewDetails(order.id)}
+              title="Посмотреть детали заказа"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         <div className="text-xs text-muted-foreground">

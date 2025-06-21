@@ -6,8 +6,9 @@
 // Any changes may affect both order and product notifications
 // that send messages to Telegram. This system is currently working properly.
 // 
-// Version: 1.0.0
-// Last Verified Working: 2025-05-22
+// Version: 1.1.0
+// Last Verified Working: 2025-06-21
+// Change: Added support for resend notifications
 // ================================================================
 
 // Follow this setup guide to integrate the Deno language server with your editor:
@@ -40,7 +41,7 @@ serve(async (req) => {
     console.log('Received request data:', reqData);
 
     // Handle different notification types
-    if (reqData.order && reqData.action === 'create') {
+    if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend')) {
       return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders);
     } else if (reqData.productId) {
       return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders);

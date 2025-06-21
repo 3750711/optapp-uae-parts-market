@@ -278,6 +278,8 @@ export type Database = {
           description: string | null
           id: string
           images: string[] | null
+          last_notification_hash: string | null
+          last_notification_sent_at: string | null
           lot_number_order: number | null
           model: string
           order_created_type: Database["public"]["Enums"]["order_created_type"]
@@ -310,6 +312,8 @@ export type Database = {
           description?: string | null
           id?: string
           images?: string[] | null
+          last_notification_hash?: string | null
+          last_notification_sent_at?: string | null
           lot_number_order?: number | null
           model: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
@@ -342,6 +346,8 @@ export type Database = {
           description?: string | null
           id?: string
           images?: string[] | null
+          last_notification_hash?: string | null
+          last_notification_sent_at?: string | null
           lot_number_order?: number | null
           model?: string
           order_created_type?: Database["public"]["Enums"]["order_created_type"]
@@ -989,6 +995,10 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
+      calculate_order_hash: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       check_opt_id_exists: {
         Args:
           | { p_opt_id: string }
@@ -1120,6 +1130,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      resend_order_notification: {
+        Args: { p_order_id: string }
+        Returns: boolean
+      }
       restore_basic_rls_policies: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1160,6 +1174,10 @@ export type Database = {
       set_limit: {
         Args: { "": number }
         Returns: number
+      }
+      should_show_resend_button: {
+        Args: { p_order_id: string }
+        Returns: boolean
       }
       show_limit: {
         Args: Record<PropertyKey, never>
