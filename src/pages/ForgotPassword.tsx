@@ -84,6 +84,9 @@ const ForgotPassword = () => {
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [sentToEmail, setSentToEmail] = useState<string>("");
   
+  // Новое состояние для кода
+  const [codeValue, setCodeValue] = useState('');
+  
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -209,6 +212,9 @@ const ForgotPassword = () => {
         confirmPassword: "",
       });
       
+      // Очищаем новое поле кода
+      setCodeValue('');
+      
       setStep('code');
       setFailedAttempts(0);
       setShowCaptcha(false);
@@ -234,15 +240,34 @@ const ForgotPassword = () => {
   };
 
   const onSubmitCode = async (data: CodeFormData) => {
+    // Проверяем валидность нового поля кода
+    if (codeValue.length !== 6) {
+      toast({
+        title: "Ошибка",
+        description: "Код должен содержать 6 цифр",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!/^\d{6}$/.test(codeValue)) {
+      toast({
+        title: "Ошибка",
+        description: "Код должен содержать только цифры",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoadingForm(true);
     
     try {
       console.log("Verifying reset code...");
       
-      // Проверяем код и сбрасываем пароль
+      // Проверяем код и сбрасываем пароль (используем codeValue вместо data.code)
       const { data: verifyData, error } = await supabase.rpc('verify_and_reset_password', {
         p_email: sentToEmail,
-        p_code: data.code,
+        p_code: codeValue,
         p_new_password: data.newPassword
       });
 
@@ -318,44 +343,61 @@ const ForgotPassword = () => {
             <Form {...codeForm}>
               <form onSubmit={codeForm.handleSubmit(onSubmitCode)} key="code-form">
                 <CardContent className="space-y-4">
+                  {/* Новое поле ввода кода */}
+                  <div className="space-y-2">
+                    <label htmlFor="new-code" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                      Код подтверждения (6 цифр)
+                    </label>
+                    <Input
+                      id="new-code"
+                      type="text"
+                      placeholder="123456"
+                      maxLength={6}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      className="text-center text-xl tracking-widest font-mono"
+                      autoComplete="off"
+                      value={codeValue}
+                      onChange={(e) => {
+                        // Разрешаем только цифры
+                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                        if (numericValue.length <= 6) {
+                          setCodeValue(numericValue);
+                        }
+                      }}
+                    />
+                  </div>
+
+                  {/* Скрытое поле из React Hook Form */}
                   <FormField
                     control={codeForm.control}
                     name="code"
-                    render={({ field }) => {
-                      // Отладочная информация
-                      console.log("Code field debug:", {
-                        fieldValue: field.value,
-                        fieldName: field.name,
-                        sentToEmail: sentToEmail
-                      });
-                      
-                      return (
-                        <FormItem>
-                          <FormLabel>Код подтверждения (6 цифр)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="text"
-                              placeholder="123456"
-                              maxLength={6}
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              className="text-center text-xl tracking-widest font-mono"
-                              autoComplete="off"
-                              name={field.name}
-                              ref={field.ref}
-                              onBlur={field.onBlur}
-                              value=""
-                              onChange={(e) => {
-                                // Разрешаем только цифры
-                                const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                                field.onChange(numericValue);
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      );
-                    }}
+                    render={({ field }) => (
+                      <FormItem className="hidden">
+                        <FormLabel>Код подтверждения (6 цифр)</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="text"
+                            placeholder="123456"
+                            maxLength={6}
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            className="text-center text-xl tracking-widest font-mono"
+                            autoComplete="off"
+                            name={field.name}
+                            ref={field.ref}
+                            onBlur={field.onBlur}
+                            value=""
+                            onChange={(e) => {
+                              // Разрешаем только цифры
+                              const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                              field.onChange(numericValue);
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
 
                   <FormField
@@ -411,6 +453,8 @@ const ForgotPassword = () => {
                         newPassword: "",
                         confirmPassword: "",
                       });
+                      // Очищаем новое поле кода
+                      setCodeValue('');
                       setStep('email');
                     }}
                     variant="outline" 
