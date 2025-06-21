@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -19,8 +18,9 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/authUtils";
-import { Mail, User, Shield } from "lucide-react";
+import { Mail, User, Shield, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -30,13 +30,43 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Перенаправляем авторизованных пользователей
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  // Показываем загрузку пока проверяется авторизация
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Проверка авторизации...</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Если пользователь авторизован, не показываем форму
+  if (user) {
+    return null;
+  }
+
+  const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [isRateLimited, setIsRateLimited] = useState(false);
-  const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -80,7 +110,7 @@ const Login = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingForm(true);
     
     try {
       console.log("Attempting to sign in with:", data.emailOrOptId);
@@ -172,7 +202,7 @@ const Login = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingForm(false);
     }
   };
 
@@ -290,9 +320,9 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoading || isRateLimited || (showCaptcha && !captchaVerified)}
+                  disabled={isLoadingForm || isRateLimited || (showCaptcha && !captchaVerified)}
                 >
-                  {isLoading ? "Вход..." : "Войти"}
+                  {isLoadingForm ? "Вход..." : "Войти"}
                 </Button>
                 <div className="text-center text-sm">
                   Нет аккаунта?{" "}

@@ -25,8 +25,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { countries } from "@/data/countries";
-import { Check, User, Store, AlertCircle } from "lucide-react";
+import { Check, User, Store, AlertCircle, Loader2 } from "lucide-react";
 import { checkOptIdExists } from "@/utils/authUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   fullName: z.string().optional(),
@@ -53,10 +54,40 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Register = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Перенаправляем авторизованных пользователей
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  // Показываем загрузку пока проверяется авторизация
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Проверка авторизации...</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Если пользователь авторизован, не показываем форму
+  if (user) {
+    return null;
+  }
+
+  const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [hasOptId, setHasOptId] = useState(false);
   const [optIdStatus, setOptIdStatus] = useState<'checking' | 'available' | 'taken' | 'rate_limited' | null>(null);
-  const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -102,7 +133,7 @@ const Register = () => {
   }, [optId]);
 
   const onSubmit = async (data: FormData) => {
-    setIsLoading(true);
+    setIsLoadingForm(true);
     console.log("Form data submitting:", data);
     
     // Дополнительная проверка уникальности OPT ID перед отправкой
@@ -112,7 +143,7 @@ const Register = () => {
         description: "Этот OPT ID уже используется",
         variant: "destructive",
       });
-      setIsLoading(false);
+      setIsLoadingForm(false);
       return;
     }
     
@@ -174,7 +205,7 @@ const Register = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingForm(false);
     }
   };
 
@@ -416,9 +447,9 @@ const Register = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoading || optIdStatus === 'taken' || optIdStatus === 'rate_limited'}
+                  disabled={isLoadingForm || optIdStatus === 'taken' || optIdStatus === 'rate_limited'}
                 >
-                  {isLoading ? "Регистрация..." : "Зарегистрироваться"}
+                  {isLoadingForm ? "Регистрация..." : "Зарегистрироваться"}
                 </Button>
                 <div className="text-center text-sm">
                   Уже есть аккаунт?{" "}

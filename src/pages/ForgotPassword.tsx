@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -19,8 +19,9 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
-import { Mail, User, ArrowLeft, CheckCircle } from "lucide-react";
+import { Mail, User, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -42,14 +43,44 @@ type FormData = z.infer<typeof formSchema>;
 type CodeFormData = z.infer<typeof codeSchema>;
 
 const ForgotPassword = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Перенаправляем авторизованных пользователей
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  // Показываем загрузку пока проверяется авторизация
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Проверка авторизации...</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Если пользователь авторизован, не показываем форму
+  if (user) {
+    return null;
+  }
+
+  const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [sentToEmail, setSentToEmail] = useState<string>("");
-  const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -101,7 +132,7 @@ const ForgotPassword = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingForm(true);
     
     try {
       console.log("Attempting password reset for:", data.emailOrOptId);
@@ -196,12 +227,12 @@ const ForgotPassword = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingForm(false);
     }
   };
 
   const onSubmitCode = async (data: CodeFormData) => {
-    setIsLoading(true);
+    setIsLoadingForm(true);
     
     try {
       console.log("Verifying reset code...");
@@ -252,7 +283,7 @@ const ForgotPassword = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingForm(false);
     }
   };
 
@@ -354,9 +385,9 @@ const ForgotPassword = () => {
                   <Button 
                     type="submit" 
                     className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                    disabled={isLoading}
+                    disabled={isLoadingForm}
                   >
-                    {isLoading ? "Изменение пароля..." : "Изменить пароль"}
+                    {isLoadingForm ? "Изменение пароля..." : "Изменить пароль"}
                   </Button>
                   
                   <Button 
@@ -448,9 +479,9 @@ const ForgotPassword = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoading || (showCaptcha && !captchaVerified)}
+                  disabled={isLoadingForm || (showCaptcha && !captchaVerified)}
                 >
-                  {isLoading ? "Отправка..." : "Отправить код"}
+                  {isLoadingForm ? "Отправка..." : "Отправить код"}
                 </Button>
                 
                 <div className="flex items-center justify-center space-x-4 text-sm">

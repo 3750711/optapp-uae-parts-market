@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { z } from "zod";
@@ -18,7 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { Eye, EyeOff, Lock, CheckCircle, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, Lock, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   password: z.string()
@@ -34,12 +34,42 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const ResetPassword = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
+  
+  // Перенаправляем авторизованных пользователей
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate("/", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  // Показываем загрузку пока проверяется авторизация
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center">
+          <Card className="w-full max-w-md">
+            <CardContent className="flex items-center justify-center p-8">
+              <Loader2 className="h-6 w-6 animate-spin mr-2" />
+              <span>Проверка авторизации...</span>
+            </CardContent>
+          </Card>
+        </div>
+      </Layout>
+    );
+  }
+
+  // Если пользователь авторизован, не показываем форму
+  if (user) {
+    return null;
+  }
+
+  const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -96,7 +126,7 @@ const ResetPassword = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsLoadingForm(true);
     
     try {
       console.log("Attempting to update password...");
@@ -138,7 +168,7 @@ const ResetPassword = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsLoadingForm(false);
     }
   };
 
@@ -297,9 +327,9 @@ const ResetPassword = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoading}
+                  disabled={isLoadingForm}
                 >
-                  {isLoading ? "Обновление..." : "Обновить пароль"}
+                  {isLoadingForm ? "Обновление..." : "Обновить пароль"}
                 </Button>
                 
                 <div className="text-center">
