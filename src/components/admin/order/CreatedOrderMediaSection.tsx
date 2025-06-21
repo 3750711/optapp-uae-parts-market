@@ -28,8 +28,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [isVideoUploading, setIsVideoUploading] = useState(false);
 
-  const { optimizedUpload } = useOptimizedImageUpload();
-  const { uploadVideos } = useCloudinaryVideoUpload();
+  const { uploadFiles } = useOptimizedImageUpload();
+  const { uploadMultipleVideos } = useCloudinaryVideoUpload();
 
   const handleImageUpload = async (files: FileList) => {
     if (!files || files.length === 0) return;
@@ -39,26 +39,20 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       const fileArray = Array.from(files);
       console.log('📸 Uploading images for order:', orderId, fileArray.length, 'files');
 
-      const uploadPromises = fileArray.map(async (file) => {
-        const result = await optimizedUpload(file, {
-          maxSizeMB: 0.4, // 400KB compression
-          maxWidthOrHeight: 1200,
-          initialQuality: 0.8,
-          fileType: 'image/webp'
-        });
-        return result.compressedUrl;
+      const uploadedUrls = await uploadFiles(fileArray, {
+        maxSizeMB: 0.4,
+        maxWidthOrHeight: 1200,
+        initialQuality: 0.8,
+        fileType: 'image/webp'
       });
 
-      const uploadedUrls = await Promise.all(uploadPromises);
-      const validUrls = uploadedUrls.filter(Boolean);
-
-      if (validUrls.length > 0) {
-        const newImages = [...images, ...validUrls];
+      if (uploadedUrls.length > 0) {
+        const newImages = [...images, ...uploadedUrls];
         onImagesUpdate(newImages);
         
         toast({
           title: "Фото добавлены",
-          description: `Добавлено ${validUrls.length} фото к заказу`,
+          description: `Добавлено ${uploadedUrls.length} фото к заказу`,
         });
       }
     } catch (error) {
@@ -81,7 +75,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       const fileArray = Array.from(files);
       console.log('🎥 Uploading videos for order:', orderId, fileArray.length, 'files');
 
-      const uploadedUrls = await uploadVideos(fileArray);
+      const results = await uploadMultipleVideos(fileArray);
+      const uploadedUrls = results.map(result => result.url).filter(Boolean);
       
       if (uploadedUrls.length > 0) {
         const newVideos = [...videos, ...uploadedUrls];
@@ -208,7 +203,7 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
             <CompactMediaGrid
               images={images}
               videos={videos}
-              maxPreviewItems={50} // Show more items at once
+              maxPreviewItems={50}
               onImageDelete={handleImageDelete}
               onVideoDelete={handleVideoDelete}
             />
