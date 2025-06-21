@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -441,9 +440,10 @@ const EditableOrderForm: React.FC<EditableOrderFormProps> = ({
                   </div>
                 ))}
               </div>
-            </Card>
-          </div>
-        )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {editableData.textOrder && (
         <div className="bg-gray-50 p-4 rounded-lg">
