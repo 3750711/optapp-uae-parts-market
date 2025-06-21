@@ -39,12 +39,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       const fileArray = Array.from(files);
       console.log('📸 Uploading images for order:', orderId, fileArray.length, 'files');
 
-      const uploadedUrls = await uploadFiles(fileArray, {
-        maxSizeMB: 0.4,
-        maxWidthOrHeight: 1200,
-        initialQuality: 0.8,
-        fileType: 'image/webp'
-      });
+      // Use simplified upload options - remove invalid properties
+      const uploadedUrls = await uploadFiles(fileArray);
 
       if (uploadedUrls.length > 0) {
         const newImages = [...images, ...uploadedUrls];
@@ -76,7 +72,8 @@ export const CreatedOrderMediaSection: React.FC<CreatedOrderMediaSectionProps> =
       console.log('🎥 Uploading videos for order:', orderId, fileArray.length, 'files');
 
       const results = await uploadMultipleVideos(fileArray);
-      const uploadedUrls = results.map(result => result.url).filter(Boolean);
+      // Fix: results are strings directly, not objects with url property
+      const uploadedUrls = results.filter(Boolean);
       
       if (uploadedUrls.length > 0) {
         const newVideos = [...videos, ...uploadedUrls];
