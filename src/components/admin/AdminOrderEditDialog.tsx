@@ -13,7 +13,6 @@ import { OrderEditHeader } from "@/components/admin/order/OrderEditHeader";
 import { OrderEditTabs } from "@/components/admin/order/OrderEditTabs";
 import { useAdminOrderForm } from '@/hooks/useAdminOrderForm';
 import { useOrderMedia } from '@/hooks/useOrderMedia';
-import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer: {
@@ -73,8 +72,8 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 h-full bg-slate-50">
             <OrderEditHeader order={order} onStatusChange={onStatusChange} />
 
-            <ScrollArea className="flex-1 max-h-[calc(95vh-120px)]">
-              <div className="px-6 py-4">
+            <div className="flex-1 overflow-hidden">
+              <div className="h-full overflow-y-auto px-6 py-4">
                 <OrderEditTabs
                   form={form}
                   order={order}
@@ -85,7 +84,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                   onVideoDelete={handleVideoDelete}
                 />
               </div>
-            </ScrollArea>
+            </div>
             
             <DialogFooter className="bg-background px-6 py-3 border-t mt-auto flex-shrink-0">
               <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>
