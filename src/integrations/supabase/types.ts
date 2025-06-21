@@ -1171,6 +1171,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_password_reset_event: {
+        Args: { p_user_id: string; p_email: string; p_opt_id?: string }
+        Returns: undefined
+      }
       resend_order_notification: {
         Args: { p_order_id: string }
         Returns: boolean
@@ -1237,6 +1241,10 @@ export type Database = {
         Returns: boolean
       }
       verify_and_reset_password: {
+        Args: { p_email: string; p_code: string; p_new_password: string }
+        Returns: Json
+      }
+      verify_and_reset_password_v2: {
         Args: { p_email: string; p_code: string; p_new_password: string }
         Returns: Json
       }

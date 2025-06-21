@@ -26,7 +26,6 @@ const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
 });
 
-// Убираем поле code из схемы валидации
 const codeSchema = z.object({
   newPassword: z.string()
     .min(6, { message: "Пароль должен содержать не менее 6 символов" })
@@ -80,8 +79,6 @@ const ForgotPassword = () => {
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [sentToEmail, setSentToEmail] = useState<string>("");
-  
-  // Единственное состояние для кода - управляется через useState
   const [codeValue, setCodeValue] = useState('');
   
   const form = useForm<FormData>({
@@ -91,7 +88,6 @@ const ForgotPassword = () => {
     }
   });
 
-  // Форма теперь только для полей пароля
   const codeForm = useForm<CodeFormData>({
     resolver: zodResolver(codeSchema),
     defaultValues: {
@@ -116,7 +112,6 @@ const ForgotPassword = () => {
     const newFailedAttempts = failedAttempts + 1;
     setFailedAttempts(newFailedAttempts);
     
-    // Показываем CAPTCHA после 2 неудачных попыток
     if (newFailedAttempts >= 2) {
       setShowCaptcha(true);
       setCaptchaVerified(false);
@@ -124,7 +119,6 @@ const ForgotPassword = () => {
   };
 
   const onSubmitEmail = async (data: FormData) => {
-    // Проверяем CAPTCHA если она требуется
     if (showCaptcha && !captchaVerified) {
       toast({
         title: "Необходима проверка",
@@ -143,7 +137,6 @@ const ForgotPassword = () => {
       let emailToUse = data.emailOrOptId;
       let optId: string | undefined;
 
-      // Если введен OPT ID, найдем соответствующий email
       if (inputType === 'opt_id') {
         console.log("Detected OPT ID, searching for email...");
         const result = await getEmailByOptId(data.emailOrOptId);
@@ -172,7 +165,6 @@ const ForgotPassword = () => {
         console.log("Found email for OPT ID:", emailToUse);
       }
 
-      // Отправляем запрос на наш кастомный Edge Function
       const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
         method: 'POST',
         headers: {
@@ -199,16 +191,12 @@ const ForgotPassword = () => {
         return;
       }
 
-      // Успешно отправлено
       setSentToEmail(emailToUse);
-      
       codeForm.reset({
         newPassword: "",
         confirmPassword: "",
       });
-      
       setCodeValue('');
-      
       setStep('code');
       setFailedAttempts(0);
       setShowCaptcha(false);
@@ -233,13 +221,11 @@ const ForgotPassword = () => {
     }
   };
 
-  // Переработанная функция под новое поле кода
   const onSubmitCode = async (data: CodeFormData) => {
     console.log("=== onSubmitCode called ===");
     console.log("Code value:", codeValue);
     console.log("Form data:", data);
     
-    // Валидация кода отдельно от React Hook Form
     if (!codeValue || codeValue.length !== 6) {
       console.log("Code validation failed: invalid length");
       toast({
@@ -263,35 +249,34 @@ const ForgotPassword = () => {
     setIsLoadingForm(true);
     
     try {
-      console.log("Verifying reset code with:", {
+      console.log("Calling admin password reset API with:", {
         email: sentToEmail,
         code: codeValue,
         passwordLength: data.newPassword.length
       });
       
-      const { data: verifyData, error } = await supabase.rpc('verify_and_reset_password', {
-        p_email: sentToEmail,
-        p_code: codeValue,
-        p_new_password: data.newPassword
+      // Используем новую Edge Function для сброса пароля
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/admin-password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: JSON.stringify({
+          email: sentToEmail,
+          code: codeValue,
+          newPassword: data.newPassword
+        })
       });
 
-      console.log("Database response:", { verifyData, error });
+      const result = await response.json();
+      console.log("API response:", result);
 
-      if (error) {
-        console.error("Code verification error:", error);
+      if (!response.ok || !result.success) {
+        console.error("Password reset failed:", result);
         toast({
           title: "Ошибка",
-          description: error.message || "Неверный или истекший код",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (!verifyData?.success) {
-        console.log("Verification failed:", verifyData);
-        toast({
-          title: "Ошибка",
-          description: verifyData?.message || "Неверный или истекший код",
+          description: result.message || "Не удалось изменить пароль",
           variant: "destructive",
         });
         return;
@@ -350,7 +335,6 @@ const ForgotPassword = () => {
             <Form {...codeForm}>
               <form onSubmit={codeForm.handleSubmit(onSubmitCode)} key="code-form">
                 <CardContent className="space-y-4">
-                  {/* Единственное поле ввода кода - управляется через useState */}
                   <div className="space-y-2">
                     <label htmlFor="verification-code" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                       Код подтверждения (6 цифр)
