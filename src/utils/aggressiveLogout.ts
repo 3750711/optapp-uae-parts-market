@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { devLog, devError } from '@/utils/logger';
 
@@ -60,20 +61,19 @@ export const aggressiveLogout = async (options: LogoutOptions = {}) => {
 };
 
 /**
- * Установить флаг принудительного выхода - ОПТИМИЗИРОВАННАЯ ВЕРСИЯ
+ * Установить флаг принудительного выхода
  */
 const setLogoutFlag = () => {
   try {
     const logoutData = {
       timestamp: Date.now(),
       forced: true,
-      version: '2.0',
-      reason: 'aggressive_logout'
+      version: '1.0'
     };
     
     localStorage.setItem('logout_forced', JSON.stringify(logoutData));
     sessionStorage.setItem('logout_forced', JSON.stringify(logoutData));
-    devLog('🏴 Logout flag set with 30-second duration');
+    devLog('🏴 Logout flag set');
   } catch (error) {
     devLog('⚠️ Failed to set logout flag:', error);
   }
@@ -312,115 +312,43 @@ const nuclearCleanup = async () => {
 };
 
 /**
- * Проверить флаг принудительного выхода - УЛУЧШЕННАЯ ВЕРСИЯ
+ * Проверить флаг принудительного выхода
  */
 export const checkLogoutFlag = (): boolean => {
   try {
     const localFlag = localStorage.getItem('logout_forced');
     const sessionFlag = sessionStorage.getItem('logout_forced');
     
-    if (!localFlag && !sessionFlag) {
-      devLog('🟢 No logout flag found - allowing session');
-      return false;
+    if (localFlag || sessionFlag) {
+      const flagData = JSON.parse(localFlag || sessionFlag || '{}');
+      const timeDiff = Date.now() - (flagData.timestamp || 0);
+      
+      // Флаг действует 5 минут
+      if (timeDiff < 5 * 60 * 1000) {
+        devLog('🚫 Logout flag detected - blocking auto-login');
+        return true;
+      } else {
+        // Очищаем устаревший флаг
+        clearLogoutFlag();
+      }
     }
     
-    const flagData = JSON.parse(localFlag || sessionFlag || '{}');
-    const timeDiff = Date.now() - (flagData.timestamp || 0);
-    const flagAge = Math.floor(timeDiff / 1000); // в секундах
-    
-    devLog(`🔍 Logout flag check: age=${flagAge}s, forced=${flagData.forced}, reason=${flagData.reason}`);
-    
-    // 🔥 КРИТИЧЕСКИ ВАЖНО: Флаг действует только 30 секунд (сокращено с 2 минут)
-    if (timeDiff < 30 * 1000) {
-      devLog(`🚫 Logout flag active (${flagAge}s old) - blocking auto-login`);
-      return true;
-    } else {
-      // Очищаем устаревший флаг
-      devLog(`🧹 Logout flag expired (${flagAge}s old) - clearing and allowing session`);
-      clearLogoutFlag();
-      return false;
-    }
+    return false;
   } catch (error) {
     devLog('⚠️ Failed to check logout flag:', error);
-    // При ошибке очищаем флаг и разрешаем авторизацию
-    clearLogoutFlag();
     return false;
   }
 };
 
 /**
- * Проверить флаг с различением типов операций - НОВАЯ ФУНКЦИЯ
- */
-export const checkLogoutFlagForNewLogin = (): boolean => {
-  try {
-    const flagStatus = getLogoutFlagStatus();
-    
-    if (!flagStatus.exists) {
-      devLog('🟢 No logout flag - allowing new login');
-      return false;
-    }
-    
-    // Для новых входов используем более короткий период блокировки (10 секунд)
-    if (flagStatus.age < 10) {
-      devLog(`🚫 Recent logout detected (${flagStatus.age}s ago) - briefly blocking new login`);
-      return true;
-    }
-    
-    devLog(`🟢 Logout flag expired (${flagStatus.age}s ago) - allowing new login`);
-    clearLogoutFlag();
-    return false;
-  } catch (error) {
-    devLog('⚠️ Error checking logout flag for new login:', error);
-    clearLogoutFlag();
-    return false;
-  }
-};
-
-/**
- * Очистить флаг принудительного выхода - УЛУЧШЕННАЯ ВЕРСИЯ
+ * Очистить флаг принудительного выхода
  */
 export const clearLogoutFlag = () => {
   try {
-    const hadLocalFlag = !!localStorage.getItem('logout_forced');
-    const hadSessionFlag = !!sessionStorage.getItem('logout_forced');
-    
     localStorage.removeItem('logout_forced');
     sessionStorage.removeItem('logout_forced');
-    
-    if (hadLocalFlag || hadSessionFlag) {
-      devLog('🧹 Logout flag cleared successfully');
-    }
+    devLog('🧹 Logout flag cleared');
   } catch (error) {
     devLog('⚠️ Failed to clear logout flag:', error);
-  }
-};
-
-/**
- * Проверить статус флага для debug информации - УЛУЧШЕННАЯ ВЕРСИЯ
- */
-export const getLogoutFlagStatus = () => {
-  try {
-    const localFlag = localStorage.getItem('logout_forced');
-    const sessionFlag = sessionStorage.getItem('logout_forced');
-    
-    if (!localFlag && !sessionFlag) {
-      return { exists: false, age: 0, source: null };
-    }
-    
-    const flagData = JSON.parse(localFlag || sessionFlag || '{}');
-    const timeDiff = Date.now() - (flagData.timestamp || 0);
-    const ageSeconds = Math.floor(timeDiff / 1000);
-    
-    return {
-      exists: true,
-      age: ageSeconds,
-      source: localFlag ? 'localStorage' : 'sessionStorage',
-      forced: flagData.forced,
-      version: flagData.version,
-      reason: flagData.reason,
-      isExpired: ageSeconds > 30
-    };
-  } catch (error) {
-    return { exists: false, age: 0, source: null, error: error.message };
   }
 };

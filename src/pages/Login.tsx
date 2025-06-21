@@ -22,7 +22,6 @@ import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/au
 import { Mail, User, Shield, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearLogoutFlag, getLogoutFlagStatus } from "@/utils/aggressiveLogout";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -51,17 +50,6 @@ const Login = () => {
   });
 
   const watchedInput = form.watch('emailOrOptId');
-
-  // ✅ КРИТИЧЕСКИ ВАЖНО: Очищаем флаг принудительного выхода при загрузке страницы входа
-  useEffect(() => {
-    const flagStatus = getLogoutFlagStatus();
-    console.log('🔍 Login page loaded, logout flag status:', flagStatus);
-    
-    if (flagStatus.exists) {
-      console.log('🧹 Clearing logout flag on login page load');
-      clearLogoutFlag();
-    }
-  }, []);
 
   // ✅ ВСЕ useEffect ХУКИ ТАКЖЕ ДОЛЖНЫ БЫТЬ ЗДЕСЬ
   // Перенаправляем авторизованных пользователей
@@ -116,10 +104,6 @@ const Login = () => {
   };
 
   const onSubmit = async (data: FormData) => {
-    // 🔥 КРИТИЧЕСКИ ВАЖНО: Очищаем флаг принудительного выхода ПЕРЕД авторизацией
-    console.log('🧹 Clearing logout flag before login attempt');
-    clearLogoutFlag();
-
     // Проверяем CAPTCHA если она требуется
     if (showCaptcha && !captchaVerified) {
       toast({
@@ -186,10 +170,6 @@ const Login = () => {
         return;
       }
 
-      // 🔥 КРИТИЧЕСКИ ВАЖНО: Дополнительная очистка флага после успешного входа
-      console.log('✅ Login successful, clearing logout flag again');
-      clearLogoutFlag();
-
       // Логируем успешный вход
       await logSuccessfulLogin(data.emailOrOptId, inputType);
 
@@ -209,17 +189,10 @@ const Login = () => {
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // 🔥 ПРИНУДИТЕЛЬНОЕ ОБНОВЛЕНИЕ: Небольшая задержка для обновления состояния авторизации
+      // Добавляем небольшую задержку для обновления состояния авторизации
       setTimeout(() => {
         console.log("Redirecting to:", from);
-        
-        // Принудительное обновление состояния если нужно
-        if (!user) {
-          console.log('🔄 Forcing auth state refresh...');
-          window.location.href = from;
-        } else {
-          navigate(from);
-        }
+        navigate(from);
       }, 500);
       
     } catch (error: any) {

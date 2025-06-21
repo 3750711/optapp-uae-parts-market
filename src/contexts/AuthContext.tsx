@@ -7,7 +7,7 @@ import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedAdminRights, setCachedAdminRights } from '@/utils/performanceUtils';
 import { devLog, devError, prodError } from '@/utils/logger';
-import { aggressiveLogout, checkLogoutFlag, checkLogoutFlagForNewLogin, clearLogoutFlag, getLogoutFlagStatus } from '@/utils/aggressiveLogout';
+import { aggressiveLogout, checkLogoutFlag, clearLogoutFlag } from '@/utils/aggressiveLogout';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -34,7 +34,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const mountedRef = useRef(true);
   const queryClient = useQueryClient();
-  const initializationAttempts = useRef(0);
 
   // Enhanced profile fetching with timeout protection
   const fetchUserProfile = useCallback(async (userId: string) => {
@@ -238,32 +237,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 🔥 НОВАЯ ФУНКЦИЯ: Принудительная повторная инициализация авторизации
-  const forceAuthReinit = useCallback(async () => {
-    try {
-      console.log('🔄 Force auth reinitialization...');
-      
-      const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('❌ Force auth reinit error:', error.message);
-        return;
-      }
-      
-      if (currentSession?.user && currentSession?.access_token && mountedRef.current) {
-        console.log('✅ Valid session found during force reinit');
-        clearLogoutFlag();
-        setSession(currentSession);
-        setUser(currentSession.user);
-        await fetchUserProfile(currentSession.user.id);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      console.error('💥 Force auth reinit exception:', error);
-    }
-  }, [fetchUserProfile]);
-
-  // Enhanced initialization with improved logout flag handling
+  // Enhanced initialization with anti-auto-login protection
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
@@ -273,22 +247,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('🔑 Starting enhanced auth setup...');
         const setupStartTime = Date.now();
         
-        // Проверяем и логируем статус флага принудительного выхода
-        const flagStatus = getLogoutFlagStatus();
-        console.log('🔍 Logout flag status on init:', flagStatus);
-        
-        // 🔥 УЛУЧШЕННАЯ ПРОВЕРКА: Используем специальную функцию для инициализации
-        if (flagStatus.exists && !flagStatus.isExpired) {
-          console.log('🚫 Active logout flag detected, waiting before initialization...');
-          
-          // Ждем короткое время и пытаемся повторно
-          setTimeout(() => {
-            if (mounted) {
-              console.log('🔄 Retrying auth initialization after logout flag delay...');
-              forceAuthReinit();
-            }
-          }, flagStatus.age > 10 ? 1000 : 11000 - (flagStatus.age * 1000));
-          
+        // Проверяем флаг принудительного выхода
+        if (checkLogoutFlag()) {
+          console.log('🚫 Logout flag detected, blocking auth initialization');
           if (mounted) {
             setSession(null);
             setUser(null);
@@ -328,12 +289,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return;
           }
           
-          // Если есть валидная сессия, очищаем флаг принудительного выхода
-          if (currentSession?.user && currentSession?.access_token) {
-            console.log('✅ Valid session found, clearing logout flag');
-            clearLogoutFlag();
-          }
-          
           if (mounted) {
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
@@ -362,10 +317,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // Enhanced auth state listener with improved logout flag handling
+        // Enhanced auth state listener with logout flag check
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
             if (!mounted) return;
+            
+            // Проверяем флаг принудительного выхода
+            if (checkLogoutFlag()) {
+              console.log('🚫 Auth state change blocked by logout flag');
+              return;
+            }
             
             console.log('🔄 Auth state changed:', {
               event,
@@ -373,28 +334,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userId: currentSession?.user?.id
             });
             
-            // Если получили валидную сессию, очищаем флаг принудительного выхода
-            if (currentSession?.user && currentSession?.access_token) {
-              console.log('✅ Valid session in state change, clearing logout flag');
-              clearLogoutFlag();
-            }
-            
-            // 🔥 УЛУЧШЕННАЯ ПРОВЕРКА: Для событий SIGNED_OUT используем более мягкую проверку
-            if (event === 'SIGNED_OUT') {
-              const recentLogoutFlag = checkLogoutFlagForNewLogin();
-              if (recentLogoutFlag) {
-                console.log('🚫 Recent logout detected, briefly blocking state change');
-                return;
-              }
-            }
-            
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
               // Use setTimeout to prevent blocking
               setTimeout(() => {
-                if (mounted) {
+                if (mounted && !checkLogoutFlag()) {
                   fetchUserProfile(currentSession.user.id);
                 }
               }, 0);
@@ -424,13 +370,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       mountedRef.current = false;
     };
-  }, [fetchUserProfile, forceAuthReinit]);
+  }, [fetchUserProfile]);
 
-  // Enhanced cleanup logout flag on successful auth
+  // Cleanup logout flag on successful auth
   useEffect(() => {
-    if (user && session?.access_token) {
+    if (user && session) {
       // Очищаем флаг выхода при успешной авторизации
-      console.log('🧹 Clearing logout flag due to successful auth state');
       clearLogoutFlag();
     }
   }, [user, session]);
