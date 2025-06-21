@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import OptimizedImage from "@/components/ui/OptimizedImage";
+import EditableOrderForm from "./sell-product/EditableOrderForm";
 
 interface OrderData {
   id: string;
@@ -71,6 +72,15 @@ interface AdminOrderConfirmationDialogProps {
     deliveryPrice?: number;
     deliveryMethod: string;
     orderImages: string[];
+    editedData?: {
+      title: string;
+      brand: string;
+      model: string;
+      price: number;
+      deliveryPrice: number;
+      placeNumber: number;
+      textOrder: string;
+    };
   }) => Promise<void>;
   isSubmitting?: boolean;
   product?: Product;
@@ -144,17 +154,6 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     } : undefined
   };
 
-  const handleConfirm = async () => {
-    if (onConfirm && product) {
-      await onConfirm({
-        price: product.price,
-        deliveryPrice: product.delivery_price,
-        deliveryMethod: 'self_pickup',
-        orderImages: product.product_images?.map(img => img.url) || []
-      });
-    }
-  };
-
   const handleClose = () => {
     if (onClose) {
       onClose();
@@ -166,7 +165,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   if (isLoading) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Загрузка заказа...</DialogTitle>
             <DialogDescription>Пожалуйста, подождите.</DialogDescription>
@@ -179,7 +178,7 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
   if (isError || (!displayData && orderId)) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Ошибка</DialogTitle>
             <DialogDescription>Не удалось загрузить информацию о заказе.</DialogDescription>
@@ -189,13 +188,44 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
     );
   }
 
+  // Показываем EditableOrderForm для новых заказов (когда есть product, seller, buyer)
+  if (product && seller && buyer && onConfirm) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Подтверждение заказа</DialogTitle>
+            <DialogDescription>
+              Проверьте и при необходимости отредактируйте детали заказа перед подтверждением.
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[70vh] pr-4">
+            <EditableOrderForm
+              product={product}
+              seller={seller}
+              buyer={buyer}
+              onConfirm={onConfirm}
+              isSubmitting={isSubmitting || false}
+            />
+          </ScrollArea>
+          <div className="flex justify-end space-x-2 mt-4 pt-4 border-t">
+            <Button variant="secondary" onClick={onCancel || handleClose}>
+              Отменить
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Оригинальный код для просмотра существующих заказов
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Подтверждение заказа</DialogTitle>
+          <DialogTitle>Информация о заказе</DialogTitle>
           <DialogDescription>
-            Проверьте детали заказа перед подтверждением.
+            Детали заказа для просмотра.
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[80vh] w-full">
@@ -306,14 +336,9 @@ const AdminOrderConfirmationDialog: React.FC<AdminOrderConfirmationDialogProps> 
           </div>
         </ScrollArea>
         <div className="flex justify-end space-x-2 mt-4">
-          <Button variant="secondary" onClick={onCancel || handleClose}>
-            Отменить
+          <Button variant="secondary" onClick={handleClose}>
+            Закрыть
           </Button>
-          {onConfirm && (
-            <Button onClick={handleConfirm} disabled={isSubmitting}>
-              {isSubmitting ? 'Создание...' : 'Подтвердить заказ'}
-            </Button>
-          )}
         </div>
       </DialogContent>
     </Dialog>
