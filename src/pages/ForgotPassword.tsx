@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -325,7 +326,7 @@ const ForgotPassword = () => {
                         <FormControl>
                           <div className="flex justify-center">
                             <InputOTP
-                              value=""
+                              value={field.value || ""}
                               onChange={(value) => field.onChange(value)}
                               maxLength={6}
                             >
