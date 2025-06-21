@@ -174,6 +174,12 @@ export const routeConfigs = [
     adminOnly: true,
   },
   {
+    path: '/admin/sell-product',
+    component: lazy(() => import('@/pages/AdminSellProduct')),
+    protected: true,
+    adminOnly: true,
+  },
+  {
     path: '/admin/stores',
     component: lazy(() => import('@/pages/AdminStores')),
     protected: true,
