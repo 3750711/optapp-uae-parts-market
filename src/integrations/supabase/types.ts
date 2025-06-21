@@ -1028,6 +1028,10 @@ export type Database = {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
       }
+      check_force_logout_status: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       check_opt_id_exists: {
         Args:
           | { p_opt_id: string }
@@ -1091,6 +1095,10 @@ export type Database = {
         Returns: string
       }
       delete_user_account: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      force_user_logout: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }

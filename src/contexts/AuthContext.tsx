@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +7,7 @@ import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedAdminRights, setCachedAdminRights } from '@/utils/performanceUtils';
 import { devLog, devError, prodError } from '@/utils/logger';
+import { aggressiveLogout, checkLogoutFlag, clearLogoutFlag } from '@/utils/aggressiveLogout';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -216,102 +218,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      devLog('👋 Starting forced sign out...');
+      devLog('🚀 Starting aggressive logout...');
       
-      // 1. Попытка серверного выхода (но не зависим от результата)
-      try {
-        await supabase.auth.signOut();
-        devLog('✅ Server sign out successful');
-      } catch (serverError) {
-        devLog('⚠️ Server sign out failed (continuing with local cleanup):', serverError);
-      }
-
-      // 2. Принудительная очистка всех данных независимо от серверного результата
-      
-      // Очищаем состояние авторизации
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      setIsAdmin(null);
-      setShowFirstLoginWelcome(false);
-      setIsLoading(false);
-      
-      // Очищаем кэш React Query
-      queryClient.clear();
-      
-      // Принудительная очистка localStorage от всех ключей Supabase
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (
-          key.startsWith('sb-') || 
-          key.includes('supabase') || 
-          key.includes('auth-token') ||
-          key.includes('vfiylfljiixqkjfqubyq')
-        )) {
-          keysToRemove.push(key);
-        }
-      }
-      
-      keysToRemove.forEach(key => {
-        try {
-          localStorage.removeItem(key);
-          devLog(`🗑️ Removed localStorage key: ${key}`);
-        } catch (error) {
-          devLog(`⚠️ Failed to remove key ${key}:`, error);
-        }
+      // Используем агрессивную функцию выхода
+      await aggressiveLogout({
+        useNuclearOption: false,
+        skipServerInvalidation: false
       });
-
-      // Очищаем sessionStorage тоже
-      const sessionKeysToRemove = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && (
-          key.startsWith('sb-') || 
-          key.includes('supabase') || 
-          key.includes('auth-token') ||
-          key.includes('vfiylfljiixqkjfqubyq')
-        )) {
-          sessionKeysToRemove.push(key);
-        }
-      }
-      
-      sessionKeysToRemove.forEach(key => {
-        try {
-          sessionStorage.removeItem(key);
-          devLog(`🗑️ Removed sessionStorage key: ${key}`);
-        } catch (error) {
-          devLog(`⚠️ Failed to remove session key ${key}:`, error);
-        }
-      });
-
-      devLog('✅ Forced sign out completed successfully');
-      
-      // 3. Принудительная перезагрузка страницы для полной очистки
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
       
     } catch (error) {
-      devLog('💥 Error during forced sign out (still clearing locally):', error);
+      devLog('💥 Error during aggressive logout, trying nuclear option:', error);
       
-      // Даже при ошибке принудительно очищаем состояние
-      setUser(null);
-      setSession(null);
-      setProfile(null);
-      setIsAdmin(null);
-      setShowFirstLoginWelcome(false);
-      setIsLoading(false);
-      queryClient.clear();
-      
-      // Перезагружаем страницу в любом случае
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      // При ошибке используем nuclear option
+      await aggressiveLogout({
+        useNuclearOption: true,
+        skipServerInvalidation: true
+      });
     }
-  }, [queryClient]);
+  }, []);
 
-  // Enhanced initialization with better timeout handling
+  // Enhanced initialization with anti-auto-login protection
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
@@ -320,6 +246,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         console.log('🔑 Starting enhanced auth setup...');
         const setupStartTime = Date.now();
+        
+        // Проверяем флаг принудительного выхода
+        if (checkLogoutFlag()) {
+          console.log('🚫 Logout flag detected, blocking auth initialization');
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setIsAdmin(false);
+            setIsLoading(false);
+          }
+          return;
+        }
         
         // Add timeout for auth setup
         const timeoutPromise = new Promise((_, reject) => 
@@ -378,10 +317,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // Enhanced auth state listener
+        // Enhanced auth state listener with logout flag check
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
             if (!mounted) return;
+            
+            // Проверяем флаг принудительного выхода
+            if (checkLogoutFlag()) {
+              console.log('🚫 Auth state change blocked by logout flag');
+              return;
+            }
             
             console.log('🔄 Auth state changed:', {
               event,
@@ -395,7 +340,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (currentSession?.user) {
               // Use setTimeout to prevent blocking
               setTimeout(() => {
-                if (mounted) {
+                if (mounted && !checkLogoutFlag()) {
                   fetchUserProfile(currentSession.user.id);
                 }
               }, 0);
@@ -426,6 +371,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mountedRef.current = false;
     };
   }, [fetchUserProfile]);
+
+  // Cleanup logout flag on successful auth
+  useEffect(() => {
+    if (user && session) {
+      // Очищаем флаг выхода при успешной авторизации
+      clearLogoutFlag();
+    }
+  }, [user, session]);
 
   // Memeoized context for preventing unnecessary re-renders
   const contextValue = useMemo(() => ({
