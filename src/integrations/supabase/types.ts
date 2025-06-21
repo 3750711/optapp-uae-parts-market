@@ -278,6 +278,7 @@ export type Database = {
           description: string | null
           id: string
           images: string[] | null
+          is_modified: boolean | null
           last_notification_hash: string | null
           last_notification_sent_at: string | null
           lot_number_order: number | null
@@ -312,6 +313,7 @@ export type Database = {
           description?: string | null
           id?: string
           images?: string[] | null
+          is_modified?: boolean | null
           last_notification_hash?: string | null
           last_notification_sent_at?: string | null
           lot_number_order?: number | null
@@ -346,6 +348,7 @@ export type Database = {
           description?: string | null
           id?: string
           images?: string[] | null
+          is_modified?: boolean | null
           last_notification_hash?: string | null
           last_notification_sent_at?: string | null
           lot_number_order?: number | null
@@ -994,10 +997,6 @@ export type Database = {
       admin_insert_product_video: {
         Args: { p_product_id: string; p_url: string }
         Returns: undefined
-      }
-      calculate_order_hash: {
-        Args: { p_order_id: string }
-        Returns: string
       }
       check_opt_id_exists: {
         Args:
