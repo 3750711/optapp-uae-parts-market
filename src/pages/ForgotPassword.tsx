@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -169,6 +168,14 @@ const ForgotPassword = () => {
 
       // Успешно отправлено
       setSentToEmail(emailToUse);
+      
+      // Очищаем форму кода перед переходом к шагу ввода кода
+      codeForm.reset({
+        code: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      
       setStep('code');
       setFailedAttempts(0);
       setShowCaptcha(false);
@@ -287,7 +294,7 @@ const ForgotPassword = () => {
                         <FormControl>
                           <div className="flex justify-center">
                             <InputOTP
-                              value={field.value || ""}
+                              value=""
                               onChange={(value) => field.onChange(value)}
                               maxLength={6}
                             >
@@ -353,7 +360,15 @@ const ForgotPassword = () => {
                   </Button>
                   
                   <Button 
-                    onClick={() => setStep('email')}
+                    onClick={() => {
+                      // Очищаем форму кода при возвращении назад
+                      codeForm.reset({
+                        code: "",
+                        newPassword: "",
+                        confirmPassword: "",
+                      });
+                      setStep('email');
+                    }}
                     variant="outline" 
                     className="w-full"
                   >
