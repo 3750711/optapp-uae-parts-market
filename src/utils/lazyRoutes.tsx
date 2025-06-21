@@ -162,6 +162,12 @@ export const routeConfigs = [
     adminOnly: true,
   },
   {
+    path: '/admin/create-order-from-product',
+    component: lazy(() => import('@/pages/AdminCreateOrderFromProduct')),
+    protected: true,
+    adminOnly: true,
+  },
+  {
     path: '/admin/create-order-from-product/:id',
     component: lazy(() => import('@/pages/AdminCreateOrderFromProduct')),
     protected: true,
