@@ -287,8 +287,8 @@ const ForgotPassword = () => {
                         <FormControl>
                           <div className="flex justify-center">
                             <InputOTP
-                              value={field.value}
-                              onChange={field.onChange}
+                              value={field.value || ""}
+                              onChange={(value) => field.onChange(value)}
                               maxLength={6}
                             >
                               <InputOTPGroup>
