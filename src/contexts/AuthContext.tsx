@@ -216,8 +216,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      devLog('👋 Signing out user...');
-      await supabase.auth.signOut();
+      devLog('👋 Starting forced sign out...');
+      
+      // 1. Попытка серверного выхода (но не зависим от результата)
+      try {
+        await supabase.auth.signOut();
+        devLog('✅ Server sign out successful');
+      } catch (serverError) {
+        devLog('⚠️ Server sign out failed (continuing with local cleanup):', serverError);
+      }
+
+      // 2. Принудительная очистка всех данных независимо от серверного результата
+      
+      // Очищаем состояние авторизации
       setUser(null);
       setSession(null);
       setProfile(null);
@@ -225,11 +236,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowFirstLoginWelcome(false);
       setIsLoading(false);
       
-      // Очищаем кэш при выходе
+      // Очищаем кэш React Query
       queryClient.clear();
-      devLog('✅ User signed out successfully');
+      
+      // Принудительная очистка localStorage от всех ключей Supabase
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('sb-') || 
+          key.includes('supabase') || 
+          key.includes('auth-token') ||
+          key.includes('vfiylfljiixqkjfqubyq')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      
+      keysToRemove.forEach(key => {
+        try {
+          localStorage.removeItem(key);
+          devLog(`🗑️ Removed localStorage key: ${key}`);
+        } catch (error) {
+          devLog(`⚠️ Failed to remove key ${key}:`, error);
+        }
+      });
+
+      // Очищаем sessionStorage тоже
+      const sessionKeysToRemove = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (
+          key.startsWith('sb-') || 
+          key.includes('supabase') || 
+          key.includes('auth-token') ||
+          key.includes('vfiylfljiixqkjfqubyq')
+        )) {
+          sessionKeysToRemove.push(key);
+        }
+      }
+      
+      sessionKeysToRemove.forEach(key => {
+        try {
+          sessionStorage.removeItem(key);
+          devLog(`🗑️ Removed sessionStorage key: ${key}`);
+        } catch (error) {
+          devLog(`⚠️ Failed to remove session key ${key}:`, error);
+        }
+      });
+
+      devLog('✅ Forced sign out completed successfully');
+      
+      // 3. Принудительная перезагрузка страницы для полной очистки
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
+      
     } catch (error) {
-      prodError(new Error('Error during sign out'), { error });
+      devLog('💥 Error during forced sign out (still clearing locally):', error);
+      
+      // Даже при ошибке принудительно очищаем состояние
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setIsAdmin(null);
+      setShowFirstLoginWelcome(false);
+      setIsLoading(false);
+      queryClient.clear();
+      
+      // Перезагружаем страницу в любом случае
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
   }, [queryClient]);
 
