@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -317,33 +316,46 @@ const ForgotPassword = () => {
               </CardDescription>
             </CardHeader>
             <Form {...codeForm}>
-              <form onSubmit={codeForm.handleSubmit(onSubmitCode)}>
+              <form onSubmit={codeForm.handleSubmit(onSubmitCode)} key="code-form">
                 <CardContent className="space-y-4">
                   <FormField
                     control={codeForm.control}
                     name="code"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Код подтверждения (6 цифр)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="123456"
-                            maxLength={6}
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            className="text-center text-xl tracking-widest font-mono"
-                            {...field}
-                            onChange={(e) => {
-                              // Разрешаем только цифры
-                              const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                              field.onChange(numericValue);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      // Отладочная информация
+                      console.log("Code field debug:", {
+                        fieldValue: field.value,
+                        fieldName: field.name,
+                        sentToEmail: sentToEmail
+                      });
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Код подтверждения (6 цифр)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="text"
+                              placeholder="123456"
+                              maxLength={6}
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              className="text-center text-xl tracking-widest font-mono"
+                              autoComplete="off"
+                              name={field.name}
+                              ref={field.ref}
+                              onBlur={field.onBlur}
+                              value=""
+                              onChange={(e) => {
+                                // Разрешаем только цифры
+                                const numericValue = e.target.value.replace(/[^0-9]/g, '');
+                                field.onChange(numericValue);
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
                   />
 
                   <FormField

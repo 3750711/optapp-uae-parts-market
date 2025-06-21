@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -233,6 +232,13 @@ const EmailVerificationForm = ({
                 type="text"
                 value={code}
                 onChange={(e) => {
+                  // Отладочная информация
+                  console.log("EmailVerification code debug:", {
+                    inputValue: e.target.value,
+                    currentCode: code,
+                    email: email
+                  });
+                  
                   // Разрешаем только цифры
                   const numericValue = e.target.value.replace(/[^0-9]/g, '');
                   if (numericValue.length <= 6) {
@@ -245,6 +251,7 @@ const EmailVerificationForm = ({
                 pattern="[0-9]*"
                 className="text-center text-xl tracking-widest font-mono"
                 disabled={isLoading}
+                autoComplete="off"
               />
             </div>
 
