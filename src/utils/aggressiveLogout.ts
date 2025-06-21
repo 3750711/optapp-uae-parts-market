@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { devLog, devError } from '@/utils/logger';
 
@@ -312,43 +311,85 @@ const nuclearCleanup = async () => {
 };
 
 /**
- * Проверить флаг принудительного выхода
+ * Проверить флаг принудительного выхода - УЛУЧШЕННАЯ ВЕРСИЯ
  */
 export const checkLogoutFlag = (): boolean => {
   try {
     const localFlag = localStorage.getItem('logout_forced');
     const sessionFlag = sessionStorage.getItem('logout_forced');
     
-    if (localFlag || sessionFlag) {
-      const flagData = JSON.parse(localFlag || sessionFlag || '{}');
-      const timeDiff = Date.now() - (flagData.timestamp || 0);
-      
-      // Флаг действует 5 минут
-      if (timeDiff < 5 * 60 * 1000) {
-        devLog('🚫 Logout flag detected - blocking auto-login');
-        return true;
-      } else {
-        // Очищаем устаревший флаг
-        clearLogoutFlag();
-      }
+    if (!localFlag && !sessionFlag) {
+      devLog('🟢 No logout flag found - allowing session');
+      return false;
     }
     
-    return false;
+    const flagData = JSON.parse(localFlag || sessionFlag || '{}');
+    const timeDiff = Date.now() - (flagData.timestamp || 0);
+    const flagAge = Math.floor(timeDiff / 1000 / 60); // в минутах
+    
+    devLog(`🔍 Logout flag check: age=${flagAge}min, forced=${flagData.forced}`);
+    
+    // Флаг действует только 2 минуты (уменьшено с 5)
+    if (timeDiff < 2 * 60 * 1000) {
+      devLog(`🚫 Logout flag active (${flagAge}min old) - blocking auto-login`);
+      return true;
+    } else {
+      // Очищаем устаревший флаг
+      devLog(`🧹 Logout flag expired (${flagAge}min old) - clearing and allowing session`);
+      clearLogoutFlag();
+      return false;
+    }
   } catch (error) {
     devLog('⚠️ Failed to check logout flag:', error);
+    // При ошибке очищаем флаг и разрешаем авторизацию
+    clearLogoutFlag();
     return false;
   }
 };
 
 /**
- * Очистить флаг принудительного выхода
+ * Очистить флаг принудительного выхода - УЛУЧШЕННАЯ ВЕРСИЯ
  */
 export const clearLogoutFlag = () => {
   try {
+    const hadLocalFlag = !!localStorage.getItem('logout_forced');
+    const hadSessionFlag = !!sessionStorage.getItem('logout_forced');
+    
     localStorage.removeItem('logout_forced');
     sessionStorage.removeItem('logout_forced');
-    devLog('🧹 Logout flag cleared');
+    
+    if (hadLocalFlag || hadSessionFlag) {
+      devLog('🧹 Logout flag cleared successfully');
+    }
   } catch (error) {
     devLog('⚠️ Failed to clear logout flag:', error);
+  }
+};
+
+/**
+ * Проверить статус флага для debug информации
+ */
+export const getLogoutFlagStatus = () => {
+  try {
+    const localFlag = localStorage.getItem('logout_forced');
+    const sessionFlag = sessionStorage.getItem('logout_forced');
+    
+    if (!localFlag && !sessionFlag) {
+      return { exists: false, age: 0, source: null };
+    }
+    
+    const flagData = JSON.parse(localFlag || sessionFlag || '{}');
+    const timeDiff = Date.now() - (flagData.timestamp || 0);
+    const ageMinutes = Math.floor(timeDiff / 1000 / 60);
+    
+    return {
+      exists: true,
+      age: ageMinutes,
+      source: localFlag ? 'localStorage' : 'sessionStorage',
+      forced: flagData.forced,
+      version: flagData.version
+    };
+  } catch (error) {
+    return { exists: false, age: 0, source: null, error: error.message };
   }
 };

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -22,6 +21,7 @@ import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/au
 import { Mail, User, Shield, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
 import { useAuth } from "@/contexts/AuthContext";
+import { clearLogoutFlag } from "@/utils/aggressiveLogout";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -169,6 +169,10 @@ const Login = () => {
         });
         return;
       }
+
+      // 🔥 КРИТИЧЕСКИ ВАЖНО: Очищаем флаг принудительного выхода СРАЗУ после успешного входа
+      console.log('🧹 Clearing logout flag after successful login');
+      clearLogoutFlag();
 
       // Логируем успешный вход
       await logSuccessfulLogin(data.emailOrOptId, inputType);
