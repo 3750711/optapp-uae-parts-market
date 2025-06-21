@@ -1,152 +1,109 @@
-
-import React, { Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'next-themes';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { HelmetProvider } from 'react-helmet-async';
-import { AuthProvider } from '@/contexts/AuthContext';
-import { GlobalErrorBoundary } from '@/components/error/GlobalErrorBoundary';
-import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import { AdminRoute } from '@/components/auth/AdminRoute';
+import GlobalErrorBoundary from '@/components/error/GlobalErrorBoundary';
+import { lazy, Suspense } from 'react';
+import { LoadingState } from '@/components/ui/LoadingState';
 
-// Import оптимизированных route configs
-import { routeConfigs, preloadCriticalRoutes, preloadAdminRoutes, preloadSellerRoutes } from '@/utils/lazyRoutes';
+// Lazy load pages for better performance
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const OrdersRedirect = lazy(() => import("./pages/OrdersRedirect"));
+const Profile = lazy(() => import("./pages/Profile"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Catalog = lazy(() => import("./pages/Catalog"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
-// Импортируем систему мониторинга ошибок
-import '@/utils/errorReporting';
+// Seller Routes
+const SellerDashboard = lazy(() => import("./pages/seller/SellerDashboard"));
+const SellerProducts = lazy(() => import("./pages/seller/SellerProducts"));
+const SellerOrders = lazy(() => import("./pages/seller/SellerOrders"));
+const SellerSettings = lazy(() => import("./pages/seller/SellerSettings"));
 
-// Оптимизированная конфигурация React Query
-const createQueryClient = () => new QueryClient({
+// Buyer Routes
+const BuyerDashboard = lazy(() => import("./pages/buyer/BuyerDashboard"));
+const BuyerOrders = lazy(() => import("./pages/buyer/BuyerOrders"));
+const BuyerWishlist = lazy(() => import("./pages/buyer/BuyerWishlist"));
+const BuyerSettings = lazy(() => import("./pages/buyer/BuyerSettings"));
+
+// Admin Routes
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
+
+const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: (failureCount, error: any) => {
-        if (error?.status === 404 || error?.status === 403) return false;
-        return failureCount < 3;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      retry: 1,
       refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-      staleTime: 1000 * 60 * 5, // 5 минут
-      gcTime: 1000 * 60 * 15, // 15 минут
-      refetchOnMount: (query) => {
-        const dataAge = Date.now() - (query.state.dataUpdatedAt || 0);
-        return dataAge > 1000 * 60 * 2; // Обновляем если старше 2 минут
-      },
-    },
-    mutations: {
-      retry: 2,
-      retryDelay: 1000,
     },
   },
 });
 
-// Оптимизированный компонент загрузки
-const LoadingFallback = React.memo(() => (
-  <div className="flex items-center justify-center min-h-screen bg-gray-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-optapp-yellow mx-auto mb-4"></div>
-      <p className="text-gray-600 text-sm">Загрузка...</p>
-    </div>
-  </div>
-));
+const App = () => (
+  <GlobalErrorBoundary>
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Suspense fallback={<LoadingState />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
+                  <Route path="/orders-redirect" element={<OrdersRedirect />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/product/:id" element={<ProductDetail />} />
+                  <Route path="/catalog" element={<Catalog />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  
+                  {/* Seller Routes */}
+                  <Route path="/seller/dashboard" element={<SellerDashboard />} />
+                  <Route path="/seller/products" element={<SellerProducts />} />
+                  <Route path="/seller/orders" element={<SellerOrders />} />
+                  <Route path="/seller/settings" element={<SellerSettings />} />
 
-LoadingFallback.displayName = 'LoadingFallback';
+                  {/* Buyer Routes */}
+                  <Route path="/buyer/dashboard" element={<BuyerDashboard />} />
+                  <Route path="/buyer/orders" element={<BuyerOrders />} />
+                  <Route path="/buyer/wishlist" element={<BuyerWishlist />} />
+                  <Route path="/buyer/settings" element={<BuyerSettings />} />
 
-function App() {
-  // Создаем QueryClient один раз
-  const [queryClient] = React.useState(() => createQueryClient());
-
-  // Предзагружаем критические маршруты
-  React.useEffect(() => {
-    preloadCriticalRoutes();
-    
-    // Отслеживаем изменения в localStorage для роли пользователя
-    const handleUserRoleChange = () => {
-      const cachedProfile = localStorage.getItem('auth_profile_cache');
-      if (cachedProfile) {
-        try {
-          const profile = JSON.parse(cachedProfile);
-          if (profile.user_type === 'admin') {
-            preloadAdminRoutes();
-          } else if (profile.user_type === 'seller') {
-            preloadSellerRoutes();
-          }
-        } catch (error) {
-          console.warn('Failed to parse cached profile for preloading');
-        }
-      }
-    };
-    
-    handleUserRoleChange();
-    window.addEventListener('storage', handleUserRoleChange);
-    
-    return () => {
-      window.removeEventListener('storage', handleUserRoleChange);
-    };
-  }, []);
-
-  return (
-    <GlobalErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <AuthProvider>
-              <Router>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    {routeConfigs.map((route) => {
-                      const { path, component: Component, protected: isProtected, adminOnly } = route;
-                      
-                      if (adminOnly) {
-                        return (
-                          <Route
-                            key={path}
-                            path={path}
-                            element={
-                              <AdminRoute>
-                                <Component />
-                              </AdminRoute>
-                            }
-                          />
-                        );
-                      }
-                      
-                      if (isProtected) {
-                        return (
-                          <Route
-                            key={path}
-                            path={path}
-                            element={
-                              <ProtectedRoute>
-                                <Component />
-                              </ProtectedRoute>
-                            }
-                          />
-                        );
-                      }
-                      
-                      return (
-                        <Route
-                          key={path}
-                          path={path}
-                          element={<Component />}
-                        />
-                      );
-                    })}
-                  </Routes>
-                </Suspense>
-              </Router>
-            </AuthProvider>
-          </ThemeProvider>
-        </QueryClientProvider>
-      </HelmetProvider>
-    </GlobalErrorBoundary>
-  );
-}
+                  {/* Admin Routes */}
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/products" element={<AdminProducts />} />
+                  <Route path="/admin/orders" element={<AdminOrders />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  </GlobalErrorBoundary>
+);
 
 export default App;

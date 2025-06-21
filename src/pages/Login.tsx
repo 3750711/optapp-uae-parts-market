@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -18,7 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/authUtils";
+import { detectInputType, getEmailByOptId, logSuccessfulLogin, logFailedLogin } from "@/utils/authUtils";
 import { Mail, User, Shield, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
 import { useAuth } from "@/contexts/AuthContext";
@@ -139,6 +138,8 @@ const Login = () => {
         
         if (!result.email) {
           handleFailedAttempt();
+          // Логируем неудачную попытку
+          await logFailedLogin(data.emailOrOptId, inputType, 'OPT ID not found');
           toast({
             title: "Ошибка входа",
             description: "Неверные учетные данные",
@@ -160,6 +161,9 @@ const Login = () => {
       if (error) {
         console.error("Login error:", error);
         handleFailedAttempt();
+        
+        // Логируем неудачную попытку
+        await logFailedLogin(data.emailOrOptId, inputType, error.message);
         
         // Унифицированное сообщение об ошибке для всех случаев
         toast({
@@ -198,6 +202,9 @@ const Login = () => {
     } catch (error: any) {
       console.error("Login error:", error);
       handleFailedAttempt();
+      
+      // Логируем неудачную попытку
+      await logFailedLogin(data.emailOrOptId, inputType, error.message);
       
       // Унифицированное сообщение об ошибке
       toast({
