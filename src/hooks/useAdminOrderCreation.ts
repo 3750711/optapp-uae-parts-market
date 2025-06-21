@@ -61,19 +61,20 @@ export const useAdminOrderCreation = () => {
       }
 
       // Используем RPC функцию для создания заказа администратором
+      // Приводим к тому же формату, что работает в свободном заказе
       const orderPayload = {
         p_title: selectedProduct.title,
         p_price: orderData.price,
         p_place_number: 1,
         p_seller_id: selectedSeller.id,
-        p_order_seller_name: selectedSeller.full_name,
-        p_seller_opt_id: selectedSeller.opt_id || '',
+        p_order_seller_name: null, // ✅ null - триггер установит автоматически
+        p_seller_opt_id: null,     // ✅ null - триггер установит автоматически
         p_buyer_id: selectedBuyer.id,
         p_brand: selectedProduct.brand || '',
         p_model: selectedProduct.model || '',
-        p_status: 'seller_confirmed' as const,
+        p_status: 'created' as const, // ✅ Используем тот же статус, что в свободном заказе
         p_order_created_type: 'product_order' as const,
-        p_telegram_url_order: selectedBuyer.telegram || '',
+        p_telegram_url_order: null, // ✅ null - триггер установит
         p_images: orderData.orderImages,
         p_product_id: selectedProduct.id,
         p_delivery_method: orderData.deliveryMethod as 'cargo_rf' | 'cargo_kz' | 'self_pickup',
@@ -81,13 +82,13 @@ export const useAdminOrderCreation = () => {
         p_delivery_price_confirm: orderData.deliveryPrice || null
       };
 
-      console.log("RPC payload:", orderPayload);
+      console.log("✅ Fixed RPC payload (aligned with free order logic):", orderPayload);
 
       const { data: orderId, error: orderError } = await supabase
         .rpc('admin_create_order', orderPayload);
 
       if (orderError) {
-        console.error("Error creating order:", orderError);
+        console.error("❌ Error creating order:", orderError);
         
         // Обработка специфических ошибок от базы данных
         if (orderError.message?.includes('Product is not available for order')) {
@@ -111,7 +112,7 @@ export const useAdminOrderCreation = () => {
         throw orderError;
       }
 
-      console.log("Order created with ID:", orderId);
+      console.log("✅ Order created with ID:", orderId);
 
       // Получаем данные созданного заказа для Telegram уведомления
       const { data: createdOrder, error: fetchError } = await supabase
@@ -121,13 +122,13 @@ export const useAdminOrderCreation = () => {
         .single();
 
       if (fetchError) {
-        console.error("Error fetching created order:", fetchError);
+        console.error("❌ Error fetching created order:", fetchError);
       }
 
       // Отправляем Telegram уведомление о создании заказа
       if (createdOrder) {
         try {
-          console.log("Sending Telegram notification for order creation:", createdOrder);
+          console.log("📱 Sending Telegram notification for order creation:", createdOrder);
           
           const { error: notificationError } = await supabase.functions.invoke('send-telegram-notification', {
             body: {
@@ -137,12 +138,12 @@ export const useAdminOrderCreation = () => {
           });
 
           if (notificationError) {
-            console.error("Error sending order creation notification:", notificationError);
+            console.error("❌ Error sending order creation notification:", notificationError);
           } else {
-            console.log("Order creation notification sent successfully");
+            console.log("✅ Order creation notification sent successfully");
           }
         } catch (notificationError) {
-          console.error("Exception while sending order notification:", notificationError);
+          console.error("❌ Exception while sending order notification:", notificationError);
         }
       }
 
@@ -154,7 +155,7 @@ export const useAdminOrderCreation = () => {
       return orderId;
 
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error("💥 Error creating order:", error);
       const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
       toast({
         title: "Ошибка создания заказа",
