@@ -393,6 +393,36 @@ export type Database = {
           },
         ]
       }
+      password_reset_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          opt_id: string | null
+          used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          opt_id?: string | null
+          used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          opt_id?: string | null
+          used?: boolean | null
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           created_at: string
@@ -1012,6 +1042,10 @@ export type Database = {
         Args: { p_user_id: string; p_search_type?: string }
         Returns: boolean
       }
+      cleanup_expired_password_reset_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_expired_verification_codes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1193,6 +1227,10 @@ export type Database = {
           p_video_url?: string[]
         }
         Returns: boolean
+      }
+      verify_and_reset_password: {
+        Args: { p_email: string; p_code: string; p_new_password: string }
+        Returns: Json
       }
       verify_email_code: {
         Args: { p_email: string; p_code: string }
