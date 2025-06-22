@@ -7,7 +7,6 @@ import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { useQueryClient } from '@tanstack/react-query';
 import { getCachedAdminRights, setCachedAdminRights } from '@/utils/performanceUtils';
 import { devLog, devError, prodError } from '@/utils/logger';
-import { aggressiveLogout, checkLogoutFlag, clearLogoutFlag, checkLogoutFlagForNewLogin, getLogoutFlagInfo } from '@/utils/aggressiveLogout';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -211,12 +210,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, refreshProfile]);
 
-  // Новая функция принудительной реинициализации авторизации
+  // Standard auth reinitialize function
   const forceAuthReinit = useCallback(async () => {
     console.log('🔄 Force auth reinitialize requested...');
     
     try {
-      // Получаем текущую сессию принудительно
+      // Get current session
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -229,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(currentSession);
         setUser(currentSession.user);
         
-        // Загружаем профиль
+        // Load profile
         setTimeout(() => {
           if (mountedRef.current) {
             fetchUserProfile(currentSession.user.id);
@@ -250,66 +249,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      devLog('🚀 Starting aggressive logout...');
+      devLog('🚀 Starting standard logout...');
       
-      // Используем агрессивную функцию выхода
-      await aggressiveLogout({
-        useNuclearOption: false,
-        skipServerInvalidation: false
-      });
+      // Standard Supabase sign out
+      await supabase.auth.signOut();
       
     } catch (error) {
-      devLog('💥 Error during aggressive logout, trying nuclear option:', error);
-      
-      // При ошибке используем nuclear option
-      await aggressiveLogout({
-        useNuclearOption: true,
-        skipServerInvalidation: true
-      });
+      devLog('💥 Error during logout:', error);
+      console.error('Logout error:', error);
     }
   }, []);
 
-  // Enhanced initialization with improved flag checking
+  // Standard initialization
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
     
     const setupAuth = async () => {
       try {
-        console.log('🔑 Starting enhanced auth setup...');
+        console.log('🔑 Starting standard auth setup...');
         const setupStartTime = Date.now();
-        
-        // Улучшенная проверка флага выхода - используем мягкую логику
-        const logoutFlagInfo = getLogoutFlagInfo();
-        if (logoutFlagInfo.exists) {
-          console.log('🏴 Logout flag found:', logoutFlagInfo);
-          
-          // Если флаг старше 10 секунд, игнорируем его и очищаем
-          if (logoutFlagInfo.age > 10) {
-            console.log('🧹 Logout flag is old, clearing and continuing...');
-            clearLogoutFlag();
-          } else {
-            console.log('🚫 Recent logout flag detected, blocking auth for', logoutFlagInfo.willExpireIn, 'seconds');
-            
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setIsAdmin(false);
-              setIsLoading(false);
-            }
-            
-            // Переинициализируем через короткое время
-            setTimeout(() => {
-              if (mounted) {
-                console.log('🔄 Retrying auth setup after logout flag timeout...');
-                setupAuth();
-              }
-            }, logoutFlagInfo.willExpireIn * 1000 + 1000);
-            
-            return;
-          }
-        }
         
         // Add timeout for auth setup
         const timeoutPromise = new Promise((_, reject) => 
@@ -346,7 +305,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             
             if (currentSession?.user) {
               console.log('👤 User found, fetching profile...');
-              // Используем setTimeout для предотвращения блокировки
+              // Use setTimeout to prevent blocking
               setTimeout(() => {
                 if (mounted) {
                   fetchUserProfile(currentSession.user.id);
@@ -373,12 +332,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        // Очищаем предыдущий слушатель если есть
+        // Clear previous listener if exists
         if (authListenerRef.current) {
           authListenerRef.current.subscription.unsubscribe();
         }
         
-        // Enhanced auth state listener with improved flag checking
+        // Standard auth state listener 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, currentSession) => {
             if (!mounted) return;
@@ -389,23 +348,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               userId: currentSession?.user?.id
             });
             
-            // Улучшенная проверка флага - разрешаем новые валидные сессии
-            if (event === 'SIGNED_IN' && currentSession) {
-              // При новом входе всегда очищаем флаг
-              console.log('✅ New sign in detected, clearing any logout flags...');
-              clearLogoutFlag();
-            } else if (checkLogoutFlagForNewLogin() && event !== 'SIGNED_OUT') {
-              console.log('🚫 Auth state change blocked by logout flag for event:', event);
-              return;
-            }
-            
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
               // Use setTimeout to prevent blocking the auth state change callback
               setTimeout(() => {
-                if (mounted && !checkLogoutFlagForNewLogin()) {
+                if (mounted) {
                   fetchUserProfile(currentSession.user.id);
                 }
               }, 0);
@@ -441,15 +390,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
   }, [fetchUserProfile]);
-
-  // Cleanup logout flag on successful auth
-  useEffect(() => {
-    if (user && session) {
-      // Очищаем флаг выхода при успешной авторизации
-      console.log('✅ User authenticated, clearing any remaining logout flags...');
-      clearLogoutFlag();
-    }
-  }, [user, session]);
 
   // Memeoized context for preventing unnecessary re-renders
   const contextValue = useMemo(() => ({

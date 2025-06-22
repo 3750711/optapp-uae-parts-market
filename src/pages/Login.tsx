@@ -22,7 +22,6 @@ import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/au
 import { Mail, User, Shield, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearLogoutFlag, checkLogoutFlagForNewLogin, getLogoutFlagInfo } from "@/utils/aggressiveLogout";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -32,7 +31,7 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
-  // ✅ ВСЕ ХУКИ ОБЪЯВЛЯЮТСЯ СНАЧАЛА (до любых условных возвратов)
+  // ✅ All hooks declared first (before any conditional returns)
   const { user, isLoading, forceAuthReinit } = useAuth();
   const navigate = useNavigate();
   const [isLoadingForm, setIsLoadingForm] = useState(false);
@@ -52,28 +51,14 @@ const Login = () => {
 
   const watchedInput = form.watch('emailOrOptId');
 
-  // ✅ Немедленная очистка флага при загрузке страницы входа
-  useEffect(() => {
-    console.log('🔑 Login page loaded - checking logout flag...');
-    
-    const flagInfo = getLogoutFlagInfo();
-    if (flagInfo.exists) {
-      console.log('🏴 Logout flag found:', flagInfo);
-      console.log('🧹 Clearing logout flag to allow new login...');
-      clearLogoutFlag();
-    } else {
-      console.log('✅ No logout flag found - login page ready');
-    }
-  }, []);
-
-  // Перенаправляем авторизованных пользователей
+  // Redirect authenticated users
   useEffect(() => {
     if (!isLoading && user) {
       navigate("/", { replace: true });
     }
   }, [user, isLoading, navigate]);
 
-  // Определяем тип ввода в реальном времени
+  // Determine input type in real time
   useEffect(() => {
     if (watchedInput) {
       const type = detectInputType(watchedInput);
@@ -83,8 +68,8 @@ const Login = () => {
     }
   }, [watchedInput]);
 
-  // ✅ УСЛОВНЫЕ ВОЗВРАТЫ ТОЛЬКО ПОСЛЕ ВСЕХ ХУКОВ
-  // Показываем загрузку пока проверяется авторизация
+  // ✅ Conditional returns only after all hooks
+  // Show loading while checking authorization
   if (isLoading) {
     return (
       <Layout>
@@ -100,17 +85,17 @@ const Login = () => {
     );
   }
 
-  // Если пользователь авторизован, не показываем форму
+  // If user is authenticated, don't show form
   if (user) {
     return null;
   }
 
-  // ✅ ФУНКЦИИ-ОБРАБОТЧИКИ ПОСЛЕ УСЛОВНЫХ ВОЗВРАТОВ
+  // ✅ Event handlers after conditional returns
   const handleFailedAttempt = () => {
     const newFailedAttempts = failedAttempts + 1;
     setFailedAttempts(newFailedAttempts);
     
-    // Показываем CAPTCHA после 3 неудачных попыток
+    // Show CAPTCHA after 3 failed attempts
     if (newFailedAttempts >= 3) {
       setShowCaptcha(true);
       setCaptchaVerified(false);
@@ -118,17 +103,7 @@ const Login = () => {
   };
 
   const onSubmit = async (data: FormData) => {
-    // Проверяем мягкую блокировку для нового входа
-    if (checkLogoutFlagForNewLogin()) {
-      toast({
-        title: "Попробуйте через несколько секунд",
-        description: "Недавно был выполнен выход из системы",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Проверяем CAPTCHA если она требуется
+    // Check CAPTCHA if required
     if (showCaptcha && !captchaVerified) {
       toast({
         title: "Необходима проверка",
@@ -146,7 +121,7 @@ const Login = () => {
       const inputType = detectInputType(data.emailOrOptId);
       let emailToUse = data.emailOrOptId;
 
-      // Если введен OPT ID, найдем соответствующий email
+      // If OPT ID entered, find corresponding email
       if (inputType === 'opt_id') {
         console.log("🔍 Detected OPT ID, searching for email...");
         const result = await getEmailByOptId(data.emailOrOptId);
@@ -175,11 +150,7 @@ const Login = () => {
         console.log("✅ Found email for OPT ID:", emailToUse);
       }
 
-      // Дополнительная очистка флага перед входом
-      console.log('🧹 Clearing logout flag before sign in...');
-      clearLogoutFlag();
-
-      // Выполняем вход с найденным email
+      // Sign in with found email
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password: data.password,
@@ -189,7 +160,7 @@ const Login = () => {
         console.error("❌ Login error:", error);
         handleFailedAttempt();
         
-        // Унифицированное сообщение об ошибке для всех случаев
+        // Unified error message for all cases
         toast({
           title: "Ошибка входа",
           description: "Неверные учетные данные",
@@ -200,36 +171,32 @@ const Login = () => {
 
       console.log("✅ Login successful, user:", authData.user?.email);
 
-      // Принудительная очистка флага после успешного входа
-      console.log('🧹 Clearing logout flag after successful login...');
-      clearLogoutFlag();
-
-      // Принудительная реинициализация авторизации
+      // Force auth reinitialize
       if (forceAuthReinit) {
         console.log('🔄 Forcing auth reinitialize...');
         await forceAuthReinit();
       }
 
-      // Логируем успешный вход  
+      // Log successful login  
       await logSuccessfulLogin(data.emailOrOptId, inputType);
 
-      // Сбрасываем счетчики после успешного входа
+      // Reset counters after successful login
       setFailedAttempts(0);
       setShowCaptcha(false);
       setCaptchaVerified(false);
       setIsRateLimited(false);
 
-      // Показываем сообщение об успехе
+      // Show success message
       toast({
         title: "Вход выполнен успешно",
         description: "Добро пожаловать в partsbay.ae",
       });
       
-      // Проверяем URL для параметра "from" для редиректа
+      // Check URL for "from" parameter for redirect
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // Добавляем небольшую задержку для обновления состояния авторизации
+      // Add small delay for auth state update
       setTimeout(() => {
         console.log("🚀 Redirecting to:", from);
         navigate(from);
@@ -239,7 +206,7 @@ const Login = () => {
       console.error("💥 Login error:", error);
       handleFailedAttempt();
       
-      // Унифицированное сообщение об ошибке
+      // Unified error message
       toast({
         title: "Ошибка входа",
         description: "Неверные учетные данные",
@@ -267,7 +234,7 @@ const Login = () => {
     return `example@mail.com или ${generateRandomOptId()}`;
   };
 
-  // ✅ ОСНОВНОЙ RENDER ПОСЛЕ ВСЕХ ХУКОВ И ФУНКЦИЙ
+  // ✅ Main render after all hooks and functions
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
