@@ -4,13 +4,15 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useProfile } from "@/contexts/ProfileProvider";
 import OptimizedSellerDashboard from "@/components/seller/OptimizedSellerDashboard";
-import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import SimpleProtectedRoute from "@/components/auth/SimpleProtectedRoute";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useProfile();
 
   const handleGoBack = () => {
     try {
@@ -26,7 +28,7 @@ const SellerDashboard = () => {
   };
 
   return (
-    <ProtectedRoute allowedRoles={['seller']}>
+    <SimpleProtectedRoute>
       <Layout>
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center mb-6">
@@ -44,7 +46,7 @@ const SellerDashboard = () => {
           <OptimizedSellerDashboard />
         </div>
       </Layout>
-    </ProtectedRoute>
+    </SimpleProtectedRoute>
   );
 };
 
