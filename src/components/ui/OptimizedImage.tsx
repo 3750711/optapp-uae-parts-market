@@ -30,30 +30,34 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   size = 'card'
 }) => {
   const [imageError, setImageError] = useState(false);
-  const [fallbackUsed, setFallbackUsed] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const handleImageError = useCallback(() => {
-    if (!fallbackUsed) {
-      setFallbackUsed(true);
-    } else {
-      setImageError(true);
-    }
+    console.log('Image loading error for src:', src);
+    setImageError(true);
     onError?.();
-  }, [fallbackUsed, onError]);
+  }, [src, onError]);
 
   const handleImageLoad = useCallback(() => {
     setIsLoaded(true);
     onLoad?.();
   }, [onLoad]);
 
-  // Try to get a usable public_id
+  // Determine the best public_id to use
   const workingPublicId = cloudinaryPublicId || 
-    (cloudinaryUrl ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
+    (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com') ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
     (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
 
-  // If we have a working public_id and no errors, use optimized CloudinaryImage
-  if (workingPublicId && !imageError && !fallbackUsed) {
+  console.log('OptimizedImage debug:', {
+    src,
+    cloudinaryPublicId,
+    cloudinaryUrl,
+    workingPublicId,
+    imageError
+  });
+
+  // Use CloudinaryImage if we have a valid public_id and no errors
+  if (workingPublicId && !imageError) {
     return (
       <CloudinaryImage
         publicId={workingPublicId}
@@ -68,25 +72,12 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // Use original/optimized URL with fallback handling
-  const imageUrl = fallbackUsed ? '/placeholder.svg' : (getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl));
-
-  if (imageError || imageUrl === '/placeholder.svg') {
-    return (
-      <img
-        src="/placeholder.svg"
-        alt={alt}
-        className={`${className} object-contain`}
-        onLoad={handleImageLoad}
-        loading={priority ? 'eager' : 'lazy'}
-        sizes={sizes}
-      />
-    );
-  }
+  // Fallback to regular image with optimized URL
+  const imageUrl = imageError ? '/placeholder.svg' : (getCatalogImageUrl(src, cloudinaryPublicId, '/placeholder.svg', cloudinaryUrl));
 
   return (
     <div className={`relative ${className}`}>
-      {!isLoaded && !priority && (
+      {!isLoaded && !priority && !imageError && (
         <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
       )}
       <img

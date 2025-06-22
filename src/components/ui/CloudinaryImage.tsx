@@ -27,24 +27,23 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
 
   // Size configurations for different use cases
   const sizeConfig = {
-    thumbnail: { width: 150, height: 150, quality: 70 },
-    card: { width: 400, height: 300, quality: 80 },
-    detail: { width: 800, height: 600, quality: 90 }
+    thumbnail: { width: 150, height: 150, quality: 'auto:low' },
+    card: { width: 400, height: 300, quality: 'auto:low' },
+    detail: { width: 800, height: 600, quality: 'auto:good' }
   };
 
   const config = sizeConfig[size];
 
-  // Generate optimized Cloudinary URL with WebP support and progressive loading
+  // Generate optimized Cloudinary URL with correct cloud name
   const generateCloudinaryUrl = (format: 'webp' | 'jpg' = 'webp') => {
-    const baseUrl = 'https://res.cloudinary.com/your-cloud-name/image/upload';
+    const baseUrl = 'https://res.cloudinary.com/dcuziurrb/image/upload';
     const transformations = [
       `w_${config.width}`,
       `h_${config.height}`,
       `c_fill`,
       `q_${config.quality}`,
       `f_${format}`,
-      'fl_progressive', // Progressive loading
-      'fl_immutable_cache' // Better caching
+      'fl_progressive'
     ].join(',');
 
     return `${baseUrl}/${transformations}/${publicId}`;
@@ -59,9 +58,10 @@ const CloudinaryImage: React.FC<CloudinaryImageProps> = ({
   }, [onLoad]);
 
   const handleError = useCallback(() => {
+    console.log('Cloudinary image error for publicId:', publicId);
     setImageError(true);
     onError?.();
-  }, [onError]);
+  }, [onError, publicId]);
 
   if (imageError) {
     return (
