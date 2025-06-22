@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Helmet } from 'react-helmet-async';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 interface SafeHelmetProps {
   title?: string;
@@ -16,7 +16,8 @@ export const SafeHelmet: React.FC<SafeHelmetProps> = ({
   children 
 }) => {
   try {
-    return (
+    // Проверяем, есть ли HelmetProvider в контексте
+    const HelmetContent = () => (
       <Helmet>
         {title && <title>{title}</title>}
         {description && <meta name="description" content={description} />}
@@ -24,9 +25,39 @@ export const SafeHelmet: React.FC<SafeHelmetProps> = ({
         {children}
       </Helmet>
     );
+
+    return <HelmetContent />;
   } catch (error) {
     console.warn('SafeHelmet error:', error);
-    // Возвращаем null в случае ошибки, чтобы не блокировать рендеринг
+    
+    // Fallback: устанавливаем meta теги напрямую через DOM API
+    React.useEffect(() => {
+      if (title) {
+        document.title = title;
+      }
+      
+      if (description) {
+        let meta = document.querySelector('meta[name="description"]');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', 'description');
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', description);
+      }
+      
+      if (keywords) {
+        let meta = document.querySelector('meta[name="keywords"]');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', 'keywords');
+          document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', keywords);
+      }
+    }, [title, description, keywords]);
+    
+    // Возвращаем null при ошибке, чтобы не блокировать рендеринг
     return null;
   }
 };
