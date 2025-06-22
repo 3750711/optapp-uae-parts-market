@@ -14,7 +14,10 @@ interface SellerProfile extends ProfileShort {
 }
 
 export const useOptimizedProfiles = (userId?: string) => {
-  const { isAdmin } = useAuth();
+  const { profile } = useAuth();
+  
+  // Простая проверка админских прав
+  const isAdmin = profile?.user_type === 'admin';
   
   // Загружаем профили покупателей только если пользователь админ
   const {

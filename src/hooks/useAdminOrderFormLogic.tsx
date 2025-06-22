@@ -6,7 +6,7 @@ import { useAdminOrderFormData } from './admin-order/useAdminOrderFormData';
 import { useAdminOrderSubmission } from './admin-order/useAdminOrderSubmission';
 import { useLazyCarData } from '@/hooks/useLazyCarData';
 import { useLazyProfiles } from '@/hooks/useLazyProfiles';
-import { useOptimizedAdminAccess } from '@/hooks/useOptimizedAdminAccess';
+import { useAuth } from '@/contexts/AuthContext';
 import { BuyerProfile, SellerProfile } from '@/types/order';
 
 export interface AdminOrderFormLogicReturn {
@@ -57,7 +57,6 @@ export interface AdminOrderFormLogicReturn {
   
   // Admin access
   hasAdminAccess: boolean;
-  isCheckingAdmin: boolean;
   
   // Error handling
   error: string | null;
@@ -70,9 +69,10 @@ export interface AdminOrderFormLogicReturn {
 
 export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const navigate = useNavigate();
+  const { profile } = useAuth();
 
-  // Admin access check
-  const { hasAdminAccess, isCheckingAdmin } = useOptimizedAdminAccess();
+  // Простая проверка админских прав
+  const hasAdminAccess = profile?.user_type === 'admin';
 
   // Form data management
   const {
@@ -135,12 +135,11 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
 
   // Check if still initializing data
   const isInitializing = useMemo(() => {
-    if (isCheckingAdmin) return true;
     if (!hasAdminAccess) return false;
     
     // Consider initializing if any critical data is still loading
     return isLoadingBuyers || isLoadingSellers || isLoadingBrands;
-  }, [isCheckingAdmin, hasAdminAccess, isLoadingBuyers, isLoadingSellers, isLoadingBrands]);
+  }, [hasAdminAccess, isLoadingBuyers, isLoadingSellers, isLoadingBrands]);
 
   // Enhanced input change handler with car data integration
   const handleInputChange = useCallback((field: string, value: string) => {
@@ -250,7 +249,6 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     
     // Admin access
     hasAdminAccess,
-    isCheckingAdmin,
     
     // Error handling
     error,
