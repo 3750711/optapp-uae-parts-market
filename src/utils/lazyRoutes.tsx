@@ -1,3 +1,4 @@
+
 import { lazy } from 'react';
 
 // Critical admin pages - load immediately without lazy loading
@@ -6,6 +7,9 @@ import AdminAddProduct from '@/pages/AdminAddProduct';
 
 // OrdersRedirect component for handling order redirects
 import OrdersRedirect from '@/pages/OrdersRedirect';
+
+// Import SimpleLogin directly instead of lazy loading
+import SimpleLogin from '@/pages/SimpleLogin';
 
 export const routeConfigs = [
   // Public routes
@@ -40,10 +44,10 @@ export const routeConfigs = [
     adminOnly: false,
   },
   
-  // Authentication routes
+  // Authentication routes - use SimpleLogin instead of Login
   {
     path: '/login',
-    component: lazy(() => import('@/pages/Login')),
+    component: () => SimpleLogin,
     protected: false,
     adminOnly: false,
   },
