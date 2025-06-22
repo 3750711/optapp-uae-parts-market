@@ -3,7 +3,6 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { reportCriticalError } from '@/utils/errorMonitoring';
 
 interface Props {
   children: ReactNode;
@@ -68,12 +67,11 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Отправляем ошибку в централизованную систему мониторинга
-    reportCriticalError(error, {
+    // Простое логирование в консоль
+    console.error('Critical error caught:', error, {
       componentStack: errorInfo.componentStack,
       isAdminRoute: this.props.isAdminRoute,
       pathname: window.location.pathname,
-      userAgent: navigator.userAgent,
       errorId: this.state.errorId
     });
 

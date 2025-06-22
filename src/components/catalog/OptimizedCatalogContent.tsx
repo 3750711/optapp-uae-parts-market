@@ -2,7 +2,6 @@
 import React, { memo, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, Package, RefreshCw } from 'lucide-react';
-import { perfStart, perfEnd, trackMetric } from '@/utils/logger';
 
 interface OptimizedCatalogContentProps {
   isLoading: boolean;
@@ -49,18 +48,11 @@ const MemoizedProductCard = memo(({ product }: { product: any }) => {
 
 // Мемоизированная сетка товаров
 const MemoizedProductGrid = memo(({ products }: { products: any[] }) => {
-  perfStart('product-grid-render');
-  
   const productElements = useMemo(() => {
     return products.map((product) => (
       <MemoizedProductCard key={product.id} product={product} />
     ));
   }, [products]);
-
-  React.useEffect(() => {
-    perfEnd('product-grid-render');
-    trackMetric('products_rendered', products.length);
-  }, [products.length]);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -188,11 +180,6 @@ const OptimizedCatalogContent: React.FC<OptimizedCatalogContentProps> = ({
     }
     return null;
   }, [mappedProducts.length, hasNextPage, handleLoadMore, isFetchingNextPage]);
-
-  // Отслеживаем производительность рендеринга
-  React.useEffect(() => {
-    trackMetric('catalog_render_time', performance.now());
-  }, [mappedProducts.length]);
 
   return (
     <div className="space-y-6">

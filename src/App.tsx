@@ -11,11 +11,6 @@ import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 
-// Импорт только для development
-const HealthMonitor = import.meta.env.DEV 
-  ? React.lazy(() => import("@/components/monitoring/HealthMonitor"))
-  : null;
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -52,12 +47,6 @@ const App = () => (
               </Suspense>
             </AuthProvider>
           </BrowserRouter>
-          {/* HealthMonitor только в development */}
-          {import.meta.env.DEV && HealthMonitor && (
-            <Suspense fallback={null}>
-              <HealthMonitor showInProduction={false} />
-            </Suspense>
-          )}
         </TooltipProvider>
       </QueryClientProvider>
     </HelmetProvider>
