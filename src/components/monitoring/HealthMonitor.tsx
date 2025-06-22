@@ -11,41 +11,28 @@ interface HealthMonitorProps {
 }
 
 const HealthMonitor: React.FC<HealthMonitorProps> = ({ showInProduction = false }) => {
+  // В production не рендерим вообще
+  if (!import.meta.env.DEV && !showInProduction) {
+    return null;
+  }
+
   const [health, setHealth] = useState(getHealthStatus());
   const [metrics, setMetrics] = useState(getErrorMetrics());
   const [isVisible, setIsVisible] = useState(false);
 
-  // Показываем только в development или если явно разрешено в production
-  const shouldShow = import.meta.env.DEV || showInProduction;
-
   useEffect(() => {
-    if (!shouldShow) return;
-
     const updateHealth = () => {
       setHealth(getHealthStatus());
       setMetrics(getErrorMetrics());
     };
 
-    // Обновляем каждые 30 секунд
-    const interval = setInterval(updateHealth, 30000);
+    // Обновляем только каждые 60 секунд для снижения нагрузки
+    const interval = setInterval(updateHealth, 60000);
     
-    // Слушаем события критических ошибок
-    const handleEmergency = () => {
-      updateHealth();
-      setIsVisible(true);
-    };
-
-    window.addEventListener('emergency-protocol', handleEmergency);
-
     return () => {
       clearInterval(interval);
-      window.removeEventListener('emergency-protocol', handleEmergency);
     };
-  }, [shouldShow]);
-
-  if (!shouldShow && health.status === 'healthy') {
-    return null;
-  }
+  }, []);
 
   const getStatusIcon = () => {
     switch (health.status) {
@@ -73,29 +60,22 @@ const HealthMonitor: React.FC<HealthMonitorProps> = ({ showInProduction = false 
     }
   };
 
-  // Автоматически показываем при проблемах
-  if (health.status !== 'healthy' && !isVisible) {
-    setIsVisible(true);
-  }
-
   return (
     <>
-      {/* Кнопка для показа/скрытия в development */}
-      {import.meta.env.DEV && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setIsVisible(!isVisible)}
-            className="flex items-center gap-2"
-          >
-            {getStatusIcon()}
-            Health
-          </Button>
-        </div>
-      )}
+      {/* Упрощенная кнопка только в development */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setIsVisible(!isVisible)}
+          className="flex items-center gap-2"
+        >
+          {getStatusIcon()}
+          Health
+        </Button>
+      </div>
 
-      {/* Панель мониторинга */}
+      {/* Упрощенная панель мониторинга */}
       {isVisible && (
         <div className="fixed bottom-16 right-4 z-50 w-80">
           <Alert className={`border-2 ${getStatusColor()}`}>
@@ -119,13 +99,6 @@ const HealthMonitor: React.FC<HealthMonitorProps> = ({ showInProduction = false 
             <AlertDescription>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span>Recent Errors:</span>
-                  <Badge variant={health.recentErrors > 5 ? 'destructive' : 'secondary'}>
-                    {health.recentErrors}
-                  </Badge>
-                </div>
-                
-                <div className="flex justify-between">
                   <span>Total Errors:</span>
                   <Badge variant="outline">{health.totalErrors}</Badge>
                 </div>
@@ -137,32 +110,16 @@ const HealthMonitor: React.FC<HealthMonitorProps> = ({ showInProduction = false 
                   </Badge>
                 </div>
 
-                {health.lastError && (
-                  <div className="text-xs text-gray-500 pt-2 border-t">
-                    Last Error: {health.lastError.toLocaleTimeString()}
-                  </div>
-                )}
-
-                {import.meta.env.DEV && (
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => centralErrorMonitor.reset()}
-                      className="text-xs"
-                    >
-                      Reset Metrics
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => console.log('Metrics:', metrics)}
-                      className="text-xs"
-                    >
-                      Log Details
-                    </Button>
-                  </div>
-                )}
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => centralErrorMonitor.reset()}
+                    className="text-xs"
+                  >
+                    Reset
+                  </Button>
+                </div>
               </div>
             </AlertDescription>
           </Alert>

@@ -1,3 +1,4 @@
+
 import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,7 +10,11 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
-import HealthMonitor from "@/components/monitoring/HealthMonitor";
+
+// Импорт только для development
+const HealthMonitor = import.meta.env.DEV 
+  ? React.lazy(() => import("@/components/monitoring/HealthMonitor"))
+  : null;
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,7 +52,12 @@ const App = () => (
               </Suspense>
             </AuthProvider>
           </BrowserRouter>
-          <HealthMonitor showInProduction={false} />
+          {/* HealthMonitor только в development */}
+          {import.meta.env.DEV && HealthMonitor && (
+            <Suspense fallback={null}>
+              <HealthMonitor showInProduction={false} />
+            </Suspense>
+          )}
         </TooltipProvider>
       </QueryClientProvider>
     </HelmetProvider>
