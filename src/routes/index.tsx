@@ -1,7 +1,9 @@
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
+import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
+import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 
 // Импортируем все маршруты
 import { PublicRoutes } from './public';
@@ -14,13 +16,17 @@ const AppRoutes: React.FC = () => {
   return (
     <>
       <RouteSEO />
-      <Routes>
-        <PublicRoutes />
-        <AuthRoutes />
-        <ProtectedRoutes />
-        <SellerRoutes />
-        <AdminRoutes />
-      </Routes>
+      <RouteErrorBoundary>
+        <Suspense fallback={<RouteSuspenseFallback />}>
+          <Routes>
+            <PublicRoutes />
+            <AuthRoutes />
+            <ProtectedRoutes />
+            <SellerRoutes />
+            <AdminRoutes />
+          </Routes>
+        </Suspense>
+      </RouteErrorBoundary>
     </>
   );
 };

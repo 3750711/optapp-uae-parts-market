@@ -5,8 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 import FirstLoginWelcome from '@/components/auth/FirstLoginWelcome';
 import { useQueryClient } from '@tanstack/react-query';
-import { getCachedAdminRights, setCachedAdminRights } from '@/utils/performanceUtils';
-import { devLog, devError, prodError } from '@/utils/logger';
 
 type Profile = Database['public']['Tables']['profiles']['Row'];
 
@@ -34,36 +32,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const mountedRef = useRef(true);
   const queryClient = useQueryClient();
-  const authListenerRef = useRef<any>(null);
 
-  // Enhanced profile fetching with timeout protection
+  // Упрощенная функция загрузки профиля
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!mountedRef.current) return null;
 
-    console.log('🔄 Starting profile fetch for user:', userId);
-    const startTime = Date.now();
+    console.log('🔄 Fetching profile for user:', userId);
 
     try {
-      // Add timeout for profile fetching
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 8000)
-      );
-
-      const fetchPromise = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
-
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
-      
-      const elapsed = Date.now() - startTime;
-      console.log(`⏱️ Profile fetch completed in ${elapsed}ms`);
       
       if (error) {
-        console.error('❌ Profile fetch error:', { userId, error: error.message, elapsed });
+        console.error('❌ Profile fetch error:', error.message);
         
-        // Enhanced JWT error handling
+        // Упрощенная обработка JWT ошибок
         if (error.message?.includes('JWT')) {
           console.log('🔄 JWT error detected, refreshing session...');
           const { error: refreshError } = await supabase.auth.refreshSession();
@@ -76,7 +62,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mountedRef.current) {
           setProfile(null);
           setIsAdmin(false);
-          setCachedAdminRights(userId, false);
         }
         return null;
       }
@@ -85,34 +70,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('✅ Profile loaded successfully:', {
           email: data.email,
           userType: data.user_type,
-          verificationStatus: data.verification_status,
-          elapsed
+          verificationStatus: data.verification_status
         });
         
         setProfile(data);
         
-        // Enhanced admin rights checking
+        // Упрощенная проверка админских прав
         const hasAdminAccess = data.user_type === 'admin';
-        console.log('🔐 Admin access check:', { userType: data.user_type, hasAdminAccess });
+        setIsAdmin(hasAdminAccess);
         
-        setCachedAdminRights(userId, hasAdminAccess);
-        
-        if (mountedRef.current) {
-          setIsAdmin(hasAdminAccess);
-          
-          // Preload admin data with timeout
-          if (hasAdminAccess) {
-            console.log('⚡ Scheduling admin data preload...');
-            setTimeout(() => {
-              preloadAdminData();
-            }, 1000);
-          }
-          
-          // Check first login
-          if (data.email?.endsWith('@g.com') && !data.first_login_completed) {
-            console.log('👋 First login detected, showing welcome...');
-            setShowFirstLoginWelcome(true);
-          }
+        // Проверка первого входа
+        if (data.email?.endsWith('@g.com') && !data.first_login_completed) {
+          console.log('👋 First login detected, showing welcome...');
+          setShowFirstLoginWelcome(true);
         }
         
         return data;
@@ -120,79 +90,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       return null;
     } catch (error) {
-      const elapsed = Date.now() - startTime;
-      console.error('💥 Profile fetch exception:', { userId, error, elapsed });
+      console.error('💥 Profile fetch exception:', error);
       
       if (mountedRef.current) {
         setProfile(null);
         setIsAdmin(false);
-        setCachedAdminRights(userId, false);
       }
       return null;
     }
   }, []);
-
-  // Enhanced admin data preloading with timeout
-  const preloadAdminData = useCallback(async () => {
-    try {
-      console.log('🚀 Starting admin data preload...');
-      const startTime = Date.now();
-      
-      // Check cached data first
-      const cachedMetrics = queryClient.getQueryData(['admin', 'metrics-optimized']);
-      const cachedProductData = queryClient.getQueryData(['admin', 'add-product-data']);
-      
-      if (cachedMetrics && cachedProductData) {
-        console.log('✅ Admin data already cached, skipping preload');
-        return;
-      }
-
-      // Preload with timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Admin data preload timeout')), 10000)
-      );
-
-      const preloadPromises = [];
-
-      if (!cachedMetrics) {
-        preloadPromises.push(
-          queryClient.prefetchQuery({
-            queryKey: ['admin', 'metrics-optimized'],
-            queryFn: async () => {
-              const { data, error } = await supabase.rpc('get_admin_metrics');
-              if (error) throw error;
-              return data;
-            },
-            staleTime: 1000 * 60 * 5,
-          })
-        );
-      }
-
-      if (!cachedProductData) {
-        preloadPromises.push(
-          queryClient.prefetchQuery({
-            queryKey: ['admin', 'add-product-data'],
-            queryFn: async () => {
-              const { data, error } = await supabase.rpc('get_admin_add_product_data');
-              if (error) throw error;
-              return data;
-            },
-            staleTime: 1000 * 60 * 15,
-          })
-        );
-      }
-
-      await Promise.race([
-        Promise.all(preloadPromises),
-        timeoutPromise
-      ]);
-      
-      const elapsed = Date.now() - startTime;
-      console.log(`✅ Admin data preloaded successfully in ${elapsed}ms`);
-    } catch (error) {
-      console.warn('⚠️ Admin data preload failed (non-critical):', error);
-    }
-  }, [queryClient]);
 
   const refreshProfile = useCallback(async () => {
     if (user && mountedRef.current) {
@@ -210,12 +116,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, refreshProfile]);
 
-  // Standard auth reinitialize function
   const forceAuthReinit = useCallback(async () => {
     console.log('🔄 Force auth reinitialize requested...');
     
     try {
-      // Get current session
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
       if (error) {
@@ -227,13 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('✅ Force reinit found session, updating state...');
         setSession(currentSession);
         setUser(currentSession.user);
-        
-        // Load profile
-        setTimeout(() => {
-          if (mountedRef.current) {
-            fetchUserProfile(currentSession.user.id);
-          }
-        }, 0);
+        await fetchUserProfile(currentSession.user.id);
       }
     } catch (error) {
       console.error('💥 Force auth reinit error:', error);
@@ -249,115 +147,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      devLog('🚀 Starting standard logout...');
-      
-      // Standard Supabase sign out
+      console.log('🚀 Starting logout...');
       await supabase.auth.signOut();
-      
     } catch (error) {
-      devLog('💥 Error during logout:', error);
-      console.error('Logout error:', error);
+      console.error('💥 Error during logout:', error);
     }
   }, []);
 
-  // Standard initialization
+  // Упрощенная инициализация без избыточных timeout'ов
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
     
     const setupAuth = async () => {
       try {
-        console.log('🔑 Starting standard auth setup...');
-        const setupStartTime = Date.now();
+        console.log('🔑 Starting auth setup...');
         
-        // Add timeout for auth setup
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth setup timeout')), 10000)
-        );
-
-        const authSetupPromise = (async () => {
-          const { data: { session: currentSession }, error } = await supabase.auth.getSession();
-          
-          console.log('🔐 Session check result:', {
-            hasSession: !!currentSession,
-            userId: currentSession?.user?.id,
-            userEmail: currentSession?.user?.email,
-            accessToken: currentSession?.access_token ? 'present' : 'missing',
-            error: error?.message,
-            elapsed: Date.now() - setupStartTime
-          });
-          
-          if (error) {
-            console.error('❌ Session check error:', error.message);
-            if (mounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setIsAdmin(false);
-              setIsLoading(false);
-            }
-            return;
-          }
-          
+        // Получаем текущую сессию
+        const { data: { session: currentSession }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Session check error:', error.message);
           if (mounted) {
-            setSession(currentSession);
-            setUser(currentSession?.user ?? null);
-            
-            if (currentSession?.user) {
-              console.log('👤 User found, fetching profile...');
-              // Use setTimeout to prevent blocking
-              setTimeout(() => {
-                if (mounted) {
-                  fetchUserProfile(currentSession.user.id);
-                }
-              }, 0);
-            } else {
-              console.log('👤 No user session, setting defaults...');
-              setProfile(null);
-              setIsAdmin(false);
-            }
-            
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setIsAdmin(false);
             setIsLoading(false);
           }
-        })();
-
-        try {
-          await Promise.race([authSetupPromise, timeoutPromise]);
-        } catch (error) {
-          console.error('⚠️ Auth setup timeout or error:', error);
-          if (mounted) {
-            setIsLoading(false);
-            // Set safe defaults on timeout
+          return;
+        }
+        
+        if (mounted) {
+          setSession(currentSession);
+          setUser(currentSession?.user ?? null);
+          
+          if (currentSession?.user) {
+            console.log('👤 User found, fetching profile...');
+            await fetchUserProfile(currentSession.user.id);
+          } else {
+            console.log('👤 No user session, setting defaults...');
+            setProfile(null);
             setIsAdmin(false);
           }
+          
+          setIsLoading(false);
         }
         
-        // Clear previous listener if exists
-        if (authListenerRef.current) {
-          authListenerRef.current.subscription.unsubscribe();
-        }
-        
-        // Standard auth state listener 
+        // Упрощенный слушатель изменений аутентификации
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, currentSession) => {
+          async (event, currentSession) => {
             if (!mounted) return;
             
-            console.log('🔄 Auth state changed:', {
-              event,
-              hasSession: !!currentSession,
-              userId: currentSession?.user?.id
-            });
+            console.log('🔄 Auth state changed:', event);
             
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
             
             if (currentSession?.user) {
-              // Use setTimeout to prevent blocking the auth state change callback
-              setTimeout(() => {
-                if (mounted) {
-                  fetchUserProfile(currentSession.user.id);
-                }
-              }, 0);
+              await fetchUserProfile(currentSession.user.id);
             } else {
               setProfile(null);
               setIsAdmin(false);
@@ -365,8 +213,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         );
-
-        authListenerRef.current = { subscription };
 
         return () => {
           subscription.unsubscribe();
@@ -385,13 +231,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
       mountedRef.current = false;
-      if (authListenerRef.current) {
-        authListenerRef.current.subscription.unsubscribe();
-      }
     };
   }, [fetchUserProfile]);
 
-  // Memeoized context for preventing unnecessary re-renders
   const contextValue = useMemo(() => ({
     user,
     session,
