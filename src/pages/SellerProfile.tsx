@@ -139,7 +139,7 @@ const SellerProfile = () => {
           {/* Dashboard section */}
           <OptimizedSellerDashboard />
         </div>
-      </Layout>
+      </div>
     </Layout>
   );
 };
