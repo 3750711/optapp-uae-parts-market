@@ -20,7 +20,7 @@ import { toast } from "@/hooks/use-toast";
 import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
 import { Mail, User, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),

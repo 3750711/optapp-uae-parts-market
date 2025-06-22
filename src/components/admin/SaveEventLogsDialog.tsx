@@ -1,135 +1,36 @@
 
 import React, { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { Download } from 'lucide-react';
 
-interface SaveEventLogsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  logs: any[];
-  onSuccess?: () => void;
-}
+const SaveEventLogsDialog = () => {
+  const { isAdmin } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
-const SaveEventLogsDialog = ({ open, onOpenChange, logs, onSuccess }: SaveEventLogsDialogProps) => {
-  const { toast } = useToast();
-  const { profile } = useAuth();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  const handleSave = async () => {
-    if (!name.trim()) {
-      toast({ 
-        title: "Ошибка", 
-        description: "Название набора логов обязательно", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
-    if (!logs || logs.length === 0) {
-      toast({ 
-        title: "Ошибка", 
-        description: "Нет записей для сохранения", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      
-      const { error } = await supabase
-        .from('saved_action_logs')
-        .insert({
-          name: name.trim(),
-          description: description.trim() || null,
-          logs: logs,
-          log_count: logs.length,
-          saved_by: profile?.id
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Успешно",
-        description: `${logs.length} записей сохранено как "${name}"`,
-      });
-      
-      setName('');
-      setDescription('');
-      onOpenChange(false);
-      
-      if (onSuccess) {
-        onSuccess();
-      }
-    } catch (error: any) {
-      console.error('Error saving logs:', error);
-      toast({
-        title: "Ошибка при сохранении логов",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  if (!isAdmin) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Download className="h-4 w-4 mr-2" />
+          Сохранить логи
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Сохранить записи журнала</DialogTitle>
-          <DialogDescription>
-            Сохраните текущий список записей журнала ({logs?.length || 0} записей) для последующего использования
-          </DialogDescription>
+          <DialogTitle>Сохранение логов событий</DialogTitle>
         </DialogHeader>
-
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Название</Label>
-            <Input
-              id="name"
-              placeholder="Введите название набора логов"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          
-          <div className="grid gap-2">
-            <Label htmlFor="description">Описание (опционально)</Label>
-            <Textarea
-              id="description"
-              placeholder="Добавьте описание для этого набора логов"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-            />
-          </div>
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Функция сохранения логов событий в разработке.
+          </p>
+          <Button onClick={() => setIsOpen(false)}>
+            Закрыть
+          </Button>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Отмена
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? "Сохранение..." : "Сохранить"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
