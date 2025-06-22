@@ -81,7 +81,7 @@ const Register = () => {
           setEmailExists(true);
           setError('Пользователь с таким email уже существует');
         } else {
-          setError(error.message);
+          setError(error.message || 'Произошла ошибка при регистрации');
         }
       } else {
         toast({

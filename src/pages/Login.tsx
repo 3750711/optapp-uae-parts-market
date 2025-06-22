@@ -33,7 +33,7 @@ const Login = () => {
       const { error } = await signIn(email, password);
       
       if (error) {
-        setError(error.message);
+        setError(error.message || 'Произошла ошибка при входе');
       } else {
         toast({
           title: "Вход выполнен успешно",
