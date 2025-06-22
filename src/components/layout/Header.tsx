@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -24,6 +25,7 @@ import {
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const { isAdmin } = useAdminAccess();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
@@ -146,6 +148,15 @@ const Header = () => {
                       <span>Мой профиль</span>
                     </Link>
                   </DropdownMenuItem>
+                  
+                  {isAdmin && (
+                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
+                      <Link to="/admin" className="flex w-full items-center">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Админ панель</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/catalog" className="flex w-full items-center">
