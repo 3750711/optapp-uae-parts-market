@@ -1,11 +1,13 @@
 
 import React, { useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useProfile } from '@/contexts/ProfileProvider';
 import Layout from '@/components/layout/Layout';
 
 const OrdersRedirect = () => {
-  const { profile, user } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useProfile();
 
   // Показываем загрузку пока загружается профиль
   if (user && !profile) {
@@ -30,7 +32,7 @@ const OrdersRedirect = () => {
   if (profile?.user_type === 'seller') {
     return <Navigate to="/seller/orders" replace />;
   } else {
-    return <Navigate to="/buyer/orders" replace />;
+    return <Navigate to="/buyer-orders" replace />;
   }
 };
 
