@@ -1,21 +1,28 @@
 
-// Упрощенные утилиты производительности
+// Улучшенные утилиты производительности с оптимизированным кэшированием
 const isDevelopment = import.meta.env.DEV;
 
 // Performance marking (только в development)
 export const perfMark = (name: string) => {
-  // Отключено
+  if (isDevelopment && performance.mark) {
+    performance.mark(name);
+  }
 };
 
 export const perfMeasure = (name: string, startMark: string, endMark: string) => {
-  // Отключено
+  if (isDevelopment && performance.measure) {
+    try {
+      performance.measure(name, startMark, endMark);
+    } catch (error) {
+      console.warn('Performance measure failed:', error);
+    }
+  }
 };
 
-// Chunk loading monitoring (упрощенный)
+// Оптимизированный мониторинг загрузки чанков
 export const monitorChunkLoading = () => {
   if (!isDevelopment) return;
   
-  // Минимальный мониторинг только в development
   window.addEventListener('error', (event) => {
     if (event.filename && event.filename.includes('chunk')) {
       console.error('Chunk loading error:', event.filename);
@@ -23,14 +30,17 @@ export const monitorChunkLoading = () => {
   });
 };
 
-// Lazy loading metrics (отключено)
+// Оптимизированное отслеживание lazy loading
 export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
-  // Отключено
+  if (isDevelopment) {
+    console.log(`🚀 ${componentName} loaded in ${loadTime}ms`);
+  }
 };
 
-// Admin cache functions (оптимизированы)
+// Улучшенные функции кэширования админских прав с увеличенным временем жизни
 const ADMIN_CACHE_KEY = 'admin_rights_cache';
-const CACHE_DURATION = 10 * 60 * 1000; // Увеличили до 10 минут
+const CACHE_DURATION = 30 * 60 * 1000; // Увеличили до 30 минут
+const WRITE_THROTTLE_DURATION = 5000; // Ограничиваем запись в localStorage до 1 раза в 5 секунд
 
 interface AdminCacheData {
   isAdmin: boolean;
@@ -38,8 +48,11 @@ interface AdminCacheData {
   userId: string;
 }
 
+// Throttle для записи в localStorage
+const writeThrottleMap = new Map<string, number>();
+
 export const getCachedAdminRights = (userId: string): boolean | null => {
-  if (!isDevelopment || typeof localStorage === 'undefined') return null;
+  if (typeof localStorage === 'undefined') return null;
   
   try {
     const cached = localStorage.getItem(`${ADMIN_CACHE_KEY}_${userId}`);
@@ -60,17 +73,26 @@ export const getCachedAdminRights = (userId: string): boolean | null => {
 };
 
 export const setCachedAdminRights = (userId: string, isAdmin: boolean): void => {
-  if (!isDevelopment || typeof localStorage === 'undefined') return;
+  if (typeof localStorage === 'undefined') return;
+  
+  // Throttle записи в localStorage
+  const now = Date.now();
+  const lastWrite = writeThrottleMap.get(userId) || 0;
+  
+  if (now - lastWrite < WRITE_THROTTLE_DURATION) {
+    return; // Пропускаем запись если недавно уже писали
+  }
   
   try {
     const data: AdminCacheData = {
       isAdmin,
-      timestamp: Date.now(),
+      timestamp: now,
       userId
     };
     localStorage.setItem(`${ADMIN_CACHE_KEY}_${userId}`, JSON.stringify(data));
+    writeThrottleMap.set(userId, now);
   } catch (error) {
-    // Игнорируем ошибки записи
+    console.warn('Failed to cache admin rights:', error);
   }
 };
 
@@ -84,14 +106,36 @@ export const clearAdminCache = (): void => {
         localStorage.removeItem(key);
       }
     });
+    writeThrottleMap.clear();
   } catch (error) {
-    // Игнорируем ошибки
+    console.warn('Failed to clear admin cache:', error);
   }
 };
 
-// Упрощенные функции
+// Улучшенная функция предзагрузки данных админа
 export const prefetchAdminData = async (queryClient: any) => {
-  // Отключено для улучшения производительности
+  if (!isDevelopment) return;
+  
+  try {
+    // Предзагружаем критически важные данные для админов
+    await Promise.all([
+      queryClient.prefetchQuery({
+        queryKey: ['admin-buyers'],
+        queryFn: async () => {
+          const { supabase } = await import('@/integrations/supabase/client');
+          const { data } = await supabase
+            .from('profiles')
+            .select('id, full_name, opt_id')
+            .eq('user_type', 'buyer')
+            .limit(50);
+          return data || [];
+        },
+        staleTime: CACHE_DURATION,
+      }),
+    ]);
+  } catch (error) {
+    console.warn('Admin data prefetch failed:', error);
+  }
 };
 
 export const throttle = <T extends (...args: any[]) => any>(
@@ -109,12 +153,61 @@ export const throttle = <T extends (...args: any[]) => any>(
 };
 
 export const measureTime = (label: string) => {
+  const start = performance.now();
   return {
-    end: () => 0 // Отключено
+    end: () => {
+      const end = performance.now();
+      const duration = end - start;
+      if (isDevelopment) {
+        console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
+      }
+      return duration;
+    }
   };
 };
 
-// Отключенные функции мониторинга
-export const monitorPerformance = () => {};
-export const preloadCriticalResources = () => {};
-export const initPerformanceOptimizations = () => {};
+// Улучшенный мониторинг производительности
+export const monitorPerformance = () => {
+  if (!isDevelopment) return;
+  
+  // Мониторинг FCP и LCP
+  if ('web-vitals' in window || typeof PerformanceObserver !== 'undefined') {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.entryType === 'paint') {
+            console.log(`🎨 ${entry.name}: ${entry.startTime.toFixed(2)}ms`);
+          }
+        }
+      });
+      observer.observe({ entryTypes: ['paint'] });
+    } catch (error) {
+      console.warn('Performance monitoring setup failed:', error);
+    }
+  }
+};
+
+export const preloadCriticalResources = () => {
+  if (typeof document === 'undefined') return;
+  
+  // Предзагружаем критические ресурсы
+  const criticalImages = [
+    '/favicon.ico',
+  ];
+  
+  criticalImages.forEach(src => {
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = src;
+    document.head.appendChild(link);
+  });
+};
+
+export const initPerformanceOptimizations = () => {
+  if (isDevelopment) {
+    monitorPerformance();
+    monitorChunkLoading();
+  }
+  preloadCriticalResources();
+};

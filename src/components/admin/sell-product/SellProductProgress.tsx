@@ -47,7 +47,7 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
             const StepIcon = step.icon;
 
             return (
-              <React.Fragment key={step.number}>
+              <div key={step.number} className="flex items-center flex-1">
                 <div className="flex flex-col items-center flex-1">
                   <Button
                     variant={isClickable ? "outline" : "ghost"}
@@ -94,7 +94,7 @@ const SellProductProgress: React.FC<SellProductProgressProps> = ({
                     `} />
                   </div>
                 )}
-              </React.Fragment>
+              </div>
             );
           })}
         </div>
