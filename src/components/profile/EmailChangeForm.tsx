@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,6 +91,31 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
     }
   };
 
+  const sendEmailChangeSuccessNotification = async (newEmail: string, oldEmail: string) => {
+    try {
+      // Отправляем приветственное уведомление на новый email
+      await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.supabaseKey}`
+        },
+        body: JSON.stringify({
+          email: newEmail,
+          emailChangeInfo: {
+            oldEmail: oldEmail,
+            newEmail: newEmail,
+            type: 'email_change_success'
+          }
+        })
+      });
+
+      console.log('Email change success notification sent to new email');
+    } catch (error) {
+      console.error('Error sending email change success notification:', error);
+    }
+  };
+
   const handleVerifyAndChange = async () => {
     if (code.length !== 6) {
       toast({
@@ -147,15 +173,18 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
         return;
       }
 
-      // Отправляем уведомление об изменении email на старый адрес
-      await sendEmailChangeNotification(currentEmail, newEmail);
+      // Отправляем оба уведомления параллельно
+      await Promise.all([
+        sendEmailChangeNotification(currentEmail, newEmail),
+        sendEmailChangeSuccessNotification(newEmail, currentEmail)
+      ]);
 
       // Принудительно обновляем профиль и инвалидируем все кэши
       await refreshProfile();
       
       toast({
         title: "Email изменен",
-        description: "Ваш email успешно изменен. Уведомление отправлено на старый адрес.",
+        description: "Ваш email успешно изменен. Уведомления отправлены на оба адреса: старый (для безопасности) и новый (подтверждение).",
       });
 
       if (onSuccess) {
@@ -288,6 +317,12 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
                   Отмена
                 </Button>
               )}
+            </div>
+
+            <div className="text-xs text-muted-foreground text-center">
+              <p>После изменения email вы получите уведомления на:</p>
+              <p>• Старый адрес - уведомление о смене (безопасность)</p>
+              <p>• Новый адрес - подтверждение изменения</p>
             </div>
           </div>
         )}
