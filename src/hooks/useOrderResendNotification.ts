@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UseOrderResendNotificationProps {
   orderId: string;
@@ -54,8 +54,8 @@ export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResen
         order = data;
       }
 
-      // Проверяем права пользователя (только админы и продавцы)
-      const isAdmin = profile?.user_type === 'admin';
+      // Проверяем права пользователя
+      const isAdmin = profile.user_type === 'admin';
       const canResend = isAdmin || order.seller_id === user.id;
       
       // Показываем кнопку только если есть права и заказ изменен
@@ -72,7 +72,7 @@ export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResen
   // Автоматически обновляем видимость кнопки при изменении данных заказа
   useEffect(() => {
     if (orderData && user && profile) {
-      const isAdmin = profile?.user_type === 'admin';
+      const isAdmin = profile.user_type === 'admin';
       const canResend = isAdmin || orderData.seller_id === user.id;
       const shouldShow = canResend && (orderData.is_modified === true);
       setShouldShowButton(shouldShow);
