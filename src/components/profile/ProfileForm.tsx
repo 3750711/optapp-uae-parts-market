@@ -22,7 +22,7 @@ export const ProfileForm: React.FC = () => {
     telegram: '',
     company_name: '',
     description_user: '',
-    user_type: 'buyer' as const,
+    user_type: 'buyer' as 'buyer' | 'seller' | 'admin',
   });
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export const ProfileForm: React.FC = () => {
         telegram: profile.telegram || '',
         company_name: profile.company_name || '',
         description_user: profile.description_user || '',
-        user_type: profile.user_type || 'buyer',
+        user_type: (profile.user_type || 'buyer') as 'buyer' | 'seller' | 'admin',
       });
     }
   }, [profile]);
