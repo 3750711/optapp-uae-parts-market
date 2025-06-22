@@ -1,106 +1,242 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { CalendarClock, Package, User, FileText, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { Label } from "@/components/ui/label";
+import { Link } from 'lucide-react';
+import { Database } from '@/integrations/supabase/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+type Order = Database['public']['Tables']['orders']['Row'] & {
+  buyer?: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+  seller?: {
+    telegram: string | null;
+    full_name: string | null;
+    opt_id: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+};
 
 interface OrderDetailsProps {
-  order: any;
-  buyer?: any;
-  seller?: any;
-  products?: any[];
+  order: Order;
 }
 
-const OrderDetails: React.FC<OrderDetailsProps> = ({ order, buyer, seller, products }) => {
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'completed': return 'default';
-      case 'confirmed': return 'secondary';
-      case 'created': return 'outline';
-      default: return 'outline';
+export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
+  const { user } = useAuth();
+  const isSelfOrder = order.seller_id === order.buyer_id;
+  const isBuyer = user?.id === order.buyer_id;
+  const isSeller = user?.id === order.seller_id;
+  
+  // Changed this line to properly check authorization
+  // We consider a user authorized if they are logged in, regardless of their role in this order
+  const isAuthorized = !!user;
+
+  const getDeliveryMethodLabel = (method: string) => {
+    switch (method) {
+      case 'self_pickup':
+        return 'Самовывоз';
+      case 'cargo_rf':
+        return 'Доставка Cargo РФ';
+      case 'cargo_kz':
+        return 'Доставка Cargo KZ';
+      default:
+        return method;
     }
   };
 
-  const getStatusText = (status: string) => {
+  const getContainerStatusLabel = (status: string) => {
     switch (status) {
-      case 'completed': return 'Завершен';
-      case 'confirmed': return 'Подтвержден';
-      case 'created': return 'Создан';
-      default: return status;
+      case 'waiting':
+        return 'Ожидание';
+      case 'in_transit':
+        return 'В пути';
+      case 'delivered':
+        return 'Доставлен';
+      case 'customs':
+        return 'На таможне';
+      default:
+        return status;
+    }
+  };
+
+  const getContainerStatusColor = (status: string) => {
+    switch (status) {
+      case 'waiting':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'in_transit':
+        return 'bg-blue-100 text-blue-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'customs':
+        return 'bg-orange-100 text-orange-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleDeliveryMethodChange = async (newMethod: Database['public']['Enums']['delivery_method']) => {
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({ delivery_method: newMethod })
+        .eq('id', order.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Успешно обновлено",
+        description: "Способ доставки успешно изменен",
+      });
+    } catch (error) {
+      console.error('Error updating delivery method:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось обновить способ доставки",
+        variant: "destructive",
+      });
     }
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Заказ #{order.id}</CardTitle>
-            <Badge variant={getStatusBadgeVariant(order.status)}>
-              {getStatusText(order.status)}
-            </Badge>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <div>
+          <Label className="text-sm text-gray-500">Наименование</Label>
+          <p className="text-lg font-medium">{order.title}</p>
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">Бренд</Label>
+          <p className="text-lg font-medium">{order.brand}</p>
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">Модель</Label>
+          <p className="text-lg font-medium">{order.model}</p>
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">Цена</Label>
+          <p className="text-lg font-medium">{order.price} $</p>
+        </div>
+        {order.delivery_price_confirm && (
+          <div>
+            <Label className="text-sm text-gray-500">Стоимость доставки</Label>
+            <p className="text-lg font-medium text-green-600">{order.delivery_price_confirm} $</p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  {format(new Date(order.created_at), 'dd MMMM yyyy, HH:mm', { locale: ru })}
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{order.delivery_address}</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Доставка: {order.delivery_price} ₽</span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Итого: {order.total_price} ₽</span>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Покупатель: {buyer?.full_name || 'Не указан'}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">Продавец: {seller?.full_name || 'Не указан'}</span>
-              </div>
-            </div>
-          </div>
-
-          {products && products.length > 0 && (
-            <div>
-              <h4 className="font-medium mb-2 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Товары в заказе
-              </h4>
-              <div className="space-y-2">
-                {products.map((product, index) => (
-                  <div key={product.id || index} className="p-2 bg-muted rounded text-sm">
-                    {product.title || `Товар ${index + 1}`}
-                  </div>
-                ))}
-              </div>
-            </div>
+        )}
+        <div>
+          <Label className="text-sm text-gray-500">Мест для отправки</Label>
+          <p className="text-lg font-medium">{order.place_number || 1}</p>
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">Тип заказа</Label>
+          <p className="text-lg font-medium">
+            {order.order_created_type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению'}
+          </p>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <Label className="text-sm text-gray-500">OPT ID покупателя</Label>
+          {isAuthorized ? (
+            <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
+          ) : (
+            <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
+          {isAuthorized ? (
+            <p className="text-lg font-medium">{order.seller?.opt_id || order.seller_opt_id || 'Не указан'}</p>
+          ) : (
+            <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
+          )}
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">Имя отправителя</Label>
+          <p className="text-lg font-medium">{order.order_seller_name}</p>
+        </div>
+        <div>
+          <Label className="text-sm text-gray-500">Информация о получателе</Label>
+          {isAuthorized && order.telegram_url_order ? (
+            <div className="space-y-2">
+              <a 
+                href={`https://t.me/${order.telegram_url_order.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline inline-flex items-center gap-1"
+              >
+                {order.telegram_url_order}
+                <Link className="h-4 w-4" />
+              </a>
+            </div>
+          ) : order.telegram_url_order ? (
+            <p className="text-gray-500">Требуется авторизация для просмотра контактов</p>
+          ) : (
+            <p className="text-gray-500">Контакты не указаны</p>
+          )}
+        </div>
+        {isSelfOrder && (
+          <div>
+            <Label className="text-sm text-gray-500">Тип</Label>
+            <p className="text-lg font-medium text-amber-600">Самозаказ</p>
+          </div>
+        )}
+        <div>
+          <Label className="text-sm text-gray-500">Способ доставки</Label>
+          {isBuyer ? (
+            <Select value={order.delivery_method} onValueChange={handleDeliveryMethodChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Выберите способ доставки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="self_pickup">Самовывоз</SelectItem>
+                <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
+                <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-lg font-medium">
+              {getDeliveryMethodLabel(order.delivery_method)}
+            </p>
+          )}
+        </div>
+        
+        {/* Информация о контейнере */}
+        {order.container_number && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-3 py-1 rounded text-white text-sm font-bold">
+                OPTCargo
+              </div>
+            </div>
+            
+            <div>
+              <Label className="text-sm text-gray-500">Номер контейнера</Label>
+              <p className="text-lg font-medium text-yellow-800">{order.container_number}</p>
+            </div>
+            
+            {order.container_status && (
+              <div>
+                <Label className="text-sm text-gray-500">Статус контейнера</Label>
+                <div className="mt-1">
+                  <Badge className={`${getContainerStatusColor(order.container_status)} text-sm px-3 py-1`}>
+                    {getContainerStatusLabel(order.container_status)}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
-
-export default OrderDetails;

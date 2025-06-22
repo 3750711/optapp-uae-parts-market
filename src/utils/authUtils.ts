@@ -1,14 +1,10 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export type InputType = 'email' | 'opt_id';
 
 interface EmailByOptIdResult {
   email: string | null;
-  isRateLimited: boolean;
-}
-
-interface OptIdCheckResult {
-  exists: boolean;
   isRateLimited: boolean;
 }
 
@@ -55,7 +51,7 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
 };
 
 // Функция для проверки существования OPT ID
-export const checkOptIdExists = async (optId: string): Promise<OptIdCheckResult> => {
+export const checkOptIdExists = async (optId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.rpc('check_opt_id_exists', {
       p_opt_id: optId
@@ -63,36 +59,13 @@ export const checkOptIdExists = async (optId: string): Promise<OptIdCheckResult>
 
     if (error) {
       console.error('Error checking OPT ID:', error);
-      
-      // Проверяем, является ли ошибка связанной с rate limiting
-      if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
-        return { exists: false, isRateLimited: true };
-      }
-      
-      return { exists: false, isRateLimited: false };
+      return false;
     }
 
-    return { exists: Boolean(data), isRateLimited: false };
+    return Boolean(data);
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);
-    return { exists: false, isRateLimited: false };
-  }
-};
-
-// Функция для логирования успешного входа (заглушка)
-export const logSuccessfulLogin = async (identifier: string, inputType: InputType): Promise<void> => {
-  try {
-    console.log('✅ Successful login:', {
-      identifier: inputType === 'email' ? identifier : 'OPT ID',
-      type: inputType,
-      timestamp: new Date().toISOString()
-    });
-    
-    // В будущем здесь можно добавить запись в базу данных или аналитику
-    // Пока просто логируем для отладки
-  } catch (error) {
-    console.error('Error logging successful login:', error);
-    // Не выбрасываем ошибку, чтобы не прерывать процесс входа
+    return false;
   }
 };
 

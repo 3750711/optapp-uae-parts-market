@@ -10,12 +10,12 @@ import {
 } from "@/components/ui/menubar";
 import { Bell, Mail, Settings, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { useProfile } from "@/contexts/ProfileProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import Header from "../layout/Header";
 
 const AdminTopMenu = () => {
-  const { profile } = useProfile();
+  const { profile } = useAuth();
 
   return (
     <Header />

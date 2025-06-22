@@ -1,132 +1,114 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { 
-  User, 
-  Mail, 
-  Phone, 
-  Building, 
-  MessageCircle, 
-  UserCheck,
-  Save,
-  Loader2 
-} from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+
+import React, { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription,
+} from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ProfileType } from "./types";
+import { useAuth } from "@/contexts/AuthContext";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { UserTypeField } from "./fields/UserTypeField";
+import { OptIdField } from "./fields/OptIdField";
+import { TelegramField } from "./fields/TelegramField";
+import { ProfileTextField } from "./fields/ProfileTextField";
+import EmailChangeForm from "./EmailChangeForm";
+import { Save, Edit } from "lucide-react";
 
 const formSchema = z.object({
   fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
   email: z.string().email({ message: "Введите корректный email адрес" }),
   phone: z.string().optional(),
   companyName: z.string().optional(),
-  telegram: z.string().optional(),
+  telegram: z.string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true;
+      return /^@[^@]+$/.test(value);
+    }, { 
+      message: "Telegram username должен начинаться с одного @ символа" 
+    }),
   optId: z.string().optional(),
+  userType: z.enum(["buyer", "seller", "admin"]).optional(),
   description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
-  userType: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 interface ProfileFormProps {
-  profile: any;
+  profile: ProfileType;
   onSubmit: (data: FormData) => Promise<void>;
   isLoading: boolean;
   readOnlyUserType?: boolean;
 }
 
-const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading, readOnlyUserType = false }) => {
+const ProfileForm: React.FC<ProfileFormProps> = ({
+  profile,
+  onSubmit,
+  isLoading,
+  readOnlyUserType = true,
+}) => {
   const { user } = useAuth();
-  const [isOptIdUnique, setIsOptIdUnique] = useState<boolean | null>(null);
-  const [isCheckingOptId, setIsCheckingOptId] = useState(false);
-  
+  const { isAdmin } = useAdminAccess();
+  const canEditOptId = (user?.id === profile.id) || isAdmin;
+  const isSeller = profile.user_type === 'seller';
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: profile?.full_name || "",
-      email: profile?.email || user?.email || "",
-      phone: profile?.phone || "",
-      companyName: profile?.company_name || "",
-      telegram: profile?.telegram || "",
-      optId: profile?.opt_id || "",
-      description: profile?.description_user || "",
-      userType: profile?.user_type || "buyer",
+      fullName: profile.full_name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      companyName: profile.company_name || "",
+      telegram: profile.telegram || "",
+      optId: profile.opt_id || "",
+      userType: profile.user_type,
+      description: profile.description_user || "",
     },
-    mode: "onChange",
   });
 
-  useEffect(() => {
-    form.reset({
-      fullName: profile?.full_name || "",
-      email: profile?.email || user?.email || "",
-      phone: profile?.phone || "",
-      companyName: profile?.company_name || "",
-      telegram: profile?.telegram || "",
-      optId: profile?.opt_id || "",
-      description: profile?.description_user || "",
-      userType: profile?.user_type || "buyer",
-    });
-  }, [profile, user, form]);
-
-  const checkOptIdUniqueness = async (optId: string) => {
-    if (!optId) {
-      setIsOptIdUnique(null);
-      return;
-    }
-  
-    setIsCheckingOptId(true);
+  const handleSubmit = async (data: FormData) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('opt_id', optId)
-        .not('id', 'eq', user?.id);
-  
-      if (error) {
-        console.error("Ошибка при проверке OPT ID:", error);
-        setIsOptIdUnique(false);
-        return;
-      }
-  
-      setIsOptIdUnique(!data || data.length === 0);
-    } finally {
-      setIsCheckingOptId(false);
+      await onSubmit(data);
+      form.reset({
+        ...data,
+        userType: profile.user_type,
+      });
+    } catch (error) {
+      console.error("Error submitting form:", error);
     }
   };
 
-  const handleOptIdChange = async (optId: string) => {
-    form.setValue("optId", optId);
-    await checkOptIdUniqueness(optId);
+  const handleEmailChangeSuccess = () => {
+    setIsEmailDialogOpen(false);
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Информация профиля</CardTitle>
+        <CardTitle>Данные профиля</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <ProfileTextField
               name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Полное имя</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Ваше полное имя" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              control={form.control}
+              label="Имя и фамилия"
+              placeholder="Введите ваше имя"
             />
             
             <FormField
@@ -135,66 +117,78 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading,
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="example@mail.com" {...field} type="email" readOnly />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Телефон</FormLabel>
-                  <FormControl>
-                    <Input placeholder="+7 (999) 999-99-99" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="companyName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Название компании</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Название вашей компании" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="telegram"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Telegram</FormLabel>
-                  <FormControl>
-                    <Input placeholder="@username" {...field} />
-                  </FormControl>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="email"
+                        placeholder=""
+                        disabled={true}
+                        className="flex-1"
+                      />
+                    </FormControl>
+                    <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="shrink-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <EmailChangeForm
+                          currentEmail={profile.email}
+                          onSuccess={handleEmailChangeSuccess}
+                          onCancel={() => setIsEmailDialogOpen(false)}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
+            <UserTypeField control={form.control} readOnlyUserType={readOnlyUserType} />
+            <ProfileTextField
+              name="phone"
+              control={form.control}
+              label="Телефон"
+              placeholder="+971 XX XXX XXXX"
+              type="tel"
+            />
+            {isSeller && (
+              <ProfileTextField
+                name="companyName"
+                control={form.control}
+                label="Название компании"
+                placeholder="Введите название вашей компании"
+              />
+            )}
+            <TelegramField 
+              control={form.control} 
+              telegram_edit_count={profile.telegram_edit_count || 0}
+              initialValue={profile.telegram || ""}
+            />
+            <OptIdField 
+              control={form.control} 
+              canEditOptId={canEditOptId}
+              initialValue={profile.opt_id || ""}
+            />
+            
             <FormField
               control={form.control}
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Описание</FormLabel>
+                  <FormLabel>Описание профиля</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Расскажите немного о себе"
-                      className="resize-none"
+                      placeholder="Расскажите немного о себе..."
+                      className="resize-y min-h-[100px]"
                       {...field}
                     />
                   </FormControl>
@@ -202,19 +196,14 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ profile, onSubmit, isLoading,
                 </FormItem>
               )}
             />
-
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Сохранение...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Сохранить изменения
-                </>
-              )}
+            
+            <Button 
+              type="submit" 
+              className="w-full bg-primary hover:bg-primary-hover text-white font-medium text-base py-3 shadow-lg hover:shadow-xl transition-all"
+              disabled={isLoading}
+            >
+              <Save className="h-5 w-5 mr-2" />
+              {isLoading ? "Сохранение..." : "Сохранить изменения"}
             </Button>
           </form>
         </Form>

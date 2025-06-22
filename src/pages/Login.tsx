@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -20,7 +21,7 @@ import { toast } from "@/components/ui/use-toast";
 import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/authUtils";
 import { Mail, User, Shield, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
-import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -30,7 +31,8 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
-  const { user, isLoading } = useAuth();
+  // ✅ All hooks declared first (before any conditional returns)
+  const { user, isLoading, forceAuthReinit } = useAuth();
   const navigate = useNavigate();
   const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
@@ -66,6 +68,7 @@ const Login = () => {
     }
   }, [watchedInput]);
 
+  // ✅ Conditional returns only after all hooks
   // Show loading while checking authorization
   if (isLoading) {
     return (
@@ -87,7 +90,7 @@ const Login = () => {
     return null;
   }
 
-  // Event handlers after conditional returns
+  // ✅ Event handlers after conditional returns
   const handleFailedAttempt = () => {
     const newFailedAttempts = failedAttempts + 1;
     setFailedAttempts(newFailedAttempts);
@@ -168,6 +171,12 @@ const Login = () => {
 
       console.log("✅ Login successful, user:", authData.user?.email);
 
+      // Force auth reinitialize
+      if (forceAuthReinit) {
+        console.log('🔄 Forcing auth reinitialize...');
+        await forceAuthReinit();
+      }
+
       // Log successful login  
       await logSuccessfulLogin(data.emailOrOptId, inputType);
 
@@ -179,7 +188,7 @@ const Login = () => {
 
       // Show success message
       toast({
-        title: "Вход выпол ен успешно",
+        title: "Вход выполнен успешно",
         description: "Добро пожаловать в partsbay.ae",
       });
       
@@ -225,7 +234,7 @@ const Login = () => {
     return `example@mail.com или ${generateRandomOptId()}`;
   };
 
-  // Main render after all hooks and functions
+  // ✅ Main render after all hooks and functions
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">

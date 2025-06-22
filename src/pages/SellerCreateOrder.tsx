@@ -1,22 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/layout/Layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import React, { useState, useMemo } from "react";
+import Layout from "@/components/layout/Layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Save, Loader, Eye } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+
+// Import admin components and hooks
+import { useAdminOrderFormLogic } from "@/hooks/useAdminOrderFormLogic";
+import OptimizedSellerOrderFormFields from "@/components/admin/order/OptimizedSellerOrderFormFields";
+import SimpleMediaSection from "@/components/admin/order/SimpleMediaSection";
+import { CreatedOrderView } from "@/components/admin/order/CreatedOrderView";
+import { OrderPreviewDialog } from "@/components/admin/order/OrderPreviewDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { toast } from "@/hooks/use-toast";
 
 const SellerCreateOrder = () => {
   const navigate = useNavigate();

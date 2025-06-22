@@ -1,9 +1,7 @@
 
-import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useSimpleAdminAccess } from '@/hooks/useSimpleAdminAccess';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileShort {
   id: string;
@@ -16,7 +14,7 @@ interface SellerProfile extends ProfileShort {
 }
 
 export const useOptimizedProfiles = (userId?: string) => {
-  const { isAdmin } = useSimpleAdminAccess();
+  const { isAdmin } = useAuth();
   
   // Загружаем профили покупателей только если пользователь админ
   const {

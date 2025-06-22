@@ -1,79 +1,131 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { Link } from 'react-router-dom';
-import { ArrowUpRight, PackageCheck, ShoppingBag, Users } from 'lucide-react';
+
+import React from "react";
+import { Link } from "react-router-dom";
+import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
 
 const SellerDashboard = () => {
-  const { user } = useAuth();
+  const { profile } = useAuth();
+
+  const handleContactAdmin = () => {
+    try {
+      const userDataText = `I have a problem boss, my ID is ${profile?.opt_id || 'Not specified'}`;
+      const encodedText = encodeURIComponent(userDataText);
+      const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
+      
+      console.log('Telegram Contact Link:', telegramLink);
+      
+      window.open(telegramLink, '_blank');
+    } catch (error) {
+      window.open('https://t.me/ElenaOPTcargo', '_blank');
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {/* Общая статистика */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Общая статистика</CardTitle>
-          <CardDescription>Обзор вашего бизнеса</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-2xl font-bold">1,250</div>
-          <p className="text-muted-foreground">Всего продаж</p>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <h2 className="text-3xl font-bold">Панель продавца</h2>
+      <p className="text-muted-foreground">Управляйте своими товарами и заказами</p>
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <Link to="/seller/add-product">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <PlusCircle className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Добавить товар</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Разместите новый товар на маркетплейсе
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-      {/* Последние заказы */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Последние заказы</CardTitle>
-          <CardDescription>Недавние транзакции</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-2xl font-bold">5</div>
-          <p className="text-muted-foreground">Новых заказов</p>
-        </CardContent>
-      </Card>
+        <Link to="/seller/listings">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <FileText className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Мой склад</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Просмотр всех ваших товаров на складе
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-      {/* Продукты */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Продукты</CardTitle>
-          <CardDescription>Управление вашими товарами</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-2xl font-bold">50</div>
-          <p className="text-muted-foreground">Всего товаров</p>
-        </CardContent>
-      </Card>
+        <Link to="/seller/sell-product">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <ShoppingCart className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Продать товар</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Создайте заказ из ваших товаров
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
 
-      {/* Ссылки на разделы */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Разделы</CardTitle>
-          <CardDescription>Быстрый доступ</CardDescription>
-        </CardHeader>
-        <CardContent className="grid grid-cols-1 gap-4">
-          <Button asChild variant="outline">
-            <Link to="/seller/listings" className="flex items-center justify-between w-full">
-              <span>Мои товары</span>
-              <ShoppingBag className="h-4 w-4 ml-2" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/seller/orders" className="flex items-center justify-between w-full">
-              <span>Заказы</span>
-              <PackageCheck className="h-4 w-4 ml-2" />
-            </Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/seller/add-product" className="flex items-center justify-between w-full">
-              <span>Добавить товар</span>
-              <ArrowUpRight className="h-4 w-4 ml-2" />
-            </Link>
-          </Button>
-        </CardContent>
-      </Card>
+        <Link to="/seller/create-order">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <ShoppingBag className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Создать заказ</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Оформите новый заказ
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link to="/catalog">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <Layers className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Каталог</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Просмотр всех доступных товаров
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <div onClick={handleContactAdmin} className="cursor-pointer">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <MessageCircle className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Связаться с админом</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Получите помощь от администратора
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Link to="/seller/orders">
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer bg-white border-optapp-yellow">
+            <CardHeader className="pb-2">
+              <ListOrdered className="h-8 w-8 text-optapp-yellow" />
+            </CardHeader>
+            <CardContent>
+              <CardTitle className="text-lg">Мои заказы</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Просмотр и управление заказами
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+      </div>
     </div>
   );
 };

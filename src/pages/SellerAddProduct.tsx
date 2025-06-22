@@ -1,6 +1,39 @@
-import React from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/layout/Layout";
-import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useAllCarBrands } from "@/hooks/useAllCarBrands";
+import { useProductTitleParser } from "@/utils/productTitleParser";
+import { useFormAutosave } from "@/hooks/useFormAutosave";
+import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
+import { Link } from "react-router-dom";
+import { Home } from "lucide-react";
+import AddProductForm, { productSchema, ProductFormValues } from "@/components/product/AddProductForm";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles } from "lucide-react";
+import { useSubmissionGuard } from "@/hooks/useSubmissionGuard";
+import { extractPublicIdFromUrl } from "@/utils/cloudinaryUtils";
 
 const SellerAddProduct = () => {
   const navigate = useNavigate();

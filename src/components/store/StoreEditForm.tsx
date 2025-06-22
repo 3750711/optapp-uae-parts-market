@@ -1,20 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { ImageUpload } from '@/components/ui/image-upload';
-import { supabase } from '@/integrations/supabase/client';
-import { StoreTag } from '@/types/store';
+import React, { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { supabase } from "@/integrations/supabase/client";
+import { StoreTag } from "@/types/store";
 import { MapPin } from "lucide-react";
 import StoreLocationPicker from "./StoreLocationPicker";
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from '@/hooks/use-toast';
 
 const storeFormSchema = z.object({
   name: z.string().min(3, 'Название должно быть не менее 3 символов'),
@@ -158,8 +158,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
           }
         }
 
-        toast({
-          title: "Магазин обновлен",
+        toast("Магазин обновлен", {
           description: "Данные магазина успешно обновлены",
         });
         
@@ -167,8 +166,7 @@ const StoreEditForm: React.FC<StoreEditFormProps> = ({ sellerId, onSuccess }) =>
       }
     } catch (error: any) {
       console.error('Error updating store:', error);
-      toast({
-        title: "Ошибка обновления",
+      toast("Ошибка обновления", {
         description: error.message || "Произошла ошибка при обновлении данных магазина",
       });
     } finally {

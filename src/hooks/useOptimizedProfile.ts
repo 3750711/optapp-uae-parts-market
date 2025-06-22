@@ -1,8 +1,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useProfile } from '@/contexts/ProfileProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import { ProfileType } from '@/components/profile/types';
 
 interface OptimizedProfileData {
@@ -21,8 +20,7 @@ interface OptimizedProfileData {
 }
 
 export const useOptimizedProfile = () => {
-  const { user, isLoading: authLoading } = useAuth();
-  const { profile } = useProfile();
+  const { user, profile, isLoading: authLoading } = useAuth();
 
   const { 
     data, 

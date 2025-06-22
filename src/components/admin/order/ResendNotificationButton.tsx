@@ -3,8 +3,7 @@ import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useOrderResendNotification } from '@/hooks/useOrderResendNotification';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useProfile } from '@/contexts/ProfileProvider';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ResendNotificationButtonProps {
   orderId: string;
@@ -21,7 +20,7 @@ export const ResendNotificationButton: React.FC<ResendNotificationButtonProps> =
   variant = 'ghost',
   className = ''
 }) => {
-  const { profile } = useProfile();
+  const { profile } = useAuth();
   const { 
     resendNotification, 
     isResending, 

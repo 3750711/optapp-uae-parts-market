@@ -6,8 +6,7 @@ import { ChevronLeft } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/SimpleAuthContext";
-import { useProfile } from "@/contexts/ProfileProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import OptimizedProfileSidebar from "@/components/profile/OptimizedProfileSidebar";
 import ProfileForm from "@/components/profile/ProfileForm";
@@ -42,11 +41,21 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
-  const { profile, refetch } = useProfile();
+  const { user, signOut, refreshProfile } = useAuth();
   const [isFormLoading, setIsFormLoading] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const navigate = useNavigate();
+  
+  // Используем оптимизированный хук
+  const { 
+    data, 
+    isLoading, 
+    error, 
+    refetch, 
+    profile, 
+    orderStats, 
+    storeInfo 
+  } = useOptimizedProfile();
   
   useEffect(() => {
     if (!user) {
@@ -101,7 +110,8 @@ const Profile = () => {
       }
 
       console.log("Profile: Profile updated successfully");
-      await refetch(); // Обновляем кэш профиля
+      await refreshProfile();
+      await refetch(); // Обновляем кэш оптимизированного хука
 
       toast({
         title: "Профиль обновлен",
@@ -151,6 +161,7 @@ const Profile = () => {
       }
       
       console.log("Profile: Avatar updated successfully");
+      await refreshProfile();
       await refetch(); // Обновляем кэш
     } catch (error: any) {
       console.error("Profile: Avatar update error:", error);
@@ -187,12 +198,28 @@ const Profile = () => {
   };
 
   // Показываем лоадер только при первоначальной загрузке
-  if (!profile) {
+  if (isLoading && !profile) {
     console.log("Profile: Showing loading state");
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12 flex justify-center items-center">
           <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      </Layout>
+    );
+  }
+
+  if (!profile) {
+    console.log("Profile: No profile found, showing error state");
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12 flex justify-center items-center">
+          <div className="text-center">
+            <p className="text-gray-600 mb-4">Не удалось загрузить профиль</p>
+            <Button onClick={() => refetch()}>
+              Попробовать снова
+            </Button>
+          </div>
         </div>
       </Layout>
     );
@@ -224,13 +251,13 @@ const Profile = () => {
             <div className="block lg:hidden space-y-6">
               <OptimizedProfileSidebar 
                 profile={profile}
-                isLoading={false}
+                isLoading={isLoading}
                 onAvatarUpdate={handleAvatarUpdate}
               />
               <OptimizedProfileStats 
                 profile={profile} 
-                orderStats={null}
-                isLoading={false}
+                orderStats={orderStats}
+                isLoading={isLoading}
               />
               <ProfileProgress profile={profile} />
               <ProfileForm
@@ -250,13 +277,13 @@ const Profile = () => {
               <div className="lg:col-span-4 space-y-6">
                 <OptimizedProfileSidebar 
                   profile={profile}
-                  isLoading={false}
+                  isLoading={isLoading}
                   onAvatarUpdate={handleAvatarUpdate}
                 />
                 <OptimizedProfileStats 
                   profile={profile} 
-                  orderStats={null}
-                  isLoading={false}
+                  orderStats={orderStats}
+                  isLoading={isLoading}
                 />
               </div>
 

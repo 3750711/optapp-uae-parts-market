@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Form,
@@ -14,24 +15,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { 
-  Eye, 
-  EyeOff, 
-  User, 
-  Mail, 
-  KeyRound, 
-  UserCheck, 
-  CheckCircle2, 
-  Loader2,
-  AlertTriangle 
-} from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
-import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
-import { useAuth } from "@/contexts/SimpleAuthContext";
+import { countries } from "@/data/countries";
+import { Check, User, Store, AlertCircle, Loader2 } from "lucide-react";
+import { checkOptIdExists } from "@/utils/authUtils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   fullName: z.string().optional(),
@@ -218,11 +214,11 @@ const Register = () => {
       case 'checking':
         return <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />;
       case 'available':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <Check className="h-4 w-4 text-green-500" />;
       case 'taken':
-        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
       case 'rate_limited':
-        return <AlertTriangle className="h-4 w-4 text-orange-500" />;
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
       default:
         return null;
     }
@@ -381,7 +377,7 @@ const Register = () => {
                             <User className={`h-8 w-8 mb-2 ${field.value === "buyer" ? "text-optapp-yellow" : ""}`} />
                             <span>Покупатель</span>
                             {field.value === "buyer" && (
-                              <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-optapp-yellow" />
+                              <Check className="absolute top-2 right-2 h-4 w-4 text-optapp-yellow" />
                             )}
                           </Button>
                           
@@ -395,10 +391,10 @@ const Register = () => {
                             }`}
                             onClick={() => form.setValue("userType", "seller")}
                           >
-                            <UserCheck className={`h-8 w-8 mb-2 ${field.value === "seller" ? "text-optapp-yellow" : ""}`} />
+                            <Store className={`h-8 w-8 mb-2 ${field.value === "seller" ? "text-optapp-yellow" : ""}`} />
                             <span>Продавец</span>
                             {field.value === "seller" && (
-                              <CheckCircle2 className="absolute top-2 right-2 h-4 w-4 text-optapp-yellow" />
+                              <Check className="absolute top-2 right-2 h-4 w-4 text-optapp-yellow" />
                             )}
                           </Button>
                         </div>

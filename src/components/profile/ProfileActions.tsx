@@ -1,12 +1,21 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
+
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { ProfileType } from "./types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { LogOut, UserCog, Settings } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { DeleteAccountButton } from "./DeleteAccountButton";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -15,124 +24,110 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { MoreVertical, Edit, Trash2, Eye } from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
+} from "@/components/ui/alert-dialog";
 
 interface ProfileActionsProps {
-  profileId: string;
-  onProfileUpdate?: () => void;
-  onProfileDelete?: () => void;
-  isCurrentUser: boolean;
+  profile: ProfileType;
+  isLoading: boolean;
 }
 
-const ProfileActions: React.FC<ProfileActionsProps> = ({ 
-  profileId, 
-  onProfileUpdate, 
-  onProfileDelete,
-  isCurrentUser
-}) => {
-  const { user } = useAuth();
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) => {
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
-
-  const handleEditClick = () => {
-    navigate('/profile');
+  const { isAdmin } = useAdminAccess();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  
+  const isOwnProfile = user?.id === profile.id;
+  
+  const handleLogoutClick = () => {
+    setLogoutDialogOpen(true);
   };
-
-  const handleViewStoreClick = () => {
-    navigate(`/public-seller-profile/${profileId}`);
-  };
-
-  const handleDeleteClick = () => {
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDeleteProfile = async () => {
+  
+  const handleLogout = async () => {
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', profileId);
-
-      if (error) {
-        console.error("Ошибка при удалении профиля:", error);
-        toast({
-          title: "Ошибка удаления",
-          description: "Не удалось удалить профиль. Пожалуйста, попробуйте снова.",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      await signOut();
+      navigate('/login');
       toast({
-        title: "Профиль удален",
-        description: "Профиль успешно удален.",
+        title: "Успешно",
+        description: "Вы вышли из системы",
       });
-
-      setDeleteDialogOpen(false);
-      if (onProfileDelete) {
-        onProfileDelete();
-      }
     } catch (error) {
-      console.error("Ошибка при удалении профиля:", error);
+      console.error('Logout error:', error);
       toast({
-        title: "Ошибка удаления",
-        description: "Не удалось удалить профиль. Пожалуйста, попробуйте снова.",
         variant: "destructive",
+        title: "Ошибка",
+        description: "Не удалось выйти из системы",
       });
     }
   };
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <span className="sr-only">Открыть меню</span>
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {isCurrentUser && (
-            <DropdownMenuItem onClick={handleEditClick}>
-              <Edit className="mr-2 h-4 w-4" />
-              Редактировать
-            </DropdownMenuItem>
-          )}
-          {!isCurrentUser && (
-            <DropdownMenuItem onClick={handleViewStoreClick}>
-              <Eye className="mr-2 h-4 w-4" />
-              Посмотреть
-            </DropdownMenuItem>
-          )}
-          {user?.user_metadata?.role === 'admin' && (
-            <DropdownMenuItem onClick={handleDeleteClick}>
-              <Trash2 className="mr-2 h-4 w-4" />
-              Удалить
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle>Действия</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {isOwnProfile ? (
+          <>
+            <Button
+              className="w-full bg-gray-100 text-gray-600 hover:bg-gray-200 border-gray-300"
+              variant="outline"
+              onClick={handleLogoutClick}
+              disabled={isLoading}
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Выйти из системы
+            </Button>
+            
+            {profile.user_type === 'seller' && (
+              <Button 
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={() => navigate('/seller/profile')}
+              >
+                <UserCog className="h-4 w-4 mr-2" /> Панель продавца
+              </Button>
+            )}
+            
+            {isAdmin && (
+              <Button 
+                className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90"
+                onClick={() => navigate('/admin')}
+              >
+                <Settings className="h-4 w-4 mr-2" /> Панель администратора
+              </Button>
+            )}
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Вы уверены?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Это действие необратимо. Вы уверены, что хотите удалить этот профиль?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Отмена</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteProfile}>Удалить</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            <DeleteAccountButton />
+            
+            <AlertDialog 
+              open={logoutDialogOpen} 
+              onOpenChange={setLogoutDialogOpen}
+            >
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Выйти из системы</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Вы уверены, что хотите выйти из системы?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout}>Выйти</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button className="w-full">Действия</Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56">
+              {/* Empty dropdown for now */}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

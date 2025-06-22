@@ -1,6 +1,6 @@
 
 import React from "react";
-import { SimpleAdminRoute } from "@/components/auth/SimpleAdminRoute";
+import { AdminRoute } from "@/components/auth/AdminRoute";
 import AdminLayout from "@/components/admin/AdminLayout";
 import AddProductForm from "@/components/product/AddProductForm";
 import { useOptimizedAdminAddProduct } from "@/hooks/useOptimizedAdminAddProduct";
@@ -35,7 +35,7 @@ const AdminAddProduct = () => {
   } = useOptimizedAdminAddProduct();
 
   return (
-    <SimpleAdminRoute>
+    <AdminRoute>
       <AdminLayout>
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-3xl mx-auto">
@@ -76,7 +76,7 @@ const AdminAddProduct = () => {
           isSubmitting={isSubmitting}
         />
       </AdminLayout>
-    </SimpleAdminRoute>
+    </AdminRoute>
   );
 };
 
