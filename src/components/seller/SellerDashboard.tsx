@@ -124,7 +124,7 @@ const SellerDashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </div>
+        </Link>
       </div>
     </div>
   );
