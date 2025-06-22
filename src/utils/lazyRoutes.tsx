@@ -7,6 +7,14 @@ import AdminAddProduct from '@/pages/AdminAddProduct';
 // OrdersRedirect component for handling order redirects
 import OrdersRedirect from '@/pages/OrdersRedirect';
 
+// Redirect components
+import { 
+  SellerCreateOrderRedirect, 
+  SellerSellProductRedirect, 
+  SellerProfileRedirect,
+  SellerProductsRedirect 
+} from '@/components/redirects/SellerRedirects';
+
 export const routeConfigs = [
   // Public routes
   {
@@ -298,7 +306,7 @@ export const routeConfigs = [
     adminOnly: false,
   },
   
-  // Utility and redirect routes
+  // Utility and redirect routes - теперь используем правильные React Router компоненты
   {
     path: '/orders',
     component: OrdersRedirect,
@@ -307,37 +315,25 @@ export const routeConfigs = [
   },
   {
     path: '/seller-create-order',
-    component: () => {
-      window.location.replace('/seller/create-order');
-      return null;
-    },
+    component: SellerCreateOrderRedirect,
     protected: true,
     adminOnly: false,
   },
   {
     path: '/seller-sell-product',
-    component: () => {
-      window.location.replace('/seller/sell-product');
-      return null;
-    },
+    component: SellerSellProductRedirect,
     protected: true,
     adminOnly: false,
   },
   {
     path: '/seller-profile',
-    component: () => {
-      window.location.replace('/seller/profile');
-      return null;
-    },
+    component: SellerProfileRedirect,
     protected: true,
     adminOnly: false,
   },
   {
     path: '/seller/products',
-    component: () => {
-      window.location.replace('/seller/listings');
-      return null;
-    },
+    component: SellerProductsRedirect,
     protected: true,
     adminOnly: false,
   },
