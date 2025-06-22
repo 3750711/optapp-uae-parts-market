@@ -37,8 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUserProfile = useCallback(async (userId: string) => {
     if (!mountedRef.current) return null;
 
-    console.log('🔄 Fetching profile for user:', userId);
-
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -51,10 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Упрощенная обработка JWT ошибок
         if (error.message?.includes('JWT')) {
-          console.log('🔄 JWT error detected, refreshing session...');
           const { error: refreshError } = await supabase.auth.refreshSession();
           if (!refreshError && mountedRef.current) {
-            console.log('✅ Session refreshed, retrying profile fetch...');
             return fetchUserProfile(userId);
           }
         }
@@ -67,12 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (data && mountedRef.current) {
-        console.log('✅ Profile loaded successfully:', {
-          email: data.email,
-          userType: data.user_type,
-          verificationStatus: data.verification_status
-        });
-        
         setProfile(data);
         
         // Упрощенная проверка админских прав
@@ -81,7 +71,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Проверка первого входа
         if (data.email?.endsWith('@g.com') && !data.first_login_completed) {
-          console.log('👋 First login detected, showing welcome...');
           setShowFirstLoginWelcome(true);
         }
         
@@ -117,8 +106,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user, refreshProfile]);
 
   const forceAuthReinit = useCallback(async () => {
-    console.log('🔄 Force auth reinitialize requested...');
-    
     try {
       const { data: { session: currentSession }, error } = await supabase.auth.getSession();
       
@@ -128,7 +115,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (currentSession?.user && mountedRef.current) {
-        console.log('✅ Force reinit found session, updating state...');
         setSession(currentSession);
         setUser(currentSession.user);
         await fetchUserProfile(currentSession.user.id);
@@ -147,22 +133,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      console.log('🚀 Starting logout...');
       await supabase.auth.signOut();
     } catch (error) {
       console.error('💥 Error during logout:', error);
     }
   }, []);
 
-  // Упрощенная инициализация без избыточных timeout'ов
+  // Упрощенная инициализация
   useEffect(() => {
     let mounted = true;
     mountedRef.current = true;
     
     const setupAuth = async () => {
       try {
-        console.log('🔑 Starting auth setup...');
-        
         // Получаем текущую сессию
         const { data: { session: currentSession }, error } = await supabase.auth.getSession();
         
@@ -183,10 +166,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(currentSession?.user ?? null);
           
           if (currentSession?.user) {
-            console.log('👤 User found, fetching profile...');
             await fetchUserProfile(currentSession.user.id);
           } else {
-            console.log('👤 No user session, setting defaults...');
             setProfile(null);
             setIsAdmin(false);
           }
@@ -198,8 +179,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
             if (!mounted) return;
-            
-            console.log('🔄 Auth state changed:', event);
             
             setSession(currentSession);
             setUser(currentSession?.user ?? null);
@@ -244,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshProfile,
     refreshAdminStatus,
     forceAuthReinit
-  }), [user, session, profile, isLoading, isAdmin, signOut, refreshProfile, refreshAdminStatus, forceAuthReinit]);
+  }), [user, session, profile, isLoading, isAdmin, signOut, refreshProfile, refreshAdmin Status, forceAuthReinit]);
 
   return (
     <AuthContext.Provider value={contextValue}>

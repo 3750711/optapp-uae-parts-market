@@ -1,6 +1,6 @@
 
 // Централизованная система логирования с условным выполнением
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = import.meta.env.DEV;
 
 // Счетчики для throttling
 const logCounts = new Map<string, number>();

@@ -2,6 +2,9 @@
 // Environment check
 const isDevelopment = import.meta.env.DEV;
 
+// Импортируем логирование из централизованного источника
+import { devLog, devError, devWarn } from '@/utils/logger';
+
 // Declare global gtag for analytics
 declare global {
   interface Window {
@@ -9,25 +12,6 @@ declare global {
     __webpack_require__?: any;
   }
 }
-
-// Development logging functions
-export const devLog = (...args: any[]) => {
-  if (isDevelopment) {
-    console.log(...args);
-  }
-};
-
-export const devError = (...args: any[]) => {
-  if (isDevelopment) {
-    console.error(...args);
-  }
-};
-
-export const devWarn = (...args: any[]) => {
-  if (isDevelopment) {
-    console.warn(...args);
-  }
-};
 
 // Performance marking functions
 export const perfMark = (name: string) => {

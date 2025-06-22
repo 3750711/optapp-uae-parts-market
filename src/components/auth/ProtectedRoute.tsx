@@ -2,7 +2,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
-import { devLog } from "@/utils/performanceUtils";
+import { devLog } from "@/utils/logger";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
