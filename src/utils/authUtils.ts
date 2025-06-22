@@ -1,113 +1,139 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
+
+export type InputType = 'email' | 'opt_id';
+
+interface EmailByOptIdResult {
+  email: string | null;
+  isRateLimited: boolean;
+}
+
+interface OptIdCheckResult {
+  exists: boolean;
+  isRateLimited: boolean;
+}
 
 // Функция для определения типа ввода (email или OPT ID)
-export const detectInputType = (input: string): 'email' | 'opt_id' => {
-  // Простая проверка на email формат
+export const detectInputType = (input: string): InputType => {
+  // Проверяем, является ли строка email (содержит @ и точку)
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(input) ? 'email' : 'opt_id';
-};
-
-// Функция для получения IP адреса (упрощенная версия)
-const getClientIP = async (): Promise<string | null> => {
-  try {
-    // В продакшене можно использовать более надежные методы
-    // Пока используем простой fallback
-    return null;
-  } catch (error) {
-    console.error('Error getting client IP:', error);
-    return null;
+  
+  if (emailRegex.test(input)) {
+    return 'email';
   }
+  
+  // Если не email, считаем что это OPT ID
+  return 'opt_id';
 };
 
-// Функция для получения email по OPT ID с rate limiting
-export const getEmailByOptId = async (optId: string): Promise<{ email: string | null; isRateLimited: boolean }> => {
+// Функция для получения email по OPT ID с защитой от rate limiting
+export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult> => {
   try {
-    const clientIP = await getClientIP();
+    console.log('Searching for email by OPT ID:', optId);
     
     const { data, error } = await supabase.rpc('get_email_by_opt_id', {
-      p_opt_id: optId,
-      p_ip_address: clientIP
+      p_opt_id: optId
     });
 
     if (error) {
       console.error('Error getting email by OPT ID:', error);
-      // Проверяем, является ли это ошибкой rate limiting
-      if (error.message?.includes('Rate limit')) {
+      
+      // Проверяем, является ли ошибка связанной с rate limiting
+      if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
         return { email: null, isRateLimited: true };
       }
+      
       return { email: null, isRateLimited: false };
     }
 
+    console.log('Found email for OPT ID:', data ? '***@***.***' : 'not found');
     return { email: data, isRateLimited: false };
+    
   } catch (error) {
-    console.error('Exception getting email by OPT ID:', error);
+    console.error('Unexpected error in getEmailByOptId:', error);
     return { email: null, isRateLimited: false };
   }
 };
 
-// Функция для проверки существования OPT ID с rate limiting
-export const checkOptIdExists = async (optId: string): Promise<{ exists: boolean; isRateLimited: boolean }> => {
+// Функция для проверки существования OPT ID с правильным типом возврата
+export const checkOptIdExists = async (optId: string): Promise<OptIdCheckResult> => {
   try {
-    const clientIP = await getClientIP();
-    
     const { data, error } = await supabase.rpc('check_opt_id_exists', {
-      p_opt_id: optId,
-      p_ip_address: clientIP
+      p_opt_id: optId
     });
 
     if (error) {
-      console.error('Error checking OPT ID exists:', error);
+      console.error('Error checking OPT ID:', error);
+      
+      // Проверяем на rate limiting
+      if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        return { exists: false, isRateLimited: true };
+      }
+      
       return { exists: false, isRateLimited: false };
     }
 
-    // Если функция вернула false, это может означать rate limiting
-    // В продакшене стоит добавить более точную проверку
-    return { exists: data || false, isRateLimited: false };
+    return { exists: Boolean(data), isRateLimited: false };
   } catch (error) {
-    console.error('Exception checking OPT ID exists:', error);
+    console.error('Unexpected error in checkOptIdExists:', error);
     return { exists: false, isRateLimited: false };
   }
 };
 
 // Функция для логирования успешного входа
-export const logSuccessfulLogin = async (identifier: string, attemptType: 'email' | 'opt_id'): Promise<void> => {
+export const logSuccessfulLogin = async (identifier: string, inputType: InputType): Promise<void> => {
   try {
-    const clientIP = await getClientIP();
+    console.log('Logging successful login for:', inputType, identifier);
     
-    // Логируем успешный вход напрямую в таблицу
-    await supabase.from('login_attempts').insert({
-      identifier,
-      ip_address: clientIP,
-      attempt_type: attemptType,
-      success: true
-    });
-  } catch (error) {
-    console.error('Error logging successful login:', error);
-  }
-};
-
-// Функция для проверки необходимости первого входа
-export const checkFirstLoginRequired = (profile: any): boolean => {
-  return profile?.email?.endsWith('@g.com') && !profile?.first_login_completed;
-};
-
-// Функция для завершения процесса первого входа
-export const completeFirstLogin = async (userId: string): Promise<boolean> => {
-  try {
+    // Можно добавить запись в таблицу login_attempts или другую логику
     const { error } = await supabase
-      .from('profiles')
-      .update({ first_login_completed: true })
-      .eq('id', userId);
+      .from('login_attempts')
+      .insert({
+        identifier,
+        attempt_type: inputType,
+        success: true,
+        ip_address: null // В браузере нет доступа к IP
+      });
 
     if (error) {
-      console.error('Error completing first login:', error);
-      return false;
+      console.warn('Failed to log successful login:', error);
     }
-
-    return true;
   } catch (error) {
-    console.error('Exception completing first login:', error);
-    return false;
+    console.warn('Error logging successful login:', error);
   }
+};
+
+// Функция для валидации email
+export const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Функция для валидации пароля
+export const validatePassword = (password: string): { isValid: boolean; errors: string[] } => {
+  const errors: string[] = [];
+  
+  if (password.length < 6) {
+    errors.push('Пароль должен содержать не менее 6 символов');
+  }
+  
+  if (!/[A-Za-z]/.test(password)) {
+    errors.push('Пароль должен содержать хотя бы одну букву');
+  }
+  
+  if (!/[0-9]/.test(password)) {
+    errors.push('Пароль должен содержать хотя бы одну цифру');
+  }
+  
+  return {
+    isValid: errors.length === 0,
+    errors
+  };
+};
+
+// Функция для форматирования времени обратного отсчета
+export const formatCountdown = (seconds: number): string => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 };

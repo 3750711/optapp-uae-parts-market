@@ -10,10 +10,10 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { LogOut, UserCog, Settings } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useSimpleAdminAccess } from "@/hooks/useSimpleAdminAccess";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { DeleteAccountButton } from "./DeleteAccountButton";
 import {
   AlertDialog,
@@ -33,8 +33,8 @@ interface ProfileActionsProps {
 
 const ProfileActions: React.FC<ProfileActionsProps> = ({ profile, isLoading }) => {
   const { signOut, user } = useAuth();
+  const { isAdmin } = useSimpleAdminAccess();
   const navigate = useNavigate();
-  const { isAdmin } = useAdminAccess();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
   const isOwnProfile = user?.id === profile.id;

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
@@ -10,10 +11,7 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isComponentReady, setIsComponentReady] = useState(false);
   const [sessionLost, setSessionLost] = useState(false);
-  const { user, profile } = useAuth();
-
-  // Простая проверка админских прав
-  const isAdmin = profile?.user_type === 'admin';
+  const { user, isAdmin } = useAuth();
 
   // Component readiness check
   useEffect(() => {

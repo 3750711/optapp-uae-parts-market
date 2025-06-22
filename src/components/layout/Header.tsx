@@ -1,6 +1,8 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useSimpleAdminAccess } from "@/hooks/useSimpleAdminAccess";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -13,7 +15,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, LogOut, Package, ShoppingCart, Plus, Settings, LayoutDashboard, Menu, Store, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -23,18 +24,11 @@ import {
 } from "@/components/ui/sheet";
 
 const Header = () => {
-  const { user, profile, signOut } = useAuth();
-  const { isAdmin } = useAdminAccess();
+  const { user, signOut } = useAuth();
+  const { isAdmin } = useSimpleAdminAccess();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-
-  const getUserTypeLabel = (type: string | undefined) => {
-    if (type === 'seller') return 'Продавец';
-    if (type === 'buyer') return 'Покупатель';
-    if (type === 'admin') return 'Администратор';
-    return '';
-  };
 
   const handleLogout = async () => {
     try {
@@ -91,17 +85,8 @@ const Header = () => {
       >
         О нас
       </Link>
-      {profile?.user_type === 'seller' && (
-        <Link to="/seller/dashboard" onClick={onClick} className="ml-0 md:ml-2">
-          <Button variant="secondary" size="sm" className="animate-float">
-            Панель продавца
-          </Button>
-        </Link>
-      )}
     </nav>
   );
-
-  const ordersLink = profile?.user_type === 'seller' ? '/seller/orders' : '/orders';
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100">
@@ -134,11 +119,6 @@ const Header = () => {
         <div className="flex items-center space-x-3">
           {user ? (
             <div className="flex items-center space-x-2">
-              {profile?.user_type && !isMobile && (
-                <Badge variant="outline" className="hidden sm:flex bg-accent text-primary border border-primary/20"> 
-                  {getUserTypeLabel(profile.user_type)}
-                </Badge>
-              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button 
@@ -147,34 +127,20 @@ const Header = () => {
                   >
                     <Avatar className="h-9 w-9">
                       <AvatarImage 
-                        src={profile?.avatar_url || ''} 
-                        alt={profile?.full_name || 'User'} 
+                        src={user.user_metadata?.avatar_url || ''} 
+                        alt={user.user_metadata?.full_name || 'User'} 
                       />
                       <AvatarFallback className="bg-primary text-white">
-                        {profile?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
                       </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-white text-foreground shadow-elevation border border-gray-200 rounded-lg animate-scale-in">
                   <DropdownMenuLabel className="flex flex-col gap-1">
-                    <span>{profile?.full_name || user.email}</span>
-                    {profile?.user_type && (
-                      <Badge variant="outline" className="w-fit bg-accent text-primary border border-primary/20">
-                        {getUserTypeLabel(profile.user_type)}
-                      </Badge>
-                    )}
+                    <span>{user.user_metadata?.full_name || user.email}</span>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  
-                  {isAdmin && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to="/admin" className="flex w-full items-center">
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Панель администратора</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
                   
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/profile" className="flex w-full items-center">
@@ -183,51 +149,25 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   
-                  {profile?.user_type === 'seller' && (
-                    <>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/dashboard" className="flex w-full items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Личный кабинет</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/add-product" className="flex w-full items-center">
-                          <Plus className="mr-2 h-4 w-4" />
-                          <span>Добавить товар</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                        <Link to="/seller/create-order" className="flex w-full items-center">
-                          <Package className="mr-2 h-4 w-4" />
-                          <span>Создать заказ</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
-                  
-                  <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                    <Link to="/requests" className="flex w-full items-center">
-                      <MessageSquare className="mr-2 h-4 w-4" />
-                      <span>Запросы</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  
-                  {profile?.user_type !== 'admin' && (
-                    <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
-                      <Link to={ordersLink} className="flex w-full items-center">
-                        <Package className="mr-2 h-4 w-4" />
-                        <span>Мои заказы</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                     <Link to="/catalog" className="flex w-full items-center">
                       <ShoppingCart className="mr-2 h-4 w-4" />
                       <span>Каталог</span>
                     </Link>
                   </DropdownMenuItem>
+
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild className="hover:bg-secondary/10 hover:text-secondary">
+                        <Link to="/admin" className="flex w-full items-center">
+                          <LayoutDashboard className="mr-2 h-4 w-4" />
+                          <span>Админ панель</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
                   <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     onClick={handleLogout} 

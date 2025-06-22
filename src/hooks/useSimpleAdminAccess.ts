@@ -1,17 +1,15 @@
 
 import { useAuth } from '@/contexts/SimpleAuthContext';
 import { useProfile } from '@/contexts/ProfileProvider';
-import { throttledDevLog } from '@/utils/logger';
 
-export const useAdminAccess = () => {
-  const { user } = useAuth();
-  const { profile, isLoading } = useProfile();
+export const useSimpleAdminAccess = () => {
+  const { user, isLoading: authLoading } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
+  
+  const isLoading = authLoading || profileLoading;
   
   // Проверяем админские права через profile.user_type
   const isAdmin = profile?.user_type === 'admin';
-  
-  // Логируем только при изменении статуса, а не на каждый вызов
-  throttledDevLog('admin-access-check', '🔍 useAdminAccess:', { isAdmin, userType: profile?.user_type });
   
   return {
     // Строгая проверка админских прав

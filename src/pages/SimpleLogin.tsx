@@ -18,10 +18,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/authUtils";
-import { Mail, User, Shield, Loader2 } from "lucide-react";
-import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
-import { useAuth } from "@/contexts/AuthContext";
+import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
+import { Mail, User, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/SimpleAuthContext";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -30,16 +29,11 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const Login = () => {
-  // ✅ All hooks declared first (before any conditional returns)
-  const { user, isLoading, forceAuthReinit } = useAuth();
+const SimpleLogin = () => {
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [isRateLimited, setIsRateLimited] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -58,7 +52,7 @@ const Login = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Determine input type in real time
+  // Determine input type
   useEffect(() => {
     if (watchedInput) {
       const type = detectInputType(watchedInput);
@@ -68,8 +62,7 @@ const Login = () => {
     }
   }, [watchedInput]);
 
-  // ✅ Conditional returns only after all hooks
-  // Show loading while checking authorization
+  // Show loading while checking auth
   if (isLoading) {
     return (
       <Layout>
@@ -85,34 +78,12 @@ const Login = () => {
     );
   }
 
-  // If user is authenticated, don't show form
+  // Don't show form if user is authenticated
   if (user) {
     return null;
   }
 
-  // ✅ Event handlers after conditional returns
-  const handleFailedAttempt = () => {
-    const newFailedAttempts = failedAttempts + 1;
-    setFailedAttempts(newFailedAttempts);
-    
-    // Show CAPTCHA after 3 failed attempts
-    if (newFailedAttempts >= 3) {
-      setShowCaptcha(true);
-      setCaptchaVerified(false);
-    }
-  };
-
   const onSubmit = async (data: FormData) => {
-    // Check CAPTCHA if required
-    if (showCaptcha && !captchaVerified) {
-      toast({
-        title: "Необходима проверка",
-        description: "Пожалуйста, пройдите проверку CAPTCHA",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoadingForm(true);
     
     try {
@@ -126,18 +97,7 @@ const Login = () => {
         console.log("🔍 Detected OPT ID, searching for email...");
         const result = await getEmailByOptId(data.emailOrOptId);
         
-        if (result.isRateLimited) {
-          setIsRateLimited(true);
-          toast({
-            title: "Слишком много попыток",
-            description: "Попробуйте войти через 15 минут",
-            variant: "destructive",
-          });
-          return;
-        }
-        
         if (!result.email) {
-          handleFailedAttempt();
           toast({
             title: "Ошибка входа",
             description: "Неверные учетные данные",
@@ -150,7 +110,7 @@ const Login = () => {
         console.log("✅ Found email for OPT ID:", emailToUse);
       }
 
-      // Sign in with found email
+      // Sign in with email and password
       const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password: data.password,
@@ -158,9 +118,6 @@ const Login = () => {
 
       if (error) {
         console.error("❌ Login error:", error);
-        handleFailedAttempt();
-        
-        // Unified error message for all cases
         toast({
           title: "Ошибка входа",
           description: "Неверные учетные данные",
@@ -171,32 +128,15 @@ const Login = () => {
 
       console.log("✅ Login successful, user:", authData.user?.email);
 
-      // Force auth reinitialize
-      if (forceAuthReinit) {
-        console.log('🔄 Forcing auth reinitialize...');
-        await forceAuthReinit();
-      }
-
-      // Log successful login  
-      await logSuccessfulLogin(data.emailOrOptId, inputType);
-
-      // Reset counters after successful login
-      setFailedAttempts(0);
-      setShowCaptcha(false);
-      setCaptchaVerified(false);
-      setIsRateLimited(false);
-
-      // Show success message
       toast({
         title: "Вход выполнен успешно",
         description: "Добро пожаловать в partsbay.ae",
       });
       
-      // Check URL for "from" parameter for redirect
+      // Check for redirect parameter
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
 
-      // Add small delay for auth state update
       setTimeout(() => {
         console.log("🚀 Redirecting to:", from);
         navigate(from);
@@ -204,9 +144,6 @@ const Login = () => {
       
     } catch (error: any) {
       console.error("💥 Login error:", error);
-      handleFailedAttempt();
-      
-      // Unified error message
       toast({
         title: "Ошибка входа",
         description: "Неверные учетные данные",
@@ -223,18 +160,6 @@ const Login = () => {
     return null;
   };
 
-  const generateRandomOptId = () => {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    return Array.from({ length: 3 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
-  };
-
-  const getPlaceholderText = () => {
-    if (inputType === 'email') return "example@mail.com";
-    if (inputType === 'opt_id') return `${generateRandomOptId()}, ${generateRandomOptId()}, ${generateRandomOptId()}...`;
-    return `example@mail.com или ${generateRandomOptId()}`;
-  };
-
-  // ✅ Main render after all hooks and functions
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -248,15 +173,6 @@ const Login = () => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
-                {isRateLimited && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-red-500" />
-                    <span className="text-red-700 text-sm">
-                      Превышен лимит попыток входа. Попробуйте через 15 минут.
-                    </span>
-                  </div>
-                )}
-                
                 <FormField
                   control={form.control}
                   name="emailOrOptId"
@@ -267,10 +183,9 @@ const Login = () => {
                         <div className="relative">
                           <Input 
                             type="text" 
-                            placeholder={getPlaceholderText()}
+                            placeholder="example@mail.com или ABC"
                             {...field} 
                             className="pr-10"
-                            disabled={isRateLimited}
                           />
                           {getInputIcon() && (
                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -303,36 +218,18 @@ const Login = () => {
                         </Link>
                       </div>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          {...field} 
-                          disabled={isRateLimited}
-                        />
+                        <Input type="password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                {showCaptcha && (
-                  <SimpleCaptcha
-                    isVisible={showCaptcha}
-                    onVerify={setCaptchaVerified}
-                  />
-                )}
-
-                {failedAttempts > 0 && !isRateLimited && (
-                  <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                    Неудачных попыток: {failedAttempts}/3
-                    {failedAttempts >= 3 && " (требуется CAPTCHA)"}
-                  </div>
-                )}
               </CardContent>
               <CardFooter className="flex flex-col space-y-4">
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoadingForm || isRateLimited || (showCaptcha && !captchaVerified)}
+                  disabled={isLoadingForm}
                 >
                   {isLoadingForm ? "Вход..." : "Войти"}
                 </Button>
@@ -341,11 +238,6 @@ const Login = () => {
                   <Link to="/register" className="text-optapp-dark font-medium hover:underline">
                     Зарегистрироваться
                   </Link>
-                </div>
-                <div className="text-center text-xs text-muted-foreground border-t pt-4">
-                  <p>💡 Подсказка: Вы можете войти используя:</p>
-                  <p>• Email адрес (example@mail.com)</p>
-                  <p>• OPT ID ({generateRandomOptId()}, {generateRandomOptId()}, {generateRandomOptId()} и т.д.)</p>
                 </div>
               </CardFooter>
             </form>
@@ -356,4 +248,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default SimpleLogin;
