@@ -1,10 +1,10 @@
 
-import React, { useEffect, useState, Suspense } from "react";
+import React from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ChevronLeft, Store, RefreshCw } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";

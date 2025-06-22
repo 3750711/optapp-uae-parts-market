@@ -3,12 +3,12 @@ import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import EmailVerificationForm from '@/components/auth/EmailVerificationForm';
-import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/contexts/ProfileProvider';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { refreshProfile } = useAuth();
+  const { refetch } = useProfile();
   
   const email = searchParams.get('email') || '';
   const returnTo = searchParams.get('returnTo') || '/profile';
@@ -17,7 +17,7 @@ const VerifyEmail = () => {
     console.log('Email verified successfully:', verifiedEmail);
     
     // Обновляем профиль пользователя
-    await refreshProfile();
+    await refetch();
     
     // Перенаправляем пользователя
     navigate(returnTo, { 
