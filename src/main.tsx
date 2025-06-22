@@ -5,7 +5,6 @@ import App from "./App.tsx";
 import "./index.css";
 import { Toaster } from "@/components/ui/toaster";
 import { initPerformanceOptimizations } from "@/utils/performanceUtils";
-import { preloadCriticalRoutes } from "@/utils/lazyRoutes";
 
 // Импортируем системы мониторинга для продакшена
 import "@/utils/productionErrorReporting";
@@ -63,6 +62,3 @@ initApp();
 
 // Инициализируем мониторинг производительности
 initPerformanceOptimizations();
-
-// Предзагружаем критические маршруты
-preloadCriticalRoutes();
