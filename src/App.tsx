@@ -1,4 +1,5 @@
 
+import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,21 +7,19 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/SimpleAuthContext";
 import { ProfileProvider } from "@/contexts/ProfileProvider";
-
-import Index from "./pages/Index";
-import SimpleLogin from "./pages/SimpleLogin";
-import Register from "./pages/Register";
+import { routeConfigs } from "@/utils/lazyRoutes";
 import SimpleProtectedRoute from "./components/auth/SimpleProtectedRoute";
 import { SimpleAdminRoute } from "./components/auth/SimpleAdminRoute";
-
-// Import other pages
-import Profile from "./pages/Profile";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminUsers from "./pages/AdminUsers";
-import AdminProducts from "./pages/AdminProducts";
-import AdminOrders from "./pages/AdminOrders";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+// Loading component for lazy-loaded routes
+const RouteLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,40 +29,43 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <ProfileProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<SimpleLogin />} />
-              <Route path="/register" element={<Register />} />
-              
-              {/* Protected Routes */}
-              <Route path="/profile" element={
-                <SimpleProtectedRoute>
-                  <Profile />
-                </SimpleProtectedRoute>
-              } />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={
-                <SimpleAdminRoute>
-                  <AdminDashboard />
-                </SimpleAdminRoute>
-              } />
-              <Route path="/admin/users" element={
-                <SimpleAdminRoute>
-                  <AdminUsers />
-                </SimpleAdminRoute>
-              } />
-              <Route path="/admin/products" element={
-                <SimpleAdminRoute>
-                  <AdminProducts />
-                </SimpleAdminRoute>
-              } />
-              <Route path="/admin/orders" element={
-                <SimpleAdminRoute>
-                  <AdminOrders />
-                </SimpleAdminRoute>
-              } />
-            </Routes>
+            <Suspense fallback={<RouteLoader />}>
+              <Routes>
+                {routeConfigs.map((route, index) => {
+                  const Component = route.component;
+                  
+                  // Create the route element based on protection requirements
+                  let routeElement;
+                  
+                  if (route.adminOnly) {
+                    // Admin-only routes
+                    routeElement = (
+                      <SimpleAdminRoute>
+                        <Component />
+                      </SimpleAdminRoute>
+                    );
+                  } else if (route.protected) {
+                    // Protected routes (requires authentication)
+                    routeElement = (
+                      <SimpleProtectedRoute>
+                        <Component />
+                      </SimpleProtectedRoute>
+                    );
+                  } else {
+                    // Public routes
+                    routeElement = <Component />;
+                  }
+                  
+                  return (
+                    <Route
+                      key={index}
+                      path={route.path}
+                      element={routeElement}
+                    />
+                  );
+                })}
+              </Routes>
+            </Suspense>
           </ProfileProvider>
         </AuthProvider>
       </BrowserRouter>
