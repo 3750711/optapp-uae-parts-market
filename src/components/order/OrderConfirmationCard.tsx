@@ -10,7 +10,7 @@ import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderDetails } from './OrderDetails';
 import { OrderConfirmationImages } from './OrderConfirmationImages';
 import { Database } from '@/integrations/supabase/types';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 

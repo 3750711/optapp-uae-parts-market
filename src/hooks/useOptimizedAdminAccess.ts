@@ -17,6 +17,6 @@ export const useOptimizedAdminAccess = () => {
     isLoading,
     user,
     profile,
-    isAdmin: hasAccess
+    isAdmin: hasAccess // Add for backward compatibility
   };
 };

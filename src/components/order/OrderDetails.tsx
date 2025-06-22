@@ -1,14 +1,9 @@
-
 import React from 'react';
+import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { Link } from 'lucide-react';
-import { Database } from '@/integrations/supabase/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { Database } from '@/integrations/supabase/types';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
   buyer?: {

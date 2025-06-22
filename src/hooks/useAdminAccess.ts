@@ -16,6 +16,7 @@ export const useAdminAccess = () => {
     hasAccess,
     isLoading,
     user,
-    profile
+    profile,
+    isAdmin: hasAccess // Add for backward compatibility
   };
 };
