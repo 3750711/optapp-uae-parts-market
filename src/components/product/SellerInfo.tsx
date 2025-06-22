@@ -1,143 +1,112 @@
 
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { User } from "lucide-react";
-import { SellerProfile } from "@/types/product";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
-import { SellerBasicInfo } from "./seller/SellerBasicInfo";
-import { SellerCommunicationRating } from "./seller/SellerCommunicationRating";
-import { SellerStoreSection } from "./seller/SellerStoreSection";
-import { SellerDescription } from "./seller/SellerDescription";
-import { SellerRating } from "./seller/SellerRating";
-import { SellerContactSection } from "./seller/SellerContactSection";
-import { SellerHelpSection } from "./seller/SellerHelpSection";
-import { AuthDialog } from "./seller/AuthDialog";
+import React from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Star, MessageCircle, Phone, User, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 
 interface SellerInfoProps {
-  sellerProfile?: SellerProfile | null;
-  seller_name: string;
-  seller_id: string;
-  children?: React.ReactNode;
+  seller: {
+    id: string;
+    full_name: string | null;
+    opt_id: string | null;
+    telegram: string | null;
+    phone: string | null;
+    verification_status: string | null;
+    communication_ability: number | null;
+    description_user: string | null;
+  };
+  showContactInfo?: boolean;
 }
 
-const SellerInfo: React.FC<SellerInfoProps> = ({
-  sellerProfile,
-  seller_name,
-  seller_id,
-  children
-}) => {
-  const [storeInfo, setStoreInfo] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [copied, setCopied] = useState(false);
+export const SellerInfo: React.FC<SellerInfoProps> = ({ seller, showContactInfo = false }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const isOwner = user?.id === seller.id;
 
-  useEffect(() => {
-    const fetchStoreInfo = async () => {
-      if (!seller_id) return;
-      try {
-        const { data, error } = await supabase
-          .from('stores')
-          .select('id, name')
-          .eq('seller_id', seller_id)
-          .maybeSingle();
-
-        if (!error && data) {
-          setStoreInfo(data);
-        }
-      } catch (error) {
-        console.error("Error fetching store info:", error);
-      }
-    };
-
-    fetchStoreInfo();
-  }, [seller_id]);
-
-  const handleShowContactInfo = () => {
-    if (!user) {
-      setShowAuthDialog(true);
+  const getVerificationBadge = (status: string | null) => {
+    switch (status) {
+      case 'verified':
+        return <Badge variant="default" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Проверен</Badge>;
+      case 'pending':
+        return <Badge variant="secondary">На проверке</Badge>;
+      case 'blocked':
+        return <Badge variant="destructive">Заблокирован</Badge>;
+      default:
+        return <Badge variant="outline">Не проверен</Badge>;
     }
   };
 
-  const handleGoToLogin = () => {
-    setShowAuthDialog(false);
-    navigate('/login', {
-      state: {
-        returnPath: window.location.pathname
-      }
-    });
-  };
-
-  const copyToClipboard = (text: string) => {
-    if (!text) return;
-    try {
-      navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        toast({
-          title: "Скопировано!",
-          description: "OPT ID скопирован в буфер обмена"
-        });
-        setTimeout(() => setCopied(false), 2000);
-      });
-    } catch (err) {
-      console.error("Failed to copy:", err);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось скопировать OPT ID"
-      });
+  const renderRating = (rating: number | null) => {
+    if (!rating) return null;
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`h-4 w-4 ${i <= rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+        />
+      );
     }
+    return <div className="flex items-center space-x-1">{stars}</div>;
   };
 
   return (
-    <div className="border rounded-lg p-4 mb-6 shadow-sm hover:shadow-md transition-shadow">
-      <h3 className="text-lg font-semibold mb-3 flex items-center">
-        <User className="h-5 w-5 mr-2 text-primary" />
-        Информация о продавце
-      </h3>
-      
-      <div className="flex flex-col space-y-3">
-        <SellerBasicInfo 
-          sellerProfile={sellerProfile}
-          seller_name={seller_name}
-          seller_id={seller_id}
-          user={user}
-          copied={copied}
-          onCopyOptId={copyToClipboard}
-          onShowContactInfo={handleShowContactInfo}
-        />
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <User className="h-5 w-5" />
+            <span>Информация о продавце</span>
+          </div>
+          {getVerificationBadge(seller.verification_status)}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <p className="font-medium">{seller.full_name || 'Имя не указано'}</p>
+          <p className="text-sm text-gray-500">OPT ID: {seller.opt_id || 'Не указан'}</p>
+        </div>
 
-        <SellerCommunicationRating 
-          communication_ability={sellerProfile?.communication_ability}
-        />
-        
-        <SellerStoreSection storeInfo={storeInfo} />
-        
-        <SellerDescription description={sellerProfile?.description_user} />
+        {seller.communication_ability && (
+          <div>
+            <p className="text-sm text-gray-500 mb-1">Рейтинг общения</p>
+            {renderRating(seller.communication_ability)}
+          </div>
+        )}
 
-        <SellerRating rating={sellerProfile?.rating} />
-      </div>
-      
-      <SellerContactSection 
-        user={user}
-        onShowContactInfo={handleShowContactInfo}
-      >
-        {children}
-      </SellerContactSection>
+        {seller.description_user && (
+          <>
+            <Separator />
+            <div>
+              <p className="text-sm text-gray-500 mb-1">О продавце</p>
+              <p className="text-sm">{seller.description_user}</p>
+            </div>
+          </>
+        )}
 
-      <SellerHelpSection />
-
-      <AuthDialog 
-        open={showAuthDialog}
-        onOpenChange={setShowAuthDialog}
-        onGoToLogin={handleGoToLogin}
-      />
-    </div>
+        {(showContactInfo || isOwner) && (
+          <>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">Контакты</p>
+              {seller.telegram && (
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="h-4 w-4 text-blue-500" />
+                  <span className="text-sm">@{seller.telegram}</span>
+                </div>
+              )}
+              {seller.phone && (
+                <div className="flex items-center space-x-2">
+                  <Phone className="h-4 w-4 text-green-500" />
+                  <span className="text-sm">{seller.phone}</span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

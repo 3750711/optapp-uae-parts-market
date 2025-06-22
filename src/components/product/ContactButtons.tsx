@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, Phone } from 'lucide-react';
@@ -20,7 +21,7 @@ export const ContactButtons: React.FC<ContactButtonsProps> = ({ telegram, phone 
   if (!user) {
     return (
       <>
-        <AuthDialog open={open} setOpen={setOpen} />
+        <AuthDialog open={open} onOpenChange={setOpen} />
         <Button onClick={() => setOpen(true)} variant="outline" className="w-full">
           <MessageCircle className="mr-2 h-4 w-4" />
           Связаться
@@ -50,3 +51,5 @@ export const ContactButtons: React.FC<ContactButtonsProps> = ({ telegram, phone 
     </div>
   );
 };
+
+export default ContactButtons;

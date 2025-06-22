@@ -1,8 +1,14 @@
+
 import React from 'react';
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Link } from "lucide-react";
 import { useAuth } from '@/contexts/SimpleAuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Database } from '@/integrations/supabase/types';
 
 type Order = Database['public']['Tables']['orders']['Row'] & {
@@ -28,6 +34,7 @@ interface OrderDetailsProps {
 
 export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const isSelfOrder = order.seller_id === order.buyer_id;
   const isBuyer = user?.id === order.buyer_id;
   const isSeller = user?.id === order.seller_id;
@@ -235,3 +242,5 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
     </div>
   );
 };
+
+export default OrderDetails;

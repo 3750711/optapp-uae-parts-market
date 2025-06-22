@@ -1,212 +1,195 @@
 
-import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { ProfileType } from "./types";
-import { useAuth } from "@/contexts/AuthContext";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
-import { UserTypeField } from "./fields/UserTypeField";
-import { OptIdField } from "./fields/OptIdField";
-import { TelegramField } from "./fields/TelegramField";
-import { ProfileTextField } from "./fields/ProfileTextField";
-import EmailChangeForm from "./EmailChangeForm";
-import { Save, Edit } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { Loader2, User, Phone, MessageCircle, Building2 } from 'lucide-react';
 
-const formSchema = z.object({
-  fullName: z.string().min(2, { message: "Имя должно содержать не менее 2 символов" }).optional(),
-  email: z.string().email({ message: "Введите корректный email адрес" }),
-  phone: z.string().optional(),
-  companyName: z.string().optional(),
-  telegram: z.string()
-    .optional()
-    .refine((value) => {
-      if (!value) return true;
-      return /^@[^@]+$/.test(value);
-    }, { 
-      message: "Telegram username должен начинаться с одного @ символа" 
-    }),
-  optId: z.string().optional(),
-  userType: z.enum(["buyer", "seller", "admin"]).optional(),
-  description: z.string().max(500, { message: "Описание не должно превышать 500 символов" }).optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
-interface ProfileFormProps {
-  profile: ProfileType;
-  onSubmit: (data: FormData) => Promise<void>;
-  isLoading: boolean;
-  readOnlyUserType?: boolean;
-}
-
-const ProfileForm: React.FC<ProfileFormProps> = ({
-  profile,
-  onSubmit,
-  isLoading,
-  readOnlyUserType = true,
-}) => {
-  const { user } = useAuth();
-  const { isAdmin } = useAdminAccess();
-  const canEditOptId = (user?.id === profile.id) || isAdmin;
-  const isSeller = profile.user_type === 'seller';
-  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      fullName: profile.full_name || "",
-      email: profile.email || "",
-      phone: profile.phone || "",
-      companyName: profile.company_name || "",
-      telegram: profile.telegram || "",
-      optId: profile.opt_id || "",
-      userType: profile.user_type,
-      description: profile.description_user || "",
-    },
+export const ProfileForm: React.FC = () => {
+  const { profile, refreshProfile } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    opt_id: '',
+    phone: '',
+    telegram: '',
+    company_name: '',
+    description_user: '',
+    user_type: 'buyer' as const,
   });
 
-  const handleSubmit = async (data: FormData) => {
-    try {
-      await onSubmit(data);
-      form.reset({
-        ...data,
-        userType: profile.user_type,
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        opt_id: profile.opt_id || '',
+        phone: profile.phone || '',
+        telegram: profile.telegram || '',
+        company_name: profile.company_name || '',
+        description_user: profile.description_user || '',
+        user_type: profile.user_type || 'buyer',
       });
-    } catch (error) {
-      console.error("Error submitting form:", error);
     }
-  };
+  }, [profile]);
 
-  const handleEmailChangeSuccess = () => {
-    setIsEmailDialogOpen(false);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!profile) return;
+
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          ...formData,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Профиль обновлен",
+        description: "Ваши данные успешно сохранены",
+      });
+
+      await refreshProfile();
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Ошибка",
+        description: error.message || "Не удалось обновить профиль",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Данные профиля</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <User className="h-5 w-5" />
+          Редактировать профиль
+        </CardTitle>
+        <CardDescription>
+          Обновите информацию о себе
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <ProfileTextField
-              name="fullName"
-              control={form.control}
-              label="Имя и фамилия"
-              placeholder="Введите ваше имя"
-            />
-            
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <div className="flex items-center gap-2">
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="email"
-                        placeholder=""
-                        disabled={true}
-                        className="flex-1"
-                      />
-                    </FormControl>
-                    <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          className="shrink-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <EmailChangeForm
-                          currentEmail={profile.email}
-                          onSuccess={handleEmailChangeSuccess}
-                          onCancel={() => setIsEmailDialogOpen(false)}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <UserTypeField control={form.control} readOnlyUserType={readOnlyUserType} />
-            <ProfileTextField
-              name="phone"
-              control={form.control}
-              label="Телефон"
-              placeholder="+971 XX XXX XXXX"
-              type="tel"
-            />
-            {isSeller && (
-              <ProfileTextField
-                name="companyName"
-                control={form.control}
-                label="Название компании"
-                placeholder="Введите название вашей компании"
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="full_name">ФИО</Label>
+              <Input
+                id="full_name"
+                value={formData.full_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                placeholder="Введите ваше полное имя"
               />
-            )}
-            <TelegramField 
-              control={form.control} 
-              telegram_edit_count={profile.telegram_edit_count || 0}
-              initialValue={profile.telegram || ""}
-            />
-            <OptIdField 
-              control={form.control} 
-              canEditOptId={canEditOptId}
-              initialValue={profile.opt_id || ""}
-            />
-            
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Описание профиля</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Расскажите немного о себе..."
-                      className="resize-y min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <Button 
-              type="submit" 
-              className="w-full bg-primary hover:bg-primary-hover text-white font-medium text-base py-3 shadow-lg hover:shadow-xl transition-all"
-              disabled={isLoading}
+            </div>
+            <div>
+              <Label htmlFor="opt_id">OPT ID</Label>
+              <Input
+                id="opt_id"
+                value={formData.opt_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, opt_id: e.target.value }))}
+                placeholder="Введите ваш OPT ID"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="phone">Телефон</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                  placeholder="+7 (xxx) xxx-xx-xx"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="telegram">Telegram</Label>
+              <div className="relative">
+                <MessageCircle className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="telegram"
+                  value={formData.telegram}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telegram: e.target.value }))}
+                  placeholder="@username"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="company_name">Название компании</Label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                id="company_name"
+                value={formData.company_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                placeholder="Название вашей компании"
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="user_type">Тип пользователя</Label>
+            <Select 
+              value={formData.user_type} 
+              onValueChange={(value) => setFormData(prev => ({ ...prev, user_type: value as 'buyer' | 'seller' | 'admin' }))}
             >
-              <Save className="h-5 w-5 mr-2" />
-              {isLoading ? "Сохранение..." : "Сохранить изменения"}
-            </Button>
-          </form>
-        </Form>
+              <SelectTrigger>
+                <SelectValue placeholder="Выберите тип пользователя" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="buyer">Покупатель</SelectItem>
+                <SelectItem value="seller">Продавец</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="description_user">Описание</Label>
+            <Textarea
+              id="description_user"
+              value={formData.description_user}
+              onChange={(e) => setFormData(prev => ({ ...prev, description_user: e.target.value }))}
+              placeholder="Расскажите о себе..."
+              rows={3}
+            />
+          </div>
+
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Сохранение...
+              </>
+            ) : (
+              'Сохранить изменения'
+            )}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

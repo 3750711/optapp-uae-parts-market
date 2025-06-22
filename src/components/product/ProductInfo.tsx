@@ -1,6 +1,8 @@
+
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { MapPin, Package, Truck, Edit } from 'lucide-react';
 import { useAuth } from '@/contexts/SimpleAuthContext';
@@ -76,3 +78,5 @@ export const ProductInfo: React.FC<ProductInfoProps> = ({ product, onUpdate }) =
     </div>
   );
 };
+
+export default ProductInfo;
