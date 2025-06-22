@@ -8,6 +8,11 @@ interface EmailByOptIdResult {
   isRateLimited: boolean;
 }
 
+interface OptIdCheckResult {
+  exists: boolean;
+  isRateLimited: boolean;
+}
+
 // Функция для определения типа ввода (email или OPT ID)
 export const detectInputType = (input: string): InputType => {
   // Проверяем, является ли строка email (содержит @ и точку)
@@ -50,8 +55,8 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
   }
 };
 
-// Функция для проверки существования OPT ID
-export const checkOptIdExists = async (optId: string): Promise<boolean> => {
+// Функция для проверки существования OPT ID с правильным типом возврата
+export const checkOptIdExists = async (optId: string): Promise<OptIdCheckResult> => {
   try {
     const { data, error } = await supabase.rpc('check_opt_id_exists', {
       p_opt_id: optId
@@ -59,13 +64,42 @@ export const checkOptIdExists = async (optId: string): Promise<boolean> => {
 
     if (error) {
       console.error('Error checking OPT ID:', error);
-      return false;
+      
+      // Проверяем на rate limiting
+      if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        return { exists: false, isRateLimited: true };
+      }
+      
+      return { exists: false, isRateLimited: false };
     }
 
-    return Boolean(data);
+    return { exists: Boolean(data), isRateLimited: false };
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);
-    return false;
+    return { exists: false, isRateLimited: false };
+  }
+};
+
+// Функция для логирования успешного входа
+export const logSuccessfulLogin = async (identifier: string, inputType: InputType): Promise<void> => {
+  try {
+    console.log('Logging successful login for:', inputType, identifier);
+    
+    // Можно добавить запись в таблицу login_attempts или другую логику
+    const { error } = await supabase
+      .from('login_attempts')
+      .insert({
+        identifier,
+        attempt_type: inputType,
+        success: true,
+        ip_address: null // В браузере нет доступа к IP
+      });
+
+    if (error) {
+      console.warn('Failed to log successful login:', error);
+    }
+  } catch (error) {
+    console.warn('Error logging successful login:', error);
   }
 };
 
