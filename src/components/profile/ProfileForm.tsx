@@ -80,6 +80,20 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
     },
   });
 
+  // Обновляем форму при изменении профиля
+  useEffect(() => {
+    form.reset({
+      fullName: profile.full_name || "",
+      email: profile.email || "",
+      phone: profile.phone || "",
+      companyName: profile.company_name || "",
+      telegram: profile.telegram || "",
+      optId: profile.opt_id || "",
+      userType: profile.user_type,
+      description: profile.description_user || "",
+    });
+  }, [profile, form]);
+
   const handleSubmit = async (data: FormData) => {
     try {
       await onSubmit(data);
@@ -94,6 +108,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({
 
   const handleEmailChangeSuccess = () => {
     setIsEmailDialogOpen(false);
+    // Принудительно обновляем поле email в форме
+    form.setValue('email', profile.email || '');
   };
 
   return (

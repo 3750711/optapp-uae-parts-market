@@ -17,7 +17,7 @@ export const useOptimizedProfile = () => {
   const { user, profile } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['optimized-profile', user?.id],
+    queryKey: ['optimized-profile', user?.id, profile?.email], // Добавляем email в ключ кэша
     queryFn: async (): Promise<OptimizedProfileData> => {
       if (!user?.id) {
         throw new Error('No user ID available');

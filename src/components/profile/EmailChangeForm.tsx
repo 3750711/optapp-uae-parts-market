@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -151,6 +150,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       // Отправляем уведомление об изменении email на старый адрес
       await sendEmailChangeNotification(currentEmail, newEmail);
 
+      // Принудительно обновляем профиль и инвалидируем все кэши
       await refreshProfile();
       
       toast({
