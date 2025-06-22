@@ -17,14 +17,14 @@ export const useEmailVerification = () => {
     try {
       console.log('Отправка кода верификации на:', email);
       
-      // Используем новую функцию базы данных
-      const { data, error } = await supabase.rpc('send_verification_code', {
+      // Используем исправленную функцию базы данных
+      const { data, error } = await supabase.rpc('create_password_reset_code', {
         p_email: email,
-        p_ip_address: null // IP будет определен автоматически в Edge Function
+        p_opt_id: null // Для верификации email не передаем opt_id
       });
 
       if (error) {
-        console.error('Ошибка при вызове send_verification_code:', error);
+        console.error('Ошибка при вызове create_password_reset_code:', error);
         return {
           success: false,
           message: 'Произошла ошибка при создании кода'
@@ -89,7 +89,8 @@ export const useEmailVerification = () => {
     try {
       console.log('Проверка кода для email:', email, 'код:', code);
       
-      const { data, error } = await supabase.rpc('verify_email_code', {
+      // Используем новую функцию для проверки кода
+      const { data, error } = await supabase.rpc('verify_reset_code', {
         p_email: email,
         p_code: code
       });
