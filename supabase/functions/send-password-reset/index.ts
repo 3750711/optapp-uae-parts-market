@@ -8,6 +8,9 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Константа для базового URL
+const PARTSBAY_BASE_URL = "https://partsbay.ae";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -104,7 +107,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               <p>Если вы изменили email самостоятельно, можете проигнорировать это письмо.</p>
               
-              ${resetLink ? `<p>Для управления аккаунтом перейдите в <a href="${resetLink}">личный кабинет</a>.</p>` : ''}
+              <p>Для управления аккаунтом перейдите в <a href="${PARTSBAY_BASE_URL}/profile">личный кабинет</a>.</p>
             </div>
             
             <div class="footer">
@@ -170,7 +173,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <li>🔧 Помощь в подборе запчастей</li>
               </ul>
               
-              <p>Начните поиск запчастей прямо сейчас на <a href="https://partsbay.ae">partsbay.ae</a></p>
+              <p>Начните поиск запчастей прямо сейчас на <a href="${PARTSBAY_BASE_URL}">partsbay.ae</a></p>
             </div>
             
             <div class="footer">
@@ -294,7 +297,7 @@ const handler = async (req: Request): Promise<Response> => {
                 </ul>
               </div>
               
-              <p>Перейдите на страницу <a href="https://partsbay.ae/forgot-password">сброса пароля</a> и введите код выше для создания нового пароля.</p>
+              <p>Перейдите на страницу <a href="${PARTSBAY_BASE_URL}/forgot-password">сброса пароля</a> и введите код выше для создания нового пароля.</p>
             </div>
             
             <div class="footer">
