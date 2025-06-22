@@ -24,11 +24,20 @@ import {
 } from "@/components/ui/sheet";
 
 const Header = () => {
-  const { user, signOut } = useAuth();
-  const { isAdmin } = useAdminAccess();
+  const { user, signOut, profile, isLoading } = useAuth();
+  const { isAdmin, isCheckingAdmin } = useAdminAccess();
   const isMobile = useIsMobile();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Отладочная информация для Header
+  console.log('🏠 Header Debug:', {
+    user_email: user?.email,
+    profile_user_type: profile?.user_type,
+    isAdmin,
+    isCheckingAdmin,
+    isLoading
+  });
 
   const handleLogout = async () => {
     try {
@@ -149,7 +158,8 @@ const Header = () => {
                     </Link>
                   </DropdownMenuItem>
                   
-                  {isAdmin && (
+                  {/* Показываем кнопку админ панели только если пользователь админ и не идет загрузка */}
+                  {!isLoading && !isCheckingAdmin && isAdmin && (
                     <DropdownMenuItem asChild className="hover:bg-primary/10 hover:text-primary">
                       <Link to="/admin" className="flex w-full items-center">
                         <LayoutDashboard className="mr-2 h-4 w-4" />
