@@ -1,82 +1,127 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { Package, Plus, BarChart3, TrendingUp } from 'lucide-react';
+import React from "react";
+import { Link } from "react-router-dom";
+import { PlusCircle, ShoppingBag, Layers, MessageCircle, ListOrdered, FileText, ShoppingCart } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-export const OptimizedSellerDashboard: React.FC = () => {
+const OptimizedSellerDashboard = () => {
   const { profile } = useAuth();
-  const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
-  const stats = [
-    { label: 'Активные товары', value: '12', icon: Package, color: 'text-blue-600' },
-    { label: 'Заказы за месяц', value: '8', icon: TrendingUp, color: 'text-green-600' },
-    { label: 'Просмотры', value: '245', icon: BarChart3, color: 'text-purple-600' },
+  const handleContactAdmin = () => {
+    try {
+      const userDataText = `I have a problem boss, my ID is ${profile?.opt_id || 'Not specified'}`;
+      const encodedText = encodeURIComponent(userDataText);
+      const telegramLink = `https://t.me/ElenaOPTcargo?text=${encodedText}`;
+      
+      console.log('Telegram Contact Link:', telegramLink);
+      
+      window.open(telegramLink, '_blank');
+    } catch (error) {
+      window.open('https://t.me/ElenaOPTcargo', '_blank');
+    }
+  };
+
+  const dashboardItems = [
+    {
+      to: "/seller/add-product",
+      icon: PlusCircle,
+      title: "Добавить товар",
+      description: "Разместите новый товар на маркетплейсе",
+      color: "border-green-200 hover:border-green-300 hover:bg-green-50"
+    },
+    {
+      to: "/seller/listings",
+      icon: FileText,
+      title: "Мой склад",
+      description: "Просмотр всех ваших товаров на складе",
+      color: "border-blue-200 hover:border-blue-300 hover:bg-blue-50"
+    },
+    {
+      to: "/seller/sell-product",
+      icon: ShoppingCart,
+      title: "Продать товар",
+      description: "Создайте заказ из ваших товаров",
+      color: "border-purple-200 hover:border-purple-300 hover:bg-purple-50"
+    },
+    {
+      to: "/seller/create-order",
+      icon: ShoppingBag,
+      title: "Создать заказ",
+      description: "Оформите новый заказ",
+      color: "border-orange-200 hover:border-orange-300 hover:bg-orange-50"
+    },
+    {
+      to: "/catalog",
+      icon: Layers,
+      title: "Каталог",
+      description: "Просмотр всех доступных товаров",
+      color: "border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50"
+    },
+    {
+      to: "/seller/orders",
+      icon: ListOrdered,
+      title: "Мои заказы",
+      description: "Просмотр и управление заказами",
+      color: "border-red-200 hover:border-red-300 hover:bg-red-50"
+    }
   ];
+
+  const contactAdminItem = {
+    onClick: handleContactAdmin,
+    icon: MessageCircle,
+    title: "Связаться с админом",
+    description: "Получите помощь от администратора",
+    color: "border-yellow-200 hover:border-yellow-300 hover:bg-yellow-50"
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Панель продавца</h1>
-          <p className="text-gray-600">Добро пожаловать, {profile?.full_name}</p>
+          <h2 className="text-2xl sm:text-3xl font-bold">Панель продавца</h2>
+          <p className="text-muted-foreground mt-1">Управляйте своими товарами и заказами</p>
         </div>
-        <Button onClick={() => navigate('/products/create')}>
-          <Plus className="mr-2 h-4 w-4" />
-          Добавить товар
-        </Button>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
+      
+      <div className={`grid grid-cols-1 ${isMobile ? 'gap-3' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'}`}>
+        {dashboardItems.map((item, index) => (
+          <Link key={index} to={item.to} className="block">
+            <Card className={`h-full hover:shadow-lg transition-all duration-200 cursor-pointer bg-white ${item.color} ${isMobile ? 'py-2' : ''}`}>
+              <CardHeader className={isMobile ? "pb-2 pt-4" : "pb-2"}>
+                <item.icon className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-optapp-yellow`} />
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+              <CardContent className={isMobile ? "pt-0" : ""}>
+                <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} mb-2`}>
+                  {item.title}
+                </CardTitle>
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-relaxed`}>
+                  {item.description}
+                </p>
               </CardContent>
             </Card>
-          );
-        })}
-      </div>
+          </Link>
+        ))}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Последние действия</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Товар "iPhone 14" просмотрен</p>
-                <p className="text-sm text-gray-500">2 часа назад</p>
-              </div>
-              <Badge variant="secondary">Просмотр</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Новый заказ на "MacBook Pro"</p>
-                <p className="text-sm text-gray-500">5 часов назад</p>
-              </div>
-              <Badge>Заказ</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Товар "iPad Air" обновлен</p>
-                <p className="text-sm text-gray-500">1 день назад</p>
-              </div>
-              <Badge variant="outline">Обновление</Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Contact admin card */}
+        <div onClick={contactAdminItem.onClick} className="cursor-pointer">
+          <Card className={`h-full hover:shadow-lg transition-all duration-200 cursor-pointer bg-white ${contactAdminItem.color} ${isMobile ? 'py-2' : ''}`}>
+            <CardHeader className={isMobile ? "pb-2 pt-4" : "pb-2"}>
+              <contactAdminItem.icon className={`${isMobile ? 'h-6 w-6' : 'h-8 w-8'} text-optapp-yellow`} />
+            </CardHeader>
+            <CardContent className={isMobile ? "pt-0" : ""}>
+              <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} mb-2`}>
+                {contactAdminItem.title}
+              </CardTitle>
+              <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground leading-relaxed`}>
+                {contactAdminItem.description}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,31 +1,52 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Send, Loader2 } from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { RefreshCw } from 'lucide-react';
 import { useOrderResendNotification } from '@/hooks/useOrderResendNotification';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ResendNotificationButtonProps {
   orderId: string;
   onSuccess?: () => void;
+  size?: 'sm' | 'icon' | 'default';
+  variant?: 'outline' | 'ghost' | 'default';
+  className?: string;
 }
 
-const ResendNotificationButton: React.FC<ResendNotificationButtonProps> = ({
+export const ResendNotificationButton: React.FC<ResendNotificationButtonProps> = ({
   orderId,
-  onSuccess
+  onSuccess,
+  size = 'icon',
+  variant = 'ghost',
+  className = ''
 }) => {
-  const { isAdmin, user } = useAuth();
-  const { resendNotification, isResending, shouldShowButton } = useOrderResendNotification({
-    orderId,
-    onSuccess
+  const { profile } = useAuth();
+  const { 
+    resendNotification, 
+    isResending, 
+    shouldShowButton, 
+    checkShouldShowButton 
+  } = useOrderResendNotification({ 
+    orderId, 
+    onSuccess 
   });
 
-  // Only admins can resend notifications
-  if (!isAdmin || !shouldShowButton) {
+  // Проверяем, нужно ли показывать кнопку при загрузке компонента
+  useEffect(() => {
+    checkShouldShowButton();
+  }, [orderId]);
+
+  // Проверяем права пользователя (только админы и продавцы)
+  const canResend = profile?.user_type === 'admin' || profile?.user_type === 'seller';
+
+  // Не показываем кнопку если нет прав или она не нужна
+  if (!canResend || !shouldShowButton) {
     return null;
   }
 
-  const handleResend = async () => {
+  const handleResend = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     await resendNotification();
   };
 
@@ -33,18 +54,13 @@ const ResendNotificationButton: React.FC<ResendNotificationButtonProps> = ({
     <Button
       onClick={handleResend}
       disabled={isResending}
-      variant="outline"
-      size="sm"
-      className="flex items-center space-x-2"
+      size={size}
+      variant={variant}
+      className={`text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition-colors ${className}`}
+      title="Повторно отправить уведомление (данные изменились)"
     >
-      {isResending ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Send className="h-4 w-4" />
-      )}
-      <span>{isResending ? 'Отправка...' : 'Повторить уведомление'}</span>
+      <RefreshCw className={`${isResending ? 'animate-spin' : ''} ${size === 'icon' ? 'h-4 w-4' : 'h-3 w-3 mr-1'}`} />
+      {size !== 'icon' && 'Повторить'}
     </Button>
   );
 };
-
-export default ResendNotificationButton;

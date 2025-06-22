@@ -27,7 +27,7 @@ import { toast } from "@/components/ui/use-toast";
 import { countries } from "@/data/countries";
 import { Check, User, Store, AlertCircle, Loader2 } from "lucide-react";
 import { checkOptIdExists } from "@/utils/authUtils";
-import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   fullName: z.string().optional(),
@@ -111,48 +111,24 @@ const Register = () => {
     setHasOptId(!!optId);
   }, [optId]);
 
-  const [isCheckingOptId, setIsCheckingOptId] = useState(false);
-  const [optIdAvailable, setOptIdAvailable] = useState<boolean | null>(null);
-  const [optIdError, setOptIdError] = useState('');
-  
-  const handleOptIdCheck = async (optIdValue: string) => {
-    if (!optIdValue.trim()) {
-      setOptIdAvailable(null);
-      setOptIdError('');
-      return;
-    }
-
-    setIsCheckingOptId(true);
-    try {
-      const result = await checkOptIdExists(optIdValue);
-      
-      if (result.isRateLimited) {
-        setOptIdError('Слишком много запросов. Попробуйте позже.');
-        setOptIdAvailable(null);
-        return;
-      }
-      
-      if (result.exists) {
-        setOptIdAvailable(false);
-        setOptIdError('Этот OPT ID уже занят');
-      } else {
-        setOptIdAvailable(true);
-        setOptIdError('');
-      }
-    } catch (error) {
-      console.error('Error checking OPT ID:', error);
-      setOptIdError('Ошибка проверки OPT ID');
-      setOptIdAvailable(null);
-    } finally {
-      setIsCheckingOptId(false);
-    }
-  };
-
+  // Проверяем уникальность OPT ID при вводе
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      handleOptIdCheck(optId || '');
-    }, 500);
+    const checkOptId = async () => {
+      if (optId && optId.length > 2) {
+        setOptIdStatus('checking');
+        const result = await checkOptIdExists(optId);
+        
+        if (result.isRateLimited) {
+          setOptIdStatus('rate_limited');
+        } else {
+          setOptIdStatus(result.exists ? 'taken' : 'available');
+        }
+      } else {
+        setOptIdStatus(null);
+      }
+    };
 
+    const timeoutId = setTimeout(checkOptId, 500);
     return () => clearTimeout(timeoutId);
   }, [optId]);
 
@@ -161,7 +137,7 @@ const Register = () => {
     console.log("Form data submitting:", data);
     
     // Дополнительная проверка уникальности OPT ID перед отправкой
-    if (data.optId && optIdAvailable === false) {
+    if (data.optId && optIdStatus === 'taken') {
       toast({
         title: "Ошибка регистрации",
         description: "Этот OPT ID уже используется",
@@ -234,16 +210,33 @@ const Register = () => {
   };
 
   const getOptIdStatusIcon = () => {
-    if (isCheckingOptId) {
-      return <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />;
+    switch (optIdStatus) {
+      case 'checking':
+        return <div className="animate-spin h-4 w-4 border-2 border-gray-300 border-t-blue-500 rounded-full" />;
+      case 'available':
+        return <Check className="h-4 w-4 text-green-500" />;
+      case 'taken':
+        return <AlertCircle className="h-4 w-4 text-red-500" />;
+      case 'rate_limited':
+        return <AlertCircle className="h-4 w-4 text-orange-500" />;
+      default:
+        return null;
     }
-    if (optIdAvailable === true) {
-      return <Check className="h-4 w-4 text-green-500" />;
+  };
+
+  const getOptIdStatusText = () => {
+    switch (optIdStatus) {
+      case 'checking':
+        return "Проверяем доступность...";
+      case 'available':
+        return "✓ OPT ID доступен";
+      case 'taken':
+        return "✗ OPT ID уже используется";
+      case 'rate_limited':
+        return "⚠ Слишком много запросов, попробуйте позже";
+      default:
+        return null;
     }
-    if (optIdAvailable === false) {
-      return <AlertCircle className="h-4 w-4 text-red-500" />;
-    }
-    return null;
   };
 
   return (
@@ -279,9 +272,15 @@ const Register = () => {
                           )}
                         </div>
                       </FormControl>
-                        {optIdError && (
-                          <p className="text-xs text-red-600">{optIdError}</p>
-                        )}
+                      {optIdStatus && (
+                        <p className={`text-xs ${
+                          optIdStatus === 'available' ? 'text-green-600' :
+                          optIdStatus === 'taken' ? 'text-red-600' : 
+                          optIdStatus === 'rate_limited' ? 'text-orange-600' : 'text-gray-600'
+                        }`}>
+                          {getOptIdStatusText()}
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -448,7 +447,7 @@ const Register = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoadingForm || optIdAvailable === false}
+                  disabled={isLoadingForm || optIdStatus === 'taken' || optIdStatus === 'rate_limited'}
                 >
                   {isLoadingForm ? "Регистрация..." : "Зарегистрироваться"}
                 </Button>

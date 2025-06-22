@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { OrderConfirmationImages } from "@/components/order/OrderConfirmationImages";
 import { EnhancedOrderStatusBadge } from './EnhancedOrderStatusBadge';
 import { CompactOrderInfo } from './CompactOrderInfo';
-import ResendNotificationButton from './ResendNotificationButton';
+import { ResendNotificationButton } from './ResendNotificationButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Order = Database['public']['Tables']['orders']['Row'] & {

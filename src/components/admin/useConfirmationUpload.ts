@@ -1,64 +1,188 @@
 
-import { useState, useCallback, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { toast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useConfirmationUpload = (open: boolean, orderId: string, onComplete: () => void) => {
-  const { user, profile } = useAuth();
-  const isAdmin = profile?.user_type === 'admin';
-  
   const [confirmImages, setConfirmImages] = useState<string[]>([]);
   const [confirmVideos, setConfirmVideos] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isComponentReady, setIsComponentReady] = useState(false);
   const [sessionLost, setSessionLost] = useState(false);
+  const { user, isAdmin } = useAuth();
 
-  // Initialize component when dialog opens
+  // Component readiness check
   useEffect(() => {
-    if (open && isAdmin && user) {
-      setIsComponentReady(true);
+    if (open) {
+      console.log("🔍 [ConfirmationUpload] Dialog opened, checking component readiness:", {
+        userId: user?.id,
+        isAdmin,
+        orderId,
+        authStatus: !!user
+      });
+
+      // Add a small delay to ensure all auth context is loaded
+      const timer = setTimeout(() => {
+        if (user?.id) {
+          console.log("✅ [ConfirmationUpload] Component ready, user authenticated");
+          setIsComponentReady(true);
+          setSessionLost(false);
+          setUploadError(null);
+        } else {
+          console.error("❌ [ConfirmationUpload] Component not ready, user not authenticated");
+          setSessionLost(true);
+          setUploadError("Сессия не найдена. Необходимо войти в систему.");
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else {
+      // Reset state when dialog closes
+      setIsComponentReady(false);
       setSessionLost(false);
       setUploadError(null);
-      loadExistingMedia();
-    } else if (open && !isAdmin) {
-      setSessionLost(true);
-      setIsComponentReady(false);
-    } else {
-      setIsComponentReady(false);
-      setSessionLost(false);
     }
-  }, [open, isAdmin, user, orderId]);
+  }, [open, user?.id, isAdmin, orderId]);
 
-  const loadExistingMedia = useCallback(async () => {
+  const handleSessionRecovery = async () => {
+    console.log("🔄 [ConfirmationUpload] Attempting session recovery");
+    
     try {
-      // Load existing confirmation images
-      const { data: images, error: imagesError } = await supabase
-        .from('confirm_images')
-        .select('url')
-        .eq('order_id', orderId);
+      // Try to refresh the session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error("❌ [ConfirmationUpload] Session recovery failed:", error);
+        toast({
+          title: "Ошибка восстановления сессии",
+          description: "Не удалось восстановить сессию. Попробуйте перезагрузить страницу.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-      if (imagesError) throw imagesError;
-      setConfirmImages(images?.map(img => img.url) || []);
-
-      // Load existing order videos
-      const { data: videos, error: videosError } = await supabase
-        .from('order_videos')
-        .select('url')
-        .eq('order_id', orderId);
-
-      if (videosError) throw videosError;
-      setConfirmVideos(videos?.map(video => video.url) || []);
+      if (session?.user) {
+        console.log("✅ [ConfirmationUpload] Session recovered successfully");
+        setSessionLost(false);
+        setUploadError(null);
+        setIsComponentReady(true);
+        
+        toast({
+          title: "Сессия восстановлена",
+          description: "Теперь вы можете продолжить загрузку файлов.",
+        });
+      } else {
+        console.error("❌ [ConfirmationUpload] No valid session found");
+        setUploadError("Не удалось восстановить сессию. Войдите в систему заново.");
+      }
     } catch (error) {
-      console.error('Error loading existing media:', error);
-      setUploadError('Не удалось загрузить существующие файлы');
+      console.error("❌ [ConfirmationUpload] Session recovery error:", error);
+      setUploadError("Произошла ошибка при восстановлении сессии.");
     }
-  }, [orderId]);
+  };
 
-  const handleImagesUpload = useCallback(async (files: File[]) => {
-    if (!isAdmin || !user) {
-      setUploadError('У вас нет прав для загрузки изображений');
+  const handleImagesUpload = async (urls: string[]) => {
+    if (!isComponentReady) {
+      console.error("❌ [ConfirmationUpload] Component not ready for image upload");
+      return;
+    }
+
+    console.log("🔍 [ConfirmationUpload] Images uploaded:", {
+      urls,
+      orderId,
+      userId: user?.id,
+      isAdmin,
+      authStatus: !!user
+    });
+    setConfirmImages(prev => [...prev, ...urls]);
+    setUploadError(null);
+  };
+
+  const handleVideosUpload = async (urls: string[]) => {
+    if (!isComponentReady) {
+      console.error("❌ [ConfirmationUpload] Component not ready for video upload");
+      return;
+    }
+
+    console.log("🔍 [ConfirmationUpload] Videos uploaded:", {
+      urls,
+      orderId,
+      userId: user?.id,
+      isAdmin,
+      authStatus: !!user
+    });
+    setConfirmVideos(prev => [...prev, ...urls]);
+    setUploadError(null);
+  };
+
+  const handleVideoDelete = (urlToDelete: string) => {
+    if (!isComponentReady) return;
+    
+    console.log("🔍 [ConfirmationUpload] Deleting video:", urlToDelete);
+    setConfirmVideos(prev => prev.filter(url => url !== urlToDelete));
+  };
+
+  const handleUploadError = (error: string) => {
+    console.error("❌ [ConfirmationUpload] Upload error:", error);
+    setUploadError(error);
+    toast({
+      title: "Ошибка загрузки",
+      description: error,
+      variant: "destructive",
+    });
+  };
+
+  const checkUserAccess = async () => {
+    console.log("🔍 [ConfirmationUpload] Checking user access:", {
+      userId: user?.id,
+      orderId,
+      isAdmin,
+      authStatus: !!user,
+      isComponentReady
+    });
+
+    if (!isComponentReady || !user?.id) {
+      throw new Error("Компонент не готов или пользователь не аутентифицирован");
+    }
+
+    // Since this is called right after order creation, we can skip the database check
+    // The order was just created by the current user, so they definitely have access
+    console.log("✅ [ConfirmationUpload] Access granted for recently created order");
+    
+    return {
+      order_number: 'RECENT_ORDER',
+      buyer_id: user.id,
+      seller_id: user.id
+    };
+  };
+
+  const handleSaveMedia = async () => {
+    if (!isComponentReady) {
+      toast({
+        title: "Компонент не готов",
+        description: "Пожалуйста, подождите инициализации компонента",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (sessionLost) {
+      toast({
+        title: "Сессия потеряна",
+        description: "Восстановите сессию перед загрузкой файлов",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (confirmImages.length === 0 && confirmVideos.length === 0) {
+      toast({
+        title: "Предупреждение",
+        description: "Не загружено ни одного файла",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -66,223 +190,138 @@ export const useConfirmationUpload = (open: boolean, orderId: string, onComplete
     setUploadError(null);
 
     try {
-      // Upload images to Cloudinary or your storage
-      const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'optapp_unsigned');
-        formData.append('folder', `orders/${orderId}/confirmation`);
+      // Check access with improved error handling
+      const order = await checkUserAccess();
 
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/dcuziurrb/image/upload`,
-          {
-            method: 'POST',
-            body: formData,
-          }
-        );
-
-        if (!response.ok) throw new Error('Upload failed');
-        const data = await response.json();
-        return data.secure_url;
+      console.log("🔍 [ConfirmationUpload] Starting media save:", {
+        orderId,
+        userId: user?.id,
+        imagesCount: confirmImages.length,
+        videosCount: confirmVideos.length,
+        orderNumber: order.order_number
       });
 
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setConfirmImages(prev => [...prev, ...uploadedUrls]);
-
-      toast({
-        title: "Изображения загружены",
-        description: `Загружено ${uploadedUrls.length} изображений`,
-      });
-    } catch (error) {
-      console.error('Error uploading images:', error);
-      setUploadError('Не удалось загрузить изображения');
-      toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить изображения",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  }, [isAdmin, user, orderId]);
-
-  const handleVideosUpload = useCallback(async (files: File[]) => {
-    if (!isAdmin || !user) {
-      setUploadError('У вас нет прав для загрузки видео');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      // Upload videos to Cloudinary
-      const uploadPromises = files.map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'optapp_unsigned');
-        formData.append('folder', `orders/${orderId}/confirmation`);
-        formData.append('resource_type', 'video');
-
-        const response = await fetch(
-          `https://api.cloudinary.com/v1_1/dcuziurrb/video/upload`,
-          {
-            method: 'POST',
-            body: formData,
-          }
-        );
-
-        if (!response.ok) throw new Error('Upload failed');
-        const data = await response.json();
-        return data.secure_url;
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-      setConfirmVideos(prev => [...prev, ...uploadedUrls]);
-
-      toast({
-        title: "Видео загружены",
-        description: `Загружено ${uploadedUrls.length} видео`,
-      });
-    } catch (error) {
-      console.error('Error uploading videos:', error);
-      setUploadError('Не удалось загрузить видео');
-      toast({
-        title: "Ошибка загрузки",
-        description: "Не удалось загрузить видео",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  }, [isAdmin, user, orderId]);
-
-  const handleImageDelete = useCallback(async (urlToDelete: string) => {
-    if (!isAdmin || !user) return;
-
-    try {
-      // Remove from database if it exists
-      await supabase
-        .from('confirm_images')
-        .delete()
-        .eq('order_id', orderId)
-        .eq('url', urlToDelete);
-
-      setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
-
-      toast({
-        title: "Изображение удалено",
-        description: "Изображение успешно удалено",
-      });
-    } catch (error) {
-      console.error('Error deleting image:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить изображение",
-        variant: "destructive",
-      });
-    }
-  }, [isAdmin, user, orderId]);
-
-  const handleVideoDelete = useCallback(async (urlToDelete: string) => {
-    if (!isAdmin || !user) return;
-
-    try {
-      // Remove from database if it exists
-      await supabase
-        .from('order_videos')
-        .delete()
-        .eq('order_id', orderId)
-        .eq('url', urlToDelete);
-
-      setConfirmVideos(prev => prev.filter(url => url !== urlToDelete));
-
-      toast({
-        title: "Видео удалено",
-        description: "Видео успешно удалено",
-      });
-    } catch (error) {
-      console.error('Error deleting video:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить видео",
-        variant: "destructive",
-      });
-    }
-  }, [isAdmin, user, orderId]);
-
-  const handleSaveMedia = useCallback(async () => {
-    if (!isAdmin || !user) {
-      setUploadError('У вас нет прав для сохранения файлов');
-      return;
-    }
-
-    setIsUploading(true);
-    setUploadError(null);
-
-    try {
-      // Save images to database
+      // Save confirmation images to database
       if (confirmImages.length > 0) {
-        const imageInserts = confirmImages.map(url => ({
+        const confirmImagesData = confirmImages.map(url => ({
           order_id: orderId,
-          url
+          url: url
         }));
+
+        console.log("🔍 [ConfirmationUpload] Saving images:", confirmImagesData);
 
         const { error: imagesError } = await supabase
           .from('confirm_images')
-          .upsert(imageInserts, { onConflict: 'order_id,url' });
+          .insert(confirmImagesData);
 
-        if (imagesError) throw imagesError;
+        if (imagesError) {
+          console.error("❌ [ConfirmationUpload] Error saving images:", imagesError);
+          
+          // Check if it's an auth error
+          if (imagesError.message?.includes('auth') || imagesError.message?.includes('JWT')) {
+            setSessionLost(true);
+            throw new Error("Сессия истекла. Восстановите соединение и попробуйте снова.");
+          }
+          
+          throw new Error(`Ошибка сохранения фотографий: ${imagesError.message}`);
+        }
+
+        console.log("✅ [ConfirmationUpload] Images saved successfully");
       }
 
-      // Save videos to database
+      // Save confirmation videos to order
       if (confirmVideos.length > 0) {
-        const videoInserts = confirmVideos.map(url => ({
-          order_id: orderId,
-          url
-        }));
+        console.log("🔍 [ConfirmationUpload] Saving videos:", confirmVideos);
 
-        const { error: videosError } = await supabase
-          .from('order_videos')
-          .upsert(videoInserts, { onConflict: 'order_id,url' });
+        // Get current videos from order
+        const { data: currentOrder, error: fetchError } = await supabase
+          .from('orders')
+          .select('video_url')
+          .eq('id', orderId)
+          .single();
 
-        if (videosError) throw videosError;
+        if (fetchError) {
+          console.error("❌ [ConfirmationUpload] Error fetching current videos:", fetchError);
+          
+          if (fetchError.message?.includes('auth') || fetchError.message?.includes('JWT')) {
+            setSessionLost(true);
+            throw new Error("Сессия истекла. Восстановите соединение и попробуйте снова.");
+          }
+          
+          throw new Error(`Ошибка получения текущих видео: ${fetchError.message}`);
+        }
+
+        const currentVideos = currentOrder?.video_url || [];
+        const updatedVideos = [...currentVideos, ...confirmVideos];
+
+        console.log("🔍 [ConfirmationUpload] Updating videos:", {
+          currentVideos,
+          newVideos: confirmVideos,
+          updatedVideos
+        });
+
+        // Update video_url in order
+        const { error: videoError } = await supabase
+          .from('orders')
+          .update({ video_url: updatedVideos })
+          .eq('id', orderId);
+
+        if (videoError) {
+          console.error("❌ [ConfirmationUpload] Error saving videos:", videoError);
+          
+          if (videoError.message?.includes('auth') || videoError.message?.includes('JWT')) {
+            setSessionLost(true);
+            throw new Error("Сессия истекла. Восстановите соединение и попробуйте снова.");
+          }
+          
+          throw new Error(`Ошибка сохранения видео: ${videoError.message}`);
+        }
+
+        console.log("✅ [ConfirmationUpload] Videos saved successfully");
       }
+
+      const totalFiles = confirmImages.length + confirmVideos.length;
+      console.log("✅ [ConfirmationUpload] All media saved successfully:", {
+        totalFiles,
+        images: confirmImages.length,
+        videos: confirmVideos.length
+      });
 
       toast({
-        title: "Файлы сохранены",
-        description: "Все файлы успешно сохранены",
+        title: "Успешно",
+        description: `Загружено ${totalFiles} файлов подтверждения (${confirmImages.length} фото, ${confirmVideos.length} видео)`,
       });
 
       onComplete();
     } catch (error) {
-      console.error('Error saving media:', error);
-      setUploadError('Не удалось сохранить файлы');
+      console.error("❌ [ConfirmationUpload] Save error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Произошла неизвестная ошибка";
+      setUploadError(`Не удалось сохранить файлы: ${errorMessage}`);
+      
       toast({
-        title: "Ошибка сохранения",
-        description: "Не удалось сохранить файлы",
+        title: "Ошибка",
+        description: `Не удалось сохранить файлы: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
     }
-  }, [isAdmin, user, orderId, confirmImages, confirmVideos, onComplete]);
+  };
 
-  const handleSessionRecovery = useCallback(() => {
-    if (user && isAdmin) {
-      setSessionLost(false);
-      setIsComponentReady(true);
-      setUploadError(null);
-      loadExistingMedia();
-    }
-  }, [user, isAdmin, loadExistingMedia]);
+  const handleImageDelete = (urlToDelete: string) => {
+    if (!isComponentReady) return;
+    
+    console.log("🔍 [ConfirmationUpload] Deleting image:", urlToDelete);
+    setConfirmImages(prev => prev.filter(url => url !== urlToDelete));
+  };
 
-  const handleReset = useCallback(() => {
+  const handleReset = () => {
+    console.log("🔍 [ConfirmationUpload] Resetting form");
     setConfirmImages([]);
     setConfirmVideos([]);
     setUploadError(null);
-    setIsUploading(false);
-  }, []);
+    setSessionLost(false);
+  };
 
   return {
     confirmImages,

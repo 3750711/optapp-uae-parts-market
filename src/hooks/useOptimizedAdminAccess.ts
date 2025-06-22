@@ -1,22 +1,18 @@
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMemo } from 'react';
 
 export const useOptimizedAdminAccess = () => {
-  const { user, profile, isLoading } = useAuth();
-  const [hasAccess, setHasAccess] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setHasAccess(!!user && profile?.user_type === 'admin');
-    }
-  }, [user, profile, isLoading]);
-
-  return {
-    hasAccess,
-    isLoading,
-    user,
-    profile,
-    isAdmin: hasAccess // Add for backward compatibility
-  };
+  const { isAdmin, profile } = useAuth();
+  
+  // Кэшируем результат проверки прав
+  const adminAccessState = useMemo(() => {
+    return {
+      isAdmin: isAdmin === true,
+      isCheckingAdmin: isAdmin === null,
+      hasAdminAccess: isAdmin === true
+    };
+  }, [isAdmin]);
+  
+  return adminAccessState;
 };

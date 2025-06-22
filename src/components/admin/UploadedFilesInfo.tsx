@@ -1,7 +1,6 @@
 
-import React from 'react';
-import { Badge } from "@/components/ui/badge";
-import { Image, Video, CheckCircle, AlertCircle } from 'lucide-react';
+import React from "react";
+import { Check, Upload } from "lucide-react";
 
 interface UploadedFilesInfoProps {
   totalFiles: number;
@@ -16,52 +15,47 @@ export const UploadedFilesInfo: React.FC<UploadedFilesInfoProps> = ({
   confirmVideos,
   uploadError
 }) => {
-  if (totalFiles === 0 && !uploadError) {
+  if (totalFiles > 0) {
     return (
-      <div className="text-center py-4 text-gray-500">
-        <p className="text-sm">Файлы не загружены</p>
-        <p className="text-xs mt-1">Загрузите фотографии или видео для подтверждения заказа</p>
+      <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+        <div className="flex items-center gap-2 text-green-700">
+          <Check className="h-4 w-4" />
+          <span className="font-medium text-sm">
+            Загружено {totalFiles} файлов подтверждения
+          </span>
+        </div>
+        <p className="text-xs text-green-600 mt-1">
+          {confirmImages.length > 0 && `${confirmImages.length} фотографий`}
+          {confirmImages.length > 0 && confirmVideos.length > 0 && ', '}
+          {confirmVideos.length > 0 && `${confirmVideos.length} видео`}
+          {' - файлы готовы к сохранению'}
+        </p>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h4 className="font-medium">Загруженные файлы</h4>
-        <Badge variant={uploadError ? "destructive" : "secondary"}>
-          {uploadError ? (
-            <AlertCircle className="mr-1 h-3 w-3" />
-          ) : (
-            <CheckCircle className="mr-1 h-3 w-3" />
-          )}
-          {totalFiles} файлов
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-          <Image className="h-5 w-5 text-blue-600" />
-          <div>
-            <p className="font-medium text-blue-900">{confirmImages.length}</p>
-            <p className="text-xs text-blue-600">Фотографий</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
-          <Video className="h-5 w-5 text-green-600" />
-          <div>
-            <p className="font-medium text-green-900">{confirmVideos.length}</p>
-            <p className="text-xs text-green-600">Видео</p>
+  if (!uploadError) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <div className="flex items-start gap-2 text-blue-700">
+          <Upload className="h-4 w-4 mt-0.5 flex-shrink-0" />
+          <div className="text-xs sm:text-sm">
+            <p className="font-medium">Рекомендации по файлам подтверждения:</p>
+            <ul className="mt-1 space-y-1 text-blue-600">
+              <li>• Подпишите товар номером заказа и ID покупателя</li>
+              <li>• Добавьте скриншот переписки если вы обсуждали детали с покупателем</li>
+              <li>• Добавьте скриншот переписки с обсуждения цены</li>
+            </ul>
+            <p className="font-medium mt-2">Для видео:</p>
+            <ul className="mt-1 space-y-1 text-blue-600">
+              <li>• Добавьте больше видео если вы присылали их продавцу</li>
+              <li>• Добавьте видео эндоскопии, масла и прокрутки для моторов</li>
+            </ul>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {uploadError && (
-        <div className="text-xs text-red-600 bg-red-50 p-2 rounded">
-          Ошибка загрузки: {uploadError}
-        </div>
-      )}
-    </div>
-  );
+  return null;
 };

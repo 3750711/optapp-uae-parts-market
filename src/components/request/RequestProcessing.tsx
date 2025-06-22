@@ -1,235 +1,257 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Loader2, Clock, CheckCircle, XCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { ProgressSteps } from './ProgressSteps';
+import { Check, Send, MessageSquare, CheckCircle } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+
+const STEP_DURATION = 15000; // 15 seconds per step
+
+const PROCESSING_STEPS = [
+  {
+    title: 'Отправляем запрос в 100+ магазинов ОАЭ',
+    description: 'Ваш запрос обрабатывается и направляется во все подходящие магазины',
+  },
+  {
+    title: 'Передаем данные опытным подборщикам',
+    description: 'Специалисты анализируют информацию для поиска оптимальных вариантов',
+  },
+  {
+    title: 'Ищем магазины где такая запчасть может быть в наличии',
+    description: 'Сканируем базы данных магазинов для проверки наличия деталей',
+  },
+  {
+    title: 'Передаем запрос нашим специалистам для расширенного поиска',
+    description: 'Эксперты проводят дополнительный анализ для поиска лучших вариантов',
+  },
+];
+
+const COMPLETION_STEPS = [
+  'Мы отправили ваш запрос всем продавцам',
+  'Мы отправили запрос всем магазинам',
+  'Мы отправили ваш запрос профессиональным подборщикам',
+  'Мы подбираем магазины где могут быть ваши запчасти',
+  'Наши специалисты работают по вашему запросу, пытаются вручную найти нужную вам запчасть'
+];
 
 interface RequestProcessingProps {
   requestId: string;
-  onStatusChange?: (status: string) => void;
+  requestTitle: string;
 }
 
-type ProcessingStatus = 'pending' | 'processing' | 'matched' | 'fulfilled' | 'cancelled';
-
-export const RequestProcessing: React.FC<RequestProcessingProps> = ({
-  requestId,
-  onStatusChange
+const RequestProcessing: React.FC<RequestProcessingProps> = ({ 
+  requestId, 
+  requestTitle 
 }) => {
-  const { user, profile } = useAuth();
+  const [processingComplete, setProcessingComplete] = useState(false);
+  const [contactType, setContactType] = useState<'whatsapp' | 'telegram'>('whatsapp');
+  const [contactInfo, setContactInfo] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(false);
   const { toast } = useToast();
-  const [status, setStatus] = useState<ProcessingStatus>('pending');
-  const [progress, setProgress] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
-
+  const { user, profile } = useAuth();
+  const navigate = useNavigate();
+  
+  // Check if animation has already been shown for this request
   useEffect(() => {
-    // Загружаем текущий статус запроса
-    loadRequestStatus();
-  }, [requestId]);
-
-  const loadRequestStatus = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('requests')
-        .select('status, processing_progress')
-        .eq('id', requestId)
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setStatus(data.status as ProcessingStatus);
-        setProgress(data.processing_progress || 0);
+    const checkAnimationStatus = async () => {
+      try {
+        // Use localStorage to track if animation has run for this specific request
+        const animationKey = `request_${requestId}_animation_shown`;
+        const animationShown = localStorage.getItem(animationKey);
+        
+        if (animationShown) {
+          // Animation already shown before, skip to completed state immediately
+          setProcessingComplete(true);
+          setShowAnimation(false);
+        } else {
+          // First time viewing, show animation and mark as shown
+          setShowAnimation(true);
+          localStorage.setItem(animationKey, 'true');
+        }
+      } catch (error) {
+        console.error("Error checking animation status:", error);
+        // Default to showing completed state if there's an error
+        setProcessingComplete(true);
+        setShowAnimation(false);
       }
-    } catch (error) {
-      console.error('Error loading request status:', error);
+    };
+    
+    checkAnimationStatus();
+  }, [requestId]);
+  
+  // Initialize contact info from profile if available
+  useEffect(() => {
+    if (profile) {
+      if (profile.telegram) {
+        setContactType('telegram');
+        setContactInfo(profile.telegram);
+      } else if (profile.phone) {
+        setContactType('whatsapp');
+        setContactInfo(profile.phone);
+      }
     }
+  }, [profile]);
+
+  const handleProcessingComplete = () => {
+    setProcessingComplete(true);
   };
 
-  const updateStatus = async (newStatus: ProcessingStatus, newProgress: number = 0) => {
+  const handleContactSubmit = async () => {
+    setIsSubmitting(true);
+    
     try {
-      const { error } = await supabase
+      // Save the contact information
+      let updateData = {};
+      if (contactType === 'whatsapp') {
+        updateData = { phone: contactInfo };
+      } else {
+        updateData = { telegram: contactInfo };
+      }
+      
+      if (user) {
+        // If user is authenticated, update their profile
+        const { error } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', user.id);
+        
+        if (error) throw error;
+      }
+      
+      // Also save contact info specifically for this request
+      const { error: requestError } = await supabase
         .from('requests')
-        .update({ 
-          status: newStatus, 
-          processing_progress: newProgress,
-          updated_at: new Date().toISOString()
+        .update({
+          [contactType === 'whatsapp' ? 'phone' : 'telegram']: contactInfo
         })
         .eq('id', requestId);
-
-      if (error) throw error;
-
-      setStatus(newStatus);
-      setProgress(newProgress);
-
-      if (onStatusChange) {
-        onStatusChange(newStatus);
-      }
-
+      
+      if (requestError) throw requestError;
+      
       toast({
-        title: "Статус обновлен",
-        description: `Запрос переведен в статус: ${getStatusLabel(newStatus)}`,
+        title: "Контактная информация сохранена",
+        description: "Мы свяжемся с вами, как только найдем подходящие варианты.",
       });
-    } catch (error: any) {
-      console.error('Error updating status:', error);
+      
+      // No redirect, stay on the page
+    } catch (error) {
+      console.error("Error saving contact information:", error);
       toast({
         title: "Ошибка",
-        description: error.message || "Не удалось обновить статус",
-        variant: "destructive"
+        description: "Не удалось сохранить контактную информацию. Пожалуйста, попробуйте еще раз.",
+        variant: "destructive",
       });
-    }
-  };
-
-  const startProcessing = async () => {
-    setIsProcessing(true);
-    await updateStatus('processing', 25);
-    
-    // Имитация этапов обработки
-    setTimeout(async () => {
-      await updateStatus('processing', 50);
-      setTimeout(async () => {
-        await updateStatus('processing', 75);
-        setTimeout(async () => {
-          await updateStatus('matched', 100);
-          setIsProcessing(false);
-        }, 1000);
-      }, 1000);
-    }, 1000);
-  };
-
-  const getStatusLabel = (status: ProcessingStatus): string => {
-    switch (status) {
-      case 'pending': return 'Ожидает обработки';
-      case 'processing': return 'Обрабатывается';
-      case 'matched': return 'Найдены совпадения';
-      case 'fulfilled': return 'Выполнен';
-      case 'cancelled': return 'Отменен';
-      default: return status;
-    }
-  };
-
-  const getStatusIcon = (status: ProcessingStatus) => {
-    switch (status) {
-      case 'pending':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
-      case 'processing':
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
-      case 'matched':
-      case 'fulfilled':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'cancelled':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const getStatusColor = (status: ProcessingStatus): string => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'processing': return 'bg-blue-100 text-blue-800';
-      case 'matched': return 'bg-green-100 text-green-800';
-      case 'fulfilled': return 'bg-emerald-100 text-emerald-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getStatusIcon(status)}
-            Обработка запроса
-          </div>
-          <Badge className={getStatusColor(status)}>
-            {getStatusLabel(status)}
-          </Badge>
-        </CardTitle>
+    <Card className="border shadow-lg animate-fade-in overflow-hidden">
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl">Обработка запроса #{requestId}</CardTitle>
+        <CardDescription>
+          {processingComplete 
+            ? "Ваш запрос успешно отправлен и обработан!"
+            : "Мы обрабатываем ваш запрос на запчасть"
+          }
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {status === 'processing' && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Прогресс обработки</span>
-              <span>{progress}%</span>
+      
+      <CardContent className="space-y-6">
+        {!processingComplete && showAnimation ? (
+          <ProgressSteps 
+            steps={PROCESSING_STEPS} 
+            stepDuration={STEP_DURATION}
+            onComplete={handleProcessingComplete}
+          />
+        ) : (
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex flex-col items-center justify-center py-6">
+              <div className="rounded-full bg-green-100 p-3 mb-4">
+                <Check className="h-10 w-10 text-green-500" />
+              </div>
+              <h2 className="text-2xl font-bold text-center mb-2">Ваш запрос отправлен!</h2>
+              <p className="text-muted-foreground text-center max-w-md mb-6">
+                Еще чуть-чуть и вы начнете получать предложения. 
+                {!user && "Пожалуйста, оставьте контактную информацию, чтобы мы могли отправить вам лучшие варианты."}
+              </p>
+              
+              {/* Checklist with checkmarks */}
+              <div className="w-full max-w-md bg-green-50 rounded-lg p-4 border border-green-100">
+                <ul className="space-y-3">
+                  {COMPLETION_STEPS.map((step, index) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <div className="mt-0.5 text-green-600">
+                        <CheckCircle className="h-5 w-5" />
+                      </div>
+                      <span className="text-sm">{step}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <Progress value={progress} className="w-full" />
-          </div>
-        )}
-
-        <div className="space-y-2 text-sm">
-          <div className="flex items-center justify-between">
-            <span>Создан</span>
-            <CheckCircle className="h-4 w-4 text-green-600" />
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Ожидает обработки</span>
-            {status !== 'pending' ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <Clock className="h-4 w-4 text-yellow-600" />
+            
+            {/* Only show contact form if user is not authenticated */}
+            {!user && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Button 
+                    variant={contactType === 'whatsapp' ? "default" : "outline"} 
+                    className="flex-1"
+                    onClick={() => setContactType('whatsapp')}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    WhatsApp
+                  </Button>
+                  <Button 
+                    variant={contactType === 'telegram' ? "default" : "outline"}
+                    className="flex-1"
+                    onClick={() => setContactType('telegram')}
+                  >
+                    <Send className="mr-2 h-4 w-4" />
+                    Telegram
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  <label htmlFor="contactInfo" className="text-sm font-medium">
+                    {contactType === 'whatsapp' ? 'Номер WhatsApp' : 'Имя пользователя Telegram'}
+                  </label>
+                  <Input 
+                    id="contactInfo"
+                    placeholder={contactType === 'whatsapp' ? '+971 50 123 4567' : '@username'}
+                    value={contactInfo}
+                    onChange={(e) => setContactInfo(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Мы используем эту информацию только для отправки вам предложений по запрошенной запчасти.
+                  </p>
+                </div>
+              </div>
             )}
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Обрабатывается</span>
-            {['processing', 'matched', 'fulfilled'].includes(status) ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <Clock className="h-4 w-4 text-gray-400" />
-            )}
-          </div>
-          <div className="flex items-center justify-between">
-            <span>Найдены совпадения</span>
-            {['matched', 'fulfilled'].includes(status) ? (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            ) : (
-              <Clock className="h-4 w-4 text-gray-400" />
-            )}
-          </div>
-        </div>
-
-        {status === 'pending' && (
-          <Button 
-            onClick={startProcessing}
-            disabled={isProcessing || !user}
-            className="w-full"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Обработка...
-              </>
-            ) : (
-              'Начать обработку'
-            )}
-          </Button>
-        )}
-
-        {status === 'matched' && (
-          <div className="space-y-2">
-            <Button 
-              onClick={() => updateStatus('fulfilled')}
-              className="w-full"
-              variant="default"
-            >
-              Отметить как выполненный
-            </Button>
-            <Button 
-              onClick={() => updateStatus('cancelled')}
-              className="w-full"
-              variant="destructive"
-            >
-              Отменить запрос
-            </Button>
           </div>
         )}
       </CardContent>
+      
+      {processingComplete && !user && (
+        <CardFooter>
+          <Button 
+            onClick={handleContactSubmit} 
+            disabled={!contactInfo || isSubmitting}
+            className="w-full"
+          >
+            {isSubmitting ? "Сохранение..." : "Сохранить контакты"}
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 };

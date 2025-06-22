@@ -43,5 +43,3 @@ export const AuthDialog: React.FC<AuthDialogProps> = ({
     </Dialog>
   );
 };
-
-export default AuthDialog;

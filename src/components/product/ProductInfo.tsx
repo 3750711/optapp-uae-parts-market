@@ -1,80 +1,218 @@
 
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { MapPin, Package, Truck, Edit } from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { Product } from '@/types/product';
-import { ProductStatusDialog } from '@/components/admin/ProductStatusDialog';
+import React, { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { MapPin, Edit, AlertCircle, Package2, Truck, ShoppingCart } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import ProductEditForm from "./ProductEditForm";
+import OrderConfirmationDialog from "./OrderConfirmationDialog";
+import { Product } from "@/types/product";
+import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Database } from "@/integrations/supabase/types";
 
 interface ProductInfoProps {
   product: Product;
-  onUpdate?: () => void;
+  onProductUpdate: () => void;
+  deliveryMethod: Database["public"]["Enums"]["delivery_method"];
+  onDeliveryMethodChange: (method: Database["public"]["Enums"]["delivery_method"]) => void;
 }
 
-export const ProductInfo: React.FC<ProductInfoProps> = ({ product, onUpdate }) => {
-  const { user } = useAuth();
+const ProductInfo: React.FC<ProductInfoProps> = ({ 
+  product, 
+  onProductUpdate, 
+  deliveryMethod, 
+  onDeliveryMethodChange 
+}) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  const { user, profile } = useAuth();
   const { isAdmin } = useAdminAccess();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const isOwner = user?.id === product.seller_id;
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Ожидает проверки';
-      case 'active': return 'Опубликован';
-      case 'sold': return 'Продан';
-      case 'archived': return 'Архив';
-      default: return status;
+  const canViewDeliveryPrice = user && profile?.opt_status === 'opt_user';
+
+  const handleOrderConfirm = async (orderData: { text_order?: string }) => {
+    setIsSubmittingOrder(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          product_id: product.id,
+          buyer_id: user?.id,
+          seller_id: product.seller_id,
+          delivery_method: deliveryMethod,
+          text_order: orderData.text_order,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Заказ создан!",
+        description: "Ваш заказ успешно создан и отправлен продавцу.",
+      });
+
+      setShowOrderDialog(false);
+      navigate('/buyer-orders');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось создать заказ. Попробуйте еще раз.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingOrder(false);
     }
   };
 
+  const getStatusBadge = () => {
+    switch (product.status) {
+      case 'pending':
+        return <Badge variant="warning" className="animate-pulse-soft">Ожидает проверки</Badge>;
+      case 'active':
+        return <Badge variant="success">Опубликован</Badge>;
+      case 'sold':
+        return <Badge variant="info">Продан</Badge>;
+      case 'archived':
+        return <Badge variant="outline" className="bg-gray-100">Архив</Badge>;
+      default:
+        return null;
+    }
+  };
+
+  const handleSave = () => {
+    setIsEditing(false);
+    onProductUpdate();
+  };
+
+  if (isEditing && isOwner && product.status !== 'sold') {
+    return (
+      <div className="bg-white p-6 rounded-xl shadow-card animate-fade-in">
+        <ProductEditForm
+          product={product}
+          onCancel={() => setIsEditing(false)}
+          onSave={handleSave}
+          isCreator={true}
+        />
+      </div>
+    );
+  }
+
+  const location = product.product_location || "Dubai";
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">{product.title}</h2>
-        {isAdmin && (
-          <ProductStatusDialog product={product} trigger={
-            <Button variant="outline" size="sm">
-              <Edit className="h-4 w-4 mr-2" />
-              Изменить статус
+    <div className="animate-fade-in">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {getStatusBadge()}
+          <span className="text-muted-foreground flex items-center text-sm">
+            <MapPin className="h-4 w-4 mr-1" /> {location}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {isOwner && product.status !== 'sold' && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit className="h-4 w-4" />
+              Редактировать
             </Button>
-          } onSuccess={onUpdate} />
+          )}
+        </div>
+      </div>
+      
+      <h1 className="text-2xl md:text-3xl font-bold mb-3 text-foreground">{product.title}</h1>
+      <div className="mb-4 flex items-center gap-2">
+        <span className="font-bold text-2xl text-primary">
+          {product.price} $
+        </span>
+        {canViewDeliveryPrice ? (
+          product.delivery_price !== null && product.delivery_price !== undefined && product.delivery_price > 0 ? (
+            <div className="flex items-center gap-1 text-sm text-muted-foreground">
+              <Truck className="w-4 h-4 text-gray-500" />
+              <span>Доставка: {product.delivery_price} $</span>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              Стоимость доставки не указана
+            </div>
+          )
+        ) : (
+          user ? (
+            <div className="text-sm text-gray-500">
+              Стоимость доставки доступна для OPT пользователей
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">
+              <a href="/login" className="text-blue-500 hover:underline">Авторизуйтесь</a> для просмотра стоимости доставки
+            </div>
+          )
         )}
       </div>
-
-      <div className="flex items-center space-x-2">
-        <Badge variant="secondary">{getStatusLabel(product.status)}</Badge>
-        {product.condition && <Badge>{product.condition}</Badge>}
-      </div>
-
-      <Separator />
-
-      <div className="space-y-2">
-        <Label>Описание</Label>
-        <p className="text-gray-600">{product.description || 'Нет описания'}</p>
-      </div>
-
-      <Separator />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <Label className="flex items-center"><Package className="h-4 w-4 mr-2" /> Бренд</Label>
-          <p className="text-gray-600">{product.brand || 'Не указан'}</p>
+      
+      {/* Кнопка "Купить" */}
+      {!isOwner && product.status === 'active' && user && (
+        <div className="mb-6">
+          <Button
+            onClick={() => setShowOrderDialog(true)}
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-8 text-lg"
+            size="lg"
+          >
+            <ShoppingCart className="mr-2 h-5 w-5" />
+            Купить товар
+          </Button>
         </div>
-        <div>
-          <Label className="flex items-center"><Truck className="h-4 w-4 mr-2" /> Модель</Label>
-          <p className="text-gray-600">{product.model || 'Не указана'}</p>
-        </div>
-        <div>
-          <Label className="flex items-center"><MapPin className="h-4 w-4 mr-2" /> Мест на складе</Label>
-          <p className="text-gray-600">{product.place_number || 'Не указано'}</p>
-        </div>
-        <div>
-          <Label className="flex items-center"><MapPin className="h-4 w-4 mr-2" /> Цена доставки</Label>
-          <p className="text-gray-600">{product.delivery_price || 'Не указано'}</p>
+      )}
+      
+      <div className="mb-6 space-y-4">
+        <h3 className="font-medium mb-3 flex items-center">
+          <AlertCircle className="h-4 w-4 mr-1.5 text-muted-foreground" />
+          Описание:
+        </h3>
+        <p className="text-foreground/80 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100">
+          {product.description || "Описание отсутствует"}
+        </p>
+        <div className="flex items-center text-muted-foreground mt-2">
+          <Package2 className="h-4 w-4 mr-1.5" />
+          <span>Количество мест для отправки: {product.place_number || 1}</span>
         </div>
       </div>
+
+      {/* Order Confirmation Dialog */}
+      <OrderConfirmationDialog
+        open={showOrderDialog}
+        onOpenChange={setShowOrderDialog}
+        onConfirm={handleOrderConfirm}
+        isSubmitting={isSubmittingOrder}
+        product={{
+          id: product.id,
+          title: product.title,
+          brand: product.brand || "",
+          model: product.model || "",
+          price: product.price,
+          description: product.description,
+          optid_created: product.optid_created,
+          seller_id: product.seller_id,
+          seller_name: product.seller_name,
+          lot_number: product.lot_number,
+          delivery_price: product.delivery_price,
+        }}
+        profile={profile}
+        deliveryMethod={deliveryMethod}
+        onDeliveryMethodChange={onDeliveryMethodChange}
+      />
     </div>
   );
 };

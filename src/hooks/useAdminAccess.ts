@@ -1,22 +1,49 @@
 
-import { useEffect, useState } from 'react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { throttledDevLog } from '@/utils/logger';
 
 export const useAdminAccess = () => {
-  const { user, profile, isLoading } = useAuth();
-  const [hasAccess, setHasAccess] = useState(false);
-
-  useEffect(() => {
-    if (!isLoading) {
-      setHasAccess(!!user && profile?.user_type === 'admin');
-    }
-  }, [user, profile, isLoading]);
-
+  const { isAdmin, profile } = useAuth();
+  
+  // Логируем только при изменении статуса, а не на каждый вызов
+  throttledDevLog('admin-access-check', '🔍 useAdminAccess:', { isAdmin, userType: profile?.user_type });
+  
   return {
-    hasAccess,
-    isLoading,
-    user,
-    profile,
-    isAdmin: hasAccess // Add for backward compatibility
+    // Строгая проверка админских прав
+    isAdmin: isAdmin === true,
+    
+    // Проверка в процессе загрузки
+    isCheckingAdmin: isAdmin === null,
+    
+    // Функция для проверки возможности просмотра статуса продукта
+    canViewProductStatus: (status: string) => {
+      // Админы могут видеть все статусы продуктов
+      if (isAdmin === true) {
+        return true;
+      }
+      
+      // Не-админы могут видеть только активные или проданные товары
+      return ['active', 'sold'].includes(status);
+    },
+    
+    // Функция для проверки возможности управления пользователями
+    canManageUsers: () => {
+      return isAdmin === true;
+    },
+    
+    // Функция для проверки возможности управления заказами
+    canManageOrders: () => {
+      return isAdmin === true;
+    },
+    
+    // Функция для проверки возможности управления товарами
+    canManageProducts: () => {
+      return isAdmin === true;
+    },
+    
+    // Функция для проверки доступа к админским функциям
+    hasAdminAccess: () => {
+      return isAdmin === true;
+    }
   };
 };

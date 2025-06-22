@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useProfile } from '@/contexts/ProfileProvider';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
@@ -10,8 +11,11 @@ interface AdminRouteProps {
 }
 
 export const SimpleAdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
-  const { user, profile, isLoading, isAdmin } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
+  const { profile, isLoading: profileLoading } = useProfile();
   const location = useLocation();
+
+  const isLoading = authLoading || profileLoading;
 
   // Show loading while checking auth and profile
   if (isLoading) {
@@ -46,7 +50,7 @@ export const SimpleAdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   }
 
   // Check admin rights
-  if (!isAdmin) {
+  if (profile.user_type !== 'admin') {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
         <Alert variant="destructive">

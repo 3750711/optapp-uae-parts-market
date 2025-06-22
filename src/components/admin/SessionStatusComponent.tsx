@@ -1,8 +1,8 @@
 
-import React from 'react';
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, RefreshCw, Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SessionStatusComponentProps {
   isComponentReady: boolean;
@@ -19,41 +19,50 @@ export const SessionStatusComponent: React.FC<SessionStatusComponentProps> = ({
   onSessionRecovery,
   onReset
 }) => {
+  if (!isComponentReady) {
+    return (
+      <Alert>
+        <Loader2 className="h-4 w-4 animate-spin" />
+        <AlertDescription className="text-xs sm:text-sm">
+          Инициализация компонента... Пожалуйста, подождите.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   if (sessionLost) {
     return (
       <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="space-y-2">
-          <p>Потеряна сессия администратора. Необходимо восстановить доступ.</p>
-          <Button onClick={onSessionRecovery} variant="outline" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Восстановить сессию
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span className="text-xs sm:text-sm">Сессия потеряна. Необходимо восстановить соединение для загрузки файлов.</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onSessionRecovery}
+            className="h-6 px-2 text-xs self-start sm:self-center"
+          >
+            <RefreshCw className="h-3 w-3 mr-1" />
+            Восстановить
           </Button>
         </AlertDescription>
       </Alert>
     );
   }
 
-  if (!isComponentReady) {
-    return (
-      <Alert>
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <AlertDescription>
-          Инициализация компонента загрузки...
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  if (uploadError) {
+  if (uploadError && !sessionLost) {
     return (
       <Alert variant="destructive">
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription className="space-y-2">
-          <p>Ошибка: {uploadError}</p>
-          <Button onClick={onReset} variant="outline" size="sm">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Сбросить и попробовать снова
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <span className="text-xs sm:text-sm">{uploadError}</span>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onReset}
+            className="h-6 px-2 text-xs self-start sm:self-center"
+          >
+            Попробовать снова
           </Button>
         </AlertDescription>
       </Alert>

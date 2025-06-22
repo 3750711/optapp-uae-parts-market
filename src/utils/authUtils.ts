@@ -8,11 +8,6 @@ interface EmailByOptIdResult {
   isRateLimited: boolean;
 }
 
-interface OptIdCheckResult {
-  exists: boolean;
-  isRateLimited: boolean;
-}
-
 // Функция для определения типа ввода (email или OPT ID)
 export const detectInputType = (input: string): InputType => {
   // Проверяем, является ли строка email (содержит @ и точку)
@@ -56,7 +51,7 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
 };
 
 // Функция для проверки существования OPT ID
-export const checkOptIdExists = async (optId: string): Promise<OptIdCheckResult> => {
+export const checkOptIdExists = async (optId: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.rpc('check_opt_id_exists', {
       p_opt_id: optId
@@ -64,33 +59,13 @@ export const checkOptIdExists = async (optId: string): Promise<OptIdCheckResult>
 
     if (error) {
       console.error('Error checking OPT ID:', error);
-      
-      // Проверяем rate limiting
-      if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
-        return { exists: false, isRateLimited: true };
-      }
-      
-      return { exists: false, isRateLimited: false };
+      return false;
     }
 
-    return { exists: Boolean(data), isRateLimited: false };
+    return Boolean(data);
   } catch (error) {
     console.error('Unexpected error in checkOptIdExists:', error);
-    return { exists: false, isRateLimited: false };
-  }
-};
-
-// Функция для логирования успешного входа
-export const logSuccessfulLogin = async (identifier: string, inputType: InputType): Promise<void> => {
-  try {
-    console.log('Logging successful login:', { identifier, inputType });
-    
-    // Здесь можно добавить логику для записи в БД или аналитику
-    // Пока просто логируем в консоль
-    
-  } catch (error) {
-    console.error('Error logging successful login:', error);
-    // Не выбрасываем ошибку, чтобы не нарушить процесс входа
+    return false;
   }
 };
 

@@ -70,7 +70,7 @@ const RequestDetailDialog: React.FC<RequestDetailDialogProps> = ({
             </p>
           </DialogHeader>
         ) : isNewRequest ? (
-          <RequestProcessing requestId={requestId} />
+          <RequestProcessing requestId={requestId} requestTitle={request.title} />
         ) : (
           <>
             <DialogHeader>

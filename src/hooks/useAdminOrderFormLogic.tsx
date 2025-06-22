@@ -72,7 +72,7 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
   const navigate = useNavigate();
 
   // Admin access check
-  const { hasAccess: hasAdminAccess, isLoading: isCheckingAdmin } = useOptimizedAdminAccess();
+  const { hasAdminAccess, isCheckingAdmin } = useOptimizedAdminAccess();
 
   // Form data management
   const {
