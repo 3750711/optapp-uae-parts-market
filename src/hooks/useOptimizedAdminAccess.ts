@@ -3,16 +3,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 
 export const useOptimizedAdminAccess = () => {
-  const { isAdmin, profile } = useAuth();
+  const { profile } = useAuth();
   
-  // Кэшируем результат проверки прав
+  // Простое кэширование результата проверки прав
   const adminAccessState = useMemo(() => {
+    const isAdmin = profile?.user_type === 'admin';
+    
     return {
-      isAdmin: isAdmin === true,
-      isCheckingAdmin: isAdmin === null,
-      hasAdminAccess: isAdmin === true
+      isAdmin,
+      hasAdminAccess: isAdmin
     };
-  }, [isAdmin]);
+  }, [profile?.user_type]);
   
   return adminAccessState;
 };

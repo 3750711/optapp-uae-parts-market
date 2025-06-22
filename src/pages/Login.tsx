@@ -18,11 +18,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
-import { detectInputType, getEmailByOptId, logSuccessfulLogin } from "@/utils/authUtils";
-import { Mail, User, Shield, Loader2 } from "lucide-react";
+import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
+import { Mail, User, Loader2 } from "lucide-react";
 import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
 import { useAuth } from "@/contexts/AuthContext";
-import { clearLogoutFlag, checkLogoutFlagForNewLogin, getLogoutFlagInfo } from "@/utils/aggressiveLogout";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
@@ -32,15 +31,13 @@ const formSchema = z.object({
 type FormData = z.infer<typeof formSchema>;
 
 const Login = () => {
-  // ✅ ВСЕ ХУКИ ОБЪЯВЛЯЮТСЯ СНАЧАЛА (до любых условных возвратов)
-  const { user, isLoading, forceAuthReinit } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isLoadingForm, setIsLoadingForm] = useState(false);
   const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [isRateLimited, setIsRateLimited] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -52,20 +49,6 @@ const Login = () => {
 
   const watchedInput = form.watch('emailOrOptId');
 
-  // ✅ Немедленная очистка флага при загрузке страницы входа
-  useEffect(() => {
-    console.log('🔑 Login page loaded - checking logout flag...');
-    
-    const flagInfo = getLogoutFlagInfo();
-    if (flagInfo.exists) {
-      console.log('🏴 Logout flag found:', flagInfo);
-      console.log('🧹 Clearing logout flag to allow new login...');
-      clearLogoutFlag();
-    } else {
-      console.log('✅ No logout flag found - login page ready');
-    }
-  }, []);
-
   // Перенаправляем авторизованных пользователей
   useEffect(() => {
     if (!isLoading && user) {
@@ -73,7 +56,7 @@ const Login = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Определяем тип ввода в реальном времени
+  // Определяем тип ввода
   useEffect(() => {
     if (watchedInput) {
       const type = detectInputType(watchedInput);
@@ -83,7 +66,6 @@ const Login = () => {
     }
   }, [watchedInput]);
 
-  // ✅ УСЛОВНЫЕ ВОЗВРАТЫ ТОЛЬКО ПОСЛЕ ВСЕХ ХУКОВ
   // Показываем загрузку пока проверяется авторизация
   if (isLoading) {
     return (
@@ -105,7 +87,6 @@ const Login = () => {
     return null;
   }
 
-  // ✅ ФУНКЦИИ-ОБРАБОТЧИКИ ПОСЛЕ УСЛОВНЫХ ВОЗВРАТОВ
   const handleFailedAttempt = () => {
     const newFailedAttempts = failedAttempts + 1;
     setFailedAttempts(newFailedAttempts);
@@ -118,16 +99,6 @@ const Login = () => {
   };
 
   const onSubmit = async (data: FormData) => {
-    // Проверяем мягкую блокировку для нового входа
-    if (checkLogoutFlagForNewLogin()) {
-      toast({
-        title: "Попробуйте через несколько секунд",
-        description: "Недавно был выполнен выход из системы",
-        variant: "destructive",
-      });
-      return;
-    }
-
     // Проверяем CAPTCHA если она требуется
     if (showCaptcha && !captchaVerified) {
       toast({
@@ -141,18 +112,14 @@ const Login = () => {
     setIsLoadingForm(true);
     
     try {
-      console.log("🔐 Attempting to sign in with:", data.emailOrOptId);
-      
       const inputType = detectInputType(data.emailOrOptId);
       let emailToUse = data.emailOrOptId;
 
       // Если введен OPT ID, найдем соответствующий email
       if (inputType === 'opt_id') {
-        console.log("🔍 Detected OPT ID, searching for email...");
         const result = await getEmailByOptId(data.emailOrOptId);
         
         if (result.isRateLimited) {
-          setIsRateLimited(true);
           toast({
             title: "Слишком много попыток",
             description: "Попробуйте войти через 15 минут",
@@ -172,24 +139,16 @@ const Login = () => {
         }
         
         emailToUse = result.email;
-        console.log("✅ Found email for OPT ID:", emailToUse);
       }
 
-      // Дополнительная очистка флага перед входом
-      console.log('🧹 Clearing logout flag before sign in...');
-      clearLogoutFlag();
-
-      // Выполняем вход с найденным email
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
+      // Выполняем вход
+      const { error } = await supabase.auth.signInWithPassword({
         email: emailToUse,
         password: data.password,
       });
 
       if (error) {
-        console.error("❌ Login error:", error);
         handleFailedAttempt();
-        
-        // Унифицированное сообщение об ошибке для всех случаев
         toast({
           title: "Ошибка входа",
           description: "Неверные учетные данные",
@@ -198,48 +157,25 @@ const Login = () => {
         return;
       }
 
-      console.log("✅ Login successful, user:", authData.user?.email);
-
-      // Принудительная очистка флага после успешного входа
-      console.log('🧹 Clearing logout flag after successful login...');
-      clearLogoutFlag();
-
-      // Принудительная реинициализация авторизации
-      if (forceAuthReinit) {
-        console.log('🔄 Forcing auth reinitialize...');
-        await forceAuthReinit();
-      }
-
-      // Логируем успешный вход  
-      await logSuccessfulLogin(data.emailOrOptId, inputType);
-
       // Сбрасываем счетчики после успешного входа
       setFailedAttempts(0);
       setShowCaptcha(false);
       setCaptchaVerified(false);
-      setIsRateLimited(false);
 
-      // Показываем сообщение об успехе
       toast({
         title: "Вход выполнен успешно",
         description: "Добро пожаловать в partsbay.ae",
       });
       
-      // Проверяем URL для параметра "from" для редиректа
+      // Проверяем URL для редиректа
       const params = new URLSearchParams(window.location.search);
       const from = params.get("from") || "/";
-
-      // Добавляем небольшую задержку для обновления состояния авторизации
-      setTimeout(() => {
-        console.log("🚀 Redirecting to:", from);
-        navigate(from);
-      }, 500);
+      navigate(from);
       
     } catch (error: any) {
-      console.error("💥 Login error:", error);
+      console.error("Login error:", error);
       handleFailedAttempt();
       
-      // Унифицированное сообщение об ошибке
       toast({
         title: "Ошибка входа",
         description: "Неверные учетные данные",
@@ -267,7 +203,6 @@ const Login = () => {
     return `example@mail.com или ${generateRandomOptId()}`;
   };
 
-  // ✅ ОСНОВНОЙ RENDER ПОСЛЕ ВСЕХ ХУКОВ И ФУНКЦИЙ
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
@@ -281,15 +216,6 @@ const Login = () => {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
-                {isRateLimited && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-md flex items-center space-x-2">
-                    <Shield className="h-4 w-4 text-red-500" />
-                    <span className="text-red-700 text-sm">
-                      Превышен лимит попыток входа. Попробуйте через 15 минут.
-                    </span>
-                  </div>
-                )}
-                
                 <FormField
                   control={form.control}
                   name="emailOrOptId"
@@ -303,7 +229,6 @@ const Login = () => {
                             placeholder={getPlaceholderText()}
                             {...field} 
                             className="pr-10"
-                            disabled={isRateLimited}
                           />
                           {getInputIcon() && (
                             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -336,11 +261,7 @@ const Login = () => {
                         </Link>
                       </div>
                       <FormControl>
-                        <Input 
-                          type="password" 
-                          {...field} 
-                          disabled={isRateLimited}
-                        />
+                        <Input type="password" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -354,7 +275,7 @@ const Login = () => {
                   />
                 )}
 
-                {failedAttempts > 0 && !isRateLimited && (
+                {failedAttempts > 0 && (
                   <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
                     Неудачных попыток: {failedAttempts}/3
                     {failedAttempts >= 3 && " (требуется CAPTCHA)"}
@@ -365,7 +286,7 @@ const Login = () => {
                 <Button 
                   type="submit" 
                   className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoadingForm || isRateLimited || (showCaptcha && !captchaVerified)}
+                  disabled={isLoadingForm || (showCaptcha && !captchaVerified)}
                 >
                   {isLoadingForm ? "Вход..." : "Войти"}
                 </Button>
