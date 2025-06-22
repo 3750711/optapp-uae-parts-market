@@ -7,7 +7,7 @@ import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent } = '@/components/ui/card';
 import { Loader, AlertCircle, Camera, Plus, RefreshCw, Database } from 'lucide-react';
 import { useSubmissionGuard } from '@/hooks/useSubmissionGuard';
 import { toast } from '@/hooks/use-toast';
@@ -36,7 +36,6 @@ export const AdminFreeOrderForm = () => {
     
     // Admin access
     hasAdminAccess,
-    isCheckingAdmin,
     
     // Error handling
     error,
@@ -145,18 +144,7 @@ export const AdminFreeOrderForm = () => {
     retryOperation();
   };
 
-  // Показать состояние загрузки админа
-  if (isCheckingAdmin) {
-    return (
-      <div className="flex items-center justify-center p-8">
-        <div className="text-center">
-          <Loader className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Проверка прав доступа...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Если нет админских прав
   if (!hasAdminAccess) {
     return (
       <Alert variant="destructive">
