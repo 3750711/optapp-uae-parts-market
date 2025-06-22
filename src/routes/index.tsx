@@ -43,6 +43,7 @@ const AdminFreeOrder = lazy(() => import('@/pages/AdminFreeOrder'));
 const AdminCreateOrderFromProduct = lazy(() => import('@/pages/AdminCreateOrderFromProduct'));
 const AdminSellProduct = lazy(() => import('@/pages/AdminSellProduct'));
 const AdminStores = lazy(() => import('@/pages/AdminStores'));
+const OptimizedAdminStores = lazy(() => import('@/pages/OptimizedAdminStores'));
 const AdminEvents = lazy(() => import('@/pages/AdminEvents'));
 const AdminLogistics = lazy(() => import('@/pages/AdminLogistics'));
 const AdminCarCatalog = lazy(() => import('@/pages/AdminCarCatalog'));
@@ -227,6 +228,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/stores" element={
         <AdminRoute>
           <AdminStores />
+        </AdminRoute>
+      } />
+      <Route path="/admin/optimized-stores" element={
+        <AdminRoute>
+          <OptimizedAdminStores />
         </AdminRoute>
       } />
       <Route path="/admin/events" element={
