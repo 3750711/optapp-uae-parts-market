@@ -2,13 +2,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-interface AdminPasswordResetRequest {
+interface PasswordResetRequest {
   email: string;
   code: string;
   newPassword: string;
@@ -21,132 +24,128 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, code, newPassword }: AdminPasswordResetRequest = await req.json();
+    console.log("Admin password reset request received");
+    
+    const { email, code, newPassword }: PasswordResetRequest = await req.json();
+    
+    console.log("Processing password reset for:", email);
 
-    console.log("Admin password reset request:", { email, code: code ? "***" : "empty", passwordLength: newPassword?.length });
+    // Сначала проверяем код через database функцию
+    const { data: verifyData, error: verifyError } = await supabase.rpc('verify_and_reset_password_v2', {
+      p_email: email,
+      p_code: code,
+      p_new_password: newPassword
+    });
 
-    if (!email || !code || !newPassword) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: "Email, код и новый пароль обязательны" 
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
-      );
-    }
-
-    // Создаем Admin клиент Supabase
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    );
-
-    // Проверяем код через функцию базы данных  
-    console.log("Verifying code with database function...");
-    const { data: verifyResult, error: verifyError } = await supabaseAdmin.rpc(
-      'verify_and_reset_password_v2',
-      { 
-        p_email: email,
-        p_code: code,
-        p_new_password: newPassword
-      }
-    );
+    console.log("Database verification response:", { verifyData, verifyError });
 
     if (verifyError) {
-      console.error('Database verification error:', verifyError);
+      console.error("Database verification error:", verifyError);
       return new Response(
         JSON.stringify({ 
-          success: false, 
-          message: "Ошибка при проверке кода",
-          details: verifyError.message 
+          success: false,
+          message: "Ошибка проверки кода",
+          error: verifyError.message
         }),
         {
-          status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          status: 400,
+          headers: { 
+            "Content-Type": "application/json", 
+            ...corsHeaders 
+          },
         }
       );
     }
 
-    console.log("Database verification result:", verifyResult);
-
-    if (!verifyResult.success) {
+    if (!verifyData?.success) {
+      console.log("Code verification failed:", verifyData);
       return new Response(
-        JSON.stringify(verifyResult),
+        JSON.stringify({ 
+          success: false,
+          message: verifyData?.message || "Неверный или истекший код"
+        }),
         {
           status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          headers: { 
+            "Content-Type": "application/json", 
+            ...corsHeaders 
+          },
         }
       );
     }
 
-    // Если верификация прошла успешно, меняем пароль через Admin API
-    const userId = verifyResult.user_id;
-    console.log("Updating password for user:", userId);
-
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId,
+    // Если код верен, используем Admin API для изменения пароля
+    console.log("Code verified, updating password for user:", verifyData.user_id);
+    
+    const { data: updateData, error: updateError } = await supabase.auth.admin.updateUserById(
+      verifyData.user_id,
       { password: newPassword }
     );
 
     if (updateError) {
-      console.error('Password update error:', updateError);
+      console.error("Password update error:", updateError);
       return new Response(
         JSON.stringify({ 
-          success: false, 
-          message: "Не удалось обновить пароль",
-          details: updateError.message 
+          success: false,
+          message: "Не удалось изменить пароль",
+          error: updateError.message
         }),
         {
           status: 500,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
+          headers: { 
+            "Content-Type": "application/json", 
+            ...corsHeaders 
+          },
         }
       );
     }
 
-    // Логируем успешный сброс пароля
+    console.log("Password updated successfully for user:", verifyData.user_id);
+
+    // Логируем событие смены пароля
     try {
-      await supabaseAdmin.rpc('log_password_reset_event', {
-        p_user_id: userId,
+      const { error: logError } = await supabase.rpc('log_password_reset_event', {
+        p_user_id: verifyData.user_id,
         p_email: email,
-        p_opt_id: verifyResult.opt_id || null
+        p_opt_id: null // Можно передать OPT ID если есть
       });
-    } catch (logError) {
-      console.warn('Failed to log password reset event:', logError);
+      
+      if (logError) {
+        console.error("Failed to log password reset event:", logError);
+      }
+    } catch (logErr) {
+      console.error("Exception while logging:", logErr);
     }
 
-    console.log("Password reset completed successfully for user:", userId);
-
     return new Response(
-      JSON.stringify({
+      JSON.stringify({ 
         success: true,
         message: "Пароль успешно изменен"
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { 
+          "Content-Type": "application/json", 
+          ...corsHeaders 
+        },
       }
     );
 
   } catch (error: any) {
     console.error("Error in admin-password-reset function:", error);
+    
     return new Response(
       JSON.stringify({ 
         success: false,
-        message: "Произошла ошибка при сбросе пароля",
-        details: error.message 
+        message: "Произошла внутренняя ошибка сервера",
+        error: error.message
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
+        headers: { 
+          "Content-Type": "application/json", 
+          ...corsHeaders 
+        },
       }
     );
   }

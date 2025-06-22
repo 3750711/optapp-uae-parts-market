@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface EmailVerificationResult {
   success: boolean;
   message: string;
-  code?: string; // Только для отладки
+  debug_code?: string; // Только для тестирования
 }
 
 export const useEmailVerification = () => {
@@ -15,65 +15,26 @@ export const useEmailVerification = () => {
     setIsLoading(true);
     
     try {
-      console.log('Отправка кода верификации на:', email);
+      console.log('Sending verification code to:', email);
       
-      // Используем новую функцию базы данных
-      const { data, error } = await supabase.rpc('send_verification_code', {
-        p_email: email,
-        p_ip_address: null // IP будет определен автоматически в Edge Function
-      });
-
-      if (error) {
-        console.error('Ошибка при вызове send_verification_code:', error);
-        return {
-          success: false,
-          message: 'Произошла ошибка при создании кода'
-        };
-      }
-
-      console.log('Результат создания кода:', data);
-
-      // Если код создан успешно, отправляем email через Edge Function
-      if (data.success) {
-        const response = await fetch(
-          `${supabase.supabaseUrl}/functions/v1/send-email-verification`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`
-            },
-            body: JSON.stringify({ 
-              email,
-              verification_code: data.code // Передаем код для отправки
-            })
-          }
-        );
-
-        const emailResult = await response.json();
-        console.log('Результат отправки email:', emailResult);
-        
-        if (emailResult.success) {
-          return {
-            success: true,
-            message: `Код подтверждения отправлен на ${email}`,
-            code: data.code // Для отладки
-          };
-        } else {
-          return {
-            success: false,
-            message: emailResult.message || 'Не удалось отправить код на email'
-          };
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/send-email-verification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.supabaseKey}`
+          },
+          body: JSON.stringify({ email })
         }
-      } else {
-        return {
-          success: false,
-          message: data.message || 'Не удалось создать код верификации'
-        };
-      }
+      );
+
+      const result = await response.json();
+      console.log('Send verification response:', result);
       
+      return result;
     } catch (error) {
-      console.error('Ошибка при отправке кода верификации:', error);
+      console.error('Error sending verification code:', error);
       return {
         success: false,
         message: 'Произошла ошибка при отправке кода'
@@ -87,7 +48,7 @@ export const useEmailVerification = () => {
     setIsLoading(true);
 
     try {
-      console.log('Проверка кода для email:', email, 'код:', code);
+      console.log('Verifying code for email:', email, 'code:', code);
       
       const { data, error } = await supabase.rpc('verify_email_code', {
         p_email: email,
@@ -95,20 +56,17 @@ export const useEmailVerification = () => {
       });
 
       if (error) {
-        console.error('Ошибка при проверке кода:', error);
+        console.error('Error verifying code:', error);
         return {
           success: false,
           message: 'Произошла ошибка при проверке кода'
         };
       }
 
-      console.log('Результат проверки:', data);
-      return {
-        success: data.success,
-        message: data.message
-      };
+      console.log('Verification result:', data);
+      return data;
     } catch (error) {
-      console.error('Ошибка при проверке кода:', error);
+      console.error('Error verifying code:', error);
       return {
         success: false,
         message: 'Произошла ошибка при проверке кода'

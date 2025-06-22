@@ -11,7 +11,6 @@ const corsHeaders = {
 
 interface EmailVerificationRequest {
   email: string;
-  verification_code?: string; // Код передается из базы данных
   ip_address?: string;
 }
 
@@ -22,7 +21,16 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, verification_code, ip_address }: EmailVerificationRequest = await req.json();
+    // Создаем клиент Supabase
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Создаем клиент Resend
+    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+    const { email, ip_address }: EmailVerificationRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -37,62 +45,46 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Если код не передан, значит нужно сгенерировать его через базу данных
-    let codeToSend = verification_code;
-    
-    if (!codeToSend) {
-      // Создаем клиент Supabase для генерации кода
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
+    // Получаем IP адрес из заголовков если не передан
+    const clientIP = ip_address || req.headers.get("x-forwarded-for")?.split(",")[0] || 
+                     req.headers.get("x-real-ip") || "unknown";
 
-      // Получаем IP адрес
-      const clientIP = ip_address || req.headers.get("x-forwarded-for")?.split(",")[0] || 
-                       req.headers.get("x-real-ip") || "unknown";
+    // Вызываем функцию базы данных для генерации кода
+    const { data: codeData, error: codeError } = await supabaseClient.rpc(
+      'send_verification_code',
+      { 
+        p_email: email,
+        p_ip_address: clientIP
+      }
+    );
 
-      // Вызываем функцию базы данных для генерации кода
-      const { data: codeData, error: codeError } = await supabaseClient.rpc(
-        'send_verification_code',
-        { 
-          p_email: email,
-          p_ip_address: clientIP
+    if (codeError) {
+      console.error('Database error:', codeError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Database error",
+          message: "Не удалось создать код подтверждения" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
         }
       );
-
-      if (codeError) {
-        console.error('Database error:', codeError);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Database error",
-            message: "Не удалось создать код подтверждения" 
-          }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-
-      // Проверяем результат
-      if (!codeData.success) {
-        return new Response(
-          JSON.stringify(codeData),
-          {
-            status: 429, // Too Many Requests
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-
-      codeToSend = codeData.code;
     }
 
-    // Создаем клиент Resend
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+    // Проверяем результат
+    if (!codeData.success) {
+      return new Response(
+        JSON.stringify(codeData),
+        {
+          status: 429, // Too Many Requests
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
-    // Отправляем email с кодом
+    // Отправляем реальный email с кодом
     try {
       const emailResponse = await resend.emails.send({
         from: "PartsBay.ae <noreply@partsbay.ae>",
@@ -113,7 +105,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #f59e0b; display: inline-block;">
                 <span style="font-size: 32px; font-weight: bold; color: #f59e0b; letter-spacing: 5px;">
-                  ${codeToSend}
+                  ${codeData.code}
                 </span>
               </div>
               

@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import OptimizedSellerDashboard from "@/components/seller/OptimizedSellerDashboard";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 const SellerDashboard = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const handleGoBack = () => {
     try {

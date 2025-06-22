@@ -1,12 +1,11 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Mail, Clock } from 'lucide-react';
+import { Mail, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
-import { useEmailVerification } from '@/hooks/useEmailVerification';
+import { supabase } from '@/integrations/supabase/client';
 
 interface EmailVerificationFormProps {
   initialEmail?: string;
@@ -26,10 +25,9 @@ const EmailVerificationForm = ({
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState(initialEmail);
   const [code, setCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [canResend, setCanResend] = useState(true);
-  
-  const { sendVerificationCode, verifyEmailCode, isLoading } = useEmailVerification();
 
   // Таймер обратного отсчета
   useEffect(() => {
@@ -48,7 +46,7 @@ const EmailVerificationForm = ({
     }
   }, [initialEmail]);
 
-  const handleSendCode = async () => {
+  const sendVerificationCode = async () => {
     if (!email || !email.includes('@')) {
       toast({
         title: "Некорректный email",
@@ -58,32 +56,52 @@ const EmailVerificationForm = ({
       return;
     }
 
-    const result = await sendVerificationCode(email);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/send-email-verification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.supabaseKey}`
+          },
+          body: JSON.stringify({ email })
+        }
+      );
 
-    if (result.success) {
-      setStep('code');
-      setTimeLeft(300); // 5 минут
-      setCanResend(false);
-      
-      toast({
-        title: "Код отправлен",
-        description: result.message,
-      });
+      const result = await response.json();
 
-      // Для отладки показываем код в консоли
-      if (result.code) {
-        console.log('🔐 DEBUG: Код верификации:', result.code);
+      if (result.success) {
+        setStep('code');
+        setTimeLeft(300); // 5 минут
+        setCanResend(false);
+        
+        toast({
+          title: "Код отправлен",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Ошибка отправки",
+          description: result.message || "Не удалось отправить код",
+          variant: "destructive",
+        });
       }
-    } else {
+    } catch (error) {
+      console.error('Error sending verification code:', error);
       toast({
-        title: "Ошибка отправки",
-        description: result.message,
+        title: "Ошибка",
+        description: "Произошла ошибка при отправке кода",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleVerifyCode = async () => {
+  const verifyCode = async () => {
     if (code.length !== 6) {
       toast({
         title: "Неполный код",
@@ -93,21 +111,47 @@ const EmailVerificationForm = ({
       return;
     }
 
-    const result = await verifyEmailCode(email, code);
+    setIsLoading(true);
 
-    if (result.success) {
-      toast({
-        title: "Email подтвержден",
-        description: result.message,
+    try {
+      const { data, error } = await supabase.rpc('verify_email_code', {
+        p_email: email,
+        p_code: code
       });
-      onVerificationSuccess(email);
-    } else {
+
+      if (error) {
+        console.error('Error verifying code:', error);
+        toast({
+          title: "Ошибка проверки",
+          description: "Произошла ошибка при проверке кода",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data.success) {
+        toast({
+          title: "Email подтвержден",
+          description: data.message,
+        });
+        onVerificationSuccess(email);
+      } else {
+        toast({
+          title: "Неверный код",
+          description: data.message,
+          variant: "destructive",
+        });
+        setCode('');
+      }
+    } catch (error) {
+      console.error('Error verifying code:', error);
       toast({
-        title: "Неверный код",
-        description: result.message,
+        title: "Ошибка",
+        description: "Произошла ошибка при проверке кода",
         variant: "destructive",
       });
-      setCode('');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -144,7 +188,7 @@ const EmailVerificationForm = ({
             
             <div className="flex gap-2">
               <Button 
-                onClick={handleSendCode}
+                onClick={sendVerificationCode}
                 disabled={!email || isLoading}
                 className="flex-1 bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               >
@@ -188,12 +232,14 @@ const EmailVerificationForm = ({
                 type="text"
                 value={code}
                 onChange={(e) => {
-                  console.log("EmailVerification code input:", {
+                  // Отладочная информация
+                  console.log("EmailVerification code debug:", {
                     inputValue: e.target.value,
                     currentCode: code,
                     email: email
                   });
                   
+                  // Разрешаем только цифры
                   const numericValue = e.target.value.replace(/[^0-9]/g, '');
                   if (numericValue.length <= 6) {
                     setCode(numericValue);
@@ -218,7 +264,7 @@ const EmailVerificationForm = ({
 
             <div className="space-y-2">
               <Button 
-                onClick={handleVerifyCode}
+                onClick={verifyCode}
                 disabled={code.length !== 6 || isLoading}
                 className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               >
@@ -227,7 +273,7 @@ const EmailVerificationForm = ({
 
               <Button
                 variant="outline"
-                onClick={handleSendCode}
+                onClick={sendVerificationCode}
                 disabled={!canResend || isLoading}
                 className="w-full"
               >

@@ -1060,7 +1060,7 @@ export type Database = {
       }
       cleanup_expired_verification_codes: {
         Args: Record<PropertyKey, never>
-        Returns: number
+        Returns: undefined
       }
       cleanup_old_login_attempts: {
         Args: Record<PropertyKey, never>
@@ -1069,10 +1069,6 @@ export type Database = {
       clear_all_rls_policies: {
         Args: Record<PropertyKey, never>
         Returns: string
-      }
-      create_password_reset_code: {
-        Args: { p_email: string; p_opt_id?: string }
-        Returns: Json
       }
       create_user_order: {
         Args: {
@@ -1225,9 +1221,7 @@ export type Database = {
         Returns: string
       }
       send_verification_code: {
-        Args:
-          | { p_email: string; p_ip_address?: string }
-          | { p_email: string; p_ip_address?: unknown }
+        Args: { p_email: string; p_ip_address?: unknown }
         Returns: Json
       }
       set_limit: {
@@ -1253,6 +1247,10 @@ export type Database = {
           p_video_url?: string[]
         }
         Returns: boolean
+      }
+      verify_and_reset_password: {
+        Args: { p_email: string; p_code: string; p_new_password: string }
+        Returns: Json
       }
       verify_and_reset_password_v2: {
         Args: { p_email: string; p_code: string; p_new_password: string }
