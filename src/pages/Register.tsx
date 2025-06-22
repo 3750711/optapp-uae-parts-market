@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/layout/Layout';
 
@@ -25,7 +24,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [emailExists, setEmailExists] = useState(false);
   
-  const { signUp } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const validatePassword = (password: string) => {
@@ -71,9 +70,17 @@ const Register = () => {
     }
 
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        full_name: formData.fullName,
-        phone: formData.phone,
+      // Use Supabase direct signUp instead of signUp from context
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.fullName,
+            phone: formData.phone,
+          }
+        }
       });
       
       if (error) {
