@@ -1,14 +1,11 @@
 
+import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { throttledDevLog } from '@/utils/logger';
 
 export const useAdminAccess = () => {
   const { isAdmin, profile } = useAuth();
   
-  // Логируем только при изменении статуса, а не на каждый вызов
-  throttledDevLog('admin-access-check', '🔍 useAdminAccess:', { isAdmin, userType: profile?.user_type });
-  
-  return {
+  return useMemo(() => ({
     // Строгая проверка админских прав
     isAdmin: isAdmin === true,
     
@@ -45,5 +42,5 @@ export const useAdminAccess = () => {
     hasAdminAccess: () => {
       return isAdmin === true;
     }
-  };
+  }), [isAdmin, profile?.user_type]);
 };

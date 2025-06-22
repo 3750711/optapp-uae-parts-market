@@ -1,4 +1,3 @@
-
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
@@ -90,12 +89,36 @@ const AppRoutes: React.FC = () => {
             <Route path="/404" element={<NotFound />} />
 
             {/* Маршруты аутентификации */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/seller-register" element={<SellerRegister />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/login" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <Login />
+              </Suspense>
+            } />
+            <Route path="/register" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <Register />
+              </Suspense>
+            } />
+            <Route path="/seller-register" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <SellerRegister />
+              </Suspense>
+            } />
+            <Route path="/forgot-password" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <ForgotPassword />
+              </Suspense>
+            } />
+            <Route path="/reset-password" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <ResetPassword />
+              </Suspense>
+            } />
+            <Route path="/verify-email" element={
+              <Suspense fallback={<RouteSuspenseFallback />}>
+                <VerifyEmail />
+              </Suspense>
+            } />
 
             {/* Защищенные маршруты */}
             <Route path="/profile" element={

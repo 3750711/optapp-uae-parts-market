@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Helmet } from "react-helmet-async";
+import { SafeHelmet } from "@/components/seo/SafeHelmet";
 import { useOptimizedCatalogProducts } from "@/hooks/useOptimizedCatalogProducts";
 import { Button } from "@/components/ui/button";
 import { useIntersection } from "@/hooks/useIntersection";
@@ -154,10 +153,10 @@ const Catalog: React.FC = () => {
 
   return (
     <Layout>
-      <Helmet>
-        <title>Каталог товаров</title>
-        <meta name="description" content="Browse our wide selection of products." />
-      </Helmet>
+      <SafeHelmet
+        title="Каталог товаров"
+        description="Browse our wide selection of products."
+      />
 
       <div className="container mx-auto px-4 py-8">
         <CatalogBreadcrumb
