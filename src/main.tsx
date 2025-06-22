@@ -63,16 +63,24 @@ const handleGlobalError = (event: ErrorEvent) => {
       event.error?.message?.includes('dynamically imported module')) {
     console.log('🔄 Chunk loading error detected, attempting recovery...');
     
-    // Очищаем кеши и перезагружаем
-    if (typeof window !== 'undefined' && 'caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
-      }).finally(() => {
-        window.location.reload();
-      });
-    } else if (typeof window !== 'undefined') {
-      window.location.reload();
-    }
+    // Безопасная очистка кешей с проверкой типов
+    const clearCachesAndReload = async () => {
+      try {
+        if (typeof window !== 'undefined' && 'caches' in window && window.caches) {
+          const names = await window.caches.keys();
+          await Promise.all(names.map(name => window.caches.delete(name)));
+        }
+      } catch (error) {
+        console.warn('Failed to clear caches:', error);
+      } finally {
+        // Безопасная перезагрузка страницы
+        if (typeof window !== 'undefined' && window.location) {
+          window.location.reload();
+        }
+      }
+    };
+    
+    clearCachesAndReload();
   }
 };
 
