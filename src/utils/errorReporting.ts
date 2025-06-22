@@ -21,7 +21,7 @@ interface ErrorReportingConfig {
 
 class ErrorReportingService {
   private config: ErrorReportingConfig = {
-    enabled: process.env.NODE_ENV === 'production',
+    enabled: import.meta.env.PROD, // Исправлено: используем import.meta.env вместо process.env
     maxReportsPerSession: 50,
     batchSize: 10,
     flushInterval: 30000, // 30 секунд
@@ -33,7 +33,7 @@ class ErrorReportingService {
   private flushTimer?: NodeJS.Timeout;
 
   constructor() {
-    if (this.config.enabled) {
+    if (this.config.enabled && typeof window !== 'undefined') {
       this.setupErrorListeners();
       this.startBatchFlush();
     }
@@ -44,6 +44,8 @@ class ErrorReportingService {
   }
 
   private setupErrorListeners() {
+    if (typeof window === 'undefined') return;
+
     // Глобальные JavaScript ошибки
     window.addEventListener('error', (event) => {
       this.reportError({
@@ -105,8 +107,8 @@ class ErrorReportingService {
     const report: ErrorReport = {
       message: options.message,
       stack: options.stack,
-      url: window.location.href,
-      userAgent: navigator.userAgent,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
       timestamp: Date.now(),
       userId: options.userId,
       sessionId: this.sessionId,
@@ -158,6 +160,8 @@ class ErrorReportingService {
   }
 
   private saveToLocalStorage(errors: ErrorReport[]) {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
+    
     try {
       const existing = localStorage.getItem('pending_error_reports');
       const pendingErrors = existing ? JSON.parse(existing) : [];
@@ -219,6 +223,8 @@ export const reportCriticalError = (error: Error | string, context?: Record<stri
 };
 
 // Очистка при выгрузке страницы
-window.addEventListener('beforeunload', () => {
-  errorReporting.destroy();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    errorReporting.destroy();
+  });
+}

@@ -1,6 +1,6 @@
 
 // Environment check
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = import.meta.env.DEV;
 
 // Declare global gtag for analytics
 declare global {
@@ -107,7 +107,7 @@ export const trackLazyLoadTime = (componentName: string, loadTime: number) => {
   }
   
   // Отправляем метрики в аналитику если доступно
-  if (window.gtag) {
+  if (typeof window !== 'undefined' && window.gtag) {
     window.gtag('event', 'lazy_component_load', {
       component_name: componentName,
       load_time: Math.round(loadTime),
@@ -129,7 +129,7 @@ interface AdminCacheData {
 }
 
 export const getCachedAdminRights = (userId: string): boolean | null => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return null;
   
   try {
     const cached = localStorage.getItem(`${ADMIN_CACHE_KEY}_${userId}`);
@@ -151,7 +151,7 @@ export const getCachedAdminRights = (userId: string): boolean | null => {
 };
 
 export const setCachedAdminRights = (userId: string, isAdmin: boolean): void => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
   
   try {
     const data: AdminCacheData = {
@@ -166,7 +166,7 @@ export const setCachedAdminRights = (userId: string, isAdmin: boolean): void => 
 };
 
 export const clearAdminCache = (): void => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return;
   
   try {
     const keys = Object.keys(localStorage);
@@ -238,12 +238,14 @@ export const monitorPerformance = () => {
 
   // Мониторинг времени загрузки
   window.addEventListener('load', () => {
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-    console.log('📊 Performance metrics:', {
-      'DOM Content Loaded': `${navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart}ms`,
-      'Load Complete': `${navigation.loadEventEnd - navigation.loadEventStart}ms`,
-      'Total Load Time': `${navigation.loadEventEnd - navigation.fetchStart}ms`
-    });
+    if (typeof performance !== 'undefined') {
+      const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+      console.log('📊 Performance metrics:', {
+        'DOM Content Loaded': `${navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart}ms`,
+        'Load Complete': `${navigation.loadEventEnd - navigation.loadEventStart}ms`,
+        'Total Load Time': `${navigation.loadEventEnd - navigation.fetchStart}ms`
+      });
+    }
   });
 
   // Мониторинг больших задач
@@ -268,7 +270,7 @@ export const monitorPerformance = () => {
 
 // Предзагрузка критических ресурсов
 export const preloadCriticalResources = () => {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
   
   const criticalResources = [
     // CSS файлы
@@ -300,11 +302,13 @@ export const initPerformanceOptimizations = () => {
   monitorPerformance();
   
   // Запускаем оптимизации после загрузки DOM
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
+  if (typeof document !== 'undefined') {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        preloadCriticalResources();
+      });
+    } else {
       preloadCriticalResources();
-    });
-  } else {
-    preloadCriticalResources();
+    }
   }
 };

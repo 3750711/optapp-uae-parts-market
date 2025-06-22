@@ -55,7 +55,7 @@ const performProductionChecks = () => {
 };
 
 // Глобальная обработка неперехваченных ошибок
-window.addEventListener('error', (event) => {
+const handleGlobalError = (event: ErrorEvent) => {
   console.error('Global error caught:', event.error);
   
   // Автоматическое восстановление при ошибках загрузки модулей
@@ -64,26 +64,32 @@ window.addEventListener('error', (event) => {
     console.log('🔄 Chunk loading error detected, attempting recovery...');
     
     // Очищаем кеши и перезагружаем
-    if ('caches' in window) {
+    if (typeof window !== 'undefined' && 'caches' in window) {
       caches.keys().then(names => {
         names.forEach(name => caches.delete(name));
       }).finally(() => {
         window.location.reload();
       });
-    } else {
+    } else if (typeof window !== 'undefined') {
       window.location.reload();
     }
   }
-});
+};
 
-window.addEventListener('unhandledrejection', (event) => {
+const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
   console.error('Unhandled promise rejection:', event.reason);
   
   // Предотвращаем показ ошибки в консоли для известных безопасных ошибок
   if (event.reason?.message?.includes('ResizeObserver loop limit exceeded')) {
     event.preventDefault();
   }
-});
+};
+
+// Безопасная установка обработчиков событий
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', handleGlobalError);
+  window.addEventListener('unhandledrejection', handleUnhandledRejection);
+}
 
 // Запускаем приложение
 try {
@@ -96,38 +102,40 @@ try {
   console.error('Failed to initialize app:', error);
   
   // Показываем пользователю сообщение об ошибке
-  document.body.innerHTML = `
-    <div style="
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      font-family: system-ui, -apple-system, sans-serif;
-      background-color: #f9fafb;
-      color: #374151;
-    ">
-      <div style="text-align: center; max-width: 500px; padding: 2rem;">
-        <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
-          Ошибка загрузки приложения
-        </h1>
-        <p style="margin-bottom: 2rem; color: #6b7280;">
-          Произошла ошибка при инициализации. Попробуйте обновить страницу.
-        </p>
-        <button 
-          onclick="window.location.reload()"
-          style="
-            background-color: #3b82f6;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            font-size: 1rem;
-          "
-        >
-          Обновить страницу
-        </button>
+  if (typeof document !== 'undefined') {
+    document.body.innerHTML = `
+      <div style="
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: system-ui, -apple-system, sans-serif;
+        background-color: #f9fafb;
+        color: #374151;
+      ">
+        <div style="text-align: center; max-width: 500px; padding: 2rem;">
+          <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">
+            Ошибка загрузки приложения
+          </h1>
+          <p style="margin-bottom: 2rem; color: #6b7280;">
+            Произошла ошибка при инициализации. Попробуйте обновить страницу.
+          </p>
+          <button 
+            onclick="window.location.reload()"
+            style="
+              background-color: #3b82f6;
+              color: white;
+              padding: 0.75rem 1.5rem;
+              border: none;
+              border-radius: 0.5rem;
+              cursor: pointer;
+              font-size: 1rem;
+            "
+          >
+            Обновить страницу
+          </button>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 }

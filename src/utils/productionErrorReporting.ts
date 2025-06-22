@@ -33,10 +33,10 @@ class ProductionErrorReporting {
   private sessionErrorCount = 0;
   private sessionId = this.generateSessionId();
   private flushTimer?: number;
-  private isFlushingr = false;
+  private isFlushing = false; // Исправлена опечатка
 
   constructor() {
-    if (this.config.enabled) {
+    if (this.config.enabled && typeof window !== 'undefined') {
       this.setupErrorListeners();
       this.startBatchFlush();
       console.log('🔍 Production error reporting initialized');
@@ -48,6 +48,8 @@ class ProductionErrorReporting {
   }
 
   private setupErrorListeners() {
+    if (typeof window === 'undefined') return;
+
     // Глобальные JavaScript ошибки
     window.addEventListener('error', (event) => {
       this.reportError({
@@ -93,6 +95,8 @@ class ProductionErrorReporting {
   }
 
   private startBatchFlush() {
+    if (typeof window === 'undefined') return;
+    
     this.flushTimer = window.setInterval(() => {
       this.flushErrors();
     }, this.config.flushInterval);
@@ -117,8 +121,8 @@ class ProductionErrorReporting {
     const report: ErrorReport = {
       message: options.message,
       stack: options.stack,
-      url: window.location.href,
-      userAgent: navigator.userAgent,
+      url: typeof window !== 'undefined' ? window.location.href : '',
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
       timestamp: Date.now(),
       userId: options.userId,
       sessionId: this.sessionId,
@@ -150,9 +154,9 @@ class ProductionErrorReporting {
   }
 
   private async flushErrors() {
-    if (this.errorQueue.length === 0 || this.isFlushingr) return;
+    if (this.errorQueue.length === 0 || this.isFlushing) return;
 
-    this.isFlushingr = true;
+    this.isFlushing = true; // Исправлена опечатка
     const batch = this.errorQueue.splice(0, this.config.batchSize);
     
     try {
@@ -162,7 +166,7 @@ class ProductionErrorReporting {
       // Возвращаем ошибки в очередь для повторной попытки
       this.errorQueue.unshift(...batch);
     } finally {
-      this.isFlushingr = false;
+      this.isFlushing = false; // Исправлена опечатка
     }
   }
 
@@ -185,7 +189,7 @@ class ProductionErrorReporting {
       body: JSON.stringify({
         errors,
         clientInfo: {
-          userAgent: navigator.userAgent,
+          userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : '',
           timestamp: Date.now(),
           sessionId: this.sessionId
         }
@@ -246,6 +250,8 @@ export const reportCriticalError = (error: Error | string, context?: Record<stri
 };
 
 // Очистка при выгрузке страницы
-window.addEventListener('beforeunload', () => {
-  productionErrorReporting.destroy();
-});
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    productionErrorReporting.destroy();
+  });
+}
