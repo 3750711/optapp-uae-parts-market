@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import CloudinaryImage from './CloudinaryImage';
 import { getCatalogImageUrl } from '@/utils/previewImageUtils';
 import { extractPublicIdFromUrl } from '@/utils/cloudinaryUtils';
@@ -31,49 +31,46 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
   const [fallbackUsed, setFallbackUsed] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleImageError = () => {
-    console.log('🔴 Image error for:', src);
+  const handleImageError = useCallback(() => {
     if (!fallbackUsed) {
       setFallbackUsed(true);
     } else {
       setImageError(true);
     }
     onError?.();
-  };
+  }, [fallbackUsed, onError]);
 
-  const handleImageLoad = () => {
-    console.log('✅ Image loaded:', src);
+  const handleImageLoad = useCallback(() => {
+    setIsLoaded(true);
     onLoad?.();
-  };
+  }, [onLoad]);
 
   // Try to get a usable public_id
   const workingPublicId = cloudinaryPublicId || 
     (cloudinaryUrl ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
     (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
 
-  console.log('🎨 OptimizedImage analysis:', {
-    originalSrc: src,
-    cloudinaryPublicId,
-    cloudinaryUrl,
-    workingPublicId,
-    imageError,
-    fallbackUsed
-  });
-
   // If we have a working public_id and no errors, use CloudinaryImage
   if (workingPublicId && !imageError && !fallbackUsed) {
     return (
-      <CloudinaryImage
-        publicId={workingPublicId}
-        alt={alt}
-        size={size}
-        className={className}
-        priority={priority}
-        onLoad={handleImageLoad}
-        onError={handleImageError}
-        fallbackSrc="/placeholder.svg"
-      />
+      <div className={`relative ${className}`}>
+        {!isLoaded && !priority && (
+          <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
+        )}
+        <CloudinaryImage
+          publicId={workingPublicId}
+          alt={alt}
+          size={size}
+          className={`${className} transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+          priority={priority}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          fallbackSrc="/placeholder.svg"
+          loading={priority ? 'eager' : 'lazy'}
+        />
+      </div>
     );
   }
 
@@ -94,15 +91,20 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   }
 
   return (
-    <img
-      src={imageUrl}
-      alt={alt}
-      className={`${className} object-contain`}
-      onLoad={handleImageLoad}
-      onError={handleImageError}
-      loading={priority ? 'eager' : 'lazy'}
-      sizes={sizes}
-    />
+    <div className={`relative ${className}`}>
+      {!isLoaded && !priority && (
+        <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
+      )}
+      <img
+        src={imageUrl}
+        alt={alt}
+        className={`${className} object-contain transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        loading={priority ? 'eager' : 'lazy'}
+        sizes={sizes}
+      />
+    </div>
   );
 };
 

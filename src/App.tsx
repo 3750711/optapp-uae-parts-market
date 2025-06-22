@@ -11,6 +11,7 @@ import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
 
+// Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -19,19 +20,28 @@ const queryClient = new QueryClient({
         if (error?.message?.includes('JWT') || error?.message?.includes('auth')) {
           return false;
         }
-        return failureCount < 3;
+        return failureCount < 2; // Уменьшено количество повторов
       },
-      staleTime: 5 * 60 * 1000, // 5 минут
+      staleTime: 15 * 60 * 1000, // Увеличено до 15 минут для лучшего кэширования
+      gcTime: 30 * 60 * 1000, // 30 минут в памяти
+      refetchOnWindowFocus: false, // Отключено для производительности
+      refetchOnMount: false, // Используем кэш при монтировании
     },
+    mutations: {
+      retry: false, // Не повторяем мутации автоматически
+    }
   },
 });
 
 // Компонент загрузки для lazy-loaded маршрутов
-const RouteLoader = () => (
+const RouteLoader = React.memo(() => (
   <div className="flex items-center justify-center min-h-screen">
-    <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow" />
+    <div className="text-center space-y-4">
+      <Loader2 className="h-8 w-8 animate-spin text-optapp-yellow mx-auto" />
+      <p className="text-sm text-gray-600">Загрузка...</p>
+    </div>
   </div>
-);
+));
 
 const App = () => (
   <GlobalErrorBoundary showDetails={import.meta.env.DEV}>

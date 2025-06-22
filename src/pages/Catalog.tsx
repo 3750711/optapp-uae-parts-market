@@ -66,7 +66,7 @@ const Catalog: React.FC = () => {
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 1000
+    debounceTime: 300 // Уменьшено с 1000ms для быстрого отклика
   });
 
   React.useEffect(() => {
@@ -75,27 +75,11 @@ const Catalog: React.FC = () => {
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
 
-  // Debug logging for catalog state
-  useEffect(() => {
-    console.log('📊 Catalog state:', {
-      isLoading,
-      isError,
-      productsCount: mappedProducts.length,
-      hasNextPage,
-      isFetchingNextPage,
-      activeSearchTerm,
-      selectedBrand,
-      selectedModel,
-      hideSoldProducts
-    });
-  }, [isLoading, isError, mappedProducts.length, hasNextPage, isFetchingNextPage, activeSearchTerm, selectedBrand, selectedModel, hideSoldProducts]);
-
   const handleRetry = async () => {
-    console.log('🔄 Manual retry triggered');
     try {
       await refetch();
     } catch (error) {
-      console.error('❌ Retry failed:', error);
+      console.error('Retry failed:', error);
     }
   };
 
