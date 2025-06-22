@@ -1,242 +1,167 @@
-
 import React from 'react';
-import { Label } from "@/components/ui/label";
-import { Link } from 'lucide-react';
-import { Database } from '@/integrations/supabase/types';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CheckCircle2, XCircle, Package, Calendar, User, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import OrderVideos from './OrderVideos';
+import { Button } from '@/components/ui/button';
 
-type Order = Database['public']['Tables']['orders']['Row'] & {
-  buyer?: {
-    telegram: string | null;
-    full_name: string | null;
-    opt_id: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-  seller?: {
-    telegram: string | null;
-    full_name: string | null;
-    opt_id: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-};
-
-interface OrderDetailsProps {
-  order: Order;
+interface Order {
+  id: string;
+  created_at: string;
+  status: string;
+  delivery_address: string;
+  delivery_price: number;
+  total_price: number;
+  notes: string;
+  seller_id: string;
+  buyer_id: string;
 }
 
-export const OrderDetails: React.FC<OrderDetailsProps> = ({ order }) => {
+const OrderDetails: React.FC = () => {
   const { user } = useAuth();
-  const isSelfOrder = order.seller_id === order.buyer_id;
-  const isBuyer = user?.id === order.buyer_id;
-  const isSeller = user?.id === order.seller_id;
-  
-  // Changed this line to properly check authorization
-  // We consider a user authorized if they are logged in, regardless of their role in this order
-  const isAuthorized = !!user;
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
-  const getDeliveryMethodLabel = (method: string) => {
-    switch (method) {
-      case 'self_pickup':
-        return 'Самовывоз';
-      case 'cargo_rf':
-        return 'Доставка Cargo РФ';
-      case 'cargo_kz':
-        return 'Доставка Cargo KZ';
-      default:
-        return method;
-    }
-  };
-
-  const getContainerStatusLabel = (status: string) => {
-    switch (status) {
-      case 'waiting':
-        return 'Ожидание';
-      case 'in_transit':
-        return 'В пути';
-      case 'delivered':
-        return 'Доставлен';
-      case 'customs':
-        return 'На таможне';
-      default:
-        return status;
-    }
-  };
-
-  const getContainerStatusColor = (status: string) => {
-    switch (status) {
-      case 'waiting':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'in_transit':
-        return 'bg-blue-100 text-blue-800';
-      case 'delivered':
-        return 'bg-green-100 text-green-800';
-      case 'customs':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const handleDeliveryMethodChange = async (newMethod: Database['public']['Enums']['delivery_method']) => {
-    try {
-      const { error } = await supabase
+  const { data: order, isLoading, error } = useQuery({
+    queryKey: ['order', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('orders')
-        .update({ delivery_method: newMethod })
-        .eq('id', order.id);
+        .select('*')
+        .eq('id', id)
+        .single();
 
       if (error) throw error;
+      return data as Order;
+    },
+    enabled: !!id,
+  });
 
-      toast({
-        title: "Успешно обновлено",
-        description: "Способ доставки успешно изменен",
-      });
-    } catch (error) {
-      console.error('Error updating delivery method:', error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось обновить способ доставки",
-        variant: "destructive",
-      });
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Загрузка заказа...</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-4 w-[200px]" />
+          <Skeleton className="h-4 w-[150px] mt-2" />
+          <div className="mt-4">
+            <Skeleton className="h-4 w-[300px]" />
+            <Skeleton className="h-4 w-[250px] mt-2" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Ошибка загрузки заказа</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              Не удалось загрузить детали заказа. Пожалуйста, попробуйте позже.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Заказ не найден</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              Заказ с указанным ID не найден.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending': return 'secondary';
+      case 'processing': return 'info';
+      case 'shipped': return 'info';
+      case 'delivered': return 'success';
+      case 'cancelled': return 'destructive';
+      case 'refunded': return 'destructive';
+      default: return 'secondary';
     }
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div className="space-y-4">
-        <div>
-          <Label className="text-sm text-gray-500">Наименование</Label>
-          <p className="text-lg font-medium">{order.title}</p>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Детали заказа #{order.id}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center space-x-2">
+          <Package className="h-4 w-4" />
+          <span>Статус:</span>
+          <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4" />
+          <span>Дата создания:</span>
+          <span>{format(new Date(order.created_at), 'dd MMMM yyyy, HH:mm', { locale: ru })}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <User className="h-4 w-4" />
+          <span>ID продавца:</span>
+          <span>{order.seller_id}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <User className="h-4 w-4" />
+          <span>ID покупателя:</span>
+          <span>{order.buyer_id}</span>
         </div>
         <div>
-          <Label className="text-sm text-gray-500">Бренд</Label>
-          <p className="text-lg font-medium">{order.brand}</p>
+          <span>Адрес доставки:</span>
+          <p>{order.delivery_address}</p>
+        </div>
+        <div className="flex items-center space-x-2">
+          <DollarSign className="h-4 w-4" />
+          <span>Стоимость доставки:</span>
+          <span>{order.delivery_price}</span>
+        </div>
+        <div className="flex items-center space-x-2">
+          <DollarSign className="h-4 w-4" />
+          <span>Общая стоимость:</span>
+          <span>{order.total_price}</span>
         </div>
         <div>
-          <Label className="text-sm text-gray-500">Модель</Label>
-          <p className="text-lg font-medium">{order.model}</p>
+          <span>Примечания:</span>
+          <p>{order.notes}</p>
         </div>
-        <div>
-          <Label className="text-sm text-gray-500">Цена</Label>
-          <p className="text-lg font-medium">{order.price} $</p>
-        </div>
-        {order.delivery_price_confirm && (
-          <div>
-            <Label className="text-sm text-gray-500">Стоимость доставки</Label>
-            <p className="text-lg font-medium text-green-600">{order.delivery_price_confirm} $</p>
-          </div>
-        )}
-        <div>
-          <Label className="text-sm text-gray-500">Мест для отправки</Label>
-          <p className="text-lg font-medium">{order.place_number || 1}</p>
-        </div>
-        <div>
-          <Label className="text-sm text-gray-500">Тип заказа</Label>
-          <p className="text-lg font-medium">
-            {order.order_created_type === 'free_order' ? 'Свободный заказ' : 'Заказ по объявлению'}
-          </p>
-        </div>
-      </div>
-      <div className="space-y-4">
-        <div>
-          <Label className="text-sm text-gray-500">OPT ID покупателя</Label>
-          {isAuthorized ? (
-            <p className="text-lg font-medium">{order.buyer_opt_id || 'Не указан'}</p>
-          ) : (
-            <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
-          )}
-        </div>
-        <div>
-          <Label className="text-sm text-gray-500">OPT ID отправителя</Label>
-          {isAuthorized ? (
-            <p className="text-lg font-medium">{order.seller?.opt_id || order.seller_opt_id || 'Не указан'}</p>
-          ) : (
-            <p className="text-lg font-medium text-gray-400">Требуется авторизация</p>
-          )}
-        </div>
-        <div>
-          <Label className="text-sm text-gray-500">Имя отправителя</Label>
-          <p className="text-lg font-medium">{order.order_seller_name}</p>
-        </div>
-        <div>
-          <Label className="text-sm text-gray-500">Информация о получателе</Label>
-          {isAuthorized && order.telegram_url_order ? (
-            <div className="space-y-2">
-              <a 
-                href={`https://t.me/${order.telegram_url_order.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 hover:underline inline-flex items-center gap-1"
-              >
-                {order.telegram_url_order}
-                <Link className="h-4 w-4" />
-              </a>
-            </div>
-          ) : order.telegram_url_order ? (
-            <p className="text-gray-500">Требуется авторизация для просмотра контактов</p>
-          ) : (
-            <p className="text-gray-500">Контакты не указаны</p>
-          )}
-        </div>
-        {isSelfOrder && (
-          <div>
-            <Label className="text-sm text-gray-500">Тип</Label>
-            <p className="text-lg font-medium text-amber-600">Самозаказ</p>
-          </div>
-        )}
-        <div>
-          <Label className="text-sm text-gray-500">Способ доставки</Label>
-          {isBuyer ? (
-            <Select value={order.delivery_method} onValueChange={handleDeliveryMethodChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Выберите способ доставки" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="self_pickup">Самовывоз</SelectItem>
-                <SelectItem value="cargo_rf">Доставка Cargo РФ</SelectItem>
-                <SelectItem value="cargo_kz">Доставка Cargo KZ</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-            <p className="text-lg font-medium">
-              {getDeliveryMethodLabel(order.delivery_method)}
-            </p>
-          )}
-        </div>
-        
-        {/* Информация о контейнере */}
-        {order.container_number && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 px-3 py-1 rounded text-white text-sm font-bold">
-                OPTCargo
-              </div>
-            </div>
-            
-            <div>
-              <Label className="text-sm text-gray-500">Номер контейнера</Label>
-              <p className="text-lg font-medium text-yellow-800">{order.container_number}</p>
-            </div>
-            
-            {order.container_status && (
-              <div>
-                <Label className="text-sm text-gray-500">Статус контейнера</Label>
-                <div className="mt-1">
-                  <Badge className={`${getContainerStatusColor(order.container_status)} text-sm px-3 py-1`}>
-                    {getContainerStatusLabel(order.container_status)}
-                  </Badge>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+        <OrderVideos orderId={order.id} />
+        <Button onClick={() => navigate(-1)}>
+          Назад
+        </Button>
+      </CardContent>
+    </Card>
   );
 };
+
+export default OrderDetails;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -16,90 +16,43 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/components/ui/use-toast";
 import { detectInputType, getEmailByOptId } from "@/utils/authUtils";
-import { Mail, User, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
-import SimpleCaptcha from "@/components/ui/SimpleCaptcha";
-import { useAuth } from "@/contexts/AuthContext";
+import { Mail, User, ArrowLeft, Loader2, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/SimpleAuthContext";
 
 const formSchema = z.object({
   emailOrOptId: z.string().min(1, { message: "Введите email или OPT ID" }),
 });
 
-const codeSchema = z.object({
-  newPassword: z.string()
-    .min(6, { message: "Пароль должен содержать не менее 6 символов" })
-    .regex(/[A-Za-z]/, { message: "Пароль должен содержать хотя бы одну букву" })
-    .regex(/[0-9]/, { message: "Пароль должен содержать хотя бы одну цифру" }),
-  confirmPassword: z.string(),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Пароли не совпадают",
-  path: ["confirmPassword"],
-});
-
 type FormData = z.infer<typeof formSchema>;
-type CodeFormData = z.infer<typeof codeSchema>;
 
 const ForgotPassword = () => {
-  const { user, isLoading } = useAuth();
+  const [formSubmitted, setFormSubmitted] = useState(false);
+  const [isLoadingForm, setIsLoadingForm] = useState(false);
+  const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
   const navigate = useNavigate();
-  
-  // Перенаправляем авторизованных пользователей
+  const { user, isLoading } = useAuth();
+
+  const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      emailOrOptId: "",
+    },
+  });
+
+  const watchedInput = form.watch('emailOrOptId');
+
+  // Redirect authenticated users
   useEffect(() => {
     if (!isLoading && user) {
       navigate("/", { replace: true });
     }
   }, [user, isLoading, navigate]);
 
-  // Показываем загрузку пока проверяется авторизация
-  if (isLoading) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 flex justify-center">
-          <Card className="w-full max-w-md">
-            <CardContent className="flex items-center justify-center p-8">
-              <Loader2 className="h-6 w-6 animate-spin mr-2" />
-              <span>Проверка авторизации...</span>
-            </CardContent>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
-
-  // Если пользователь авторизован, не показываем форму
-  if (user) {
-    return null;
-  }
-
-  const [isLoadingForm, setIsLoadingForm] = useState(false);
-  const [inputType, setInputType] = useState<'email' | 'opt_id' | null>(null);
-  const [step, setStep] = useState<'email' | 'code'>('email');
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [sentToEmail, setSentToEmail] = useState<string>("");
-  const [codeValue, setCodeValue] = useState('');
-  
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      emailOrOptId: "",
-    }
-  });
-
-  const codeForm = useForm<CodeFormData>({
-    resolver: zodResolver(codeSchema),
-    defaultValues: {
-      newPassword: "",
-      confirmPassword: "",
-    }
-  });
-
-  const watchedInput = form.watch('emailOrOptId');
-
-  // Определяем тип ввода в реальном времени
-  React.useEffect(() => {
+  // Determine input type in real time
+  useEffect(() => {
     if (watchedInput) {
       const type = detectInputType(watchedInput);
       setInputType(type);
@@ -108,197 +61,50 @@ const ForgotPassword = () => {
     }
   }, [watchedInput]);
 
-  const handleFailedAttempt = () => {
-    const newFailedAttempts = failedAttempts + 1;
-    setFailedAttempts(newFailedAttempts);
-    
-    if (newFailedAttempts >= 2) {
-      setShowCaptcha(true);
-      setCaptchaVerified(false);
-    }
-  };
-
-  const onSubmitEmail = async (data: FormData) => {
-    if (showCaptcha && !captchaVerified) {
-      toast({
-        title: "Необходима проверка",
-        description: "Пожалуйста, пройдите проверку CAPTCHA",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const onSubmit = async (data: FormData) => {
     setIsLoadingForm(true);
-    
     try {
-      console.log("Attempting password reset for:", data.emailOrOptId);
-      
       const inputType = detectInputType(data.emailOrOptId);
       let emailToUse = data.emailOrOptId;
-      let optId: string | undefined;
 
       if (inputType === 'opt_id') {
-        console.log("Detected OPT ID, searching for email...");
         const result = await getEmailByOptId(data.emailOrOptId);
-        
-        if (result.isRateLimited) {
-          toast({
-            title: "Слишком много попыток",
-            description: "Попробуйте через 15 минут",
-            variant: "destructive",
-          });
-          return;
-        }
-        
         if (!result.email) {
-          handleFailedAttempt();
           toast({
             title: "Ошибка",
-            description: "OPT ID не найден",
+            description: "Пользователь с таким OPT ID не найден",
             variant: "destructive",
           });
           return;
         }
-        
         emailToUse = result.email;
-        optId = data.emailOrOptId;
-        console.log("Found email for OPT ID:", emailToUse);
       }
 
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/send-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
-          email: emailToUse,
-          optId: optId
-        })
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        emailToUse,
+        {
+          redirectTo: `${window.location.origin}/reset-password`,
+        }
+      );
 
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        console.error("Password reset error:", result);
-        handleFailedAttempt();
-        
+      if (error) {
         toast({
           title: "Ошибка",
-          description: result.message || "Не удалось отправить код для сброса пароля",
+          description: "Не удалось отправить ссылку для восстановления пароля",
           variant: "destructive",
         });
         return;
       }
 
-      setSentToEmail(emailToUse);
-      codeForm.reset({
-        newPassword: "",
-        confirmPassword: "",
-      });
-      setCodeValue('');
-      setStep('code');
-      setFailedAttempts(0);
-      setShowCaptcha(false);
-      setCaptchaVerified(false);
-
+      setFormSubmitted(true);
       toast({
-        title: "Код отправлен",
-        description: `Код для сброса пароля отправлен на ${emailToUse}`,
+        title: "Проверьте свою почту",
+        description: "Мы отправили вам ссылку для восстановления пароля",
       });
-      
     } catch (error: any) {
-      console.error("Password reset error:", error);
-      handleFailedAttempt();
-      
       toast({
         title: "Ошибка",
-        description: "Произошла ошибка при отправке кода",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingForm(false);
-    }
-  };
-
-  const onSubmitCode = async (data: CodeFormData) => {
-    console.log("=== onSubmitCode called ===");
-    console.log("Code value:", codeValue);
-    console.log("Form data:", data);
-    
-    if (!codeValue || codeValue.length !== 6) {
-      console.log("Code validation failed: invalid length");
-      toast({
-        title: "Ошибка",
-        description: "Код должен содержать 6 цифр",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (!/^\d{6}$/.test(codeValue)) {
-      console.log("Code validation failed: not numeric");
-      toast({
-        title: "Ошибка",
-        description: "Код должен содержать только цифры",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsLoadingForm(true);
-    
-    try {
-      console.log("Calling admin password reset API with:", {
-        email: sentToEmail,
-        code: codeValue,
-        passwordLength: data.newPassword.length
-      });
-      
-      // Используем новую Edge Function для сброса пароля
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/admin-password-reset`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`
-        },
-        body: JSON.stringify({
-          email: sentToEmail,
-          code: codeValue,
-          newPassword: data.newPassword
-        })
-      });
-
-      const result = await response.json();
-      console.log("API response:", result);
-
-      if (!response.ok || !result.success) {
-        console.error("Password reset failed:", result);
-        toast({
-          title: "Ошибка",
-          description: result.message || "Не удалось изменить пароль",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("Password reset successful!");
-      toast({
-        title: "Пароль изменен",
-        description: "Ваш пароль успешно изменен. Теперь вы можете войти с новым паролем.",
-      });
-
-      setTimeout(() => {
-        navigate('/login', { 
-          state: { message: 'Пароль успешно изменен. Войдите с новым паролем.' }
-        });
-      }, 2000);
-      
-    } catch (error: any) {
-      console.error("Password reset error:", error);
-      toast({
-        title: "Ошибка",
-        description: "Произошла ошибка при изменении пароля",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -312,215 +118,95 @@ const ForgotPassword = () => {
     return null;
   };
 
-  const getPlaceholderText = () => {
-    if (inputType === 'email') return "example@mail.com";
-    if (inputType === 'opt_id') return "ABC, DEF, GHI...";
-    return "example@mail.com или ABC";
+  const generateRandomOptId = () => {
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    return Array.from({ length: 3 }, () => letters[Math.floor(Math.random() * letters.length)]).join('');
   };
 
-  if (step === 'code') {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12 flex justify-center">
-          <Card className="w-full max-w-md">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <CheckCircle className="h-6 w-6 text-blue-600" />
-              </div>
-              <CardTitle className="text-2xl font-bold">Введите код</CardTitle>
-              <CardDescription>
-                Код отправлен на {sentToEmail}
-              </CardDescription>
-            </CardHeader>
-            <Form {...codeForm}>
-              <form onSubmit={codeForm.handleSubmit(onSubmitCode)} key="code-form">
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="verification-code" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                      Код подтверждения (6 цифр)
-                    </label>
-                    <Input
-                      id="verification-code"
-                      type="text"
-                      placeholder="123456"
-                      maxLength={6}
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      className="text-center text-xl tracking-widest font-mono"
-                      autoComplete="off"
-                      value={codeValue}
-                      onChange={(e) => {
-                        const numericValue = e.target.value.replace(/[^0-9]/g, '');
-                        if (numericValue.length <= 6) {
-                          setCodeValue(numericValue);
-                          console.log("Code input changed:", numericValue);
-                        }
-                      }}
-                    />
-                    {codeValue.length > 0 && codeValue.length < 6 && (
-                      <p className="text-xs text-muted-foreground">
-                        Введено: {codeValue.length}/6 цифр
-                      </p>
-                    )}
-                  </div>
-
-                  <FormField
-                    control={codeForm.control}
-                    name="newPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Новый пароль</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Введите новый пароль"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={codeForm.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Подтвердите пароль</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Повторите новый пароль"
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </CardContent>
-                <CardFooter className="flex flex-col space-y-4">
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                    disabled={isLoadingForm || codeValue.length !== 6}
-                  >
-                    {isLoadingForm ? "Изменение пароля..." : "Изменить пароль"}
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => {
-                      codeForm.reset({
-                        newPassword: "",
-                        confirmPassword: "",
-                      });
-                      setCodeValue('');
-                      setStep('email');
-                    }}
-                    variant="outline" 
-                    className="w-full"
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Вернуться назад
-                  </Button>
-                </CardFooter>
-              </form>
-            </Form>
-          </Card>
-        </div>
-      </Layout>
-    );
-  }
+  const getPlaceholderText = () => {
+    if (inputType === 'email') return "example@mail.com";
+    if (inputType === 'opt_id') return `${generateRandomOptId()}, ${generateRandomOptId()}, ${generateRandomOptId()}...`;
+    return `example@mail.com или ${generateRandomOptId()}`;
+  };
 
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12 flex justify-center">
         <Card className="w-full max-w-md">
           <CardHeader className="space-y-1">
+            <Button variant="ghost" size="sm" className="pl-0 justify-start" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Назад
+            </Button>
             <CardTitle className="text-2xl font-bold">Забыли пароль?</CardTitle>
             <CardDescription>
-              Введите свой email или OPT ID, и мы отправим код для сброса пароля
+              Введите свой email или OPT ID, и мы отправим вам ссылку для восстановления пароля
             </CardDescription>
           </CardHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmitEmail)}>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="emailOrOptId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email или OPT ID</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input 
-                            type="text" 
-                            placeholder={getPlaceholderText()}
-                            {...field} 
-                            className="pr-10"
-                          />
-                          {getInputIcon() && (
-                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                              {getInputIcon()}
-                            </div>
-                          )}
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                      {inputType && (
-                        <p className="text-xs text-muted-foreground">
-                          {inputType === 'email' 
-                            ? "✓ Определен как email адрес" 
-                            : "✓ Определен как OPT ID"}
-                        </p>
-                      )}
-                    </FormItem>
-                  )}
-                />
-
-                {showCaptcha && (
-                  <SimpleCaptcha
-                    isVisible={showCaptcha}
-                    onVerify={setCaptchaVerified}
+          <CardContent className="space-y-4">
+            {formSubmitted ? (
+              <Alert className="bg-green-50 border border-green-200 text-green-800">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                <AlertDescription>
+                  Ссылка для восстановления пароля отправлена на ваш email.
+                  Проверьте папку "Спам", если не видите письмо во входящих.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="emailOrOptId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email или OPT ID</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              type="text"
+                              placeholder={getPlaceholderText()}
+                              {...field}
+                              className="pr-10"
+                              disabled={isLoadingForm}
+                            />
+                            {getInputIcon() && (
+                              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                {getInputIcon()}
+                              </div>
+                            )}
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                        {inputType && (
+                          <p className="text-xs text-muted-foreground">
+                            {inputType === 'email'
+                              ? "✓ Определен как email адрес"
+                              : "✓ Определен как OPT ID"}
+                          </p>
+                        )}
+                      </FormItem>
+                    )}
                   />
-                )}
-
-                {failedAttempts > 0 && (
-                  <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
-                    Неудачных попыток: {failedAttempts}/2
-                    {failedAttempts >= 2 && " (требуется CAPTCHA)"}
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex flex-col space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
-                  disabled={isLoadingForm || (showCaptcha && !captchaVerified)}
-                >
-                  {isLoadingForm ? "Отправка..." : "Отправить код"}
-                </Button>
-                
-                <div className="flex items-center justify-center space-x-4 text-sm">
-                  <Link to="/login" className="text-optapp-dark hover:underline">
-                    <ArrowLeft className="h-4 w-4 inline mr-1" />
-                    Вернуться к входу
-                  </Link>
-                  <span className="text-muted-foreground">|</span>
-                  <Link to="/register" className="text-optapp-dark hover:underline">
-                    Регистрация
-                  </Link>
-                </div>
-                
-                <div className="text-center text-xs text-muted-foreground border-t pt-4">
-                  <p>💡 Подсказка: Вы можете использовать:</p>
-                  <p>• Email адрес (example@mail.com)</p>
-                  <p>• OPT ID (ABC, DEF, GHI и т.д.)</p>
-                </div>
-              </CardFooter>
-            </form>
-          </Form>
+                  <Button type="submit" className="w-full" disabled={isLoadingForm}>
+                    {isLoadingForm ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Отправка...
+                      </>
+                    ) : (
+                      "Отправить ссылку для восстановления"
+                    )}
+                  </Button>
+                </form>
+              </Form>
+            )}
+          </CardContent>
+          <CardFooter className="text-center">
+            <Link to="/login" className="text-sm text-muted-foreground hover:underline">
+              Вернуться ко входу
+            </Link>
+          </CardFooter>
         </Card>
       </div>
     </Layout>

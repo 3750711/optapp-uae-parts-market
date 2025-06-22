@@ -1,7 +1,6 @@
 import React from "react";
 import Layout from "@/components/layout/Layout";
-import { Award, ShieldCheck, TrendingUp, Truck } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
 
 const About = () => {
   const { user } = useAuth();

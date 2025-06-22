@@ -1,8 +1,7 @@
-
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from 'react';
+import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 
 export const useConfirmationUpload = (open: boolean, orderId: string, onComplete: () => void) => {
   const [confirmImages, setConfirmImages] = useState<string[]>([]);

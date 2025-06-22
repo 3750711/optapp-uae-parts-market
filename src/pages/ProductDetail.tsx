@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/SimpleAuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
@@ -15,7 +15,7 @@ import ProductDetailContent from "@/components/product/ProductDetailContent";
 import ProductDetailFullGallery from "@/components/product/ProductDetailFullGallery";
 import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
-import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useSimpleAdminAccess } from "@/hooks/useSimpleAdminAccess";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Database } from "@/integrations/supabase/types";
 
@@ -23,7 +23,7 @@ const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { isAdmin } = useAdminAccess();
+  const { isAdmin } = useSimpleAdminAccess();
   const [searchParams] = useSearchParams();
   const fromSeller = searchParams.get("from") === "seller";
   

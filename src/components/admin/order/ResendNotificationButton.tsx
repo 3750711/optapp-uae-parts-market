@@ -1,9 +1,8 @@
-
 import React, { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useOrderResendNotification } from '@/hooks/useOrderResendNotification';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 
 interface ResendNotificationButtonProps {
   orderId: string;

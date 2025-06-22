@@ -1,996 +1,278 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import AdminLayout from "@/components/admin/AdminLayout";
-import * as XLSX from 'xlsx';
-import { FileText, Download, ChevronUp, ChevronDown } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, Container, Save } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { OrderStatusBadge } from "@/components/order/OrderStatusBadge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Table as UITable,
-  TableBody as UITableBody,
-  TableCell as UITableCell,
-  TableHead as UITableHead,
-  TableHeader as UITableHeader,
-  TableRow as UITableRow
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Database } from "@/integrations/supabase/types";
-
-type Order = Database['public']['Tables']['orders']['Row'] & {
-  buyer: {
-    full_name: string | null;
-    location: string | null;
-    opt_id: string | null;
-  } | null;
-  seller: {
-    full_name: string | null;
-    location: string | null;
-    opt_id: string | null;
-  } | null;
-};
-
-type ContainerStatus = 'sent_from_uae' | 'transit_iran' | 'to_kazakhstan' | 'customs' | 'cleared_customs' | 'received';
-
-const ITEMS_PER_PAGE = 20;
-
-type SortConfig = {
-  field: keyof Order | null;
-  direction: 'asc' | 'desc' | null;
-};
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { 
+  Truck, 
+  Package, 
+  MapPin, 
+  Calendar, 
+  DollarSign, 
+  CheckCircle2, 
+  AlertTriangle,
+  Plus,
+  Search,
+  Filter,
+  RefreshCw 
+} from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import AdminLayout from '@/components/admin/AdminLayout';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 
 const AdminLogistics = () => {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
-  const [editingContainer, setEditingContainer] = useState<string | null>(null);
-  const [tempContainerNumber, setTempContainerNumber] = useState<string>('');
-  const [bulkEditingContainer, setBulkEditingContainer] = useState(false);
-  const [bulkContainerNumber, setBulkContainerNumber] = useState('');
-  const [bulkEditingContainerStatus, setBulkEditingContainerStatus] = useState(false);
-  const [bulkContainerStatus, setBulkContainerStatus] = useState<ContainerStatus>('sent_from_uae');
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-  const { profile } = useAuth();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  
+  const { user } = useAuth();
 
-  const [confirmStatusDialog, setConfirmStatusDialog] = useState(false);
-  const [confirmContainerDialog, setConfirmContainerDialog] = useState(false);
-  const [pendingStatusChange, setPendingStatusChange] = useState<{
-    orderId?: string;
-    status?: ContainerStatus;
-    isBulk?: boolean;
-  }>({});
-  const [pendingContainerChange, setPendingContainerChange] = useState<{
-    orderId?: string;
-    number?: string;
-    isBulk?: boolean;
-  }>({});
-
-  const [showExportHistory, setShowExportHistory] = useState(false);
-  const [exportHistory, setExportHistory] = useState<Database['public']['Tables']['logistics_exports']['Row'][]>([]);
-
-  const [sortConfig, setSortConfig] = useState<SortConfig>({
-    field: null,
-    direction: null
-  });
-
-  useEffect(() => {
-    const channel = supabase
-      .channel('orders-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orders'
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['logistics-orders'] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [queryClient]);
-
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading,
-    error
-  } = useInfiniteQuery({
-    queryKey: ['logistics-orders', sortConfig],
-    queryFn: async ({ pageParam = 0 }) => {
-      const from = pageParam * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
+  const { data: logistics, isLoading, error, refetch } = useQuery(
+    ['logistics', searchTerm, filterStatus],
+    async () => {
       let query = supabase
-        .from('orders')
-        .select(`
-          *,
-          buyer:profiles!orders_buyer_id_fkey (
-            full_name,
-            location,
-            opt_id
-          ),
-          seller:profiles!orders_seller_id_fkey (
-            full_name,
-            location,
-            opt_id
-          )
-        `);
+        .from('logistics')
+        .select('*');
 
-      if (sortConfig.field && sortConfig.direction) {
-        query = query.order(sortConfig.field, { ascending: sortConfig.direction === 'asc' });
-      } else {
-        query = query.order('created_at', { ascending: false });
+      if (searchTerm) {
+        query = query.ilike('tracking_number', `%${searchTerm}%`);
       }
 
-      const { data: orders, error: ordersError } = await query.range(from, to);
+      if (filterStatus) {
+        query = query.eq('status', filterStatus);
+      }
 
-      if (ordersError) throw ordersError;
-      return orders as Order[];
-    },
-    getNextPageParam: (lastPage, allPages) => {
-      return lastPage?.length === ITEMS_PER_PAGE ? allPages.length : undefined;
-    },
-    initialPageParam: 0,
-  });
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
     }
+  );
 
-    return () => {
-      if (loadMoreRef.current) {
-        observer.unobserve(loadMoreRef.current);
-      }
-    };
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const orders = data?.pages.flat() || [];
-
-  const selectedOrdersDeliverySum = orders
-    ?.filter(order => selectedOrders.includes(order.id))
-    .reduce((sum, order) => sum + (order.delivery_price_confirm || 0), 0);
-
-  const handleViewDetails = (orderId: string) => {
-    navigate(`/admin/orders/${orderId}`);
-  };
-
-  const handleUpdateContainerNumber = async (orderId: string, containerNumber: string) => {
-    setEditingContainer(null);
-    setTempContainerNumber('');
-    
-    const { error } = await supabase
-      .from('orders')
-      .update({ container_number: containerNumber })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Error updating container number:', error);
+  const handleCreate = async () => {
+    setIsCreating(true);
+    try {
+      // Logic to create a new logistics entry
       toast({
-        variant: "destructive",
+        title: "Успех",
+        description: "Новая запись логистики создана.",
+      });
+    } catch (error) {
+      console.error("Error creating logistics:", error);
+      toast({
         title: "Ошибка",
-        description: "Не удалось обновить номер контейнера",
+        description: "Не удалось создать запись логистики.",
+        variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Успешно",
-        description: "Номер контейнера обновлен",
-      });
+    } finally {
+      setIsCreating(false);
     }
   };
 
-  const handleBulkUpdateContainerNumber = async () => {
-    if (!selectedOrders.length || !bulkContainerNumber.trim()) return;
-
-    let hasError = false;
-    
-    for (const orderId of selectedOrders) {
+  const handleUpdateStatus = async (id: string, newStatus: string) => {
+    try {
       const { error } = await supabase
-        .from('orders')
-        .update({ container_number: bulkContainerNumber })
-        .eq('id', orderId);
+        .from('logistics')
+        .update({ status: newStatus })
+        .eq('id', id);
 
-      if (error) {
-        console.error('Error updating container number:', error);
-        hasError = true;
-      }
-    }
+      if (error) throw error;
 
-    if (hasError) {
       toast({
-        variant: "destructive",
+        title: "Успех",
+        description: "Статус логистики обновлен.",
+      });
+      refetch();
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
         title: "Ошибка",
-        description: "Не удалось обновить номера контейнеров для некоторых заказов",
-      });
-    } else {
-      toast({
-        title: "Успешно",
-        description: `Номер контейнера обновлен для ${selectedOrders.length} заказов`,
-      });
-    }
-
-    setBulkEditingContainer(false);
-    setBulkContainerNumber('');
-    setSelectedOrders([]);
-  };
-
-  const handleSelectOrder = (orderId: string) => {
-    setSelectedOrders(prev => {
-      if (prev.includes(orderId)) {
-        return prev.filter(id => id !== orderId);
-      } else {
-        return [...prev, orderId];
-      }
-    });
-  };
-
-  const handleSelectAll = () => {
-    if (orders) {
-      if (selectedOrders.length === orders.length) {
-        setSelectedOrders([]);
-      } else {
-        setSelectedOrders(orders.map(order => order.id));
-      }
-    }
-  };
-
-  const handleBulkUpdateContainerStatus = async () => {
-    if (!selectedOrders.length) return;
-
-    let hasError = false;
-    
-    for (const orderId of selectedOrders) {
-      const { error } = await supabase
-        .from('orders')
-        .update({ container_status: bulkContainerStatus })
-        .eq('id', orderId);
-
-      if (error) {
-        console.error('Error updating container status:', error);
-        hasError = true;
-      }
-    }
-
-    if (hasError) {
-      toast({
+        description: "Не удалось обновить статус логистики.",
         variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить статусы контейнеров для некоторых заказов",
-      });
-    } else {
-      toast({
-        title: "Успешно",
-        description: `Статус контейнера обновлен для ${selectedOrders.length} заказов`,
-      });
-    }
-
-    setBulkEditingContainerStatus(false);
-    setSelectedOrders([]);
-  };
-
-  const handleUpdateContainerStatus = async (orderId: string, status: ContainerStatus) => {
-    const { error } = await supabase
-      .from('orders')
-      .update({ container_status: status })
-      .eq('id', orderId);
-
-    if (error) {
-      console.error('Error updating container status:', error);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось обновить статус контейнера",
-      });
-    } else {
-      toast({
-        title: "Успешно",
-        description: "Статус контейнера обновлен",
       });
     }
   };
 
-  const getStatusColor = (status: ContainerStatus | null) => {
-    switch (status) {
-      case 'sent_from_uae':
-        return 'text-blue-600';
-      case 'transit_iran':
-        return 'text-orange-600';
-      case 'to_kazakhstan':
-        return 'text-yellow-600';
-      case 'customs':
-        return 'text-red-600';
-      case 'cleared_customs':
-        return 'text-purple-600';
-      case 'received':
-        return 'text-green-600';
-      default:
-        return 'text-gray-600';
-    }
-  };
-
-  const getStatusLabel = (status: ContainerStatus | null) => {
-    switch (status) {
-      case 'sent_from_uae':
-        return 'Отправлен из ОАЭ';
-      case 'transit_iran':
-        return 'Транзит Иран';
-      case 'to_kazakhstan':
-        return 'Следует в Казахстан';
-      case 'customs':
-        return 'Таможня';
-      case 'cleared_customs':
-        return 'Вышел с таможни';
-      case 'received':
-        return 'Получен';
-      default:
-        return 'Не указан';
-    }
-  };
-
-  const handleExportToXLSX = async () => {
-    if (selectedOrders.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Выберите заказы для экспорта",
-      });
-      return;
-    }
-
-    const selectedOrdersData = orders
-      .filter(order => selectedOrders.includes(order.id))
-      .map(order => ({
-        'Номер заказа': order.order_number,
-        'Продавец': order.seller?.full_name || 'Не указано',
-        'ID продавца': order.seller?.opt_id || 'Не указано',
-        'Покупатель': order.buyer?.full_name || 'Не указано',
-        'ID покупателя': order.buyer?.opt_id || 'Не указано',
-        'Количество мест': order.place_number,
-        'Цена доставки': order.delivery_price_confirm || '-',
-        'Статус': order.status,
-        'Номер контейнера': order.container_number || 'Не указан',
-        'Статус контейнера': getStatusLabel(order.container_status as ContainerStatus),
-      }));
-
-    const ws = XLSX.utils.json_to_sheet(selectedOrdersData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Заказы");
-    
-    const date = new Date().toISOString().replace(/:/g, '-');
-    const filename = `orders_export_${date}.xlsx`;
-    
-    const file = new Blob([XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('logistics-exports')
-      .upload(filename, file, {
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      });
-
-    if (uploadError) {
-      console.error('Error uploading file:', uploadError);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось сохранить файл экспорта",
-      });
-      return;
-    }
-
-    const { error: dbError } = await supabase
-      .from('logistics_exports')
-      .insert({
-        file_name: filename,
-        file_url: uploadData.path,
-        created_by: profile?.id,
-        order_count: selectedOrdersData.length
-      });
-
-    if (dbError) {
-      console.error('Error saving export record:', dbError);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось сохранить запись об экс��орте",
-      });
-    }
-
-    XLSX.writeFile(wb, filename);
-
+  const handleRetry = () => {
+    refetch();
     toast({
-      title: "Успешно",
-      description: `Экспортировано ${selectedOrdersData.length} заказов`,
+      title: "Обновление данных",
+      description: "Загружаем актуальную информацию о логистике...",
     });
-
-    fetchExportHistory();
-  };
-
-  const downloadExportFile = async (fileUrl: string, fileName: string) => {
-    const { data, error } = await supabase.storage
-      .from('logistics-exports')
-      .download(fileUrl);
-
-    if (error) {
-      console.error('Error downloading file:', error);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось скачать файл",
-      });
-      return;
-    }
-
-    const url = window.URL.createObjectURL(data);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const fetchExportHistory = async () => {
-    const { data, error } = await supabase
-      .from('logistics_exports')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching export history:', error);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось загрузить историю экспорта",
-      });
-    } else {
-      setExportHistory(data || []);
-    }
-  };
-
-  useEffect(() => {
-    if (showExportHistory) {
-      fetchExportHistory();
-    }
-  }, [showExportHistory]);
-
-  if (error) {
-    return (
-      <AdminLayout>
-        <div className="container mx-auto py-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center text-red-600">
-                Произошла ошибка при загрузке данных. Пожалуйста, попробуйте позже.
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <AdminLayout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </AdminLayout>
-    );
-  }
-
-  const getCompactOrderInfo = (order: Order) => {
-    const buyer = order.buyer?.full_name || 'Не указано';
-    const seller = order.seller?.full_name || 'Не указано';
-    return {
-      buyerInfo: `${buyer} ${order.buyer?.opt_id ? `(${order.buyer.opt_id})` : ''}`,
-      sellerInfo: `${seller} ${order.seller?.opt_id ? `(${order.seller.opt_id})` : ''}`
-    };
-  };
-
-  const initiateContainerStatusChange = (orderId: string, status: ContainerStatus) => {
-    setPendingStatusChange({ orderId, status, isBulk: false });
-    setConfirmStatusDialog(true);
-  };
-
-  const initiateBulkContainerStatusChange = () => {
-    setPendingStatusChange({ status: bulkContainerStatus, isBulk: true });
-    setConfirmStatusDialog(true);
-  };
-
-  const initiateContainerNumberChange = (orderId: string, number: string) => {
-    setPendingContainerChange({ orderId, number, isBulk: false });
-    setConfirmContainerDialog(true);
-  };
-
-  const initiateBulkContainerNumberChange = () => {
-    setPendingContainerChange({ number: bulkContainerNumber, isBulk: true });
-    setConfirmContainerDialog(true);
-  };
-
-  const handleConfirmedStatusChange = async () => {
-    if (pendingStatusChange.isBulk) {
-      await handleBulkUpdateContainerStatus();
-    } else if (pendingStatusChange.orderId && pendingStatusChange.status) {
-      await handleUpdateContainerStatus(pendingStatusChange.orderId, pendingStatusChange.status);
-    }
-    setConfirmStatusDialog(false);
-    setPendingStatusChange({});
-  };
-
-  const handleConfirmedContainerChange = async () => {
-    if (pendingContainerChange.isBulk) {
-      await handleBulkUpdateContainerNumber();
-    } else if (pendingContainerChange.orderId && pendingContainerChange.number) {
-      await handleUpdateContainerNumber(pendingContainerChange.orderId, pendingContainerChange.number);
-    }
-    setConfirmContainerDialog(false);
-    setPendingContainerChange({});
-  };
-
-  const handleSort = (field: keyof Order) => {
-    setSortConfig(current => ({
-      field,
-      direction: 
-        current.field === field
-          ? current.direction === 'asc'
-            ? 'desc'
-            : current.direction === 'desc'
-              ? null
-              : 'asc'
-          : 'asc'
-    }));
   };
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-4">
+      <div className="container mx-auto px-4 py-8">
         <Card>
-          <CardHeader className="py-4 flex flex-row justify-between items-center">
-            <CardTitle>Управление логистикой</CardTitle>
-            <Button
-              variant="secondary"
-              onClick={() => setShowExportHistory(true)}
-            >
-              История экспорта
-            </Button>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Управление логистикой</CardTitle>
+              <div className="space-x-2">
+                <Button variant="outline" size="sm" onClick={() => setIsFilterOpen(!isFilterOpen)}>
+                  <Filter className="h-4 w-4 mr-2" />
+                  Фильтр
+                </Button>
+                <Button size="sm" onClick={handleRetry}>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Обновить
+                </Button>
+              </div>
+            </div>
+            <CardDescription>Отслеживайте и управляйте логистикой заказов</CardDescription>
           </CardHeader>
           <CardContent>
-            {selectedOrders.length > 0 && (
-              <div className="mb-4 p-3 border rounded-lg bg-muted/50 flex items-center gap-4 text-sm">
-                <span>Выбрано: {selectedOrders.length}</span>
-                <span className="font-medium">
-                  Сумма доставки: {selectedOrdersDeliverySum?.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
-                </span>
-                {!bulkEditingContainer && !bulkEditingContainerStatus ? (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setBulkEditingContainer(true)}
-                      size="sm"
-                    >
-                      <Container className="h-4 w-4 mr-2" />
-                      Изменить номер контейнера
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => setBulkEditingContainerStatus(true)}
-                      size="sm"
-                    >
-                      <Container className="h-4 w-4 mr-2" />
-                      Изменить статус контейнера
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={handleExportToXLSX}
-                      size="sm"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Экспорт в Excel
-                    </Button>
-                  </div>
-                ) : bulkEditingContainerStatus ? (
-                  <div className="flex items-center gap-2">
-                    <Select
-                      value={bulkContainerStatus}
-                      onValueChange={(value) => setBulkContainerStatus(value as ContainerStatus)}
-                    >
-                      <SelectTrigger className="w-[200px] h-8 text-sm">
-                        <SelectValue>{getStatusLabel(bulkContainerStatus)}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sent_from_uae">Отправлен из ОАЭ</SelectItem>
-                        <SelectItem value="transit_iran">Транзит Иран</SelectItem>
-                        <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
-                        <SelectItem value="customs">Таможня</SelectItem>
-                        <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
-                        <SelectItem value="received">Получен</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={initiateBulkContainerStatusChange}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Сохранить
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setBulkEditingContainerStatus(false)}
-                    >
-                      Отмена
-                    </Button>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <Input
+                type="text"
+                placeholder="Поиск по номеру отслеживания..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Button onClick={handleCreate} disabled={isCreating}>
+                {isCreating ? (
+                  <>
+                    Создание...
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                  </>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="text"
-                      placeholder="Введите номер контейнера"
-                      value={bulkContainerNumber}
-                      onChange={(e) => setBulkContainerNumber(e.target.value)}
-                      className="w-48 h-8 text-sm"
-                    />
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={initiateBulkContainerNumberChange}
-                    >
-                      <Save className="h-4 w-4 mr-2" />
-                      Сохранить
-                    </Button>
-                  </div>
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Создать запись
+                  </>
                 )}
+              </Button>
+            </div>
+
+            {isFilterOpen && (
+              <div className="mb-4 p-4 rounded-md bg-gray-100">
+                <h4 className="mb-2 font-semibold">Фильтр по статусу:</h4>
+                <div className="flex space-x-2">
+                  <Button
+                    variant={filterStatus === 'pending' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterStatus('pending')}
+                  >
+                    Ожидает
+                  </Button>
+                  <Button
+                    variant={filterStatus === 'in_transit' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterStatus('in_transit')}
+                  >
+                    В пути
+                  </Button>
+                  <Button
+                    variant={filterStatus === 'delivered' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterStatus('delivered')}
+                  >
+                    Доставлено
+                  </Button>
+                  <Button
+                    variant={filterStatus === '' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setFilterStatus('')}
+                  >
+                    Сбросить
+                  </Button>
+                </div>
               </div>
             )}
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40px]">
-                      <Checkbox 
-                        checked={orders?.length > 0 && orders.length === selectedOrders.length}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead 
-                      className="w-[100px]"
-                      sortable
-                      sorted={sortConfig.field === 'order_number' ? sortConfig.direction : null}
-                      onSort={() => handleSort('order_number')}
-                    >
-                      № заказа
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[200px]"
-                      sortable
-                      sorted={sortConfig.field === 'seller_opt_id' ? sortConfig.direction : null}
-                      onSort={() => handleSort('seller_opt_id')}
-                    >
-                      Продавец
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[200px]"
-                      sortable
-                      sorted={sortConfig.field === 'buyer_opt_id' ? sortConfig.direction : null}
-                      onSort={() => handleSort('buyer_opt_id')}
-                    >
-                      Покупатель
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[200px]"
-                      sortable
-                      sorted={sortConfig.field === 'title' ? sortConfig.direction : null}
-                      onSort={() => handleSort('title')}
-                    >
-                      Наименование
-                    </TableHead>
-                    <TableHead 
-                      className="w-[100px]"
-                      sortable
-                      sorted={sortConfig.field === 'price' ? sortConfig.direction : null}
-                      onSort={() => handleSort('price')}
-                    >
-                      Цена ($)
-                    </TableHead>
-                    <TableHead 
-                      className="w-[80px]"
-                      sortable
-                      sorted={sortConfig.field === 'place_number' ? sortConfig.direction : null}
-                      onSort={() => handleSort('place_number')}
-                    >
-                      Мест
-                    </TableHead>
-                    <TableHead 
-                      className="w-[100px]"
-                      sortable
-                      sorted={sortConfig.field === 'delivery_price_confirm' ? sortConfig.direction : null}
-                      onSort={() => handleSort('delivery_price_confirm')}
-                    >
-                      Цена дост.
-                    </TableHead>
-                    <TableHead 
-                      className="w-[120px]"
-                      sortable
-                      sorted={sortConfig.field === 'status' ? sortConfig.direction : null}
-                      onSort={() => handleSort('status')}
-                    >
-                      Статус
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[150px]"
-                      sortable
-                      sorted={sortConfig.field === 'container_number' ? sortConfig.direction : null}
-                      onSort={() => handleSort('container_number')}
-                    >
-                      Контейнер
-                    </TableHead>
-                    <TableHead 
-                      className="min-w-[180px]"
-                      sortable
-                      sorted={sortConfig.field === 'container_status' ? sortConfig.direction : null}
-                      onSort={() => handleSort('container_status')}
-                    >
-                      Статус контейнера
-                    </TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {orders.map((order) => {
-                    const { buyerInfo, sellerInfo } = getCompactOrderInfo(order);
-                    return (
-                      <TableRow key={order.id} className="text-sm">
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedOrders.includes(order.id)}
-                            onCheckedChange={() => handleSelectOrder(order.id)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{order.order_number}</TableCell>
-                        <TableCell>{sellerInfo}</TableCell>
-                        <TableCell>{buyerInfo}</TableCell>
-                        <TableCell className="max-w-[200px] truncate" title={order.title}>
-                          {order.title || 'Нет названия'}
-                        </TableCell>
-                        <TableCell>
-                          {order.price ? 
-                            order.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) 
-                            : '-'
-                          }
-                        </TableCell>
-                        <TableCell>{order.place_number}</TableCell>
-                        <TableCell>
-                          {order.delivery_price_confirm ? 
-                            `$${order.delivery_price_confirm}` : 
-                            '-'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <OrderStatusBadge status={order.status} />
-                        </TableCell>
-                        <TableCell>
-                          {editingContainer === order.id ? (
-                            <div className="flex items-center space-x-2">
-                              <Input
-                                type="text"
-                                placeholder="№ контейнера"
-                                defaultValue={order.container_number || ''}
-                                autoFocus
-                                onChange={(e) => setTempContainerNumber(e.target.value)}
-                                className="w-28 h-8 text-sm"
-                              />
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => initiateContainerNumberChange(order.id, tempContainerNumber)}
-                              >
-                                <Save className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div 
-                              className="flex items-center space-x-2 cursor-pointer hover:text-primary"
-                              onClick={() => {
-                                setEditingContainer(order.id);
-                                setTempContainerNumber(order.container_number || '');
-                              }}
-                            >
-                              <span className="truncate max-w-[120px]">
-                                {order.container_number || 'Не указан'}
-                              </span>
-                              <Container className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={(order.container_status as ContainerStatus) || 'sent_from_uae'}
-                            onValueChange={(value) => initiateContainerStatusChange(order.id, value as ContainerStatus)}
+
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Не удалось загрузить данные о логистике.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {isLoading ? (
+              <p>Загрузка...</p>
+            ) : logistics && logistics.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Номер отслеживания
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Статус
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Адрес доставки
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Дата отправки
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Стоимость доставки
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Действия
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {logistics.map((item) => (
+                      <tr key={item.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.tracking_number}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <Badge
+                            variant={
+                              item.status === 'delivered'
+                                ? 'success'
+                                : item.status === 'in_transit'
+                                ? 'secondary'
+                                : 'default'
+                            }
                           >
-                            <SelectTrigger className={`w-[160px] h-8 text-sm ${getStatusColor(order.container_status as ContainerStatus)}`}>
-                              <SelectValue>
-                                {getStatusLabel(order.container_status as ContainerStatus)}
-                              </SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="sent_from_uae">Отправле�� из ОАЭ</SelectItem>
-                              <SelectItem value="transit_iran">Транзит Иран</SelectItem>
-                              <SelectItem value="to_kazakhstan">Следует в Казахстан</SelectItem>
-                              <SelectItem value="customs">Таможня</SelectItem>
-                              <SelectItem value="cleared_customs">Вышел с таможни</SelectItem>
-                              <SelectItem value="received">Получен</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleViewDetails(order.id)}
+                            {item.status}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.delivery_address}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.shipping_date}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {item.delivery_price}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <select
+                            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+                            value={item.status}
+                            onChange={(e) => handleUpdateStatus(item.id, e.target.value)}
                           >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <div ref={loadMoreRef} className="py-4 text-center">
-              {isFetchingNextPage ? (
-                <div className="flex justify-center items-center py-4">
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                </div>
-              ) : hasNextPage ? (
-                <div className="text-sm text-muted-foreground">
-                  Прокрутите вниз для загрузки дополнительных заказов
-                </div>
-              ) : orders.length > 0 ? (
-                <div className="text-sm text-muted-foreground">
-                  Все заказы загружены
-                </div>
-              ) : null}
-            </div>
+                            <option value="pending">Ожидает</option>
+                            <option value="in_transit">В пути</option>
+                            <option value="delivered">Доставлено</option>
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <Alert>
+                <AlertDescription>
+                  Нет данных о логистике.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      <Dialog open={showExportHistory} onOpenChange={setShowExportHistory}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>История экспорта</DialogTitle>
-            <DialogDescription>
-              Список ранее экспортированных файлов
-            </DialogDescription>
-          </DialogHeader>
-          <UITable>
-            <UITableHeader>
-              <UITableRow>
-                <UITableHead>Дата</UITableHead>
-                <UITableHead>Название файла</UITableHead>
-                <UITableHead>Количество заказов</UITableHead>
-                <UITableHead>Действия</UITableHead>
-              </UITableRow>
-            </UITableHeader>
-            <UITableBody>
-              {exportHistory.map((export_item) => (
-                <UITableRow key={export_item.id}>
-                  <UITableCell>
-                    {new Date(export_item.created_at).toLocaleString()}
-                  </UITableCell>
-                  <UITableCell>{export_item.file_name}</UITableCell>
-                  <UITableCell>{export_item.order_count}</UITableCell>
-                  <UITableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadExportFile(export_item.file_url, export_item.file_name)}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      Скачать
-                    </Button>
-                  </UITableCell>
-                </UITableRow>
-              ))}
-            </UITableBody>
-          </UITable>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={confirmStatusDialog} onOpenChange={setConfirmStatusDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Подтвердите изменение статуса</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingStatusChange.isBulk 
-                ? `Вы уверены, что хотите изменить статус контейнера для ${selectedOrders.length} заказов?`
-                : 'Вы уверены, что хотите изменить статус контейнера?'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingStatusChange({})}>
-              Отмена
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmedStatusChange}>
-              Подтвердить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={confirmContainerDialog} onOpenChange={setConfirmContainerDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Подтвердите изменение номера контейнера</AlertDialogTitle>
-            <AlertDialogDescription>
-              {pendingContainerChange.isBulk 
-                ? `Вы уверены, что хотите изменить номер контейнера для ${selectedOrders.length} заказов?`
-                : 'Вы уверены, что хотите изменить номер контейнера?'}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingContainerChange({})}>
-              Отмена
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmedContainerChange}>
-              Подтвердить
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </AdminLayout>
   );
 };

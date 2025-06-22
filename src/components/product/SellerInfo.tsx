@@ -1,143 +1,75 @@
-
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { User } from "lucide-react";
-import { SellerProfile } from "@/types/product";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/hooks/use-toast";
-import { SellerBasicInfo } from "./seller/SellerBasicInfo";
-import { SellerCommunicationRating } from "./seller/SellerCommunicationRating";
-import { SellerStoreSection } from "./seller/SellerStoreSection";
-import { SellerDescription } from "./seller/SellerDescription";
-import { SellerRating } from "./seller/SellerRating";
-import { SellerContactSection } from "./seller/SellerContactSection";
-import { SellerHelpSection } from "./seller/SellerHelpSection";
-import { AuthDialog } from "./seller/AuthDialog";
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Star, MessageCircle, Phone, Store } from 'lucide-react';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { Link } from 'react-router-dom';
 
 interface SellerInfoProps {
-  sellerProfile?: SellerProfile | null;
-  seller_name: string;
-  seller_id: string;
-  children?: React.ReactNode;
+  sellerName: string;
+  sellerProfile: any;
+  productId: string;
 }
 
-const SellerInfo: React.FC<SellerInfoProps> = ({
-  sellerProfile,
-  seller_name,
-  seller_id,
-  children
-}) => {
-  const [storeInfo, setStoreInfo] = useState<{
-    id: string;
-    name: string;
-  } | null>(null);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [copied, setCopied] = useState(false);
+const SellerInfo: React.FC<SellerInfoProps> = ({ sellerName, sellerProfile, productId }) => {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const [isContacting, setIsContacting] = useState(false);
 
-  useEffect(() => {
-    const fetchStoreInfo = async () => {
-      if (!seller_id) return;
-      try {
-        const { data, error } = await supabase
-          .from('stores')
-          .select('id, name')
-          .eq('seller_id', seller_id)
-          .maybeSingle();
-
-        if (!error && data) {
-          setStoreInfo(data);
-        }
-      } catch (error) {
-        console.error("Error fetching store info:", error);
-      }
-    };
-
-    fetchStoreInfo();
-  }, [seller_id]);
-
-  const handleShowContactInfo = () => {
-    if (!user) {
-      setShowAuthDialog(true);
-    }
-  };
-
-  const handleGoToLogin = () => {
-    setShowAuthDialog(false);
-    navigate('/login', {
-      state: {
-        returnPath: window.location.pathname
-      }
-    });
-  };
-
-  const copyToClipboard = (text: string) => {
-    if (!text) return;
-    try {
-      navigator.clipboard.writeText(text).then(() => {
-        setCopied(true);
-        toast({
-          title: "Скопировано!",
-          description: "OPT ID скопирован в буфер обмена"
-        });
-        setTimeout(() => setCopied(false), 2000);
-      });
-    } catch (err) {
-      console.error("Failed to copy:", err);
-      toast({
-        variant: "destructive",
-        title: "Ошибка",
-        description: "Не удалось скопировать OPT ID"
-      });
-    }
+  const handleContactSeller = () => {
+    setIsContacting(true);
+    // Add logic to initiate contact with the seller
+    setTimeout(() => {
+      setIsContacting(false);
+    }, 2000);
   };
 
   return (
-    <div className="border rounded-lg p-4 mb-6 shadow-sm hover:shadow-md transition-shadow">
-      <h3 className="text-lg font-semibold mb-3 flex items-center">
-        <User className="h-5 w-5 mr-2 text-primary" />
-        Информация о продавце
-      </h3>
-      
-      <div className="flex flex-col space-y-3">
-        <SellerBasicInfo 
-          sellerProfile={sellerProfile}
-          seller_name={seller_name}
-          seller_id={seller_id}
-          user={user}
-          copied={copied}
-          onCopyOptId={copyToClipboard}
-          onShowContactInfo={handleShowContactInfo}
-        />
-
-        <SellerCommunicationRating 
-          communication_ability={sellerProfile?.communication_ability}
-        />
-        
-        <SellerStoreSection storeInfo={storeInfo} />
-        
-        <SellerDescription description={sellerProfile?.description_user} />
-
-        <SellerRating rating={sellerProfile?.rating} />
-      </div>
-      
-      <SellerContactSection 
-        user={user}
-        onShowContactInfo={handleShowContactInfo}
-      >
-        {children}
-      </SellerContactSection>
-
-      <SellerHelpSection />
-
-      <AuthDialog 
-        open={showAuthDialog}
-        onOpenChange={setShowAuthDialog}
-        onGoToLogin={handleGoToLogin}
-      />
-    </div>
+    <Card className="bg-white shadow-md rounded-md">
+      <CardHeader>
+        <CardTitle className="text-lg font-semibold">Информация о продавце</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-gray-800 font-medium">{sellerName}</div>
+            {sellerProfile && (
+              <div className="flex items-center space-x-2 text-sm text-gray-500">
+                <Star className="h-4 w-4" />
+                <span>{sellerProfile.rating || 'Нет оценок'}</span>
+              </div>
+            )}
+          </div>
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/public-seller-profile/${sellerProfile?.id}`}>
+              <Store className="h-4 w-4 mr-2" />
+              Магазин
+            </Link>
+          </Button>
+        </div>
+        <div className="flex space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-1/2 justify-center"
+            onClick={handleContactSeller}
+            disabled={isContacting}
+          >
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Написать
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-1/2 justify-center"
+            onClick={handleContactSeller}
+            disabled={isContacting}
+          >
+            <Phone className="h-4 w-4 mr-2" />
+            Позвонить
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

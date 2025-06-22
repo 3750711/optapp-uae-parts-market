@@ -1,220 +1,187 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import Layout from '@/components/layout/Layout';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronLeft } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Star } from 'lucide-react';
 import WriteReviewDialog from '@/components/store/WriteReviewDialog';
-import { toast } from '@/hooks/use-toast';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import StoreSEO from '@/components/store/StoreSEO';
-import StoreBreadcrumb from '@/components/store/StoreBreadcrumb';
-import StoreImageGallery from '@/components/store/StoreImageGallery';
-import StoreHeader from '@/components/store/StoreHeader';
-import StoreDetailTabs from '@/components/store/StoreDetailTabs';
-import StoreSidebar from '@/components/store/StoreSidebar';
-import { useStoreData } from '@/hooks/useStoreData';
 
-const StoreDetail: React.FC = () => {
+interface StoreReview {
+  id: string;
+  created_at: string;
+  rating: number;
+  comment: string | null;
+  user_id: string;
+  user_name: string;
+}
+
+const StoreDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
 
-  const {
-    store,
-    isStoreLoading,
-    refetch,
-    carBrandsData,
-    sellerProducts,
-    isProductsLoading,
-    reviews,
-    isReviewsLoading,
-    productCount,
-    isCountLoading,
-    soldProductCount,
-    isSoldCountLoading
-  } = useStoreData(id || '');
+  const { data: store, isLoading: isStoreLoading, error: storeError } = useQuery({
+    queryKey: ['store', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('stores')
+        .select(`
+          *,
+          store_images(url),
+          profiles (full_name, avatar_url)
+        `)
+        .eq('id', id)
+        .single();
 
-  const onReviewSubmitted = () => {
-    refetch();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  const { data: reviews, isLoading: isReviewsLoading, error: reviewsError, refetch: refetchReviews } = useQuery({
+    queryKey: ['storeReviews', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('store_reviews')
+        .select(`
+          *,
+          profiles (full_name)
+        `)
+        .eq('store_id', id);
+
+      if (error) throw error;
+      return data as StoreReview[];
+    },
+    enabled: !!id,
+  });
+
+  const handleReviewSubmit = () => {
+    refetchReviews();
   };
 
-  const handleGoBack = () => {
-    navigate(-1);
-  };
-
-  const handleGoToLogin = () => {
-    setShowAuthDialog(false);
-    navigate('/login');
-  };
-
-  const handleAuthDialogClose = () => {
-    setShowAuthDialog(false);
-  };
-
-  // Share functionality
-  const handleShareStore = async () => {
-    const url = window.location.href;
-    const storeName = store?.name || 'магазин';
-    const shareData = {
-      title: `${storeName} - Автозапчасти OPT`,
-      text: `Посмотрите этот магазин автозапчастей: ${storeName}`,
-      url: url,
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(url);
-        toast({
-          title: "Ссылка скопирована",
-          description: "Ссылка на магазин скопирована в буфер обмена"
-        });
-      }
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
-  
-  const handleShareToTelegram = () => {
-    const url = encodeURIComponent(window.location.href);
-    const text = encodeURIComponent(`Посмотрите этот магазин автозапчастей: ${store?.name || "магазин"}`);
-    
-    const telegramUrl = `https://t.me/share/url?url=${url}&text=${text}`;
-    window.open(telegramUrl, '_blank');
-  };
-  
   if (isStoreLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <Skeleton className="h-6 w-64 mb-6" />
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Skeleton className="h-96 w-full md:col-span-2" />
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-3/4" />
-              <Skeleton className="h-6 w-full" />
-              <Skeleton className="h-6 w-2/3" />
-              <Skeleton className="h-20 w-full" />
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-8 w-2/3 mb-2" />
+              <Skeleton className="h-4 w-1/4" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
   }
 
-  if (!store) {
+  if (storeError || !store) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Магазин не найден</h1>
-            <p className="text-muted-foreground">Запрошенный магазин не существует или был удалён</p>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Магазин не найден</CardTitle>
+              <CardDescription>Запрашиваемый магазин не существует или был удален</CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </Layout>
     );
   }
 
+  const renderRatingStars = (rating: number) => {
+    const stars = [];
+    for (let i = 0; i < 5; i++) {
+      stars.push(
+        <Star
+          key={i}
+          className={`h-4 w-4 ${i < rating ? 'fill-yellow-500 text-yellow-500' : 'text-gray-300'}`}
+        />
+      );
+    }
+    return stars;
+  };
+
   return (
     <Layout>
-      {/* SEO component */}
-      <StoreSEO 
-        store={store} 
-        reviewsCount={reviews?.length} 
-        averageRating={store.rating} 
-      />
-
       <div className="container mx-auto px-4 py-8">
-        {/* Breadcrumbs */}
-        <StoreBreadcrumb 
-          storeName={store.name} 
-          storeLocation={store.location || undefined} 
-        />
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">{store.name}</CardTitle>
+            <CardDescription>{store.description}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-4">
+              <Avatar>
+                {store.profiles?.avatar_url ? (
+                  <AvatarImage src={store.profiles.avatar_url} alt={store.profiles.full_name} />
+                ) : (
+                  <AvatarFallback>{store.profiles?.full_name?.charAt(0)}</AvatarFallback>
+                )}
+              </Avatar>
+              <div>
+                <div className="text-lg font-semibold">{store.profiles?.full_name}</div>
+                <Link to={`/public-seller-profile/${store.seller_id}`} className="text-sm text-blue-500 hover:underline">
+                  Профиль продавца
+                </Link>
+              </div>
+            </div>
 
-        {/* Back button */}
-        <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            className="flex items-center gap-2" 
-            onClick={handleGoBack}
-          >
-            <ChevronLeft className="h-5 w-5" />
-            Назад
-          </Button>
-        </div>
+            <div>
+              <h3 className="text-lg font-semibold">Отзывы</h3>
+              {isReviewsLoading ? (
+                <p>Загрузка отзывов...</p>
+              ) : reviewsError ? (
+                <p>Ошибка при загрузке отзывов.</p>
+              ) : reviews && reviews.length > 0 ? (
+                <div className="space-y-2">
+                  {reviews.map((review) => (
+                    <Card key={review.id} className="bg-gray-50 border">
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="font-medium">{review.profiles?.full_name}</div>
+                          <div className="flex items-center">
+                            {renderRatingStars(review.rating)}
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-500">{review.comment}</p>
+                        <p className="text-xs text-gray-400">
+                          {new Date(review.created_at).toLocaleDateString('ru-RU')}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <p>Пока нет отзывов.</p>
+              )}
+            </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left column content */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Store header */}
-            <StoreHeader 
-              store={store}
-            />
-
-            {/* Tabs */}
-            <StoreDetailTabs 
-              store={store}
-              carBrandsData={carBrandsData}
-              sellerProducts={sellerProducts}
-              isProductsLoading={isProductsLoading}
-              reviews={reviews}
-              isReviewsLoading={isReviewsLoading}
-            />
-          </div>
-
-          {/* Right column - Store image gallery and info */}
-          <div className="space-y-6">
-            {/* Image gallery */}
-            <StoreImageGallery 
-              images={store.store_images || []}
-              storeName={store.name}
-            />
-
-            {/* Store sidebar */}
-            <StoreSidebar 
-              store={store}
-              carBrandsData={carBrandsData}
-              productCount={productCount}
-              soldProductCount={soldProductCount}
-              reviewsCount={reviews?.length || 0}
-              isCountLoading={isCountLoading}
-              isSoldCountLoading={isSoldCountLoading}
-            />
-          </div>
-        </div>
+            {user && (
+              <Button onClick={() => setIsReviewDialogOpen(true)}>Написать отзыв</Button>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <WriteReviewDialog 
-        open={isReviewDialogOpen} 
-        onOpenChange={setIsReviewDialogOpen} 
-        storeId={store?.id || ''}
-        onSubmitted={onReviewSubmitted}
+      <WriteReviewDialog
+        storeId={id || ''}
+        open={isReviewDialogOpen}
+        onOpenChange={setIsReviewDialogOpen}
+        onSubmitted={handleReviewSubmit}
       />
-
-      {/* Authentication Dialog */}
-      <Dialog open={showAuthDialog} onOpenChange={handleAuthDialogClose}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Требуется авторизация</DialogTitle>
-            <DialogDescription>
-              Для использования этой функции необходимо войти в аккаунт или зарегистрироваться.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:justify-center">
-            <Button onClick={handleGoToLogin} className="w-full sm:w-auto">
-              Войти / Зарегистрироваться
-            </Button>
-            <Button variant="outline" onClick={handleAuthDialogClose} className="w-full sm:w-auto">
-              Отмена
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Layout>
   );
 };

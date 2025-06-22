@@ -1,16 +1,14 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { CalendarClock, Plus, Search, Tag, Filter } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { CalendarClock, MessageSquare, Sparkles, Send, ShoppingBag, Clock, Award, Tag } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
-import RequestMatchCount from '@/components/request/RequestMatchCount';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 
 interface Request {
   id: string;

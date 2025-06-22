@@ -1,149 +1,152 @@
-
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Send, Edit2, Upload, Camera } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { OrderEditForm } from './OrderEditForm';
-import { Label } from "@/components/ui/label";
-import { OrderStatusBadge } from './OrderStatusBadge';
-import { OrderDetails } from './OrderDetails';
-import { OrderConfirmationImages } from './OrderConfirmationImages';
-import { Database } from '@/integrations/supabase/types';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-type Order = Database['public']['Tables']['orders']['Row'] & {
-  buyer?: {
-    telegram: string | null;
-    full_name: string | null;
-    opt_id: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-  seller?: {
-    telegram: string | null;
-    full_name: string | null;
-    opt_id: string | null;
-    email: string | null;
-    phone: string | null;
-  } | null;
-};
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { 
+  CheckCircle2, 
+  XCircle, 
+  Package, 
+  Calendar, 
+  User, 
+  Clock,
+  AlertTriangle 
+} from 'lucide-react';
+import { useAuth } from '@/contexts/SimpleAuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface OrderConfirmationCardProps {
-  order: Order;
-  images: string[];
-  videos?: string[];
-  onOrderUpdate?: (updatedOrder: any) => void;
+  order: any;
+  buyerProfile: any;
+  onClose: () => void;
 }
 
-export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
-  order,
-  images,
-  videos = [],
-  onOrderUpdate
-}) => {
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
-  const { user, profile } = useAuth();
+const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ order, buyerProfile, onClose }) => {
+  const { user } = useAuth();
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  // Проверяем, является ли пользователь администратором
-  const isAdmin = profile?.user_type === 'admin';
-
-  // Загружаем подтверждающие фотографии для администраторов
-  const { data: confirmImages = [] } = useQuery({
-    queryKey: ['confirm-images', order.id],
-    queryFn: async () => {
-      if (!isAdmin) return [];
-      
-      const { data, error } = await supabase
-        .from('confirm_images')
-        .select('url')
-        .eq('order_id', order.id);
-
-      if (error) throw error;
-      return data?.map(img => img.url) || [];
-    },
-    enabled: isAdmin
-  });
-
-  const generateTelegramShareUrl = () => {
-    const text = encodeURIComponent(`🛍 Заказ № ${order.order_number}\n\n` + `📦 Товар: ${order.title}\n` + `🏷 Бренд: ${order.brand || 'Не указан'}\n` + `📝 Модель: ${order.model || 'Не указана'}\n` + `💰 Цена: ${order.price} $\n` + `📦 Количество мест: ${order.place_number}\n` + `🆔 OPT_ID заказа: ${order.seller?.opt_id || 'Не указан'}\n` + (order.seller_id === order.buyer_id ? `🔄 Самозаказ\n` : `🆔 OPT_ID получателя: ${order.buyer_opt_id || 'Не указан'}\n`) + (order.description ? `📄 Описание:\n${order.description}\n\n` : '') + (images.length > 0 ? `📸 Фотографии заказа:\n${images.join('\n')}` : ''));
-    return `https://t.me/?text=${text}`;
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
   };
 
-  return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="text-center relative">
-        <div className="absolute right-6 top-6 flex gap-2">
-          {/* Компактная кнопка загрузки подтверждающих фото для администраторов */}
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsConfirmImagesDialogOpen(true)}
-              className="h-8 px-2 text-xs relative"
-              title="Подтверждающие фото"
-            >
-              <Camera className="h-3 w-3" />
-              {confirmImages.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
-                  {confirmImages.length}
-                </span>
-              )}
-            </Button>
-          )}
-          {order.status === 'created'}
-        </div>
-        <CardTitle className="text-6xl font-bold text-optapp-dark">
-          № {order.order_number}
-        </CardTitle>
-        <OrderStatusBadge status={order.status} />
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <OrderDetails order={order} />
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending': return 'secondary';
+      case 'processing': return 'primary';
+      case 'shipped': return 'info';
+      case 'delivered': return 'success';
+      case 'cancelled': return 'destructive';
+      case 'refunded': return 'destructive';
+      default: return 'secondary';
+    }
+  };
 
-        {order.description && (
-          <div>
-            <Label className="text-sm text-gray-500 mb-2 block">Описание</Label>
-            <p className="text-gray-700 whitespace-pre-wrap">{order.description}</p>
+  if (!order) {
+    return (
+      <Card className="w-full max-w-md mx-auto">
+        <CardContent className="p-6">
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertDescription>
+              Не удалось загрузить информацию о заказе.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="w-full max-w-md mx-auto">
+      <CardContent className="p-6 space-y-4">
+        {order.status === 'cancelled' || order.status === 'refunded' ? (
+          <div className="text-red-600 flex items-center space-x-2">
+            <XCircle className="h-5 w-5" />
+            <span>Заказ отменен</span>
+          </div>
+        ) : (
+          <div className="text-green-600 flex items-center space-x-2">
+            <CheckCircle2 className="h-5 w-5" />
+            <span>Заказ успешно создан!</span>
           </div>
         )}
 
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>Редактировать заказ № {order.order_number}</DialogTitle>
-            </DialogHeader>
-            <OrderEditForm 
-              order={order} 
-              onSave={updatedOrder => {
-                if (onOrderUpdate) {
-                  onOrderUpdate(updatedOrder);
-                }
-                setIsEditDialogOpen(false);
-              }} 
-              onCancel={() => setIsEditDialogOpen(false)} 
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex justify-between">
+          <div>
+            <div className="text-sm text-muted-foreground">Номер заказа</div>
+            <div className="font-medium">{order.id}</div>
+          </div>
+          <div>
+            <div className="text-sm text-muted-foreground">Статус</div>
+            <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
+          </div>
+        </div>
 
-        {/* Диалог для управления подтверждающими фотографиями */}
-        {isAdmin && (
-          <Dialog open={isConfirmImagesDialogOpen} onOpenChange={setIsConfirmImagesDialogOpen}>
-            <DialogContent className="max-w-4xl">
-              <DialogHeader>
-                <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
-              </DialogHeader>
-              <OrderConfirmationImages 
-                orderId={order.id} 
-                canEdit={true}
-              />
-            </DialogContent>
-          </Dialog>
+        <div className="flex items-center space-x-2">
+          <Package className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <div className="text-sm text-muted-foreground">Товары</div>
+            <div className="font-medium">{order.products?.length} шт.</div>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <div className="text-sm text-muted-foreground">Дата создания</div>
+            <div className="font-medium">
+              {format(new Date(order.created_at), 'dd MMMM yyyy, HH:mm', { locale: ru })}
+            </div>
+          </div>
+        </div>
+
+        {buyerProfile && (
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <div>
+              <div className="text-sm text-muted-foreground">Покупатель</div>
+              <div className="font-medium">{buyerProfile.full_name}</div>
+            </div>
+          </div>
         )}
+
+        <div className="flex items-center space-x-2">
+          <Clock className="h-4 w-4 text-muted-foreground" />
+          <div>
+            <div className="text-sm text-muted-foreground">Общая стоимость</div>
+            <div className="font-medium">{order.total_price} AED</div>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="border-t pt-4">
+            <div className="text-sm text-muted-foreground">Дополнительная информация</div>
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm text-muted-foreground">Адрес доставки</div>
+                <div className="font-medium">{order.delivery_address || 'Не указан'}</div>
+              </div>
+              <div>
+                <div className="text-sm text-muted-foreground">Примечания</div>
+                <div className="font-medium">{order.notes || 'Нет'}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <Button variant="link" onClick={toggleExpanded}>
+          {isExpanded ? 'Скрыть детали' : 'Показать детали'}
+        </Button>
+
+        <div className="border-t pt-4">
+          <Button className="w-full" onClick={onClose}>
+            Закрыть
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
 };
+
+export default OrderConfirmationCard;

@@ -1,11 +1,13 @@
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useDebounceValue } from '@/hooks/useDebounceValue';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 
 interface OrderFormLogicProps {
   orderId?: string;
@@ -27,6 +29,14 @@ interface Product {
   id: string;
   title: string;
 }
+
+const orderFormSchema = z.object({
+  status: z.string(),
+  delivery_address: z.string(),
+  delivery_price: z.number(),
+  total_price: z.number(),
+  notes: z.string(),
+});
 
 function useOrderFormLogic({ 
   orderId,
@@ -323,7 +333,12 @@ function useOrderFormLogic({
       setIsSaving(false);
     }
   };
-  
+
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(orderFormSchema),
+    defaultValues: orderData,
+  });
+
   return {
     activeStep,
     isSaving,
@@ -365,6 +380,9 @@ function useOrderFormLogic({
     setNameSearchTerm,
     optIdSearchTerm,
     setOptIdSearchTerm,
+    register,
+    handleSubmit,
+    errors,
   };
 }
 

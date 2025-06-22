@@ -1,140 +1,103 @@
-
-import React from "react";
-import { Label } from "@/components/ui/label";
-import { Film } from "lucide-react";
-import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import React, { useState, useRef, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
+import { useAuth } from '@/contexts/SimpleAuthContext';
 
 interface OrderVideosProps {
-  videos: string[];
-  orderId?: string;
+  videoUrls: string[];
+  disabled?: boolean;
 }
 
-export const OrderVideos: React.FC<OrderVideosProps> = ({ videos, orderId }) => {
-  const { profile } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  
-  // Проверяем, является ли пользователь администратором
-  const isAdmin = profile?.user_type === 'admin';
+const OrderVideos: React.FC<OrderVideosProps> = ({ videoUrls, disabled = false }) => {
+  const { user } = useAuth();
+  const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
-  const handleVideoUpload = async (newUrls: string[]) => {
-    if (!orderId || !isAdmin) return;
-
-    try {
-      console.log('🎬 Adding videos to order:', { orderId, newUrls });
-      
-      const videoInserts = newUrls.map(url => ({
-        order_id: orderId,
-        url
-      }));
-
-      const { error } = await supabase
-        .from('order_videos')
-        .insert(videoInserts);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Видео добавлены",
-        description: `Добавлено ${newUrls.length} видео через Cloudinary`,
+  useEffect(() => {
+    // Pause all videos when component unmounts or videoUrls change
+    return () => {
+      videoRefs.current.forEach((video) => {
+        if (video) {
+          video.pause();
+        }
       });
+    };
+  }, [videoUrls]);
 
-      // Обновляем данные заказа
-      queryClient.invalidateQueries({ queryKey: ['order-videos', orderId] });
-    } catch (error) {
-      console.error("Error uploading videos:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось добавить видео",
-        variant: "destructive",
-      });
+  const handlePlayPause = (index: number) => {
+    if (playingIndex === index) {
+      // Pause current video
+      videoRefs.current[index]?.pause();
+      setPlayingIndex(null);
+    } else {
+      // Pause any other playing video
+      if (playingIndex !== null && videoRefs.current[playingIndex]) {
+        videoRefs.current[playingIndex]?.pause();
+      }
+      // Play selected video
+      videoRefs.current[index]?.play();
+      setPlayingIndex(index);
     }
   };
 
-  const handleVideoDelete = async (urlToDelete: string) => {
-    if (!orderId || !isAdmin) return;
-
-    try {
-      const { error } = await supabase
-        .from('order_videos')
-        .delete()
-        .eq('order_id', orderId)
-        .eq('url', urlToDelete);
-        
-      if (error) throw error;
-      
-      toast({
-        title: "Видео удалено",
-        description: "Видео успешно удалено",
-      });
-
-      // Обновляем данные заказа
-      queryClient.invalidateQueries({ queryKey: ['order-videos', orderId] });
-    } catch (error) {
-      console.error("Error deleting video:", error);
-      toast({
-        title: "Ошибка",
-        description: "Не удалось удалить видео",
-        variant: "destructive",
-      });
+  const handleVolumeToggle = (index: number) => {
+    const video = videoRefs.current[index];
+    if (video) {
+      video.muted = !video.muted;
+      // Force re-render to update icon
+      setPlayingIndex((prev) => prev);
     }
   };
-
-  if (!videos || videos.length === 0) {
-    // Если видео нет, но пользователь админ и есть orderId - показываем загрузку
-    if (isAdmin && orderId) {
-      return (
-        <div>
-          <Label className="text-sm text-gray-500 mb-2 block flex items-center gap-2">
-            <Film className="w-4 h-4" />
-            Видео заказа
-          </Label>
-          <CloudinaryVideoUpload
-            videos={[]}
-            onUpload={handleVideoUpload}
-            onDelete={handleVideoDelete}
-            maxVideos={3}
-            productId={orderId}
-            buttonText="Загрузить видео для заказа"
-          />
-        </div>
-      );
-    }
-    return null;
-  }
 
   return (
-    <div>
-      <Label className="text-sm text-gray-500 mb-2 block flex items-center gap-2">
-        <Film className="w-4 h-4" />
-        Видео заказа ({videos.length})
-      </Label>
-      
-      {isAdmin && orderId ? (
-        <CloudinaryVideoUpload
-          videos={videos}
-          onUpload={handleVideoUpload}
-          onDelete={handleVideoDelete}
-          maxVideos={3}
-          productId={orderId}
-        />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {videos.map((url, idx) => (
-            <div key={url} className="relative aspect-video rounded-lg overflow-hidden border">
-              <video src={url} controls className="w-full h-full object-cover" />
-              <div className="absolute top-2 left-2 bg-black bg-opacity-70 rounded px-2 py-1 text-white text-xs flex items-center gap-1">
-                <Film className="w-3 h-3" />
-                Cloudinary
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Видео</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {videoUrls.length === 0 && <p>Видео отсутствуют</p>}
+        {videoUrls.map((url, index) => (
+          <div key={index} className="relative">
+            <video
+              ref={(el) => (videoRefs.current[index] = el)}
+              src={url}
+              controls={false}
+              muted
+              className="w-full rounded-md bg-black"
+              onEnded={() => setPlayingIndex(null)}
+              onPause={() => {
+                if (playingIndex === index) {
+                  setPlayingIndex(null);
+                }
+              }}
+              onPlay={() => setPlayingIndex(index)}
+            />
+            <div className="absolute bottom-2 left-2 flex space-x-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handlePlayPause(index)}
+                disabled={disabled}
+                aria-label={playingIndex === index ? 'Pause video' : 'Play video'}
+              >
+                {playingIndex === index ? <Pause /> : <Play />}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleVolumeToggle(index)}
+                disabled={disabled}
+                aria-label="Toggle mute"
+              >
+                {videoRefs.current[index]?.muted ? <VolumeX /> : <Volume2 />}
+              </Button>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
   );
 };
+
+export default OrderVideos;
