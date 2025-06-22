@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -223,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshProfile,
     refreshAdminStatus,
     forceAuthReinit
-  }), [user, session, profile, isLoading, isAdmin, signOut, refreshProfile, refreshAdmin Status, forceAuthReinit]);
+  }), [user, session, profile, isLoading, isAdmin, signOut, refreshProfile, refreshAdminStatus, forceAuthReinit]);
 
   return (
     <AuthContext.Provider value={contextValue}>
