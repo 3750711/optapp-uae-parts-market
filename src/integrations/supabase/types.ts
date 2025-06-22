@@ -1042,6 +1042,14 @@ export type Database = {
         Args: { p_order_number: number; p_order_id?: string }
         Returns: boolean
       }
+      check_rate_limit: {
+        Args: {
+          p_action: string
+          p_ip_address?: unknown
+          p_limit_per_hour?: number
+        }
+        Returns: boolean
+      }
       check_search_rate_limit: {
         Args: { p_user_id: string; p_search_type?: string }
         Returns: boolean
