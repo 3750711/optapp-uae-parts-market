@@ -1,23 +1,20 @@
 
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useProfile } from '@/contexts/ProfileProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 
 export const useOptimizedAdminAccess = () => {
-  const { user } = useAuth();
-  const { profile } = useProfile();
+  const { user, profile, isAdmin } = useAuth();
   
   // Кэшируем результат проверки прав
   const adminAccessState = useMemo(() => {
-    const isAdmin = profile?.user_type === 'admin';
     const isCheckingAdmin = !profile && !!user;
     
     return {
-      isAdmin,
+      isAdmin: isAdmin === true,
       isCheckingAdmin,
-      hasAdminAccess: isAdmin
+      hasAdminAccess: isAdmin === true
     };
-  }, [profile, user]);
+  }, [profile, user, isAdmin]);
   
   return adminAccessState;
 };

@@ -1,15 +1,11 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useProfile } from '@/contexts/ProfileProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import Layout from '@/components/layout/Layout';
 
 const OrdersRedirect = () => {
-  const { user, isLoading: authLoading } = useAuth();
-  const { profile, isLoading: profileLoading } = useProfile();
-
-  const isLoading = authLoading || profileLoading;
+  const { user, profile, isLoading } = useAuth();
 
   // Показываем загрузку пока проверяем аутентификацию и загружаем профиль
   if (isLoading) {
