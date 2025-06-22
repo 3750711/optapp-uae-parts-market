@@ -68,7 +68,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
           onLoad={handleImageLoad}
           onError={handleImageError}
           fallbackSrc="/placeholder.svg"
-          loading={priority ? 'eager' : 'lazy'}
         />
       </div>
     );

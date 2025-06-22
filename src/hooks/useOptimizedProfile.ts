@@ -2,130 +2,77 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { ProfileType } from '@/components/profile/types';
 
 interface OptimizedProfileData {
-  profile: ProfileType | null;
+  profile: any;
   orderStats: {
     totalOrders: number;
     completedOrders: number;
     pendingOrders: number;
-  } | null;
-  storeInfo: {
-    id: string;
-    name: string;
-    description: string | null;
-    verified: boolean;
-  } | null;
+  };
+  storeInfo: any;
 }
 
 export const useOptimizedProfile = () => {
-  const { user, profile, isLoading: authLoading } = useAuth();
+  const { user, profile } = useAuth();
 
-  const { 
-    data, 
-    isLoading: queryLoading, 
-    error, 
-    refetch 
-  } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['optimized-profile', user?.id],
     queryFn: async (): Promise<OptimizedProfileData> => {
-      console.log('useOptimizedProfile: Starting query for user:', user?.id);
-      console.log('useOptimizedProfile: Profile state:', profile);
-      
-      if (!user?.id || !profile) {
-        console.error('useOptimizedProfile: User not authenticated', { userId: user?.id, profile });
-        throw new Error('User not authenticated');
+      if (!user?.id) {
+        throw new Error('No user ID available');
       }
 
-      const isSeller = profile.user_type === 'seller';
-      console.log('useOptimizedProfile: User is seller:', isSeller);
+      // Fetch order stats
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('status')
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
 
-      try {
-        // Параллельно выполняем все запросы
-        const [orderStatsData, storeData] = await Promise.all([
-          // Статистика заказов
-          Promise.all([
-            supabase
-              .from('orders')
-              .select('status, created_at')
-              .eq('buyer_id', profile.id),
-            
-            isSeller ? supabase
-              .from('orders')
-              .select('status, created_at')
-              .eq('seller_id', profile.id) : Promise.resolve({ data: [], error: null })
-          ]),
-          
-          // Информация о магазине (только для продавцов)
-          isSeller ? supabase
-            .from('stores')
-            .select('id, name, description, verified')
-            .eq('seller_id', user.id)
-            .maybeSingle() : Promise.resolve({ data: null, error: null })
-        ]);
-
-        // Обработка статистики заказов
-        const [buyerOrdersResult, sellerOrdersResult] = orderStatsData;
-        
-        if (buyerOrdersResult.error) {
-          console.error('useOptimizedProfile: Buyer orders error:', buyerOrdersResult.error);
-          throw buyerOrdersResult.error;
-        }
-        if (sellerOrdersResult.error) {
-          console.error('useOptimizedProfile: Seller orders error:', sellerOrdersResult.error);
-          throw sellerOrdersResult.error;
-        }
-
-        const buyerOrders = buyerOrdersResult.data || [];
-        const sellerOrders = sellerOrdersResult.data || [];
-        const allOrders = [...buyerOrders, ...sellerOrders];
-
-        const orderStats = {
-          totalOrders: allOrders.length,
-          completedOrders: allOrders.filter(o => o.status === 'completed').length,
-          pendingOrders: allOrders.filter(o => ['created', 'confirmed'].includes(o.status)).length
-        };
-
-        console.log('useOptimizedProfile: Order stats calculated:', orderStats);
-
-        // Обработка данных магазина
-        if (storeData.error) {
-          console.error('useOptimizedProfile: Store data error:', storeData.error);
-          throw storeData.error;
-        }
-
-        console.log('useOptimizedProfile: Store data:', storeData.data);
-
-        const result = {
-          profile,
-          orderStats,
-          storeInfo: storeData.data
-        };
-
-        console.log('useOptimizedProfile: Query completed successfully:', result);
-        return result;
-      } catch (error) {
-        console.error('useOptimizedProfile: Query failed:', error);
-        throw error;
+      if (ordersError) {
+        console.error('Error fetching orders:', ordersError);
       }
+
+      const orderStats = {
+        totalOrders: orders?.length || 0,
+        completedOrders: orders?.filter(o => o.status === 'completed').length || 0,
+        pendingOrders: orders?.filter(o => o.status === 'pending').length || 0,
+      };
+
+      // Fetch store info if user is seller
+      let storeInfo = null;
+      if (profile?.user_type === 'seller') {
+        const { data: store, error: storeError } = await supabase
+          .from('stores')
+          .select('*')
+          .eq('seller_id', user.id)
+          .single();
+
+        if (storeError && storeError.code !== 'PGRST116') {
+          console.error('Error fetching store:', storeError);
+        } else {
+          storeInfo = store;
+        }
+      }
+
+      return {
+        profile,
+        orderStats,
+        storeInfo
+      };
     },
-    enabled: !!user?.id && !!profile && !authLoading,
-    staleTime: 5 * 60 * 1000, // 5 минут
-    retry: 3,
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!user?.id && !!profile,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
-  // Возвращаем isLoading как true если либо auth загружается, либо query загружается
-  const isLoading = authLoading || queryLoading;
-
   return {
-    data: data || { profile, orderStats: null, storeInfo: null },
+    data,
     isLoading,
     error,
     refetch,
     profile: data?.profile || profile,
-    orderStats: data?.orderStats,
-    storeInfo: data?.storeInfo
+    orderStats: data?.orderStats || { totalOrders: 0, completedOrders: 0, pendingOrders: 0 },
+    storeInfo: data?.storeInfo || null
   };
 };

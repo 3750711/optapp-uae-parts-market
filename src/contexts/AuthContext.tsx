@@ -15,6 +15,16 @@ interface Profile {
   location?: string;
   verification_status?: string;
   opt_status?: string;
+  email?: string;
+  phone?: string;
+  company_name?: string;
+  description_user?: string;
+  communication_ability?: number;
+  created_at?: string;
+  first_login_completed?: boolean;
+  fts?: unknown;
+  listing_count?: number;
+  last_login?: string;
 }
 
 interface AuthContextType {
@@ -26,6 +36,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
+  refreshAdminStatus: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -81,6 +93,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('Profile fetch error:', error);
     }
   }, []);
+
+  // Функция для обновления профиля
+  const refreshProfile = useCallback(async () => {
+    if (user) {
+      await fetchUserProfile(user.id);
+    }
+  }, [user, fetchUserProfile]);
+
+  // Функция для обновления админского статуса
+  const refreshAdminStatus = useCallback(async () => {
+    if (user) {
+      clearAdminCache();
+      await fetchUserProfile(user.id);
+    }
+  }, [user, fetchUserProfile]);
 
   // Мемоизированная функция обновления профиля
   const updateProfile = useCallback(async (updates: Partial<Profile>) => {
@@ -189,8 +216,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signOut,
     updateProfile,
+    refreshProfile,
+    refreshAdminStatus,
     isLoading
-  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, isLoading]);
+  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
