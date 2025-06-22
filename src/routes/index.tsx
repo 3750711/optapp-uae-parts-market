@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import RouteSEO from '@/components/routing/RouteSEO';
@@ -5,6 +6,7 @@ import { RouteErrorBoundary } from '@/components/routing/RouteErrorBoundary';
 import { RouteSuspenseFallback } from '@/components/routing/RouteSuspenseFallback';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
+import CatalogErrorBoundary from '@/components/catalog/CatalogErrorBoundary';
 
 // Lazy loaded публичные страницы
 const Index = lazy(() => import('@/pages/Index'));
@@ -77,7 +79,11 @@ const AppRoutes: React.FC = () => {
             <Route path="/" element={<Index />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/catalog" element={<Catalog />} />
+            <Route path="/catalog" element={
+              <CatalogErrorBoundary>
+                <Catalog />
+              </CatalogErrorBoundary>
+            } />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/stores" element={<Stores />} />
             <Route path="/store/:id" element={<StoreDetail />} />
