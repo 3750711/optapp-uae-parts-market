@@ -1,3 +1,4 @@
+
 import React, { memo, useMemo, useState, useEffect } from "react";
 import { FixedSizeGrid as Grid } from 'react-window';
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -122,8 +123,8 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
     );
   }
 
-  // Virtualized list mode - optimized for large datasets
-  if (viewMode === 'virtualized' && viewMode === 'list') {
+  // For large datasets, use virtualized list for better performance
+  if (viewMode === 'list' && visibleProducts.length > 50) {
     return (
       <VirtualizedProductList
         products={visibleProducts}
