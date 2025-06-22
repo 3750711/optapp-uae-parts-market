@@ -3,7 +3,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, Shield, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { reportCriticalError } from '@/utils/errorReporting';
+import { reportCriticalError } from '@/utils/errorMonitoring';
 
 interface Props {
   children: ReactNode;
@@ -20,6 +20,7 @@ interface State {
   isPermissionError: boolean;
   isNetworkError: boolean;
   isRecovering: boolean;
+  errorId: string;
 }
 
 export class GlobalErrorBoundary extends Component<Props, State> {
@@ -34,7 +35,8 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       isModuleLoadError: false,
       isPermissionError: false,
       isNetworkError: false,
-      isRecovering: false
+      isRecovering: false,
+      errorId: ''
     };
   }
 
@@ -53,36 +55,31 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                           error.message.includes('network') ||
                           error.message.includes('connection');
     
+    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
     return { 
       hasError: true, 
       error,
       isModuleLoadError,
       isPermissionError,
-      isNetworkError
+      isNetworkError,
+      errorId
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Отправляем ошибку в систему мониторинга
+    // Отправляем ошибку в централизованную систему мониторинга
     reportCriticalError(error, {
       componentStack: errorInfo.componentStack,
       isAdminRoute: this.props.isAdminRoute,
       pathname: window.location.pathname,
       userAgent: navigator.userAgent,
+      errorId: this.state.errorId
     });
 
-    // Диспатчим кастомный event для дополнительного мониторинга
-    window.dispatchEvent(new CustomEvent('react-error', {
-      detail: {
-        message: error.message,
-        stack: error.stack,
-        componentStack: errorInfo.componentStack,
-      }
-    }));
-    
     this.setState({ errorInfo });
     
-    // Auto-handle chunk load errors with delay
+    // Auto-handle chunk load errors
     if (this.state.isModuleLoadError) {
       this.handleChunkErrorWithDelay();
     }
@@ -93,20 +90,20 @@ export class GlobalErrorBoundary extends Component<Props, State> {
     
     this.recoveryTimeout = window.setTimeout(() => {
       this.handleChunkError();
-    }, 2000); // Даем пользователю время увидеть сообщение
+    }, 2000);
   };
 
   handleChunkError = async () => {
     try {
       console.log('🔄 Attempting automatic recovery...');
       
-      // Clear all caches
+      // Clear caches
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         await Promise.all(cacheNames.map(name => caches.delete(name)));
       }
       
-      // Clear localStorage and sessionStorage (осторожно с auth данными)
+      // Preserve auth data
       const authKeys = ['supabase.auth.token', 'sb-auth-token'];
       const authData: Record<string, string | null> = {};
       authKeys.forEach(key => {
@@ -116,15 +113,14 @@ export class GlobalErrorBoundary extends Component<Props, State> {
       localStorage.clear();
       sessionStorage.clear();
       
-      // Восстанавливаем auth данные
+      // Restore auth data
       Object.entries(authData).forEach(([key, value]) => {
         if (value) localStorage.setItem(key, value);
       });
       
-      // Reload the page
       window.location.reload();
     } catch (error) {
-      console.error('Error during recovery:', error);
+      console.error('Recovery failed:', error);
       window.location.reload();
     }
   };
@@ -156,7 +152,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      // Auto-recovery in progress for module loading errors
+      // Auto-recovery in progress
       if (this.state.isModuleLoadError && this.state.isRecovering) {
         return (
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -171,6 +167,9 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                   Обнаружена новая версия. Приложение автоматически обновляется...
                 </AlertDescription>
               </Alert>
+              <div className="text-xs text-gray-500">
+                ID ошибки: {this.state.errorId}
+              </div>
             </div>
           </div>
         );
@@ -185,7 +184,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                 <Shield className="h-4 w-4" />
                 <AlertTitle>Недостаточно прав доступа</AlertTitle>
                 <AlertDescription>
-                  У вас нет прав для доступа к административной панели. Обратитесь к администратору.
+                  У вас нет прав для доступа к административной панели.
                 </AlertDescription>
               </Alert>
               <Button 
@@ -194,12 +193,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               >
                 Вернуться в профиль
               </Button>
+              <div className="text-xs text-gray-500 text-center">
+                ID ошибки: {this.state.errorId}
+              </div>
             </div>
           </div>
         );
       }
 
-      // Module loading error with manual recovery option
+      // Module loading error
       if (this.state.isModuleLoadError) {
         return (
           <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
@@ -208,7 +210,7 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Обновление приложения</AlertTitle>
                 <AlertDescription>
-                  Обнаружена новая версия приложения. Требуется обновление страницы.
+                  Обнаружена новая версия приложения. Требуется обновление.
                 </AlertDescription>
               </Alert>
               <Button 
@@ -233,15 +235,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
         );
       }
 
-      // General error with recovery options
+      // General error
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
           <div className="max-w-md w-full space-y-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Что-то пошло не так</AlertTitle>
+              <AlertTitle>Произошла ошибка</AlertTitle>
               <AlertDescription>
-                Произошла неожиданная ошибка. Попробуйте обновить страницу или вернуться на главную.
+                Что-то пошло не так. Попробуйте обновить страницу.
               </AlertDescription>
             </Alert>
 
@@ -266,6 +268,10 @@ export class GlobalErrorBoundary extends Component<Props, State> {
                 <Home className="h-4 w-4 mr-2" />
                 На главную
               </Button>
+            </div>
+
+            <div className="text-xs text-gray-500 text-center">
+              ID ошибки: {this.state.errorId}
             </div>
 
             {this.props.showDetails && this.state.error && (

@@ -1,29 +1,45 @@
 
-import { prodError, devError } from '@/utils/logger';
+import { criticalError, devError, trackMetric } from '@/utils/logger';
 
-// Error monitoring and chunk load error detection
+// Централизованная система мониторинга ошибок
 interface ErrorMetrics {
+  totalErrors: number;
+  criticalErrors: number;
   chunkLoadErrors: number;
   networkErrors: number;
   jsErrors: number;
-  lastChunkError: Date | null;
+  lastError: Date | null;
+  errorHistory: ErrorLogEntry[];
 }
 
-class ErrorMonitor {
+interface ErrorLogEntry {
+  message: string;
+  stack?: string;
+  timestamp: Date;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  context?: Record<string, any>;
+  url: string;
+}
+
+class CentralizedErrorMonitor {
   private metrics: ErrorMetrics = {
+    totalErrors: 0,
+    criticalErrors: 0,
     chunkLoadErrors: 0,
     networkErrors: 0,
     jsErrors: 0,
-    lastChunkError: null
+    lastError: null,
+    errorHistory: []
   };
 
-  private readonly STORAGE_KEY = 'error_metrics';
-  private readonly MAX_CHUNK_ERRORS = 3;
-  private readonly CHUNK_ERROR_WINDOW = 5 * 60 * 1000; // 5 minutes
+  private readonly STORAGE_KEY = 'app_error_metrics';
+  private readonly MAX_HISTORY = 50;
+  private readonly MAX_CRITICAL_ERRORS = 5;
 
   constructor() {
     this.loadMetrics();
     this.setupErrorListeners();
+    this.setupPeriodicCleanup();
   }
 
   private loadMetrics() {
@@ -33,7 +49,11 @@ class ErrorMonitor {
         const parsed = JSON.parse(stored);
         this.metrics = {
           ...parsed,
-          lastChunkError: parsed.lastChunkError ? new Date(parsed.lastChunkError) : null
+          lastError: parsed.lastError ? new Date(parsed.lastError) : null,
+          errorHistory: parsed.errorHistory.map((entry: any) => ({
+            ...entry,
+            timestamp: new Date(entry.timestamp)
+          }))
         };
       }
     } catch (error) {
@@ -50,21 +70,48 @@ class ErrorMonitor {
   }
 
   private setupErrorListeners() {
-    // Listen for unhandled JavaScript errors
+    // Global JavaScript errors
     window.addEventListener('error', (event) => {
-      this.handleError(event.error || new Error(event.message));
+      this.handleError(event.error || new Error(event.message), {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno
+      });
     });
 
-    // Listen for unhandled promise rejections
+    // Unhandled promise rejections
     window.addEventListener('unhandledrejection', (event) => {
-      this.handleError(new Error(event.reason));
+      this.handleError(new Error(event.reason), {
+        type: 'unhandledrejection',
+        reason: event.reason
+      });
     });
 
-    // Listen for critical errors from our logger
+    // Custom critical errors
     window.addEventListener('critical-error', ((event: CustomEvent) => {
       const { message, stack, context } = event.detail;
-      this.handleCriticalError({ message, stack }, context);
+      this.handleCriticalError(new Error(message), context);
     }) as EventListener);
+
+    // Performance metrics
+    window.addEventListener('performance-metric', ((event: CustomEvent) => {
+      this.trackPerformanceMetric(event.detail);
+    }) as EventListener);
+  }
+
+  private setupPeriodicCleanup() {
+    // Очистка старых записей каждые 10 минут
+    setInterval(() => {
+      this.cleanupOldEntries();
+    }, 10 * 60 * 1000);
+  }
+
+  private cleanupOldEntries() {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    this.metrics.errorHistory = this.metrics.errorHistory.filter(
+      entry => entry.timestamp > oneHourAgo
+    );
+    this.saveMetrics();
   }
 
   private isChunkLoadError(error: Error): boolean {
@@ -81,75 +128,87 @@ class ErrorMonitor {
            error.message.includes('Failed to fetch');
   }
 
-  handleError(error: Error) {
+  private getSeverity(error: Error): 'low' | 'medium' | 'high' | 'critical' {
+    if (this.isChunkLoadError(error)) return 'high';
+    if (this.isNetworkError(error)) return 'medium';
+    if (error.message.includes('Cannot read properties')) return 'high';
+    if (error.message.includes('TypeError')) return 'medium';
+    return 'low';
+  }
+
+  handleError(error: Error, context?: Record<string, any>) {
+    const severity = this.getSeverity(error);
+    
+    this.metrics.totalErrors++;
+    this.metrics.lastError = new Date();
+
     if (this.isChunkLoadError(error)) {
       this.metrics.chunkLoadErrors++;
-      this.metrics.lastChunkError = new Date();
-      
-      prodError('Chunk load error detected', {
-        count: this.metrics.chunkLoadErrors,
-        timestamp: this.metrics.lastChunkError,
-        message: error.message
-      });
-
-      // Auto-recovery for frequent chunk errors
-      if (this.shouldTriggerRecovery()) {
-        devError('Triggering automatic recovery...');
-        this.triggerRecovery();
-      }
     } else if (this.isNetworkError(error)) {
       this.metrics.networkErrors++;
-      prodError('Network error detected', { message: error.message });
     } else {
       this.metrics.jsErrors++;
-      devError('JavaScript error:', error);
     }
+
+    // Добавляем в историю
+    const entry: ErrorLogEntry = {
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date(),
+      severity,
+      context,
+      url: window.location.href
+    };
+
+    this.metrics.errorHistory.unshift(entry);
+    if (this.metrics.errorHistory.length > this.MAX_HISTORY) {
+      this.metrics.errorHistory.pop();
+    }
+
+    // Отправляем метрики
+    trackMetric('error_count', this.metrics.totalErrors);
+    trackMetric(`${severity}_error_count`, 1);
 
     this.saveMetrics();
-  }
 
-  handleCriticalError(error: { message: string; stack?: string }, context?: Record<string, any>) {
-    // Send critical errors to monitoring service
-    prodError(error.message, context);
-    
-    // Additional critical error handling
-    if (typeof window !== 'undefined' && window.gtag) {
-      window.gtag('event', 'exception', {
-        description: error.message,
-        fatal: true,
-        custom_map: context
-      });
+    // Критические действия для высокого уровня ошибок
+    if (severity === 'high' || severity === 'critical') {
+      this.handleCriticalError(error, context);
     }
   }
 
-  private shouldTriggerRecovery(): boolean {
-    if (!this.metrics.lastChunkError) return false;
+  handleCriticalError(error: Error, context?: Record<string, any>) {
+    this.metrics.criticalErrors++;
     
-    const timeSinceLastError = Date.now() - this.metrics.lastChunkError.getTime();
-    return this.metrics.chunkLoadErrors >= this.MAX_CHUNK_ERRORS && 
-           timeSinceLastError < this.CHUNK_ERROR_WINDOW;
+    criticalError(error, {
+      ...context,
+      errorCount: this.metrics.totalErrors,
+      criticalCount: this.metrics.criticalErrors
+    });
+
+    // Проверяем на превышение лимита критических ошибок
+    if (this.metrics.criticalErrors >= this.MAX_CRITICAL_ERRORS) {
+      this.triggerEmergencyProtocol(error);
+    }
   }
 
-  private async triggerRecovery() {
-    try {
-      devError('Clearing caches for recovery...');
-      
-      // Clear service worker caches
-      if ('caches' in window) {
-        const cacheNames = await caches.keys();
-        await Promise.all(cacheNames.map(name => caches.delete(name)));
+  private triggerEmergencyProtocol(error: Error) {
+    console.error('🆘 Emergency Protocol Activated - Too many critical errors');
+    
+    // Отправляем экстренное уведомление
+    window.dispatchEvent(new CustomEvent('emergency-protocol', {
+      detail: {
+        reason: 'too_many_critical_errors',
+        errorCount: this.metrics.criticalErrors,
+        lastError: error.message
       }
-      
-      // Clear browser storage
-      localStorage.removeItem(this.STORAGE_KEY);
-      sessionStorage.clear();
-      
-      // Force reload with cache bypass
-      window.location.reload();
-    } catch (error) {
-      prodError('Recovery failed', { error });
-      // Fallback: normal reload
-      window.location.reload();
+    }));
+  }
+
+  private trackPerformanceMetric(metric: any) {
+    // Логируем только важные метрики производительности
+    if (metric.value > 1000) { // Медленные операции
+      devError(`Slow operation detected: ${metric.name} took ${metric.value}ms`);
     }
   }
 
@@ -157,21 +216,45 @@ class ErrorMonitor {
     return { ...this.metrics };
   }
 
-  resetMetrics() {
+  getHealthStatus() {
+    const recentErrors = this.metrics.errorHistory.filter(
+      entry => entry.timestamp > new Date(Date.now() - 5 * 60 * 1000)
+    ).length;
+
+    return {
+      status: recentErrors > 10 ? 'unhealthy' : recentErrors > 5 ? 'degraded' : 'healthy',
+      recentErrors,
+      totalErrors: this.metrics.totalErrors,
+      criticalErrors: this.metrics.criticalErrors,
+      lastError: this.metrics.lastError
+    };
+  }
+
+  reset() {
     this.metrics = {
+      totalErrors: 0,
+      criticalErrors: 0,
       chunkLoadErrors: 0,
       networkErrors: 0,
       jsErrors: 0,
-      lastChunkError: null
+      lastError: null,
+      errorHistory: []
     };
     this.saveMetrics();
   }
 }
 
-// Initialize error monitor
-export const errorMonitor = new ErrorMonitor();
+// Экспортируем глобальный экземпляр
+export const centralErrorMonitor = new CentralizedErrorMonitor();
 
-// Export utilities
-export const reportError = (error: Error) => errorMonitor.handleError(error);
-export const getErrorMetrics = () => errorMonitor.getMetrics();
-export const resetErrorMetrics = () => errorMonitor.resetMetrics();
+// Утилиты для использования в компонентах
+export const reportError = (error: Error, context?: Record<string, any>) => {
+  centralErrorMonitor.handleError(error, context);
+};
+
+export const reportCriticalError = (error: Error, context?: Record<string, any>) => {
+  centralErrorMonitor.handleCriticalError(error, context);
+};
+
+export const getErrorMetrics = () => centralErrorMonitor.getMetrics();
+export const getHealthStatus = () => centralErrorMonitor.getHealthStatus();

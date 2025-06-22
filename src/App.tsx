@@ -1,4 +1,3 @@
-
 import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -10,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
+import HealthMonitor from "@/components/monitoring/HealthMonitor";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -47,6 +47,7 @@ const App = () => (
               </Suspense>
             </AuthProvider>
           </BrowserRouter>
+          <HealthMonitor showInProduction={false} />
         </TooltipProvider>
       </QueryClientProvider>
     </HelmetProvider>
