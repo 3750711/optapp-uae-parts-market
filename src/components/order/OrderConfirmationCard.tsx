@@ -1,149 +1,138 @@
-import React, { useState } from 'react';
-import { format } from 'date-fns';
-import { ru } from 'date-fns/locale';
-import { Card, CardContent } from '@/components/ui/card';
+
+import React, { useState, useRef } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Package, 
-  Calendar, 
-  User, 
-  Clock,
-  AlertTriangle 
-} from 'lucide-react';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Upload, X, Eye, CheckCircle, AlertTriangle } from 'lucide-react';
+import { useConfirmationUpload } from '@/components/admin/useConfirmationUpload';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface OrderConfirmationCardProps {
-  order: any;
-  buyerProfile: any;
-  onClose: () => void;
+  orderId: string;
+  status: string;
+  onStatusChange?: (newStatus: string) => void;
 }
 
-const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({ order, buyerProfile, onClose }) => {
-  const { user } = useAuth();
-  const [isExpanded, setIsExpanded] = useState(false);
+const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
+  orderId,
+  status,
+  onStatusChange
+}) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const { 
+    isUploading, 
+    confirmImages, 
+    uploadConfirmImage, 
+    isAdmin 
+  } = useConfirmationUpload(orderId);
 
-  const toggleExpanded = () => {
-    setIsExpanded(!isExpanded);
-  };
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'pending': return 'secondary';
-      case 'processing': return 'primary';
-      case 'shipped': return 'info';
-      case 'delivered': return 'success';
-      case 'cancelled': return 'destructive';
-      case 'refunded': return 'destructive';
-      default: return 'secondary';
+    await uploadConfirmImage(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
   };
 
-  if (!order) {
-    return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="p-6">
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4 mr-2" />
-            <AlertDescription>
-              Не удалось загрузить информацию о заказе.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
+  const getStatusBadgeVariant = () => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'confirmed': return 'secondary';
+      case 'created': return 'outline';
+      default: return 'outline';
+    }
+  };
+
+  const getStatusIcon = () => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4" />;
+      case 'confirmed':
+        return <AlertTriangle className="h-4 w-4" />;
+      default:
+        return null;
+    }
+  };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardContent className="p-6 space-y-4">
-        {order.status === 'cancelled' || order.status === 'refunded' ? (
-          <div className="text-red-600 flex items-center space-x-2">
-            <XCircle className="h-5 w-5" />
-            <span>Заказ отменен</span>
-          </div>
-        ) : (
-          <div className="text-green-600 flex items-center space-x-2">
-            <CheckCircle2 className="h-5 w-5" />
-            <span>Заказ успешно создан!</span>
-          </div>
-        )}
-
-        <div className="flex justify-between">
-          <div>
-            <div className="text-sm text-muted-foreground">Номер заказа</div>
-            <div className="font-medium">{order.id}</div>
-          </div>
-          <div>
-            <div className="text-sm text-muted-foreground">Статус</div>
-            <Badge variant={getStatusBadgeVariant(order.status)}>{order.status}</Badge>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Package className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="text-sm text-muted-foreground">Товары</div>
-            <div className="font-medium">{order.products?.length} шт.</div>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="text-sm text-muted-foreground">Дата создания</div>
-            <div className="font-medium">
-              {format(new Date(order.created_at), 'dd MMMM yyyy, HH:mm', { locale: ru })}
-            </div>
-          </div>
-        </div>
-
-        {buyerProfile && (
-          <div className="flex items-center space-x-2">
-            <User className="h-4 w-4 text-muted-foreground" />
-            <div>
-              <div className="text-sm text-muted-foreground">Покупатель</div>
-              <div className="font-medium">{buyerProfile.full_name}</div>
-            </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Подтверждение заказа</span>
+          <Badge variant={getStatusBadgeVariant()} className="flex items-center gap-1">
+            {getStatusIcon()}
+            {status === 'completed' ? 'Завершен' : status === 'confirmed' ? 'Подтвержден' : 'Ожидает'}
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isAdmin && (
+          <div className="space-y-2">
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              variant="outline"
+              className="w-full"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Загрузка...' : 'Загрузить подтверждение'}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </div>
         )}
 
-        <div className="flex items-center space-x-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          <div>
-            <div className="text-sm text-muted-foreground">Общая стоимость</div>
-            <div className="font-medium">{order.total_price} AED</div>
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div className="border-t pt-4">
-            <div className="text-sm text-muted-foreground">Дополнительная информация</div>
-            <div className="space-y-2">
-              <div>
-                <div className="text-sm text-muted-foreground">Адрес доставки</div>
-                <div className="font-medium">{order.delivery_address || 'Не указан'}</div>
-              </div>
-              <div>
-                <div className="text-sm text-muted-foreground">Примечания</div>
-                <div className="font-medium">{order.notes || 'Нет'}</div>
-              </div>
+        {confirmImages.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Подтверждающие изображения:</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {confirmImages.map((imageUrl, index) => (
+                <div key={index} className="relative group">
+                  <img
+                    src={imageUrl}
+                    alt={`Подтверждение ${index + 1}`}
+                    className="w-full h-20 object-cover rounded cursor-pointer hover:opacity-80"
+                    onClick={() => setSelectedImage(imageUrl)}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setSelectedImage(imageUrl)}
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        <Button variant="link" onClick={toggleExpanded}>
-          {isExpanded ? 'Скрыть детали' : 'Показать детали'}
-        </Button>
-
-        <div className="border-t pt-4">
-          <Button className="w-full" onClick={onClose}>
-            Закрыть
-          </Button>
-        </div>
+        {/* Image preview dialog */}
+        <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>Подтверждающее изображение</DialogTitle>
+            </DialogHeader>
+            {selectedImage && (
+              <img
+                src={selectedImage}
+                alt="Подтверждение заказа"
+                className="w-full h-auto max-h-[70vh] object-contain"
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

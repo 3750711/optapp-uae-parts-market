@@ -1,389 +1,157 @@
-import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/components/ui/use-toast';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useAdminAccess } from '@/hooks/useAdminAccess';
-import { useDebounceValue } from '@/hooks/useDebounceValue';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useProfile } from '@/contexts/ProfileProvider';
+import { toast } from '@/hooks/use-toast';
 
-interface OrderFormLogicProps {
-  orderId?: string;
-  initialData?: any;
-  isAdmin?: boolean;
-  isSeller?: boolean;
-  onSaveSuccess?: (data: any) => void;
+interface Product {
+  id: string;
+  title: string;
+  seller_id: string;
 }
 
 interface Profile {
   id: string;
   full_name: string;
-  opt_id: string;
-  telegram: string;
-  user_type: string;
 }
 
-interface Product {
-  id: string;
-  title: string;
-}
-
-const orderFormSchema = z.object({
-  status: z.string(),
-  delivery_address: z.string(),
-  delivery_price: z.number(),
-  total_price: z.number(),
-  notes: z.string(),
-});
-
-function useOrderFormLogic({ 
-  orderId,
-  initialData,
-  isAdmin = false,
-  isSeller = false,
-  onSaveSuccess
-}: OrderFormLogicProps) {
-  const navigate = useNavigate();
-  const { toast } = useToast();
+export const useOrderFormLogic = () => {
   const { user } = useAuth();
-  const { isAdmin: hasAdminAccess } = useAdminAccess();
-
-  const [activeStep, setActiveStep] = useState(0);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [isLoadingSellers, setIsLoadingSellers] = useState(false);
-  const [isLoadingBuyers, setIsLoadingBuyers] = useState(false);
+  const { profile } = useProfile();
   const [products, setProducts] = useState<Product[]>([]);
   const [sellers, setSellers] = useState<Profile[]>([]);
   const [buyers, setBuyers] = useState<Profile[]>([]);
-  const [selectedSellerId, setSelectedSellerId] = useState<string | null>(initialData?.seller_id || null);
-  const [selectedBuyerId, setSelectedBuyerId] = useState<string | null>(initialData?.buyer_id || null);
-  const [selectedProducts, setSelectedProducts] = useState<string[]>(initialData?.products || []);
-  const [orderData, setOrderData] = useState({
-    status: initialData?.status || 'pending',
-    delivery_address: initialData?.delivery_address || '',
-    delivery_price: initialData?.delivery_price || 0,
-    total_price: initialData?.total_price || 0,
-    notes: initialData?.notes || '',
-  });
+  const [selectedProduct, setSelectedProduct] = useState<string>('');
+  const [selectedSeller, setSelectedSeller] = useState<string>('');
+  const [selectedBuyer, setSelectedBuyer] = useState<string>('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [deliveryPrice, setDeliveryPrice] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Дебаунсированный поиск по Telegram
-  const [telegramSearchTerm, setTelegramSearchTerm] = useState('');
-  const debouncedTelegramSearch = useDebounceValue(telegramSearchTerm, 300);
-
-  // Дебаунсированный поиск по ФИО
-  const [nameSearchTerm, setNameSearchTerm] = useState('');
-  const debouncedNameSearch = useDebounceValue(nameSearchTerm, 300);
-
-  // Дебаунсированный поиск по OPT ID
-  const [optIdSearchTerm, setOptIdSearchTerm] = useState('');
-  const debouncedOptIdSearch = useDebounceValue(optIdSearchTerm, 300);
-
-  const statuses = useMemo(() => {
-    if (isAdmin || hasAdminAccess) {
-      return ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'];
-    } else if (isSeller) {
-      return ['pending', 'processing', 'shipped', 'cancelled'];
-    } else {
-      return ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
-    }
-  }, [isAdmin, isSeller, hasAdminAccess]);
+  const memoizedProducts = useMemo(() => {
+    return products.filter(product => 
+      selectedSeller ? product.seller_id === selectedSeller : true
+    );
+  }, [products, selectedSeller]);
 
   useEffect(() => {
-    if (initialData) {
-      setOrderData({
-        status: initialData?.status || 'pending',
-        delivery_address: initialData?.delivery_address || '',
-        delivery_price: initialData?.delivery_price || 0,
-        total_price: initialData?.total_price || 0,
-        notes: initialData?.notes || '',
-      });
-      setSelectedSellerId(initialData?.seller_id || null);
-      setSelectedBuyerId(initialData?.buyer_id || null);
-      setSelectedProducts(initialData?.products || []);
-    }
-  }, [initialData]);
-
-  // Оптимизированный поиск продавцов
-  const searchSellers = useCallback(async () => {
-    setIsLoadingSellers(true);
-
-    try {
-      let query = supabase
-        .from('profiles')
-        .select('id, full_name, opt_id, telegram, user_type')
-        .eq('user_type', 'seller')
-        .limit(20);
-      
-      if (debouncedTelegramSearch) {
-        query = query.ilike('telegram', `%${debouncedTelegramSearch}%`);
-      }
-      
-      if (debouncedNameSearch) {
-        query = query.ilike('full_name', `%${debouncedNameSearch}%`);
-      }
-      
-      if (debouncedOptIdSearch) {
-        query = query.ilike('opt_id', `%${debouncedOptIdSearch}%`);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching sellers:', error);
-        return;
-      }
-      
-      setSellers(data || []);
-    } finally {
-      setIsLoadingSellers(false);
-    }
-  }, [debouncedNameSearch, debouncedOptIdSearch, debouncedTelegramSearch]);
-
-  // Оптимизированный поиск покупателей
-  const searchBuyers = useCallback(async () => {
-    setIsLoadingBuyers(true);
-
-    try {
-      let query = supabase
-        .from('profiles')
-        .select('id, full_name, opt_id, user_type, telegram')
-        .eq('user_type', 'buyer')
-        .limit(20);
-      
-      if (debouncedTelegramSearch) {
-        query = query.ilike('telegram', `%${debouncedTelegramSearch}%`);
-      }
-      
-      if (debouncedNameSearch) {
-        query = query.ilike('full_name', `%${debouncedNameSearch}%`);
-      }
-      
-      if (debouncedOptIdSearch) {
-        query = query.ilike('opt_id', `%${debouncedOptIdSearch}%`);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Error fetching buyers:', error);
-        return;
-      }
-      
-      setBuyers(data || []);
-    } finally {
-      setIsLoadingBuyers(false);
-    }
-  }, [debouncedNameSearch, debouncedOptIdSearch, debouncedTelegramSearch]);
-
-  const searchProducts = useCallback(async () => {
-    setIsLoadingProducts(true);
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('id, title')
-        .limit(20);
-
-      if (error) {
+    const fetchProducts = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('id, title, seller_id');
+        if (error) throw error;
+        setProducts(data || []);
+      } catch (error) {
         console.error('Error fetching products:', error);
-        return;
       }
+    };
 
-      setProducts(data || []);
-    } finally {
-      setIsLoadingProducts(false);
-    }
+    fetchProducts();
   }, []);
 
   useEffect(() => {
-    searchProducts();
-  }, [searchProducts]);
-
-  // Обновляем поиск при изменении дебаунсированных значений
-  useEffect(() => {
-    if (activeStep === 0) {
-      searchSellers();
-    } else if (activeStep === 1) {
-      searchBuyers();
-    }
-  }, [activeStep, debouncedNameSearch, debouncedOptIdSearch, debouncedTelegramSearch, searchBuyers, searchSellers]);
-
-  const handleNextStep = () => {
-    setActiveStep((prevStep) => prevStep + 1);
-  };
-
-  const handlePrevStep = () => {
-    setActiveStep((prevStep) => prevStep - 1);
-  };
-
-  const handleSellerSelect = (sellerId: string) => {
-    setSelectedSellerId(sellerId);
-  };
-
-  const handleBuyerSelect = (buyerId: string) => {
-    setSelectedBuyerId(buyerId);
-  };
-
-  const handleProductSelect = (productId: string) => {
-    setSelectedProducts((prevProducts) => {
-      if (prevProducts.includes(productId)) {
-        return prevProducts.filter((id) => id !== productId);
-      } else {
-        return [...prevProducts, productId];
+    const fetchSellers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('user_type', 'seller');
+        if (error) throw error;
+        setSellers(data || []);
+      } catch (error) {
+        console.error('Error fetching sellers:', error);
       }
-    });
-  };
+    };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setOrderData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
+    fetchSellers();
+  }, []);
 
-  const handleSaveOrder = async () => {
-    if (!selectedSellerId || !selectedBuyerId || selectedProducts.length === 0) {
+  useEffect(() => {
+    const fetchBuyers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('user_type', 'buyer');
+        if (error) throw error;
+        setBuyers(data || []);
+      } catch (error) {
+        console.error('Error fetching buyers:', error);
+      }
+    };
+
+    fetchBuyers();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!selectedProduct || !selectedSeller || !selectedBuyer || !deliveryAddress) {
       toast({
         title: "Ошибка",
-        description: "Пожалуйста, заполните все обязательные поля.",
+        description: "Пожалуйста, заполните все обязательные поля",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSaving(true);
+    setIsSubmitting(true);
     try {
-      const order = {
-        seller_id: selectedSellerId,
-        buyer_id: selectedBuyerId,
-        products: selectedProducts,
-        status: orderData.status,
-        delivery_address: orderData.delivery_address,
-        delivery_price: orderData.delivery_price,
-        total_price: orderData.total_price,
-        notes: orderData.notes,
-        created_by: user?.id,
-      };
-
-      if (orderId) {
-        const { data, error } = await supabase
-          .from('orders')
-          .update(order)
-          .eq('id', orderId)
-          .select()
-
-        if (error) {
-          console.error("Error updating order:", error);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось обновить заказ.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        toast({
-          title: "Успех",
-          description: "Заказ успешно обновлен.",
+      const { data, error } = await supabase
+        .from('orders')
+        .insert({
+          products: [selectedProduct],
+          seller_id: selectedSeller,
+          buyer_id: selectedBuyer,
+          delivery_address: deliveryAddress,
+          delivery_price: parseFloat(deliveryPrice) || 0,
+          total_price: parseFloat(totalPrice) || 0,
+          status: 'created'
         });
 
-        if (onSaveSuccess) {
-          onSaveSuccess(data);
-        }
+      if (error) throw error;
 
-      } else {
-        const { data, error } = await supabase
-          .from('orders')
-          .insert([order])
-          .select()
+      toast({
+        title: "Успех",
+        description: "Заказ успешно создан",
+      });
 
-        if (error) {
-          console.error("Error creating order:", error);
-          toast({
-            title: "Ошибка",
-            description: "Не удалось создать заказ.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        toast({
-          title: "Успех",
-          description: "Заказ успешно создан.",
-        });
-
-        if (onSaveSuccess) {
-          onSaveSuccess(data);
-        }
-      }
-      
-      navigate('/admin/orders');
-    } catch (error) {
-      console.error("Error saving order:", error);
+      // Reset form
+      setSelectedProduct('');
+      setSelectedSeller('');
+      setSelectedBuyer('');
+      setDeliveryAddress('');
+      setDeliveryPrice('');
+      setTotalPrice('');
+    } catch (error: any) {
       toast({
         title: "Ошибка",
-        description: "Произошла ошибка при сохранении заказа.",
+        description: error.message || "Не удалось создать заказ",
         variant: "destructive",
       });
     } finally {
-      setIsSaving(false);
+      setIsSubmitting(false);
     }
   };
 
-  const { register, handleSubmit, formState: { errors } } = useForm({
-    resolver: zodResolver(orderFormSchema),
-    defaultValues: orderData,
-  });
-
   return {
-    activeStep,
-    isSaving,
-    isLoading,
-    isLoadingProducts,
-    isLoadingSellers,
-    isLoadingBuyers,
-    products,
+    products: memoizedProducts,
     sellers,
     buyers,
-    selectedSellerId,
-    selectedBuyerId,
-    selectedProducts,
-    orderData,
-    statuses,
-    setActiveStep,
-    setIsSaving,
-    setIsLoading,
-    setIsLoadingProducts,
-    setIsLoadingSellers,
-    setIsLoadingBuyers,
-    setProducts,
-    setSellers,
-    setBuyers,
-    setSelectedSellerId,
-    setSelectedBuyerId,
-    setSelectedProducts,
-    setOrderData,
-    handleNextStep,
-    handlePrevStep,
-    handleSellerSelect,
-    handleBuyerSelect,
-    handleProductSelect,
-    handleInputChange,
-    handleSaveOrder,
-    telegramSearchTerm,
-    setTelegramSearchTerm,
-    nameSearchTerm,
-    setNameSearchTerm,
-    optIdSearchTerm,
-    setOptIdSearchTerm,
-    register,
-    handleSubmit,
-    errors,
+    selectedProduct,
+    selectedSeller,
+    selectedBuyer,
+    deliveryAddress,
+    deliveryPrice,
+    totalPrice,
+    isSubmitting,
+    setSelectedProduct,
+    setSelectedSeller,
+    setSelectedBuyer,
+    setDeliveryAddress,
+    setDeliveryPrice,
+    setTotalPrice,
+    handleSubmit
   };
-}
-
-export { useOrderFormLogic };
+};

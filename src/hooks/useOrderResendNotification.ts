@@ -1,8 +1,10 @@
-import { useState, useCallback } from 'react';
+
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useProfile } from '@/contexts/ProfileProvider';
 
 interface UseOrderResendNotificationProps {
   orderId: string;
@@ -12,7 +14,8 @@ interface UseOrderResendNotificationProps {
 export const useOrderResendNotification = ({ orderId, onSuccess }: UseOrderResendNotificationProps) => {
   const [isResending, setIsResending] = useState(false);
   const [shouldShowButton, setShouldShowButton] = useState(false);
-  const { profile, user } = useAuth();
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   // Отслеживаем данные заказа из кэша для мгновенного обновления

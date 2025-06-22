@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useProfile } from '@/contexts/ProfileProvider';
 import { supabase } from '@/integrations/supabase/client';
 
 import {
@@ -26,7 +27,7 @@ interface SaveEventLogsDialogProps {
 
 const SaveEventLogsDialog = ({ open, onOpenChange, logs, onSuccess }: SaveEventLogsDialogProps) => {
   const { toast } = useToast();
-  const { profile } = useAuth();
+  const { profile } = useProfile();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isSaving, setIsSaving] = useState(false);

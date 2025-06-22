@@ -1,9 +1,12 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/SimpleAuthContext';
+import { useProfile } from '@/contexts/ProfileProvider';
 
 export const useBuyerOrders = () => {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { profile } = useProfile();
   const isSeller = profile?.user_type === 'seller';
 
   console.log('🔍 useBuyerOrders hook:', {
