@@ -1060,7 +1060,7 @@ export type Database = {
       }
       cleanup_expired_verification_codes: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: number
       }
       cleanup_old_login_attempts: {
         Args: Record<PropertyKey, never>
@@ -1221,7 +1221,9 @@ export type Database = {
         Returns: string
       }
       send_verification_code: {
-        Args: { p_email: string; p_ip_address?: unknown }
+        Args:
+          | { p_email: string; p_ip_address?: string }
+          | { p_email: string; p_ip_address?: unknown }
         Returns: Json
       }
       set_limit: {

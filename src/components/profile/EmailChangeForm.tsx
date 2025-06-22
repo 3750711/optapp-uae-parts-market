@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
-import { Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { toast } from '@/components/ui/use-toast';
 import { useEmailVerification } from '@/hooks/useEmailVerification';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,6 +51,11 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
         title: "Код отправлен",
         description: "Код подтверждения отправлен на новый email",
       });
+
+      // Для отладки показываем код в консоли
+      if (result.code) {
+        console.log('🔐 DEBUG: Код для смены email:', result.code);
+      }
     } else {
       toast({
         title: "Ошибка отправки",
