@@ -10,8 +10,7 @@ import { OrderStatusBadge } from './OrderStatusBadge';
 import { OrderDetails } from './OrderDetails';
 import { OrderConfirmationImages } from './OrderConfirmationImages';
 import { Database } from '@/integrations/supabase/types';
-import { useAuth } from '@/contexts/SimpleAuthContext';
-import { useProfile } from '@/contexts/ProfileProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -47,8 +46,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
 }) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmImagesDialogOpen, setIsConfirmImagesDialogOpen] = useState(false);
-  const { user } = useAuth();
-  const { profile } = useProfile();
+  const { user, profile } = useAuth();
 
   // Проверяем, является ли пользователь администратором
   const isAdmin = profile?.user_type === 'admin';
@@ -96,17 +94,7 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
               )}
             </Button>
           )}
-          {order.status === 'created' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsEditDialogOpen(true)}
-              className="h-8 px-2 text-xs"
-            >
-              <Edit2 className="h-3 w-3 mr-1" />
-              Редактировать
-            </Button>
-          )}
+          {order.status === 'created'}
         </div>
         <CardTitle className="text-6xl font-bold text-optapp-dark">
           № {order.order_number}
@@ -141,16 +129,20 @@ export const OrderConfirmationCard: React.FC<OrderConfirmationCardProps> = ({
           </DialogContent>
         </Dialog>
 
-        {/* Share button */}
-        <div className="flex justify-center pt-4">
-          <Button 
-            onClick={() => window.open(generateTelegramShareUrl(), '_blank')}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            Поделиться в Telegram
-          </Button>
-        </div>
+        {/* Диалог для управления подтверждающими фотографиями */}
+        {isAdmin && (
+          <Dialog open={isConfirmImagesDialogOpen} onOpenChange={setIsConfirmImagesDialogOpen}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Подтверждающие фотографии - Заказ № {order.order_number}</DialogTitle>
+              </DialogHeader>
+              <OrderConfirmationImages 
+                orderId={order.id} 
+                canEdit={true}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </CardContent>
     </Card>
   );

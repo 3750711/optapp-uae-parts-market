@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { User } from "lucide-react";
 import { SellerProfile } from "@/types/product";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/SimpleAuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { SellerBasicInfo } from "./seller/SellerBasicInfo";
 import { SellerCommunicationRating } from "./seller/SellerCommunicationRating";

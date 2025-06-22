@@ -3,8 +3,7 @@ import React from "react";
 import { Label } from "@/components/ui/label";
 import { Film } from "lucide-react";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
-import { useAuth } from "@/contexts/SimpleAuthContext";
-import { useProfile } from "@/contexts/ProfileProvider";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
@@ -15,7 +14,7 @@ interface OrderVideosProps {
 }
 
 export const OrderVideos: React.FC<OrderVideosProps> = ({ videos, orderId }) => {
-  const { profile } = useProfile();
+  const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
