@@ -52,24 +52,19 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     (cloudinaryUrl ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
     (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
 
-  // If we have a working public_id and no errors, use CloudinaryImage
+  // If we have a working public_id and no errors, use optimized CloudinaryImage
   if (workingPublicId && !imageError && !fallbackUsed) {
     return (
-      <div className={`relative ${className}`}>
-        {!isLoaded && !priority && (
-          <div className="absolute inset-0 bg-gray-100 animate-pulse rounded" />
-        )}
-        <CloudinaryImage
-          publicId={workingPublicId}
-          alt={alt}
-          size={size}
-          className={`${className} transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
-          priority={priority}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          fallbackSrc="/placeholder.svg"
-        />
-      </div>
+      <CloudinaryImage
+        publicId={workingPublicId}
+        alt={alt}
+        size={size}
+        className={className}
+        priority={priority}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+        fallbackSrc="/placeholder.svg"
+      />
     );
   }
 
@@ -101,6 +96,7 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
         onLoad={handleImageLoad}
         onError={handleImageError}
         loading={priority ? 'eager' : 'lazy'}
+        decoding={priority ? 'sync' : 'async'}
         sizes={sizes}
       />
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { SafeHelmet } from "@/components/seo/SafeHelmet";
 import { useCatalogProducts } from "@/hooks/useCatalogProducts";
@@ -28,7 +27,9 @@ const CatalogContent = React.lazy(() =>
 
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const prefetchTriggerRef = useRef<HTMLDivElement>(null);
   const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
+  const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "800px");
 
   const {
     brands,
@@ -60,20 +61,29 @@ const Catalog: React.FC = () => {
     handleClearSearch,
     handleSearch,
     handleSearchSubmit,
+    prefetchNextPage,
   } = useCatalogProducts({
     productsPerPage: 8,
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 300 // Уменьшено с 1000ms для быстрого отклика
+    debounceTime: 200 // Reduced to 200ms for better responsiveness
   });
 
+  // Auto-load more products when visible
   React.useEffect(() => {
     if (isLoadMoreVisible && hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [isLoadMoreVisible, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  // Prefetch next page when user is getting close
+  React.useEffect(() => {
+    if (isPrefetchTriggerVisible && hasNextPage && !isFetchingNextPage) {
+      prefetchNextPage();
+    }
+  }, [isPrefetchTriggerVisible, prefetchNextPage, hasNextPage, isFetchingNextPage]);
 
   const handleRetry = async () => {
     try {
@@ -235,6 +245,12 @@ const Catalog: React.FC = () => {
           hasActiveFilters={hasAnyFilters}
           handleSearchSubmit={handleEnhancedSearchSubmit}
         />
+
+        {/* Prefetch trigger - invisible element to trigger prefetching */}
+        <div ref={prefetchTriggerRef} className="h-1 w-full" style={{ 
+          position: 'absolute', 
+          bottom: '200vh' 
+        }} />
 
         <React.Suspense fallback={
           <div className="flex justify-center items-center py-8">

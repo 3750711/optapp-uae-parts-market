@@ -1,5 +1,5 @@
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +10,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import AppRoutes from "@/routes";
 import { Loader2 } from "lucide-react";
 import { GlobalErrorBoundary } from "@/components/error/GlobalErrorBoundary";
+import { performanceMonitor } from "@/utils/performanceMonitor";
 
 // Оптимизированная конфигурация QueryClient для production
 const queryClient = new QueryClient({
@@ -43,24 +44,38 @@ const RouteLoader = React.memo(() => (
   </div>
 ));
 
-const App = () => (
-  <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <AuthProvider>
-              <Suspense fallback={<RouteLoader />}>
-                <AppRoutes />
-              </Suspense>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
-  </GlobalErrorBoundary>
-);
+const App = () => {
+  useEffect(() => {
+    // Initialize performance monitoring in development
+    if (import.meta.env.DEV) {
+      console.log('🚀 Performance monitoring initialized');
+    }
+
+    // Cleanup on unmount
+    return () => {
+      performanceMonitor.destroy();
+    };
+  }, []);
+
+  return (
+    <GlobalErrorBoundary showDetails={import.meta.env.DEV}>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <AuthProvider>
+                <Suspense fallback={<RouteLoader />}>
+                  <AppRoutes />
+                </Suspense>
+              </AuthProvider>
+            </BrowserRouter>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    </GlobalErrorBoundary>
+  );
+};
 
 export default App;

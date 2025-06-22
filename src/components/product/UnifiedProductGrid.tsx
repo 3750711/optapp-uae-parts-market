@@ -1,9 +1,9 @@
-
 import React, { memo, useMemo, useState, useEffect } from "react";
 import { FixedSizeGrid as Grid } from 'react-window';
 import { useIsMobile } from "@/hooks/use-mobile";
 import ProductCard, { ProductProps } from "./ProductCard";
 import ProductListItem from "./ProductListItem";
+import VirtualizedProductList from "./VirtualizedProductList";
 import ProductSkeleton from "@/components/catalog/ProductSkeleton";
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 
@@ -122,6 +122,18 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
     );
   }
 
+  // Virtualized list mode - optimized for large datasets
+  if (viewMode === 'virtualized' && viewMode === 'list') {
+    return (
+      <VirtualizedProductList
+        products={visibleProducts}
+        containerHeight={containerHeight}
+        showSoldButton={showSoldButton}
+        onStatusChange={onStatusChange}
+      />
+    );
+  }
+
   // Virtualized grid mode
   if (viewMode === 'virtualized') {
     const rowCount = Math.ceil(visibleProducts.length / (columnCount || 1));
@@ -134,7 +146,11 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
 
       return (
         <div style={style} className="p-2">
-          <ProductCard product={product} />
+          <ProductCard 
+            product={product}
+            showSoldButton={showSoldButton}
+            onStatusChange={onStatusChange}
+          />
         </div>
       );
     };
@@ -149,6 +165,8 @@ const UnifiedProductGrid: React.FC<UnifiedProductGridProps> = ({
           rowHeight={rowHeight || 380}
           width={gridWidth || containerWidth}
           className="scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          overscanColumnCount={2}
+          overscanRowCount={2}
         >
           {Cell}
         </Grid>
