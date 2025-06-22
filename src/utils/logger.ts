@@ -35,6 +35,39 @@ export const devError = (...args: any[]) => {
   }
 };
 
+// Production error logging (критические ошибки для production)
+export const prodError = (error: Error | string, context?: Record<string, any>) => {
+  const errorMessage = typeof error === 'string' ? error : error.message;
+  const stack = typeof error === 'object' ? error.stack : undefined;
+  
+  // В production логируем только критические ошибки
+  if (isProduction) {
+    console.error('🚨 Production Error:', errorMessage, context);
+  } else {
+    // В development логируем подробнее
+    console.error('🔴 Error:', errorMessage, context, stack ? { stack } : {});
+  }
+  
+  // Отправляем в систему мониторинга если доступна
+  if (typeof window !== 'undefined') {
+    try {
+      const errorEvent = new CustomEvent('production-error', {
+        detail: { 
+          message: errorMessage, 
+          stack, 
+          context, 
+          timestamp: Date.now(),
+          url: window.location.href,
+          userAgent: navigator.userAgent
+        }
+      });
+      window.dispatchEvent(errorEvent);
+    } catch (reportingError) {
+      console.error('Failed to report production error:', reportingError);
+    }
+  }
+};
+
 // Throttled logging для избежания спама (только в development)
 export const throttledDevLog = (key: string, ...args: any[]) => {
   if (!LOG_CONFIG.enableDevLogs || !LOG_CONFIG.throttleEnabled) return;
