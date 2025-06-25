@@ -68,14 +68,14 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-full h-screen md:h-[95vh] md:w-[95vw] min-h-[600px] flex flex-col p-0 gap-0 m-0 md:m-6 rounded-none md:rounded-lg">
+      <DialogContent className="max-w-4xl w-full h-[100dvh] md:h-[95vh] md:w-[95vw] md:max-h-[90vh] min-h-0 flex flex-col p-0 gap-0 m-0 md:m-6 rounded-none md:rounded-lg overflow-hidden">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full bg-slate-50">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full bg-slate-50 relative">
             <div className="flex-shrink-0">
               <OrderEditHeader order={order} onStatusChange={onStatusChange} />
             </div>
 
-            <div className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden pb-20 md:pb-0">
               <ScrollArea 
                 className="h-full w-full"
                 style={{
@@ -83,7 +83,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
                   touchAction: 'pan-y',
                 }}
               >
-                <div className="px-4 md:px-6 py-4">
+                <div className="px-4 md:px-6 py-4 pb-6 md:pb-4">
                   <OrderEditTabs
                     form={form}
                     order={order}
@@ -97,13 +97,47 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
               </ScrollArea>
             </div>
             
-            <DialogFooter className="bg-background px-4 md:px-6 py-4 md:py-3 border-t flex-shrink-0 flex-row gap-2 justify-end">
+            {/* Mobile: Fixed footer */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 px-4 py-3 pb-[max(1rem,env(safe-area-inset-bottom))] z-50 shadow-lg">
+              <div className="flex gap-3">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleClose} 
+                  disabled={isSaving}
+                  className="flex-1 h-12 px-4 text-base font-medium touch-target"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Закрыть
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="flex-1 h-12 px-4 text-base font-medium touch-target"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Сохранить
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Desktop: Normal footer */}
+            <DialogFooter className="hidden md:flex bg-background px-6 py-3 border-t flex-shrink-0 flex-row gap-2 justify-end">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={handleClose} 
                 disabled={isSaving}
-                className="h-12 md:h-10 px-6 md:px-4"
+                className="h-10 px-4"
               >
                 <X className="h-4 w-4 mr-2" />
                 Закрыть
@@ -111,7 +145,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
               <Button 
                 type="submit" 
                 disabled={isSaving}
-                className="h-12 md:h-10 px-6 md:px-4"
+                className="h-10 px-4"
               >
                 {isSaving ? (
                   <>
