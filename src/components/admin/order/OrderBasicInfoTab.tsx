@@ -1,4 +1,7 @@
 import React from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { MobileOptimizedBasicInfoTab } from './MobileOptimizedBasicInfoTab';
+
 import {
   FormControl,
   FormField,
@@ -26,6 +29,13 @@ interface OrderBasicInfoTabProps {
 }
 
 export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, order }) => {
+  const isMobile = useIsMobile();
+
+  // Use mobile-optimized version on mobile devices
+  if (isMobile) {
+    return <MobileOptimizedBasicInfoTab form={form} order={order} />;
+  }
+
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
   const [isCheckingOrderNumber, setIsCheckingOrderNumber] = React.useState(false);

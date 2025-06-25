@@ -3,6 +3,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Camera, Video } from 'lucide-react';
 
 interface OrderMediaTabProps {
   order: any;
@@ -21,6 +23,8 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   onVideosChange,
   onVideoDelete
 }) => {
+  const isMobile = useIsMobile();
+
   const handleImageUpload = (uploadedUrls: string[]) => {
     const newImageList = [...orderImages, ...uploadedUrls];
     onImagesChange(newImageList);
@@ -37,12 +41,20 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className={`space-y-4 ${isMobile ? 'px-1' : 'space-y-6'}`}>
       <Card>
-        <CardHeader>
-          <CardTitle>Фотографии заказа</CardTitle>
+        <CardHeader className={isMobile ? 'pb-3' : ''}>
+          <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+            <Camera className="h-5 w-5" />
+            Фотографии заказа
+            {orderImages.length > 0 && (
+              <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                {orderImages.length}
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={isMobile ? 'pt-0' : ''}>
           <MobileOptimizedImageUpload
             onUploadComplete={handleImageUpload}
             maxImages={20}
@@ -56,10 +68,18 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Видеофайлы заказа</CardTitle>
+        <CardHeader className={isMobile ? 'pb-3' : ''}>
+          <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
+            <Video className="h-5 w-5" />
+            Видеофайлы заказа
+            {orderVideos.length > 0 && (
+              <span className="text-sm bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                {orderVideos.length}
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className={isMobile ? 'pt-0' : ''}>
           <CloudinaryVideoUpload
             videos={orderVideos}
             onUpload={handleVideoUpload}
