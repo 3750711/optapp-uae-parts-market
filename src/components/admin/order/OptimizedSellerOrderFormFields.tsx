@@ -261,15 +261,17 @@ const OptimizedSellerOrderFormFields: React.FC<OptimizedSellerOrderFormFieldsPro
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="place_number">Количество мест</Label>
+                <Label htmlFor="place_number">Количество мест *</Label>
                 <Input
                   id="place_number"
                   type="number"
-                  value={formData.place_number || '1'}
+                  value={formData.place_number || ''}
                   onChange={(e) => handleInputChange('place_number', e.target.value)}
                   min="1"
+                  placeholder="Введите количество мест"
                   disabled={disabled}
                   className="bg-white"
+                  required
                 />
               </div>
             </div>
