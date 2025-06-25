@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Database } from '@/integrations/supabase/types';
@@ -70,35 +71,63 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`
-        ${isMobile 
-          ? 'w-screen h-screen max-w-none max-h-none m-0 p-0 rounded-none' 
-          : 'max-w-4xl w-[95vw] h-[95vh] min-h-[600px]'
-        } 
-        flex flex-col gap-0
-      `}>
+      <DialogContent 
+        className={`
+          ${isMobile 
+            ? 'w-screen h-screen max-w-none max-h-none m-0 p-0 rounded-none' 
+            : 'max-w-4xl w-[95vw] h-[95vh] min-h-[600px]'
+          } 
+          flex flex-col gap-0 overflow-hidden
+        `}
+        style={{
+          ...(isMobile && { 
+            height: '100vh',
+            maxHeight: '100vh'
+          })
+        }}
+      >
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full bg-slate-50">
-            <div className="flex-shrink-0">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full bg-slate-50 overflow-hidden">
+            {/* Fixed Header */}
+            <div className="flex-shrink-0 border-b bg-white z-10">
               <OrderEditHeader order={order} onStatusChange={onStatusChange} />
             </div>
 
-            <div className="flex-1 min-h-0">
-              <div className={`h-full ${isMobile ? 'px-4 py-3' : 'px-6 py-4'} overflow-y-auto`}>
-                <OrderEditTabs
-                  form={form}
-                  order={order}
-                  orderImages={orderImages}
-                  onImagesChange={handleImagesChange}
-                  orderVideos={orderVideos}
-                  onVideosChange={handleVideosChange}
-                  onVideoDelete={handleVideoDelete}
-                />
-              </div>
+            {/* Scrollable Content Area */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <ScrollArea 
+                className={`h-full w-full ${isMobile ? '' : 'px-1'}`}
+                style={{
+                  height: isMobile ? 'calc(100vh - 140px)' : '100%',
+                  touchAction: 'pan-y',
+                  WebkitOverflowScrolling: 'touch'
+                }}
+              >
+                <div 
+                  className={`
+                    ${isMobile ? 'px-4 py-3' : 'px-6 py-4'} 
+                    pb-6
+                  `}
+                  style={{
+                    minHeight: isMobile ? 'calc(100vh - 80px)' : 'auto'
+                  }}
+                >
+                  <OrderEditTabs
+                    form={form}
+                    order={order}
+                    orderImages={orderImages}
+                    onImagesChange={handleImagesChange}
+                    orderVideos={orderVideos}
+                    onVideosChange={handleVideosChange}
+                    onVideoDelete={handleVideoDelete}
+                  />
+                </div>
+              </ScrollArea>
             </div>
             
+            {/* Fixed Footer */}
             <DialogFooter className={`
-              bg-background border-t flex-shrink-0
+              bg-background border-t flex-shrink-0 z-10
               ${isMobile ? 'px-4 py-4' : 'px-6 py-3'}
             `}>
               <div className={`

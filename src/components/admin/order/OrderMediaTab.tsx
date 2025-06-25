@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -42,6 +43,7 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
 
   return (
     <div className={`space-y-4 ${isMobile ? 'px-1' : 'space-y-6'}`}>
+      {/* Images Section */}
       <Card>
         <CardHeader className={isMobile ? 'pb-3' : ''}>
           <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
@@ -55,18 +57,24 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className={isMobile ? 'pt-0' : ''}>
-          <MobileOptimizedImageUpload
-            onUploadComplete={handleImageUpload}
-            maxImages={20}
-            existingImages={orderImages}
-            onImageDelete={handleImageDelete}
-            productId={order?.id}
-            buttonText="Добавить фотографии к заказу"
-            showOnlyButton={false}
-          />
+          <ScrollArea 
+            className={isMobile ? "h-auto max-h-96" : "h-auto"}
+            style={{ touchAction: 'pan-y' }}
+          >
+            <MobileOptimizedImageUpload
+              onUploadComplete={handleImageUpload}
+              maxImages={20}
+              existingImages={orderImages}
+              onImageDelete={handleImageDelete}
+              productId={order?.id}
+              buttonText="Добавить фотографии к заказу"
+              showOnlyButton={false}
+            />
+          </ScrollArea>
         </CardContent>
       </Card>
 
+      {/* Videos Section */}
       <Card>
         <CardHeader className={isMobile ? 'pb-3' : ''}>
           <CardTitle className={`${isMobile ? 'text-base' : 'text-lg'} flex items-center gap-2`}>
@@ -80,14 +88,19 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className={isMobile ? 'pt-0' : ''}>
-          <CloudinaryVideoUpload
-            videos={orderVideos}
-            onUpload={handleVideoUpload}
-            onDelete={onVideoDelete}
-            maxVideos={3}
-            productId={order?.id}
-            buttonText="Загрузить видео заказа"
-          />
+          <ScrollArea 
+            className={isMobile ? "h-auto max-h-96" : "h-auto"}
+            style={{ touchAction: 'pan-y' }}
+          >
+            <CloudinaryVideoUpload
+              videos={orderVideos}
+              onUpload={handleVideoUpload}
+              onDelete={onVideoDelete}
+              maxVideos={3}
+              productId={order?.id}
+              buttonText="Загрузить видео заказа"
+            />
+          </ScrollArea>
         </CardContent>
       </Card>
     </div>
