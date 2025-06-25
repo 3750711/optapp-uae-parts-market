@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   FormControl,
@@ -19,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OrderBasicInfoTabProps {
   form: any;
@@ -26,6 +28,7 @@ interface OrderBasicInfoTabProps {
 }
 
 export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, order }) => {
+  const isMobile = useIsMobile();
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
   const [isCheckingOrderNumber, setIsCheckingOrderNumber] = React.useState(false);
@@ -109,16 +112,16 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {hasUnsavedChanges && (
-        <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-          <AlertCircle className="h-4 w-4 text-yellow-600" />
+        <div className="flex items-center gap-2 p-3 md:p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+          <AlertCircle className="h-4 w-4 text-yellow-600 flex-shrink-0" />
           <span className="text-sm text-yellow-700">У вас есть несохраненные изменения</span>
         </div>
       )}
 
       {/* Order Status and Priority Indicator */}
-      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 md:p-4 bg-gray-50 rounded-lg">
         <div className="flex items-center gap-3">
           <Badge variant={order?.status === 'delivered' ? 'default' : 'secondary'}>
             {order?.status === 'created' && 'Создан'}
@@ -133,20 +136,20 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
         </div>
         {Object.keys(validationErrors).length === 0 && (
           <div className="flex items-center gap-2 text-green-600">
-            <CheckCircle className="h-4 w-4" />
+            <CheckCircle className="h-4 w-4 flex-shrink-0" />
             <span className="text-sm">Все поля заполнены корректно</span>
           </div>
         )}
       </div>
 
       {/* Basic Information */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <FormField
           control={form.control}
           name="order_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Номер заказа *</FormLabel>
+              <FormLabel className="text-sm md:text-base">Номер заказа *</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input 
@@ -154,7 +157,7 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
                     type="number"
                     min="1"
                     onBlur={() => validateField('order_number', field.value)}
-                    className={validationErrors.order_number ? 'border-red-500' : ''}
+                    className={`h-12 md:h-10 ${validationErrors.order_number ? 'border-red-500' : ''}`}
                     disabled={isCheckingOrderNumber}
                   />
                   {isCheckingOrderNumber && (
@@ -177,12 +180,12 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Наименование *</FormLabel>
+              <FormLabel className="text-sm md:text-base">Наименование *</FormLabel>
               <FormControl>
                 <Input 
                   {...field} 
                   onBlur={() => validateField('title', field.value)}
-                  className={validationErrors.title ? 'border-red-500' : ''}
+                  className={`h-12 md:h-10 ${validationErrors.title ? 'border-red-500' : ''}`}
                 />
               </FormControl>
               {validationErrors.title && (
@@ -198,9 +201,9 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="brand"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Бренд</FormLabel>
+              <FormLabel className="text-sm md:text-base">Бренд</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} className="h-12 md:h-10" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -212,9 +215,9 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="model"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Модель</FormLabel>
+              <FormLabel className="text-sm md:text-base">Модель</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} className="h-12 md:h-10" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -226,14 +229,14 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Цена ($) *</FormLabel>
+              <FormLabel className="text-sm md:text-base">Цена ($) *</FormLabel>
               <FormControl>
                 <Input 
                   {...field} 
                   type="number" 
                   step="0.01"
                   onBlur={() => validateField('price', field.value)}
-                  className={validationErrors.price ? 'border-red-500' : ''}
+                  className={`h-12 md:h-10 ${validationErrors.price ? 'border-red-500' : ''}`}
                 />
               </FormControl>
               {validationErrors.price && (
@@ -249,14 +252,14 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="place_number"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Количество мест *</FormLabel>
+              <FormLabel className="text-sm md:text-base">Количество мест *</FormLabel>
               <FormControl>
                 <Input 
                   {...field} 
                   type="number" 
                   min="1"
                   onBlur={() => validateField('place_number', field.value)}
-                  className={validationErrors.place_number ? 'border-red-500' : ''}
+                  className={`h-12 md:h-10 ${validationErrors.place_number ? 'border-red-500' : ''}`}
                 />
               </FormControl>
               {validationErrors.place_number && (
@@ -272,10 +275,10 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="delivery_method"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Способ доставки</FormLabel>
+              <FormLabel className="text-sm md:text-base">Способ доставки</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 md:h-10">
                     <SelectValue placeholder="Выберите способ доставки" />
                   </SelectTrigger>
                 </FormControl>
@@ -295,9 +298,9 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           name="delivery_price_confirm"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Подтвержденная стоимость доставки ($)</FormLabel>
+              <FormLabel className="text-sm md:text-base">Подтвержденная стоимость доставки ($)</FormLabel>
               <FormControl>
-                <Input {...field} type="number" step="0.01" />
+                <Input {...field} type="number" step="0.01" className="h-12 md:h-10" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -308,11 +311,11 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
           control={form.control}
           name="status"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel>Статус</FormLabel>
+            <FormItem className="md:col-span-2">
+              <FormLabel className="text-sm md:text-base">Статус</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 md:h-10">
                     <SelectValue placeholder="Выберите статус" />
                   </SelectTrigger>
                 </FormControl>
@@ -337,9 +340,13 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
         name="description"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Описание</FormLabel>
+            <FormLabel className="text-sm md:text-base">Описание</FormLabel>
             <FormControl>
-              <Textarea {...field} rows={4} />
+              <Textarea 
+                {...field} 
+                rows={isMobile ? 3 : 4} 
+                className="min-h-[100px] md:min-h-[120px] resize-none"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

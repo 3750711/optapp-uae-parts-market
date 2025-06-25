@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileOptimizedImageUpload } from "@/components/ui/MobileOptimizedImageUpload";
 import { CloudinaryVideoUpload } from "@/components/ui/cloudinary-video-upload";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OrderMediaTabProps {
   order: any;
@@ -21,6 +22,8 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   onVideosChange,
   onVideoDelete
 }) => {
+  const isMobile = useIsMobile();
+
   const handleImageUpload = (uploadedUrls: string[]) => {
     const newImageList = [...orderImages, ...uploadedUrls];
     onImagesChange(newImageList);
@@ -37,12 +40,12 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Фотографии заказа</CardTitle>
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="text-lg md:text-xl">Фотографии заказа</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <MobileOptimizedImageUpload
             onUploadComplete={handleImageUpload}
             maxImages={20}
@@ -56,10 +59,10 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Видеофайлы заказа</CardTitle>
+        <CardHeader className="pb-3 md:pb-6">
+          <CardTitle className="text-lg md:text-xl">Видеофайлы заказа</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-0">
           <CloudinaryVideoUpload
             videos={orderVideos}
             onUpload={handleVideoUpload}
@@ -67,6 +70,7 @@ export const OrderMediaTab: React.FC<OrderMediaTabProps> = ({
             maxVideos={3}
             productId={order?.id}
             buttonText="Загрузить видео заказа"
+            className={isMobile ? "grid-cols-1" : ""}
           />
         </CardContent>
       </Card>

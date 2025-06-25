@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Database } from '@/integrations/supabase/types';
 import { Loader2, Save, X } from "lucide-react";
 import { OrderEditHeader } from "@/components/admin/order/OrderEditHeader";
@@ -67,7 +68,7 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[95vw] h-[95vh] min-h-[600px] flex flex-col p-0 gap-0">
+      <DialogContent className="max-w-4xl w-full h-screen md:h-[95vh] md:w-[95vw] min-h-[600px] flex flex-col p-0 gap-0 m-0 md:m-6 rounded-none md:rounded-lg">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full bg-slate-50">
             <div className="flex-shrink-0">
@@ -75,25 +76,43 @@ export const AdminOrderEditDialog: React.FC<AdminOrderEditDialogProps> = ({
             </div>
 
             <div className="flex-1 min-h-0 overflow-hidden">
-              <div className="h-full overflow-y-auto px-6 py-4">
-                <OrderEditTabs
-                  form={form}
-                  order={order}
-                  orderImages={orderImages}
-                  onImagesChange={handleImagesChange}
-                  orderVideos={orderVideos}
-                  onVideosChange={handleVideosChange}
-                  onVideoDelete={handleVideoDelete}
-                />
-              </div>
+              <ScrollArea 
+                className="h-full w-full"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                  touchAction: 'pan-y',
+                }}
+              >
+                <div className="px-4 md:px-6 py-4">
+                  <OrderEditTabs
+                    form={form}
+                    order={order}
+                    orderImages={orderImages}
+                    onImagesChange={handleImagesChange}
+                    orderVideos={orderVideos}
+                    onVideosChange={handleVideosChange}
+                    onVideoDelete={handleVideoDelete}
+                  />
+                </div>
+              </ScrollArea>
             </div>
             
-            <DialogFooter className="bg-background px-6 py-3 border-t flex-shrink-0">
-              <Button type="button" variant="outline" onClick={handleClose} disabled={isSaving}>
+            <DialogFooter className="bg-background px-4 md:px-6 py-4 md:py-3 border-t flex-shrink-0 flex-row gap-2 justify-end">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleClose} 
+                disabled={isSaving}
+                className="h-12 md:h-10 px-6 md:px-4"
+              >
                 <X className="h-4 w-4 mr-2" />
                 Закрыть
               </Button>
-              <Button type="submit" disabled={isSaving}>
+              <Button 
+                type="submit" 
+                disabled={isSaving}
+                className="h-12 md:h-10 px-6 md:px-4"
+              >
                 {isSaving ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -31,62 +31,62 @@ export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
 
   return (
     <Tabs defaultValue="basic" className="w-full">
-      <TabsList className={`grid w-full ${isMobile ? 'grid-cols-4 h-12' : 'grid-cols-4 h-10'}`}>
+      <TabsList className="grid w-full grid-cols-4 h-12 md:h-10 mb-4 md:mb-6">
         <TabsTrigger 
           value="basic" 
-          className={`flex items-center gap-2 ${isMobile ? 'px-2 py-3 text-xs' : 'px-3 py-2'}`}
+          className="flex items-center gap-1 md:gap-2 px-2 py-3 md:py-2 text-xs md:text-sm"
         >
-          <Package className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'}`} />
-          <span className={`${isMobile ? 'hidden xs:inline text-xs' : 'hidden sm:inline'}`}>
+          <Package className="h-4 w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">
             Основная информация
           </span>
-          <span className={`${isMobile ? 'xs:hidden' : 'sm:hidden'}`}>
+          <span className="sm:hidden">
             Основное
           </span>
         </TabsTrigger>
         <TabsTrigger 
           value="media" 
-          className={`flex items-center gap-2 ${isMobile ? 'px-2 py-3 text-xs' : 'px-3 py-2'}`}
+          className="flex items-center gap-1 md:gap-2 px-2 py-3 md:py-2 text-xs md:text-sm"
         >
-          <Image className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'}`} />
-          <span className={`${isMobile ? 'hidden xs:inline text-xs' : 'hidden sm:inline'}`}>
+          <Image className="h-4 w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">
             Медиафайлы
           </span>
-          <span className={`${isMobile ? 'xs:hidden' : 'sm:hidden'}`}>
+          <span className="sm:hidden">
             Медиа
           </span>
         </TabsTrigger>
         <TabsTrigger 
           value="history" 
-          className={`flex items-center gap-2 ${isMobile ? 'px-2 py-3 text-xs' : 'px-3 py-2'}`}
+          className="flex items-center gap-1 md:gap-2 px-2 py-3 md:py-2 text-xs md:text-sm"
         >
-          <Clock className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'}`} />
-          <span className={`${isMobile ? 'hidden xs:inline text-xs' : 'hidden sm:inline'}`}>
+          <Clock className="h-4 w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">
             История
           </span>
-          <span className={`${isMobile ? 'xs:hidden' : 'sm:hidden'}`}>
+          <span className="sm:hidden">
             История
           </span>
         </TabsTrigger>
         <TabsTrigger 
           value="export" 
-          className={`flex items-center gap-2 ${isMobile ? 'px-2 py-3 text-xs' : 'px-3 py-2'}`}
+          className="flex items-center gap-1 md:gap-2 px-2 py-3 md:py-2 text-xs md:text-sm"
         >
-          <FileText className={`${isMobile ? 'h-4 w-4' : 'h-4 w-4'}`} />
-          <span className={`${isMobile ? 'hidden xs:inline text-xs' : 'hidden sm:inline'}`}>
+          <FileText className="h-4 w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">
             Экспорт
           </span>
-          <span className={`${isMobile ? 'xs:hidden' : 'sm:hidden'}`}>
+          <span className="sm:hidden">
             Экспорт
           </span>
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="basic" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+      <TabsContent value="basic" className="mt-0">
         <OrderBasicInfoTab form={form} order={order} />
       </TabsContent>
 
-      <TabsContent value="media" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+      <TabsContent value="media" className="mt-0">
         <OrderMediaTab
           order={order}
           orderImages={orderImages}
@@ -97,11 +97,11 @@ export const OrderEditTabs: React.FC<OrderEditTabsProps> = ({
         />
       </TabsContent>
 
-      <TabsContent value="history" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+      <TabsContent value="history" className="mt-0">
         <OrderHistoryTab orderId={order?.id} />
       </TabsContent>
 
-      <TabsContent value="export" className={`${isMobile ? 'mt-4' : 'mt-6'}`}>
+      <TabsContent value="export" className="mt-0">
         <OrderExportTab order={order} />
       </TabsContent>
     </Tabs>
