@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOptimizedBasicInfoTab } from './MobileOptimizedBasicInfoTab';
@@ -30,23 +31,11 @@ interface OrderBasicInfoTabProps {
 
 export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, order }) => {
   const isMobile = useIsMobile();
-
-  // Use mobile-optimized version on mobile devices
-  if (isMobile) {
-    return <MobileOptimizedBasicInfoTab form={form} order={order} />;
-  }
-
+  
+  // All hooks must be called before any conditional returns
   const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
   const [validationErrors, setValidationErrors] = React.useState<Record<string, string>>({});
   const [isCheckingOrderNumber, setIsCheckingOrderNumber] = React.useState(false);
-
-  // Watch for form changes
-  React.useEffect(() => {
-    const subscription = form.watch(() => {
-      setHasUnsavedChanges(true);
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
 
   // Check order number uniqueness
   const checkOrderNumberUnique = React.useCallback(async (orderNumber: number) => {
@@ -85,8 +74,18 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
     }
   }, [order?.id]);
 
+  // Watch for form changes
+  React.useEffect(() => {
+    if (!form) return;
+    
+    const subscription = form.watch(() => {
+      setHasUnsavedChanges(true);
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
   // Real-time validation
-  const validateField = (name: string, value: any) => {
+  const validateField = React.useCallback((name: string, value: any) => {
     const errors: Record<string, string> = {};
     
     switch (name) {
@@ -116,7 +115,12 @@ export const OrderBasicInfoTab: React.FC<OrderBasicInfoTabProps> = ({ form, orde
     }
     
     setValidationErrors(prev => ({ ...prev, [name]: errors[name] }));
-  };
+  }, [checkOrderNumberUnique]);
+
+  // Use mobile-optimized version on mobile devices
+  if (isMobile) {
+    return <MobileOptimizedBasicInfoTab form={form} order={order} />;
+  }
 
   return (
     <div className="space-y-6">
