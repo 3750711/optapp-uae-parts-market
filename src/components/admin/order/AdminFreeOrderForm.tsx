@@ -6,6 +6,7 @@ import AdvancedImageUpload from './AdvancedImageUpload';
 import { CloudinaryVideoUpload } from '@/components/ui/cloudinary-video-upload';
 import { CreatedOrderView } from './CreatedOrderView';
 import { OrderPreviewDialog } from './OrderPreviewDialog';
+import { TelegramOrderParser } from './TelegramOrderParser';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader, AlertCircle, Camera, Plus, RefreshCw, Database } from 'lucide-react';
@@ -15,6 +16,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileOrderCreationHeader } from './MobileOrderCreationHeader';
 import { MobileFormSection } from './MobileFormSection';
+import { ParsedTelegramOrder } from '@/utils/parseTelegramOrder';
+import { useLazyProfiles } from '@/hooks/useLazyProfiles';
 
 export const AdminFreeOrderForm = () => {
   const [showPreview, setShowPreview] = useState(false);
@@ -46,6 +49,7 @@ export const AdminFreeOrderForm = () => {
     // Additional data for preview
     selectedSeller,
     buyerProfiles,
+    sellerProfiles,
     
     // Loading states
     isInitializing,
@@ -85,6 +89,46 @@ export const AdminFreeOrderForm = () => {
   const onVideoDelete = (url: string) => {
     console.log('🗑️ AdminFreeOrderForm: Video deleted:', url);
     setVideos(prev => prev.filter(video => video !== url));
+  };
+
+  // Обработчик данных из Telegram парсера
+  const handleTelegramDataParsed = (data: ParsedTelegramOrder) => {
+    // Заполняем основные поля
+    handleInputChange('title', data.title);
+    handleInputChange('place_number', data.place_number);
+    handleInputChange('price', data.price);
+    
+    if (data.delivery_price) {
+      handleInputChange('delivery_price', data.delivery_price);
+    }
+
+    // Заполняем бренд и модель если они распознаны
+    if (data.brand) {
+      handleInputChange('brand', data.brand);
+    }
+    if (data.model) {
+      handleInputChange('model', data.model);
+    }
+
+    // Ищем продавца по OPT_ID
+    const foundSeller = sellerProfiles.find(seller => seller.opt_id === data.sellerOptId);
+    if (foundSeller) {
+      handleInputChange('sellerId', foundSeller.id);
+    } else {
+      toast({
+        title: "Продавец не найден",
+        description: `Продавец с OPT_ID "${data.sellerOptId}" не найден в системе`,
+        variant: "destructive",
+      });
+    }
+
+    // Устанавливаем OPT_ID покупателя
+    handleInputChange('buyerOptId', data.buyerOptId);
+
+    toast({
+      title: "Поля заполнены",
+      description: "Данные из Telegram успешно применены к форме",
+    });
   };
 
   const handleCreateOrderClick = () => {
@@ -246,6 +290,12 @@ export const AdminFreeOrderForm = () => {
           </AlertDescription>
         </Alert>
       )}
+
+      {/* Парсер Telegram сообщений */}
+      <TelegramOrderParser
+        onDataParsed={handleTelegramDataParsed}
+        disabled={isFormDisabled}
+      />
       
       {/* Оптимизированные поля формы заказа */}
       <OptimizedSellerOrderFormFields
