@@ -100,6 +100,47 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         </CardContent>
       </Card>
 
+      {/* Technical Details */}
+      {(product.brand || product.model || product.lot_number) && (
+        <Card className="rounded-none border-0 shadow-none mb-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Info className="h-4 w-4" />
+              Характеристики
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {product.brand && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Бренд:</span>
+                <span className="font-medium">{product.brand}</span>
+              </div>
+            )}
+            {product.model && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Модель:</span>
+                <span className="font-medium">{product.model}</span>
+              </div>
+            )}
+            {product.lot_number && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Лот:</span>
+                <span className="font-medium">{product.lot_number}</span>
+              </div>
+            )}
+            
+            <div className="bg-gray-50 p-3 rounded-lg mt-4">
+              <div className="text-xs text-muted-foreground">
+                Просмотров: {product.view_count || 0}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Создано: {new Date(product.created_at).toLocaleDateString('ru-RU')}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Seller Info */}
       <Card className="rounded-none border-0 shadow-none mb-2">
         <CardHeader className="pb-3">
@@ -145,47 +186,6 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           )}
         </CardContent>
       </Card>
-
-      {/* Technical Details */}
-      {(product.brand || product.model || product.lot_number) && (
-        <Card className="rounded-none border-0 shadow-none mb-2">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Info className="h-4 w-4" />
-              Характеристики
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {product.brand && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Бренд:</span>
-                <span className="font-medium">{product.brand}</span>
-              </div>
-            )}
-            {product.model && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Модель:</span>
-                <span className="font-medium">{product.model}</span>
-              </div>
-            )}
-            {product.lot_number && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Лот:</span>
-                <span className="font-medium">{product.lot_number}</span>
-              </div>
-            )}
-            
-            <div className="bg-gray-50 p-3 rounded-lg mt-4">
-              <div className="text-xs text-muted-foreground">
-                Просмотров: {product.view_count || 0}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Создано: {new Date(product.created_at).toLocaleDateString('ru-RU')}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Bottom padding for sticky actions */}
       <div className="h-24"></div>
