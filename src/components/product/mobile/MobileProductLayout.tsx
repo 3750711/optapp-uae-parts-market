@@ -141,24 +141,6 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         </Card>
       )}
 
-      {/* Seller Info */}
-      <Card className="rounded-none border-0 shadow-none mb-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Продавец
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <CompactSellerInfo 
-            sellerProfile={sellerProfile}
-            sellerName={sellerName}
-            sellerId={product.seller_id}
-            productTitle={product.title}
-            productId={product.id}
-          />
-        </CardContent>
-      </Card>
 
       {/* Delivery Info */}
       <Card className="rounded-none border-0 shadow-none mb-2">
@@ -188,7 +170,7 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       </Card>
 
       {/* Bottom padding for sticky actions */}
-      <div className="h-24"></div>
+      <div className="h-16"></div>
 
       {/* Sticky Actions */}
       <MobileStickyActions 
