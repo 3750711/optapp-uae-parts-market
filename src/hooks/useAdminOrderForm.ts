@@ -100,8 +100,23 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
         if (videoInsertError) throw videoInsertError;
       }
     },
-    onSuccess: () => {
-      // Оптимистично обновляем кэш с is_modified: true
+    onSuccess: (_, values) => {
+      // Оптимистично обновляем кэш с новыми данными
+      const updatedOrderData = {
+        order_number: parseInt(values.order_number, 10) || order?.order_number,
+        title: values.title,
+        brand: values.brand || null,
+        model: values.model || null,
+        price: parseFloat(values.price) || 0,
+        place_number: parseInt(values.place_number, 10) || 1,
+        status: values.status,
+        description: values.description || null,
+        delivery_price_confirm: parseFloat(values.delivery_price_confirm) || null,
+        delivery_method: values.delivery_method,
+        images: orderImages,
+        is_modified: true
+      };
+
       queryClient.setQueryData(['admin-orders-optimized'], (oldData: any) => {
         if (!oldData?.data) return oldData;
         
@@ -109,7 +124,7 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
           ...oldData,
           data: oldData.data.map((cachedOrder: any) => 
             cachedOrder.id === order?.id 
-              ? { ...cachedOrder, is_modified: true }
+              ? { ...cachedOrder, ...updatedOrderData }
               : cachedOrder
           )
         };
@@ -123,7 +138,7 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
           ...oldData,
           data: oldData.data.map((cachedOrder: any) => 
             cachedOrder.id === order?.id 
-              ? { ...cachedOrder, is_modified: true }
+              ? { ...cachedOrder, ...updatedOrderData }
               : cachedOrder
           )
         };
@@ -132,7 +147,7 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
       // Обновляем конкретный заказ в кэше если он есть
       queryClient.setQueryData(['order', order?.id], (oldOrder: any) => {
         if (!oldOrder) return oldOrder;
-        return { ...oldOrder, is_modified: true };
+        return { ...oldOrder, ...updatedOrderData };
       });
 
       toast({ title: "Успех", description: "Заказ успешно обновлен." });
