@@ -142,6 +142,25 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       )}
 
 
+      {/* Contact Section */}
+      <Card className="rounded-none border-0 shadow-none mb-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Связаться с продавцом
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <CompactSellerInfo 
+            sellerProfile={sellerProfile}
+            sellerName={sellerName}
+            sellerId={product.seller_id}
+            productTitle={product.title}
+            productId={product.id}
+          />
+        </CardContent>
+      </Card>
+
       {/* Delivery Info */}
       <Card className="rounded-none border-0 shadow-none mb-2">
         <CardHeader className="pb-3">
