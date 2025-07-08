@@ -40,6 +40,8 @@ export interface AdminOrderFormLogicReturn {
   selectBrand: (brandId: string) => void;
   findBrandNameById: (brandId: string | null) => string | null;
   findModelNameById: (modelId: string | null) => string | null;
+  findBrandIdByName: (brandName: string) => string | null;
+  findModelIdByName: (modelName: string, brandId: string) => string | null;
   
   // Order creation
   isLoading: boolean;
@@ -96,7 +98,9 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     enableBrandsLoading,
     selectBrand,
     findBrandNameById,
-    findModelNameById
+    findModelNameById,
+    findBrandIdByName,
+    findModelIdByName
   } = useLazyCarData();
 
   // Lazy profiles
@@ -233,6 +237,8 @@ export const useAdminOrderFormLogic = (): AdminOrderFormLogicReturn => {
     selectBrand,
     findBrandNameById,
     findModelNameById,
+    findBrandIdByName,
+    findModelIdByName,
     
     // Order creation
     isLoading,

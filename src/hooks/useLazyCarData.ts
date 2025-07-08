@@ -89,6 +89,46 @@ export const useLazyCarData = () => {
     return models.find(model => model.id === modelId)?.name || null;
   }, [models]);
 
+  // Функции для поиска ID по названию (для Telegram парсера)
+  const findBrandIdByName = useCallback((brandName: string): string | null => {
+    if (!brandName || !brands.length) return null;
+    const normalizedSearchName = brandName.toLowerCase().trim();
+    
+    console.log('🔍 Поиск бренда по названию:', brandName, 'среди', brands.length, 'брендов');
+    
+    const found = brands.find(brand => 
+      brand.name.toLowerCase().trim() === normalizedSearchName
+    );
+    
+    if (found) {
+      console.log('✅ Найден бренд:', found.name, 'ID:', found.id);
+      return found.id;
+    }
+    
+    console.log('❌ Бренд не найден:', brandName);
+    return null;
+  }, [brands]);
+
+  const findModelIdByName = useCallback((modelName: string, brandId: string): string | null => {
+    if (!modelName || !brandId || !models.length) return null;
+    const normalizedSearchName = modelName.toLowerCase().trim();
+    
+    console.log('🔍 Поиск модели по названию:', modelName, 'для бренда:', brandId, 'среди', models.length, 'моделей');
+    
+    const found = models.find(model => 
+      model.brand_id === brandId && 
+      model.name.toLowerCase().trim() === normalizedSearchName
+    );
+    
+    if (found) {
+      console.log('✅ Найдена модель:', found.name, 'ID:', found.id);
+      return found.id;
+    }
+    
+    console.log('❌ Модель не найдена:', modelName, 'для бренда:', brandId);
+    return null;
+  }, [models]);
+
   return {
     brands,
     models,
@@ -99,6 +139,8 @@ export const useLazyCarData = () => {
     selectBrand,
     findBrandNameById,
     findModelNameById,
+    findBrandIdByName,
+    findModelIdByName,
     shouldLoadBrands
   };
 };

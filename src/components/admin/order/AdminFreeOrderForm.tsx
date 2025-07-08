@@ -55,7 +55,12 @@ export const AdminFreeOrderForm = () => {
     isInitializing,
     isLoadingBuyers,
     isLoadingSellers,
-    isLoadingBrands
+    isLoadingBrands,
+    
+    // Brand/Model lookup functions
+    findBrandIdByName,
+    findModelIdByName,
+    enableBrandsLoading
   } = useAdminOrderFormLogic();
 
   // Add submission guard
@@ -95,6 +100,9 @@ export const AdminFreeOrderForm = () => {
   const handleTelegramDataParsed = (data: ParsedTelegramOrder) => {
     console.log('📝 Применение данных из Telegram:', data);
     
+    // Убеждаемся что бренды загружены для поиска ID
+    enableBrandsLoading();
+    
     // Заполняем основные поля
     handleInputChange('title', data.title);
     handleInputChange('place_number', data.place_number);
@@ -104,17 +112,39 @@ export const AdminFreeOrderForm = () => {
       handleInputChange('delivery_price', data.delivery_price);
     }
 
-    // Заполняем бренд и модель если они распознаны
+    // Заполняем бренд и модель с поиском их ID
+    let brandId: string | null = null;
+    let modelId: string | null = null;
+    
     if (data.brand) {
-      handleInputChange('brand', data.brand);
-      console.log('✅ Заполнен бренд:', data.brand);
+      brandId = findBrandIdByName(data.brand);
+      if (brandId) {
+        handleInputChange('brandId', brandId);
+        handleInputChange('brand', data.brand);
+        console.log('✅ Заполнен бренд:', data.brand, 'ID:', brandId);
+      } else {
+        // Заполняем только название, ID останется пустым
+        handleInputChange('brand', data.brand);
+        console.log('⚠️ Бренд распознан, но не найден в базе:', data.brand);
+      }
     } else {
       console.log('⚠️ Бренд не распознан автоматически');
     }
     
-    if (data.model) {
+    if (data.model && brandId) {
+      modelId = findModelIdByName(data.model, brandId);
+      if (modelId) {
+        handleInputChange('modelId', modelId);
+        handleInputChange('model', data.model);
+        console.log('✅ Заполнена модель:', data.model, 'ID:', modelId);
+      } else {
+        // Заполняем только название, ID останется пустым
+        handleInputChange('model', data.model);
+        console.log('⚠️ Модель распознана, но не найдена в базе:', data.model);
+      }
+    } else if (data.model) {
       handleInputChange('model', data.model);
-      console.log('✅ Заполнена модель:', data.model);
+      console.log('⚠️ Модель распознана, но бренд не найден в базе');
     } else {
       console.log('⚠️ Модель не распознана автоматически');
     }
@@ -138,13 +168,18 @@ export const AdminFreeOrderForm = () => {
     handleInputChange('buyerOptId', data.buyerOptId);
     console.log('✅ Установлен OPT_ID покупателя:', data.buyerOptId);
 
-    const brandModelMessage = data.brand || data.model 
-      ? ` Бренд: ${data.brand || 'не найден'}, Модель: ${data.model || 'не найдена'}`
-      : '';
+    // Формируем сообщение о результатах
+    const brandMessage = data.brand 
+      ? (brandId ? `Бренд: ${data.brand} ✅` : `Бренд: ${data.brand} ⚠️ (не найден в базе)`)
+      : 'Бренд: не распознан';
+    
+    const modelMessage = data.model 
+      ? (modelId ? `Модель: ${data.model} ✅` : `Модель: ${data.model} ⚠️ (не найдена в базе)`)
+      : 'Модель: не распознана';
 
     toast({
       title: "Поля заполнены",
-      description: `Данные из Telegram успешно применены к форме.${brandModelMessage}`,
+      description: `Данные из Telegram применены. ${brandMessage}, ${modelMessage}`,
     });
   };
 
