@@ -129,6 +129,40 @@ export const useLazyCarData = () => {
     return null;
   }, [models]);
 
+  // Прямой поиск модели в базе данных (для избежания проблем с асинхронной загрузкой)
+  const findModelIdByNameDirect = useCallback(async (modelName: string, brandId: string): Promise<string | null> => {
+    if (!modelName || !brandId) return null;
+    
+    const normalizedSearchName = modelName.toLowerCase().trim();
+    console.log('🔍 Прямой поиск модели в базе:', modelName, 'для бренда:', brandId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('car_models')
+        .select('id, name')
+        .eq('brand_id', brandId)
+        .ilike('name', normalizedSearchName)
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        console.error('❌ Ошибка поиска модели:', error);
+        return null;
+      }
+      
+      if (data) {
+        console.log('✅ Найдена модель в базе:', data.name, 'ID:', data.id);
+        return data.id;
+      }
+      
+      console.log('❌ Модель не найдена в базе:', modelName);
+      return null;
+    } catch (error) {
+      console.error('❌ Ошибка поиска модели в базе:', error);
+      return null;
+    }
+  }, []);
+
   return {
     brands,
     models,
@@ -141,6 +175,7 @@ export const useLazyCarData = () => {
     findModelNameById,
     findBrandIdByName,
     findModelIdByName,
+    findModelIdByNameDirect,
     shouldLoadBrands
   };
 };

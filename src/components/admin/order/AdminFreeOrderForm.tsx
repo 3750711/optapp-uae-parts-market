@@ -60,6 +60,7 @@ export const AdminFreeOrderForm = () => {
     // Brand/Model lookup functions
     findBrandIdByName,
     findModelIdByName,
+    findModelIdByNameDirect,
     enableBrandsLoading
   } = useAdminOrderFormLogic();
 
@@ -96,8 +97,8 @@ export const AdminFreeOrderForm = () => {
     setVideos(prev => prev.filter(video => video !== url));
   };
 
-  // Обработчик данных из Telegram парсера
-  const handleTelegramDataParsed = (data: ParsedTelegramOrder) => {
+  // Обработчик данных из Telegram парсера (теперь асинхронный)
+  const handleTelegramDataParsed = async (data: ParsedTelegramOrder) => {
     console.log('📝 Применение данных из Telegram:', data);
     
     // Убеждаемся что бренды загружены для поиска ID
@@ -131,16 +132,23 @@ export const AdminFreeOrderForm = () => {
       console.log('⚠️ Бренд не распознан автоматически');
     }
     
+    // Для модели используем прямой поиск в базе данных
     if (data.model && brandId) {
-      modelId = findModelIdByName(data.model, brandId);
-      if (modelId) {
-        handleInputChange('modelId', modelId);
+      console.log('🔍 Поиск модели через прямой запрос к базе...');
+      try {
+        modelId = await findModelIdByNameDirect(data.model, brandId);
+        if (modelId) {
+          handleInputChange('modelId', modelId);
+          handleInputChange('model', data.model);
+          console.log('✅ Заполнена модель:', data.model, 'ID:', modelId);
+        } else {
+          // Заполняем только название, ID останется пустым
+          handleInputChange('model', data.model);
+          console.log('⚠️ Модель распознана, но не найдена в базе:', data.model);
+        }
+      } catch (error) {
+        console.error('❌ Ошибка поиска модели:', error);
         handleInputChange('model', data.model);
-        console.log('✅ Заполнена модель:', data.model, 'ID:', modelId);
-      } else {
-        // Заполняем только название, ID останется пустым
-        handleInputChange('model', data.model);
-        console.log('⚠️ Модель распознана, но не найдена в базе:', data.model);
       }
     } else if (data.model) {
       handleInputChange('model', data.model);
