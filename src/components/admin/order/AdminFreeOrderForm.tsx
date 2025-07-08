@@ -93,6 +93,8 @@ export const AdminFreeOrderForm = () => {
 
   // Обработчик данных из Telegram парсера
   const handleTelegramDataParsed = (data: ParsedTelegramOrder) => {
+    console.log('📝 Применение данных из Telegram:', data);
+    
     // Заполняем основные поля
     handleInputChange('title', data.title);
     handleInputChange('place_number', data.place_number);
@@ -105,16 +107,26 @@ export const AdminFreeOrderForm = () => {
     // Заполняем бренд и модель если они распознаны
     if (data.brand) {
       handleInputChange('brand', data.brand);
+      console.log('✅ Заполнен бренд:', data.brand);
+    } else {
+      console.log('⚠️ Бренд не распознан автоматически');
     }
+    
     if (data.model) {
       handleInputChange('model', data.model);
+      console.log('✅ Заполнена модель:', data.model);
+    } else {
+      console.log('⚠️ Модель не распознана автоматически');
     }
 
     // Ищем продавца по OPT_ID
+    console.log('🔍 Поиск продавца с OPT_ID:', data.sellerOptId);
     const foundSeller = sellerProfiles.find(seller => seller.opt_id === data.sellerOptId);
     if (foundSeller) {
       handleInputChange('sellerId', foundSeller.id);
+      console.log('✅ Найден продавец:', foundSeller.opt_id);
     } else {
+      console.log('❌ Продавец не найден. Доступные продавцы:', sellerProfiles.map(s => s.opt_id));
       toast({
         title: "Продавец не найден",
         description: `Продавец с OPT_ID "${data.sellerOptId}" не найден в системе`,
@@ -124,10 +136,15 @@ export const AdminFreeOrderForm = () => {
 
     // Устанавливаем OPT_ID покупателя
     handleInputChange('buyerOptId', data.buyerOptId);
+    console.log('✅ Установлен OPT_ID покупателя:', data.buyerOptId);
+
+    const brandModelMessage = data.brand || data.model 
+      ? ` Бренд: ${data.brand || 'не найден'}, Модель: ${data.model || 'не найдена'}`
+      : '';
 
     toast({
       title: "Поля заполнены",
-      description: "Данные из Telegram успешно применены к форме",
+      description: `Данные из Telegram успешно применены к форме.${brandModelMessage}`,
     });
   };
 

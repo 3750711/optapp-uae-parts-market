@@ -35,30 +35,44 @@ const CAR_BRANDS = [
 ];
 
 /**
+ * Нормализует строку для поиска (убирает регистр и лишние символы)
+ */
+const normalizeForSearch = (str: string): string => {
+  return str.toLowerCase().trim();
+};
+
+/**
  * Извлекает бренд и модель из названия товара
  */
 export function extractBrandAndModel(title: string): { brand?: string; model?: string } {
+  console.log('🔍 Извлечение бренда и модели из:', title);
+  
   const words = title.split(/\s+/);
   let brand: string | undefined;
   let model: string | undefined;
 
-  // Ищем бренд в названии
+  // Ищем бренд в названии (нечувствительно к регистру)
   for (let i = 0; i < words.length; i++) {
-    const word = words[i];
+    const word = normalizeForSearch(words[i]);
     const foundBrand = CAR_BRANDS.find(b => 
-      b.toLowerCase() === word.toLowerCase()
+      normalizeForSearch(b) === word
     );
     
     if (foundBrand) {
       brand = foundBrand;
+      console.log('✅ Найден бренд:', brand, 'в позиции', i);
+      
       // Следующее слово может быть моделью
       if (i + 1 < words.length) {
-        model = words[i + 1];
+        // Очищаем модель от знаков препинания
+        model = words[i + 1].replace(/[^\w\-]/g, '');
+        console.log('✅ Найдена модель:', model);
       }
       break;
     }
   }
 
+  console.log('🎯 Результат извлечения:', { brand, model });
   return { brand, model };
 }
 
@@ -110,8 +124,11 @@ export function parseTelegramOrder(text: string): ParseResult {
       return { success: false, errors, warnings };
     }
 
-    const buyerOptId = lastTwoLines[0].trim();
-    const sellerOptId = lastTwoLines[1].trim();
+    // ИСПРАВЛЕНО: Первая строка = продавец, вторая строка = покупатель
+    const sellerOptId = lastTwoLines[0].trim(); // MDY - продавец
+    const buyerOptId = lastTwoLines[1].trim();   // PETR - покупатель
+
+    console.log('🔍 Извлеченные OPT_ID:', { sellerOptId, buyerOptId });
 
     if (!buyerOptId || !sellerOptId) {
       errors.push('OPT_ID покупателя или продавца пусты');
