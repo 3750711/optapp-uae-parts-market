@@ -116,12 +116,20 @@ const ProductDetail = () => {
   
   // Track product view
   useEffect(() => {
-    if (product?.id && user) {
-      // Only track views for authenticated users to avoid spam
-      supabase.rpc('increment_product_view_count', { 
-        product_id: product.id 
-      }).catch(console.error);
-    }
+    const trackView = async () => {
+      if (product?.id && user) {
+        try {
+          // Only track views for authenticated users to avoid spam
+          await supabase.rpc('increment_product_view_count', { 
+            product_id: product.id 
+          });
+        } catch (error) {
+          console.error('Error tracking product view:', error);
+        }
+      }
+    };
+    
+    trackView();
   }, [product?.id, user]);
   
   // Navigate to 404 on error
@@ -135,7 +143,7 @@ const ProductDetail = () => {
   }, [isError, isLoading, authLoading, navigate]);
   
   // Seller profile query
-  const { data: sellerProfile } = useQuery({
+  const { data: sellerProfile, isLoading: sellerLoading } = useQuery({
     queryKey: ['sellerProfile', product?.seller_id],
     queryFn: async () => {
       if (!product?.seller_id) return null;
@@ -167,7 +175,7 @@ const ProductDetail = () => {
   };
   
   // Loading state
-  if (authLoading || (isLoading && !product)) {
+  if (authLoading || (isLoading && !product) || sellerLoading) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-6 max-w-7xl">
