@@ -13,7 +13,7 @@ import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
 import ProductDetailFullGallery from "@/components/product/ProductDetailFullGallery";
-import SimilarProducts from "@/components/product/SimilarProducts";
+import SellerProducts from "@/components/product/SimilarProducts";
 import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
@@ -258,13 +258,12 @@ const ProductDetail = () => {
           onProductUpdate={handleProductUpdate}
         />
         
-        {/* Similar Products for Mobile */}
+        {/* Seller Products for Mobile */}
         <div className="px-4 pb-24">
-          <SimilarProducts 
+          <SellerProducts 
             currentProductId={product.id}
-            brand={product.brand}
-            model={product.model}
             sellerId={product.seller_id}
+            sellerName={sellerName}
           />
         </div>
       </Layout>
@@ -323,12 +322,11 @@ const ProductDetail = () => {
           onImageClick={handleImageClick}
         />
 
-        {/* Similar Products Section */}
-        <SimilarProducts 
+        {/* Seller Products Section */}
+        <SellerProducts 
           currentProductId={product.id}
-          brand={product.brand}
-          model={product.model}
           sellerId={product.seller_id}
+          sellerName={sellerName}
         />
       </div>
     </Layout>

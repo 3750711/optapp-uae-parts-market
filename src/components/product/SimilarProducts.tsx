@@ -5,62 +5,51 @@ import { Product } from "@/types/product";
 import ProductCard from "@/components/product/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface SimilarProductsProps {
+interface SellerProductsProps {
   currentProductId: string;
-  brand?: string;
-  model?: string;
   sellerId: string;
+  sellerName?: string;
 }
 
-const SimilarProducts: React.FC<SimilarProductsProps> = ({
+const SellerProducts: React.FC<SellerProductsProps> = ({
   currentProductId,
-  brand,
-  model,
-  sellerId
+  sellerId,
+  sellerName
 }) => {
-  const { data: similarProducts = [], isLoading } = useQuery({
-    queryKey: ['similar-products', currentProductId, brand, model],
+  const { data: sellerProducts = [], isLoading } = useQuery({
+    queryKey: ['seller-products', sellerId, currentProductId],
     queryFn: async () => {
-      // First try to find products with same brand and model
-      let query = supabase
+      // Get other products from the same seller
+      const { data, error } = await supabase
         .from('products')
         .select(`
           *,
           product_images(url, is_primary)
         `)
+        .eq('seller_id', sellerId)
         .eq('status', 'active')
         .neq('id', currentProductId)
-        .limit(4);
-
-      if (brand && model) {
-        query = query.eq('brand', brand).eq('model', model);
-      } else if (brand) {
-        query = query.eq('brand', brand);
-      } else {
-        // Fallback: get other products from same seller
-        query = query.eq('seller_id', sellerId);
-      }
-
-      const { data, error } = await query;
+        .order('created_at', { ascending: false })
+        .limit(6);
       
       if (error) {
-        console.error('Error fetching similar products:', error);
+        console.error('Error fetching seller products:', error);
         return [];
       }
 
       return data || [];
     },
-    enabled: !!currentProductId,
+    enabled: !!sellerId && !!currentProductId,
   });
 
   if (isLoading) {
     return (
-      <div className="mt-12">
-        <h3 className="text-xl font-semibold mb-6">Похожие товары</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-4 px-4">Другие товары продавца</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="space-y-3">
-              <Skeleton className="h-48 w-full rounded-lg" />
+              <Skeleton className="h-40 w-full rounded-lg" />
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-4 w-1/2" />
             </div>
@@ -70,25 +59,33 @@ const SimilarProducts: React.FC<SimilarProductsProps> = ({
     );
   }
 
-  if (!similarProducts.length) {
+  if (!sellerProducts.length) {
     return null;
   }
 
   return (
-    <div className="mt-12">
-      <h3 className="text-xl font-semibold mb-6 text-foreground">
-        {brand && model ? `Другие ${brand} ${model}` : brand ? `Другие ${brand}` : 'Похожие товары'}
-      </h3>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {similarProducts.map((product) => (
-          <ProductCard
-            key={product.id}
-            product={product as Product}
-          />
-        ))}
+    <div className="mt-6 bg-white">
+      <div className="p-4 border-b">
+        <h3 className="text-lg font-semibold text-foreground">
+          Другие товары {sellerName ? `от ${sellerName}` : 'продавца'}
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
+          {sellerProducts.length} {sellerProducts.length === 1 ? 'товар' : 
+           sellerProducts.length < 5 ? 'товара' : 'товаров'} в наличии
+        </p>
+      </div>
+      <div className="p-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {sellerProducts.map((product) => (
+            <ProductCard
+              key={product.id}
+              product={product as Product}
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
-export default SimilarProducts;
+export default SellerProducts;
