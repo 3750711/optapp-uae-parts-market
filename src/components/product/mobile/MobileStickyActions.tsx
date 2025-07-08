@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Heart, Share2, Phone } from "lucide-react";
+import { ShoppingCart, Heart, Share2, Phone, MessageCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFavorites } from "@/hooks/useFavorites";
 import { toast } from "@/hooks/use-toast";
 import { Product } from "@/types/product";
 import OrderConfirmationDialog from "@/components/product/OrderConfirmationDialog";
+import { CommunicationWarningDialog } from "@/components/product/seller/CommunicationWarningDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 
@@ -23,6 +24,8 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
   onDeliveryMethodChange,
 }) => {
   const [showOrderDialog, setShowOrderDialog] = useState(false);
+  const [showContactDialog, setShowContactDialog] = useState(false);
+  const [contactType, setContactType] = useState<'telegram' | 'whatsapp'>('telegram');
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const { user, profile } = useAuth();
   const { isFavorite, toggleFavorite, isUpdating } = useFavorites();
@@ -99,6 +102,26 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
     }
   };
 
+  const handleContactClick = () => {
+    setContactType('telegram');
+    setShowContactDialog(true);
+  };
+
+  const handleContactProceed = () => {
+    const phoneNumber = sellerProfile?.phone;
+    const telegramUsername = sellerProfile?.telegram;
+    
+    if (contactType === 'telegram' && telegramUsername) {
+      const telegramUrl = `https://t.me/${telegramUsername.replace('@', '')}`;
+      window.open(telegramUrl, '_blank');
+    } else if (contactType === 'whatsapp' && phoneNumber) {
+      const whatsappUrl = `https://wa.me/${phoneNumber.replace(/\D/g, '')}`;
+      window.open(whatsappUrl, '_blank');
+    }
+    
+    setShowContactDialog(false);
+  };
+
   if (isOwner) return null;
 
   return (
@@ -137,10 +160,21 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
       {product.status === 'active' && user && (
         <div className="fixed bottom-0 left-0 right-0 z-20 bg-white border-t shadow-lg p-3">
           <div className="flex gap-2">
+            {/* Contact Button */}
+            <Button
+              onClick={handleContactClick}
+              variant="outline"
+              className="flex-1 text-sm"
+              size="sm"
+            >
+              <MessageCircle className="h-4 w-4 mr-1" />
+              Связаться
+            </Button>
+            
             {/* Buy Button */}
             <Button
               onClick={() => setShowOrderDialog(true)}
-              className="w-full bg-green-600 hover:bg-green-700 text-sm"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-sm"
               size="sm"
             >
               <ShoppingCart className="h-4 w-4 mr-1" />
@@ -172,6 +206,18 @@ const MobileStickyActions: React.FC<MobileStickyActionsProps> = ({
         profile={profile}
         deliveryMethod={deliveryMethod}
         onDeliveryMethodChange={onDeliveryMethodChange}
+      />
+
+      {/* Contact Dialog */}
+      <CommunicationWarningDialog
+        open={showContactDialog}
+        onOpenChange={setShowContactDialog}
+        onProceed={handleContactProceed}
+        communicationRating={sellerProfile?.communication_ability || 3}
+        productTitle={product.title}
+        productPrice={product.price}
+        lotNumber={product.lot_number}
+        contactType={contactType}
       />
     </>
   );
