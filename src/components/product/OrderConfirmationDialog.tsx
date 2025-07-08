@@ -379,18 +379,11 @@ const OrderConfirmationDialog: React.FC<OrderConfirmationDialogProps> = ({
         <SheetContent side="bottom" className="flex flex-col h-[90vh] max-h-[90vh]">
           {/* Фиксированный header с общей суммой */}
           <SheetHeader className="pb-4 flex-shrink-0 border-b">
-            <div className="flex items-center justify-between">
-              <div>
-                <SheetTitle className="text-lg">Подтверждение заказа</SheetTitle>
-                <SheetDescription className="text-sm">
-                  Проверьте информацию перед подтверждением
-                </SheetDescription>
-              </div>
-              <SheetClose asChild>
-                <Button size="icon" variant="ghost">
-                  <X className="h-4 w-4" />
-                </Button>
-              </SheetClose>
+            <div>
+              <SheetTitle className="text-lg">Подтверждение заказа</SheetTitle>
+              <SheetDescription className="text-sm">
+                Проверьте информацию перед подтверждением
+              </SheetDescription>
             </div>
             
             {/* Общая сумма - компактно */}
