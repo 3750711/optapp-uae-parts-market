@@ -14,9 +14,11 @@ import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
 import ProductDetailFullGallery from "@/components/product/ProductDetailFullGallery";
 import SimilarProducts from "@/components/product/SimilarProducts";
+import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
+import { useMobileLayout } from "@/hooks/useMobileLayout";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Database } from "@/integrations/supabase/types";
 
@@ -25,6 +27,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const { isAdmin } = useAdminAccess();
+  const { isMobile } = useMobileLayout();
   const [searchParams] = useSearchParams();
   const fromSeller = searchParams.get("from") === "seller";
   
@@ -232,6 +235,43 @@ const ProductDetail = () => {
   const sellerName = product.seller_name || (sellerProfile?.full_name || "Неизвестный продавец");
   const isOwner = user?.id === product.seller_id;
   
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <Layout>
+        <ProductSEO 
+          product={product}
+          sellerName={sellerName}
+          images={imageUrls}
+        />
+        
+        <MobileProductLayout
+          product={product}
+          imageUrls={imageUrls}
+          videoUrls={videoUrls}
+          selectedImage={selectedImage}
+          onImageClick={handleImageClick}
+          sellerProfile={sellerProfile}
+          sellerName={sellerName}
+          deliveryMethod={deliveryMethod}
+          onDeliveryMethodChange={handleDeliveryMethodChange}
+          onProductUpdate={handleProductUpdate}
+        />
+        
+        {/* Similar Products for Mobile */}
+        <div className="px-4 pb-24">
+          <SimilarProducts 
+            currentProductId={product.id}
+            brand={product.brand}
+            model={product.model}
+            sellerId={product.seller_id}
+          />
+        </div>
+      </Layout>
+    );
+  }
+  
+  // Desktop Layout
   return (
     <Layout>
       {/* SEO Component */}
