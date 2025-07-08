@@ -52,6 +52,7 @@ export interface Product {
   lot_number: number;
   location?: string | null;
   last_notification_sent_at?: string | null;
+  view_count?: number | null;
   
   // Cloudinary fields
   cloudinary_public_id?: string | null;

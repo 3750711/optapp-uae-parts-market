@@ -3,7 +3,7 @@ import React from "react";
 import ProductGallery from "@/components/product/ProductGallery";
 import ProductInfo from "@/components/product/ProductInfo";
 import ContactButtons from "@/components/product/ContactButtons";
-import SellerInfo from "@/components/product/SellerInfo";
+import EnhancedSellerInfo from "@/components/product/EnhancedSellerInfo";
 import ProductSpecifications from "@/components/product/ProductSpecifications";
 import { Product } from "@/types/product";
 import { Database } from "@/integrations/supabase/types";
@@ -66,7 +66,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
           onDeliveryMethodChange={onDeliveryMethodChange}
         />
         
-        <SellerInfo 
+        <EnhancedSellerInfo 
           sellerProfile={{
             id: product.seller_id,
             full_name: sellerName,
@@ -90,7 +90,7 @@ const ProductDetailContent: React.FC<ProductDetailContentProps> = ({
             isVerified={sellerProfile?.opt_status === 'verified'}
             verificationStatus={sellerProfile?.opt_status || 'pending'}
           />
-        </SellerInfo>
+        </EnhancedSellerInfo>
         
         {(product.brand || product.model || product.lot_number) && (
           <ProductSpecifications 

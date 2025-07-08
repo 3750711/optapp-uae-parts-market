@@ -487,6 +487,7 @@ export type Database = {
           telegram_url: string | null
           title: string
           updated_at: string
+          view_count: number | null
         }
         Insert: {
           brand: string
@@ -515,6 +516,7 @@ export type Database = {
           telegram_url?: string | null
           title: string
           updated_at?: string
+          view_count?: number | null
         }
         Update: {
           brand?: string
@@ -543,6 +545,7 @@ export type Database = {
           telegram_url?: string | null
           title?: string
           updated_at?: string
+          view_count?: number | null
         }
         Relationships: [
           {
@@ -948,6 +951,27 @@ export type Database = {
           },
         ]
       }
+      user_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -1133,6 +1157,10 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      increment_product_view_count: {
+        Args: { product_id: string }
+        Returns: undefined
       }
       is_admin: {
         Args: Record<PropertyKey, never>

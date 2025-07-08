@@ -13,6 +13,7 @@ import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
 import ProductDetailFullGallery from "@/components/product/ProductDetailFullGallery";
+import SimilarProducts from "@/components/product/SimilarProducts";
 import { Product } from "@/types/product";
 import Layout from "@/components/layout/Layout";
 import { useAdminAccess } from "@/hooks/useAdminAccess";
@@ -112,6 +113,16 @@ const ProductDetail = () => {
       return failureCount < 1;
     },
   });
+  
+  // Track product view
+  useEffect(() => {
+    if (product?.id && user) {
+      // Only track views for authenticated users to avoid spam
+      supabase.rpc('increment_product_view_count', { 
+        product_id: product.id 
+      }).catch(console.error);
+    }
+  }, [product?.id, user]);
   
   // Navigate to 404 on error
   useEffect(() => {
@@ -262,6 +273,14 @@ const ProductDetail = () => {
           imageUrls={imageUrls}
           productTitle={product.title}
           onImageClick={handleImageClick}
+        />
+
+        {/* Similar Products Section */}
+        <SimilarProducts 
+          currentProductId={product.id}
+          brand={product.brand}
+          model={product.model}
+          sellerId={product.seller_id}
         />
       </div>
     </Layout>

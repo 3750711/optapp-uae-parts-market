@@ -2,7 +2,8 @@
 import React, { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { MapPin, Edit, AlertCircle, Package2, Truck, ShoppingCart } from "lucide-react";
+import { MapPin, Edit, AlertCircle, Package2, Truck, ShoppingCart, Info } from "lucide-react";
+import ProductActions from "./ProductActions";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import ProductEditForm from "./ProductEditForm";
@@ -111,6 +112,13 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
 
   return (
     <div className="animate-fade-in">
+      {/* Product Actions */}
+      <ProductActions 
+        productId={product.id} 
+        productTitle={product.title}
+        viewCount={product.view_count || 0}
+      />
+      
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           {getStatusBadge()}
@@ -145,18 +153,23 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
               <span>Доставка: {product.delivery_price} $</span>
             </div>
           ) : (
-            <div className="text-sm text-gray-500">
-              Стоимость доставки не указана
+            <div className="flex items-center gap-1 text-sm text-gray-500">
+              <Info className="w-4 h-4" />
+              <span>Стоимость доставки уточняется при заказе</span>
             </div>
           )
         ) : (
           user ? (
-            <div className="text-sm text-gray-500">
-              Стоимость доставки доступна для OPT пользователей
+            <div className="flex items-center gap-1 text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-lg border border-blue-200">
+              <Info className="w-4 h-4" />
+              <span>Стоимость доставки доступна для OPT пользователей</span>
             </div>
           ) : (
-            <div className="text-sm text-gray-500">
-              <a href="/login" className="text-blue-500 hover:underline">Авторизуйтесь</a> для просмотра стоимости доставки
+            <div className="flex items-center gap-1 text-sm bg-yellow-50 text-yellow-700 px-3 py-2 rounded-lg border border-yellow-200">
+              <Info className="w-4 h-4" />
+              <span>
+                <a href="/login" className="text-blue-600 hover:underline font-medium">Авторизуйтесь</a> для просмотра стоимости доставки
+              </span>
             </div>
           )
         )}
