@@ -54,10 +54,28 @@ export const useAdminOrderForm = ({ order, onClose, orderImages, orderVideos }: 
     mutationFn: async (values: any) => {
       if (!order?.id) throw new Error("ID заказа отсутствует");
 
+      // Проверяем уникальность номера заказа если он изменился
+      const newOrderNumber = parseInt(values.order_number, 10);
+      if (newOrderNumber && newOrderNumber !== order.order_number) {
+        const { data: isUnique, error: checkError } = await supabase.rpc('check_order_number_unique', {
+          p_order_number: newOrderNumber,
+          p_order_id: order.id
+        });
+
+        if (checkError) {
+          throw new Error(`Ошибка проверки номера заказа: ${checkError.message}`);
+        }
+
+        if (!isUnique) {
+          throw new Error(`Номер заказа ${newOrderNumber} уже существует`);
+        }
+      }
+
       // 1. Обновляем основные данные заказа и массив изображений
       const { error: orderUpdateError } = await supabase
         .from('orders')
         .update({
+          order_number: newOrderNumber || order.order_number,
           title: values.title,
           brand: values.brand || null,
           model: values.model || null,
