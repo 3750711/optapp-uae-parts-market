@@ -16,7 +16,7 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
   children, 
   fallback 
 }) => {
-  const { user, profile, isLoading, isAdmin, refreshAdminStatus } = useAuth();
+  const { user, profile, isLoading, isAdmin, refreshAdminStatus, isProfileLoading } = useAuth();
   const location = useLocation();
 
   // Мемоизируем состояние для избежания лишних ре-рендеров
@@ -25,10 +25,11 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     hasProfile: !!profile,
     isLoading,
     isAdmin,
+    isProfileLoading,
     userType: profile?.user_type,
     userId: user?.id,
     userEmail: user?.email
-  }), [user, profile, isLoading, isAdmin]);
+  }), [user, profile, isLoading, isAdmin, isProfileLoading]);
 
   devLog('🔍 AdminRoute state:', authState);
 
@@ -56,7 +57,24 @@ export const AdminRoute: React.FC<AdminRouteProps> = ({
     return <Navigate to={`/login${redirectPath}`} replace />;
   }
 
-  // Нет профиля - показываем ошибку с возможностью повторной попытки
+  // Если профиль загружается, показываем индикатор загрузки
+  if (authState.isProfileLoading) {
+    return fallback || (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Загрузка профиля...</p>
+          {authState.userEmail && (
+            <p className="text-xs text-gray-500 mt-2">
+              Пользователь: {authState.userEmail}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Нет профиля после загрузки - показываем ошибку
   if (!authState.hasProfile) {
     devLog('❌ Profile not found for user:', authState.userId);
     return (

@@ -39,6 +39,7 @@ interface AuthContextType {
   refreshProfile: () => Promise<void>;
   refreshAdminStatus: () => Promise<void>;
   isLoading: boolean;
+  isProfileLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -61,9 +62,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(false);
 
   // Оптимизированная функция загрузки профиля с кэшированием
   const fetchUserProfile = useCallback(async (userId: string) => {
+    setIsProfileLoading(true);
     try {
       // Проверяем кэш админских прав
       const cachedAdminRights = getCachedAdminRights(userId);
@@ -79,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       if (error) {
         console.error('Error fetching profile:', error);
+        setIsProfileLoading(false);
         return;
       }
 
@@ -91,6 +95,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Profile fetch error:', error);
+    } finally {
+      setIsProfileLoading(false);
     }
   }, []);
 
@@ -218,8 +224,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateProfile,
     refreshProfile,
     refreshAdminStatus,
-    isLoading
-  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading]);
+    isLoading,
+    isProfileLoading
+  }), [user, profile, session, isAdmin, signUp, signIn, signOut, updateProfile, refreshProfile, refreshAdminStatus, isLoading, isProfileLoading]);
 
   return (
     <AuthContext.Provider value={contextValue}>
