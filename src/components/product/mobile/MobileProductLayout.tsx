@@ -1,9 +1,9 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Truck, Info, MapPin, Grid } from "lucide-react";
+import { Package, Truck, Info, MapPin } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductGallery from "@/components/product/ProductGallery";
-import { CompactMediaGrid } from "@/components/media/CompactMediaGrid";
+
 import CompactSellerInfo from "./CompactSellerInfo";
 import MobileStickyActions from "./MobileStickyActions";
 import { Badge } from "@/components/ui/badge";
@@ -76,23 +76,6 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           selectedImage={selectedImage} 
           onImageClick={onImageClick}
         />
-        
-        {/* Compact Media Grid */}
-        {(imageUrls.length > 1 || videoUrls.length > 0) && (
-          <div className="p-4 border-t">
-            <div className="mb-3">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                <Grid className="h-4 w-4" />
-                Все медиа
-              </div>
-            </div>
-            <CompactMediaGrid
-              images={imageUrls}
-              videos={videoUrls}
-              maxPreviewItems={8}
-            />
-          </div>
-        )}
       </div>
 
       {/* Product Info */}
