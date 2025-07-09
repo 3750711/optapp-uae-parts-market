@@ -208,8 +208,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const signOut = useCallback(async () => {
-    clearAdminCache();
-    await supabase.auth.signOut();
+    try {
+      clearAdminCache();
+      // Проверяем есть ли активная сессия перед попыткой выхода
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase.auth.signOut();
+      }
+      // Принудительно очищаем состояние даже если signOut не сработал
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(null);
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Очищаем состояние даже в случае ошибки
+      setSession(null);
+      setUser(null);
+      setProfile(null);
+      setIsAdmin(null);
+    }
   }, []);
 
   // Мемоизируем значение контекста

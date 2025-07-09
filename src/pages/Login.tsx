@@ -29,6 +29,9 @@ const Login = () => {
 
   const inputType = detectInputType(loginInput);
   const isOptId = inputType === 'opt_id';
+  
+  // Показываем email как приоритетный, OPT ID как альтернативу
+  const isEmailFormat = inputType === 'email' || loginInput.length === 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,28 +103,28 @@ const Login = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="loginInput" className="flex items-center gap-2">
-                  {isOptId ? (
-                    <>
-                      <Hash className="h-4 w-4" />
-                      OPT ID
-                    </>
-                  ) : (
+                  {isEmailFormat ? (
                     <>
                       <Mail className="h-4 w-4" />
                       Email
+                    </>
+                  ) : (
+                    <>
+                      <Hash className="h-4 w-4" />
+                      OPT ID
                     </>
                   )}
                 </Label>
                 <Input
                   id="loginInput"
                   type="text"
-                  placeholder={isOptId ? "Введите ваш OPT ID" : "Введите ваш email"}
+                  placeholder={isEmailFormat ? "Введите ваш email" : "Введите ваш OPT ID"}
                   value={loginInput}
                   onChange={(e) => setLoginInput(e.target.value)}
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Вы можете войти используя email или OPT ID
+                  Вы можете войти используя <strong>email</strong> или OPT ID
                 </p>
               </div>
               
