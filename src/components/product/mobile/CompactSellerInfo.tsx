@@ -1,12 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { User, Shield, ShieldCheck, Star, MessageCircle, Phone, Send } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import ContactButtons from "@/components/product/ContactButtons";
-import { AuthDialog } from "@/components/product/seller/AuthDialog";
-import { useNavigate } from "react-router-dom";
+import { User, Shield, ShieldCheck, Star, MessageCircle } from "lucide-react";
 
 interface CompactSellerInfoProps {
   sellerProfile: any;
@@ -19,31 +14,7 @@ interface CompactSellerInfoProps {
 const CompactSellerInfo: React.FC<CompactSellerInfoProps> = ({
   sellerProfile,
   sellerName,
-  sellerId,
-  productTitle,
-  productId,
 }) => {
-  const [showAuthDialog, setShowAuthDialog] = useState(false);
-  const [showContacts, setShowContacts] = useState(false);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const handleShowContactInfo = () => {
-    if (!user) {
-      setShowAuthDialog(true);
-    } else {
-      setShowContacts(true);
-    }
-  };
-
-  const handleGoToLogin = () => {
-    setShowAuthDialog(false);
-    navigate('/login', {
-      state: {
-        returnPath: window.location.pathname
-      }
-    });
-  };
 
   const getVerificationBadge = () => {
     switch (sellerProfile?.opt_status) {
@@ -134,47 +105,6 @@ const CompactSellerInfo: React.FC<CompactSellerInfoProps> = ({
             </p>
           </div>
         )}
-
-        {/* Contact Section */}
-        <div className="space-y-3">
-          {!showContacts ? (
-            <Button 
-              onClick={handleShowContactInfo}
-              className="w-full"
-              size="sm"
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              Связаться с продавцом
-            </Button>
-          ) : (
-            <div className="space-y-2">
-              <div className="text-sm font-medium text-center mb-3">
-                Контакты продавца
-              </div>
-              <ContactButtons 
-                sellerPhone={sellerProfile?.phone}
-                sellerTelegram={sellerProfile?.telegram}
-                productTitle={productTitle}
-                isVerified={sellerProfile?.opt_status === 'verified'}
-                verificationStatus={sellerProfile?.opt_status || 'pending'}
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Help Section */}
-        <div className="bg-yellow-50 p-3 rounded-lg">
-          <div className="text-xs text-yellow-800">
-            💡 <strong>Совет:</strong> Всегда проверяйте товар перед покупкой. 
-            Рекомендуем встречаться в безопасных местах.
-          </div>
-        </div>
-
-        <AuthDialog 
-          open={showAuthDialog}
-          onOpenChange={setShowAuthDialog}
-          onGoToLogin={handleGoToLogin}
-        />
       </CardContent>
     </Card>
   );
