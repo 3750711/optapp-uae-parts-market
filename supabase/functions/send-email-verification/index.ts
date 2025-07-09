@@ -13,6 +13,7 @@ interface EmailVerificationRequest {
   email: string;
   verification_code?: string; // Код передается из базы данных
   ip_address?: string;
+  context?: string; // 'registration' или 'email_change'
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,7 +23,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, verification_code, ip_address }: EmailVerificationRequest = await req.json();
+    const { email, verification_code, ip_address, context = 'registration' }: EmailVerificationRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -56,7 +57,8 @@ const handler = async (req: Request): Promise<Response> => {
         'send_email_verification_code',
         { 
           p_email: email,
-          p_ip_address: clientIP
+          p_ip_address: clientIP,
+          p_context: context
         }
       );
 

@@ -43,7 +43,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       return;
     }
 
-    const result = await sendVerificationCode(newEmail);
+    const result = await sendVerificationCode(newEmail, 'email_change');
     if (result.success) {
       setStep('verify');
       toast({
@@ -127,8 +127,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
     setIsChanging(true);
 
     try {
-      // Сначала проверяем код
-      const verificationResult = await verifyEmailCode(newEmail, code);
+      // Проверяем код и автоматически меняем email
+      const verificationResult = await verifyEmailCode(newEmail, code, 'email_change');
       
       if (!verificationResult.success) {
         toast({
@@ -140,41 +140,10 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
         return;
       }
 
-      // Если код верный, меняем email в Supabase Auth
-      const { error: updateError } = await supabase.auth.updateUser({
-        email: newEmail
-      });
-
-      if (updateError) {
-        console.error('Error updating email:', updateError);
-        toast({
-          title: "Ошибка изменения email",
-          description: updateError.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Обновляем email в профиле
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ email: newEmail })
-        .eq('id', (await supabase.auth.getUser()).data.user?.id);
-
-      if (profileError) {
-        console.error('Error updating profile email:', profileError);
-        toast({
-          title: "Ошибка обновления профиля",
-          description: "Email изменен, но профиль не обновлен. Обратитесь в поддержку.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Отправляем оба уведомления параллельно
+      // Отправляем уведомления на оба email параллельно
       await Promise.all([
-        sendEmailChangeNotification(currentEmail, newEmail),
-        sendEmailChangeSuccessNotification(newEmail, currentEmail)
+        sendEmailChangeNotification(verificationResult.old_email || currentEmail, newEmail),
+        sendEmailChangeSuccessNotification(newEmail, verificationResult.old_email || currentEmail)
       ]);
 
       // Принудительно обновляем профиль и инвалидируем все кэши

@@ -1261,7 +1261,9 @@ export type Database = {
         Returns: string
       }
       send_email_verification_code: {
-        Args: { p_email: string; p_ip_address?: unknown }
+        Args:
+          | { p_email: string; p_ip_address?: unknown }
+          | { p_email: string; p_ip_address?: unknown; p_context?: string }
         Returns: Json
       }
       send_verification_code: {
@@ -1297,7 +1299,9 @@ export type Database = {
         Returns: Json
       }
       verify_email_verification_code: {
-        Args: { p_email: string; p_code: string }
+        Args:
+          | { p_email: string; p_code: string }
+          | { p_email: string; p_code: string; p_context?: string }
         Returns: Json
       }
       verify_reset_code: {
