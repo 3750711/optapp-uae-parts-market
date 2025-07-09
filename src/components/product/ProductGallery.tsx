@@ -3,9 +3,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, ZoomIn } from "lucide-react";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { X, ZoomIn, Share2, Download, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { toast } from "@/hooks/use-toast";
 
 interface ProductGalleryProps {
   images: string[];
@@ -29,10 +31,13 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const activeMedia = selectedImage !== undefined ? selectedImage : internalActiveMedia;
   
   const [isZoomed, setIsZoomed] = useState(false);
+  const [currentZoomIndex, setCurrentZoomIndex] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: allMedia.length > 1 });
 
   const handleMainImageClick = () => {
     if (!isVideo(activeMedia)) {
+      const currentIndex = allMedia.indexOf(activeMedia);
+      setCurrentZoomIndex(currentIndex !== -1 ? currentIndex : 0);
       setIsZoomed(true);
     }
   };
@@ -79,7 +84,60 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
     return videos.includes(url);
   };
 
+  const handleShare = async (url: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: title,
+          url: url,
+        });
+      } catch (error) {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Ссылка скопирована",
+          description: "Изображение скопировано в буфер обмена",
+        });
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(url);
+        toast({
+          title: "Ссылка скопирована", 
+          description: "Изображение скопировано в буфер обмена",
+        });
+      } catch (error) {
+        toast({
+          title: "Ошибка",
+          description: "Не удалось скопировать ссылку",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const navigateZoom = (direction: 'prev' | 'next') => {
+    const imageUrls = allMedia.filter(url => !isVideo(url));
+    if (imageUrls.length <= 1) return;
+    
+    const currentImageIndex = imageUrls.indexOf(allMedia[currentZoomIndex]);
+    if (currentImageIndex === -1) return;
+    
+    let nextImageIndex;
+    if (direction === 'next') {
+      nextImageIndex = (currentImageIndex + 1) % imageUrls.length;
+    } else {
+      nextImageIndex = currentImageIndex === 0 ? imageUrls.length - 1 : currentImageIndex - 1;
+    }
+    
+    const nextImageUrl = imageUrls[nextImageIndex];
+    const nextGlobalIndex = allMedia.indexOf(nextImageUrl);
+    setCurrentZoomIndex(nextGlobalIndex);
+  };
+
   if (allMedia.length === 0) return null;
+
+  const currentActiveIndex = allMedia.indexOf(activeMedia);
+  const imageUrls = allMedia.filter(url => !isVideo(url));
 
   return (
     <div className="w-full">
@@ -120,6 +178,30 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Progress Indicators */}
+      {allMedia.length > 1 && (
+        <div className="flex justify-center gap-1 mb-4">
+          {allMedia.map((_, index) => (
+            <button
+              key={index}
+              className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                index === currentActiveIndex 
+                  ? 'bg-primary scale-125' 
+                  : 'bg-gray-300 hover:bg-gray-400'
+              }`}
+              onClick={() => {
+                if (emblaApi) emblaApi.scrollTo(index);
+                if (onImageClick) {
+                  onImageClick(allMedia[index]);
+                } else {
+                  setInternalActiveMedia(allMedia[index]);
+                }
+              }}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Thumbnails */}
       {allMedia.length > 1 && (
@@ -165,28 +247,161 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
       )}
 
       {/* Zoom Modal */}
-      <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
-        <DialogContent className={isMobile ? "p-0 h-full w-full max-w-full border-0 rounded-none" : "max-w-4xl p-2"}>
-          <div className="relative w-full h-full">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 z-50 bg-white/80 shadow-md hover:bg-gray-100"
-              onClick={() => setIsZoomed(false)}
-            >
-              <X className="h-5 w-5" />
-            </Button>
-            
-            <div className="w-full h-full flex items-center justify-center">
-              <img
-                src={activeMedia}
-                alt={title}
-                className="w-full h-full object-contain"
-              />
+      {isMobile ? (
+        <Sheet open={isZoomed} onOpenChange={setIsZoomed}>
+          <SheetContent 
+            side="bottom" 
+            className="h-full max-h-full p-0 border-0 rounded-none"
+          >
+            <div className="relative w-full h-full bg-black">
+              {/* Header with controls */}
+              <div className="absolute top-0 left-0 right-0 z-50 bg-black/60 backdrop-blur-sm p-4">
+                <div className="flex items-center justify-between text-white">
+                  <div className="text-sm font-medium">
+                    {currentZoomIndex + 1} из {imageUrls.length}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleShare(allMedia[currentZoomIndex])}
+                      className="text-white hover:bg-white/20"
+                    >
+                      <Share2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsZoomed(false)}
+                      className="text-white hover:bg-white/20"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Main image */}
+              <div className="w-full h-full flex items-center justify-center p-4">
+                <img
+                  src={allMedia[currentZoomIndex]}
+                  alt={title}
+                  className="max-w-full max-h-full object-contain"
+                  style={{ 
+                    touchAction: 'pinch-zoom',
+                    userSelect: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Navigation buttons */}
+              {imageUrls.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigateZoom('prev')}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigateZoom('next')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 bg-black/40"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
+
+              {/* Bottom thumbnail strip */}
+              {imageUrls.length > 1 && (
+                <div className="absolute bottom-4 left-0 right-0 px-4">
+                  <div className="flex gap-2 justify-center overflow-x-auto py-2">
+                    {imageUrls.map((url, index) => {
+                      const globalIndex = allMedia.indexOf(url);
+                      return (
+                        <button
+                          key={index}
+                          onClick={() => setCurrentZoomIndex(globalIndex)}
+                          className={`w-12 h-12 rounded border-2 overflow-hidden flex-shrink-0 ${
+                            globalIndex === currentZoomIndex ? 'border-white' : 'border-gray-400'
+                          }`}
+                        >
+                          <img
+                            src={url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isZoomed} onOpenChange={setIsZoomed}>
+          <DialogContent className="max-w-4xl p-2">
+            <div className="relative w-full h-full">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium">
+                  {currentZoomIndex + 1} из {imageUrls.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleShare(allMedia[currentZoomIndex])}
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsZoomed(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <img
+                  src={allMedia[currentZoomIndex]}
+                  alt={title}
+                  className="w-full max-h-[70vh] object-contain"
+                />
+                
+                {imageUrls.length > 1 && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigateZoom('prev')}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => navigateZoom('next')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
