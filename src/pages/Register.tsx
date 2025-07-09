@@ -5,7 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Loader2, Eye, EyeOff, CheckCircle, XCircle, MapPin, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/layout/Layout';
@@ -17,6 +19,9 @@ const Register = () => {
     confirmPassword: '',
     fullName: '',
     phone: '',
+    telegram: '',
+    location: 'Dubai',
+    userType: 'buyer' as 'buyer' | 'seller',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -51,6 +56,20 @@ const Register = () => {
     }
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleUserTypeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      userType: value as 'buyer' | 'seller'
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -76,9 +95,13 @@ const Register = () => {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             full_name: formData.fullName,
             phone: formData.phone,
+            telegram: formData.telegram,
+            location: formData.location,
+            user_type: formData.userType,
           }
         }
       });
@@ -107,7 +130,7 @@ const Register = () => {
   return (
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold text-center">Регистрация</CardTitle>
             <CardDescription className="text-center">
@@ -160,6 +183,64 @@ const Register = () => {
                   onChange={handleInputChange}
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="telegram">Telegram (опционально)</Label>
+                <Input
+                  id="telegram"
+                  name="telegram"
+                  type="text"
+                  placeholder="@username или ссылка"
+                  value={formData.telegram}
+                  onChange={handleInputChange}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    Местоположение
+                  </div>
+                </Label>
+                <Select value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Выберите город" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Dubai">Дубай</SelectItem>
+                    <SelectItem value="Abu Dhabi">Абу-Даби</SelectItem>
+                    <SelectItem value="Sharjah">Шарджа</SelectItem>
+                    <SelectItem value="Ajman">Аджман</SelectItem>
+                    <SelectItem value="Ras Al Khaimah">Рас-эль-Хайма</SelectItem>
+                    <SelectItem value="Fujairah">Фуджейра</SelectItem>
+                    <SelectItem value="Umm Al Quwain">Умм-эль-Кайвайн</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Тип аккаунта
+                  </div>
+                </Label>
+                <RadioGroup value={formData.userType} onValueChange={handleUserTypeChange} className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="buyer" id="buyer" />
+                    <Label htmlFor="buyer" className="text-sm font-normal cursor-pointer">
+                      Покупатель - покупка автозапчастей
+                    </Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="seller" id="seller" />
+                    <Label htmlFor="seller" className="text-sm font-normal cursor-pointer">
+                      Продавец - продажа автозапчастей
+                    </Label>
+                  </div>
+                </RadioGroup>
               </div>
               
               <div className="space-y-2">
