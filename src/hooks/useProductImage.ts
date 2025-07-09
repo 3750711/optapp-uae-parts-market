@@ -1,7 +1,6 @@
 
 import { useMemo } from 'react';
 import { Product } from '@/types/product';
-import { devError } from '@/utils/logger';
 
 export const useProductImage = (product: Product | undefined | null) => {
   return useMemo(() => {
@@ -33,7 +32,6 @@ export const useProductImage = (product: Product | undefined | null) => {
         cloudinaryUrl: extractedCloudinaryUrl
       };
     } catch (error) {
-      devError('useProductImage error:', error, { productId: product.id });
       return {
         primaryImage: '/placeholder.svg',
         cloudinaryUrl: null,

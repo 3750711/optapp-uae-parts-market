@@ -15,40 +15,40 @@ const LOG_CONFIG = {
 // Development логирование (полностью отключено в production)
 export const devLog = (...args: any[]) => {
   if (LOG_CONFIG.enableDevLogs && isDevelopment) {
-    console.log(...args);
+    console.log('[DEV]', ...args);
   }
 };
 
 export const devWarn = (...args: any[]) => {
   if (LOG_CONFIG.enableDevLogs && isDevelopment) {
-    console.warn(...args);
+    console.warn('[DEV]', ...args);
   }
 };
 
 export const devError = (...args: any[]) => {
   if (LOG_CONFIG.enableDevLogs && isDevelopment) {
-    console.error(...args);
+    console.error('[DEV]', ...args);
   }
 };
 
-// Production error logging (только критические ошибки и только в консоль)
+// Production error logging (только критические ошибки)
 export const prodError = (error: Error | string, context?: Record<string, any>) => {
   if (isProduction) {
     // В production логируем только критические ошибки без дополнительной информации
     const errorMessage = typeof error === 'string' ? error : error.message;
-    console.error('Error:', errorMessage);
+    console.error('[PROD]', errorMessage);
   } else if (isDevelopment) {
     // В development логируем подробнее
     const errorMessage = typeof error === 'string' ? error : error.message;
     const stack = typeof error === 'object' ? error.stack : undefined;
-    console.error('Error:', errorMessage, context, stack ? { stack } : {});
+    console.error('[DEV] Error:', errorMessage, context, stack ? { stack } : {});
   }
 };
 
 // Критические ошибки (минимальное логирование)
 export const criticalError = (error: Error | string, context?: Record<string, any>) => {
   const errorMessage = typeof error === 'string' ? error : error.message;
-  console.error('Critical Error:', errorMessage);
+  console.error('[CRITICAL]', errorMessage);
 };
 
 // Performance logging (полностью отключено)

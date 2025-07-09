@@ -12,7 +12,7 @@ import ProductSkeleton from "@/components/product/ProductSkeleton";
 import ProductDetailHeader from "@/components/product/ProductDetailHeader";
 import ProductDetailAlerts from "@/components/product/ProductDetailAlerts";
 import ProductDetailContent from "@/components/product/ProductDetailContent";
-import ProductDetailFullGallery from "@/components/product/ProductDetailFullGallery";
+
 import SellerProducts from "@/components/product/SimilarProducts";
 import MobileProductLayout from "@/components/product/mobile/MobileProductLayout";
 import { Product } from "@/types/product";
@@ -35,7 +35,6 @@ const ProductDetail = () => {
   const [deliveryMethod, setDeliveryMethod] = useState<Database["public"]["Enums"]["delivery_method"]>("cargo_rf");
   
   const handleDeliveryMethodChange = (method: Database["public"]["Enums"]["delivery_method"]) => {
-    console.log("Updating delivery method in ProductDetail:", method);
     setDeliveryMethod(method);
   };
   
@@ -50,7 +49,6 @@ const ProductDetail = () => {
         navigate('/');
       }
     } catch (error) {
-      console.error("Navigation error:", error);
       toast({
         title: "Ошибка навигации",
         description: "Не удалось вернуться назад. Перенаправляем на главную страницу.",
@@ -65,8 +63,7 @@ const ProductDetail = () => {
     queryKey: ['product', id],
     queryFn: async () => {
       if (!id) {
-        console.error('No product ID provided');
-        return null;
+        throw new Error('No product ID provided');
       }
       
       try {
@@ -81,12 +78,10 @@ const ProductDetail = () => {
           .maybeSingle();
         
         if (error) {
-          console.error('Error fetching product:', error);
           throw error;
         }
         
         if (!data) {
-          console.error('No product found with ID:', id);
           throw new Error('Product not found');
         }
         
@@ -102,7 +97,6 @@ const ProductDetail = () => {
         
         return data as Product;
       } catch (error) {
-        console.error("Error in product query:", error);
         throw error;
       }
     },
@@ -127,7 +121,7 @@ const ProductDetail = () => {
             product_id: product.id 
           });
         } catch (error) {
-          console.error('Error tracking product view:', error);
+          // Silently fail view tracking
         }
       }
     };
@@ -158,14 +152,12 @@ const ProductDetail = () => {
           .eq('id', product.seller_id)
           .maybeSingle();
           
-        if (error) {
-          console.error('Error fetching seller profile:', error);
-          return null;
-        }
+          if (error) {
+            return null;
+          }
         
         return data;
       } catch (err) {
-        console.error('Exception in seller profile query:', err);
         return null;
       }
     },
@@ -174,7 +166,7 @@ const ProductDetail = () => {
   });
   
   const handleProductUpdate = () => {
-    console.log("Product updated, refreshing data");
+    // Product update handled by React Query cache invalidation
   };
   
   // Loading state

@@ -33,7 +33,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
   const [isLoaded, setIsLoaded] = useState(false);
 
   const handleImageError = useCallback(() => {
-    console.log('Image loading error for src:', src);
     setImageError(true);
     onError?.();
   }, [src, onError]);
@@ -48,13 +47,6 @@ const OptimizedImage: React.FC<OptimizedImageProps> = ({
     (cloudinaryUrl && cloudinaryUrl.includes('cloudinary.com') ? extractPublicIdFromUrl(cloudinaryUrl) : null) ||
     (src && src.includes('cloudinary.com') ? extractPublicIdFromUrl(src) : null);
 
-  console.log('OptimizedImage debug:', {
-    src,
-    cloudinaryPublicId,
-    cloudinaryUrl,
-    workingPublicId,
-    imageError
-  });
 
   // Use CloudinaryImage if we have a valid public_id and no errors
   if (workingPublicId && !imageError) {

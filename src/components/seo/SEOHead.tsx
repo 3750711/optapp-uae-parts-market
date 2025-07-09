@@ -19,7 +19,6 @@ const SEOHead: React.FC<SEOHeadProps> = ({
   structuredData
 }) => {
   useEffect(() => {
-    console.log('SEOHead: Setting meta tags', { title, description, ogImage });
     
     // Устанавливаем title
     document.title = title;
@@ -34,7 +33,6 @@ const SEOHead: React.FC<SEOHeadProps> = ({
         document.head.appendChild(meta);
       }
       meta.setAttribute('content', content);
-      console.log(`SEOHead: Set ${attribute}="${name}" content="${content}"`);
     };
 
     // Основные meta теги
@@ -47,8 +45,6 @@ const SEOHead: React.FC<SEOHeadProps> = ({
     const fullImageUrl = ogImage.startsWith('http') 
       ? ogImage 
       : `${window.location.origin}${ogImage}`;
-    
-    console.log('SEOHead: Full image URL:', fullImageUrl);
     
     // Open Graph теги
     setMetaTag('og:title', title, true);

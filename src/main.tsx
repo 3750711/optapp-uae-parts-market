@@ -30,23 +30,18 @@ const initApp = () => {
 // Проверка готовности к продакшену
 const performProductionChecks = () => {
   if (import.meta.env.PROD) {
-    console.log('🚀 Production mode detected');
-    
-    // Отключаем console.log в продакшене (оставляем warn и error)
-    if (import.meta.env.VITE_DISABLE_CONSOLE_LOGS === 'true') {
-      console.log = () => {};
-    }
+    // Production mode - disable console.log for performance
+    console.log = () => {};
   }
 };
 
 // Глобальная обработка неперехваченных ошибок
 const handleGlobalError = (event: ErrorEvent) => {
-  console.error('Global error caught:', event.error);
+  console.error('[GLOBAL]', event.error?.message || 'Unknown error');
   
   // Автоматическое восстановление при ошибках загрузки модулей
   if (event.error?.message?.includes('Loading chunk') || 
       event.error?.message?.includes('dynamically imported module')) {
-    console.log('🔄 Chunk loading error detected, attempting recovery...');
     
     // Безопасная очистка кешей с проверкой типов
     const clearCachesAndReload = async () => {
@@ -55,8 +50,8 @@ const handleGlobalError = (event: ErrorEvent) => {
           const names = await window.caches.keys();
           await Promise.all(names.map(name => window.caches.delete(name)));
         }
-      } catch (error) {
-        console.warn('Failed to clear caches:', error);
+        } catch (error) {
+        // Silently handle cache clearing errors
       } finally {
         // Безопасная перезагрузка страницы
         if (typeof window !== 'undefined' && window.location) {
@@ -70,7 +65,7 @@ const handleGlobalError = (event: ErrorEvent) => {
 };
 
 const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-  console.error('Unhandled promise rejection:', event.reason);
+  console.error('[PROMISE]', event.reason?.message || 'Unhandled rejection');
   
   // Предотвращаем показ ошибки в консоли для известных безопасных ошибок
   if (event.reason?.message?.includes('ResizeObserver loop limit exceeded')) {
@@ -92,7 +87,7 @@ try {
   // Инициализируем мониторинг производительности
   initPerformanceOptimizations();
 } catch (error) {
-  console.error('Failed to initialize app:', error);
+  console.error('[INIT]', 'Failed to initialize app');
   
   // Показываем пользователю сообщение об ошибке
   if (typeof document !== 'undefined') {
