@@ -90,6 +90,36 @@ export type Database = {
           },
         ]
       }
+      email_verification_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          used?: boolean | null
+        }
+        Relationships: []
+      }
       event_logs: {
         Row: {
           action_type: string
@@ -565,6 +595,7 @@ export type Database = {
           created_at: string
           description_user: string | null
           email: string
+          email_confirmed: boolean | null
           first_login_completed: boolean
           fts: unknown | null
           full_name: string | null
@@ -588,6 +619,7 @@ export type Database = {
           created_at?: string
           description_user?: string | null
           email: string
+          email_confirmed?: boolean | null
           first_login_completed?: boolean
           fts?: unknown | null
           full_name?: string | null
@@ -611,6 +643,7 @@ export type Database = {
           created_at?: string
           description_user?: string | null
           email?: string
+          email_confirmed?: boolean | null
           first_login_completed?: boolean
           fts?: unknown | null
           full_name?: string | null
@@ -1053,6 +1086,10 @@ export type Database = {
         Args: { p_user_id: string; p_search_type?: string }
         Returns: boolean
       }
+      cleanup_expired_email_verification_codes: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       cleanup_expired_password_reset_codes: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1223,6 +1260,10 @@ export type Database = {
         }
         Returns: string
       }
+      send_email_verification_code: {
+        Args: { p_email: string; p_ip_address?: unknown }
+        Returns: Json
+      }
       send_verification_code: {
         Args: { p_email: string; p_ip_address?: unknown }
         Returns: Json
@@ -1253,6 +1294,10 @@ export type Database = {
       }
       verify_and_reset_password_v2: {
         Args: { p_email: string; p_code: string; p_new_password: string }
+        Returns: Json
+      }
+      verify_email_verification_code: {
+        Args: { p_email: string; p_code: string }
         Returns: Json
       }
       verify_reset_code: {

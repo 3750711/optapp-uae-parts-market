@@ -25,6 +25,7 @@ interface Profile {
   fts?: unknown;
   listing_count?: number;
   last_login?: string;
+  email_confirmed?: boolean;
 }
 
 interface AuthContextType {

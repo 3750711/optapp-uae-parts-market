@@ -3,13 +3,15 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { devLog } from "@/utils/logger";
+import EmailVerificationBanner from "./EmailVerificationBanner";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
+  requireEmailVerification?: boolean;
 }
 
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, allowedRoles, requireEmailVerification = false }: ProtectedRouteProps) => {
   const { user, profile, isLoading } = useAuth();
   const location = useLocation();
   
@@ -63,7 +65,48 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
     return <Navigate to="/" replace />;
   }
   
+  // Check for email verification if required
+  if (requireEmailVerification && !profile.email_confirmed) {
+    devLog("ProtectedRoute: Email verification required but not confirmed");
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+        <div className="container mx-auto px-4 py-8">
+          <EmailVerificationBanner />
+          <div className="mt-8 text-center">
+            <div className="max-w-md mx-auto">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                Подтверждение email требуется
+              </h2>
+              <p className="text-gray-600 mb-6">
+                Для доступа к этой странице необходимо подтвердить ваш email адрес.
+              </p>
+              <button
+                onClick={() => window.history.back()}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+              >
+                Назад
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   devLog("ProtectedRoute: User authenticated and authorized, rendering children");
+  
+  // Show email verification banner for unverified users (but still allow access)
+  if (user && profile && !profile.email_confirmed) {
+    return (
+      <>
+        <div className="sticky top-0 z-50">
+          <EmailVerificationBanner />
+        </div>
+        {children}
+      </>
+    );
+  }
+  
   return <>{children}</>;
 };
 

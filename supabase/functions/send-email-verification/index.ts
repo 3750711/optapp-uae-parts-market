@@ -53,7 +53,7 @@ const handler = async (req: Request): Promise<Response> => {
 
       // Вызываем функцию базы данных для генерации кода
       const { data: codeData, error: codeError } = await supabaseClient.rpc(
-        'send_verification_code',
+        'send_email_verification_code',
         { 
           p_email: email,
           p_ip_address: clientIP

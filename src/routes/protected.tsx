@@ -22,12 +22,12 @@ export const ProtectedRoutes = () => (
       </ProtectedRoute>
     } />
     <Route path="/create-store" element={
-      <ProtectedRoute>
+      <ProtectedRoute requireEmailVerification={true}>
         <CreateStore />
       </ProtectedRoute>
     } />
     <Route path="/create-request" element={
-      <ProtectedRoute>
+      <ProtectedRoute requireEmailVerification={true}>
         <CreateRequest />
       </ProtectedRoute>
     } />
@@ -37,7 +37,7 @@ export const ProtectedRoutes = () => (
       </ProtectedRoute>
     } />
     <Route path="/buyer-create-order" element={
-      <ProtectedRoute>
+      <ProtectedRoute requireEmailVerification={true}>
         <BuyerCreateOrder />
       </ProtectedRoute>
     } />

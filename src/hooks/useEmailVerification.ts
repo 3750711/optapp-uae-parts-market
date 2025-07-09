@@ -17,14 +17,14 @@ export const useEmailVerification = () => {
     try {
       console.log('Отправка кода верификации на:', email);
       
-      // Используем исправленную функцию базы данных
-      const { data, error } = await supabase.rpc('create_password_reset_code', {
+      // Используем новую функцию для email verification
+      const { data, error } = await supabase.rpc('send_email_verification_code', {
         p_email: email,
-        p_opt_id: null // Для верификации email не передаем opt_id
+        p_ip_address: null
       });
 
       if (error) {
-        console.error('Ошибка при вызове create_password_reset_code:', error);
+        console.error('Ошибка при вызове send_email_verification_code:', error);
         return {
           success: false,
           message: 'Произошла ошибка при создании кода'
@@ -89,8 +89,8 @@ export const useEmailVerification = () => {
     try {
       console.log('Проверка кода для email:', email, 'код:', code);
       
-      // Используем новую функцию для проверки кода
-      const { data, error } = await supabase.rpc('verify_reset_code', {
+      // Используем новую функцию для проверки email verification кода
+      const { data, error } = await supabase.rpc('verify_email_verification_code', {
         p_email: email,
         p_code: code
       });
