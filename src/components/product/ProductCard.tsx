@@ -76,20 +76,26 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const images = React.useMemo(() => {
     const productImages = product.product_images || [];
     
+    console.log(`ProductCard [${product.id}] - Product images:`, productImages);
+    
     if (productImages.length > 0) {
       // Sort to put primary image first, then others
       const sortedImages = productImages
         .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
         .map(img => img.url);
+      
+      console.log(`ProductCard [${product.id}] - Sorted images:`, sortedImages);
       return sortedImages;
     }
     
     if (product.image) {
+      console.log(`ProductCard [${product.id}] - Using fallback image:`, product.image);
       return [product.image];
     }
     
+    console.log(`ProductCard [${product.id}] - Using placeholder`);
     return ["/placeholder.svg"];
-  }, [product.product_images, product.image]);
+  }, [product.product_images, product.image, product.id]);
 
   // Use primary image or first available
   const primaryImage = React.useMemo(() => {
@@ -112,17 +118,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
   React.useEffect(() => {
     if (!api) return;
 
+    console.log(`ProductCard [${product.id}] - Carousel API initialized, images count:`, images.length);
     setCurrent(api.selectedScrollSnap());
 
     api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
+      const newIndex = api.selectedScrollSnap();
+      console.log(`ProductCard [${product.id}] - Carousel slide changed to:`, newIndex);
+      setCurrent(newIndex);
     });
-  }, [api]);
+  }, [api, product.id, images.length]);
 
   const renderImageContent = () => {
     if (isMobile && images.length > 1) {
       return (
         <Carousel 
+          key={`carousel-${product.id}`}
           className="w-full" 
           setApi={setApi}
           opts={{
