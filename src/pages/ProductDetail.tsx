@@ -258,14 +258,6 @@ const ProductDetail = () => {
           onProductUpdate={handleProductUpdate}
         />
         
-        {/* Seller Products for Mobile */}
-        <div className="px-4 pb-24">
-          <SellerProducts 
-            currentProductId={product.id}
-            sellerId={product.seller_id}
-            sellerName={sellerName}
-          />
-        </div>
       </Layout>
     );
   }
@@ -315,12 +307,6 @@ const ProductDetail = () => {
           onDeliveryMethodChange={handleDeliveryMethodChange}
         />
         
-        {/* Full Size Images Section */}
-        <ProductDetailFullGallery 
-          imageUrls={imageUrls}
-          productTitle={product.title}
-          onImageClick={handleImageClick}
-        />
 
         {/* Seller Products Section */}
         <SellerProducts 

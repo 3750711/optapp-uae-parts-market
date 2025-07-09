@@ -222,8 +222,8 @@ export const CompactMediaGrid: React.FC<CompactMediaGridProps> = memo(({
         
         <div className={`grid gap-2 ${
           isMobile 
-            ? 'grid-cols-6' 
-            : 'grid-cols-8'
+            ? 'grid-cols-4' 
+            : 'grid-cols-6'
         }`}>
           {visibleItems.map((item, index) => (
             <CompactMediaThumbnail

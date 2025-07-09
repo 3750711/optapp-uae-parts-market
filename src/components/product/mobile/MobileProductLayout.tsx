@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, User, Truck, Info, MapPin, Grid } from "lucide-react";
+import { Package, Truck, Info, MapPin, Grid } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductGallery from "@/components/product/ProductGallery";
 import { CompactMediaGrid } from "@/components/media/CompactMediaGrid";
@@ -89,7 +89,7 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
             <CompactMediaGrid
               images={imageUrls}
               videos={videoUrls}
-              maxPreviewItems={12}
+              maxPreviewItems={8}
             />
           </div>
         )}
@@ -161,6 +161,15 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
 
 
 
+      {/* Seller Info */}
+      <CompactSellerInfo
+        sellerProfile={sellerProfile}
+        sellerName={sellerName}
+        sellerId={product.seller_id}
+        productTitle={product.title}
+        productId={product.id}
+      />
+
       {/* Delivery Info */}
       <Card className="rounded-none border-0 shadow-none mb-2">
         <CardHeader className="pb-3">
@@ -189,7 +198,7 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
       </Card>
 
       {/* Bottom padding for sticky actions */}
-      <div className="h-16"></div>
+      <div className="h-20"></div>
 
       {/* Sticky Actions */}
       <MobileStickyActions 
