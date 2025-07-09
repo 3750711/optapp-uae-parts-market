@@ -571,7 +571,7 @@ export type Database = {
           id: string
           last_login: string | null
           listing_count: number
-          location: string
+          location: string | null
           opt_id: string | null
           opt_status: Database["public"]["Enums"]["opt_user_status"]
           phone: string | null
@@ -594,7 +594,7 @@ export type Database = {
           id: string
           last_login?: string | null
           listing_count?: number
-          location?: string
+          location?: string | null
           opt_id?: string | null
           opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
@@ -617,7 +617,7 @@ export type Database = {
           id?: string
           last_login?: string | null
           listing_count?: number
-          location?: string
+          location?: string | null
           opt_id?: string | null
           opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null

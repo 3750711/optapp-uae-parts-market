@@ -5,9 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, Eye, EyeOff, CheckCircle, XCircle, MapPin, User } from 'lucide-react';
+import { Loader2, Eye, EyeOff, CheckCircle, XCircle, User } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import Layout from '@/components/layout/Layout';
@@ -20,7 +19,6 @@ const Register = () => {
     fullName: '',
     phone: '',
     telegram: '',
-    location: 'Россия',
     userType: 'buyer' as 'buyer' | 'seller',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -54,13 +52,6 @@ const Register = () => {
     if (name === 'email' && emailExists) {
       setEmailExists(false);
     }
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
   };
 
   const handleUserTypeChange = (value: string) => {
@@ -100,7 +91,6 @@ const Register = () => {
             full_name: formData.fullName,
             phone: formData.phone,
             telegram: formData.telegram,
-            location: formData.location,
             user_type: formData.userType,
           }
         }
@@ -195,92 +185,6 @@ const Register = () => {
                   value={formData.telegram}
                   onChange={handleInputChange}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="location">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    Страна
-                  </div>
-                </Label>
-                <Select value={formData.location} onValueChange={(value) => handleSelectChange('location', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Выберите страну" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border shadow-md max-h-[200px] overflow-y-auto z-50">
-                    <SelectItem value="Россия">Россия</SelectItem>
-                    <SelectItem value="Казахстан">Казахстан</SelectItem>
-                    <SelectItem value="Беларусь">Беларусь</SelectItem>
-                    <SelectItem value="Украина">Украина</SelectItem>
-                    <SelectItem value="ОАЭ">ОАЭ (Объединенные Арабские Эмираты)</SelectItem>
-                    <SelectItem value="Турция">Турция</SelectItem>
-                    <SelectItem value="Грузия">Грузия</SelectItem>
-                    <SelectItem value="Армения">Армения</SelectItem>
-                    <SelectItem value="Азербайджан">Азербайджан</SelectItem>
-                    <SelectItem value="Узбекистан">Узбекистан</SelectItem>
-                    <SelectItem value="Киргизия">Киргизия</SelectItem>
-                    <SelectItem value="Таджикистан">Таджикистан</SelectItem>
-                    <SelectItem value="Туркменистан">Туркменистан</SelectItem>
-                    <SelectItem value="Молдова">Молдова</SelectItem>
-                    <SelectItem value="Литва">Литва</SelectItem>
-                    <SelectItem value="Латвия">Латвия</SelectItem>
-                    <SelectItem value="Эстония">Эстония</SelectItem>
-                    <SelectItem value="Польша">Польша</SelectItem>
-                    <SelectItem value="Чехия">Чехия</SelectItem>
-                    <SelectItem value="Словакия">Словакия</SelectItem>
-                    <SelectItem value="Венгрия">Венгрия</SelectItem>
-                    <SelectItem value="Болгария">Болгария</SelectItem>
-                    <SelectItem value="Румыния">Румыния</SelectItem>
-                    <SelectItem value="Германия">Германия</SelectItem>
-                    <SelectItem value="Франция">Франция</SelectItem>
-                    <SelectItem value="Италия">Италия</SelectItem>
-                    <SelectItem value="Испания">Испания</SelectItem>
-                    <SelectItem value="Великобритания">Великобритания</SelectItem>
-                    <SelectItem value="Нидерланды">Нидерланды</SelectItem>
-                    <SelectItem value="Бельгия">Бельгия</SelectItem>
-                    <SelectItem value="Швейцария">Швейцария</SelectItem>
-                    <SelectItem value="Австрия">Австрия</SelectItem>
-                    <SelectItem value="Норвегия">Норвегия</SelectItem>
-                    <SelectItem value="Швеция">Швеция</SelectItem>
-                    <SelectItem value="Финляндия">Финляндия</SelectItem>
-                    <SelectItem value="Дания">Дания</SelectItem>
-                    <SelectItem value="США">США</SelectItem>
-                    <SelectItem value="Канада">Канада</SelectItem>
-                    <SelectItem value="Мексика">Мексика</SelectItem>
-                    <SelectItem value="Бразилия">Бразилия</SelectItem>
-                    <SelectItem value="Аргентина">Аргентина</SelectItem>
-                    <SelectItem value="Чили">Чили</SelectItem>
-                    <SelectItem value="Китай">Китай</SelectItem>
-                    <SelectItem value="Япония">Япония</SelectItem>
-                    <SelectItem value="Южная Корея">Южная Корея</SelectItem>
-                    <SelectItem value="Индия">Индия</SelectItem>
-                    <SelectItem value="Таиланд">Таиланд</SelectItem>
-                    <SelectItem value="Вьетнам">Вьетнам</SelectItem>
-                    <SelectItem value="Сингапур">Сингапур</SelectItem>
-                    <SelectItem value="Малайзия">Малайзия</SelectItem>
-                    <SelectItem value="Индонезия">Индонезия</SelectItem>
-                    <SelectItem value="Филиппины">Филиппины</SelectItem>
-                    <SelectItem value="Австралия">Австралия</SelectItem>
-                    <SelectItem value="Новая Зеландия">Новая Зеландия</SelectItem>
-                    <SelectItem value="Египет">Египет</SelectItem>
-                    <SelectItem value="Марокко">Марокко</SelectItem>
-                    <SelectItem value="Тунис">Тунис</SelectItem>
-                    <SelectItem value="Алжир">Алжир</SelectItem>
-                    <SelectItem value="ЮАР">ЮАР</SelectItem>
-                    <SelectItem value="Израиль">Израиль</SelectItem>
-                    <SelectItem value="Саудовская Аравия">Саудовская Аравия</SelectItem>
-                    <SelectItem value="Кувейт">Кувейт</SelectItem>
-                    <SelectItem value="Катар">Катар</SelectItem>
-                    <SelectItem value="Бахрейн">Бахрейн</SelectItem>
-                    <SelectItem value="Оман">Оман</SelectItem>
-                    <SelectItem value="Иран">Иран</SelectItem>
-                    <SelectItem value="Ирак">Ирак</SelectItem>
-                    <SelectItem value="Афганистан">Афганистан</SelectItem>
-                    <SelectItem value="Пакистан">Пакистан</SelectItem>
-                    <SelectItem value="Другая">Другая</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-3">
