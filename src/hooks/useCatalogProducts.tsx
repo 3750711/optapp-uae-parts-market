@@ -6,6 +6,7 @@ import { ProductProps } from '@/components/product/ProductCard';
 import { SortOption } from '@/components/catalog/ProductSorting';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
 import { useDebounceValue } from '@/hooks/useDebounceValue';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 
 export type ProductType = {
   id: string;
@@ -60,6 +61,7 @@ export const useCatalogProducts = ({
   const [hideSoldProducts, setHideSoldProducts] = useState(false);
   const { toast } = useToast();
   const { isAdmin } = useAdminAccess();
+  const { startTimer } = usePerformanceMonitor();
   const isInitialRender = useRef(true);
   
   const [internalSelectedBrand, setInternalSelectedBrand] = useState<string | null>(null);
@@ -125,6 +127,7 @@ export const useCatalogProducts = ({
   } = useInfiniteQuery({
     queryKey: ['products-infinite', filters],
     queryFn: async ({ pageParam = 0 }) => {
+      const timer = startTimer(`products-query-page-${pageParam}`);
       try {
         const from = pageParam * productsPerPage;
         const to = from + productsPerPage - 1;
@@ -187,7 +190,6 @@ export const useCatalogProducts = ({
         const { data, error } = await query;
         
         if (error) {
-          console.error('Database query failed:', error.message);
           throw new Error(`Database query failed: ${error.message}`);
         }
         
@@ -200,9 +202,10 @@ export const useCatalogProducts = ({
           })
         }));
         
+        timer.end();
         return dataWithSortedImages || [];
       } catch (error) {
-        console.error('Product loading error:', error);
+        timer.end();
         if (error instanceof Error) {
           throw new Error(error.message);
         } else {
@@ -232,7 +235,6 @@ export const useCatalogProducts = ({
 
   useEffect(() => {
     if (isError && error) {
-      console.error('Product loading error:', error);
       toast({
         title: "Ошибка загрузки товаров",
         description: error instanceof Error ? error.message : "Не удалось загрузить товары",
@@ -272,14 +274,14 @@ export const useCatalogProducts = ({
       
       return mapped;
     } catch (mappingError) {
-      console.error('Product mapping error:', mappingError);
+      // Return empty array on mapping error - UI will handle empty state
       return [];
     }
   }, [allProducts]);
 
-  // Optimized product chunks for virtualization
+  // Optimized product chunks for better performance
   const productChunks = useMemo(() => {
-    const chunkSize = 20; // Increased for better virtualization performance
+    const chunkSize = 12; // Optimized chunk size for better UX
     const chunks = [];
     
     for (let i = 0; i < mappedProducts.length; i += chunkSize) {

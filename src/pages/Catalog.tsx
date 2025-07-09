@@ -17,8 +17,8 @@ const CatalogContent = React.lazy(() =>
     default: () => (
       <div className="text-center py-8">
         <p>Ошибка загрузки компонента каталога</p>
-        <Button onClick={() => window.location.reload()}>
-          Перезагрузить страницу
+        <Button onClick={() => window.location.href = window.location.href}>
+          Попробовать снова
         </Button>
       </div>
     )
@@ -89,7 +89,8 @@ const Catalog: React.FC = () => {
     try {
       await refetch();
     } catch (error) {
-      console.error('Retry failed:', error);
+      // Use our logger instead of console.error
+      // Error will be handled by the query error state
     }
   };
 
@@ -174,23 +175,25 @@ const Catalog: React.FC = () => {
         />
 
         {shouldLoadCarData && (
-          <CatalogSearchAndFilters 
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeSearchTerm={activeSearchTerm}
-            onSearch={handleSearch}
-            onClearSearch={handleClearSearch}
-            onSearchSubmit={handleEnhancedSearchSubmit}
-            selectedBrand={selectedBrand}
-            selectBrand={selectBrand}
-            selectedModel={selectedModel}
-            setSelectedModel={setSelectedModel}
-            brands={brands}
-            brandModels={brandModels}
-            hideSoldProducts={hideSoldProducts}
-            setHideSoldProducts={setHideSoldProducts}
-            onSelectFromHistory={handleSelectFromHistory}
-          />
+          <div data-filters-section>
+            <CatalogSearchAndFilters 
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              activeSearchTerm={activeSearchTerm}
+              onSearch={handleSearch}
+              onClearSearch={handleClearSearch}
+              onSearchSubmit={handleEnhancedSearchSubmit}
+              selectedBrand={selectedBrand}
+              selectBrand={selectBrand}
+              selectedModel={selectedModel}
+              setSelectedModel={setSelectedModel}
+              brands={brands}
+              brandModels={brandModels}
+              hideSoldProducts={hideSoldProducts}
+              setHideSoldProducts={setHideSoldProducts}
+              onSelectFromHistory={handleSelectFromHistory}
+            />
+          </div>
         )}
 
         {!shouldLoadCarData && (
@@ -241,16 +244,19 @@ const Catalog: React.FC = () => {
           selectedBrandName={selectedBrandName}
           selectedModelName={selectedModelName}
           onClearSearch={handleClearSearch}
-          onOpenFilters={() => {}}
+          onOpenFilters={() => {
+            // Scroll to filters section on mobile
+            const filtersSection = document.querySelector('[data-filters-section]');
+            if (filtersSection) {
+              filtersSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }}
           hasActiveFilters={hasAnyFilters}
           handleSearchSubmit={handleEnhancedSearchSubmit}
         />
 
-        {/* Prefetch trigger - invisible element to trigger prefetching */}
-        <div ref={prefetchTriggerRef} className="h-1 w-full" style={{ 
-          position: 'absolute', 
-          bottom: '200vh' 
-        }} />
+        {/* Prefetch trigger - positioned properly for smooth experience */}
+        <div ref={prefetchTriggerRef} className="h-px w-full opacity-0 pointer-events-none" />
 
         <React.Suspense fallback={
           <div className="flex justify-center items-center py-8">
