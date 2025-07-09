@@ -47,13 +47,13 @@ interface UseCatalogProductsProps {
 }
 
 export const useCatalogProducts = ({ 
-  productsPerPage = 8, 
+  productsPerPage = 24, // Increased from 8 to 24 for better pagination
   sortBy = 'newest',
   externalSelectedBrand = null,
   externalSelectedModel = null,
   findBrandNameById,
   findModelNameById,
-  debounceTime = 200 // Reduced from 300ms to 200ms for better performance
+  debounceTime = 200
 }: UseCatalogProductsProps = {}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounceValue(searchTerm, debounceTime);
@@ -279,9 +279,9 @@ export const useCatalogProducts = ({
     }
   }, [allProducts]);
 
-  // Optimized product chunks for better performance
+  // Optimized product chunks synchronized with page size
   const productChunks = useMemo(() => {
-    const chunkSize = 12; // Optimized chunk size for better UX
+    const chunkSize = 24; // Synchronized with productsPerPage for consistent loading
     const chunks = [];
     
     for (let i = 0; i < mappedProducts.length; i += chunkSize) {

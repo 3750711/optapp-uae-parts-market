@@ -82,12 +82,21 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
           />
         ))}
 
+        {/* Intersection trigger positioned before the last chunk for smooth auto-loading */}
+        {productChunks.length > 1 && hasNextPage && (
+          <div
+            ref={loadMoreRef}
+            className="h-4 w-full opacity-0 pointer-events-none"
+            style={{ 
+              position: 'relative',
+              top: productChunks.length > 2 ? '-200px' : '-100px'
+            }}
+          />
+        )}
+
         {(hasNextPage || isFetchingNextPage) && (
           <div className="mt-8 flex flex-col items-center justify-center">
-            <div
-              ref={loadMoreRef}
-              className="h-20 w-full flex items-center justify-center"
-            >
+            <div className="h-20 w-full flex items-center justify-center">
               {isFetchingNextPage ? (
                 <div className="flex items-center justify-center">
                   <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>

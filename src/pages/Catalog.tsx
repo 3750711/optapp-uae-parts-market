@@ -28,8 +28,8 @@ const CatalogContent = React.lazy(() =>
 const Catalog: React.FC = () => {
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const prefetchTriggerRef = useRef<HTMLDivElement>(null);
-  const isLoadMoreVisible = useIntersection(loadMoreRef, "400px");
-  const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "800px");
+  const isLoadMoreVisible = useIntersection(loadMoreRef, "100px");
+  const isPrefetchTriggerVisible = useIntersection(prefetchTriggerRef, "300px");
 
   const {
     brands,
@@ -63,12 +63,12 @@ const Catalog: React.FC = () => {
     handleSearchSubmit,
     prefetchNextPage,
   } = useCatalogProducts({
-    productsPerPage: 8,
+    productsPerPage: 24, // Increased to 24 for better pagination performance
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 200 // Reduced to 200ms for better responsiveness
+    debounceTime: 200
   });
 
   // Auto-load more products when visible
@@ -255,8 +255,6 @@ const Catalog: React.FC = () => {
           handleSearchSubmit={handleEnhancedSearchSubmit}
         />
 
-        {/* Prefetch trigger - positioned properly for smooth experience */}
-        <div ref={prefetchTriggerRef} className="h-px w-full opacity-0 pointer-events-none" />
 
         <React.Suspense fallback={
           <div className="flex justify-center items-center py-8">
