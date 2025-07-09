@@ -82,7 +82,7 @@ const Register = () => {
     try {
       // Use Supabase direct signUp instead of signUp from context
       const { supabase } = await import('@/integrations/supabase/client');
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -104,11 +104,26 @@ const Register = () => {
           setError(error.message || 'Произошла ошибка при регистрации');
         }
       } else {
+        // Отправляем код подтверждения через кастомную систему
+        try {
+          const { error: codeError } = await supabase.functions.invoke('send-email-verification', {
+            body: { email: formData.email }
+          });
+          
+          if (codeError) {
+            console.error('Error sending verification code:', codeError);
+          }
+        } catch (codeErr) {
+          console.error('Error calling verification function:', codeErr);
+        }
+        
         toast({
           title: "Регистрация успешна!",
-          description: "Проверьте вашу почту для подтверждения аккаунта",
+          description: "Мы отправили код подтверждения на вашу почту",
         });
-        navigate('/login');
+        
+        // Перенаправляем на страницу верификации
+        navigate(`/verify-email?email=${encodeURIComponent(formData.email)}&returnTo=${encodeURIComponent('/profile')}`);
       }
     } catch (err) {
       setError('Произошла ошибка при регистрации');
