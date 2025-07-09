@@ -197,6 +197,13 @@ const EmailVerificationForm = ({
                   const numericValue = e.target.value.replace(/[^0-9]/g, '');
                   if (numericValue.length <= 6) {
                     setCode(numericValue);
+                    
+                    // Автоматически подтверждаем когда введены все 6 цифр
+                    if (numericValue.length === 6) {
+                      setTimeout(() => {
+                        handleVerifyCode();
+                      }, 100);
+                    }
                   }
                 }}
                 placeholder="123456"
