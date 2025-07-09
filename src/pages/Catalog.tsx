@@ -17,7 +17,7 @@ const CatalogContent = React.lazy(() =>
     default: () => (
       <div className="text-center py-8">
         <p>Ошибка загрузки компонента каталога</p>
-        <Button onClick={() => window.location.href = window.location.href}>
+        <Button onClick={() => window.location.reload()}>
           Попробовать снова
         </Button>
       </div>
@@ -63,12 +63,12 @@ const Catalog: React.FC = () => {
     handleSearchSubmit,
     prefetchNextPage,
   } = useCatalogProducts({
-    productsPerPage: 24, // Increased to 24 for better pagination performance
+    productsPerPage: 24, // Optimized for performance: 24 products per page
     externalSelectedBrand: selectedBrand,
     externalSelectedModel: selectedModel,
     findBrandNameById,
     findModelNameById,
-    debounceTime: 200
+    debounceTime: 200 // Fast response for better UX
   });
 
   // Auto-load more products when visible
@@ -89,7 +89,6 @@ const Catalog: React.FC = () => {
     try {
       await refetch();
     } catch (error) {
-      // Use our logger instead of console.error
       // Error will be handled by the query error state
     }
   };

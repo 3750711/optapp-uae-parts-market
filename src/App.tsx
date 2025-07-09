@@ -48,7 +48,7 @@ const App = () => {
   useEffect(() => {
     // Initialize performance monitoring in development
     if (import.meta.env.DEV) {
-      console.log('🚀 Performance monitoring initialized');
+      // Performance monitoring initialized
     }
 
     // Cleanup on unmount

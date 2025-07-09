@@ -82,28 +82,30 @@ const CatalogContent: React.FC<CatalogContentProps> = ({
           />
         ))}
 
-        {/* Intersection trigger positioned before the last chunk for smooth auto-loading */}
-        {productChunks.length > 1 && hasNextPage && (
+        {/* Optimized intersection trigger for smooth auto-loading */}
+        {productChunks.length > 0 && hasNextPage && (
           <div
             ref={loadMoreRef}
-            className="h-4 w-full opacity-0 pointer-events-none"
-            style={{ 
-              position: 'relative',
-              top: productChunks.length > 2 ? '-200px' : '-100px'
-            }}
+            className="h-1 w-full opacity-0 pointer-events-none -mb-32"
+            aria-hidden="true"
           />
         )}
 
         {(hasNextPage || isFetchingNextPage) && (
-          <div className="mt-8 flex flex-col items-center justify-center">
-            <div className="h-20 w-full flex items-center justify-center">
+          <div className="mt-8 mb-4 flex flex-col items-center justify-center">
+            <div className="h-16 w-full flex items-center justify-center">
               {isFetchingNextPage ? (
-                <div className="flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-t-link rounded-full animate-spin"></div>
-                  <span className="ml-3 text-muted-foreground">Загрузка товаров...</span>
+                <div className="flex items-center justify-center gap-3">
+                  <div className="w-6 h-6 border-2 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+                  <span className="text-sm text-muted-foreground">Загрузка товаров...</span>
                 </div>
               ) : (
-                <Button onClick={handleLoadMore} className="bg-primary hover:bg-primary/90">
+                <Button 
+                  onClick={handleLoadMore} 
+                  variant="outline"
+                  size="lg"
+                  className="min-w-[140px]"
+                >
                   Загрузить ещё
                 </Button>
               )}
