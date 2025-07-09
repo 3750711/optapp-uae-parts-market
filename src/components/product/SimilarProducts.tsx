@@ -117,6 +117,7 @@ const SellerProducts: React.FC<SellerProductsProps> = ({
             <ProductCard
               key={product.id}
               product={product as Product}
+              disableCarousel={true}
             />
           ))}
         </div>

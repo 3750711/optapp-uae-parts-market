@@ -42,12 +42,14 @@ interface ProductCardProps {
   product: ProductProps;
   showSoldButton?: boolean;
   onStatusChange?: () => void;
+  disableCarousel?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
   product, 
   showSoldButton = false, 
-  onStatusChange 
+  onStatusChange,
+  disableCarousel = false
 }) => {
   const [imageError, setImageError] = useState(false);
   const [imageLoading, setImageLoading] = useState(true);
@@ -128,54 +130,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
   }, [api]);
 
   const renderImageContent = () => {
-    if (isMobile && images.length > 1) {
-      return (
-        <Carousel 
-          key={`carousel-${product.id}`}
-          className="w-full touch-pan-x" 
-          setApi={setApi}
-          opts={{
-            startIndex: 0,
-            loop: false,
-            watchDrag: true,
-          }}
-        >
-          <CarouselContent className="-ml-0">
-            {images.map((imageUrl, index) => (
-              <CarouselItem key={index} className="basis-full pl-0">
-                <div className="w-full h-48 flex items-center justify-center">
-                  <OptimizedImage
-                    src={imageUrl}
-                    alt={`${product.title} ${index + 1}`}
-                    className="w-full h-full object-contain bg-gray-50"
-                    onError={handleImageError}
-                    onLoad={handleImageLoad}
-                    priority={index === 0}
-                    sizes="(max-width: 768px) 100vw, 50vw"
-                    cloudinaryPublicId={product.cloudinary_public_id || undefined}
-                    cloudinaryUrl={product.cloudinary_url || undefined}
-                    size="card"
-                  />
-                </div>
-              </CarouselItem>
-            ))}
-          </CarouselContent>
-          
-          {images.length > 1 && (
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
-              {images.map((_, index) => (
-                <div
-                  key={index}
-                  className={`h-1.5 w-1.5 rounded-full transition-all ${
-                    index === current ? 'bg-white shadow-sm' : 'bg-white/60'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
-        </Carousel>
-      );
-    } else {
+    if (disableCarousel || !isMobile || images.length <= 1) {
       return (
         <OptimizedImage
           src={primaryImage}
@@ -191,6 +146,53 @@ const ProductCard: React.FC<ProductCardProps> = ({
         />
       );
     }
+
+    return (
+      <Carousel 
+        key={`carousel-${product.id}`}
+        className="w-full touch-pan-x" 
+        setApi={setApi}
+        opts={{
+          startIndex: 0,
+          loop: false,
+          watchDrag: true,
+        }}
+      >
+        <CarouselContent className="-ml-0">
+          {images.map((imageUrl, index) => (
+            <CarouselItem key={index} className="basis-full pl-0">
+              <div className="w-full h-48 flex items-center justify-center">
+                <OptimizedImage
+                  src={imageUrl}
+                  alt={`${product.title} ${index + 1}`}
+                  className="w-full h-full object-contain bg-gray-50"
+                  onError={handleImageError}
+                  onLoad={handleImageLoad}
+                  priority={index === 0}
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  cloudinaryPublicId={product.cloudinary_public_id || undefined}
+                  cloudinaryUrl={product.cloudinary_url || undefined}
+                  size="card"
+                />
+              </div>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        
+        {images.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-20">
+            {images.map((_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 w-1.5 rounded-full transition-all ${
+                  index === current ? 'bg-white shadow-sm' : 'bg-white/60'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </Carousel>
+    );
   };
 
   // Format title with brand and model
