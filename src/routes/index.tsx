@@ -90,6 +90,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/requests" element={<Requests />} />
             <Route path="/request/:id" element={<RequestDetail />} />
             <Route path="/buyer-guide" element={<BuyerGuide />} />
+            <Route path="/seller/:id" element={<PublicSellerProfile />} />
             <Route path="/public-seller-profile/:id" element={<PublicSellerProfile />} />
             <Route path="/generate-og-image" element={<GenerateOGImage />} />
             <Route path="/404" element={<NotFound />} />
