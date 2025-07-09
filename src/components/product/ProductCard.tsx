@@ -77,9 +77,11 @@ const ProductCard: React.FC<ProductCardProps> = ({
     const productImages = product.product_images || [];
     
     if (productImages.length > 0) {
-      return productImages
+      // Sort to put primary image first, then others
+      const sortedImages = productImages
         .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
         .map(img => img.url);
+      return sortedImages;
     }
     
     if (product.image) {
@@ -133,7 +135,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             {images.map((imageUrl, index) => (
               <CarouselItem key={index} className="basis-full">
                 <OptimizedImage
-                  src={index === 0 ? primaryImage : imageUrl}
+                  src={imageUrl}
                   alt={`${product.title} ${index + 1}`}
                   className="w-full h-full object-contain bg-gray-50"
                   onError={handleImageError}
