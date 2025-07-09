@@ -6,6 +6,7 @@ import ProductGallery from "@/components/product/ProductGallery";
 
 import CompactSellerInfo from "./CompactSellerInfo";
 import MobileStickyActions from "./MobileStickyActions";
+import SellerProducts from "@/components/product/SimilarProducts";
 import { Badge } from "@/components/ui/badge";
 
 interface MobileProductLayoutProps {
@@ -179,6 +180,13 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           )}
         </CardContent>
       </Card>
+
+      {/* Seller Products */}
+      <SellerProducts 
+        currentProductId={product.id}
+        sellerId={product.seller_id}
+        sellerName={sellerName}
+      />
 
       {/* Bottom padding for sticky actions */}
       <div className="h-20"></div>
