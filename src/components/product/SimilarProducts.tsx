@@ -24,7 +24,11 @@ const SellerProducts: React.FC<SellerProductsProps> = ({
         .from('products')
         .select(`
           *,
-          product_images(url, is_primary)
+          product_images(
+            id,
+            url,
+            is_primary
+          )
         `)
         .eq('seller_id', sellerId)
         .eq('status', 'active')
@@ -37,7 +41,13 @@ const SellerProducts: React.FC<SellerProductsProps> = ({
         return [];
       }
 
-      return data || [];
+      // Process the data to ensure proper image arrays per product
+      const processedData = data?.map(product => ({
+        ...product,
+        product_images: product.product_images || []
+      })) || [];
+
+      return processedData;
     },
     enabled: !!sellerId && !!currentProductId,
   });
