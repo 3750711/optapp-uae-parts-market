@@ -76,26 +76,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const images = React.useMemo(() => {
     const productImages = product.product_images || [];
     
-    console.log(`ProductCard [${product.id}] - Product images:`, productImages);
-    
     if (productImages.length > 0) {
       // Sort to put primary image first, then others
       const sortedImages = productImages
         .sort((a, b) => (b.is_primary ? 1 : 0) - (a.is_primary ? 1 : 0))
-        .map(img => img.url);
+        .map(img => img.url)
+        .filter((url, index, arr) => arr.indexOf(url) === index); // Remove duplicates
       
-      console.log(`ProductCard [${product.id}] - Sorted images:`, sortedImages);
       return sortedImages;
     }
     
     if (product.image) {
-      console.log(`ProductCard [${product.id}] - Using fallback image:`, product.image);
       return [product.image];
     }
     
-    console.log(`ProductCard [${product.id}] - Using placeholder`);
     return ["/placeholder.svg"];
-  }, [product.product_images, product.image, product.id]);
+  }, [product.product_images, product.image]);
 
   // Use primary image or first available
   const primaryImage = React.useMemo(() => {
@@ -118,15 +114,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
   React.useEffect(() => {
     if (!api) return;
 
-    console.log(`ProductCard [${product.id}] - Carousel API initialized, images count:`, images.length);
     setCurrent(api.selectedScrollSnap());
 
-    api.on("select", () => {
-      const newIndex = api.selectedScrollSnap();
-      console.log(`ProductCard [${product.id}] - Carousel slide changed to:`, newIndex);
-      setCurrent(newIndex);
-    });
-  }, [api, product.id, images.length]);
+    const onSelect = () => {
+      setCurrent(api.selectedScrollSnap());
+    };
+
+    api.on("select", onSelect);
+
+    return () => {
+      api?.off("select", onSelect);
+    };
+  }, [api]);
 
   const renderImageContent = () => {
     if (isMobile && images.length > 1) {
@@ -137,8 +136,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
           setApi={setApi}
           opts={{
             align: "start",
-            loop: true,
-            dragFree: true,
+            loop: images.length > 2,
+            containScroll: "trimSnaps",
           }}
         >
           <CarouselContent>
