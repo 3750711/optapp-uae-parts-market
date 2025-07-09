@@ -78,29 +78,6 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
         />
       </div>
 
-      {/* Product Info */}
-      <Card className="rounded-none border-0 shadow-none mb-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Описание товара
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm text-foreground/80 leading-relaxed">
-              {product.description || "Описание отсутствует"}
-            </p>
-          </div>
-          
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="text-sm text-muted-foreground">
-              Количество мест: {product.place_number || 1}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Technical Details */}
       {(product.brand || product.model || product.lot_number) && (
         <Card className="rounded-none border-0 shadow-none mb-2">
@@ -141,6 +118,29 @@ const MobileProductLayout: React.FC<MobileProductLayoutProps> = ({
           </CardContent>
         </Card>
       )}
+
+      {/* Product Info */}
+      <Card className="rounded-none border-0 shadow-none mb-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Описание товара
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm text-foreground/80 leading-relaxed">
+              {product.description || "Описание отсутствует"}
+            </p>
+          </div>
+          
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="text-sm text-muted-foreground">
+              Количество мест: {product.place_number || 1}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
 
 
