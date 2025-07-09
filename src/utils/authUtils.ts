@@ -26,12 +26,15 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
   try {
     console.log('Searching for email by OPT ID:', optId);
     
+    // Добавляем второй параметр p_ip_address: null для разрешения перегрузки функции
     const { data, error } = await supabase.rpc('get_email_by_opt_id', {
-      p_opt_id: optId
+      p_opt_id: optId,
+      p_ip_address: null
     });
 
     if (error) {
       console.error('Error getting email by OPT ID:', error);
+      console.error('Full error details:', error);
       
       // Проверяем, является ли ошибка связанной с rate limiting
       if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
@@ -42,6 +45,7 @@ export const getEmailByOptId = async (optId: string): Promise<EmailByOptIdResult
     }
 
     console.log('Found email for OPT ID:', data ? '***@***.***' : 'not found');
+    console.log('Raw response data:', data);
     return { email: data, isRateLimited: false };
     
   } catch (error) {
