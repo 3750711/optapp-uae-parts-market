@@ -83,8 +83,10 @@ const EmailVerificationForm = ({
     }
   };
 
-  const handleVerifyCode = async () => {
-    if (code.length !== 6) {
+  const handleVerifyCode = async (codeToVerify?: string) => {
+    const verificationCode = codeToVerify || code;
+    
+    if (verificationCode.length !== 6) {
       toast({
         title: "Неполный код",
         description: "Введите полный 6-значный код",
@@ -93,7 +95,7 @@ const EmailVerificationForm = ({
       return;
     }
 
-    const result = await verifyEmailCode(email, code);
+    const result = await verifyEmailCode(email, verificationCode);
 
     if (result.success) {
       toast({
@@ -198,12 +200,12 @@ const EmailVerificationForm = ({
                   if (numericValue.length <= 6) {
                     setCode(numericValue);
                     
-                    // Автоматически подтверждаем когда введены все 6 цифр
-                    if (numericValue.length === 6) {
-                      setTimeout(() => {
-                        handleVerifyCode();
-                      }, 100);
-                    }
+                     // Автоматически подтверждаем когда введены все 6 цифр
+                     if (numericValue.length === 6) {
+                       setTimeout(() => {
+                         handleVerifyCode(numericValue);
+                       }, 100);
+                     }
                   }
                 }}
                 placeholder="123456"
@@ -225,7 +227,7 @@ const EmailVerificationForm = ({
 
             <div className="space-y-2">
               <Button 
-                onClick={handleVerifyCode}
+                onClick={() => handleVerifyCode()}
                 disabled={code.length !== 6 || isLoading}
                 className="w-full bg-optapp-yellow text-optapp-dark hover:bg-yellow-500"
               >
