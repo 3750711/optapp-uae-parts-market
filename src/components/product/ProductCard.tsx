@@ -132,29 +132,31 @@ const ProductCard: React.FC<ProductCardProps> = ({
       return (
         <Carousel 
           key={`carousel-${product.id}`}
-          className="w-full" 
+          className="w-full touch-pan-x" 
           setApi={setApi}
           opts={{
-            align: "start",
-            loop: images.length > 2,
-            containScroll: "trimSnaps",
+            startIndex: 0,
+            loop: false,
+            watchDrag: true,
           }}
         >
-          <CarouselContent>
+          <CarouselContent className="-ml-0">
             {images.map((imageUrl, index) => (
-              <CarouselItem key={index} className="basis-full">
-                <OptimizedImage
-                  src={imageUrl}
-                  alt={`${product.title} ${index + 1}`}
-                  className="w-full h-full object-contain bg-gray-50"
-                  onError={handleImageError}
-                  onLoad={handleImageLoad}
-                  priority={index === 0}
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  cloudinaryPublicId={product.cloudinary_public_id || undefined}
-                  cloudinaryUrl={product.cloudinary_url || undefined}
-                  size="card"
-                />
+              <CarouselItem key={index} className="basis-full pl-0">
+                <div className="w-full h-48 flex items-center justify-center">
+                  <OptimizedImage
+                    src={imageUrl}
+                    alt={`${product.title} ${index + 1}`}
+                    className="w-full h-full object-contain bg-gray-50"
+                    onError={handleImageError}
+                    onLoad={handleImageLoad}
+                    priority={index === 0}
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    cloudinaryPublicId={product.cloudinary_public_id || undefined}
+                    cloudinaryUrl={product.cloudinary_url || undefined}
+                    size="card"
+                  />
+                </div>
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -165,7 +167,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 <div
                   key={index}
                   className={`h-1.5 w-1.5 rounded-full transition-all ${
-                    index === current ? 'bg-white' : 'bg-white/60'
+                    index === current ? 'bg-white shadow-sm' : 'bg-white/60'
                   }`}
                 />
               ))}
