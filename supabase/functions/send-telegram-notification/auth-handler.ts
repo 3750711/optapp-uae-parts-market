@@ -67,12 +67,21 @@ export async function handleTelegramAuth(
     }
     
     // Handle user authentication with database function
+    console.log('Calling handle_telegram_auth with params:', {
+      p_telegram_id: telegramData.id,
+      p_telegram_username: telegramData.username || null,
+      p_telegram_first_name: telegramData.first_name,
+      p_telegram_photo_url: telegramData.photo_url || null,
+      p_email: null // Adding missing email parameter
+    });
+    
     const { data: authResult, error: authError } = await supabaseClient
       .rpc('handle_telegram_auth', {
         p_telegram_id: telegramData.id,
         p_telegram_username: telegramData.username || null,
         p_telegram_first_name: telegramData.first_name,
-        p_telegram_photo_url: telegramData.photo_url || null
+        p_telegram_photo_url: telegramData.photo_url || null,
+        p_email: null // Adding missing email parameter with default value
       });
     
     if (authError) {
