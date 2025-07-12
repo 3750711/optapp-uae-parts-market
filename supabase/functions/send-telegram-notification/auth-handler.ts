@@ -1,6 +1,5 @@
 // Telegram authentication handler
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { createHash } from "https://deno.land/std@0.168.0/node/crypto.ts";
 
 interface TelegramAuthData {
   id: number;
@@ -56,24 +55,48 @@ function validateTelegramData(data: any): data is TelegramAuthData {
 }
 
 // Verify Telegram Login Widget data
-function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): boolean {
-  const { hash, ...data } = authData;
-  
-  // Create check string from data
-  const checkString = Object.keys(data)
-    .sort()
-    .map(key => `${key}=${data[key as keyof typeof data]}`)
-    .join('\n');
-  
-  // Create secret key from bot token
-  const secretKey = createHash('sha256').update(botToken).digest();
-  
-  // Create hash from check string
-  const calculatedHash = createHash('hmac-sha256', secretKey)
-    .update(checkString)
-    .digest('hex');
-  
-  return calculatedHash === hash;
+async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): Promise<boolean> {
+  try {
+    const { hash, ...data } = authData;
+    
+    // Create check string from data
+    const checkString = Object.keys(data)
+      .sort()
+      .map(key => `${key}=${data[key as keyof typeof data]}`)
+      .join('\n');
+    
+    console.log('Check string for verification:', checkString);
+    
+    // Create secret key from bot token using Deno's crypto API
+    const encoder = new TextEncoder();
+    const tokenBytes = encoder.encode(botToken);
+    const secretKey = await globalThis.crypto.subtle.digest('SHA-256', tokenBytes);
+    
+    // Create HMAC using Deno's crypto API
+    const key = await globalThis.crypto.subtle.importKey(
+      'raw',
+      secretKey,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const checkStringBytes = encoder.encode(checkString);
+    const signature = await globalThis.crypto.subtle.sign('HMAC', key, checkStringBytes);
+    
+    // Convert to hex string
+    const calculatedHash = Array.from(new Uint8Array(signature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    console.log('Calculated hash:', calculatedHash);
+    console.log('Provided hash:', hash);
+    
+    return calculatedHash === hash;
+  } catch (error) {
+    console.error('Error in Telegram signature verification:', error);
+    return false;
+  }
 }
 
 export async function handleTelegramAuth(
@@ -155,7 +178,7 @@ export async function handleTelegramAuth(
     });
     
     // Verify Telegram signature for security
-    if (!verifyTelegramAuth(telegramData, botToken)) {
+    if (!(await verifyTelegramAuth(telegramData, botToken))) {
       console.error('Telegram signature verification failed');
       return new Response(
         JSON.stringify({ 
@@ -238,7 +261,7 @@ export async function handleTelegramAuth(
       
       // Create new auth user
       const tempEmail = `telegram_${telegramId}@telegram.local`;
-      const tempPassword = crypto.randomUUID();
+      const tempPassword = globalThis.crypto.randomUUID();
       
       const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
         email: tempEmail,
