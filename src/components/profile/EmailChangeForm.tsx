@@ -43,7 +43,7 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
       return;
     }
 
-    const result = await sendVerificationCode(newEmail, 'email_change');
+    const result = await sendVerificationCode(newEmail);
     if (result.success) {
       setStep('verify');
       toast({
@@ -127,8 +127,8 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
     setIsChanging(true);
 
     try {
-      // Проверяем код и автоматически меняем email
-      const verificationResult = await verifyEmailCode(newEmail, code, 'email_change');
+      // Проверяем код 
+      const verificationResult = await verifyEmailCode(newEmail, code);
       
       if (!verificationResult.success) {
         toast({
@@ -140,10 +140,24 @@ const EmailChangeForm = ({ currentEmail, onSuccess, onCancel }: EmailChangeFormP
         return;
       }
 
+      // После успешной верификации кода, выполняем смену email вручную
+      const { error: updateError } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (updateError) {
+        toast({
+          title: "Ошибка обновления",
+          description: "Не удалось обновить email. Попробуйте позже.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Отправляем уведомления на оба email параллельно
       await Promise.all([
-        sendEmailChangeNotification(verificationResult.old_email || currentEmail, newEmail),
-        sendEmailChangeSuccessNotification(newEmail, verificationResult.old_email || currentEmail)
+        sendEmailChangeNotification(currentEmail, newEmail),
+        sendEmailChangeSuccessNotification(newEmail, currentEmail)
       ]);
 
       // Принудительно обновляем профиль и инвалидируем все кэши

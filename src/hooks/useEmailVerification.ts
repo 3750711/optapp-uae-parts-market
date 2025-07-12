@@ -6,24 +6,21 @@ interface EmailVerificationResult {
   success: boolean;
   message: string;
   code?: string; // Только для отладки
-  old_email?: string; // Для смены email
-  new_email?: string; // Для смены email
 }
 
 export const useEmailVerification = () => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const sendVerificationCode = async (email: string, context: string = 'registration'): Promise<EmailVerificationResult> => {
+  const sendVerificationCode = async (email: string): Promise<EmailVerificationResult> => {
     setIsLoading(true);
     
     try {
       console.log('Отправка кода верификации на:', email);
       
-      // Используем новую функцию для email verification
+      // Используем упрощенную функцию для email verification
       const { data, error } = await supabase.rpc('send_email_verification_code', {
         p_email: email,
-        p_ip_address: null,
-        p_context: context
+        p_ip_address: null
       });
 
       if (error) {
@@ -48,8 +45,7 @@ export const useEmailVerification = () => {
             },
             body: JSON.stringify({ 
               email,
-              verification_code: data.code, // Передаем код для отправки
-              context: context
+              verification_code: data.code
             })
           }
         );
@@ -87,17 +83,16 @@ export const useEmailVerification = () => {
     }
   };
 
-  const verifyEmailCode = async (email: string, code: string, context: string = 'registration'): Promise<{ success: boolean; message: string; old_email?: string; new_email?: string }> => {
+  const verifyEmailCode = async (email: string, code: string): Promise<{ success: boolean; message: string }> => {
     setIsLoading(true);
 
     try {
       console.log('Проверка кода для email:', email, 'код:', code);
       
-      // Используем новую функцию для проверки email verification кода
+      // Используем упрощенную функцию для проверки email verification кода
       const { data, error } = await supabase.rpc('verify_email_verification_code', {
         p_email: email,
-        p_code: code,
-        p_context: context
+        p_code: code
       });
 
       if (error) {
@@ -111,9 +106,7 @@ export const useEmailVerification = () => {
       console.log('Результат проверки:', data);
       return {
         success: data.success,
-        message: data.message,
-        old_email: data.old_email,
-        new_email: data.new_email
+        message: data.message
       };
     } catch (error) {
       console.error('Ошибка при проверке кода:', error);

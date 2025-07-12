@@ -13,7 +13,6 @@ interface EmailVerificationRequest {
   email: string;
   verification_code?: string; // Код передается из базы данных
   ip_address?: string;
-  context?: string; // 'registration' или 'email_change'
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +22,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, verification_code, ip_address, context = 'registration' }: EmailVerificationRequest = await req.json();
+    const { email, verification_code, ip_address }: EmailVerificationRequest = await req.json();
 
     if (!email) {
       return new Response(
@@ -52,13 +51,12 @@ const handler = async (req: Request): Promise<Response> => {
       const clientIP = ip_address || req.headers.get("x-forwarded-for")?.split(",")[0] || 
                        req.headers.get("x-real-ip") || "unknown";
 
-      // Вызываем функцию базы данных для генерации кода
+      // Вызываем упрощенную функцию базы данных для генерации кода
       const { data: codeData, error: codeError } = await supabaseClient.rpc(
         'send_email_verification_code',
         { 
           p_email: email,
-          p_ip_address: clientIP,
-          p_context: context
+          p_ip_address: clientIP
         }
       );
 
