@@ -110,21 +110,26 @@ export async function handleTelegramAuth(
     });
     
     // Get bot token from environment
+    console.log('Getting bot token from environment...');
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+    console.log('Available env vars (keys only):', Object.keys(Deno.env.toObject()));
+    
     if (!botToken) {
-      console.error('TELEGRAM_BOT_TOKEN environment variable not set');
+      console.error('TELEGRAM_BOT_TOKEN environment variable not found!');
+      console.error('This is required for Telegram authentication');
       return new Response(
         JSON.stringify({ 
-          error: 'Server configuration error',
-          details: 'Telegram bot token not configured'
+          error: 'TELEGRAM_BOT_TOKEN not configured',
+          details: 'Please add TELEGRAM_BOT_TOKEN to Edge Function secrets in Supabase dashboard',
+          missing_secret: 'TELEGRAM_BOT_TOKEN'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 500 
+          status: 400 
         }
       );
     }
-    console.log('Bot token found:', botToken ? 'yes' : 'no');
+    console.log('Bot token found:', botToken ? 'YES' : 'NO');
     
     // Skip signature verification for debugging (temporarily)
     console.log('⚠️ SKIPPING signature verification for debugging purposes');
@@ -148,8 +153,22 @@ export async function handleTelegramAuth(
     };
     console.log('Calling handle_telegram_auth database function with params:', JSON.stringify(dbParams, null, 2));
     
-    const { data: authResult, error: authError } = await supabaseClient
-      .rpc('handle_telegram_auth', dbParams);
+    let authResult, authError;
+    try {
+      console.log('Making RPC call to handle_telegram_auth...');
+      const response = await supabaseClient.rpc('handle_telegram_auth', dbParams);
+      authResult = response.data;
+      authError = response.error;
+      console.log('RPC response:', { data: authResult, error: authError });
+    } catch (rpcError) {
+      console.error('RPC call threw an exception:', rpcError);
+      console.error('Exception details:', {
+        message: rpcError?.message,
+        name: rpcError?.name,
+        stack: rpcError?.stack
+      });
+      authError = rpcError;
+    }
     
     console.log('Database function response:', { 
       success: !authError, 
