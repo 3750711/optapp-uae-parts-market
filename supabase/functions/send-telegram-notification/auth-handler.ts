@@ -1,5 +1,6 @@
 // Telegram authentication handler
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { BOT_TOKEN } from "./config.ts";
 
 interface TelegramAuthData {
   id: number;
@@ -133,23 +134,10 @@ export async function handleTelegramAuth(
     });
     
     // Get required secrets from environment
-    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+    const botToken = BOT_TOKEN; // Import from config.ts which has fallback
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
-    if (!botToken) {
-      console.error('TELEGRAM_BOT_TOKEN environment variable not found!');
-      return new Response(
-        JSON.stringify({ 
-          error: 'TELEGRAM_BOT_TOKEN not configured',
-          details: 'Please add TELEGRAM_BOT_TOKEN to Edge Function secrets',
-          missing_secret: 'TELEGRAM_BOT_TOKEN'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
-      );
-    }
+    console.log('Using bot token from config (has fallback):', botToken ? 'Available' : 'Missing');
     
     if (!serviceRoleKey) {
       console.error('SUPABASE_SERVICE_ROLE_KEY environment variable not found!');
@@ -177,8 +165,12 @@ export async function handleTelegramAuth(
       }
     });
     
-    // Verify Telegram signature for security
-    if (!(await verifyTelegramAuth(telegramData, botToken))) {
+    // Verify Telegram signature for security  
+    console.log('Verifying Telegram auth with bot token...');
+    const isValidSignature = await verifyTelegramAuth(telegramData, botToken);
+    console.log('Signature verification result:', isValidSignature);
+    
+    if (!isValidSignature) {
       console.error('Telegram signature verification failed');
       return new Response(
         JSON.stringify({ 
