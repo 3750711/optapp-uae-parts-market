@@ -178,11 +178,11 @@ const Login = () => {
               </h3>
               <div className="flex justify-center">
             <TelegramLoginButton
-              botUsername="optshop2_bot"
-                  onAuth={handleTelegramAuth}
-                  onError={handleTelegramError}
-                  size="large"
-                />
+              botUsername="Optnewads_bot"
+              onAuth={handleTelegramAuth}
+              onError={handleTelegramError}
+              size="large"
+            />
               </div>
             </div>
 
