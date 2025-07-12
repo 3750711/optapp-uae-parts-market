@@ -589,6 +589,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          auth_method: string | null
           avatar_url: string | null
           communication_ability: number | null
           company_name: string | null
@@ -606,13 +607,19 @@ export type Database = {
           opt_id: string | null
           opt_status: Database["public"]["Enums"]["opt_user_status"]
           phone: string | null
+          profile_completed: boolean | null
           rating: number | null
           telegram: string | null
           telegram_edit_count: number | null
+          telegram_first_name: string | null
+          telegram_id: number | null
+          telegram_photo_url: string | null
+          telegram_username: string | null
           user_type: Database["public"]["Enums"]["user_type"]
           verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
+          auth_method?: string | null
           avatar_url?: string | null
           communication_ability?: number | null
           company_name?: string | null
@@ -630,13 +637,19 @@ export type Database = {
           opt_id?: string | null
           opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
+          profile_completed?: boolean | null
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
+          telegram_first_name?: string | null
+          telegram_id?: number | null
+          telegram_photo_url?: string | null
+          telegram_username?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
+          auth_method?: string | null
           avatar_url?: string | null
           communication_ability?: number | null
           company_name?: string | null
@@ -654,9 +667,14 @@ export type Database = {
           opt_id?: string | null
           opt_status?: Database["public"]["Enums"]["opt_user_status"]
           phone?: string | null
+          profile_completed?: boolean | null
           rating?: number | null
           telegram?: string | null
           telegram_edit_count?: number | null
+          telegram_first_name?: string | null
+          telegram_id?: number | null
+          telegram_photo_url?: string | null
+          telegram_username?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
           verification_status?: Database["public"]["Enums"]["verification_status"]
         }
@@ -1198,6 +1216,16 @@ export type Database = {
       gtrgm_out: {
         Args: { "": unknown }
         Returns: unknown
+      }
+      handle_telegram_auth: {
+        Args: {
+          p_telegram_id: number
+          p_telegram_username: string
+          p_telegram_first_name: string
+          p_telegram_photo_url: string
+          p_email?: string
+        }
+        Returns: Json
       }
       increment_product_view_count: {
         Args: { product_id: string }
