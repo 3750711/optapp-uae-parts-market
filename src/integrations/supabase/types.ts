@@ -1245,6 +1245,10 @@ export type Database = {
         Args: { p_user_id: string; p_email: string; p_opt_id?: string }
         Returns: undefined
       }
+      log_telegram_auth_debug: {
+        Args: { user_id: string; debug_info: Json }
+        Returns: undefined
+      }
       resend_order_notification: {
         Args: { p_order_id: string }
         Returns: boolean
