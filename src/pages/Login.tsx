@@ -177,8 +177,8 @@ const Login = () => {
                 Быстрый вход
               </h3>
               <div className="flex justify-center">
-                <TelegramLoginButton
-                  botUsername="your_bot_username" // Replace with actual bot username
+            <TelegramLoginButton
+              botUsername="optshop2_bot"
                   onAuth={handleTelegramAuth}
                   onError={handleTelegramError}
                   size="large"
