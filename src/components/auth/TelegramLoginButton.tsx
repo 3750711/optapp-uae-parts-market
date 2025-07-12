@@ -41,6 +41,13 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
   const widgetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Debug: Log current domain information
+    console.log('🔧 Telegram Widget Debug Info:');
+    console.log('Current URL:', window.location.href);
+    console.log('Domain:', window.location.hostname);
+    console.log('Protocol:', window.location.protocol);
+    console.log('Bot username:', botUsername);
+
     // Define the callback function for Telegram widget
     window.TelegramLoginWidget = {
       dataOnAuth: async (user: TelegramUser) => {
@@ -84,6 +91,27 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
     script.setAttribute('data-radius', cornerRadius.toString());
     script.setAttribute('data-request-access', requestAccess);
     script.setAttribute('data-onauth', 'TelegramLoginWidget.dataOnAuth(user)');
+
+    // Add error handling for script loading
+    script.onerror = () => {
+      console.error('❌ Failed to load Telegram widget script');
+      onError('Failed to load Telegram login widget. Please check your internet connection.');
+    };
+
+    script.onload = () => {
+      console.log('✅ Telegram widget script loaded successfully');
+      
+      // Check for domain errors after a short delay
+      setTimeout(() => {
+        const widget = widgetRef.current?.querySelector('iframe');
+        if (widget) {
+          console.log('✅ Telegram widget iframe created');
+        } else {
+          console.warn('⚠️ No Telegram widget iframe found - possible domain issue');
+          onError(`Domain validation failed. Make sure ${window.location.hostname} is registered in @BotFather for bot @${botUsername}`);
+        }
+      }, 2000);
+    };
 
     if (widgetRef.current) {
       widgetRef.current.appendChild(script);
