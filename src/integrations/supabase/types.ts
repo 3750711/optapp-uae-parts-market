@@ -1098,6 +1098,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      cleanup_verification_codes_for_email: {
+        Args: { p_email: string }
+        Returns: Json
+      }
       clear_all_rls_policies: {
         Args: Record<PropertyKey, never>
         Returns: string
