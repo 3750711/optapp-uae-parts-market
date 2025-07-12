@@ -42,6 +42,8 @@ const Login = () => {
 
   const handleTelegramAuth = async (user: any, authResult: any) => {
     try {
+      console.log('Handling Telegram auth result:', authResult);
+      
       if (!authResult.profile_completed) {
         // Show registration form for new users
         setTelegramUser(user);
@@ -50,28 +52,34 @@ const Login = () => {
         return;
       }
       
-      // Set session for existing users
-      if (authResult.access_token) {
+      // Set session using the tokens from Admin API
+      if (authResult.access_token && authResult.refresh_token) {
         const { error } = await supabase.auth.setSession({
           access_token: authResult.access_token,
           refresh_token: authResult.refresh_token
         });
         
         if (error) {
-          setError('Ошибка установки сессии');
+          console.error('Session setup error:', error);
+          setError('Ошибка установки сессии: ' + error.message);
           return;
         }
+        
+        console.log('Session established successfully');
+        
+        toast({
+          title: "Вход выполнен успешно",
+          description: `Добро пожаловать, ${user.first_name}!`,
+        });
+        
+        navigate(from, { replace: true });
+      } else {
+        console.error('Missing tokens in auth result');
+        setError('Отсутствуют токены аутентификации');
       }
-      
-      toast({
-        title: "Вход выполнен успешно",
-        description: `Добро пожаловать, ${user.first_name}!`,
-      });
-      
-      navigate(from, { replace: true });
     } catch (error) {
       console.error('Error in Telegram auth:', error);
-      setError('Ошибка при входе через Telegram');
+      setError('Ошибка при входе через Telegram: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
     }
   };
 

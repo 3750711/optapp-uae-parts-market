@@ -109,18 +109,16 @@ export async function handleTelegramAuth(
       hash_provided: telegramData.hash ? 'yes' : 'no'
     });
     
-    // Get bot token from environment
-    console.log('Getting bot token from environment...');
+    // Get required secrets from environment
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-    console.log('Available env vars (keys only):', Object.keys(Deno.env.toObject()));
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!botToken) {
       console.error('TELEGRAM_BOT_TOKEN environment variable not found!');
-      console.error('This is required for Telegram authentication');
       return new Response(
         JSON.stringify({ 
           error: 'TELEGRAM_BOT_TOKEN not configured',
-          details: 'Please add TELEGRAM_BOT_TOKEN to Edge Function secrets in Supabase dashboard',
+          details: 'Please add TELEGRAM_BOT_TOKEN to Edge Function secrets',
           missing_secret: 'TELEGRAM_BOT_TOKEN'
         }),
         { 
@@ -129,73 +127,14 @@ export async function handleTelegramAuth(
         }
       );
     }
-    console.log('Bot token found:', botToken ? 'YES' : 'NO');
     
-    // Skip signature verification for debugging (temporarily)
-    console.log('⚠️ SKIPPING signature verification for debugging purposes');
-    console.log('In production, signature verification should be enabled');
-    
-    // Skip age check for debugging (temporarily)
-    console.log('⚠️ SKIPPING auth data age check for debugging purposes');
-    console.log('Auth timestamp:', telegramData.auth_date, 'Current:', Math.floor(Date.now() / 1000));
-    
-    // Convert telegram_id to proper type for database
-    const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
-    console.log('Processed telegram_id:', telegramId, 'type:', typeof telegramId);
-    
-    // Handle user authentication with database function
-    const dbParams = {
-      p_telegram_id: telegramId,
-      p_telegram_username: telegramData.username || '',
-      p_telegram_first_name: telegramData.first_name,
-      p_telegram_photo_url: telegramData.photo_url || '',
-      p_email: `telegram_${telegramId}@telegram.local`
-    };
-    console.log('Calling handle_telegram_auth database function with params:', JSON.stringify(dbParams, null, 2));
-    
-    let authResult, authError;
-    try {
-      console.log('Making RPC call to handle_telegram_auth...');
-      const response = await supabaseClient.rpc('handle_telegram_auth', dbParams);
-      authResult = response.data;
-      authError = response.error;
-      console.log('RPC response:', { data: authResult, error: authError });
-    } catch (rpcError) {
-      console.error('RPC call threw an exception:', rpcError);
-      console.error('Exception details:', {
-        message: rpcError?.message,
-        name: rpcError?.name,
-        stack: rpcError?.stack
-      });
-      authError = rpcError;
-    }
-    
-    console.log('Database function response:', { 
-      success: !authError, 
-      authResult, 
-      authError 
-    });
-    
-    if (authError) {
-      console.error('Database error during Telegram auth:', authError);
+    if (!serviceRoleKey) {
+      console.error('SUPABASE_SERVICE_ROLE_KEY environment variable not found!');
       return new Response(
         JSON.stringify({ 
-          error: 'Database operation failed',
-          details: authError.message || 'Unknown database error'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 500 
-        }
-      );
-    }
-    
-    if (!authResult || !authResult.success) {
-      console.error('Telegram auth failed:', authResult?.message);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Authentication failed',
-          details: authResult?.message || 'Database authentication unsuccessful'
+          error: 'SUPABASE_SERVICE_ROLE_KEY not configured',
+          details: 'Please add SUPABASE_SERVICE_ROLE_KEY to Edge Function secrets',
+          missing_secret: 'SUPABASE_SERVICE_ROLE_KEY'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -204,145 +143,38 @@ export async function handleTelegramAuth(
       );
     }
     
-    console.log('Database authentication successful:', authResult);
+    console.log('Both required secrets found');
     
-    // Simplified session creation using direct token generation
-    let authUser = null;
-    let accessToken = null;
-    let refreshToken = null;
+    // Create admin client with service role key
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
     
-    try {
-      if (authResult.user_exists) {
-        console.log('Getting existing auth user...');
-        const { data: existingUser, error: getUserError } = await supabaseClient.auth.admin.getUserById(authResult.user_id);
-        
-        if (getUserError) {
-          console.error('Error getting existing user:', getUserError);
-          return new Response(
-            JSON.stringify({ 
-              error: 'User retrieval failed',
-              details: getUserError.message || 'Failed to get existing user'
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-              status: 500 
-            }
-          );
-        }
-        
-        if (!existingUser?.user) {
-          console.error('Existing user not found in auth system');
-          return new Response(
-            JSON.stringify({ 
-              error: 'User not found',
-              details: 'Existing user not found in authentication system'
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-              status: 404 
-            }
-          );
-        }
-        
-        authUser = existingUser.user;
-        console.log('Found existing user:', authUser.id);
-        
-      } else {
-        console.log('Creating new auth user...');
-        const tempEmail = `telegram_${telegramData.id}@temp.local`;
-        const tempPassword = crypto.randomUUID();
-        
-        const createUserParams = {
-          email: tempEmail,
-          password: tempPassword,
-          user_metadata: {
-            telegram_id: telegramData.id,
-            telegram_username: telegramData.username,
-            telegram_first_name: telegramData.first_name,
-            auth_method: 'telegram'
-          },
-          email_confirm: true
-        };
-        console.log('Creating user with params:', createUserParams);
-        
-        const { data: newUser, error: createUserError } = await supabaseClient.auth.admin.createUser(createUserParams);
-        
-        if (createUserError) {
-          console.error('Error creating auth user:', createUserError);
-          return new Response(
-            JSON.stringify({ 
-              error: 'User creation failed',
-              details: createUserError.message || 'Failed to create new user'
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-              status: 500 
-            }
-          );
-        }
-        
-        if (!newUser?.user) {
-          console.error('Created user object is null');
-          return new Response(
-            JSON.stringify({ 
-              error: 'User creation failed',
-              details: 'Created user object is null'
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-              status: 500 
-            }
-          );
-        }
-        
-        authUser = newUser.user;
-        console.log('Created new user:', authUser.id);
-      }
-      
-      // Generate session for the user
-      console.log('Generating session for user:', authUser.id);
-      const { data: sessionData, error: sessionError } = await supabaseClient.auth.admin.createSession({
-        user_id: authUser.id
-      });
-      
-      if (sessionError) {
-        console.error('Error creating session:', sessionError);
-        // Fallback to magic link method
-        console.log('Trying fallback magic link method...');
-        const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
-          type: 'magiclink',
-          email: authUser.email
-        });
-        
-        if (linkError) {
-          console.error('Fallback link generation failed:', linkError);
-          return new Response(
-            JSON.stringify({ 
-              error: 'Session generation failed',
-              details: `Both session creation and fallback failed: ${sessionError.message}, ${linkError.message}`
-            }),
-            { 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-              status: 500 
-            }
-          );
-        }
-        
-        accessToken = linkData.properties?.access_token;
-        refreshToken = linkData.properties?.refresh_token;
-      } else {
-        accessToken = sessionData.access_token;
-        refreshToken = sessionData.refresh_token;
-      }
-      
-      console.log('Session tokens generated successfully');
-      
-    } catch (sessionError) {
-      console.error('Session creation error:', sessionError);
+    // Skip signature verification for debugging (temporarily)
+    console.log('⚠️ SKIPPING signature verification for debugging purposes');
+    
+    // Convert telegram_id to proper type
+    const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
+    console.log('Processed telegram_id:', telegramId);
+    
+    // Check if user already exists by telegram_id
+    console.log('Checking for existing user with telegram_id:', telegramId);
+    const { data: existingProfile, error: profileError } = await adminClient
+      .from('profiles')
+      .select('id, email, profile_completed')
+      .eq('telegram_id', telegramId)
+      .single();
+    
+    if (profileError && profileError.code !== 'PGRST116') {
+      console.error('Error checking existing profile:', profileError);
       return new Response(
         JSON.stringify({ 
-          error: 'Session creation failed',
-          details: sessionError.message || 'Unknown session error'
+          error: 'Database error',
+          details: profileError.message
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -351,12 +183,122 @@ export async function handleTelegramAuth(
       );
     }
     
-    if (!authUser) {
-      console.error('Failed to get or create auth user');
+    let authUser;
+    let isNewUser = false;
+    
+    if (existingProfile) {
+      console.log('Found existing profile:', existingProfile.id);
+      
+      // Get auth user
+      const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(existingProfile.id);
+      
+      if (userError || !userData.user) {
+        console.error('Error getting auth user:', userError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'User retrieval failed',
+            details: userError?.message || 'User not found in auth system'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 500 
+          }
+        );
+      }
+      
+      authUser = userData.user;
+      
+      // Update telegram data in profile
+      await adminClient
+        .from('profiles')
+        .update({
+          telegram_username: telegramData.username,
+          telegram_first_name: telegramData.first_name,
+          telegram_photo_url: telegramData.photo_url
+        })
+        .eq('id', existingProfile.id);
+      
+    } else {
+      console.log('Creating new user for telegram_id:', telegramId);
+      isNewUser = true;
+      
+      // Create new auth user
+      const tempEmail = `telegram_${telegramId}@telegram.local`;
+      const tempPassword = crypto.randomUUID();
+      
+      const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
+        email: tempEmail,
+        password: tempPassword,
+        user_metadata: {
+          telegram_id: telegramId,
+          telegram_username: telegramData.username,
+          telegram_first_name: telegramData.first_name,
+          auth_method: 'telegram'
+        },
+        email_confirm: true
+      });
+      
+      if (createError || !newUserData.user) {
+        console.error('Error creating auth user:', createError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'User creation failed',
+            details: createError?.message || 'Failed to create user'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 500 
+          }
+        );
+      }
+      
+      authUser = newUserData.user;
+      console.log('Created new auth user:', authUser.id);
+      
+      // Create profile (this will be handled by the trigger)
+      const { error: profileCreateError } = await adminClient
+        .from('profiles')
+        .insert({
+          id: authUser.id,
+          email: tempEmail,
+          telegram_id: telegramId,
+          telegram_username: telegramData.username,
+          telegram_first_name: telegramData.first_name,
+          telegram_photo_url: telegramData.photo_url,
+          auth_method: 'telegram',
+          profile_completed: false
+        });
+      
+      if (profileCreateError) {
+        console.error('Error creating profile:', profileCreateError);
+        // Try to clean up auth user
+        await adminClient.auth.admin.deleteUser(authUser.id);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Profile creation failed',
+            details: profileCreateError.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 500 
+          }
+        );
+      }
+    }
+    
+    // Generate session tokens
+    console.log('Generating session for user:', authUser.id);
+    const { data: sessionData, error: sessionError } = await adminClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: authUser.email
+    });
+    
+    if (sessionError || !sessionData.properties) {
+      console.error('Error generating session:', sessionError);
       return new Response(
         JSON.stringify({ 
-          error: 'Authentication failed',
-          details: 'Failed to get or create auth user'
+          error: 'Session generation failed',
+          details: sessionError?.message || 'Failed to generate session tokens'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -367,22 +309,22 @@ export async function handleTelegramAuth(
     
     const response = {
       success: true,
-      user_id: authResult.user_id,
-      user_exists: authResult.user_exists,
-      profile_completed: authResult.profile_completed,
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      user_id: authUser.id,
+      user_exists: !isNewUser,
+      profile_completed: existingProfile?.profile_completed ?? false,
+      access_token: sessionData.properties.access_token,
+      refresh_token: sessionData.properties.refresh_token,
       user: {
         id: authUser.id,
         email: authUser.email,
-        telegram_id: telegramData.id,
+        telegram_id: telegramId,
         telegram_username: telegramData.username,
         telegram_first_name: telegramData.first_name
       }
     };
     
     console.log('=== TELEGRAM AUTHENTICATION SUCCESSFUL ===');
-    console.log('Final response:', response);
+    console.log('Response created for user:', authUser.id, 'isNewUser:', isNewUser);
     
     return new Response(
       JSON.stringify(response),
@@ -397,24 +339,19 @@ export async function handleTelegramAuth(
     console.error('Error details:', {
       message: error?.message || 'Unknown error',
       stack: error?.stack || 'No stack trace',
-      name: error?.name || 'Unknown error type',
-      toString: error?.toString() || 'Cannot convert to string'
+      name: error?.name || 'Unknown error type'
     });
     
-    // Ensure we always return proper CORS headers and JSON response
-    const errorResponse = {
-      error: 'Internal server error',
-      details: error?.message || 'An unexpected error occurred during authentication',
-      timestamp: new Date().toISOString()
-    };
-    
     return new Response(
-      JSON.stringify(errorResponse),
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error?.message || 'An unexpected error occurred during authentication',
+        timestamp: new Date().toISOString()
+      }),
       { 
         headers: { 
           ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
+          'Content-Type': 'application/json'
         },
         status: 500
       }
