@@ -1217,16 +1217,6 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
-      handle_telegram_auth: {
-        Args: {
-          p_telegram_id: number
-          p_telegram_username: string
-          p_telegram_first_name: string
-          p_telegram_photo_url: string
-          p_email?: string
-        }
-        Returns: Json
-      }
       increment_product_view_count: {
         Args: { product_id: string }
         Returns: undefined

@@ -44,6 +44,11 @@ const Login = () => {
     try {
       console.log('Handling Telegram auth result:', authResult);
       
+      if (!authResult.success) {
+        setError('Ошибка аутентификации Telegram: ' + (authResult.error || 'Неизвестная ошибка'));
+        return;
+      }
+      
       if (!authResult.profile_completed) {
         // Show registration form for new users
         setTelegramUser(user);
@@ -74,7 +79,7 @@ const Login = () => {
         
         navigate(from, { replace: true });
       } else {
-        console.error('Missing tokens in auth result');
+        console.error('Missing tokens in auth result:', authResult);
         setError('Отсутствуют токены аутентификации');
       }
     } catch (error) {
