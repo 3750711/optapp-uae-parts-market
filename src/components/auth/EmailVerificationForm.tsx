@@ -26,6 +26,7 @@ const EmailVerificationForm = ({
   const [code, setCode] = useState('');
   const [timeLeft, setTimeLeft] = useState(0);
   const [canResend, setCanResend] = useState(true);
+  const [codeSent, setCodeSent] = useState(false);
   
   const { sendVerificationCode, verifyEmailCode, isLoading } = useEmailVerification();
 
@@ -41,17 +42,18 @@ const EmailVerificationForm = ({
 
   // Автоматически отправляем код при монтировании компонента
   useEffect(() => {
-    if (initialEmail) {
+    if (initialEmail && !codeSent && !isLoading) {
       handleSendCode();
     }
-  }, [initialEmail]);
+  }, [initialEmail, codeSent]);
 
   const handleSendCode = async () => {
-    if (!initialEmail) return;
+    if (!initialEmail || isLoading) return;
     
     const result = await sendVerificationCode(initialEmail);
 
     if (result.success) {
+      setCodeSent(true);
       setTimeLeft(300); // 5 минут
       setCanResend(false);
       
