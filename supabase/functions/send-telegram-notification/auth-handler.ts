@@ -12,6 +12,47 @@ interface TelegramAuthData {
   hash: string;
 }
 
+// Validate incoming Telegram data
+function validateTelegramData(data: any): data is TelegramAuthData {
+  if (!data || typeof data !== 'object') {
+    console.error('Invalid data: not an object');
+    return false;
+  }
+
+  if (typeof data.id !== 'number' || data.id <= 0) {
+    console.error('Invalid data: id must be a positive number');
+    return false;
+  }
+
+  if (typeof data.first_name !== 'string' || data.first_name.trim().length === 0) {
+    console.error('Invalid data: first_name must be a non-empty string');
+    return false;
+  }
+
+  if (typeof data.auth_date !== 'number' || data.auth_date <= 0) {
+    console.error('Invalid data: auth_date must be a positive number');
+    return false;
+  }
+
+  if (typeof data.hash !== 'string' || data.hash.length === 0) {
+    console.error('Invalid data: hash must be a non-empty string');
+    return false;
+  }
+
+  // Optional fields validation
+  if (data.username && (typeof data.username !== 'string' || data.username.trim().length === 0)) {
+    console.error('Invalid data: username must be a non-empty string if provided');
+    return false;
+  }
+
+  if (data.photo_url && (typeof data.photo_url !== 'string' || !data.photo_url.startsWith('http'))) {
+    console.error('Invalid data: photo_url must be a valid URL if provided');
+    return false;
+  }
+
+  return true;
+}
+
 // Verify Telegram Login Widget data
 function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): boolean {
   const { hash, ...data } = authData;
@@ -34,13 +75,30 @@ function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): boole
 }
 
 export async function handleTelegramAuth(
-  telegramData: TelegramAuthData,
+  telegramData: any,
   supabaseClient: any,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
   try {
     console.log('=== STARTING TELEGRAM AUTHENTICATION ===');
-    console.log('Incoming Telegram data:', {
+    console.log('Raw incoming data:', telegramData);
+    
+    // Validate incoming data structure
+    if (!validateTelegramData(telegramData)) {
+      console.error('Validation failed for incoming Telegram data');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid authentication data format',
+          details: 'Required fields missing or invalid types'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
+    
+    console.log('Validated Telegram data:', {
       id: telegramData.id,
       first_name: telegramData.first_name,
       username: telegramData.username,
@@ -53,7 +111,16 @@ export async function handleTelegramAuth(
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
     if (!botToken) {
       console.error('TELEGRAM_BOT_TOKEN environment variable not set');
-      throw new Error('Telegram bot token not configured');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Server configuration error',
+          details: 'Telegram bot token not configured'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
     }
     console.log('Bot token found:', botToken ? 'yes' : 'no');
     
@@ -110,14 +177,29 @@ export async function handleTelegramAuth(
     
     if (authError) {
       console.error('Database error during Telegram auth:', authError);
-      throw new Error(`Database error: ${authError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Database operation failed',
+          details: authError.message || 'Unknown database error'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
     }
     
     if (!authResult || !authResult.success) {
       console.error('Telegram auth failed:', authResult?.message);
       return new Response(
-        JSON.stringify({ error: authResult?.message || 'Authentication failed' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        JSON.stringify({ 
+          error: 'Authentication failed',
+          details: authResult?.message || 'Database authentication unsuccessful'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
       );
     }
     
@@ -135,11 +217,30 @@ export async function handleTelegramAuth(
         
         if (getUserError) {
           console.error('Error getting existing user:', getUserError);
-          throw new Error(`Failed to get existing user: ${getUserError.message}`);
+          return new Response(
+            JSON.stringify({ 
+              error: 'User retrieval failed',
+              details: getUserError.message || 'Failed to get existing user'
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          );
         }
         
         if (!existingUser?.user) {
-          throw new Error('Existing user not found in auth system');
+          console.error('Existing user not found in auth system');
+          return new Response(
+            JSON.stringify({ 
+              error: 'User not found',
+              details: 'Existing user not found in authentication system'
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 404 
+            }
+          );
         }
         
         authUser = existingUser.user;
@@ -167,11 +268,30 @@ export async function handleTelegramAuth(
         
         if (createUserError) {
           console.error('Error creating auth user:', createUserError);
-          throw new Error(`Auth user creation failed: ${createUserError.message}`);
+          return new Response(
+            JSON.stringify({ 
+              error: 'User creation failed',
+              details: createUserError.message || 'Failed to create new user'
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          );
         }
         
         if (!newUser?.user) {
-          throw new Error('Created user object is null');
+          console.error('Created user object is null');
+          return new Response(
+            JSON.stringify({ 
+              error: 'User creation failed',
+              details: 'Created user object is null'
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          );
         }
         
         authUser = newUser.user;
@@ -195,7 +315,16 @@ export async function handleTelegramAuth(
         
         if (linkError) {
           console.error('Fallback link generation failed:', linkError);
-          throw new Error(`Session generation failed: ${sessionError.message}`);
+          return new Response(
+            JSON.stringify({ 
+              error: 'Session generation failed',
+              details: `Both session creation and fallback failed: ${sessionError.message}, ${linkError.message}`
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          );
         }
         
         accessToken = linkData.properties?.access_token;
@@ -209,11 +338,30 @@ export async function handleTelegramAuth(
       
     } catch (sessionError) {
       console.error('Session creation error:', sessionError);
-      throw new Error(`Session creation failed: ${sessionError.message}`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Session creation failed',
+          details: sessionError.message || 'Unknown session error'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
     }
     
     if (!authUser) {
-      throw new Error('Failed to get or create auth user');
+      console.error('Failed to get or create auth user');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication failed',
+          details: 'Failed to get or create auth user'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
     }
     
     const response = {
@@ -246,18 +394,27 @@ export async function handleTelegramAuth(
   } catch (error) {
     console.error('=== TELEGRAM AUTHENTICATION ERROR ===');
     console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || 'No stack trace',
+      name: error?.name || 'Unknown error type',
+      toString: error?.toString() || 'Cannot convert to string'
     });
     
+    // Ensure we always return proper CORS headers and JSON response
+    const errorResponse = {
+      error: 'Internal server error',
+      details: error?.message || 'An unexpected error occurred during authentication',
+      timestamp: new Date().toISOString()
+    };
+    
     return new Response(
-      JSON.stringify({ 
-        error: 'Authentication failed',
-        details: error.message 
-      }),
+      JSON.stringify(errorResponse),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         status: 500
       }
     );
