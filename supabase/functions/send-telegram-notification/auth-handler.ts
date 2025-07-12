@@ -154,8 +154,22 @@ export async function handleTelegramAuth(
       }
     });
     
-    // Skip signature verification for debugging (temporarily)
-    console.log('⚠️ SKIPPING signature verification for debugging purposes');
+    // Verify Telegram signature for security
+    if (!verifyTelegramAuth(telegramData, botToken)) {
+      console.error('Telegram signature verification failed');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid Telegram signature',
+          details: 'Authentication data integrity check failed'
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 400 
+        }
+      );
+    }
+    
+    console.log('✅ Telegram signature verification passed');
     
     // Convert telegram_id to proper type
     const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
