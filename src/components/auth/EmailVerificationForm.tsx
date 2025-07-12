@@ -78,7 +78,7 @@ const EmailVerificationForm = ({
     if (initialEmail && !codeSent && !isLoading && !sendingRef.current) {
       handleSendCode();
     }
-  }, [initialEmail, codeSent, isLoading, handleSendCode]);
+  }, [initialEmail]);
 
   const handleVerifyCode = async (codeToVerify?: string) => {
     const verificationCode = codeToVerify || code;

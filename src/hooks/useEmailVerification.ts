@@ -68,6 +68,13 @@ export const useEmailVerification = () => {
           };
         }
       } else {
+        // Проверяем если это ошибка rate limit
+        if (data.message && data.message.includes('слишком много')) {
+          return {
+            success: false,
+            message: 'Слишком много попыток отправки. Попробуйте через 5 минут.'
+          };
+        }
         return {
           success: false,
           message: data.message || 'Не удалось создать код верификации'
