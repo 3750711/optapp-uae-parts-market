@@ -11,8 +11,7 @@ const corsHeaders = {
 
 interface EmailVerificationRequest {
   email: string;
-  verification_code?: string; // Код передается из базы данных
-  ip_address?: string;
+  verification_code: string; // Код обязательно передается из базы данных
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -22,13 +21,13 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, verification_code, ip_address }: EmailVerificationRequest = await req.json();
+    const { email, verification_code }: EmailVerificationRequest = await req.json();
 
-    if (!email) {
+    if (!email || !verification_code) {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Email is required" 
+          error: "Email and verification code are required" 
         }),
         {
           status: 400,
@@ -37,57 +36,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Если код не передан, значит нужно сгенерировать его через базу данных
-    let codeToSend = verification_code;
-    
-    if (!codeToSend) {
-      // Создаем клиент Supabase для генерации кода
-      const supabaseClient = createClient(
-        Deno.env.get("SUPABASE_URL") ?? "",
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-      );
-
-      // Получаем IP адрес
-      const clientIP = ip_address || req.headers.get("x-forwarded-for")?.split(",")[0] || 
-                       req.headers.get("x-real-ip") || "unknown";
-
-      // Вызываем упрощенную функцию базы данных для генерации кода
-      const { data: codeData, error: codeError } = await supabaseClient.rpc(
-        'send_email_verification_code',
-        { 
-          p_email: email,
-          p_ip_address: clientIP
-        }
-      );
-
-      if (codeError) {
-        console.error('Database error:', codeError);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Database error",
-            message: "Не удалось создать код подтверждения" 
-          }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-
-      // Проверяем результат
-      if (!codeData.success) {
-        return new Response(
-          JSON.stringify(codeData),
-          {
-            status: 429, // Too Many Requests
-            headers: { "Content-Type": "application/json", ...corsHeaders },
-          }
-        );
-      }
-
-      codeToSend = codeData.code;
-    }
+    console.log('Отправка email с кодом:', verification_code, 'на:', email);
 
     // Создаем клиент Resend
     const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
@@ -113,7 +62,7 @@ const handler = async (req: Request): Promise<Response> => {
               
               <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #f59e0b; display: inline-block;">
                 <span style="font-size: 32px; font-weight: bold; color: #f59e0b; letter-spacing: 5px;">
-                  ${codeToSend}
+                  ${verification_code}
                 </span>
               </div>
               

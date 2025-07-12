@@ -35,25 +35,27 @@ export const useEmailVerification = () => {
 
       // Если код создан успешно, отправляем email через Edge Function
       if (data.success) {
-        const response = await fetch(
-          `${supabase.supabaseUrl}/functions/v1/send-email-verification`,
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke(
+          'send-email-verification',
           {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabase.supabaseKey}`
-            },
-            body: JSON.stringify({ 
+            body: { 
               email,
               verification_code: data.code
-            })
+            }
           }
         );
 
-        const emailResult = await response.json();
         console.log('Результат отправки email:', emailResult);
         
-        if (emailResult.success) {
+        if (emailError) {
+          console.error('Ошибка при отправке email:', emailError);
+          return {
+            success: false,
+            message: 'Не удалось отправить код на email'
+          };
+        }
+        
+        if (emailResult?.success) {
           return {
             success: true,
             message: `Код подтверждения отправлен на ${email}`,
@@ -62,7 +64,7 @@ export const useEmailVerification = () => {
         } else {
           return {
             success: false,
-            message: emailResult.message || 'Не удалось отправить код на email'
+            message: emailResult?.message || 'Не удалось отправить код на email'
           };
         }
       } else {

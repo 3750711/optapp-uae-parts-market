@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,7 @@ const EmailVerificationForm = ({
   const [codeSent, setCodeSent] = useState(false);
   
   const { sendVerificationCode, verifyEmailCode, isLoading } = useEmailVerification();
+  const sendingRef = useRef(false);
 
   // Таймер обратного отсчета
   useEffect(() => {
@@ -40,15 +41,10 @@ const EmailVerificationForm = ({
     }
   }, [timeLeft]);
 
-  // Автоматически отправляем код при монтировании компонента
-  useEffect(() => {
-    if (initialEmail && !codeSent && !isLoading) {
-      handleSendCode();
-    }
-  }, [initialEmail, codeSent]);
-
-  const handleSendCode = async () => {
-    if (!initialEmail || isLoading) return;
+  const handleSendCode = useCallback(async () => {
+    if (!initialEmail || isLoading || sendingRef.current) return;
+    
+    sendingRef.current = true;
     
     const result = await sendVerificationCode(initialEmail);
 
@@ -73,7 +69,16 @@ const EmailVerificationForm = ({
         variant: "destructive",
       });
     }
-  };
+    
+    sendingRef.current = false;
+  }, [initialEmail, isLoading, sendVerificationCode]);
+
+  // Автоматически отправляем код при монтировании компонента
+  useEffect(() => {
+    if (initialEmail && !codeSent && !isLoading && !sendingRef.current) {
+      handleSendCode();
+    }
+  }, [initialEmail, codeSent, isLoading, handleSendCode]);
 
   const handleVerifyCode = async (codeToVerify?: string) => {
     const verificationCode = codeToVerify || code;
