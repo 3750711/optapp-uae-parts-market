@@ -92,7 +92,7 @@ export const TelegramOrderParser: React.FC<TelegramOrderParserProps> = ({
 
   const exampleText = `Заказ: 07404
 Статус: Зарегистрирован
-Telegram отправителя: @optshop2_bot
+Telegram отправителя: @Optnewads_bot
 
 🟰🟰🟰🟰🟰🟰
 
