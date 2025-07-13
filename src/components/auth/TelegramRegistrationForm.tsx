@@ -65,8 +65,33 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
         throw new Error('Местоположение обязательно для заполнения');
       }
 
+      // Check current auth state
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('🔐 Current auth session:', { 
+        session_exists: !!session, 
+        session_user_id: session?.user?.id,
+        target_user_id: userId,
+        session_error: sessionError 
+      });
+
+      if (!session || session.user.id !== userId) {
+        console.error('❌ Auth mismatch or no session:', {
+          has_session: !!session,
+          session_user_id: session?.user?.id,
+          target_user_id: userId
+        });
+        throw new Error('Ошибка аутентификации: пользователь не авторизован');
+      }
+
       console.log('🔄 Starting profile update for user:', userId);
-      console.log('📝 Update data:', formData);
+      console.log('📝 Form data being sent:', {
+        full_name: formData.full_name,
+        phone: formData.phone,
+        user_type: formData.user_type,
+        location: formData.location,
+        company_name: formData.company_name,
+        description_user: formData.description_user
+      });
 
       // Update user profile with explicit profile_completed flag
       const updateData = {
@@ -75,18 +100,37 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
         avatar_url: telegramUser.photo_url || null
       };
 
-      console.log('📤 Sending update request with data:', updateData);
+      console.log('📤 Complete update object being sent:', updateData);
+
+      // First, let's check current profile state
+      const { data: currentProfile, error: currentError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      console.log('📋 Current profile before update:', { currentProfile, currentError });
 
       const { data, error, count } = await supabase
         .from('profiles')
         .update(updateData)
         .eq('id', userId)
-        .select();
+        .select('*');
 
-      console.log('📥 Update response:', { data, error, count });
+      console.log('📥 Update response details:', { 
+        data, 
+        error, 
+        count,
+        data_length: data?.length 
+      });
 
       if (error) {
-        console.error('❌ Profile update error:', error);
+        console.error('❌ Profile update error details:', {
+          error_message: error.message,
+          error_code: error.code,
+          error_details: error.details,
+          error_hint: error.hint
+        });
         throw new Error(`Ошибка обновления профиля: ${error.message}`);
       }
 
@@ -97,21 +141,49 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
 
       console.log('✅ Profile updated successfully:', data[0]);
 
-      // Verify profile_completed was set
+      // Wait a moment and verify the update was saved
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       const { data: verifyData, error: verifyError } = await supabase
         .from('profiles')
-        .select('profile_completed, full_name, phone, location')
+        .select('profile_completed, full_name, phone, location, user_type, company_name, description_user')
         .eq('id', userId)
         .single();
 
-      console.log('🔍 Profile verification after update:', { verifyData, verifyError });
+      console.log('🔍 DETAILED Profile verification after update:', { 
+        verifyData, 
+        verifyError,
+        phone_saved: verifyData?.phone,
+        location_saved: verifyData?.location,
+        profile_completed_saved: verifyData?.profile_completed
+      });
 
-      if (verifyError || !verifyData?.profile_completed) {
-        console.error('❌ Profile verification failed:', verifyError);
+      if (verifyError) {
+        console.error('❌ Profile verification error:', verifyError);
+        throw new Error('Ошибка при проверке обновления профиля');
+      }
+
+      // Check if the critical fields were actually saved
+      if (!verifyData?.phone || !verifyData?.location) {
+        console.error('❌ Critical fields not saved:', {
+          phone_in_db: verifyData?.phone,
+          location_in_db: verifyData?.location,
+          sent_phone: formData.phone,
+          sent_location: formData.location
+        });
+        throw new Error('Ошибка: важные поля (телефон/местоположение) не были сохранены');
+      }
+
+      if (!verifyData?.profile_completed) {
+        console.error('❌ Profile not marked as completed:', verifyData);
         throw new Error('Ошибка: профиль не был помечен как завершенный');
       }
 
-      console.log('✅ Profile verification successful - profile_completed:', verifyData.profile_completed);
+      console.log('✅ All verifications passed:', {
+        phone: verifyData.phone,
+        location: verifyData.location,
+        profile_completed: verifyData.profile_completed
+      });
 
       // Refresh profile data in context
       await refreshProfile();
