@@ -10,7 +10,7 @@ const corsHeaders = {
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const SERVICE_ROLE_KEY = Deno.env.get('SERVICE_ROLE_KEY');
 
 interface TelegramAuthData {
   id: number;
@@ -199,11 +199,11 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       );
     }
 
-    if (!SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY not found');
+    if (!SERVICE_ROLE_KEY) {
+      console.error('SERVICE_ROLE_KEY not found');
       return new Response(
         JSON.stringify({ 
-          error: 'SUPABASE_SERVICE_ROLE_KEY not configured. This is required for Telegram authentication.'
+          error: 'SERVICE_ROLE_KEY not configured. This is required for Telegram authentication.'
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -233,7 +233,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     // Create Supabase clients
     const publicClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!);
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
@@ -428,7 +428,7 @@ console.log('🚀 Telegram Complete Auth Function starting up...');
 console.log('Environment check:');
 console.log('- SUPABASE_URL:', !!SUPABASE_URL);
 console.log('- SUPABASE_ANON_KEY:', !!Deno.env.get('SUPABASE_ANON_KEY'));
-console.log('- SUPABASE_SERVICE_ROLE_KEY:', !!SUPABASE_SERVICE_ROLE_KEY);
+console.log('- SERVICE_ROLE_KEY:', !!SERVICE_ROLE_KEY);
 console.log('- TELEGRAM_BOT_TOKEN:', !!BOT_TOKEN);
 
 serve(async (req) => {
