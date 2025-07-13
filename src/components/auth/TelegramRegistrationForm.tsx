@@ -67,131 +67,148 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
 
       // Check current auth state
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔐 Current auth session:', { 
+      console.log('🔐 AUTH CHECK:', { 
         session_exists: !!session, 
         session_user_id: session?.user?.id,
         target_user_id: userId,
-        session_error: sessionError 
+        session_error: sessionError,
+        current_time: new Date().toISOString()
       });
 
-      if (!session || session.user.id !== userId) {
-        console.error('❌ Auth mismatch or no session:', {
-          has_session: !!session,
-          session_user_id: session?.user?.id,
-          target_user_id: userId
-        });
-        throw new Error('Ошибка аутентификации: пользователь не авторизован');
+      if (!session) {
+        console.error('❌ No session found - user not authenticated');
+        throw new Error('Ошибка аутентификации: сессия не найдена');
       }
 
-      console.log('🔄 Starting profile update for user:', userId);
-      console.log('📝 Form data being sent:', {
-        full_name: formData.full_name,
-        phone: formData.phone,
-        user_type: formData.user_type,
-        location: formData.location,
-        company_name: formData.company_name,
-        description_user: formData.description_user
-      });
+      if (session.user.id !== userId) {
+        console.error('❌ User ID mismatch:', {
+          session_user_id: session.user.id,
+          expected_user_id: userId
+        });
+        throw new Error('Ошибка аутентификации: неверный пользователь');
+      }
 
-      // Update user profile with explicit profile_completed flag
+      console.log('✅ Auth check passed, starting update process');
+
+      // Prepare update data
       const updateData = {
-        ...formData,
+        full_name: formData.full_name.trim(),
+        phone: formData.phone.trim(),
+        user_type: formData.user_type,
+        location: formData.location.trim(),
+        company_name: formData.company_name.trim() || null,
+        description_user: formData.description_user.trim() || null,
         profile_completed: true,
         avatar_url: telegramUser.photo_url || null
       };
 
-      console.log('📤 Complete update object being sent:', updateData);
+      console.log('📤 UPDATE DATA:', updateData);
 
-      // First, let's check current profile state
-      const { data: currentProfile, error: currentError } = await supabase
+      // Get current profile state for debugging
+      const { data: beforeUpdate } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, phone, location, profile_completed, auth_method')
         .eq('id', userId)
         .single();
 
-      console.log('📋 Current profile before update:', { currentProfile, currentError });
+      console.log('📋 PROFILE BEFORE UPDATE:', beforeUpdate);
 
-      const { data, error, count } = await supabase
+      // Use upsert for more reliable save
+      const { data, error } = await supabase
         .from('profiles')
-        .update(updateData)
-        .eq('id', userId)
+        .upsert(
+          { id: userId, ...updateData },
+          { 
+            onConflict: 'id',
+            ignoreDuplicates: false
+          }
+        )
         .select('*');
 
-      console.log('📥 Update response details:', { 
+      console.log('📥 UPSERT RESPONSE:', { 
         data, 
-        error, 
-        count,
-        data_length: data?.length 
+        error,
+        affected_rows: data?.length
       });
 
       if (error) {
-        console.error('❌ Profile update error details:', {
-          error_message: error.message,
-          error_code: error.code,
-          error_details: error.details,
-          error_hint: error.hint
+        console.error('❌ UPSERT ERROR:', {
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint: error.hint
         });
-        throw new Error(`Ошибка обновления профиля: ${error.message}`);
+        
+        // Try regular update as fallback
+        console.log('🔄 Trying fallback update...');
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', userId)
+          .select('*');
+
+        if (fallbackError) {
+          console.error('❌ FALLBACK UPDATE ALSO FAILED:', fallbackError);
+          throw new Error(`Ошибка сохранения профиля: ${fallbackError.message}`);
+        }
+
+        if (!fallbackData || fallbackData.length === 0) {
+          throw new Error('Не удалось обновить профиль: нет затронутых строк');
+        }
+
+        console.log('✅ Fallback update successful:', fallbackData[0]);
+      } else if (!data || data.length === 0) {
+        throw new Error('Не удалось обновить профиль: нет данных в ответе');
       }
 
-      if (!data || data.length === 0) {
-        console.error('❌ Profile update failed: no rows affected');
-        throw new Error('Не удалось обновить профиль: профиль не найден');
-      }
-
-      console.log('✅ Profile updated successfully:', data[0]);
-
-      // Wait a moment and verify the update was saved
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Verification after a short delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       const { data: verifyData, error: verifyError } = await supabase
         .from('profiles')
-        .select('profile_completed, full_name, phone, location, user_type, company_name, description_user')
+        .select('id, profile_completed, phone, location, full_name, user_type')
         .eq('id', userId)
         .single();
 
-      console.log('🔍 DETAILED Profile verification after update:', { 
+      console.log('🔍 VERIFICATION RESULT:', { 
         verifyData, 
-        verifyError,
-        phone_saved: verifyData?.phone,
-        location_saved: verifyData?.location,
-        profile_completed_saved: verifyData?.profile_completed
+        verifyError
       });
 
       if (verifyError) {
-        console.error('❌ Profile verification error:', verifyError);
-        throw new Error('Ошибка при проверке обновления профиля');
+        console.error('❌ Verification failed:', verifyError);
+        throw new Error('Ошибка проверки обновления профиля');
       }
 
-      // Check if the critical fields were actually saved
-      if (!verifyData?.phone || !verifyData?.location) {
-        console.error('❌ Critical fields not saved:', {
-          phone_in_db: verifyData?.phone,
-          location_in_db: verifyData?.location,
-          sent_phone: formData.phone,
-          sent_location: formData.location
+      // Critical field validation
+      const missingFields = [];
+      if (!verifyData?.phone) missingFields.push('телефон');
+      if (!verifyData?.location) missingFields.push('местоположение');
+      if (!verifyData?.profile_completed) missingFields.push('флаг завершения');
+
+      if (missingFields.length > 0) {
+        console.error('❌ CRITICAL FIELDS NOT SAVED:', {
+          missing: missingFields,
+          db_state: verifyData,
+          sent_data: updateData
         });
-        throw new Error('Ошибка: важные поля (телефон/местоположение) не были сохранены');
+        throw new Error(`Критические поля не сохранены: ${missingFields.join(', ')}`);
       }
 
-      if (!verifyData?.profile_completed) {
-        console.error('❌ Profile not marked as completed:', verifyData);
-        throw new Error('Ошибка: профиль не был помечен как завершенный');
-      }
-
-      console.log('✅ All verifications passed:', {
+      console.log('✅ ALL VERIFICATIONS PASSED:', {
         phone: verifyData.phone,
         location: verifyData.location,
         profile_completed: verifyData.profile_completed
       });
 
-      // Refresh profile data in context
+      // Refresh profile context
       await refreshProfile();
       
-      console.log('✅ Registration completion successful');
+      console.log('✅ Registration completed successfully');
       onComplete();
+
     } catch (error) {
-      console.error('❌ Error completing registration:', error);
+      console.error('❌ REGISTRATION ERROR:', error);
       onError(error instanceof Error ? error.message : 'Ошибка при завершении регистрации');
     } finally {
       setLoading(false);

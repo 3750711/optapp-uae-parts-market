@@ -521,18 +521,32 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     
     console.log('Temporary password set successfully for user:', authUser.id);
     
-    // Final verification of profile completion status
+    // Get the most current profile completion status from database
+    const { data: currentProfile, error: currentProfileError } = await adminClient
+      .from('profiles')
+      .select('profile_completed, phone, location')
+      .eq('id', authUser.id)
+      .single();
+
     let finalProfileCompleted = false;
-    if (!isNewUser && existingProfile) {
-      finalProfileCompleted = existingProfile.profile_completed;
-      console.log('🔍 Final profile completed status for existing user:', finalProfileCompleted);
-      console.log('🚀 USER FLOW DECISION:', finalProfileCompleted ? 'SKIP_REGISTRATION' : 'SHOW_REGISTRATION');
+    
+    if (currentProfileError) {
+      console.log('❌ Error fetching current profile:', currentProfileError);
+      finalProfileCompleted = false; // Default to false if we can't fetch
+    } else if (currentProfile) {
+      // Use ONLY the database flag, no complex logic
+      finalProfileCompleted = Boolean(currentProfile.profile_completed);
+      console.log('🔍 PROFILE STATUS CHECK:', {
+        profile_completed_flag: currentProfile.profile_completed,
+        phone: currentProfile.phone,
+        location: currentProfile.location,
+        final_decision: finalProfileCompleted
+      });
     } else {
-      // For new users, profile is definitely not completed
       finalProfileCompleted = false;
-      console.log('🔍 Final profile completed status for new user:', finalProfileCompleted);
-      console.log('🚀 NEW USER FLOW: SHOW_REGISTRATION');
     }
+    
+    console.log('🚀 USER FLOW DECISION:', finalProfileCompleted ? 'SKIP_REGISTRATION' : 'SHOW_REGISTRATION');
 
     const response = {
       success: true,
