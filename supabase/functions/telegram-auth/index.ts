@@ -424,69 +424,39 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       console.log('✅ Profile created successfully by trigger:', createdProfile.id);
     }
     
-    // Generate proper session tokens
-    console.log('Generating session for user:', authUser.id);
-    let sessionData;
+    // Generate temporary password for automatic login
+    console.log('Generating temporary password for user:', authUser.id);
+    const tempPassword = crypto.randomUUID() + Date.now().toString();
     
-    if (isNewUser) {
-      // For new users, generate access token directly
-      const { data: tokenData, error: tokenError } = await adminClient.auth.admin.generateAccessToken(authUser.id);
-      
-      if (tokenError || !tokenData) {
-        console.error('Error generating access token for new user:', tokenError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Token generation failed',
-            details: tokenError?.message || 'Failed to generate access token'
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      sessionData = {
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in
-      };
-    } else {
-      // For existing users, use magic link to get proper session tokens
-      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-        type: 'magiclink',
-        email: authUser.email
-      });
-      
-      if (linkError || !linkData.properties) {
-        console.error('Error generating magic link for existing user:', linkError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Session generation failed',
-            details: linkError?.message || 'Failed to generate session tokens'
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      sessionData = {
-        access_token: linkData.properties.access_token,
-        refresh_token: linkData.properties.refresh_token,
-        expires_in: linkData.properties.expires_in
-      };
+    // Update user password temporarily for auto-login
+    const { error: passwordError } = await adminClient.auth.admin.updateUserById(
+      authUser.id,
+      { password: tempPassword }
+    );
+    
+    if (passwordError) {
+      console.error('Error setting temporary password:', passwordError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Password setup failed',
+          details: passwordError.message
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
+        }
+      );
     }
+    
+    console.log('Temporary password set successfully for user:', authUser.id);
     
     const response = {
       success: true,
       user_id: authUser.id,
       user_exists: !isNewUser,
       profile_completed: existingProfile?.profile_completed ?? false,
-      access_token: sessionData.access_token,
-      refresh_token: sessionData.refresh_token,
-      expires_in: sessionData.expires_in,
+      email: authUser.email,
+      temp_password: tempPassword,
       user: {
         id: authUser.id,
         email: authUser.email,

@@ -26,7 +26,7 @@ const Login = () => {
   const [showTelegramRegistration, setShowTelegramRegistration] = useState(false);
   const [telegramUser, setTelegramUser] = useState<any>(null);
   const [newUserId, setNewUserId] = useState<string>('');
-  const [authTokens, setAuthTokens] = useState<{access_token: string, refresh_token: string} | null>(null);
+  const [authTokens, setAuthTokens] = useState<{email: string, temp_password: string} | null>(null);
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -51,31 +51,33 @@ const Login = () => {
       }
       
       if (!authResult.profile_completed) {
-        // Show registration form for new users - store tokens for later use
+        // Show registration form for new users
         setTelegramUser(user);
         setNewUserId(authResult.user_id);
         setAuthTokens({
-          access_token: authResult.access_token,
-          refresh_token: authResult.refresh_token
+          email: authResult.email,
+          temp_password: authResult.temp_password
         });
         setShowTelegramRegistration(true);
         return;
       }
       
-      // Set session using the tokens from Admin API
-      if (authResult.access_token && authResult.refresh_token) {
-        const { error } = await supabase.auth.setSession({
-          access_token: authResult.access_token,
-          refresh_token: authResult.refresh_token
+      // For existing users, sign in using email and temporary password
+      if (authResult.email && authResult.temp_password) {
+        console.log('Signing in existing user with email and temp password...');
+        
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authResult.email,
+          password: authResult.temp_password
         });
         
         if (error) {
-          console.error('Session setup error:', error);
-          setError('Ошибка установки сессии: ' + error.message);
+          console.error('Sign in error:', error);
+          setError('Ошибка входа: ' + error.message);
           return;
         }
         
-        console.log('Session established successfully');
+        console.log('Sign in successful');
         
         toast({
           title: "Вход выполнен успешно",
@@ -84,8 +86,8 @@ const Login = () => {
         
         navigate(from, { replace: true });
       } else {
-        console.error('Missing tokens in auth result:', authResult);
-        setError('Отсутствуют токены аутентификации');
+        console.error('Missing email or temp_password in auth result:', authResult);
+        setError('Отсутствуют данные для входа');
       }
     } catch (error) {
       console.error('Error in Telegram auth:', error);
@@ -100,32 +102,27 @@ const Login = () => {
   const handleRegistrationComplete = async () => {
     setShowTelegramRegistration(false);
     
-    // Try to establish session using stored tokens
-    if (authTokens) {
-      console.log('Attempting to establish session with tokens after registration...');
+    // Sign in using email and temporary password after registration completion
+    if (authTokens?.email && authTokens?.temp_password) {
+      console.log('Signing in after registration completion...');
       
       try {
-        const { data, error } = await supabase.auth.setSession({
-          access_token: authTokens.access_token,
-          refresh_token: authTokens.refresh_token
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authTokens.email,
+          password: authTokens.temp_password
         });
         
         if (error) {
-          console.error('Session setup error after registration:', error);
-          console.error('Token details:', {
-            access_token_length: authTokens.access_token?.length,
-            refresh_token_length: authTokens.refresh_token?.length,
-            error_message: error.message,
-            error_status: error.status
+          console.error('Sign in error after registration:', error);
+          toast({
+            title: "Ошибка входа",
+            description: "Попробуйте войти через Telegram еще раз",
+            variant: "destructive"
           });
-          
-          // Don't show error to user, just refresh the page to trigger auth check
-          console.log('Session setup failed, refreshing page to trigger auth flow...');
-          window.location.reload();
           return;
         }
         
-        console.log('Session established successfully after registration:', data);
+        console.log('Sign in successful after registration');
         
         toast({
           title: "Регистрация завершена",
@@ -134,14 +131,20 @@ const Login = () => {
         navigate(from, { replace: true });
         
       } catch (error) {
-        console.error('Unexpected error establishing session after registration:', error);
-        // Fallback: refresh page to trigger normal auth flow
-        console.log('Unexpected error, refreshing page...');
-        window.location.reload();
+        console.error('Unexpected error signing in after registration:', error);
+        toast({
+          title: "Ошибка",
+          description: "Попробуйте войти через Telegram еще раз",
+          variant: "destructive"
+        });
       }
     } else {
-      console.log('No auth tokens available, refreshing page...');
-      window.location.reload();
+      console.log('No auth credentials available after registration');
+      toast({
+        title: "Ошибка",
+        description: "Попробуйте войти через Telegram еще раз",
+        variant: "destructive"
+      });
     }
   };
 
