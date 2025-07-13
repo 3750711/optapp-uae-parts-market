@@ -65,28 +65,61 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
         throw new Error('Местоположение обязательно для заполнения');
       }
 
-      // Update user profile
+      console.log('🔄 Starting profile update for user:', userId);
+      console.log('📝 Update data:', formData);
+
+      // Update user profile with explicit profile_completed flag
       const updateData = {
         ...formData,
         profile_completed: true,
         avatar_url: telegramUser.photo_url || null
       };
 
-      const { error } = await supabase
+      console.log('📤 Sending update request with data:', updateData);
+
+      const { data, error, count } = await supabase
         .from('profiles')
         .update(updateData)
-        .eq('id', userId);
+        .eq('id', userId)
+        .select();
+
+      console.log('📥 Update response:', { data, error, count });
 
       if (error) {
-        throw new Error(error.message);
+        console.error('❌ Profile update error:', error);
+        throw new Error(`Ошибка обновления профиля: ${error.message}`);
       }
 
-      // Refresh profile data
+      if (!data || data.length === 0) {
+        console.error('❌ Profile update failed: no rows affected');
+        throw new Error('Не удалось обновить профиль: профиль не найден');
+      }
+
+      console.log('✅ Profile updated successfully:', data[0]);
+
+      // Verify profile_completed was set
+      const { data: verifyData, error: verifyError } = await supabase
+        .from('profiles')
+        .select('profile_completed, full_name, phone, location')
+        .eq('id', userId)
+        .single();
+
+      console.log('🔍 Profile verification after update:', { verifyData, verifyError });
+
+      if (verifyError || !verifyData?.profile_completed) {
+        console.error('❌ Profile verification failed:', verifyError);
+        throw new Error('Ошибка: профиль не был помечен как завершенный');
+      }
+
+      console.log('✅ Profile verification successful - profile_completed:', verifyData.profile_completed);
+
+      // Refresh profile data in context
       await refreshProfile();
       
+      console.log('✅ Registration completion successful');
       onComplete();
     } catch (error) {
-      console.error('Error completing registration:', error);
+      console.error('❌ Error completing registration:', error);
       onError(error instanceof Error ? error.message : 'Ошибка при завершении регистрации');
     } finally {
       setLoading(false);

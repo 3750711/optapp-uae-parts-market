@@ -314,7 +314,24 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     let isNewUser = false;
     
     if (existingProfile) {
-      console.log('Found existing profile:', existingProfile.id);
+      console.log('🔍 Found existing profile:', {
+        id: existingProfile.id,
+        email: existingProfile.email,
+        profile_completed: existingProfile.profile_completed,
+        full_name: existingProfile.full_name
+      });
+      
+      // Check if profile is really completed by validating required fields
+      const isProfileReallyCompleted = existingProfile.profile_completed && 
+                                       existingProfile.full_name && 
+                                       existingProfile.full_name.trim().length > 0;
+      
+      console.log('📊 Profile completion analysis:', {
+        profile_completed_flag: existingProfile.profile_completed,
+        has_full_name: !!existingProfile.full_name,
+        full_name_value: existingProfile.full_name,
+        is_really_completed: isProfileReallyCompleted
+      });
       
       // Get auth user
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(existingProfile.id);
@@ -337,7 +354,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       
       // Update telegram data in profile with expanded information
       const fullName = generateFullName(telegramData);
-      await adminClient
+      const { error: updateError } = await adminClient
         .from('profiles')
         .update({
           telegram_username: telegramData.username,
@@ -349,6 +366,15 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
           avatar_url: existingProfile.avatar_url || telegramData.photo_url
         })
         .eq('id', existingProfile.id);
+      
+      if (updateError) {
+        console.error('❌ Error updating existing profile:', updateError);
+      } else {
+        console.log('✅ Updated existing profile with Telegram data');
+      }
+      
+      // Override profile_completed with actual validation result
+      existingProfile.profile_completed = isProfileReallyCompleted;
       
     } else {
       console.log('Creating new user for telegram_id:', telegramId);
@@ -450,11 +476,22 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     
     console.log('Temporary password set successfully for user:', authUser.id);
     
+    // Final verification of profile completion status
+    let finalProfileCompleted = false;
+    if (!isNewUser && existingProfile) {
+      finalProfileCompleted = existingProfile.profile_completed;
+      console.log('🔍 Final profile completed status for existing user:', finalProfileCompleted);
+    } else {
+      // For new users, profile is definitely not completed
+      finalProfileCompleted = false;
+      console.log('🔍 Final profile completed status for new user:', finalProfileCompleted);
+    }
+
     const response = {
       success: true,
       user_id: authUser.id,
       user_exists: !isNewUser,
-      profile_completed: existingProfile?.profile_completed ?? false,
+      profile_completed: finalProfileCompleted,
       email: authUser.email,
       temp_password: tempPassword,
       user: {
@@ -465,6 +502,13 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         telegram_first_name: telegramData.first_name
       }
     };
+    
+    console.log('📤 Final response being sent:', {
+      user_id: response.user_id,
+      user_exists: response.user_exists,
+      profile_completed: response.profile_completed,
+      email: response.email
+    });
     
     console.log('=== TELEGRAM AUTHENTICATION SUCCESSFUL ===');
     console.log('Response created for user:', authUser.id, 'isNewUser:', isNewUser);
