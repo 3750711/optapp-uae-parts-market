@@ -312,23 +312,15 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       console.log('Checking if user exists by email...');
       
       // Check if user exists by email in auth.users
-      const { data: existingAuthUsers, error: authListError } = await adminClient.auth.admin.listUsers();
-      
-      if (authListError) {
-        console.error('Error listing auth users:', authListError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Database error',
-            details: authListError.message
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
+      let existingAuthUser = null;
+      try {
+        const { data: authUserData, error: authUserError } = await adminClient.auth.admin.getUserByEmail(email);
+        if (!authUserError && authUserData) {
+          existingAuthUser = authUserData.user;
+        }
+      } catch (error) {
+        console.log('User not found by email, will create new user');
       }
-      
-      const existingAuthUser = existingAuthUsers.users?.find(u => u.email === email);
       
       if (existingAuthUser) {
         console.log('🔍 Found existing auth user by email:', existingAuthUser.id);
@@ -418,58 +410,38 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       }
     }
     
-    // Generate session using admin.generateAccessToken
-    console.log('Generating access token for user:', user.id);
+    // Generate session using magic link
+    console.log('Generating magic link for user:', user.id);
     
-    const { data: tokenData, error: tokenError } = await adminClient.auth.admin.generateAccessToken(user.id);
+    const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+      type: 'magiclink',
+      email: user.email!
+    });
     
-    if (tokenError) {
-      console.error('Error generating access token:', tokenError);
-      
-      // Fallback to magic link generation
-      console.log('Falling back to magic link generation...');
-      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-        type: 'magiclink',
-        email: user.email!
-      });
-      
-      if (linkError) {
-        console.error('Error generating magic link:', linkError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to create session',
-            details: linkError.message
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      authResult = {
-        success: true,
-        session: linkData,
-        user_data: {
-          id: user.id,
-          email: user.email,
-          user_metadata: user.user_metadata || user.raw_user_meta_data
+    if (linkError) {
+      console.error('Error generating magic link:', linkError);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Failed to create session',
+          details: linkError.message
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 500 
         }
-      };
-    } else {
-      // Success with access token
-      authResult = {
-        success: true,
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in,
-        user_data: {
-          id: user.id,
-          email: user.email,
-          user_metadata: user.user_metadata || user.raw_user_meta_data
-        }
-      };
+      );
     }
+    
+    authResult = {
+      success: true,
+      access_token: linkData.properties?.access_token,
+      refresh_token: linkData.properties?.refresh_token,
+      user_data: {
+        id: user.id,
+        email: user.email,
+        user_metadata: user.user_metadata || user.raw_user_meta_data
+      }
+    };
     
     console.log('✅ Telegram authentication completed successfully');
     
