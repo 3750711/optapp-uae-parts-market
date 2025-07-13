@@ -202,9 +202,8 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
-    // Get required secrets from environment
+    // Get bot token for signature verification
     const botToken = BOT_TOKEN;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
     if (!botToken) {
       console.error('TELEGRAM_BOT_TOKEN environment variable not found!');
@@ -220,30 +219,6 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         }
       );
     }
-    
-    if (!serviceRoleKey) {
-      console.error('SUPABASE_SERVICE_ROLE_KEY environment variable not found!');
-      return new Response(
-        JSON.stringify({ 
-          error: 'SUPABASE_SERVICE_ROLE_KEY not configured',
-          details: 'Please add SUPABASE_SERVICE_ROLE_KEY to Edge Function secrets',
-          missing_secret: 'SUPABASE_SERVICE_ROLE_KEY'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
-      );
-    }
-    
-    // Create admin client with service role key
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
     
     // Verify Telegram signature for security  
     console.log('Verifying Telegram auth with bot token...');
@@ -270,9 +245,14 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
     console.log('Processed telegram_id:', telegramId);
     
-    // Check if user already exists by telegram_id
+    // Create public client for user lookup (no service role key needed)
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const publicClient = createClient(supabaseUrl, supabaseKey);
+    
+    // Check if user already exists by telegram_id (using public client)
     console.log('Checking for existing user with telegram_id:', telegramId);
-    const { data: existingProfile, error: profileError } = await adminClient
+    const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url')
       .eq('telegram_id', telegramId)
@@ -299,69 +279,25 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         profile_completed: existingProfile.profile_completed
       });
       
-      // For existing users, generate temporary password and return login data
-      console.log('Generating fresh temporary password for existing user:', existingProfile.id);
-      const tempPassword = crypto.randomUUID() + Date.now().toString();
-      
-      // Get auth user
-      const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(existingProfile.id);
-      
-      if (userError || !userData.user) {
-        console.error('Error getting auth user:', userError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'User retrieval failed',
-            details: userError?.message || 'User not found in auth system'
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      // Update user password temporarily for auto-login
-      const { error: passwordError } = await adminClient.auth.admin.updateUserById(
-        existingProfile.id,
-        { password: tempPassword }
-      );
-      
-      if (passwordError) {
-        console.error('Error setting temporary password:', passwordError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Password setup failed',
-            details: passwordError.message
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      // Update telegram data in profile
-      const fullName = generateFullName(telegramData);
-      await adminClient
-        .from('profiles')
-        .update({
-          telegram_username: telegramData.username,
-          telegram_first_name: telegramData.first_name,
-          telegram_photo_url: telegramData.photo_url,
-          full_name: existingProfile.full_name || fullName,
-          avatar_url: existingProfile.avatar_url || telegramData.photo_url
-        })
-        .eq('id', existingProfile.id);
-      
-      // Return success with login credentials for existing user
+      // For existing users, return user data without login credentials
+      // The frontend will handle the sign up/sign in process
       return new Response(
         JSON.stringify({
           success: true,
-          user_id: existingProfile.id,
-          email: existingProfile.email,
-          temp_password: tempPassword,
+          is_existing_user: true,
           profile_completed: Boolean(existingProfile.profile_completed),
-          is_existing_user: true
+          user_data: {
+            email: existingProfile.email,
+            full_name: existingProfile.full_name,
+            avatar_url: existingProfile.avatar_url
+          },
+          telegram_data: {
+            id: telegramId,
+            first_name: telegramData.first_name,
+            last_name: telegramData.last_name,
+            username: telegramData.username,
+            photo_url: telegramData.photo_url
+          }
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -370,9 +306,9 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
       
     } else {
-      console.log('🆕 New user - returning Telegram data for registration form');
+      console.log('🆕 New user - returning Telegram data for frontend registration');
       
-      // For new users, just return the Telegram data without creating anything
+      // For new users, return Telegram data so frontend can handle registration
       return new Response(
         JSON.stringify({
           success: true,
@@ -383,7 +319,9 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
             first_name: telegramData.first_name,
             last_name: telegramData.last_name,
             username: telegramData.username,
-            photo_url: telegramData.photo_url
+            photo_url: telegramData.photo_url,
+            auth_date: telegramData.auth_date,
+            hash: telegramData.hash
           }
         }),
         { 
@@ -421,7 +359,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
 console.log('🚀 Telegram Auth Function starting up...');
 console.log('Environment variables check:');
 console.log('- SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
-console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+console.log('- SUPABASE_ANON_KEY exists:', !!Deno.env.get('SUPABASE_ANON_KEY'));
 console.log('- TELEGRAM_BOT_TOKEN exists:', !!BOT_TOKEN);
 
 serve(async (req) => {

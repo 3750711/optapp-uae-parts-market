@@ -12,6 +12,7 @@ interface TelegramRegistrationFormProps {
   telegramUser: {
     id: number;
     first_name: string;
+    last_name?: string;
     username?: string;
     photo_url?: string;
   };
@@ -55,49 +56,63 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
         throw new Error('Имя обязательно для заполнения');
       }
 
-      console.log('📤 Starting registration completion with Edge Function...');
-
-      // Call the complete-telegram-registration Edge Function
-      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke(
-        'complete-telegram-registration',
-        {
-          body: {
-            telegram_data: telegramUser,
-            form_data: formData
+      console.log('🚀 Starting Telegram registration process with frontend...');
+      
+      // Generate email from Telegram data
+      const generateEmailFromTelegram = (telegramData: any): string => {
+        const telegramId = telegramData.id;
+        
+        // Try username first (if available and valid)
+        if (telegramData.username && telegramData.username.trim().length > 0) {
+          const cleanUsername = telegramData.username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+          if (cleanUsername.length >= 3) {
+            return `${cleanUsername}.${telegramId}@telegram.partsbay.ae`;
           }
         }
-      );
-
-      console.log('📥 Registration result:', registrationResult);
-
-      if (registrationError) {
-        console.error('❌ Registration function error:', registrationError);
-        throw new Error('Ошибка при завершении регистрации: ' + registrationError.message);
-      }
-
-      if (!registrationResult?.success) {
-        console.error('❌ Registration failed:', registrationResult);
-        throw new Error(registrationResult?.error || 'Ошибка при завершении регистрации');
-      }
-
-      console.log('✅ Registration completed successfully');
-      
-      // Now sign in with the returned credentials
-      if (registrationResult.email && registrationResult.temp_password) {
-        console.log('Signing in with new user credentials...');
         
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: registrationResult.email,
-          password: registrationResult.temp_password
-        });
-        
-        if (signInError) {
-          console.error('Sign in error after registration:', signInError);
-          throw new Error('Ошибка входа после регистрации: ' + signInError.message);
+        // Fallback to first_name + telegram_id
+        if (telegramData.first_name && telegramData.first_name.trim().length > 0) {
+          const cleanFirstName = telegramData.first_name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+          if (cleanFirstName.length >= 2) {
+            return `${cleanFirstName}.${telegramId}@telegram.partsbay.ae`;
+          }
         }
         
-        console.log('✅ Signed in successfully after registration');
+        // Ultimate fallback
+        return `user.${telegramId}@telegram.partsbay.ae`;
+      };
+
+      const generatedEmail = generateEmailFromTelegram(telegramUser);
+      console.log('Generated email:', generatedEmail);
+
+      // Use supabase.auth.signUp with metadata - this will trigger the handle_new_user trigger
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
+        email: generatedEmail,
+        password: crypto.randomUUID() + Date.now().toString(), // Random password
+        options: {
+          data: {
+            auth_method: 'telegram',
+            telegram_id: telegramUser.id,
+            telegram_username: telegramUser.username,
+            telegram_first_name: telegramUser.first_name,
+            telegram_last_name: telegramUser.last_name,
+            photo_url: telegramUser.photo_url,
+            full_name: formData.full_name.trim(),
+            user_type: formData.user_type
+          }
+        }
+      });
+
+      if (signUpError) {
+        console.error('❌ Sign up error:', signUpError);
+        throw new Error(`Ошибка при регистрации: ${signUpError.message}`);
       }
+
+      if (!authData.user) {
+        throw new Error('Пользователь не был создан');
+      }
+
+      console.log('✅ User created successfully:', authData.user.id);
       
       onComplete();
 

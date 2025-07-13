@@ -51,41 +51,49 @@ const Login = () => {
       }
       
       if (authResult.is_existing_user && authResult.profile_completed) {
-        // Existing user with completed profile - sign in directly
-        console.log('Signing in existing user with completed profile...');
+        // Existing user with completed profile - need to sign up again with Telegram data
+        console.log('Existing user with completed profile - signing up with Telegram data...');
         
-        const { error } = await supabase.auth.signInWithPassword({
-          email: authResult.email,
-          password: authResult.temp_password
+        const { error } = await supabase.auth.signUp({
+          email: authResult.user_data.email,
+          password: crypto.randomUUID(), // Random password, not used
+          options: {
+            data: {
+              auth_method: 'telegram',
+              telegram_id: authResult.telegram_data.id,
+              telegram_username: authResult.telegram_data.username,
+              telegram_first_name: authResult.telegram_data.first_name,
+              telegram_last_name: authResult.telegram_data.last_name,
+              photo_url: authResult.telegram_data.photo_url,
+              full_name: authResult.user_data.full_name,
+              user_type: 'buyer' // Default, will be updated from existing profile
+            }
+          }
         });
         
         if (error) {
-          console.error('Sign in error:', error);
-          setError('Ошибка входа: ' + error.message + '. Попробуйте войти через Telegram еще раз.');
+          console.error('Sign up error:', error);
+          setError('Ошибка входа: ' + error.message);
           return;
         }
         
-        console.log('Sign in successful');
+        console.log('Sign up successful for existing user');
         
         toast({
           title: "Вход выполнен успешно",
-          description: `Добро пожаловать, ${user.first_name}!`,
+          description: `Добро пожаловать, ${authResult.telegram_data.first_name}!`,
         });
         
         navigate(from, { replace: true });
         
       } else if (authResult.is_existing_user && !authResult.profile_completed) {
         // Existing user with incomplete profile - show registration form
-        setTelegramUser(user);
-        setAuthTokens({
-          email: authResult.email,
-          temp_password: authResult.temp_password
-        });
+        setTelegramUser(authResult.telegram_data);
         setShowTelegramRegistration(true);
         
       } else if (!authResult.is_existing_user) {
         // New user - show registration form with Telegram data
-        setTelegramUser(authResult.telegram_data || user);
+        setTelegramUser(authResult.telegram_data);
         setShowTelegramRegistration(true);
         
       } else {
@@ -105,8 +113,7 @@ const Login = () => {
   const handleRegistrationComplete = async () => {
     setShowTelegramRegistration(false);
     
-    // Registration Edge Function handles everything and returns login credentials
-    // The TelegramRegistrationForm will have already received the credentials
+    // Registration is now handled by frontend using supabase.auth.signUp
     console.log('Registration completed, navigating to app...');
     
     toast({
