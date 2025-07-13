@@ -47,13 +47,13 @@ const Login = () => {
       }
       
       // Both new and existing users now get a ready session from the Edge Function
-      if (authResult.session && authResult.session.properties) {
+      if (authResult.access_token && authResult.refresh_token) {
         console.log('Setting session from Edge Function...');
         
         // Set the session directly in Supabase client
         const { error: sessionError } = await supabase.auth.setSession({
-          access_token: authResult.session.properties.access_token,
-          refresh_token: authResult.session.properties.refresh_token
+          access_token: authResult.access_token,
+          refresh_token: authResult.refresh_token
         });
         
         if (sessionError) {
