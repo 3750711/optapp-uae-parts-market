@@ -495,11 +495,11 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       console.log('✅ Profile created successfully by trigger:', createdProfile.id);
     }
     
-    // Generate temporary password for automatic login
-    console.log('Generating temporary password for user:', authUser.id);
+    // Always generate fresh temporary password for automatic login
+    console.log('Generating fresh temporary password for user:', authUser.id);
     const tempPassword = crypto.randomUUID() + Date.now().toString();
     
-    // Update user password temporarily for auto-login
+    // Always update user password temporarily for auto-login (regardless of profile completion status)
     const { error: passwordError } = await adminClient.auth.admin.updateUserById(
       authUser.id,
       { password: tempPassword }
@@ -519,7 +519,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
-    console.log('Temporary password set successfully for user:', authUser.id);
+    console.log('Fresh temporary password set successfully for user:', authUser.id);
     
     // Get the most current profile completion status from database
     const { data: currentProfile, error: currentProfileError } = await adminClient

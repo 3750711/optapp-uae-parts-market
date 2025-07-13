@@ -50,6 +50,13 @@ const Login = () => {
         return;
       }
       
+      // Check if we have the required authentication data
+      if (!authResult.email || !authResult.temp_password) {
+        console.error('Missing email or temp_password in auth result:', authResult);
+        setError('Отсутствуют токены аутентификации');
+        return;
+      }
+      
       if (!authResult.profile_completed) {
         // Show registration form for new users
         setTelegramUser(user);
@@ -62,33 +69,29 @@ const Login = () => {
         return;
       }
       
-      // For existing users, sign in using email and temporary password
-      if (authResult.email && authResult.temp_password) {
-        console.log('Signing in existing user with email and temp password...');
-        
-        const { error } = await supabase.auth.signInWithPassword({
-          email: authResult.email,
-          password: authResult.temp_password
-        });
-        
-        if (error) {
-          console.error('Sign in error:', error);
-          setError('Ошибка входа: ' + error.message);
-          return;
-        }
-        
-        console.log('Sign in successful');
-        
-        toast({
-          title: "Вход выполнен успешно",
-          description: `Добро пожаловать, ${user.first_name}!`,
-        });
-        
-        navigate(from, { replace: true });
-      } else {
-        console.error('Missing email or temp_password in auth result:', authResult);
-        setError('Отсутствуют данные для входа');
+      // For users with completed profiles, sign in directly using email and temporary password
+      console.log('Signing in user with completed profile using fresh credentials...');
+      
+      const { error } = await supabase.auth.signInWithPassword({
+        email: authResult.email,
+        password: authResult.temp_password
+      });
+      
+      if (error) {
+        console.error('Sign in error:', error);
+        setError('Ошибка входа: ' + error.message + '. Попробуйте войти через Telegram еще раз.');
+        return;
       }
+      
+      console.log('Sign in successful');
+      
+      toast({
+        title: "Вход выполнен успешно",
+        description: `Добро пожаловать, ${user.first_name}!`,
+      });
+      
+      navigate(from, { replace: true });
+      
     } catch (error) {
       console.error('Error in Telegram auth:', error);
       setError('Ошибка при входе через Telegram: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
