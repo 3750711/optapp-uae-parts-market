@@ -342,33 +342,13 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         );
       }
       
-      // Check if profile is really completed by validating ALL required fields
-      const hasRequiredFields = !!(
-        fullProfileData.full_name && 
-        fullProfileData.full_name.trim().length > 0 &&
-        fullProfileData.phone && 
-        fullProfileData.phone.trim().length > 0 &&
-        fullProfileData.location && 
-        fullProfileData.location.trim().length > 0
-      );
+      // For existing users, use the profile_completed flag from database
+      const isProfileCompleted = Boolean(fullProfileData.profile_completed);
       
-      const isProfileReallyCompleted = fullProfileData.profile_completed && hasRequiredFields;
-      
-      console.log('📊 DETAILED Profile completion analysis:', {
+      console.log('📊 Profile completion check for existing user:', {
         profile_completed_flag: fullProfileData.profile_completed,
-        has_full_name: !!fullProfileData.full_name,
-        full_name_value: fullProfileData.full_name,
-        has_phone: !!fullProfileData.phone,
-        phone_value: fullProfileData.phone,
-        has_location: !!fullProfileData.location,
-        location_value: fullProfileData.location,
-        has_all_required_fields: hasRequiredFields,
-        is_really_completed: isProfileReallyCompleted
+        final_status: isProfileCompleted
       });
-      
-      // Update existingProfile with full data
-      existingProfile.phone = fullProfileData.phone;
-      existingProfile.location = fullProfileData.location;
       
       // Get auth user
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(existingProfile.id);
@@ -410,15 +390,13 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         console.log('✅ Updated existing profile with Telegram data');
       }
       
-      // Override profile_completed with actual validation result
-      existingProfile.profile_completed = isProfileReallyCompleted;
+      // Set the final profile completion status for existing users
+      existingProfile.profile_completed = isProfileCompleted;
       
       console.log('🎯 FINAL decision for existing user:', {
         user_id: existingProfile.id,
-        profile_completed_in_db: fullProfileData.profile_completed,
-        has_all_required_fields: hasRequiredFields,
-        final_profile_completed: isProfileReallyCompleted,
-        action: isProfileReallyCompleted ? 'DIRECT_LOGIN' : 'SHOW_REGISTRATION_FORM'
+        profile_completed: isProfileCompleted,
+        action: isProfileCompleted ? 'DIRECT_LOGIN' : 'SHOW_REGISTRATION_FORM'
       });
       
     } else {
@@ -428,7 +406,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       // Generate improved email and prepare user data
       const generatedEmail = generateEmailFromTelegram(telegramData);
       const fullName = generateFullName(telegramData);
-      const tempPassword = crypto.randomUUID();
+      const initialPassword = crypto.randomUUID();
       
       console.log('Generated email for new user:', generatedEmail);
       console.log('Generated full name:', fullName);
@@ -436,9 +414,9 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       // Create new auth user - the trigger handle_new_user() will create the profile automatically
       const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
         email: generatedEmail,
-        password: tempPassword,
+        password: initialPassword,
         user_metadata: {
-          telegram_id: telegramId.toString(), // Store as string in metadata
+          telegram_id: telegramId, // Store as number in metadata
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
           telegram_last_name: telegramData.last_name,
@@ -521,29 +499,29 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     
     console.log('Fresh temporary password set successfully for user:', authUser.id);
     
-    // Get the most current profile completion status from database
-    const { data: currentProfile, error: currentProfileError } = await adminClient
-      .from('profiles')
-      .select('profile_completed, phone, location')
-      .eq('id', authUser.id)
-      .single();
-
+    // Get the final profile completion status
     let finalProfileCompleted = false;
     
-    if (currentProfileError) {
-      console.log('❌ Error fetching current profile:', currentProfileError);
-      finalProfileCompleted = false; // Default to false if we can't fetch
-    } else if (currentProfile) {
-      // Use ONLY the database flag, no complex logic
-      finalProfileCompleted = Boolean(currentProfile.profile_completed);
-      console.log('🔍 PROFILE STATUS CHECK:', {
-        profile_completed_flag: currentProfile.profile_completed,
-        phone: currentProfile.phone,
-        location: currentProfile.location,
-        final_decision: finalProfileCompleted
-      });
-    } else {
+    if (isNewUser) {
+      // New users always need to complete registration
       finalProfileCompleted = false;
+      console.log('🆕 New user - will show registration form');
+    } else if (existingProfile) {
+      // Use the existing profile's completion status
+      finalProfileCompleted = Boolean(existingProfile.profile_completed);
+      console.log('👤 Existing user - profile completed:', finalProfileCompleted);
+    } else {
+      // Fallback case
+      const { data: currentProfile, error: currentProfileError } = await adminClient
+        .from('profiles')
+        .select('profile_completed')
+        .eq('id', authUser.id)
+        .single();
+        
+      if (!currentProfileError && currentProfile) {
+        finalProfileCompleted = Boolean(currentProfile.profile_completed);
+      }
+      console.log('🔍 Fallback profile check:', finalProfileCompleted);
     }
     
     console.log('🚀 USER FLOW DECISION:', finalProfileCompleted ? 'SKIP_REGISTRATION' : 'SHOW_REGISTRATION');
