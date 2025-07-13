@@ -122,6 +122,16 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
 
     const { hash, ...data } = authData;
     
+    // Check auth_date (must be within 5 minutes)
+    const currentTime = Math.floor(Date.now() / 1000);
+    const authTime = data.auth_date;
+    const timeDiff = currentTime - authTime;
+    
+    if (timeDiff > 300) { // 5 minutes
+      console.error('Auth data too old. Current time:', currentTime, 'Auth time:', authTime, 'Diff:', timeDiff);
+      return false;
+    }
+    
     // Create check string from data
     const checkString = Object.keys(data)
       .sort()
@@ -130,7 +140,7 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
     
     console.log('Check string for verification:', checkString);
     
-    // Use Deno's built-in crypto module instead of globalThis.crypto.subtle
+    // Use Deno's built-in crypto module
     const encoder = new TextEncoder();
     const tokenBytes = encoder.encode(botToken);
     
@@ -168,9 +178,7 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
       name: error?.name,
       stack: error?.stack
     });
-    // For debugging, temporarily return true if verification fails
-    console.warn('TEMPORARY: Allowing authentication despite signature verification failure');
-    return true;
+    return false; // SECURITY: Never allow authentication on verification errors
   }
 }
 
