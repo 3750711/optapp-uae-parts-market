@@ -100,33 +100,49 @@ const Login = () => {
   const handleRegistrationComplete = async () => {
     setShowTelegramRegistration(false);
     
-    // Establish session using stored tokens
+    // Try to establish session using stored tokens
     if (authTokens) {
+      console.log('Attempting to establish session with tokens after registration...');
+      
       try {
-        const { error } = await supabase.auth.setSession({
+        const { data, error } = await supabase.auth.setSession({
           access_token: authTokens.access_token,
           refresh_token: authTokens.refresh_token
         });
         
         if (error) {
           console.error('Session setup error after registration:', error);
-          setError('Ошибка установки сессии: ' + error.message);
+          console.error('Token details:', {
+            access_token_length: authTokens.access_token?.length,
+            refresh_token_length: authTokens.refresh_token?.length,
+            error_message: error.message,
+            error_status: error.status
+          });
+          
+          // Don't show error to user, just refresh the page to trigger auth check
+          console.log('Session setup failed, refreshing page to trigger auth flow...');
+          window.location.reload();
           return;
         }
         
-        console.log('Session established successfully after registration');
+        console.log('Session established successfully after registration:', data);
+        
+        toast({
+          title: "Регистрация завершена",
+          description: "Добро пожаловать в платформу!",
+        });
+        navigate(from, { replace: true });
+        
       } catch (error) {
-        console.error('Error establishing session after registration:', error);
-        setError('Ошибка при установке сессии');
-        return;
+        console.error('Unexpected error establishing session after registration:', error);
+        // Fallback: refresh page to trigger normal auth flow
+        console.log('Unexpected error, refreshing page...');
+        window.location.reload();
       }
+    } else {
+      console.log('No auth tokens available, refreshing page...');
+      window.location.reload();
     }
-    
-    toast({
-      title: "Регистрация завершена",
-      description: "Добро пожаловать в платформу!",
-    });
-    navigate(from, { replace: true });
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
