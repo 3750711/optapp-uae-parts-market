@@ -16,6 +16,10 @@ interface TelegramRegistrationFormProps {
     photo_url?: string;
   };
   userId: string;
+  authTokens?: {
+    access_token: string;
+    refresh_token: string;
+  } | null;
   onComplete: () => void;
   onError: (error: string) => void;
 }
@@ -23,6 +27,7 @@ interface TelegramRegistrationFormProps {
 const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
   telegramUser,
   userId,
+  authTokens,
   onComplete,
   onError
 }) => {

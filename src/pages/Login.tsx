@@ -26,6 +26,7 @@ const Login = () => {
   const [showTelegramRegistration, setShowTelegramRegistration] = useState(false);
   const [telegramUser, setTelegramUser] = useState<any>(null);
   const [newUserId, setNewUserId] = useState<string>('');
+  const [authTokens, setAuthTokens] = useState<{access_token: string, refresh_token: string} | null>(null);
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -50,9 +51,13 @@ const Login = () => {
       }
       
       if (!authResult.profile_completed) {
-        // Show registration form for new users
+        // Show registration form for new users - store tokens for later use
         setTelegramUser(user);
         setNewUserId(authResult.user_id);
+        setAuthTokens({
+          access_token: authResult.access_token,
+          refresh_token: authResult.refresh_token
+        });
         setShowTelegramRegistration(true);
         return;
       }
@@ -92,8 +97,31 @@ const Login = () => {
     setError(error);
   };
 
-  const handleRegistrationComplete = () => {
+  const handleRegistrationComplete = async () => {
     setShowTelegramRegistration(false);
+    
+    // Establish session using stored tokens
+    if (authTokens) {
+      try {
+        const { error } = await supabase.auth.setSession({
+          access_token: authTokens.access_token,
+          refresh_token: authTokens.refresh_token
+        });
+        
+        if (error) {
+          console.error('Session setup error after registration:', error);
+          setError('Ошибка установки сессии: ' + error.message);
+          return;
+        }
+        
+        console.log('Session established successfully after registration');
+      } catch (error) {
+        console.error('Error establishing session after registration:', error);
+        setError('Ошибка при установке сессии');
+        return;
+      }
+    }
+    
     toast({
       title: "Регистрация завершена",
       description: "Добро пожаловать в платформу!",
@@ -165,6 +193,7 @@ const Login = () => {
           <TelegramRegistrationForm
             telegramUser={telegramUser}
             userId={newUserId}
+            authTokens={authTokens}
             onComplete={handleRegistrationComplete}
             onError={handleTelegramError}
           />
