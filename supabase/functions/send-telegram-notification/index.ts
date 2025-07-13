@@ -19,7 +19,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeaders } from "./config.ts";
 import { handleOrderNotification } from "./order-notification.ts";
 import { handleProductNotification } from "./product-notification.ts";
-import { handleTelegramAuth } from "./auth-handler.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 console.log('🚀 Edge Function starting up...');
@@ -52,17 +51,14 @@ serve(async (req) => {
     console.log('Received request data:', reqData);
 
     // Handle different request types
-    if (reqData.telegramAuth) {
-      // Handle Telegram authentication
-      return await handleTelegramAuth(reqData.telegramAuth, supabaseClient, corsHeaders);
-    } else if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend')) {
+    if (reqData.order && (reqData.action === 'create' || reqData.action === 'status_change' || reqData.action === 'resend')) {
       return await handleOrderNotification(reqData.order, supabaseClient, corsHeaders);
     } else if (reqData.productId) {
       return await handleProductNotification(reqData.productId, reqData.notificationType, supabaseClient, corsHeaders);
     } else {
       console.log('Invalid request data: missing required parameters');
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: telegramAuth, order+action, or productId required' }),
+        JSON.stringify({ error: 'Missing required parameters: order+action or productId required' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
       );
     }
