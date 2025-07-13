@@ -362,16 +362,17 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       console.log('Generated email for new user:', generatedEmail);
       console.log('Generated full name:', fullName);
       
-      // Create new auth user with better email
+      // Create new auth user - the trigger handle_new_user() will create the profile automatically
       const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
         email: generatedEmail,
         password: tempPassword,
         user_metadata: {
-          telegram_id: telegramId,
+          telegram_id: telegramId.toString(), // Store as string in metadata
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
           telegram_last_name: telegramData.last_name,
           full_name: fullName,
+          photo_url: telegramData.photo_url,
           auth_method: 'telegram'
         },
         email_confirm: true
@@ -393,31 +394,25 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       
       authUser = newUserData.user;
       console.log('Created new auth user:', authUser.id);
+      console.log('Profile should be created automatically by trigger');
       
-      // Create expanded profile with Telegram data
-      const { error: profileCreateError } = await adminClient
+      // Give trigger time to execute and verify profile was created
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const { data: createdProfile, error: profileCheckError } = await adminClient
         .from('profiles')
-        .insert({
-          id: authUser.id,
-          email: generatedEmail,
-          full_name: fullName,
-          telegram_id: telegramId,
-          telegram_username: telegramData.username,
-          telegram_first_name: telegramData.first_name,
-          telegram_photo_url: telegramData.photo_url,
-          avatar_url: telegramData.photo_url, // Use Telegram photo as avatar
-          auth_method: 'telegram',
-          profile_completed: false
-        });
+        .select('id, profile_completed')
+        .eq('id', authUser.id)
+        .single();
       
-      if (profileCreateError) {
-        console.error('Error creating profile:', profileCreateError);
-        // Try to clean up auth user
+      if (profileCheckError || !createdProfile) {
+        console.error('Profile was not created by trigger:', profileCheckError);
+        // Clean up auth user
         await adminClient.auth.admin.deleteUser(authUser.id);
         return new Response(
           JSON.stringify({ 
             error: 'Profile creation failed',
-            details: profileCreateError.message
+            details: 'Profile was not created automatically'
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -425,6 +420,8 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
           }
         );
       }
+      
+      console.log('✅ Profile created successfully by trigger:', createdProfile.id);
     }
     
     // Generate session tokens
