@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { useRateLimit } from '@/hooks/useRateLimit';
 import TelegramLoginButton from '@/components/auth/TelegramLoginButton';
-import TelegramRegistrationForm from '@/components/auth/TelegramRegistrationForm';
+
 
 const Login = () => {
   const [loginInput, setLoginInput] = useState('');
@@ -23,10 +23,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [showTelegramRegistration, setShowTelegramRegistration] = useState(false);
-  const [telegramUser, setTelegramUser] = useState<any>(null);
-  const [newUserId, setNewUserId] = useState<string>('');
-  const [authTokens, setAuthTokens] = useState<{email: string, temp_password: string} | null>(null);
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -50,78 +46,44 @@ const Login = () => {
         return;
       }
       
-      if (authResult.is_existing_user && authResult.profile_completed) {
-        // Existing user with completed profile - need to sign up again with Telegram data
-        console.log('Existing user with completed profile - signing up with Telegram data...');
+      // Both new and existing users now get a ready session from the Edge Function
+      if (authResult.session && authResult.session.properties) {
+        console.log('Setting session from Edge Function...');
         
-        const { error } = await supabase.auth.signUp({
-          email: authResult.user_data.email,
-          password: crypto.randomUUID(), // Random password, not used
-          options: {
-            data: {
-              auth_method: 'telegram',
-              telegram_id: authResult.telegram_data.id,
-              telegram_username: authResult.telegram_data.username,
-              telegram_first_name: authResult.telegram_data.first_name,
-              telegram_last_name: authResult.telegram_data.last_name,
-              photo_url: authResult.telegram_data.photo_url,
-              full_name: authResult.user_data.full_name,
-              user_type: 'buyer' // Default, will be updated from existing profile
-            }
-          }
+        // Set the session directly in Supabase client
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: authResult.session.properties.access_token,
+          refresh_token: authResult.session.properties.refresh_token
         });
         
-        if (error) {
-          console.error('Sign up error:', error);
-          setError('Ошибка входа: ' + error.message);
+        if (sessionError) {
+          console.error('❌ REGISTRATION ERROR:', sessionError);
+          setError('Ошибка при установке сессии: ' + sessionError.message);
           return;
         }
         
-        console.log('Sign up successful for existing user');
+        console.log('✅ Session set successfully');
         
         toast({
           title: "Вход выполнен успешно",
-          description: `Добро пожаловать, ${authResult.telegram_data.first_name}!`,
+          description: `Добро пожаловать, ${authResult.user_data.full_name}!`,
         });
         
         navigate(from, { replace: true });
         
-      } else if (authResult.is_existing_user && !authResult.profile_completed) {
-        // Existing user with incomplete profile - show registration form
-        setTelegramUser(authResult.telegram_data);
-        setShowTelegramRegistration(true);
-        
-      } else if (!authResult.is_existing_user) {
-        // New user - show registration form with Telegram data
-        setTelegramUser(authResult.telegram_data);
-        setShowTelegramRegistration(true);
-        
       } else {
-        setError('Неожиданный результат аутентификации');
+        console.error('No session data received from Edge Function');
+        setError('Не удалось получить данные сессии');
       }
       
     } catch (error) {
-      console.error('Error in Telegram auth:', error);
+      console.error('❌ REGISTRATION ERROR:', new Error('Ошибка при регистрации: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка')));
       setError('Ошибка при входе через Telegram: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
     }
   };
 
   const handleTelegramError = (error: string) => {
     setError(error);
-  };
-
-  const handleRegistrationComplete = async () => {
-    setShowTelegramRegistration(false);
-    
-    // Registration is now handled by frontend using supabase.auth.signUp
-    console.log('Registration completed, navigating to app...');
-    
-    toast({
-      title: "Регистрация завершена",
-      description: "Добро пожаловать в платформу!",
-    });
-    
-    navigate(from, { replace: true });
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -179,23 +141,6 @@ const Login = () => {
       setIsLoading(false);
     }
   };
-
-  // Show Telegram registration form if needed
-  if (showTelegramRegistration && telegramUser) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-          <TelegramRegistrationForm
-            telegramUser={telegramUser}
-            userId={newUserId}
-            authTokens={authTokens}
-            onComplete={handleRegistrationComplete}
-            onError={handleTelegramError}
-          />
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>

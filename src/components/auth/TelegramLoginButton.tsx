@@ -54,8 +54,8 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
         try {
           console.log('Telegram auth data received:', user);
           
-          // Send auth data to our dedicated Telegram Auth Edge Function
-          const { data, error } = await supabase.functions.invoke('telegram-auth', {
+          // Send auth data to our new complete auth Edge Function
+          const { data, error } = await supabase.functions.invoke('telegram-complete-auth', {
             body: user
           });
 
