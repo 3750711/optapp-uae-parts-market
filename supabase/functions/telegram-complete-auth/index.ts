@@ -231,8 +231,7 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     
     console.log('✅ Telegram signature verification passed');
     
-    // Create Supabase clients
-    const publicClient = createClient(SUPABASE_URL, Deno.env.get('SUPABASE_ANON_KEY')!);
+    // Create Supabase admin client
     const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
       auth: {
         autoRefreshToken: false,
@@ -243,13 +242,20 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
     console.log('Processing telegram_id:', telegramId);
     
-    // Check if user already exists
-    console.log('Checking for existing user...');
-    const { data: existingProfile, error: profileError } = await publicClient
+    // Generate user data
+    const email = generateEmailFromTelegram(telegramData);
+    const fullName = generateFullName(telegramData);
+    
+    console.log('Generated email:', email);
+    console.log('Generated full name:', fullName);
+    
+    // Check if user exists by telegram_id first
+    console.log('Checking for existing user by telegram_id...');
+    const { data: existingProfile, error: profileError } = await adminClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url, user_type')
       .eq('telegram_id', telegramId)
-      .single();
+      .maybeSingle();
     
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error checking existing profile:', profileError);
@@ -265,26 +271,21 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       );
     }
     
+    let user;
     let authResult;
     
     if (existingProfile) {
-      console.log('🔍 Found existing user:', existingProfile.id);
+      console.log('🔍 Found existing user by telegram_id:', existingProfile.id);
       
-      // For existing users, create a new session using admin client
-      console.log('Creating session for existing user...');
+      // Get the auth user
+      const { data: authUser, error: authError } = await adminClient.auth.admin.getUserById(existingProfile.id);
       
-      // Generate new session
-      const { data: sessionData, error: sessionError } = await adminClient.auth.admin.generateLink({
-        type: 'magiclink',
-        email: existingProfile.email
-      });
-      
-      if (sessionError) {
-        console.error('Error generating session for existing user:', sessionError);
+      if (authError || !authUser.user) {
+        console.error('Error getting auth user:', authError);
         return new Response(
           JSON.stringify({ 
-            error: 'Failed to create session',
-            details: sessionError.message
+            error: 'User auth data not found',
+            details: authError?.message
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -293,63 +294,32 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         );
       }
       
+      user = authUser.user;
+      
       // Update profile with latest Telegram data
-      await publicClient
+      await adminClient
         .from('profiles')
         .update({
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
           telegram_photo_url: telegramData.photo_url,
           avatar_url: telegramData.photo_url || existingProfile.avatar_url,
-          full_name: generateFullName(telegramData)
+          full_name: fullName || existingProfile.full_name
         })
         .eq('id', existingProfile.id);
       
-      authResult = {
-        success: true,
-        is_existing_user: true,
-        session: sessionData,
-        user_data: {
-          id: existingProfile.id,
-          email: existingProfile.email,
-          full_name: existingProfile.full_name,
-          user_type: existingProfile.user_type
-        }
-      };
-      
     } else {
-      console.log('🆕 Creating new user...');
+      console.log('Checking if user exists by email...');
       
-      const email = generateEmailFromTelegram(telegramData);
-      const fullName = generateFullName(telegramData);
-      const tempPassword = crypto.randomUUID();
+      // Check if user exists by email in auth.users
+      const { data: existingAuthUsers, error: authListError } = await adminClient.auth.admin.listUsers();
       
-      console.log('Generated email:', email);
-      console.log('Generated full name:', fullName);
-      
-      // Create new user using admin client
-      const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
-        email: email,
-        password: tempPassword,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
-          auth_method: 'telegram',
-          telegram_id: telegramId,
-          telegram_username: telegramData.username,
-          telegram_first_name: telegramData.first_name,
-          telegram_last_name: telegramData.last_name,
-          photo_url: telegramData.photo_url,
-          full_name: fullName,
-          user_type: 'buyer'
-        }
-      });
-      
-      if (userError) {
-        console.error('Error creating new user:', userError);
+      if (authListError) {
+        console.error('Error listing auth users:', authListError);
         return new Response(
           JSON.stringify({ 
-            error: 'Failed to create user account',
-            details: userError.message
+            error: 'Database error',
+            details: authListError.message
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -358,20 +328,117 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         );
       }
       
-      console.log('✅ User created successfully:', userData.user.id);
+      const existingAuthUser = existingAuthUsers.users?.find(u => u.email === email);
       
-      // Generate session for the new user
-      const { data: sessionData, error: sessionError } = await adminClient.auth.admin.generateLink({
+      if (existingAuthUser) {
+        console.log('🔍 Found existing auth user by email:', existingAuthUser.id);
+        
+        user = existingAuthUser;
+        
+        // Check if profile exists for this auth user
+        const { data: userProfile, error: userProfileError } = await adminClient
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        if (!userProfile && (!userProfileError || userProfileError.code === 'PGRST116')) {
+          // Profile doesn't exist, create it
+          console.log('Creating missing profile for existing auth user');
+          const { error: insertError } = await adminClient
+            .from('profiles')
+            .insert({
+              id: user.id,
+              email: user.email,
+              full_name: fullName,
+              auth_method: 'telegram',
+              profile_completed: true,
+              telegram_id: telegramId,
+              telegram_username: telegramData.username,
+              telegram_first_name: telegramData.first_name,
+              telegram_photo_url: telegramData.photo_url,
+              avatar_url: telegramData.photo_url
+            });
+
+          if (insertError) {
+            console.error('Error creating profile:', insertError);
+          }
+        } else if (userProfile) {
+          // Update existing profile with Telegram data
+          console.log('Updating existing profile with Telegram data');
+          await adminClient
+            .from('profiles')
+            .update({
+              auth_method: 'telegram',
+              telegram_id: telegramId,
+              telegram_username: telegramData.username,
+              telegram_first_name: telegramData.first_name,
+              telegram_photo_url: telegramData.photo_url,
+              avatar_url: telegramData.photo_url || userProfile.avatar_url,
+              full_name: fullName || userProfile.full_name
+            })
+            .eq('id', user.id);
+        }
+        
+      } else {
+        console.log('🆕 Creating new user...');
+        
+        // Create new user using admin client
+        const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
+          email: email,
+          email_confirm: true,
+          user_metadata: {
+            auth_method: 'telegram',
+            telegram_id: telegramId,
+            telegram_username: telegramData.username,
+            telegram_first_name: telegramData.first_name,
+            telegram_last_name: telegramData.last_name,
+            photo_url: telegramData.photo_url,
+            full_name: fullName,
+            user_type: 'buyer'
+          }
+        });
+        
+        if (userError) {
+          console.error('Error creating new user:', userError);
+          return new Response(
+            JSON.stringify({ 
+              error: 'Failed to create user account',
+              details: userError.message
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 400 
+            }
+          );
+        }
+        
+        user = userData.user;
+        console.log('✅ User created successfully:', user.id);
+      }
+    }
+    
+    // Generate session using admin.generateAccessToken
+    console.log('Generating access token for user:', user.id);
+    
+    const { data: tokenData, error: tokenError } = await adminClient.auth.admin.generateAccessToken(user.id);
+    
+    if (tokenError) {
+      console.error('Error generating access token:', tokenError);
+      
+      // Fallback to magic link generation
+      console.log('Falling back to magic link generation...');
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
         type: 'magiclink',
-        email: email
+        email: user.email!
       });
       
-      if (sessionError) {
-        console.error('Error generating session for new user:', sessionError);
+      if (linkError) {
+        console.error('Error generating magic link:', linkError);
         return new Response(
           JSON.stringify({ 
             error: 'Failed to create session',
-            details: sessionError.message
+            details: linkError.message
           }),
           { 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
@@ -382,13 +449,24 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
       
       authResult = {
         success: true,
-        is_existing_user: false,
-        session: sessionData,
+        session: linkData,
         user_data: {
-          id: userData.user.id,
-          email: email,
-          full_name: fullName,
-          user_type: 'buyer'
+          id: user.id,
+          email: user.email,
+          user_metadata: user.user_metadata || user.raw_user_meta_data
+        }
+      };
+    } else {
+      // Success with access token
+      authResult = {
+        success: true,
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        expires_in: tokenData.expires_in,
+        user_data: {
+          id: user.id,
+          email: user.email,
+          user_metadata: user.user_metadata || user.raw_user_meta_data
         }
       };
     }
