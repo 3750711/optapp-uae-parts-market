@@ -12,6 +12,53 @@ interface TelegramAuthData {
   hash: string;
 }
 
+// Utility functions for data processing
+function sanitizeUsername(username: string): string {
+  return username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
+}
+
+function sanitizeName(name: string): string {
+  return name.replace(/[<>]/g, '').trim();
+}
+
+function generateEmailFromTelegram(telegramData: TelegramAuthData): string {
+  const telegramId = telegramData.id;
+  
+  // Try username first (if available and valid)
+  if (telegramData.username && telegramData.username.trim().length > 0) {
+    const cleanUsername = sanitizeUsername(telegramData.username);
+    if (cleanUsername.length >= 3) {
+      return `${cleanUsername}.${telegramId}@telegram.partsbay.ae`;
+    }
+  }
+  
+  // Fallback to first_name + telegram_id
+  if (telegramData.first_name && telegramData.first_name.trim().length > 0) {
+    const cleanFirstName = sanitizeUsername(telegramData.first_name);
+    if (cleanFirstName.length >= 2) {
+      return `${cleanFirstName}.${telegramId}@telegram.partsbay.ae`;
+    }
+  }
+  
+  // Ultimate fallback
+  return `user.${telegramId}@telegram.partsbay.ae`;
+}
+
+function generateFullName(telegramData: TelegramAuthData): string {
+  const firstName = telegramData.first_name ? sanitizeName(telegramData.first_name) : '';
+  const lastName = telegramData.last_name ? sanitizeName(telegramData.last_name) : '';
+  
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`;
+  } else if (firstName) {
+    return firstName;
+  } else if (lastName) {
+    return lastName;
+  }
+  
+  return 'Telegram User';
+}
+
 // Validate incoming Telegram data
 function validateTelegramData(data: any): data is TelegramAuthData {
   if (!data || typeof data !== 'object') {
@@ -233,7 +280,7 @@ export async function handleTelegramAuth(
     console.log('Checking for existing user with telegram_id:', telegramId);
     const { data: existingProfile, error: profileError } = await adminClient
       .from('profiles')
-      .select('id, email, profile_completed')
+      .select('id, email, profile_completed, full_name, avatar_url')
       .eq('telegram_id', telegramId)
       .single();
     
@@ -276,13 +323,18 @@ export async function handleTelegramAuth(
       
       authUser = userData.user;
       
-      // Update telegram data in profile
+      // Update telegram data in profile with expanded information
+      const fullName = generateFullName(telegramData);
       await adminClient
         .from('profiles')
         .update({
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
-          telegram_photo_url: telegramData.photo_url
+          telegram_photo_url: telegramData.photo_url,
+          // Update full name if it's not already set or if Telegram has more complete data
+          full_name: existingProfile.full_name || fullName,
+          // Update avatar if not set or if Telegram photo is available
+          avatar_url: existingProfile.avatar_url || telegramData.photo_url
         })
         .eq('id', existingProfile.id);
       
@@ -290,17 +342,24 @@ export async function handleTelegramAuth(
       console.log('Creating new user for telegram_id:', telegramId);
       isNewUser = true;
       
-      // Create new auth user
-      const tempEmail = `telegram_${telegramId}@telegram.local`;
+      // Generate improved email and prepare user data
+      const generatedEmail = generateEmailFromTelegram(telegramData);
+      const fullName = generateFullName(telegramData);
       const tempPassword = crypto.randomUUID();
       
+      console.log('Generated email for new user:', generatedEmail);
+      console.log('Generated full name:', fullName);
+      
+      // Create new auth user with better email
       const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
-        email: tempEmail,
+        email: generatedEmail,
         password: tempPassword,
         user_metadata: {
           telegram_id: telegramId,
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
+          telegram_last_name: telegramData.last_name,
+          full_name: fullName,
           auth_method: 'telegram'
         },
         email_confirm: true
@@ -323,16 +382,18 @@ export async function handleTelegramAuth(
       authUser = newUserData.user;
       console.log('Created new auth user:', authUser.id);
       
-      // Create profile (this will be handled by the trigger)
+      // Create expanded profile with Telegram data
       const { error: profileCreateError } = await adminClient
         .from('profiles')
         .insert({
           id: authUser.id,
-          email: tempEmail,
+          email: generatedEmail,
+          full_name: fullName,
           telegram_id: telegramId,
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
           telegram_photo_url: telegramData.photo_url,
+          avatar_url: telegramData.photo_url, // Use Telegram photo as avatar
           auth_method: 'telegram',
           profile_completed: false
         });
