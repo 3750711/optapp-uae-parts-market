@@ -50,47 +50,47 @@ const Login = () => {
         return;
       }
       
-      // Check if we have the required authentication data
-      if (!authResult.email || !authResult.temp_password) {
-        console.error('Missing email or temp_password in auth result:', authResult);
-        setError('Отсутствуют токены аутентификации');
-        return;
-      }
-      
-      if (!authResult.profile_completed) {
-        // Show registration form for new users
+      if (authResult.is_existing_user && authResult.profile_completed) {
+        // Existing user with completed profile - sign in directly
+        console.log('Signing in existing user with completed profile...');
+        
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authResult.email,
+          password: authResult.temp_password
+        });
+        
+        if (error) {
+          console.error('Sign in error:', error);
+          setError('Ошибка входа: ' + error.message + '. Попробуйте войти через Telegram еще раз.');
+          return;
+        }
+        
+        console.log('Sign in successful');
+        
+        toast({
+          title: "Вход выполнен успешно",
+          description: `Добро пожаловать, ${user.first_name}!`,
+        });
+        
+        navigate(from, { replace: true });
+        
+      } else if (authResult.is_existing_user && !authResult.profile_completed) {
+        // Existing user with incomplete profile - show registration form
         setTelegramUser(user);
-        setNewUserId(authResult.user_id);
         setAuthTokens({
           email: authResult.email,
           temp_password: authResult.temp_password
         });
         setShowTelegramRegistration(true);
-        return;
+        
+      } else if (!authResult.is_existing_user) {
+        // New user - show registration form with Telegram data
+        setTelegramUser(authResult.telegram_data || user);
+        setShowTelegramRegistration(true);
+        
+      } else {
+        setError('Неожиданный результат аутентификации');
       }
-      
-      // For users with completed profiles, sign in directly using email and temporary password
-      console.log('Signing in user with completed profile using fresh credentials...');
-      
-      const { error } = await supabase.auth.signInWithPassword({
-        email: authResult.email,
-        password: authResult.temp_password
-      });
-      
-      if (error) {
-        console.error('Sign in error:', error);
-        setError('Ошибка входа: ' + error.message + '. Попробуйте войти через Telegram еще раз.');
-        return;
-      }
-      
-      console.log('Sign in successful');
-      
-      toast({
-        title: "Вход выполнен успешно",
-        description: `Добро пожаловать, ${user.first_name}!`,
-      });
-      
-      navigate(from, { replace: true });
       
     } catch (error) {
       console.error('Error in Telegram auth:', error);
@@ -105,50 +105,16 @@ const Login = () => {
   const handleRegistrationComplete = async () => {
     setShowTelegramRegistration(false);
     
-    // Sign in using email and temporary password after registration completion
-    if (authTokens?.email && authTokens?.temp_password) {
-      console.log('Signing in after registration completion...');
-      
-      try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: authTokens.email,
-          password: authTokens.temp_password
-        });
-        
-        if (error) {
-          console.error('Sign in error after registration:', error);
-          toast({
-            title: "Ошибка входа",
-            description: "Попробуйте войти через Telegram еще раз",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        console.log('Sign in successful after registration');
-        
-        toast({
-          title: "Регистрация завершена",
-          description: "Добро пожаловать в платформу!",
-        });
-        navigate(from, { replace: true });
-        
-      } catch (error) {
-        console.error('Unexpected error signing in after registration:', error);
-        toast({
-          title: "Ошибка",
-          description: "Попробуйте войти через Telegram еще раз",
-          variant: "destructive"
-        });
-      }
-    } else {
-      console.log('No auth credentials available after registration');
-      toast({
-        title: "Ошибка",
-        description: "Попробуйте войти через Telegram еще раз",
-        variant: "destructive"
-      });
-    }
+    // Registration Edge Function handles everything and returns login credentials
+    // The TelegramRegistrationForm will have already received the credentials
+    console.log('Registration completed, navigating to app...');
+    
+    toast({
+      title: "Регистрация завершена",
+      description: "Добро пожаловать в платформу!",
+    });
+    
+    navigate(from, { replace: true });
   };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {

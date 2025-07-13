@@ -184,13 +184,8 @@ async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string):
 
 async function handleTelegramAuth(telegramData: any): Promise<Response> {
   try {
-    console.log('=== STARTING TELEGRAM AUTHENTICATION ===');
+    console.log('=== STARTING TELEGRAM VERIFICATION ===');
     console.log('Function called at:', new Date().toISOString());
-    console.log('Has telegramData:', !!telegramData);
-    console.log('TelegramData type:', typeof telegramData);
-    console.log('Raw incoming data:', telegramData);
-    console.log('Environment check - BOT_TOKEN available:', !!BOT_TOKEN);
-    console.log('Environment check - SUPABASE_SERVICE_ROLE_KEY available:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     
     // Validate incoming data structure
     if (!validateTelegramData(telegramData)) {
@@ -207,20 +202,9 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
-    console.log('Validated Telegram data:', {
-      id: telegramData.id,
-      first_name: telegramData.first_name,
-      username: telegramData.username,
-      photo_url: telegramData.photo_url,
-      auth_date: telegramData.auth_date,
-      hash_provided: telegramData.hash ? 'yes' : 'no'
-    });
-    
     // Get required secrets from environment
     const botToken = BOT_TOKEN;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    console.log('Bot token availability:', botToken ? 'Available' : 'Missing');
     
     if (!botToken) {
       console.error('TELEGRAM_BOT_TOKEN environment variable not found!');
@@ -251,8 +235,6 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         }
       );
     }
-    
-    console.log('Both required secrets found');
     
     // Create admin client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -310,45 +292,16 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
-    let authUser;
-    let isNewUser = false;
-    
     if (existingProfile) {
-      console.log('🔍 Found existing profile:', {
+      console.log('🔍 Found existing user:', {
         id: existingProfile.id,
         email: existingProfile.email,
-        profile_completed: existingProfile.profile_completed,
-        full_name: existingProfile.full_name
+        profile_completed: existingProfile.profile_completed
       });
       
-      // Get additional profile data to check completion
-      const { data: fullProfileData, error: fullProfileError } = await adminClient
-        .from('profiles')
-        .select('id, email, profile_completed, full_name, phone, location, avatar_url')
-        .eq('telegram_id', telegramId)
-        .single();
-      
-      if (fullProfileError) {
-        console.error('Error getting full profile data:', fullProfileError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Profile data error',
-            details: fullProfileError.message
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      // For existing users, use the profile_completed flag from database
-      const isProfileCompleted = Boolean(fullProfileData.profile_completed);
-      
-      console.log('📊 Profile completion check for existing user:', {
-        profile_completed_flag: fullProfileData.profile_completed,
-        final_status: isProfileCompleted
-      });
+      // For existing users, generate temporary password and return login data
+      console.log('Generating fresh temporary password for existing user:', existingProfile.id);
+      const tempPassword = crypto.randomUUID() + Date.now().toString();
       
       // Get auth user
       const { data: userData, error: userError } = await adminClient.auth.admin.getUserById(existingProfile.id);
@@ -367,201 +320,81 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         );
       }
       
-      authUser = userData.user;
+      // Update user password temporarily for auto-login
+      const { error: passwordError } = await adminClient.auth.admin.updateUserById(
+        existingProfile.id,
+        { password: tempPassword }
+      );
       
-      // Update telegram data in profile with expanded information
+      if (passwordError) {
+        console.error('Error setting temporary password:', passwordError);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Password setup failed',
+            details: passwordError.message
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 500 
+          }
+        );
+      }
+      
+      // Update telegram data in profile
       const fullName = generateFullName(telegramData);
-      const { error: updateError } = await adminClient
+      await adminClient
         .from('profiles')
         .update({
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
           telegram_photo_url: telegramData.photo_url,
-          // Update full name if it's not already set or if Telegram has more complete data
-          full_name: fullProfileData.full_name || fullName,
-          // Update avatar if not set or if Telegram photo is available
-          avatar_url: fullProfileData.avatar_url || telegramData.photo_url
+          full_name: existingProfile.full_name || fullName,
+          avatar_url: existingProfile.avatar_url || telegramData.photo_url
         })
         .eq('id', existingProfile.id);
       
-      if (updateError) {
-        console.error('❌ Error updating existing profile:', updateError);
-      } else {
-        console.log('✅ Updated existing profile with Telegram data');
-      }
-      
-      // Set the final profile completion status for existing users
-      existingProfile.profile_completed = isProfileCompleted;
-      
-      console.log('🎯 FINAL decision for existing user:', {
-        user_id: existingProfile.id,
-        profile_completed: isProfileCompleted,
-        action: isProfileCompleted ? 'DIRECT_LOGIN' : 'SHOW_REGISTRATION_FORM'
-      });
-      
-    } else {
-      console.log('Creating new user for telegram_id:', telegramId);
-      isNewUser = true;
-      
-      // Generate improved email and prepare user data
-      const generatedEmail = generateEmailFromTelegram(telegramData);
-      const fullName = generateFullName(telegramData);
-      const initialPassword = crypto.randomUUID();
-      
-      console.log('Generated email for new user:', generatedEmail);
-      console.log('Generated full name:', fullName);
-      
-      // Create new auth user - the trigger handle_new_user() will create the profile automatically
-      const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
-        email: generatedEmail,
-        password: initialPassword,
-        user_metadata: {
-          telegram_id: telegramId, // Store as number in metadata
-          telegram_username: telegramData.username,
-          telegram_first_name: telegramData.first_name,
-          telegram_last_name: telegramData.last_name,
-          full_name: fullName,
-          photo_url: telegramData.photo_url,
-          auth_method: 'telegram'
-        },
-        email_confirm: true
-      });
-      
-      if (createError || !newUserData.user) {
-        console.error('Error creating auth user:', createError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'User creation failed',
-            details: createError?.message || 'Failed to create user'
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      authUser = newUserData.user;
-      console.log('Created new auth user:', authUser.id);
-      console.log('Profile should be created automatically by trigger');
-      
-      // Give trigger time to execute and verify profile was created
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const { data: createdProfile, error: profileCheckError } = await adminClient
-        .from('profiles')
-        .select('id, profile_completed')
-        .eq('id', authUser.id)
-        .single();
-      
-      if (profileCheckError || !createdProfile) {
-        console.error('Profile was not created by trigger:', profileCheckError);
-        // Clean up auth user
-        await adminClient.auth.admin.deleteUser(authUser.id);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Profile creation failed',
-            details: 'Profile was not created automatically'
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      console.log('✅ Profile created successfully by trigger:', createdProfile.id);
-    }
-    
-    // Always generate fresh temporary password for automatic login
-    console.log('Generating fresh temporary password for user:', authUser.id);
-    const tempPassword = crypto.randomUUID() + Date.now().toString();
-    
-    // Always update user password temporarily for auto-login (regardless of profile completion status)
-    const { error: passwordError } = await adminClient.auth.admin.updateUserById(
-      authUser.id,
-      { password: tempPassword }
-    );
-    
-    if (passwordError) {
-      console.error('Error setting temporary password:', passwordError);
+      // Return success with login credentials for existing user
       return new Response(
-        JSON.stringify({ 
-          error: 'Password setup failed',
-          details: passwordError.message
+        JSON.stringify({
+          success: true,
+          user_id: existingProfile.id,
+          email: existingProfile.email,
+          temp_password: tempPassword,
+          profile_completed: Boolean(existingProfile.profile_completed),
+          is_existing_user: true
         }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 500 
+          status: 200 
+        }
+      );
+      
+    } else {
+      console.log('🆕 New user - returning Telegram data for registration form');
+      
+      // For new users, just return the Telegram data without creating anything
+      return new Response(
+        JSON.stringify({
+          success: true,
+          is_existing_user: false,
+          profile_completed: false,
+          telegram_data: {
+            id: telegramId,
+            first_name: telegramData.first_name,
+            last_name: telegramData.last_name,
+            username: telegramData.username,
+            photo_url: telegramData.photo_url
+          }
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          status: 200 
         }
       );
     }
     
-    console.log('Fresh temporary password set successfully for user:', authUser.id);
-    
-    // Get the final profile completion status
-    let finalProfileCompleted = false;
-    
-    if (isNewUser) {
-      // New users always need to complete registration
-      finalProfileCompleted = false;
-      console.log('🆕 New user - will show registration form');
-    } else if (existingProfile) {
-      // Use the existing profile's completion status
-      finalProfileCompleted = Boolean(existingProfile.profile_completed);
-      console.log('👤 Existing user - profile completed:', finalProfileCompleted);
-    } else {
-      // Fallback case
-      const { data: currentProfile, error: currentProfileError } = await adminClient
-        .from('profiles')
-        .select('profile_completed')
-        .eq('id', authUser.id)
-        .single();
-        
-      if (!currentProfileError && currentProfile) {
-        finalProfileCompleted = Boolean(currentProfile.profile_completed);
-      }
-      console.log('🔍 Fallback profile check:', finalProfileCompleted);
-    }
-    
-    console.log('🚀 USER FLOW DECISION:', finalProfileCompleted ? 'SKIP_REGISTRATION' : 'SHOW_REGISTRATION');
-
-    const response = {
-      success: true,
-      user_id: authUser.id,
-      user_exists: !isNewUser,
-      profile_completed: finalProfileCompleted,
-      email: authUser.email,
-      temp_password: tempPassword,
-      user: {
-        id: authUser.id,
-        email: authUser.email,
-        telegram_id: telegramId,
-        telegram_username: telegramData.username,
-        telegram_first_name: telegramData.first_name
-      }
-    };
-    
-    console.log('📤 Final response being sent:', {
-      user_id: response.user_id,
-      user_exists: response.user_exists,
-      profile_completed: response.profile_completed,
-      email: response.email
-    });
-    
-    console.log('=== TELEGRAM AUTHENTICATION SUCCESSFUL ===');
-    console.log('Response created for user:', authUser.id, 'isNewUser:', isNewUser);
-    
-    return new Response(
-      JSON.stringify(response),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200
-      }
-    );
-    
   } catch (error) {
-    console.error('=== TELEGRAM AUTHENTICATION ERROR ===');
+    console.error('=== TELEGRAM VERIFICATION ERROR ===');
     console.error('Error details:', {
       message: error?.message || 'Unknown error',
       stack: error?.stack || 'No stack trace',
@@ -571,7 +404,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     return new Response(
       JSON.stringify({
         error: 'Internal server error',
-        details: error?.message || 'An unexpected error occurred during authentication',
+        details: error?.message || 'An unexpected error occurred during verification',
         timestamp: new Date().toISOString()
       }),
       { 

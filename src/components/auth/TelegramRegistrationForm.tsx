@@ -55,141 +55,50 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
         throw new Error('Имя обязательно для заполнения');
       }
 
-      // Check current auth state
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log('🔐 AUTH CHECK:', { 
-        session_exists: !!session, 
-        session_user_id: session?.user?.id,
-        target_user_id: userId,
-        session_error: sessionError,
-        current_time: new Date().toISOString()
-      });
+      console.log('📤 Starting registration completion with Edge Function...');
 
-      if (!session) {
-        console.error('❌ No session found - user not authenticated');
-        throw new Error('Ошибка аутентификации: сессия не найдена');
-      }
-
-      if (session.user.id !== userId) {
-        console.error('❌ User ID mismatch:', {
-          session_user_id: session.user.id,
-          expected_user_id: userId
-        });
-        throw new Error('Ошибка аутентификации: неверный пользователь');
-      }
-
-      console.log('✅ Auth check passed, starting update process');
-
-      // Prepare update data
-      const updateData = {
-        full_name: formData.full_name.trim(),
-        user_type: formData.user_type,
-        profile_completed: true,
-        avatar_url: telegramUser.photo_url || null
-      };
-
-      console.log('📤 UPDATE DATA:', updateData);
-
-      // Get current profile state for debugging
-      const { data: beforeUpdate } = await supabase
-        .from('profiles')
-        .select('id, profile_completed, full_name, user_type, auth_method')
-        .eq('id', userId)
-        .single();
-
-      console.log('📋 PROFILE BEFORE UPDATE:', beforeUpdate);
-
-      // Use upsert for more reliable save
-      const { data, error } = await supabase
-        .from('profiles')
-        .upsert(
-          { id: userId, ...updateData },
-          { 
-            onConflict: 'id',
-            ignoreDuplicates: false
+      // Call the complete-telegram-registration Edge Function
+      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke(
+        'complete-telegram-registration',
+        {
+          body: {
+            telegram_data: telegramUser,
+            form_data: formData
           }
-        )
-        .select('*');
+        }
+      );
 
-      console.log('📥 UPSERT RESPONSE:', { 
-        data, 
-        error,
-        affected_rows: data?.length
-      });
+      console.log('📥 Registration result:', registrationResult);
 
-      if (error) {
-        console.error('❌ UPSERT ERROR:', {
-          message: error.message,
-          code: error.code,
-          details: error.details,
-          hint: error.hint
+      if (registrationError) {
+        console.error('❌ Registration function error:', registrationError);
+        throw new Error('Ошибка при завершении регистрации: ' + registrationError.message);
+      }
+
+      if (!registrationResult?.success) {
+        console.error('❌ Registration failed:', registrationResult);
+        throw new Error(registrationResult?.error || 'Ошибка при завершении регистрации');
+      }
+
+      console.log('✅ Registration completed successfully');
+      
+      // Now sign in with the returned credentials
+      if (registrationResult.email && registrationResult.temp_password) {
+        console.log('Signing in with new user credentials...');
+        
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: registrationResult.email,
+          password: registrationResult.temp_password
         });
         
-        // Try regular update as fallback
-        console.log('🔄 Trying fallback update...');
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', userId)
-          .select('*');
-
-        if (fallbackError) {
-          console.error('❌ FALLBACK UPDATE ALSO FAILED:', fallbackError);
-          throw new Error(`Ошибка сохранения профиля: ${fallbackError.message}`);
+        if (signInError) {
+          console.error('Sign in error after registration:', signInError);
+          throw new Error('Ошибка входа после регистрации: ' + signInError.message);
         }
-
-        if (!fallbackData || fallbackData.length === 0) {
-          throw new Error('Не удалось обновить профиль: нет затронутых строк');
-        }
-
-        console.log('✅ Fallback update successful:', fallbackData[0]);
-      } else if (!data || data.length === 0) {
-        throw new Error('Не удалось обновить профиль: нет данных в ответе');
+        
+        console.log('✅ Signed in successfully after registration');
       }
-
-      // Verification after a short delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('profiles')
-        .select('id, profile_completed, full_name, user_type')
-        .eq('id', userId)
-        .single();
-
-      console.log('🔍 VERIFICATION RESULT:', { 
-        verifyData, 
-        verifyError
-      });
-
-      if (verifyError) {
-        console.error('❌ Verification failed:', verifyError);
-        throw new Error('Ошибка проверки обновления профиля');
-      }
-
-      // Critical field validation
-      const missingFields = [];
-      if (!verifyData?.profile_completed) missingFields.push('флаг завершения');
-      if (!verifyData?.full_name) missingFields.push('полное имя');
-
-      if (missingFields.length > 0) {
-        console.error('❌ CRITICAL FIELDS NOT SAVED:', {
-          missing: missingFields,
-          db_state: verifyData,
-          sent_data: updateData
-        });
-        throw new Error(`Критические поля не сохранены: ${missingFields.join(', ')}`);
-      }
-
-      console.log('✅ ALL VERIFICATIONS PASSED:', {
-        full_name: verifyData.full_name,
-        user_type: verifyData.user_type,
-        profile_completed: verifyData.profile_completed
-      });
-
-      // Refresh profile context
-      await refreshProfile();
       
-      console.log('✅ Registration completed successfully');
       onComplete();
 
     } catch (error) {
