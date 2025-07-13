@@ -292,7 +292,7 @@ export async function handleTelegramAuth(
       
       // Create new auth user
       const tempEmail = `telegram_${telegramId}@telegram.local`;
-      const tempPassword = globalThis.crypto.randomUUID();
+      const tempPassword = crypto.randomUUID();
       
       const { data: newUserData, error: createError } = await adminClient.auth.admin.createUser({
         email: tempEmail,

@@ -1,9 +1,9 @@
 
 // Telegram API constants and configuration
 
-// CORS Headers for API responses - updated for partsbay.ae domain
+// CORS Headers for API responses - temporarily relaxed for testing
 export const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://partsbay.ae",
+  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, GET, OPTIONS, PUT, DELETE",
 };

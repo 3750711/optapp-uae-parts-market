@@ -22,7 +22,11 @@ import { handleProductNotification } from "./product-notification.ts";
 import { handleTelegramAuth } from "./auth-handler.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-console.log('Environment loaded and ready');
+console.log('🚀 Edge Function starting up...');
+console.log('Environment variables check:');
+console.log('- SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
+console.log('- SUPABASE_SERVICE_ROLE_KEY exists:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+console.log('- TELEGRAM_BOT_TOKEN exists:', !!Deno.env.get('TELEGRAM_BOT_TOKEN'));
 
 serve(async (req) => {
   console.log('=== EDGE FUNCTION CALLED ===');
