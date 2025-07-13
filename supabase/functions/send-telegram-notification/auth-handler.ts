@@ -107,7 +107,12 @@ export async function handleTelegramAuth(
 ): Promise<Response> {
   try {
     console.log('=== STARTING TELEGRAM AUTHENTICATION ===');
+    console.log('Function called at:', new Date().toISOString());
+    console.log('Has telegramData:', !!telegramData);
+    console.log('TelegramData type:', typeof telegramData);
     console.log('Raw incoming data:', telegramData);
+    console.log('Environment check - BOT_TOKEN available:', !!BOT_TOKEN);
+    console.log('Environment check - SUPABASE_SERVICE_ROLE_KEY available:', !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
     
     // Validate incoming data structure
     if (!validateTelegramData(telegramData)) {
