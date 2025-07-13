@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -35,11 +35,7 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: telegramUser.first_name,
-    phone: '',
-    user_type: 'buyer' as 'buyer' | 'seller',
-    location: '',
-    company_name: '',
-    description_user: ''
+    user_type: 'buyer' as 'buyer' | 'seller'
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -57,12 +53,6 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
       // Validate required fields
       if (!formData.full_name.trim()) {
         throw new Error('Имя обязательно для заполнения');
-      }
-      if (!formData.phone.trim()) {
-        throw new Error('Телефон обязателен для заполнения');
-      }
-      if (!formData.location.trim()) {
-        throw new Error('Местоположение обязательно для заполнения');
       }
 
       // Check current auth state
@@ -93,11 +83,7 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
       // Prepare update data
       const updateData = {
         full_name: formData.full_name.trim(),
-        phone: formData.phone.trim(),
         user_type: formData.user_type,
-        location: formData.location.trim(),
-        company_name: formData.company_name.trim() || null,
-        description_user: formData.description_user.trim() || null,
         profile_completed: true,
         avatar_url: telegramUser.photo_url || null
       };
@@ -107,7 +93,7 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
       // Get current profile state for debugging
       const { data: beforeUpdate } = await supabase
         .from('profiles')
-        .select('id, phone, location, profile_completed, auth_method')
+        .select('id, profile_completed, full_name, user_type, auth_method')
         .eq('id', userId)
         .single();
 
@@ -166,7 +152,7 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
 
       const { data: verifyData, error: verifyError } = await supabase
         .from('profiles')
-        .select('id, profile_completed, phone, location, full_name, user_type')
+        .select('id, profile_completed, full_name, user_type')
         .eq('id', userId)
         .single();
 
@@ -182,9 +168,8 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
 
       // Critical field validation
       const missingFields = [];
-      if (!verifyData?.phone) missingFields.push('телефон');
-      if (!verifyData?.location) missingFields.push('местоположение');
       if (!verifyData?.profile_completed) missingFields.push('флаг завершения');
+      if (!verifyData?.full_name) missingFields.push('полное имя');
 
       if (missingFields.length > 0) {
         console.error('❌ CRITICAL FIELDS NOT SAVED:', {
@@ -196,8 +181,8 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
       }
 
       console.log('✅ ALL VERIFICATIONS PASSED:', {
-        phone: verifyData.phone,
-        location: verifyData.location,
+        full_name: verifyData.full_name,
+        user_type: verifyData.user_type,
         profile_completed: verifyData.profile_completed
       });
 
@@ -237,17 +222,6 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone">Телефон *</Label>
-            <Input
-              id="phone"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              placeholder="+971501234567"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="user_type">Тип пользователя *</Label>
             <Select
               value={formData.user_type}
@@ -261,40 +235,6 @@ const TelegramRegistrationForm: React.FC<TelegramRegistrationFormProps> = ({
                 <SelectItem value="seller">Продавец</SelectItem>
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="location">Местоположение *</Label>
-            <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="Дубай, Шарджа, Абу-Даби..."
-              required
-            />
-          </div>
-
-          {formData.user_type === 'seller' && (
-            <div className="space-y-2">
-              <Label htmlFor="company_name">Название компании</Label>
-              <Input
-                id="company_name"
-                value={formData.company_name}
-                onChange={(e) => handleInputChange('company_name', e.target.value)}
-                placeholder="Название вашей компании"
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="description_user">Описание (опционально)</Label>
-            <Textarea
-              id="description_user"
-              value={formData.description_user}
-              onChange={(e) => handleInputChange('description_user', e.target.value)}
-              placeholder="Расскажите о себе или своей деятельности"
-              rows={3}
-            />
           </div>
 
           <Button
