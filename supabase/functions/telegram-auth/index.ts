@@ -251,12 +251,16 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const publicClient = createClient(supabaseUrl, supabaseKey);
     
     // Check if user already exists by telegram_id (using public client)
-    console.log('Checking for existing user with telegram_id:', telegramId);
+    // Convert to string to handle bigint properly and add detailed logging
+    const telegramIdStr = telegramId.toString();
+    console.log('Checking for existing user with telegram_id:', telegramId, 'as string:', telegramIdStr);
+    console.log('Using query: profiles.telegram_id =', telegramIdStr);
+    
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
       .select('id, email, profile_completed, full_name, avatar_url')
-      .eq('telegram_id', telegramId)
-      .single();
+      .eq('telegram_id', telegramIdStr)
+      .maybeSingle();
     
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error checking existing profile:', profileError);
