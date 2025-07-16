@@ -1,16 +1,14 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
-// CORS Headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
 interface TelegramAuthData {
   id: number;
-  first_name: string;
+  first_name?: string;
   last_name?: string;
   username?: string;
   photo_url?: string;
@@ -18,309 +16,162 @@ interface TelegramAuthData {
   hash: string;
 }
 
-// Utility functions
+// Функция генерации email из Telegram данных
 function generateEmailFromTelegram(telegramData: TelegramAuthData): string {
-  const telegramId = telegramData.id;
-  
-  if (telegramData.username && telegramData.username.trim().length > 0) {
-    const cleanUsername = telegramData.username.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-    if (cleanUsername.length >= 3) {
-      return `${cleanUsername}.${telegramId}@telegram.partsbay.ae`;
-    }
-  }
-  
-  if (telegramData.first_name && telegramData.first_name.trim().length > 0) {
-    const cleanFirstName = telegramData.first_name.replace(/[^a-zA-Z0-9_]/g, '').toLowerCase();
-    if (cleanFirstName.length >= 2) {
-      return `${cleanFirstName}.${telegramId}@telegram.partsbay.ae`;
-    }
-  }
-  
-  return `user.${telegramId}@telegram.partsbay.ae`;
+  const telegramId = telegramData.id.toString();
+  const username = telegramData.username || 'user';
+  return `${username}.${telegramId}@telegram.partsbay.ae`;
 }
 
+// Функция генерации полного имени
 function generateFullName(telegramData: TelegramAuthData): string {
-  const firstName = telegramData.first_name ? telegramData.first_name.trim() : '';
-  const lastName = telegramData.last_name ? telegramData.last_name.trim() : '';
-  
-  if (firstName && lastName) {
-    return `${firstName} ${lastName}`;
-  } else if (firstName) {
-    return firstName;
-  }
-  
-  return 'Telegram User';
+  const firstName = telegramData.first_name || '';
+  const lastName = telegramData.last_name || '';
+  return `${firstName} ${lastName}`.trim() || telegramData.username || `User ${telegramData.id}`;
 }
 
-// Verify Telegram signature
+// Функция проверки подписи Telegram
 async function verifyTelegramAuth(authData: TelegramAuthData, botToken: string): Promise<boolean> {
-  try {
-    const { hash, ...data } = authData;
-    
-    // Check auth_date (must be within 5 minutes)
-    const currentTime = Math.floor(Date.now() / 1000);
-    const authTime = data.auth_date;
-    const timeDiff = currentTime - authTime;
-    
-    if (timeDiff > 300) { // 5 minutes
-      return false;
-    }
-    
-    // Create check string from data
-    const checkString = Object.keys(data)
-      .sort()
-      .map(key => `${key}=${data[key as keyof typeof data]}`)
-      .join('\n');
-    
-    // Use Deno's built-in crypto module
-    const encoder = new TextEncoder();
-    const tokenBytes = encoder.encode(botToken);
-    
-    // First, get SHA-256 hash of the bot token
-    const secretKey = await crypto.subtle.digest('SHA-256', tokenBytes);
-    
-    // Create HMAC key
-    const key = await crypto.subtle.importKey(
-      'raw',
-      secretKey,
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-    
-    // Calculate HMAC
-    const checkStringBytes = encoder.encode(checkString);
-    const signature = await crypto.subtle.sign('HMAC', key, checkStringBytes);
-    
-    // Convert to hex string
-    const calculatedHash = Array.from(new Uint8Array(signature))
-      .map(b => b.toString(16).padStart(2, '0'))
-      .join('');
-    
-    return calculatedHash === hash;
-  } catch (error) {
-    console.error('Error in Telegram signature verification:', error);
-    return false;
-  }
+  const hash = authData.hash;
+  const dataCheckString = Object.keys(authData)
+    .filter(key => key !== 'hash')
+    .sort()
+    .map(key => `${key}=${authData[key as keyof TelegramAuthData]}`)
+    .join('\n');
+
+  const encoder = new TextEncoder();
+  const secretKey = await crypto.subtle.importKey(
+    'raw',
+    await crypto.subtle.digest('SHA-256', encoder.encode(botToken)),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', secretKey, encoder.encode(dataCheckString));
+  const hashArray = Array.from(new Uint8Array(signature));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+  return hashHex === hash;
 }
 
-async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> {
-  console.log('🚀 Starting improved Telegram auth...');
+// Упрощенная функция обработки Telegram авторизации через Magic Links
+async function handleTelegramAuth(telegramData: TelegramAuthData): Promise<Response> {
+  console.log('🚀 Starting simplified Telegram auth...');
+  console.log('📱 Telegram ID:', telegramData.id);
   
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')!;
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+
   try {
-    // Basic validation
-    if (!telegramData || typeof telegramData !== 'object') {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Invalid data'
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Check required environment variables
-    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-
-    if (!botToken || !serviceRoleKey || !supabaseUrl) {
-      console.error('❌ Missing environment variables');
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Server configuration error'
-      }), { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Verify Telegram signature
+    // 1. Проверяем подпись Telegram
     console.log('🔐 Verifying Telegram signature...');
-    const isValidSignature = await verifyTelegramAuth(telegramData, botToken);
-    if (!isValidSignature) {
-      console.error('❌ Invalid Telegram signature');
+    const isValid = await verifyTelegramAuth(telegramData, botToken);
+    if (!isValid) {
+      console.log('❌ Invalid Telegram signature');
       return new Response(JSON.stringify({
         success: false,
-        error: 'Invalid signature'
-      }), { 
-        status: 401, 
+        error: 'Invalid Telegram signature'
+      }), {
+        status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-
     console.log('✅ Signature verified');
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, serviceRoleKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-
-    // Generate user credentials
+    // 2. Генерируем email для пользователя
     const email = generateEmailFromTelegram(telegramData);
     const fullName = generateFullName(telegramData);
-    const temporaryPassword = crypto.randomUUID();
+    
+    console.log('📧 Generated email:', email);
+    console.log('👤 Generated name:', fullName);
 
-    console.log(`📧 Processing user with email: ${email}`);
-    console.log(`📱 Telegram ID: ${telegramData.id}`);
-
-    // Step 1: Check if user exists in profiles by telegram_id
-    console.log('🔍 Checking for existing user by telegram_id...');
-    const { data: profileByTelegramId, error: profileError1 } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('telegram_id', telegramData.id)
-      .maybeSingle();
-
-    if (profileError1) {
-      console.error('❌ Error checking profiles by telegram_id:', profileError1);
-    } else if (profileByTelegramId) {
-      console.log('✅ Found existing user by telegram_id:', profileByTelegramId.id);
-      
-      // Update user's password and metadata in auth.users
-      const { error: updateError } = await supabase.auth.admin.updateUserById(
-        profileByTelegramId.id,
-        {
-          password: temporaryPassword,
-          user_metadata: {
-            auth_method: 'telegram',
-            full_name: fullName,
-            telegram_id: telegramData.id,
-            telegram_username: telegramData.username,
-            telegram_first_name: telegramData.first_name,
-            telegram_photo_url: telegramData.photo_url,
-            user_type: profileByTelegramId.user_type || 'buyer'
-          }
-        }
-      );
-
-      if (updateError) {
-        console.error('❌ Error updating existing user:', updateError);
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Failed to update user'
-        }), { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      console.log('✅ User updated successfully');
-      return new Response(JSON.stringify({
-        success: true,
-        email: profileByTelegramId.email,
-        password: temporaryPassword
-      }), { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Step 2: Check if user exists in profiles by email
-    console.log('🔍 Checking for existing user by email...');
-    const { data: profileByEmail, error: profileError2 } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (profileError2) {
-      console.error('❌ Error checking profiles by email:', profileError2);
-    } else if (profileByEmail) {
-      console.log('✅ Found existing user by email, updating telegram_id...');
-      
-      // Update the profile with telegram data
-      const { error: updateProfileError } = await supabase
-        .from('profiles')
-        .update({
+    // 3. Используем Magic Link подход - создаем сессию через OTP
+    console.log('🔗 Creating magic link session...');
+    
+    // Сначала проверяем существует ли пользователь
+    const { data: existingUser } = await supabase.auth.admin.listUsers();
+    const userExists = existingUser?.users?.some(user => user.email === email);
+    
+    if (!userExists) {
+      console.log('👤 Creating new user via Admin API...');
+      // Создаем пользователя через Admin API, если его нет
+      const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+        email,
+        email_confirm: true, // Подтверждаем email сразу
+        user_metadata: {
+          auth_method: 'telegram',
           telegram_id: telegramData.id,
           telegram_username: telegramData.username,
           telegram_first_name: telegramData.first_name,
           telegram_photo_url: telegramData.photo_url,
-          auth_method: 'telegram'
-        })
-        .eq('id', profileByEmail.id);
-
-      if (updateProfileError) {
-        console.error('❌ Error updating profile:', updateProfileError);
-      }
-
-      // Update user's password in auth.users
-      const { error: updateAuthError } = await supabase.auth.admin.updateUserById(
-        profileByEmail.id,
-        {
-          password: temporaryPassword,
-          user_metadata: {
-            auth_method: 'telegram',
-            full_name: fullName,
-            telegram_id: telegramData.id,
-            telegram_username: telegramData.username,
-            telegram_first_name: telegramData.first_name,
-            telegram_photo_url: telegramData.photo_url,
-            user_type: profileByEmail.user_type || 'buyer'
-          }
+          full_name: fullName
         }
-      );
+      });
 
-      if (updateAuthError) {
-        console.error('❌ Error updating auth user:', updateAuthError);
+      if (createError) {
+        console.error('❌ User creation failed:', createError);
         return new Response(JSON.stringify({
           success: false,
-          error: 'Failed to update user auth'
-        }), { 
-          status: 500, 
+          error: createError.message
+        }), {
+          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
-
-      console.log('✅ User updated successfully with telegram data');
-      return new Response(JSON.stringify({
-        success: true,
-        email: profileByEmail.email,
-        password: temporaryPassword
-      }), { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      
+      console.log('✅ User created:', newUser.user?.id);
+    } else {
+      console.log('👤 User already exists');
     }
 
-    // Step 3: Create new user (no existing profile found)
-    console.log('👤 Creating new user...');
-    const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
+    // 4. Генерируем Magic Link для входа
+    console.log('🎫 Generating magic link...');
+    const { data: magicLinkData, error: magicLinkError } = await supabase.auth.admin.generateLink({
+      type: 'magiclink',
       email,
-      password: temporaryPassword,
-      email_confirm: true,
-      user_metadata: {
-        auth_method: 'telegram',
-        full_name: fullName,
-        telegram_id: telegramData.id,
-        telegram_username: telegramData.username,
-        telegram_first_name: telegramData.first_name,
-        telegram_photo_url: telegramData.photo_url,
-        user_type: 'buyer'
+      options: {
+        redirectTo: `${Deno.env.get('SITE_URL') || 'https://partsbay.ae'}/`
       }
     });
 
-    if (createError) {
-      console.error('❌ User creation failed:', createError);
+    if (magicLinkError) {
+      console.error('❌ Magic link generation failed:', magicLinkError);
       return new Response(JSON.stringify({
         success: false,
-        error: createError.message
-      }), { 
-        status: 400, 
+        error: magicLinkError.message
+      }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('✅ New user created successfully');
+    console.log('✅ Magic link generated');
 
-    // Return credentials for client-side authentication
+    // 5. Возвращаем результат с access_token и refresh_token
     return new Response(JSON.stringify({
       success: true,
-      email,
-      password: temporaryPassword
-    }), { 
-      status: 200, 
+      user: {
+        id: magicLinkData.user.id,
+        email: magicLinkData.user.email,
+        user_metadata: magicLinkData.user.user_metadata
+      },
+      session: {
+        access_token: magicLinkData.session?.access_token,
+        refresh_token: magicLinkData.session?.refresh_token,
+        expires_in: magicLinkData.session?.expires_in,
+        token_type: magicLinkData.session?.token_type
+      }
+    }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
@@ -328,24 +179,23 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
     console.error('❌ Unexpected error:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: 'Internal server error'
-    }), { 
-      status: 500, 
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 }
 
 serve(async (req: Request) => {
-  console.log('🚀 Starting improved Telegram auth...');
-  console.log('📝 Request method:', req.method);
+  console.log('🚀 Telegram auth request received');
+  console.log('📝 Method:', req.method);
   console.log('📝 Content-Type:', req.headers.get('content-type'));
-  console.log('📝 User-Agent:', req.headers.get('user-agent'));
-  console.log('📝 Request URL:', req.url);
+  console.log('📝 URL:', req.url);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('⚡ Handling CORS preflight');
+    console.log('⚡ CORS preflight');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -361,56 +211,63 @@ serve(async (req: Request) => {
   }
 
   try {
-    console.log('📝 Attempting to read request body...');
+    console.log('📝 Reading request body...');
+    const contentType = req.headers.get('content-type') || '';
     
-    // Get content length
-    const contentLength = req.headers.get('content-length');
-    console.log('📝 Content-Length:', contentLength);
+    let telegramData: TelegramAuthData;
     
-    // Get raw text first to see what we're receiving
-    const rawBody = await req.text();
-    console.log('📝 Raw body length:', rawBody.length);
-    console.log('📝 Raw body preview (first 500 chars):', rawBody.substring(0, 500));
-    
-    if (!rawBody || rawBody.trim().length === 0) {
-      console.log('❌ Empty request body');
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Empty request body'
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Try to parse as JSON
-    let telegramData;
-    try {
-      telegramData = JSON.parse(rawBody);
-      console.log('✅ JSON parsed successfully');
-      console.log('📝 Telegram data keys:', Object.keys(telegramData));
-      console.log('📝 Telegram data:', JSON.stringify(telegramData, null, 2));
-    } catch (parseError) {
-      console.error('❌ JSON parse error:', parseError);
-      console.log('📝 Raw body that failed to parse:', rawBody);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Invalid JSON in request body',
-        details: parseError instanceof Error ? parseError.message : 'Unknown parse error',
-        receivedData: rawBody.substring(0, 200)
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (contentType.includes('application/json')) {
+      // JSON format
+      telegramData = await req.json();
+      console.log('✅ Parsed as JSON');
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      // Form data format
+      const formData = await req.formData();
+      telegramData = {
+        id: parseInt(formData.get('id') as string),
+        first_name: formData.get('first_name') as string || undefined,
+        last_name: formData.get('last_name') as string || undefined,
+        username: formData.get('username') as string || undefined,
+        photo_url: formData.get('photo_url') as string || undefined,
+        auth_date: parseInt(formData.get('auth_date') as string),
+        hash: formData.get('hash') as string
+      };
+      console.log('✅ Parsed as form data');
+    } else {
+      // Try to parse as text and then as JSON
+      const rawBody = await req.text();
+      console.log('📝 Raw body:', rawBody.substring(0, 200));
+      
+      try {
+        telegramData = JSON.parse(rawBody);
+        console.log('✅ Parsed raw text as JSON');
+      } catch (parseError) {
+        console.error('❌ Parse error:', parseError);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Invalid request format',
+          contentType,
+          bodyPreview: rawBody.substring(0, 100)
+        }), { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
-    return await handleTelegramCompleteAuth(telegramData);
+    console.log('📋 Telegram data received:', {
+      id: telegramData.id,
+      username: telegramData.username,
+      hasHash: !!telegramData.hash
+    });
+
+    return await handleTelegramAuth(telegramData);
+    
   } catch (error) {
-    console.error('❌ Request parsing error:', error);
-    console.log('📝 Error details:', error instanceof Error ? error.stack : error);
+    console.error('❌ Request processing error:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: 'Invalid request format',
+      error: 'Request processing failed',
       details: error instanceof Error ? error.message : 'Unknown error'
     }), { 
       status: 400, 
