@@ -332,8 +332,16 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     console.log('Checking for existing user with telegram_id:', telegramId);
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
-      .select('id, email, profile_completed, full_name, avatar_url, user_type')
+      .select('id, email, profile_completed, full_name, avatar_url, user_type, telegram_id')
       .eq('telegram_id', telegramId)
+      .maybeSingle();
+      
+    // Also check if the generated email already exists (but with different telegram_id)
+    console.log('Checking for email conflicts with:', email);
+    const { data: emailProfile, error: emailError } = await publicClient
+      .from('profiles')
+      .select('id, email, telegram_id')
+      .eq('email', email)
       .maybeSingle();
     
     if (profileError) {
@@ -350,6 +358,30 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
+    // Handle email conflicts
+    if (emailProfile && !emailError) {
+      console.log('⚠️ Email conflict detected:', {
+        generated_email: email,
+        existing_telegram_id: emailProfile.telegram_id,
+        current_telegram_id: telegramId
+      });
+      
+      if (emailProfile.telegram_id !== telegramId) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Email conflict',
+            details: 'This email is already registered with a different Telegram account',
+            conflicting_email: email,
+            suggestion: 'Please contact support if this is your account'
+          }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+            status: 409 
+          }
+        );
+      }
+    }
+
     if (existingProfile) {
       console.log('🔍 Found existing user by telegram_id:', {
         id: existingProfile.id,
