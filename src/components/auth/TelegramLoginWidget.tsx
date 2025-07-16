@@ -73,7 +73,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
                 telegram_id: data.telegram_data.id,
                 full_name: data.user_data.full_name,
                 photo_url: data.user_data.avatar_url,
-                telegram: data.telegram_data.username
+                telegram: data.telegram_data.username,
+                user_type: 'buyer'
               }
             }
           });
@@ -104,7 +105,8 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
               telegram_id: data.telegram_data.id,
               full_name: fullName,
               photo_url: data.telegram_data.photo_url,
-              telegram: data.telegram_data.username
+              telegram: data.telegram_data.username,
+              user_type: 'buyer'
             }
           }
         });
