@@ -52,47 +52,50 @@ const TelegramLoginButton: React.FC<TelegramLoginButtonProps> = ({
     window.TelegramLoginWidget = {
       dataOnAuth: async (user: TelegramUser) => {
         try {
-          console.log('Telegram auth data received:', user);
+          console.log('📱 Telegram auth data received:', user);
           
-          // Send auth data to our Edge Function for verification and user creation
-          const { data, error } = await supabase.functions.invoke('telegram-complete-auth', {
+          // Send auth data to our NEW simplified Edge Function
+          console.log('🚀 Calling telegram-simple-auth...');
+          const { data, error } = await supabase.functions.invoke('telegram-simple-auth', {
             body: user
           });
 
           if (error) {
-            console.error('Telegram auth error:', error);
+            console.error('❌ Edge Function error:', error);
             onError(error.message || 'Authentication failed');
             return;
           }
 
+          console.log('📦 Edge Function response:', data);
+
           if (data?.success && data?.email && data?.password) {
-            console.log('Telegram verification successful, signing in...');
+            console.log('✅ Verification successful, signing in...');
             
-            // Always sign in with password for all users (new and existing)
+            // Sign in with the credentials from our simplified function
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
               email: data.email,
               password: data.password
             });
 
             if (authError) {
-              console.error('Supabase sign in error:', authError);
+              console.error('❌ Supabase sign in error:', authError);
               onError(authError.message || 'Sign in failed');
               return;
             }
 
             if (authData?.session) {
-              console.log('Telegram authentication successful:', authData);
+              console.log('🎉 Telegram authentication successful!');
               onAuth(user, authData);
             } else {
-              console.error('No session created');
+              console.error('❌ No session created');
               onError('Failed to create session');
             }
           } else {
-            console.error('Telegram authentication failed:', data);
+            console.error('❌ Authentication failed:', data);
             onError(data?.error || 'Authentication failed');
           }
         } catch (error) {
-          console.error('Error during Telegram authentication:', error);
+          console.error('💥 Error during Telegram authentication:', error);
           onError('Authentication failed. Please try again.');
         }
       }
