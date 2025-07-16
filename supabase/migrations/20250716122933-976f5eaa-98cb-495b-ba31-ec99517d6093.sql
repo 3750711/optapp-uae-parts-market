@@ -11,8 +11,7 @@ BEGIN
     auth_method,
     full_name,
     telegram_id,
-    telegram_username,
-    telegram_first_name,
+    telegram,
     avatar_url,
     user_type
   ) VALUES (
@@ -25,8 +24,7 @@ BEGIN
       THEN (NEW.raw_user_meta_data->>'telegram_id')::bigint
       ELSE NULL
     END,
-    NEW.raw_user_meta_data->>'telegram_username',
-    NEW.raw_user_meta_data->>'telegram_first_name',
+    NEW.raw_user_meta_data->>'telegram',
     NEW.raw_user_meta_data->>'photo_url',
     COALESCE((NEW.raw_user_meta_data->>'user_type')::user_type, 'buyer'::user_type)
   );
@@ -43,8 +41,7 @@ EXCEPTION
           THEN (NEW.raw_user_meta_data->>'telegram_id')::bigint
           ELSE telegram_id
         END,
-        telegram_username = NEW.raw_user_meta_data->>'telegram_username',
-        telegram_first_name = NEW.raw_user_meta_data->>'telegram_first_name',
+        telegram = NEW.raw_user_meta_data->>'telegram',
         avatar_url = COALESCE(NEW.raw_user_meta_data->>'photo_url', avatar_url),
         full_name = COALESCE(NEW.raw_user_meta_data->>'full_name', full_name)
       WHERE id = NEW.id;
