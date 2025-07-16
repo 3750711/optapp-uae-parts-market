@@ -112,68 +112,117 @@ serve(async (req) => {
       
       console.log('📧 Generated email:', email)
 
-      // Create auth user
-      const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
-        email: email,
-        password: password,
-        email_confirm: true,
-        user_metadata: {
-          telegram_id: telegramData.id,
-          telegram_first_name: telegramData.first_name,
-          telegram_username: telegramData.username
+      // First check if auth user already exists by email
+      const { data: existingAuthUser, error: listError } = await adminClient.auth.admin.listUsers()
+      
+      if (listError) {
+        console.log('⚠️ Could not check existing auth users:', listError)
+      }
+      
+      const authUserExists = existingAuthUser?.users?.find(u => u.email === email)
+      
+      if (authUserExists) {
+        console.log('🔗 Found existing auth user without profile, linking...')
+        
+        // Create profile for existing auth user
+        const { data: profile, error: insertError } = await adminClient
+          .from('profiles')
+          .insert({
+            id: authUserExists.id,
+            email: email,
+            telegram_id: telegramData.id,
+            telegram_first_name: telegramData.first_name,
+            telegram_last_name: telegramData.last_name,
+            telegram_username: telegramData.username,
+            telegram_photo_url: telegramData.photo_url,
+            full_name: `${telegramData.first_name || ''} ${telegramData.last_name || ''}`.trim() || telegramData.username || `User${telegramData.id}`,
+            user_type: 'buyer',
+            auth_method: 'telegram'
+          })
+          .select()
+          .single()
+
+        if (insertError) {
+          console.log('❌ Profile creation error for existing auth user:', insertError)
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Failed to create profile for existing user' 
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          )
         }
-      })
 
-      if (authError) {
-        console.log('❌ Auth creation error:', authError)
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Failed to create user' 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        )
-      }
-
-      console.log('✅ Auth user created:', authUser.user.id)
-
-      // Create profile
-      const { data: profile, error: insertError } = await adminClient
-        .from('profiles')
-        .insert({
-          id: authUser.user.id,
+        console.log('✅ Profile created for existing auth user:', profile.id)
+        user = profile
+      } else {
+        // Create completely new auth user
+        const { data: authUser, error: authError } = await adminClient.auth.admin.createUser({
           email: email,
-          telegram_id: telegramData.id,
-          telegram_first_name: telegramData.first_name,
-          telegram_last_name: telegramData.last_name,
-          telegram_username: telegramData.username,
-          telegram_photo_url: telegramData.photo_url,
-          full_name: `${telegramData.first_name || ''} ${telegramData.last_name || ''}`.trim() || telegramData.username || `User${telegramData.id}`,
-          user_type: 'buyer',
-          auth_method: 'telegram'
-        })
-        .select()
-        .single()
-
-      if (insertError) {
-        console.log('❌ Profile creation error:', insertError)
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Failed to create profile' 
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
+          password: password,
+          email_confirm: true,
+          user_metadata: {
+            telegram_id: telegramData.id,
+            telegram_first_name: telegramData.first_name,
+            telegram_username: telegramData.username,
+            auth_method: 'telegram'
           }
-        )
-      }
+        })
 
-      console.log('✅ Profile created:', profile.id)
-      user = profile
+        if (authError) {
+          console.log('❌ Auth creation error:', authError)
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Failed to create user' 
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          )
+        }
+
+        console.log('✅ Auth user created:', authUser.user.id)
+
+        // Create profile for new auth user
+        const { data: profile, error: insertError } = await adminClient
+          .from('profiles')
+          .insert({
+            id: authUser.user.id,
+            email: email,
+            telegram_id: telegramData.id,
+            telegram_first_name: telegramData.first_name,
+            telegram_last_name: telegramData.last_name,
+            telegram_username: telegramData.username,
+            telegram_photo_url: telegramData.photo_url,
+            full_name: `${telegramData.first_name || ''} ${telegramData.last_name || ''}`.trim() || telegramData.username || `User${telegramData.id}`,
+            user_type: 'buyer',
+            auth_method: 'telegram'
+          })
+          .select()
+          .single()
+
+        if (insertError) {
+          console.log('❌ Profile creation error:', insertError)
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'Failed to create profile' 
+            }),
+            { 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+              status: 500 
+            }
+          )
+        }
+
+        console.log('✅ Profile created:', profile.id)
+        user = profile
+      }
     }
 
     // For existing users, update password to ensure consistency
