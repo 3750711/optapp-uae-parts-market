@@ -23,10 +23,26 @@ serve(async (req) => {
   }
 
   try {
-    const { authData }: { authData: TelegramAuthData } = await req.json()
+    console.log('=== Request received ===')
+    console.log('Request method:', req.method)
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()))
     
-    console.log('=== Telegram Widget Auth Request ===')
-    console.log('Auth data received:', JSON.stringify(authData, null, 2))
+    const body = await req.text()
+    console.log('Raw request body:', body)
+    
+    let authData: TelegramAuthData
+    try {
+      const parsed = JSON.parse(body)
+      authData = parsed.authData
+      console.log('Parsed authData:', JSON.stringify(authData, null, 2))
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
+      throw new Error('Invalid JSON in request body')
+    }
+    
+    if (!authData) {
+      throw new Error('No authData in request')
+    }
 
     // Get bot token from environment
     const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN')
