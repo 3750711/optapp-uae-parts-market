@@ -375,9 +375,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
         
       } else {
         console.log('🆕 Creating new user...');
-        isNewUser = true;
         
-        // Create new user using admin client - without user_type and with profile_completed: false
+        // Create new user using admin client - set as buyer by default
         const { data: userData, error: userError } = await adminClient.auth.admin.createUser({
           email: email,
           email_confirm: true,
@@ -388,8 +387,8 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
             telegram_first_name: telegramData.first_name,
             telegram_last_name: telegramData.last_name,
             photo_url: telegramData.photo_url,
-            full_name: fullName
-            // Note: user_type is not set for new users - they need to complete registration
+            full_name: fullName,
+            user_type: 'buyer'
           }
         });
         
@@ -438,10 +437,9 @@ async function handleTelegramCompleteAuth(telegramData: any): Promise<Response> 
 
     console.log('Temporary password set successfully for user:', user.id);
     
-    // Return user data and registration status
+    // Return user data for automatic sign-in
     authResult = {
       success: true,
-      is_new_user: isNewUser,
       email: user.email,
       password: tempPassword,
       user_data: {

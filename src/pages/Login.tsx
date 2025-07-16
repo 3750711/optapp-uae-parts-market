@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { detectInputType, getEmailByOptId } from '@/utils/authUtils';
 import { useRateLimit } from '@/hooks/useRateLimit';
 import TelegramLoginButton from '@/components/auth/TelegramLoginButton';
-import TelegramRegistrationForm from '@/components/auth/TelegramRegistrationForm';
+
 
 
 const Login = () => {
@@ -24,8 +24,6 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showEmailForm, setShowEmailForm] = useState(false);
-  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
-  const [telegramUserData, setTelegramUserData] = useState<any>(null);
   
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -49,19 +47,7 @@ const Login = () => {
         return;
       }
       
-      // Check if this is a new user that needs registration completion
-      if (authResult.is_new_user) {
-        console.log('New Telegram user detected, showing registration form');
-        setTelegramUserData({
-          telegramUser: user,
-          userId: authResult.user_data.id,
-          authTokens: authResult.auth_tokens
-        });
-        setShowRegistrationForm(true);
-        return;
-      }
-      
-      // Existing user - check if signInWithPassword was successful (session exists)
+      // Check if signInWithPassword was successful (session exists)
       if (authResult.session) {
         console.log('✅ Telegram authentication successful');
         
@@ -87,44 +73,6 @@ const Login = () => {
     setError(error);
   };
 
-  const handleRegistrationComplete = async () => {
-    try {
-      if (!telegramUserData?.authTokens) {
-        setError('Отсутствуют данные для входа');
-        return;
-      }
-
-      // Sign in with the credentials provided during registration
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: telegramUserData.authTokens.email,
-        password: telegramUserData.authTokens.password
-      });
-
-      if (authError) {
-        console.error('Sign in error after registration:', authError);
-        setError('Ошибка при входе после регистрации: ' + authError.message);
-        return;
-      }
-
-      if (authData?.session) {
-        setShowRegistrationForm(false);
-        toast({
-          title: "Регистрация завершена!",
-          description: "Добро пожаловать в PartsBay!",
-        });
-        navigate(from, { replace: true });
-      } else {
-        setError('Не удалось создать сессию после регистрации');
-      }
-    } catch (error) {
-      console.error('Registration completion error:', error);
-      setError('Ошибка при завершении регистрации: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка'));
-    }
-  };
-
-  const handleRegistrationError = (error: string) => {
-    setError(error);
-  };
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,29 +130,6 @@ const Login = () => {
     }
   };
 
-  // Show registration form for new Telegram users
-  if (showRegistrationForm && telegramUserData) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-4">
-          <TelegramRegistrationForm
-            telegramUser={telegramUserData.telegramUser}
-            userId={telegramUserData.userId}
-            authTokens={telegramUserData.authTokens}
-            onComplete={handleRegistrationComplete}
-            onError={handleRegistrationError}
-          />
-          {error && (
-            <div className="mt-4 max-w-md">
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            </div>
-          )}
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
