@@ -245,29 +245,18 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
     const telegramId = typeof telegramData.id === 'string' ? parseInt(telegramData.id) : telegramData.id;
     console.log('Processed telegram_id:', telegramId);
     
-    // Create both public and service role clients
+    // Create public client for user lookup (no service role key needed)
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const publicClient = createClient(supabaseUrl, supabaseKey);
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Generate email for this user
-    const generatedEmail = generateEmailFromTelegram(telegramData);
-    console.log('Checking for existing user by email:', generatedEmail);
-    console.log('Telegram ID for reference:', telegramId, 'type:', typeof telegramId);
-    
-    // First check auth.users to see if user exists there
-    const { data: authUsers, error: authError } = await serviceClient.auth.admin.listUsers();
-    const existingAuthUser = authUsers?.users?.find(user => user.email === generatedEmail);
-    console.log('Auth.users search result:', existingAuthUser ? 'Found' : 'Not found');
-    
-    // Check profiles table
+    // Check if user already exists by telegram_id (using public client)
+    console.log('Checking for existing user with telegram_id:', telegramId);
     const { data: existingProfile, error: profileError } = await publicClient
       .from('profiles')
-      .select('id, email, profile_completed, full_name, avatar_url, telegram_id')
-      .eq('email', generatedEmail)
-      .maybeSingle();
+      .select('id, email, profile_completed, full_name, avatar_url')
+      .eq('telegram_id', telegramId)
+      .single();
     
     if (profileError && profileError.code !== 'PGRST116') {
       console.error('Error checking existing profile:', profileError);
@@ -283,95 +272,6 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
       );
     }
     
-    console.log('Profile search result:', existingProfile);
-    
-    // Check for telegram_id uniqueness to prevent duplicates
-    const { data: existingTelegramProfile, error: telegramError } = await publicClient
-      .from('profiles')
-      .select('id, email, telegram_id')
-      .eq('telegram_id', telegramId)
-      .neq('email', generatedEmail) // Different email but same telegram_id
-      .maybeSingle();
-      
-    if (existingTelegramProfile) {
-      console.log('Found duplicate telegram_id with different email:', existingTelegramProfile);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Telegram ID already associated with another account',
-          details: `This Telegram account is already linked to another user`
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 400 
-        }
-      );
-    }
-    
-    // Handle existing auth user without profile
-    if (existingAuthUser && !existingProfile) {
-      console.log('🔧 User exists in auth.users but not in profiles, recreating profile...');
-      
-      const fullName = generateFullName(telegramData);
-      
-      // Recreate profile for existing auth user using service client to bypass RLS
-      const { data: newProfile, error: createError } = await serviceClient
-        .from('profiles')
-        .insert({
-          id: existingAuthUser.id,
-          email: generatedEmail,
-          full_name: fullName,
-          avatar_url: telegramData.photo_url,
-          telegram_id: telegramId,
-          telegram: telegramData.username,
-          auth_method: 'telegram',
-          user_type: 'buyer',
-          profile_completed: true
-        })
-        .select()
-        .single();
-        
-      if (createError) {
-        console.error('Error recreating profile:', createError);
-        return new Response(
-          JSON.stringify({ 
-            error: 'Failed to recreate user profile',
-            details: createError.message
-          }),
-          { 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-            status: 500 
-          }
-        );
-      }
-      
-      console.log('✅ Profile recreated successfully:', newProfile);
-      
-      // Return existing user data
-      return new Response(
-        JSON.stringify({
-          success: true,
-          is_existing_user: true,
-          profile_completed: true,
-          existing_user_data: {
-            email: generatedEmail,
-            full_name: fullName,
-            avatar_url: telegramData.photo_url
-          },
-          telegram_data: {
-            id: telegramId,
-            first_name: telegramData.first_name,
-            last_name: telegramData.last_name,
-            username: telegramData.username,
-            photo_url: telegramData.photo_url
-          }
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
-          status: 200 
-        }
-      );
-    }
-    
     if (existingProfile) {
       console.log('🔍 Found existing user:', {
         id: existingProfile.id,
@@ -379,37 +279,14 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
         profile_completed: existingProfile.profile_completed
       });
       
-      // For existing users, we need to ensure they can sign in with the password
-      // Set/update the user's password to match the expected format
-      const expectedPassword = `telegram_${telegramId}`;
-      console.log('🔧 Updating password for existing user to ensure sign-in compatibility...');
-      
-      try {
-        const { error: updateError } = await serviceClient.auth.admin.updateUserById(
-          existingProfile.id,
-          {
-            password: expectedPassword
-          }
-        );
-        
-        if (updateError) {
-          console.error('Password update error:', updateError);
-          // Don't fail here, just log the error
-        } else {
-          console.log('✅ Password updated successfully for existing user');
-        }
-      } catch (passwordUpdateError) {
-        console.error('Exception during password update:', passwordUpdateError);
-        // Don't fail here, just log the error
-      }
-      
-      // Return existing user data for sign in
+      // For existing users, return user data without login credentials
+      // The frontend will handle the sign up/sign in process
       return new Response(
         JSON.stringify({
           success: true,
           is_existing_user: true,
           profile_completed: Boolean(existingProfile.profile_completed),
-          existing_user_data: {
+          user_data: {
             email: existingProfile.email,
             full_name: existingProfile.full_name,
             avatar_url: existingProfile.avatar_url
@@ -479,9 +356,7 @@ async function handleTelegramAuth(telegramData: any): Promise<Response> {
   }
 }
 
-const FUNCTION_VERSION = '1.4.0-error-fix';
 console.log('🚀 Telegram Auth Function starting up...');
-console.log('Function version:', FUNCTION_VERSION);
 console.log('Environment variables check:');
 console.log('- SUPABASE_URL exists:', !!Deno.env.get('SUPABASE_URL'));
 console.log('- SUPABASE_ANON_KEY exists:', !!Deno.env.get('SUPABASE_ANON_KEY'));
