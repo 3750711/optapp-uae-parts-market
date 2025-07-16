@@ -71,26 +71,50 @@ serve(async (req) => {
     console.log('Checking for existing user with telegram_id:', authData.id)
     const { data: existingProfile } = await supabase
       .from('profiles')
-      .select('id, email, full_name')
+      .select('id, email')
       .eq('telegram_id', authData.id)
       .single()
 
-    let userId: string
     let email: string
+    let tempPassword: string
+    const isNewUser = !existingProfile
 
     if (existingProfile) {
-      // User exists, use their ID
-      userId = existingProfile.id
+      // Existing user - generate new temp password for login
       email = existingProfile.email
-      console.log('Existing user found:', { userId, email })
+      tempPassword = crypto.randomUUID()
+      console.log('Existing user found, updating password for login')
+      
+      // Update user password temporarily
+      const { error: updateError } = await supabase.auth.admin.updateUserById(
+        existingProfile.id,
+        { password: tempPassword }
+      )
+      
+      if (updateError) {
+        console.error('Error updating user password:', updateError)
+        throw updateError
+      }
+      
+      // Update profile with latest Telegram data
+      await supabase
+        .from('profiles')
+        .update({
+          full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
+          avatar_url: authData.photo_url,
+          telegram_username: authData.username,
+          telegram_first_name: authData.first_name
+        })
+        .eq('id', existingProfile.id)
+        
     } else {
-      // Create new user
+      // New user - create with temp credentials
+      email = `telegram_${authData.id}@temp.telegram`
+      tempPassword = crypto.randomUUID()
       console.log('Creating new user for telegram_id:', authData.id)
-      const tempEmail = `telegram_${authData.id}@temp.telegram`
-      const tempPassword = crypto.randomUUID()
 
       const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
-        email: tempEmail,
+        email,
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
@@ -98,7 +122,6 @@ serve(async (req) => {
           telegram_id: authData.id,
           telegram_username: authData.username,
           telegram_first_name: authData.first_name,
-          telegram_last_name: authData.last_name,
           photo_url: authData.photo_url,
           full_name: `${authData.first_name} ${authData.last_name || ''}`.trim()
         }
@@ -109,45 +132,17 @@ serve(async (req) => {
         throw signUpError
       }
 
-      userId = newUser.user.id
-      email = tempEmail
-      console.log('New user created:', { userId, email })
-
-      // Update profile with telegram_id
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          telegram_id: authData.id,
-          auth_method: 'telegram',
-          full_name: `${authData.first_name} ${authData.last_name || ''}`.trim(),
-          avatar_url: authData.photo_url,
-          profile_completed: false
-        })
-        .eq('id', userId)
-
-      if (profileError) {
-        console.error('Error updating profile:', profileError)
-        throw profileError
-      }
+      console.log('New user created:', { userId: newUser.user.id, email })
     }
 
-    // Generate access token for the user using admin API
-    console.log('Generating access token for user:', userId)
-    const { data: tokenData, error: tokenError } = await supabase.auth.admin.generateAccessToken(userId)
-
-    if (tokenError) {
-      console.error('Error generating access token:', tokenError)
-      throw tokenError
-    }
-
-    console.log('Access token generated successfully')
+    console.log('Returning credentials for client login')
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        userId,
-        accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token
+        email,
+        password: tempPassword,
+        is_new_user: isNewUser
       }),
       { 
         status: 200, 

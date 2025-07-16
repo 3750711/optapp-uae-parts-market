@@ -36,6 +36,7 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
     try {
       toast.loading('Авторизация через Telegram...');
 
+      // Call Edge Function to verify and get credentials
       const { data, error } = await supabase.functions.invoke('telegram-widget-auth', {
         body: { authData }
       });
@@ -48,16 +49,18 @@ export const TelegramLoginWidget: React.FC<TelegramLoginWidgetProps> = ({
         throw new Error(data.error || 'Authentication failed');
       }
 
-      // Set session using the tokens from the response
-      if (data.accessToken && data.refreshToken) {
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.accessToken,
-          refresh_token: data.refreshToken
-        });
+      // Use standard Supabase auth with returned credentials
+      const { data: authResult, error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password
+      });
 
-        if (sessionError) {
-          throw sessionError;
-        }
+      if (signInError) {
+        throw signInError;
+      }
+
+      if (!authResult.session) {
+        throw new Error('No session created');
       }
 
       toast.dismiss();
